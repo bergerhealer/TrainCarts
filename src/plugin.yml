@@ -1,0 +1,6 @@
+name: Train Carts
+main: com.bergerkiller.bukkit.tc.TrainCarts
+version: 1.1
+author: bergerkiller
+description: Plugin that allows the use of minecart trains
+commands:
