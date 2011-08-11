@@ -32,8 +32,9 @@ import net.minecraft.server.Vec3D;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityMinecart;
 
+import org.bukkit.craftbukkit.entity.CraftMinecart;;
+
 public class MinecartFixer extends EntityMinecart {
-	
 	/*
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
@@ -46,25 +47,28 @@ public class MinecartFixer extends EntityMinecart {
     private double n;
     private double o;
     private double p;
-    
+	
 	public MinecartFixer(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
-	}
-	public MinecartFixer(World world) {
-		super(world);
 	}
 
 	private static HashSet<Minecart> replacedCarts = new HashSet<Minecart>();
 	public static Minecart replace(Minecart m) {
+		//to prevent unneeded cart conversions
 		if (replacedCarts.contains(m)) return m;
+		if (((CraftMinecart) m).getHandle().getClass().equals(MinecartFixer.class)) {
+			replacedCarts.add(m);
+			return m;
+		}
 		
+		//Store some important information for later and remove the Minecart
+		org.bukkit.entity.Entity passenger = m.getPassenger();
 		org.bukkit.World oldworld = m.getWorld();
-	    World s = ((CraftWorld) oldworld).getHandle();
-	    
+	    World s = ((CraftWorld) oldworld).getHandle();    
 		Location l = m.getLocation();
 		m.remove();
 		
-		MinecartFixer f = new MinecartFixer(s);
+		//declare a new MinecartFixer with the same characteristics as the previous Minecart
 		int type;
 		if (m instanceof StorageMinecart) {
 			type = 1;
@@ -73,31 +77,34 @@ public class MinecartFixer extends EntityMinecart {
 		} else {
 			type = 0;
 		}
-		f.type = type;
-		f.setLocation(l.getX(), l.getY(), l.getZ(), l.getYaw(), l.getPitch());
+		MinecartFixer f = new MinecartFixer(s, l.getX(), l.getY(), l.getZ(), type);
+		f.yaw = l.getYaw();
+		f.pitch = l.getPitch();
 		f.motX = m.getVelocity().getX();
 		f.motY = m.getVelocity().getY();
 		f.motZ = m.getVelocity().getZ();
-		if (m.getPassenger() != null) {
-			f.passenger = (Entity) f.world.entityList.get(m.getPassenger().getEntityId());
-		}
 
 		//Add
 		s.addEntity(f);
 
+		//obtain and update the new minecart
 		Minecart mm = (Minecart) f.getBukkitEntity();
-		
 		replacedCarts.add(mm);
+		
+		//transport passenger
+		mm.setPassenger(passenger);
 		
 		return mm;
 	}
 	public static void undoReplacement() {
 		for (Minecart m : replacedCarts) {
 			if (!m.isDead()) {
-				m.remove();
 				Location loc = m.getLocation();
+				org.bukkit.entity.Entity passenger = m.getPassenger();
+				m.remove();
 				Minecart mnew = loc.getWorld().spawn(loc, m.getClass());
 				mnew.setVelocity(m.getVelocity());
+				mnew.setPassenger(passenger);
 			}
 		}
 	}
@@ -284,21 +291,34 @@ public class MinecartFixer extends EntityMinecart {
                     this.locY = (double) (j + 1);
                 }
 
-                if (i1 == 2) {
-                    this.motX -= d0;
-                }
-
-                if (i1 == 3) {
-                    this.motX += d0;
-                }
-
-                if (i1 == 4) {
-                    this.motZ += d0;
-                }
-
-                if (i1 == 5) {
-                    this.motZ -= d0;
-                }
+                // TrainNote: Used to boost a Minecart
+                //======================TrainCarts changes start======================
+                MinecartGroup group = MinecartGroup.get(this);
+                MinecartMember member = null;
+                if (group != null) member = group.getMember(this);
+                if (member != null) {
+                    if (i1 >= 2 && i1 <= 5) {
+                    	member.forceremainder += d0;
+                    }
+                } else {
+                	if (i1 == 2) {
+                		this.motX -= d0;
+                	}
+                     
+                    if (i1 == 3) {
+                        this.motX += d0;
+                    }
+                     
+                    if (i1 == 4) {
+                        this.motZ += d0;
+                    }
+                     
+                    if (i1 == 5) {
+                        this.motZ -= d0;
+                    }
+                }          
+                //======================TrainCarts changes end======================
+                // TrainNote end
 
 				int[][] aint = matrix[i1];
                 double d5 = (double) (aint[1][0] - aint[0][0]);
@@ -317,19 +337,32 @@ public class MinecartFixer extends EntityMinecart {
                 this.motZ = d9 * d6 / d7;
                 double d10;
 
+                // TrainNote: Used to slow down a Minecart
+                if (member != null) member.inputForceFactor = 1;
                 if (flag2) {
                     d10 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
-                    if (d10 < 0.03D) {
-                        this.motX *= 0.0D;
-                        this.motY *= 0.0D;
-                        this.motZ *= 0.0D;
+                    //======================TrainCarts changes start======================
+                    if (member != null) {
+                    	if (d10 < 0.03D) {
+                    		member.inputForceFactor = 0;
+                    	} else {
+                    		member.inputForceFactor = 0.5;
+                    	}
                     } else {
-                        this.motX *= 0.5D;
-                        this.motY *= 0.0D;
-                        this.motZ *= 0.5D;
+                        if (d10 < 0.03D) {
+                            this.motX *= 0.0D;
+                            this.motY *= 0.0D;
+                            this.motZ *= 0.0D;
+                        } else {
+                            this.motX *= 0.5D;
+                            this.motY *= 0.0D;
+                            this.motZ *= 0.5D;
+                        }
                     }
+                    //======================TrainCarts changes end======================
                 }
-
+                // TrainNote end
+                
                 d10 = 0.0D;
                 double d11 = (double) i + 0.5D + (double) aint[0][0] * 0.5D;
                 double d12 = (double) k + 0.5D + (double) aint[0][2] * 0.5D;
@@ -354,7 +387,7 @@ public class MinecartFixer extends EntityMinecart {
                     d17 = (d16 * d5 + d15 * d6) * 2.0D;
                     d10 = d17;
                 }
-
+                
                 this.locX = d11 + d5 * d10;
                 this.locZ = d12 + d6 * d10;
                 this.setPosition(this.locX, this.locY + (double) this.height, this.locZ);
@@ -362,12 +395,13 @@ public class MinecartFixer extends EntityMinecart {
                 d15 = this.motZ;
                 
                 //==================TrainCarts edited==============
-                //if (this.passenger != null) {
-                //   d16 *= 0.75D;
-                //   d15 *= 0.75D;
-                //}
+                // if (this.passenger != null) {
+                //    d16 *= 0.75D;
+                //    d15 *= 0.75D;
+                // }
                 //==================================================
 
+                //TrainNote: Max speed setting applied here
                 if (d16 < -d4) {
                     d16 = -d4;
                 }
@@ -383,6 +417,7 @@ public class MinecartFixer extends EntityMinecart {
                 if (d15 > d4) {
                     d15 = d4;
                 }
+                //TrainNote end
 
                 this.move(d16, 0.0D, d15);
                 if (aint[0][1] != 0 && MathHelper.floor(this.locX) - i == aint[0][0] && MathHelper.floor(this.locZ) - k == aint[0][2]) {
@@ -394,13 +429,13 @@ public class MinecartFixer extends EntityMinecart {
                 // CraftBukkit
                 if (this.passenger != null || !this.slowWhenEmpty) {
                     //==================TrainCarts edited==============
-                    // this.motX *= 0.996999979019165D;
-                    // this.motY *= 0.0D;
-                    // this.motZ *= 0.996999979019165D;
-                    this.motX *= 0.9599999785423279D;
-                    this.motY *= 0.0D;
-                    this.motZ *= 0.9599999785423279D;
-                    //==================================================
+                     this.motX *= 0.996999979019165D;
+                     this.motY *= 0.0D;
+                     this.motZ *= 0.996999979019165D;
+                     //this.motX *= 0.9599999785423279D;
+                     //this.motY *= 0.0D;
+                     //this.motZ *= 0.9599999785423279D;
+                     //==================================================
                 } else {
                     if (this.type == 2) {
                         d17 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
@@ -421,10 +456,9 @@ public class MinecartFixer extends EntityMinecart {
                             this.motZ *= 0.8999999761581421D;
                         }
                     }
-
-                    this.motX *= 0.9599999785423279D;
+                    this.motX *= 0.996999979019165D;
                     this.motY *= 0.0D;
-                    this.motZ *= 0.9599999785423279D;
+                    this.motZ *= 0.996999979019165D;
                 }
 
                 Vec3D vec3d1 = this.h(this.locX, this.locY, this.locZ);
@@ -451,7 +485,7 @@ public class MinecartFixer extends EntityMinecart {
                 }
 
                 double d20;
-
+                
                 if (this.type == 2) {
                     d20 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
                     if (d20 > 0.01D && this.motX * this.motX + this.motZ * this.motZ > 0.0010D) {
@@ -471,9 +505,15 @@ public class MinecartFixer extends EntityMinecart {
                     d20 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
                     if (d20 > 0.01D) {
                         double d21 = 0.06D;
-
+                        //===============TrainCarts Edited================
                         this.motX += this.motX / d20 * d21;
                         this.motZ += this.motZ / d20 * d21;
+                        if (member == null) {
+
+                        } else {
+                        	//member.forceremainder += member.getFullForwardForce() / d20 * d21;
+                        }
+                        //================================================
                     } else if (i1 == 1) {
                         if (this.world.e(i - 1, j, k)) {
                             this.motX = 0.02D;
@@ -592,6 +632,7 @@ public class MinecartFixer extends EntityMinecart {
         }
     }
 	
+	
 	/*
 	 * Cloned and updated to prevent collisions. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/Entity.java
@@ -663,9 +704,13 @@ public class MinecartFixer extends EntityMinecart {
             		} else if (ee instanceof EntityLiving) {
             			Entity vehicle = ((EntityLiving) ee).vehicle;
             			if (vehicle != null && vehicle instanceof EntityMinecart) {
-                			next = false;
-                    		list.remove(ri);
-                    		break;
+            				//derailed?
+            				Minecart m = (Minecart) this.getBukkitEntity();
+            				if (MinecartMember.getRailsBlock(m) != null) {
+                    			next = false;
+                        		list.remove(ri);
+                        		break;
+            				}
             			}
             		}
             	}

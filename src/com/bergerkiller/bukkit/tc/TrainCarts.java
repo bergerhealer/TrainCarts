@@ -11,15 +11,15 @@ public class TrainCarts extends JavaPlugin {
 	/*
 	 * Settings
 	 */	
-	public static double cartDistance = 1.42;
-	public static double turnedCartDistance = 1.7;
-	public static boolean removeDerailedCarts = true;
+	public static double cartDistance = 1.5;
+	public static double turnedCartDistance = 1.6;
+	public static boolean removeDerailedCarts = false;
 	public static double cartDistanceForcer = 0.6;
 	public static double turnedCartDistanceForcer = 0.9;
-	public static double nearCartDistanceFactor = 1.3;
-	public static double maxCartSpeed = 0.350;
+	public static double nearCartDistanceFactor = 1.2;
+	public static double maxCartSpeed = 0.32;
 	public static double maxCartDistance = 4;
-	public static double linkRadius = 2.5;
+	public static double linkRadius = 3;
 	public static int linkInterval = 2;
 	public static boolean contactLinking = false;
 	public static boolean breakCombinedCarts = false;

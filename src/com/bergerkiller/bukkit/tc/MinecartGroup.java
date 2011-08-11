@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import net.minecraft.server.EntityMinecart;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
@@ -66,6 +68,9 @@ public class MinecartGroup {
 	public static void remove(Minecart m) {
 		MinecartGroup g = get(m);
 		if (g != null) g.removeCart(m);
+	}
+	public static MinecartGroup get(EntityMinecart m) {
+		return get(m.getBukkitEntity());
 	}
 	public static MinecartGroup get(Entity e) {
 		if (e instanceof Minecart) return get((Minecart) e);
@@ -239,6 +244,12 @@ public class MinecartGroup {
 		if (index == -1) return null;
 		return mc.get(index);
 	}
+	public MinecartMember getMember(EntityMinecart instance) {
+		return getMember(instance.getBukkitEntity());
+	}
+	public MinecartMember[] getMembers() {
+		return mc.toArray(new MinecartMember[0]);
+	}
 	public boolean removeCart(Minecart m) {
 		int index = indexOf(m);
 		if (index == -1) return false;
@@ -317,13 +328,12 @@ public class MinecartGroup {
 		double force = 0;
 		for (MinecartMember m : mc) {
 			force += m.getForwardForce();
-		}
+		}	
 		force /= mc.size();
 				
 		if (!ignorecartdistance) {
 			mc.get(mc.size() - 1).addForceFactor(0, 0); //last cart max speed
 
-			//broadcast("HEAD: " + head().getYaw());
 			for (int i = mc.size() - 2;i >= 0;i--) {
 				double distance = mc.get(i).distanceXZ(mc.get(i + 1));
 				double threshold = 0;
@@ -343,16 +353,6 @@ public class MinecartGroup {
 				}
 				mc.get(i).addForceFactor(forcer, threshold - distance);
 			}
-			
-			//Go "full force" if no carts are falling behind
-			boolean gofullforce = true;
-			for (MinecartMember m : mc) {
-				if (m.hasForceFactor()) {
-					gofullforce = false;
-					break;
-				}
-			}
-			if (gofullforce) force = fullforce / mc.size();
 		}
 
 		//update all carts

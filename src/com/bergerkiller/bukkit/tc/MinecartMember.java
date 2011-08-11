@@ -22,6 +22,7 @@ public class MinecartMember {
 	}
 	private Minecart m;
 	public double forceremainder = 0;
+	public double inputForceFactor = 1; //used for breaks
 	private double forceFactor = 1;
 	private float yaw = 0;
 
@@ -162,6 +163,7 @@ public class MinecartMember {
 	public double getFullForwardForce() {
 		double force = getForce(m.getVelocity(), getYaw(), 0);
         force /= forceFactor;
+        force *= inputForceFactor;
         force += forceremainder;
         return force;
 	}
