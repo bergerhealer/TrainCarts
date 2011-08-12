@@ -48,7 +48,7 @@ public class MinecartGroup {
 			}
 		    for (Minecart m1 : minecarts) {
 	    	    for (Minecart m2 : minecarts) {
-	    	    	if (m1 != m2) {
+	    	    	if (m1 != m2 && m1.getLocation().getWorld() == m2.getLocation().getWorld()) {
 	    	    		double distance = m1.getLocation().distance(m2.getLocation());
 	    	    		if (distance <= TrainCarts.linkRadius) {
 	    	    			link(m1, m2);
@@ -298,6 +298,17 @@ public class MinecartGroup {
 		Collections.reverse(mc);
 	}
 
+	public void updateReverse() {
+		//Sorting the carts, head at 0
+		double fullforce  = 0;
+		for (MinecartMember m : mc) {
+			fullforce += m.getFullForwardForce();
+		}
+		if (fullforce < 0) {
+			fullforce = 0;
+			reverse();
+		}
+	}
 	public void update() {
 		update(false);
 	}
@@ -314,16 +325,8 @@ public class MinecartGroup {
 			mc.get(i).setYawFrom(mc.get(i + 1));
 		}
 		
-		//Sorting the carts, head at 0
-		double fullforce  = 0;
-		for (MinecartMember m : mc) {
-			fullforce += m.getFullForwardForce();
-		}
-		if (fullforce < 0) {
-			fullforce = 0;
-			reverse();
-		}
-
+		updateReverse();
+		
 		//Get the average forwarding force of all carts
 		double force = 0;
 		for (MinecartMember m : mc) {

@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -11,7 +10,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
-import org.bukkit.entity.PoweredMinecart;
 import org.bukkit.entity.Player;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
@@ -164,11 +162,11 @@ public class MinecartMember {
 		double force = getForce(m.getVelocity(), getYaw(), 0);
         force /= forceFactor;
         force *= inputForceFactor;
-        force += forceremainder;
         return force;
 	}
 	public double getForwardForce() {
         double force = getFullForwardForce();
+        force += forceremainder;
         if (force < 0) force = 0;
         //set limit and store the part that is removed (force remainder)
         double maxspeed = TrainCarts.maxCartSpeed;

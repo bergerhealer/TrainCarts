@@ -22,6 +22,8 @@ import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
 import net.minecraft.server.BlockMinecartTrack;
 import net.minecraft.server.Entity;
+import net.minecraft.server.EntityCreature;
+import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityLiving;
 import net.minecraft.server.Item;
@@ -290,31 +292,47 @@ public class MinecartFixer extends EntityMinecart {
                 if (i1 >= 2 && i1 <= 5) {
                     this.locY = (double) (j + 1);
                 }
+                
+            	if (i1 == 2) {
+            		this.motX -= d0;
+            	}
+                 
+                if (i1 == 3) {
+                    this.motX += d0;
+                }
+                 
+                if (i1 == 4) {
+                    this.motZ += d0;
+                }
+                 
+                if (i1 == 5) {
+                    this.motZ -= d0;
+                }
 
-                // TrainNote: Used to boost a Minecart
+                // TrainNote: Used to boost a Minecart on powered tracks, changed it to send power to the group instead
                 //======================TrainCarts changes start======================
                 MinecartGroup group = MinecartGroup.get(this);
                 MinecartMember member = null;
                 if (group != null) member = group.getMember(this);
                 if (member != null) {
                     if (i1 >= 2 && i1 <= 5) {
+                    	// Set initial direction for the cart (sloped launcher!!!)
                     	member.forceremainder += d0;
-                    }
-                } else {
-                	if (i1 == 2) {
-                		this.motX -= d0;
-                	}
-                     
-                    if (i1 == 3) {
-                        this.motX += d0;
-                    }
-                     
-                    if (i1 == 4) {
-                        this.motZ += d0;
-                    }
-                     
-                    if (i1 == 5) {
-                        this.motZ -= d0;
+                    	group.updateReverse();
+                    	
+                    	// Revert old changes (we already added a force remainder)
+                    	if (i1 == 2) {
+                    		this.motX += d0;
+                    	}
+                        if (i1 == 3) {
+                            this.motX -= d0;
+                        }
+                        if (i1 == 4) {
+                            this.motZ -= d0;
+                        }
+                        if (i1 == 5) {
+                            this.motZ += d0;
+                        }
                     }
                 }          
                 //======================TrainCarts changes end======================
@@ -701,17 +719,6 @@ public class MinecartFixer extends EntityMinecart {
             			next = false;
                 		list.remove(ri);
                 		break;
-            		} else if (ee instanceof EntityLiving) {
-            			Entity vehicle = ((EntityLiving) ee).vehicle;
-            			if (vehicle != null && vehicle instanceof EntityMinecart) {
-            				//derailed?
-            				Minecart m = (Minecart) this.getBukkitEntity();
-            				if (MinecartMember.getRailsBlock(m) != null) {
-                    			next = false;
-                        		list.remove(ri);
-                        		break;
-            				}
-            			}
             		}
             	}
             	if (next) ri++;
