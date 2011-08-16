@@ -21,12 +21,13 @@ public class TrainCarts extends JavaPlugin {
 	public static double maxCartDistance = 4;
 	public static double linkRadius = 3;
 	public static int linkInterval = 2;
-	public static boolean contactLinking = false;
 	public static boolean breakCombinedCarts = false;
+	public static double poweredCartBoost = 0.0;
 	
 	
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
+	private final TCWorldListener worldListener = new TCWorldListener();	
 	private final TCVehicleListener vehicleListener = new TCVehicleListener(this);	
 	private int ugtask;
 	
@@ -39,6 +40,7 @@ public class TrainCarts extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
 		
 		//Load from config
 		Configuration config = this.getConfiguration();
@@ -52,10 +54,10 @@ public class TrainCarts extends JavaPlugin {
 			removeDerailedCarts = config.getBoolean("removeDerailedCarts", removeDerailedCarts);
 			maxCartSpeed = config.getDouble("maxCartSpeed", maxCartSpeed);
 			maxCartDistance = config.getDouble("maxCartDistance", maxCartDistance);
-			contactLinking = config.getBoolean("linking.useContactLinking", contactLinking);
 			linkRadius = config.getDouble("linking.linkRadius", linkRadius);
 			linkInterval = config.getInt("linking.linkInterval", linkInterval);
 			breakCombinedCarts = config.getBoolean("breakCombinedCarts", breakCombinedCarts);
+			poweredCartBoost = config.getDouble("poweredCartBoost", poweredCartBoost);
 			
 			//save it again (no file was there or invalid)
 			config.setHeader("# In here you can change the settings for the TrainCarts plugin", 
@@ -82,10 +84,10 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("removeDerailedCarts", removeDerailedCarts);
 			config.setProperty("maxCartSpeed", maxCartSpeed);
 			config.setProperty("maxCartDistance", maxCartDistance);
-			config.setProperty("linking.useContactLinking", contactLinking);
 			config.setProperty("linking.linkRadius", linkRadius);
 			config.setProperty("linking.linkInterval", linkInterval);	
 			config.setProperty("breakCombinedCarts", breakCombinedCarts);
+			config.setProperty("poweredCartBoost", poweredCartBoost);
 			config.save();
 		}
 		
@@ -93,7 +95,7 @@ public class TrainCarts extends JavaPlugin {
     	ugtask = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
     	    public void run() {
     	    	MinecartGroup.cleanGroups();
-    	    	if (!contactLinking) MinecartGroup.updateGroups();
+    	    	
     	    }
     	}, 0, linkInterval);
     		

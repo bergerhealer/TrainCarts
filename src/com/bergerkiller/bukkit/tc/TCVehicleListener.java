@@ -37,15 +37,11 @@ public class TCVehicleListener extends VehicleListener {
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
 		if (event.getEntity() instanceof Minecart) {
 			if (event.getVehicle() instanceof Minecart) {			
-				if (TrainCarts.contactLinking) {
 					Minecart m1 = (Minecart) event.getEntity();
 					Minecart m2 = (Minecart) event.getVehicle();
 					if (!MinecartGroup.link(m1, m2)) {
 						event.setCancelled(true);
 					}
-				} else {
-					event.setCancelled(true);
-				}
 			}
 		}
 	}

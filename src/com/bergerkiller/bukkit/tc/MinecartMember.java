@@ -33,7 +33,7 @@ public class MinecartMember {
 		m.setVelocity(new Vector());
 	}
 	public static boolean isDerailed(Minecart m) {
-		return getRails(m) == null;
+		return getRailsBlock(m) == null;
 	}
 	
 	public static Block getRailsBlock(Minecart m) {
@@ -61,6 +61,7 @@ public class MinecartMember {
 		int stepcount = dx + dz;
 		Block bm1 = getRailsBlock(m1);
 		Block bm2 = getRailsBlock(m2);	
+		if (bm1 == null || bm2 == null) return false;
 		for (Block b : getAdjacentRails(bm1, stepcount)) {
 			if (b == bm2) return true;
 		}
@@ -159,14 +160,14 @@ public class MinecartMember {
 	}
 	
 	public double getFullForwardForce() {
-		double force = getForce(m.getVelocity(), getYaw(), 0);
+		double force = getForce(m.getVelocity(), getYaw(), getPitch());
         force /= forceFactor;
         force *= inputForceFactor;
         return force;
 	}
 	public double getForwardForce() {
         double force = getFullForwardForce();
-        force += forceremainder;
+        force += forceremainder * inputForceFactor;
         if (force < 0) force = 0;
         //set limit and store the part that is removed (force remainder)
         double maxspeed = TrainCarts.maxCartSpeed;
@@ -177,11 +178,7 @@ public class MinecartMember {
 	}
 	public void setForwardForce(double force) {
 		force *= forceFactor;
-		double ryaw = -getYaw() / 180 * Math.PI;
-		Vector v = new Vector(0, m.getVelocity().getY(), 0);
-		v.setX(Math.sin(ryaw) * force);
-		v.setZ(Math.cos(ryaw) * force);
-		m.setVelocity(v);
+		m.setVelocity(getVelocity(force, getYaw(), getPitch(), m.getVelocity().getY()));
 	}
 	
 	public void addForceFactor(double forcer, double factor) {
