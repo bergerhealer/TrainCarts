@@ -37,27 +37,6 @@ public class MinecartGroup {
 			MinecartFixer.removeReplacedCart(m);
 		}
 	}
-	public static void updateGroups() {
-		//generate groups
-		for (World w : Bukkit.getServer().getWorlds()) {
-			ArrayList<Minecart> minecarts = new ArrayList<Minecart>();
-			for (Entity e : w.getEntities()) {
-				if (e instanceof Minecart && validateCart((Minecart) e)) {
-					minecarts.add((Minecart) e);
-				}
-			}
-		    for (Minecart m1 : minecarts) {
-	    	    for (Minecart m2 : minecarts) {
-	    	    	if (m1 != m2 && m1.getLocation().getWorld() == m2.getLocation().getWorld()) {
-	    	    		double distance = m1.getLocation().distance(m2.getLocation());
-	    	    		if (distance <= TrainCarts.linkRadius) {
-	    	    			link(m1, m2);
-	    	    		}
-	    	    	}
-	    	    }
-		    }
-		}
-	}
 	public static void updateMembers() {
 		for (MinecartGroup g : groups) g.update();
 	}

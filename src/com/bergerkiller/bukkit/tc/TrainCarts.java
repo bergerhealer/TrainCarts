@@ -19,8 +19,7 @@ public class TrainCarts extends JavaPlugin {
 	public static double nearCartDistanceFactor = 1.2;
 	public static double maxCartSpeed = 0.32;
 	public static double maxCartDistance = 4;
-	public static double linkRadius = 3;
-	public static int linkInterval = 2;
+	public static int cleanUpInterval = 2;
 	public static boolean breakCombinedCarts = false;
 	public static double poweredCartBoost = 0.0;
 	
@@ -54,8 +53,7 @@ public class TrainCarts extends JavaPlugin {
 			removeDerailedCarts = config.getBoolean("removeDerailedCarts", removeDerailedCarts);
 			maxCartSpeed = config.getDouble("maxCartSpeed", maxCartSpeed);
 			maxCartDistance = config.getDouble("maxCartDistance", maxCartDistance);
-			linkRadius = config.getDouble("linking.linkRadius", linkRadius);
-			linkInterval = config.getInt("linking.linkInterval", linkInterval);
+			cleanUpInterval = config.getInt("cleanUpInterval", cleanUpInterval);
 			breakCombinedCarts = config.getBoolean("breakCombinedCarts", breakCombinedCarts);
 			poweredCartBoost = config.getDouble("poweredCartBoost", poweredCartBoost);
 			
@@ -84,8 +82,7 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("removeDerailedCarts", removeDerailedCarts);
 			config.setProperty("maxCartSpeed", maxCartSpeed);
 			config.setProperty("maxCartDistance", maxCartDistance);
-			config.setProperty("linking.linkRadius", linkRadius);
-			config.setProperty("linking.linkInterval", linkInterval);	
+			config.setProperty("cleanUpInterval", cleanUpInterval);
 			config.setProperty("breakCombinedCarts", breakCombinedCarts);
 			config.setProperty("poweredCartBoost", poweredCartBoost);
 			config.save();
@@ -95,9 +92,8 @@ public class TrainCarts extends JavaPlugin {
     	ugtask = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
     	    public void run() {
     	    	MinecartGroup.cleanGroups();
-    	    	
     	    }
-    	}, 0, linkInterval);
+    	}, 0, cleanUpInterval);
     		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
