@@ -80,6 +80,17 @@ public class MinecartGroup {
 		return mgroups.get(m);
 	}
 	
+	public static void shareForce(MinecartGroup group) {
+		double f = 0;
+		for (MinecartMember m : group.mc) {
+			f += m.getForwardForce();
+		}
+		f /= group.mc.size();
+		group.updateReverse();
+		for (MinecartMember m : group.mc) {
+			m.setForwardForce(f);
+		}
+	}
 	public static boolean link(Minecart m1, Minecart m2) {
 		MinecartGroup g1 = get(m1);
 		MinecartGroup g2 = get(m2);
@@ -105,7 +116,8 @@ public class MinecartGroup {
 			groups.add(g);
 			mgroups.put(m1, g);
 			mgroups.put(m2, g);
-			g.update(true);
+			//g.update(true);
+			shareForce(g);
 			playLinkEffect(m1);
 			return true;
 		} else if (g1 == null && g2 != null) {
@@ -113,7 +125,8 @@ public class MinecartGroup {
 			m1 = g2.connect(m2, m1);
 			if (m1 != null) {
 				mgroups.put(m1, g2);
-				g2.update(true);
+				//g2.update(true);
+				shareForce(g2);
 				playLinkEffect(m1);
 				return true;
 			} else {
@@ -124,7 +137,8 @@ public class MinecartGroup {
 			m2 = g1.connect(m1, m2);
 			if (m2 != null) {
 				mgroups.put(m2, g1);
-				g1.update(true);
+				//g1.update(true);
+				shareForce(g1);
 				playLinkEffect(m2);
 				return true;
 			} else {
@@ -138,15 +152,19 @@ public class MinecartGroup {
 			if (m1index == 0 && m2index == 0) {
 				g1.reverse();
 				g2.mc.addAll(0, g1.mc);
+				broadcast("MODE 1");
 			} else if (m1index == 0 && m2index == g2.mc.size() - 1) {
 				g1.reverse();
 				g2.reverse();
 				g2.mc.addAll(g1.mc);
+				broadcast("MODE 2");
 			} else if (m1index == g1.mc.size() - 1 && m2index == 0) {
 				g2.mc.addAll(0, g1.mc);
+				broadcast("MODE 3");
 			} else if (m1index == g1.mc.size() - 1 && m2index == g2.mc.size() - 1) {
 				g2.reverse();
 				g2.mc.addAll(g1.mc);
+				broadcast("MODE 4");
 			} else {
 				return false;
 			}
@@ -154,7 +172,8 @@ public class MinecartGroup {
 			for (MinecartMember m : g2.mc) {
 				mgroups.put(m.getMinecart(), g2);
 			}
-			g2.update(true);
+			shareForce(g2);
+			//g2.update(true);
 			playLinkEffect(m2);
 			return true;
 		}
@@ -169,17 +188,10 @@ public class MinecartGroup {
 	public static boolean validateCart(Minecart m) {
 		if (m.isDead()) return false;
 		if (TrainCarts.removeDerailedCarts) {
-			Block b = m.getLocation().getBlock();
-			if (b.getType() == Material.RAILS) return true;
-			if (b.getType() == Material.POWERED_RAIL) return true;
-			if (b.getType() == Material.DETECTOR_RAIL) return true;
-			b = b.getRelative(BlockFace.DOWN);
-			if (b.getType() == Material.RAILS) return true;
-			if (b.getType() == Material.POWERED_RAIL) return true;
-			if (b.getType() == Material.DETECTOR_RAIL) return true;
-			return false;
+			return MinecartMember.getRailsBlock(m) != null;
+		} else {
+			return true;
 		}
-		return true;
 	}
 	public static void broadcast(String msg) {
 		Bukkit.getServer().broadcastMessage(msg);
@@ -304,15 +316,17 @@ public class MinecartGroup {
 		for (MinecartMember m : mc) {
 			fullforce += m.getFullForwardForce();
 		}
-		if (fullforce < 0) {
-			fullforce = 0;
-			reverse();
-		}
+		if (fullforce < 0) reverse();
 	}
 	public void update() {
 		update(false);
 	}
 	public void update(boolean ignorecartdistance) {
+		if (!TCPlayerListener.usefactor) {
+			ignorecartdistance = true;
+			for (MinecartMember m : mc) m.addForceFactor(0, 0);
+		}
+		
 		//Prevent index exceptions: remove if not a train
 		if (mc.size() <= 1) {
 			this.remove();

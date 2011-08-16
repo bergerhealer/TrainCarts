@@ -445,17 +445,16 @@ public class MinecartFixer extends EntityMinecart {
                 }
 
                 // CraftBukkit
-                if (this.passenger != null || !this.slowWhenEmpty) {
-                    //==================TrainCarts edited==============
+                //==================TrainCarts edited==============
+                if (this.passenger != null) { // || !this.slowWhenEmpty) {
                      this.motX *= 0.996999979019165D;
                      this.motY *= 0.0D;
                      this.motZ *= 0.996999979019165D;
                      //this.motX *= 0.9599999785423279D;
                      //this.motY *= 0.0D;
                      //this.motZ *= 0.9599999785423279D;
-                     //==================================================
                 } else {
-                    if (this.type == 2) {
+                    if (this.type == 2) { 	
                         d17 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
                         if (d17 > 0.01D) {
                             flag = true;
@@ -463,9 +462,9 @@ public class MinecartFixer extends EntityMinecart {
                             this.g /= d17;
                             double d18 = 0.04D;
 
-                            this.motX *= 0.800000011920929D;
+                            this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
                             this.motY *= 0.0D;
-                            this.motZ *= 0.800000011920929D;
+                            this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
                             this.motX += this.f * d18;
                             this.motZ += this.g * d18;
                         } else {
@@ -478,6 +477,7 @@ public class MinecartFixer extends EntityMinecart {
                     this.motY *= 0.0D;
                     this.motZ *= 0.996999979019165D;
                 }
+                //==================================================
 
                 Vec3D vec3d1 = this.h(this.locX, this.locY, this.locZ);
 
@@ -504,6 +504,7 @@ public class MinecartFixer extends EntityMinecart {
 
                 double d20;
                 
+                //TrainNote: PushX and PushZ updated for Powered Minecarts
                 if (this.type == 2) {
                     d20 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
                     if (d20 > 0.01D && this.motX * this.motX + this.motZ * this.motZ > 0.0010D) {
@@ -518,7 +519,8 @@ public class MinecartFixer extends EntityMinecart {
                         }
                     }
                 }
-
+                //TrainNote end
+                
                 if (flag1) {
                     d20 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
                     if (d20 > 0.01D) {
