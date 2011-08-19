@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.io.File;
+import java.util.logging.Level;
+
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -14,32 +17,32 @@ public class TrainCarts extends JavaPlugin {
 	public static double cartDistance = 1.5;
 	public static double turnedCartDistance = 1.6;
 	public static boolean removeDerailedCarts = false;
-	public static double cartDistanceForcer = 0.6;
-	public static double turnedCartDistanceForcer = 0.9;
-	public static double nearCartDistanceFactor = 1.2;
-	public static double maxCartSpeed = 0.32;
+	public static double cartDistanceForcer = 0.1;
+	public static double turnedCartDistanceForcer = 0.2;
+	public static double nearCartDistanceFactor = 1.4;
+	public static double maxCartSpeed = 0.35;
 	public static double maxCartDistance = 4;
 	public static int cleanUpInterval = 2;
 	public static boolean breakCombinedCarts = false;
-	public static double poweredCartBoost = 0.0;
-	
-	
+	public static double poweredCartBoost = 0.1;
+		
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
-	private final TCWorldListener worldListener = new TCWorldListener();	
-	private final TCVehicleListener vehicleListener = new TCVehicleListener(this);	
+	private final TCWorldListener worldListener = new TCWorldListener();
+	private final TCVehicleListener vehicleListener = new TCVehicleListener();	
 	private int ugtask;
 	
-	public void onEnable() {	
+	public void onEnable() {
+		
 		plugin = this;
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.VEHICLE_UPDATE, vehicleListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
 		
 		//Load from config
 		Configuration config = this.getConfiguration();
@@ -88,6 +91,12 @@ public class TrainCarts extends JavaPlugin {
 			config.save();
 		}
 		
+		//Load groups
+		GroupManager.loadGroups(getDataFolder() + File.separator + "trains.groupdata");
+		
+		//Restore carts where possible
+		GroupManager.refresh();
+		
 		//clean groups from dead and derailed carts and form new groups
     	ugtask = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
     	    public void run() {
@@ -97,13 +106,25 @@ public class TrainCarts extends JavaPlugin {
     		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
-        System.out.println(pdfFile.getName() + " version " + pdfFile.getVersion() + " is enabled!" );
+        Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!" );
 	}
 	public void onDisable() {
 		//Stop tasks
 		getServer().getScheduler().cancelTask(ugtask);
+		
 		//undo replacements for correct saving
-		MinecartFixer.undoReplacement();
+		for (MinecartGroup mg : MinecartGroup.getGroups()) {
+			GroupManager.hideGroup(mg);
+		}
+		
+		//Save for next load
+		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
+		
+		
+		//MinecartMember.undoReplacement();
+		
+		
+		
 		
 		System.out.println("TrainCarts disabled!");
 	}
