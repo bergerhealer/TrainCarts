@@ -31,7 +31,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
-    private boolean i;
+	private boolean i;
     private static final int[][][] matrix = new int[][][] { 
 			{ { 0, 0, -1 }, { 0, 0, 1 } }, { { -1, 0, 0 }, { 1, 0, 0 } },
 			{ { -1, -1, 0 }, { 1, 0, 0 } }, { { -1, 0, 0 }, { 1, -1, 0 } },
@@ -121,49 +121,49 @@ public class NativeMinecartMember extends EntityMinecart {
                 // CraftBukkit end
 
                 this.die();
-                if (TrainCarts.spawnItemDrops) {
-                    if (TrainCarts.breakCombinedCarts || this.type == 0) this.a(Item.MINECART.id, 1, 0.0F);
-                    if (this.type == 1) {
-                        EntityMinecart entityminecart = this;
+                if (TrainCarts.breakCombinedCarts || this.type == 0) {
+                	if (TrainCarts.spawnItemDrops) this.a(Item.MINECART.id, 1, 0.0F);
+                }
+                if (this.type == 1) {
+                    EntityMinecart entityminecart = this;
 
-                        for (int j = 0; j < entityminecart.getSize(); ++j) {
-                            ItemStack itemstack = entityminecart.getItem(j);
+                    for (int j = 0; j < entityminecart.getSize(); ++j) {
+                        ItemStack itemstack = entityminecart.getItem(j);
 
-                            if (itemstack != null) {
-                                float f = this.random.nextFloat() * 0.8F + 0.1F;
-                                float f1 = this.random.nextFloat() * 0.8F + 0.1F;
-                                float f2 = this.random.nextFloat() * 0.8F + 0.1F;
+                        if (itemstack != null) {
+                            float f = this.random.nextFloat() * 0.8F + 0.1F;
+                            float f1 = this.random.nextFloat() * 0.8F + 0.1F;
+                            float f2 = this.random.nextFloat() * 0.8F + 0.1F;
 
-                                while (itemstack.count > 0) {
-                                    int k = this.random.nextInt(21) + 10;
+                            while (itemstack.count > 0) {
+                                int k = this.random.nextInt(21) + 10;
 
-                                    if (k > itemstack.count) {
-                                        k = itemstack.count;
-                                    }
-
-                                    itemstack.count -= k;
-                                    EntityItem entityitem = new EntityItem(this.world, this.locX + (double) f, this.locY + (double) f1, this.locZ + (double) f2, new ItemStack(itemstack.id, k, itemstack.getData()));
-                                    float f3 = 0.05F;
-
-                                    entityitem.motX = (double) ((float) this.random.nextGaussian() * f3);
-                                    entityitem.motY = (double) ((float) this.random.nextGaussian() * f3 + 0.2F);
-                                    entityitem.motZ = (double) ((float) this.random.nextGaussian() * f3);
-                                    this.world.addEntity(entityitem);
+                                if (k > itemstack.count) {
+                                    k = itemstack.count;
                                 }
+
+                                itemstack.count -= k;
+                                EntityItem entityitem = new EntityItem(this.world, this.locX + (double) f, this.locY + (double) f1, this.locZ + (double) f2, new ItemStack(itemstack.id, k, itemstack.getData()));
+                                float f3 = 0.05F;
+
+                                entityitem.motX = (double) ((float) this.random.nextGaussian() * f3);
+                                entityitem.motY = (double) ((float) this.random.nextGaussian() * f3 + 0.2F);
+                                entityitem.motZ = (double) ((float) this.random.nextGaussian() * f3);
+                                this.world.addEntity(entityitem);
                             }
                         }
-                        if (TrainCarts.breakCombinedCarts) {
-                            this.a(Block.CHEST.id, 1, 0.0F);
-                        } else {
-                            this.a(Material.STORAGE_MINECART.getId(), 1, 0.0F);
-                        }
-                    } else if (this.type == 2) {
-                    	if (TrainCarts.breakCombinedCarts) {
-                            this.a(Block.FURNACE.id, 1, 0.0F);
-                    	} else {
-                    		this.a(Material.POWERED_MINECART.getId(), 1, 0.0F);
-                    	}
                     }
+                    if (TrainCarts.breakCombinedCarts) {
+                    	if (TrainCarts.spawnItemDrops) this.a(Block.CHEST.id, 1, 0.0F);
+                    } else {
+                    	if (TrainCarts.spawnItemDrops) this.a(Material.STORAGE_MINECART.getId(), 1, 0.0F);
+                    }
+                } else if (this.type == 2) {
+                	if (TrainCarts.breakCombinedCarts) {
+                		if (TrainCarts.spawnItemDrops) this.a(Block.FURNACE.id, 1, 0.0F);
+                	} else {
+                		if (TrainCarts.spawnItemDrops) this.a(Material.POWERED_MINECART.getId(), 1, 0.0F);
+                	}
                 }
             }
             return true;

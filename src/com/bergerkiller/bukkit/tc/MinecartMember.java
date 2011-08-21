@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import net.minecraft.server.Entity;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.World;
 
@@ -55,29 +54,11 @@ public class MinecartMember extends NativeMinecartMember {
 			return mm;
 		}
 				
-		//declare a new MinecartFixer with the same characteristics as the previous Minecart
+		//declare a new MinecartMember with the same characteristics as the previous EntityMinecart
 		MinecartMember f = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
-		f.yaw = em.yaw;
-		f.pitch = em.pitch;
-		f.locX = em.locX;
-		f.locY = em.locY;
-		f.locZ = em.locZ;
-		f.motX = em.motX;
-		f.motY = em.motY;
-		f.motZ = em.motZ;
-		f.e = em.e;
-		f.f = em.f;
-		f.g = em.g;
-		f.uniqueId = em.uniqueId;
 		f.group = group;
-		Entity passenger = em.passenger;
-
-		//Swap
-		m.remove();
-		f.world.addEntity(f);
 		
-		//Teleport passenger over
-		if (passenger != null) passenger.setPassengerOf(f);
+		Util.replaceMinecarts(em, f);
 		
 		replacedCarts.add(f);
 		return f;
@@ -85,22 +66,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public static void undoReplacement(MinecartMember mm) {
 		if (!mm.dead) {
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
-			em.yaw = mm.yaw;
-			em.pitch = mm.pitch;
-			em.locX = mm.locX;
-			em.locY = mm.locY;
-			em.locZ = mm.locZ;
-			em.motX = mm.motX;
-			em.motY = mm.motY;
-			em.motZ = mm.motZ;
-			em.e = mm.e;
-			em.f = mm.f;
-			em.g = mm.g;
-			em.uniqueId = mm.uniqueId;
-			em.world.removeEntity(mm);
-			em.world.addEntity(em);
-			if (mm.passenger != null)
-				mm.passenger.setPassengerOf(em);
+			Util.replaceMinecarts(mm, em);
 		}
 		replacedCarts.remove(mm);
 	}

@@ -8,6 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.ItemStack;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -113,6 +114,31 @@ public class Util {
 		return getRails(getRailsBlock(loc));
 	}
 	
+	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
+		with.yaw = toreplace.yaw;
+		with.pitch = toreplace.pitch;
+		with.locX = toreplace.locX;
+		with.locY = toreplace.locY;
+		with.locZ = toreplace.locZ;
+		with.motX = toreplace.motX;
+		with.motY = toreplace.motY;
+		with.motZ = toreplace.motZ;
+		with.e = toreplace.e;
+		with.f = toreplace.f;
+		with.g = toreplace.g;
+		with.uniqueId = toreplace.uniqueId;
+		ItemStack[] items = toreplace.getContents();
+		for (int i = 0;i < items.length;i++) {
+			if (items[i] != null) {
+				with.setItem(i, new ItemStack(items[i].id, items[i].count, items[i].damage));
+			}
+		}
+		for (int i = 0;i < items.length;i++) toreplace.setItem(i, null);
+		toreplace.world.removeEntity(toreplace);
+		with.world.addEntity(with);
+		if (toreplace.passenger != null)
+			toreplace.passenger.setPassengerOf(with);
+	}
 	
 	public static boolean isInverted(double value1, double value2) {
 		if (value1 > 0 && value2 < 0) return true;
