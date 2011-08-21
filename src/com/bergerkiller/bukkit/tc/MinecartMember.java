@@ -57,7 +57,6 @@ public class MinecartMember extends NativeMinecartMember {
 		//declare a new MinecartMember with the same characteristics as the previous EntityMinecart
 		MinecartMember f = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
 		f.group = group;
-		
 		Util.replaceMinecarts(em, f);
 		
 		replacedCarts.add(f);

@@ -194,6 +194,7 @@ public class NativeMinecartMember extends EntityMinecart {
         public boolean flag2;
 	}
 	public boolean isDerailed() {
+		if (moveinfo == null) return true;
 		return !moveinfo.isRailed;
 	}
 		

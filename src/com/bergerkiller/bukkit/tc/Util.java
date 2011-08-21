@@ -134,10 +134,14 @@ public class Util {
 			}
 		}
 		for (int i = 0;i < items.length;i++) toreplace.setItem(i, null);
-		toreplace.world.removeEntity(toreplace);
+		//If it is a raw bukkit entity it requires a bukkit remove, else not. (weird?)
+		if (toreplace instanceof MinecartMember) {
+			toreplace.world.removeEntity(toreplace);
+		} else {
+			toreplace.getBukkitEntity().remove();	
+		}
 		with.world.addEntity(with);
-		if (toreplace.passenger != null)
-			toreplace.passenger.setPassengerOf(with);
+		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}
 	
 	public static boolean isInverted(double value1, double value2) {
