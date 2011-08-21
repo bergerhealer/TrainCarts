@@ -21,22 +21,22 @@ public class MinecartGroup {
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	
-	public static void cleanGroups() {
-		//Remove dead carts and lonely groups caused by this
-		ArrayList<MinecartMember> removecarts = new ArrayList<MinecartMember>();
-		for (MinecartGroup g : groups){
-			for (MinecartMember mm : g.mc) {
+	public static void updateGroups() {
+		for (MinecartGroup mg : getGroups()) {
+			//Remove dead carts and lonely groups caused by this
+			for (MinecartMember mm : mg.getMembers()) {
 				if (!MinecartMember.validate(mm)) {
-					removecarts.add(mm);
+					remove(mm);
 				}
 			}
-		}
-		for (MinecartMember mm : removecarts) {
-			remove(mm);
-		}
-		for (MinecartGroup mg : groups.toArray(new MinecartGroup[0])) {
-			if (!mg.isInLoadedChunks()) {
-				GroupManager.hideGroup(mg);
+			//Unloaded chunk handling
+			SimpleChunk[] unloaded = mg.getNearChunks(false, true);
+			if (unloaded.length > 0) {
+				if (TrainCarts.keepChunksLoaded) {
+					for (SimpleChunk c : unloaded) c.load();
+				} else {
+					GroupManager.hideGroup(mg);
+				}
 			}
 		}
 	}
@@ -48,7 +48,6 @@ public class MinecartGroup {
 		if (mm == null) return;
 		MinecartGroup g = mm.getGroup();
 		if (g != null) g.removeCart(g.mc.indexOf(mm));
-		MinecartMember.markRemoved(mm);
 	}
 	public static void remove(Minecart m) {
 		remove(MinecartMember.get(m));
@@ -64,7 +63,7 @@ public class MinecartGroup {
 		groups.remove(group);
 	}
 	public static void load(MinecartGroup group) {
-		group.updateGroups();
+		group.groupMembers();
 		groups.add(group);
 	}
 	
@@ -133,7 +132,7 @@ public class MinecartGroup {
     					return false;
     				}
     				groups.remove(g1);
-    				g2.updateGroups();
+    				g2.groupMembers();
     				g2.update();
     				playLinkEffect(m2);
     				return true;
@@ -287,14 +286,16 @@ public class MinecartGroup {
 	private void reverse() {
 		Collections.reverse(mc);
 	}
-	public boolean isInLoadedChunks() {
+	
+	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
+		ArrayList<SimpleChunk> rval = new ArrayList<SimpleChunk>();
 		for (MinecartMember mm : mc) {
-			if (!mm.isInLoadedChunks()) return false;
+			mm.addNearChunks(rval, addloaded, addunloaded);
 		}
-		return true;
+		return rval.toArray(new SimpleChunk[0]);
 	}
 
-	private void updateGroups() {
+	private void groupMembers() {
 		for (MinecartMember mm : mc) {
 			mm.setGroup(this);
 		}

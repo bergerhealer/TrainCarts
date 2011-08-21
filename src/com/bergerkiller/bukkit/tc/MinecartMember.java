@@ -1,12 +1,12 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.World;
 
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Minecart;
 import org.bukkit.material.Rails;
@@ -65,6 +65,9 @@ public class MinecartMember extends NativeMinecartMember {
 		f.motX = em.motX;
 		f.motY = em.motY;
 		f.motZ = em.motZ;
+		f.e = em.e;
+		f.f = em.f;
+		f.g = em.g;
 		f.uniqueId = em.uniqueId;
 		f.group = group;
 		Entity passenger = em.passenger;
@@ -79,9 +82,6 @@ public class MinecartMember extends NativeMinecartMember {
 		replacedCarts.add(f);
 		return f;
 	}
-	public static void markRemoved(MinecartMember mm) {
-		replacedCarts.remove((MinecartMember) mm);
-	}
 	public static void undoReplacement(MinecartMember mm) {
 		if (!mm.dead) {
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
@@ -93,6 +93,9 @@ public class MinecartMember extends NativeMinecartMember {
 			em.motX = mm.motX;
 			em.motY = mm.motY;
 			em.motZ = mm.motZ;
+			em.e = mm.e;
+			em.f = mm.f;
+			em.g = mm.g;
 			em.uniqueId = mm.uniqueId;
 			em.world.removeEntity(mm);
 			em.world.addEntity(em);
@@ -199,12 +202,6 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * Location functions
 	 */
-	public org.bukkit.World getWorld() {
-		return world.getWorld();
-	}
-	public Location getLocation() {
-		return new Location(getWorld(), getX(), getY(), getZ(), getYaw(), getPitch());
-	}
 	public double getSubX() {
 		double x = getX() + 0.5;
 		return x - (int) x;
@@ -272,8 +269,10 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * States
 	 */
-	public boolean isInLoadedChunks() {
-		return Util.getChunkSafe(getLocation());
+	public void addNearChunks(ArrayList<SimpleChunk> rval, boolean addloaded, boolean addunloaded) {
+		int chunkX = Util.toChunk(this.getX());
+		int chunkZ = Util.toChunk(this.getZ());
+		Util.addNearChunks(rval, this.getWorld(), chunkX, chunkZ, 2, addloaded, addunloaded);
 	}
 	public boolean isMoving() {
 		if (motX > 0.001) return true;

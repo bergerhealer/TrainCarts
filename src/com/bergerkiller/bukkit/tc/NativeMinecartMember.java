@@ -64,6 +64,17 @@ public class NativeMinecartMember extends EntityMinecart {
     public double getZ() {
     	if (yawset) return this.lastZ; else return this.locZ;
     }
+	public org.bukkit.World getWorld() {
+		return world.getWorld();
+	}
+	public Location getLocation() {
+		if (this instanceof MinecartMember) {
+			MinecartMember mm = (MinecartMember) this;
+			return new Location(getWorld(), getX(), getY(), getZ(), mm.getYaw(), mm.getPitch());
+		} else {
+			return new Location(getWorld(), getX(), getY(), getZ(), this.yaw, this.pitch);
+		}
+	}
     
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
@@ -110,47 +121,49 @@ public class NativeMinecartMember extends EntityMinecart {
                 // CraftBukkit end
 
                 this.die();
-                if (TrainCarts.breakCombinedCarts || this.type == 0) this.a(Item.MINECART.id, 1, 0.0F);
-                if (this.type == 1) {
-                    EntityMinecart entityminecart = this;
+                if (TrainCarts.spawnItemDrops) {
+                    if (TrainCarts.breakCombinedCarts || this.type == 0) this.a(Item.MINECART.id, 1, 0.0F);
+                    if (this.type == 1) {
+                        EntityMinecart entityminecart = this;
 
-                    for (int j = 0; j < entityminecart.getSize(); ++j) {
-                        ItemStack itemstack = entityminecart.getItem(j);
+                        for (int j = 0; j < entityminecart.getSize(); ++j) {
+                            ItemStack itemstack = entityminecart.getItem(j);
 
-                        if (itemstack != null) {
-                            float f = this.random.nextFloat() * 0.8F + 0.1F;
-                            float f1 = this.random.nextFloat() * 0.8F + 0.1F;
-                            float f2 = this.random.nextFloat() * 0.8F + 0.1F;
+                            if (itemstack != null) {
+                                float f = this.random.nextFloat() * 0.8F + 0.1F;
+                                float f1 = this.random.nextFloat() * 0.8F + 0.1F;
+                                float f2 = this.random.nextFloat() * 0.8F + 0.1F;
 
-                            while (itemstack.count > 0) {
-                                int k = this.random.nextInt(21) + 10;
+                                while (itemstack.count > 0) {
+                                    int k = this.random.nextInt(21) + 10;
 
-                                if (k > itemstack.count) {
-                                    k = itemstack.count;
+                                    if (k > itemstack.count) {
+                                        k = itemstack.count;
+                                    }
+
+                                    itemstack.count -= k;
+                                    EntityItem entityitem = new EntityItem(this.world, this.locX + (double) f, this.locY + (double) f1, this.locZ + (double) f2, new ItemStack(itemstack.id, k, itemstack.getData()));
+                                    float f3 = 0.05F;
+
+                                    entityitem.motX = (double) ((float) this.random.nextGaussian() * f3);
+                                    entityitem.motY = (double) ((float) this.random.nextGaussian() * f3 + 0.2F);
+                                    entityitem.motZ = (double) ((float) this.random.nextGaussian() * f3);
+                                    this.world.addEntity(entityitem);
                                 }
-
-                                itemstack.count -= k;
-                                EntityItem entityitem = new EntityItem(this.world, this.locX + (double) f, this.locY + (double) f1, this.locZ + (double) f2, new ItemStack(itemstack.id, k, itemstack.getData()));
-                                float f3 = 0.05F;
-
-                                entityitem.motX = (double) ((float) this.random.nextGaussian() * f3);
-                                entityitem.motY = (double) ((float) this.random.nextGaussian() * f3 + 0.2F);
-                                entityitem.motZ = (double) ((float) this.random.nextGaussian() * f3);
-                                this.world.addEntity(entityitem);
                             }
                         }
+                        if (TrainCarts.breakCombinedCarts) {
+                            this.a(Block.CHEST.id, 1, 0.0F);
+                        } else {
+                            this.a(Material.STORAGE_MINECART.getId(), 1, 0.0F);
+                        }
+                    } else if (this.type == 2) {
+                    	if (TrainCarts.breakCombinedCarts) {
+                            this.a(Block.FURNACE.id, 1, 0.0F);
+                    	} else {
+                    		this.a(Material.POWERED_MINECART.getId(), 1, 0.0F);
+                    	}
                     }
-                    if (TrainCarts.breakCombinedCarts) {
-                        this.a(Block.CHEST.id, 1, 0.0F);
-                    } else {
-                        this.a(Material.STORAGE_MINECART.getId(), 1, 0.0F);
-                    }
-                } else if (this.type == 2) {
-                	if (TrainCarts.breakCombinedCarts) {
-                        this.a(Block.FURNACE.id, 1, 0.0F);
-                	} else {
-                		this.a(Material.POWERED_MINECART.getId(), 1, 0.0F);
-                	}
                 }
             }
             return true;
@@ -592,13 +605,8 @@ public class NativeMinecartMember extends EntityMinecart {
 			if (this.e < 0) {
 				this.f = this.g = 0.0D;
 			}
-
 			this.world.a("largesmoke", this.locX, this.locY + 0.8D, this.locZ,
 					0.0D, 0.0D, 0.0D);
-			//================TrainCarts edited, added sound effect=========
-			this.world.a("extinguish", this.locX, this.locY + 0.8D, this.locZ,
-					0.0D, 0.0D, 0.0D);
-			//==============================================================
 		}
 	}
 	
@@ -626,7 +634,11 @@ public class NativeMinecartMember extends EntityMinecart {
         			} else if (e instanceof net.minecraft.server.EntityLiving) {
         				if (e.vehicle != null && e.vehicle instanceof EntityMinecart) {
         					remove = true;
+        				} else if (Util.pushAway(this, e.getBukkitEntity())) {
+        					remove = true;
         				}
+    				} else if (Util.pushAway(this, e.getBukkitEntity())) {
+    					remove = true;
         			}
         		}
         		if (remove) break;

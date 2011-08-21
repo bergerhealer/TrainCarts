@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import net.minecraft.server.EntityMinecart;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -13,9 +16,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Player;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 public class Util {
 	private static Logger logger = Logger.getLogger("Minecraft");
@@ -29,11 +35,18 @@ public class Util {
 	public static net.minecraft.server.Entity getNative(Entity e) {
 		return ((CraftEntity) e).getHandle();
 	}
+	public static double length(double... values) {
+		double rval = 0;
+		for (double value : values) {
+			rval += value * value;
+		}
+		return Math.sqrt(rval);
+	}
 	public static double distance(double x1, double y1, double x2, double y2) {
-		return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+		return length(x1 - x2, y1 - y2);
 	}
 	public static double distance(double x1, double y1, double z1, double x2, double y2, double z2) {
-		return Math.sqrt(Math.pow(z1 - z2,  2) + Math.pow(x1 - x2,  2) + Math.pow(y1 - y2,  2));
+		return length(x1 - x2, y1 - y2, z1 - z2);
 	}
 	public static float getAngleDifference(float angle1, float angle2) {
 		float difference = angle1 - angle2;
@@ -199,6 +212,50 @@ public class Util {
 		}
 		return 0;
 	}
+
+	public static Vector getDirection(float yaw, float pitch) {
+		return new Location(null, 0, 0, 0, yaw, pitch).getDirection();
+	}
+		
+	public static float getMinecartYaw(Minecart minecart) {
+		return getMinecartYaw(getNative(minecart));
+	}
+	public static float getMinecartYaw(EntityMinecart minecart) {
+		if (minecart instanceof MinecartMember) return ((MinecartMember) minecart).getYaw();
+		return minecart.yaw + 90;
+	}
+	public static boolean pushAway(EntityMinecart vehicle, Entity topush) {
+		if (topush instanceof Player) {
+			if (!TrainCarts.pushAwayPlayers) return false;
+		} else if (topush instanceof Creature) {
+			if (!TrainCarts.pushAwayMobs) return false;
+		} else {
+			if (!TrainCarts.pushAwayMisc) return false;
+		}
+		//===============================Entity check end======================
+		double speed = length(vehicle.motX, vehicle.motY, vehicle.motZ);
+		if (speed > TrainCarts.pushAwayAtVelocity) {
+			//push that bastard away!
+			float yaw = getMinecartYaw(vehicle);
+			//which do we choose, -90 or 90?
+			float lookat = Util.getLookAtYaw(vehicle.getBukkitEntity(), topush);
+			if (lookat < 0) {
+				yaw += 90;
+			} else {
+				yaw -= 90;
+			}
+			//push the obstacle awaayyy :d
+			Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
+			topush.setVelocity(vel);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	public static boolean pushAway(Minecart vehicle, Entity topush) {
+		return pushAway(getNative(vehicle), topush);
+	}
+	
 	
 	public static boolean getChunkSafe(Entity e) {
 		return getChunkSafe(e.getLocation());
@@ -217,4 +274,40 @@ public class Util {
 		if (!w.isChunkLoaded(chunkX, chunkZ - 1)) return false;
 		return true;
 	}
+	
+	public static void addNearChunks(ArrayList<SimpleChunk> rval, World w, int chunkX, int chunkZ, int radius, boolean addloaded, boolean addunloaded) {
+		for (int dx = -radius; dx <= radius * 2;dx++) {
+			for (int dz = -radius; dz <= radius * 2;dz++) {
+				SimpleChunk c = new SimpleChunk();
+				c.world = w;
+				c.chunkX = chunkX + dx;
+				c.chunkZ = chunkZ + dz;
+				if ((addloaded && c.isLoaded()) || (addunloaded && !c.isLoaded())) {
+					rval.add(c);
+				}
+			}
+		}
+	}
+	
+	public static Location move(Location loc, Vector offset) {
+        // Convert rotation to radians
+        float ryaw = -loc.getYaw() / 180f * (float) Math.PI;
+        float rpitch = loc.getPitch() / 180f * (float) Math.PI;
+
+        //Conversions found by (a lot of) testing
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        z -= offset.getX() * Math.sin(ryaw);
+        z += offset.getY() * Math.cos(ryaw) * Math.sin(rpitch);
+        z += offset.getZ() * Math.cos(ryaw) * Math.cos(rpitch);
+        x += offset.getX() * Math.cos(ryaw);
+        x += offset.getY() * Math.sin(rpitch) * Math.sin(ryaw);
+        x += offset.getZ() * Math.sin(ryaw) * Math.cos(rpitch);
+        y += offset.getY() * Math.cos(rpitch);
+        y -= offset.getZ() * Math.sin(rpitch);
+        return new Location(loc.getWorld(), x, y, z, loc.getYaw(), loc.getPitch());
+    }
+
+
 }

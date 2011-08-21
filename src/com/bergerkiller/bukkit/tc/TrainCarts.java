@@ -8,6 +8,7 @@ import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
 
 public class TrainCarts extends JavaPlugin {
@@ -22,15 +23,22 @@ public class TrainCarts extends JavaPlugin {
 	public static double nearCartDistanceFactor = 1.4;
 	public static double maxCartSpeed = 0.35;
 	public static double maxCartDistance = 4;
-	public static int cleanUpInterval = 2;
 	public static boolean breakCombinedCarts = false;
+	public static boolean spawnItemDrops = true;
 	public static double poweredCartBoost = 0.1;
+	public static Vector exitOffset = new Vector(0, 0, 0);
+	public static double pushAwayAtVelocity = 0.1;
+	public static double pushAwayForce = 0.2;
+	public static boolean pushAwayMobs = false;
+	public static boolean pushAwayPlayers = false;
+	public static boolean pushAwayMisc = true;
+	public static boolean keepChunksLoaded = true;
 		
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
 	private final TCWorldListener worldListener = new TCWorldListener();
 	private final TCVehicleListener vehicleListener = new TCVehicleListener();	
-	private int ugtask;
+	private Task ctask;
 	
 	public void onEnable() {
 		
@@ -41,6 +49,7 @@ public class TrainCarts extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
 		
@@ -48,6 +57,7 @@ public class TrainCarts extends JavaPlugin {
 		Configuration config = this.getConfiguration();
 		boolean use = config.getBoolean("use", true);
 		if (use) {
+			double exitx, exity, exitz;
 			cartDistance = config.getDouble("normal.cartDistance", cartDistance);
 			cartDistanceForcer = config.getDouble("normal.cartDistanceForcer", cartDistanceForcer);	
 			turnedCartDistance = config.getDouble("turned.cartDistance", turnedCartDistance);
@@ -56,26 +66,42 @@ public class TrainCarts extends JavaPlugin {
 			removeDerailedCarts = config.getBoolean("removeDerailedCarts", removeDerailedCarts);
 			maxCartSpeed = config.getDouble("maxCartSpeed", maxCartSpeed);
 			maxCartDistance = config.getDouble("maxCartDistance", maxCartDistance);
-			cleanUpInterval = config.getInt("cleanUpInterval", cleanUpInterval);
 			breakCombinedCarts = config.getBoolean("breakCombinedCarts", breakCombinedCarts);
+			spawnItemDrops = config.getBoolean("spawnItemDrops", spawnItemDrops);
 			poweredCartBoost = config.getDouble("poweredCartBoost", poweredCartBoost);
+			exitx = config.getDouble("exitOffset.x", exitOffset.getX());
+			exity = config.getDouble("exitOffset.y", exitOffset.getY());
+			exitz = config.getDouble("exitOffset.z", exitOffset.getZ());
+			exitOffset = new Vector(exitx, exity, exitz);
+			pushAwayAtVelocity = config.getDouble("pushAway.atVelocity", pushAwayAtVelocity);
+			pushAwayForce = config.getDouble("pushAway.force", pushAwayForce);
+			pushAwayMobs = config.getBoolean("pushAway.pushMobs", pushAwayMobs);
+			pushAwayPlayers = config.getBoolean("pushAway.pushPlayers", pushAwayPlayers);
+			pushAwayMisc = config.getBoolean("pushAway.pushMisc", pushAwayMisc);
+			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
 			
 			//save it again (no file was there or invalid)
 			config.setHeader("# In here you can change the settings for the TrainCarts plugin", 
 					"# Please note that the default settings are usually the best", 
 					"# Changing these settings can cause the plugin to fail", 
-					"# To reset the settings, remove this file", 
+					"# To reset the settings, remove this file or set 'use' to false to ignore these settings", 
+					"# ======================================================================================", 
 					"# cartDistance is the distance kept between normal/turned carts in a group", 
 					"# cartDistanceForcer is the factor applied to adjust this distance, too high and it will bump violently", 
-					"# nearCartDistanceFactor is the factor applied to the regular forcers if the carts are too close to eachother", 
+					"# nearCartDistanceFactor is the factor applied to the regular forcers if the carts are too close to each other", 
 					"# removeDerailedCarts sets if carts without tracks underneath are cleared from the group", 
-					"# maxCartSpeed is the maximum speed to use for trains. Use a value between 0 and 0.4, at 0.4 carts will not be able to outrun other carts!", 
-					"# maxCartDistance sets the distance at which carts are thrown out of their group", 
-					"# useContactLinking sets if carts should be linked on collision, instead of using a radius", 
-					"# linkRadius sets the radius in which minecarts can be linked (useContactLinking = false)", 
-					"# linkInterval sets the interval in which to check for carts that can be linked, in ticks (1/20 of a second)", 
-					"# breakCombinedCarts sets if combined carts (e.g. PoweredMinecart) breaks up into multiple parts upon breaking (e.g. furnace and minecart)");
-			       
+					"# maxCartSpeed is the maximum speed to use for trains. Use a value between 0 and ~0.4, > 0.4 can cause derailments!", 
+					"# maxCartDistance sets the distance at which carts are thrown out of their group",  
+					"# breakCombinedCarts sets if combined carts (e.g. PoweredMinecart) breaks up into multiple parts upon breaking (e.g. furnace and minecart)", 
+					"# spawnItemDrops sets if items are spawned when breaking a minecart", 
+					"# exitOffset is the relative offset of where a player is teleported when exiting a Minecart", 
+					"# pushAway settings are settings that push mobs, players, items and others away from a riding minecart", 
+					"#    atVelocity sets the velocity of the minecart at which it starts pushing others", 
+					"#    force sets the pushing force of a pushing Minecart", 
+					"#    pushMobs sets if mobs are pushed away",
+					"#    pushPlayers sets if players are pushed away", 
+					"#    pushMisc sets if misc. entities, such as boats and dropped items, are pushed away", 
+					"# keepChunksLoaded sets if chunks are loaded near minecart Trains");
 			config.setProperty("use", use);
 			config.setProperty("normal.cartDistance", cartDistance);
 			config.setProperty("normal.cartDistanceForcer", cartDistanceForcer);
@@ -85,9 +111,18 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("removeDerailedCarts", removeDerailedCarts);
 			config.setProperty("maxCartSpeed", maxCartSpeed);
 			config.setProperty("maxCartDistance", maxCartDistance);
-			config.setProperty("cleanUpInterval", cleanUpInterval);
 			config.setProperty("breakCombinedCarts", breakCombinedCarts);
+			config.setProperty("spawnItemDrops", spawnItemDrops);
 			config.setProperty("poweredCartBoost", poweredCartBoost);
+			config.setProperty("exitOffset.x", exitx);
+			config.setProperty("exitOffset.y", exity);
+			config.setProperty("exitOffset.z", exitz);
+			config.setProperty("pushAway.atVelocity", pushAwayAtVelocity);
+			config.setProperty("pushAway.force", pushAwayForce);
+			config.setProperty("pushAway.pushMobs", pushAwayMobs);
+			config.setProperty("pushAway.pushPlayer", pushAwayPlayers);
+			config.setProperty("pushAway.pushMisc", pushAwayMisc);
+			config.setProperty("keepChunksLoaded", keepChunksLoaded);
 			config.save();
 		}
 		
@@ -98,11 +133,12 @@ public class TrainCarts extends JavaPlugin {
 		GroupManager.refresh();
 		
 		//clean groups from dead and derailed carts and form new groups
-    	ugtask = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
-    	    public void run() {
-    	    	MinecartGroup.cleanGroups();
-    	    }
-    	}, 0, cleanUpInterval);
+		ctask = new Task(this) {
+			public void run() {
+				MinecartGroup.updateGroups();
+			}
+		};
+		ctask.startRepeating(5L);
     		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
@@ -110,7 +146,7 @@ public class TrainCarts extends JavaPlugin {
 	}
 	public void onDisable() {
 		//Stop tasks
-		getServer().getScheduler().cancelTask(ugtask);
+		ctask.stop();
 		
 		//undo replacements for correct saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
