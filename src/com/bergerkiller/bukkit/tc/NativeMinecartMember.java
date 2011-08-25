@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.List;
 
+import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -12,6 +13,7 @@ import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
+import org.bukkit.util.Vector;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
@@ -45,24 +47,15 @@ public class NativeMinecartMember extends EntityMinecart {
     private double n;
     private double o;
     private double p;
-    private boolean yawset = false; //
-	
-    public void fixYaw() {
-    	if (!this.yawset) {
-    		Location loc = new Location(this.world.getWorld(), this.locX, this.locY, this.locZ);
-    		this.yaw = Util.getRailsYaw(Util.getRails(loc)) - 90;
-    		this.yawset = true;
-    	}
-    }
-    
+	    
     public double getX() {
-    	if (yawset) return this.lastX; else return this.locX;
+    	return this.lastX;
     }
     public double getY() {
-    	if (yawset) return this.lastY; else return this.locY;
+    	return this.lastY;
     }
     public double getZ() {
-    	if (yawset) return this.lastZ; else return this.locZ;
+    	return this.lastZ;
     }
 	public org.bukkit.World getWorld() {
 		return world.getWorld();
@@ -78,6 +71,11 @@ public class NativeMinecartMember extends EntityMinecart {
     
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
+		this.lastX = this.locX;
+		this.lastY = this.locY;
+		this.lastZ = this.locZ;
+		Location loc = new Location(this.world.getWorld(), this.locX, this.locY, this.locZ);
+		this.yaw = Util.getRailsYaw(Util.getRails(loc)) - 90;
 	}
 	
 	/*
@@ -545,7 +543,6 @@ public class NativeMinecartMember extends EntityMinecart {
 			if (this.i) {
 				this.yaw += 180.0F;
 			}
-			this.yawset = true;
 		}
 
 		double d24;
@@ -604,59 +601,32 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (moveinfo.flag && this.random.nextInt(4) == 0) {
 			--this.e;
 			if (this.e < 0) {
-				this.f = this.g = 0.0D;
+				//TrainCarts - Actions to be done when empty
+				if (this.onCoalUsed()) {
+					this.e = 1200; //Refill
+				} else {
+					this.f = this.g = 0.0D;
+				}
 			}
+
 			this.world.a("largesmoke", this.locX, this.locY + 0.8D, this.locZ,
 					0.0D, 0.0D, 0.0D);
 		}
 	}
 	
 	/*
-	 * Prevents passengers and Minecarts from colliding with Minecarts
+	 * To be overridden by MinecartMember
+	 * Returns if the fuel should be refilled
 	 */
-	private void filterCollisionList(List list) {
-        int ri = 0;
-        while (ri < list.size()) {
-        	AxisAlignedBB a = (AxisAlignedBB) list.get(ri);
-        	boolean remove = false;
-        	for (Object o : this.world.entityList) {
-        		Entity e = (Entity) o;
-        		if (e.boundingBox == a) {
-        			if (e instanceof MinecartMember) {
-        				//colliding with a member in the group, or not?
-        				MinecartMember mm1 = (MinecartMember) this;
-        				MinecartMember mm2 = (MinecartMember) e;
-        				if (mm1.getGroup() == mm2.getGroup() && mm1.getGroup() != null) {
-        					//Same group, but do prevent penetration
-        					if (mm1.distance(mm2) > 1) {
-                				remove = true;
-        					}
-        				}
-        			} else if (e instanceof net.minecraft.server.EntityLiving) {
-        				if (e.vehicle != null && e.vehicle instanceof EntityMinecart) {
-        					remove = true;
-        				} else if (Util.pushAway(this, e.getBukkitEntity())) {
-        					remove = true;
-        				}
-    				} else if (Util.pushAway(this, e.getBukkitEntity())) {
-    					remove = true;
-        			}
-        		}
-        		if (remove) break;
-        	}
-        	if (remove) {
-        		list.remove(ri);
-        	} else {
-        		ri++;
-        	}
-        }
+	public boolean onCoalUsed() {
+		return false;
 	}
+	
 	
 	/*
 	 * Cloned and updated to prevent collisions. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/Entity.java
 	 */
-
 	@Override
 	public void move(double d0, double d1, double d2) {
         if (this.bt) {
@@ -960,5 +930,45 @@ public class NativeMinecartMember extends EntityMinecart {
             //TrainNote end
         }
     }
+	/*
+	 * Prevents passengers and Minecarts from colliding with Minecarts
+	 */
+	private void filterCollisionList(List list) {
+        int ri = 0;
+        while (ri < list.size()) {
+        	AxisAlignedBB a = (AxisAlignedBB) list.get(ri);
+        	boolean remove = false;
+        	for (Object o : this.world.entityList) {
+        		Entity e = (Entity) o;
+        		if (e.boundingBox == a) {
+        			if (e instanceof MinecartMember) {
+        				//colliding with a member in the group, or not?
+        				MinecartMember mm1 = (MinecartMember) this;
+        				MinecartMember mm2 = (MinecartMember) e;
+        				if (mm1.getGroup() == mm2.getGroup() && mm1.getGroup() != null) {
+        					//Same group, but do prevent penetration
+        					if (mm1.distance(mm2) > 0.5) {
+                				remove = true;
+        					}
+        				}
+        			} else if (e instanceof net.minecraft.server.EntityLiving) {
+        				if (e.vehicle != null && e.vehicle instanceof EntityMinecart) {
+        					remove = true;
+        				} else if (Util.pushAway(this, e.getBukkitEntity())) {
+        					remove = true;
+        				}
+    				} else if (Util.pushAway(this, e.getBukkitEntity())) {
+    					remove = true;
+        			}
+        		}
+        		if (remove) break;
+        	}
+        	if (remove) {
+        		list.remove(ri);
+        	} else {
+        		ri++;
+        	}
+        }
+	}
 
 }

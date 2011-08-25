@@ -13,6 +13,8 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
+import com.bergerkiller.bukkit.tc.API.ForceUpdateEvent;
+
 
 
 public class MinecartGroup {
@@ -41,9 +43,6 @@ public class MinecartGroup {
 		}
 	}
 	
-	public static MinecartGroup[] getGroups() {
-		return groups.toArray(new MinecartGroup[0]);
-	}
 	public static void remove(MinecartMember mm) {
 		if (mm == null) return;
 		MinecartGroup g = mm.getGroup();
@@ -67,6 +66,9 @@ public class MinecartGroup {
 		groups.add(group);
 	}
 	
+	public static MinecartGroup[] getGroups() {
+		return groups.toArray(new MinecartGroup[0]);
+	}
 	public static MinecartGroup get(Entity e) {
 		if (e instanceof Minecart) return get((Minecart) e);
 		return null;
@@ -120,7 +122,7 @@ public class MinecartGroup {
     				int m1index = g1.indexOf(m1);
     				int m2index = g2.indexOf(m2);	
     				if (m1index == 0 && m2index == 0) {
-    					g1.reverse();
+    					Collections.reverse(g1.mc);
     					//head-on collision, this will go real bad if we don't slow it down!
     					g2.mc.addAll(0, g1.mc);
     					//g2.stop();
@@ -141,7 +143,6 @@ public class MinecartGroup {
 		}
 		return false;
 	}
-
 	public static void playLinkEffect(Minecart at) {
 		Location loc = at.getLocation();
 		loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
@@ -152,7 +153,7 @@ public class MinecartGroup {
      * NON-STATIC REGION
      */
 	private ArrayList<MinecartMember> mc = new ArrayList<MinecartMember>();
-
+	
 	public MinecartGroup() {}
 	public MinecartGroup(Minecart... members) {
 		for (int i = 0;i < members.length;i++) {
@@ -198,6 +199,9 @@ public class MinecartGroup {
 		}
 		return -1;
 	}
+	public int indexOf(MinecartMember instance) {
+		return mc.indexOf(instance);
+	}
 	public void addMember(MinecartMember mm) {
 		this.mc.add(mm);
 	}
@@ -221,6 +225,9 @@ public class MinecartGroup {
 	}
 	public int size() {
 		return mc.size();
+	}
+	public double length() {
+		return TrainCarts.cartDistance * (this.size() - 1);
 	}
 	
 	public boolean removeCart(Minecart m) {
@@ -263,6 +270,13 @@ public class MinecartGroup {
 		this.mc.clear();
 		groups.remove(this);
 	}
+
+	public void destroy() {
+		for (MinecartMember mm : mc) {
+			mm.destroy();
+		}
+		this.remove();
+	}
 	
 	public boolean isGrouped() {
 		return groups.contains(this);
@@ -283,9 +297,6 @@ public class MinecartGroup {
 			m.setForwardForce(f);
 		}
 	}
-	private void reverse() {
-		Collections.reverse(mc);
-	}
 	
 	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
 		ArrayList<SimpleChunk> rval = new ArrayList<SimpleChunk>();
@@ -294,7 +305,11 @@ public class MinecartGroup {
 		}
 		return rval.toArray(new SimpleChunk[0]);
 	}
-
+	
+	public void move(double force) {
+		tail().setForwardForce(-force);
+	}
+	
 	private void groupMembers() {
 		for (MinecartMember mm : mc) {
 			mm.setGroup(this);
@@ -306,10 +321,11 @@ public class MinecartGroup {
 		for (MinecartMember m : mc) {
 			fullforce += m.getForwardForce();
 		}
-		if (fullforce < 0) reverse();
+		if (fullforce < 0) {
+			Collections.reverse(mc);
+		}
 	}
 	public void update() {
-		
 		//Prevent index exceptions: remove if not a train
 		if (mc.size() <= 1) {
 			this.remove();
@@ -323,7 +339,7 @@ public class MinecartGroup {
 		}
 		
 		updateReverse();
-		
+				
 		//Get the average forwarding force of all carts
 		double force = 0;
 		for (MinecartMember m : mc) {
@@ -353,6 +369,9 @@ public class MinecartGroup {
 			}
 			mc.get(i).addForceFactor(forcer, threshold - distance);
 		}
+		
+		//Bring the force through the listener
+		force = ForceUpdateEvent.call(this, force);
 
 		//update all carts
 		for (MinecartMember m : mc) {

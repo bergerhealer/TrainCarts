@@ -10,17 +10,21 @@ import java.util.logging.Logger;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.ItemStack;
 
+import org.bukkit.craftbukkit.CraftWorld;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.material.MaterialData;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
@@ -29,12 +33,24 @@ public class Util {
 	public static void log(Level level, String message) {
 		logger.log(level, "[TrainCarts] " + message);
 	}
+	public static void broadcast(Vector vec) {
+		broadcast("VECTOR: [X=" + round(vec.getX(), 3) + " | Y=" + round(vec.getY(), 3) + " | Z=" + round(vec.getZ(), 3) + "]");
+	}
+	public static void broadcast(String msg) {
+		Bukkit.getServer().broadcastMessage(msg);
+	}
+	public static void heartbeat() {
+		broadcast("HEARTBEAT: " + System.currentTimeMillis());
+	}
 	
 	public static net.minecraft.server.EntityMinecart getNative(Minecart m) {
 		return (net.minecraft.server.EntityMinecart) getNative((Entity) m);
 	}
 	public static net.minecraft.server.Entity getNative(Entity e) {
 		return ((CraftEntity) e).getHandle();
+	}
+	public static net.minecraft.server.WorldServer getNative(World w) {
+		return ((CraftWorld) w).getHandle();
 	}
 	public static double length(double... values) {
 		double rval = 0;
@@ -86,16 +102,55 @@ public class Util {
   	  return Math.round(Rval * p) / p;
     }
     
+    /*
+     * Stages the value between the two points using a stage from 0 to 1
+     */
+    public static double stage(double d1, double d2, double stage) {
+    	if (Double.isNaN(stage)) return d2;
+    	if (stage < 0) stage = 0;
+    	if (stage > 1) stage = 1;
+    	return d1 * (1 - stage) + d2 * stage;
+    }
+    public static Vector stage(Vector vec1, Vector vec2, double stage) {
+    	Vector newvec = new Vector();
+    	newvec.setX(stage(vec1.getX(), vec2.getX(), stage));
+    	newvec.setY(stage(vec1.getY(), vec2.getY(), stage));
+    	newvec.setZ(stage(vec1.getZ(), vec2.getZ(), stage));
+    	return newvec;
+    }
+    public static Location stage(Location loc1, Location loc2, double stage) {
+    	Location newloc = new Location(loc1.getWorld(), 0, 0, 0);
+    	newloc.setX(stage(loc1.getX(), loc2.getX(), stage));
+    	newloc.setY(stage(loc1.getY(), loc2.getY(), stage));
+    	newloc.setZ(stage(loc1.getZ(), loc2.getZ(), stage));
+    	newloc.setYaw((float) stage(loc1.getYaw(), loc2.getYaw(), stage));
+    	newloc.setPitch((float) stage(loc1.getPitch(), loc2.getPitch(), stage));
+    	return newloc;
+    }
+    
+    /*
+     * Prevents the need to read the lighting when using getState()
+     * Can be a little bit faster :)
+     */
+    public static MaterialData getData(Block b) {
+    	return b.getType().getNewData(b.getData());
+    }
+    
+    public static boolean isRails(Block b) {
+    	if (b == null) return false;
+        Material type = b.getType();
+        return type == Material.RAILS || type == Material.POWERED_RAIL || type == Material.DETECTOR_RAIL;
+    }
 	public static Block getRailsBlock(Minecart m) {
 		return getRailsBlock(m.getLocation());
 	}
 	public static Block getRailsBlock(Location from) {
 		Block b = from.getBlock();
-		if (b.getState().getData() instanceof Rails) {
+		if (isRails(b)) {
 			return b;
 		} else {
 			b = b.getRelative(BlockFace.DOWN);
-			if (b.getState().getData() instanceof Rails) {
+			if (isRails(b)) {
 				return b;
 			} else {
 				return null;
@@ -104,8 +159,13 @@ public class Util {
 	}
 	public static Rails getRails(Block railsblock) {
 		if (railsblock == null) return null;
-		if (!(railsblock.getState().getData() instanceof Rails)) return null;
-		return (Rails) railsblock.getState().getData();
+		return getRails(getData(railsblock));
+	}
+	public static Rails getRails(MaterialData data) {
+		if (data != null && data instanceof Rails) {
+			return (Rails) data;
+		}
+		return null;
 	}
 	public static Rails getRails(Minecart m) {	
 		return getRails(m.getLocation());
@@ -113,7 +173,45 @@ public class Util {
 	public static Rails getRails(Location loc) {
 		return getRails(getRailsBlock(loc));
 	}
+	public static float getRailsYaw(Rails rails) {
+		if (rails != null) {
+			switch (rails.getDirection()) {
+			case WEST : return 0;
+			case SOUTH : return 90;
+			case SOUTH_WEST : return 45;
+			case NORTH_WEST : return 135;
+			case NORTH_EAST : return 45;
+			case SOUTH_EAST : return 135;
+			}
+		}
+		return 0;
+	}
+	public static float getFaceYaw(BlockFace face) {
+		switch (face) {
+		case NORTH : return 0;
+		case EAST : return 90;
+		case SOUTH : return 180;	
+		case WEST : return -90;
+		case SOUTH_WEST : return -135;
+		case NORTH_WEST : return -45;
+		case NORTH_EAST : return 45;
+		case SOUTH_EAST : return 135;
+		}
+		return 0;
+	}
 	
+    public static boolean isSign(Block b) {
+    	if (b == null) return false;
+    	Material type = b.getType();
+    	return type == Material.WALL_SIGN || type == Material.SIGN_POST;
+    }
+	public static Sign getSign(Block signblock) {
+		if (isSign(signblock)) {
+			return (Sign) signblock.getState();
+		}
+		return null;
+	}
+			
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
 		with.yaw = toreplace.yaw;
 		with.pitch = toreplace.pitch;
@@ -143,7 +241,7 @@ public class Util {
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}
-	
+
 	public static boolean isInverted(double value1, double value2) {
 		if (value1 > 0 && value2 < 0) return true;
 		if (value1 < 0 && value2 > 0) return true;
@@ -217,30 +315,33 @@ public class Util {
 		}
 		return null;
 	}
-
-	public static void broadcast(String msg) {
-		Bukkit.getServer().broadcastMessage(msg);
-	}
-	public static void heartbeat() {
-		broadcast("HEARTBEAT: " + System.currentTimeMillis());
-	}
 	
 	public static int toChunk(double loc) {
 		return ((int) loc) >> 4;
 	}
 	
-	public static float getRailsYaw(Rails rails) {
-		if (rails != null) {
-			switch (rails.getDirection()) {
-			case WEST : return 0;
-			case SOUTH : return 90;
-			case SOUTH_WEST : return 45;
-			case NORTH_WEST : return 135;
-			case NORTH_EAST : return 45;
-			case SOUTH_EAST : return 135;
-			}
+	public static BlockFace[] getFaces(BlockFace main) {
+		BlockFace[] possible = new BlockFace[2];
+		if (main == BlockFace.NORTH || main == BlockFace.SOUTH) {
+			possible[0] = BlockFace.NORTH;
+			possible[1] = BlockFace.SOUTH;
+		} else if (main == BlockFace.EAST || main == BlockFace.WEST) {
+			possible[0] = BlockFace.EAST;
+			possible[1] = BlockFace.WEST;
+		} else if (main == BlockFace.SOUTH_EAST) {
+			possible[0] = BlockFace.NORTH;
+			possible[1] = BlockFace.WEST;
+		} else if (main == BlockFace.SOUTH_WEST) {
+			possible[0] = BlockFace.NORTH;
+			possible[1] = BlockFace.EAST;
+		} else if (main == BlockFace.NORTH_EAST) {
+			possible[0] = BlockFace.SOUTH;
+			possible[1] = BlockFace.WEST;
+		} else if (main == BlockFace.NORTH_WEST) {
+			possible[0] = BlockFace.SOUTH;
+			possible[1] = BlockFace.EAST;
 		}
-		return 0;
+		return possible;
 	}
 
 	public static Vector getDirection(float yaw, float pitch) {
@@ -268,14 +369,19 @@ public class Util {
 			//push that bastard away!
 			float yaw = getMinecartYaw(vehicle);
 			//which do we choose, -90 or 90?
-			float lookat = Util.getLookAtYaw(vehicle.getBukkitEntity(), topush);
-			if (lookat < 0) {
+			while (yaw < 0) yaw += 360;
+			while (yaw >= 360) yaw -= 360;
+			float lookat = Util.getLookAtYaw(vehicle.getBukkitEntity(), topush) - yaw;
+			if (getAngleDifference(lookat, 180) < 90) return false; //pushing
+			while (lookat > 180) lookat -= 360;
+			while (lookat < -180) lookat += 360;
+			if (lookat > 0) {
 				yaw += 90;
 			} else {
 				yaw -= 90;
 			}
 			//push the obstacle awaayyy :d
-			Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
+			Vector vel = getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
 			topush.setVelocity(vel);
 			return true;
 		} else {
@@ -286,6 +392,22 @@ public class Util {
 		return pushAway(getNative(vehicle), topush);
 	}
 	
+	public static boolean isHeadingTo(Location from, Location to, Vector velocity) {
+		//standing still
+		if (velocity.length() < 0.01) return false;
+		if (from.distance(to) < 0.01) return true;
+		//distance check
+//		float yawdir = getLookAtYaw(from, to);
+//		float withdir = getLookAtYaw(from, from.clone().add(velocity.getX(), velocity.getY(), velocity.getZ()));
+//		Util.broadcast(yawdir + " vs " + withdir);
+//		return getAngleDifference(yawdir, withdir) < 90;
+		
+		
+		double dbefore = from.distance(to);
+		from = from.add(velocity.getX() * 0.000001, velocity.getY() * 0.000001, velocity.getZ() * 0.000001);
+		double dafter = from.distance(to);
+		return dafter < dbefore;
+	}
 	
 	public static boolean getChunkSafe(Entity e) {
 		return getChunkSafe(e.getLocation());

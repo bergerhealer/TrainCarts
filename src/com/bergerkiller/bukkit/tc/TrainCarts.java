@@ -11,6 +11,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
 
+import com.bergerkiller.bukkit.tc.Listeners.TCBlockListener;
+import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
+import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
+import com.bergerkiller.bukkit.tc.Listeners.TCVehicleListener;
+import com.bergerkiller.bukkit.tc.Listeners.TCWorldListener;
+
+
 public class TrainCarts extends JavaPlugin {
 	/*
 	 * Settings
@@ -18,8 +25,8 @@ public class TrainCarts extends JavaPlugin {
 	public static double cartDistance = 1.5;
 	public static double turnedCartDistance = 1.6;
 	public static boolean removeDerailedCarts = false;
-	public static double cartDistanceForcer = 0.1;
-	public static double turnedCartDistanceForcer = 0.2;
+	public static double cartDistanceForcer = 0.2;
+	public static double turnedCartDistanceForcer = 0.3;
 	public static double nearCartDistanceFactor = 1.4;
 	public static double maxCartSpeed = 0.35;
 	public static double maxCartDistance = 4;
@@ -33,15 +40,18 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean pushAwayPlayers = false;
 	public static boolean pushAwayMisc = true;
 	public static boolean keepChunksLoaded = true;
+	public static boolean useCoalFromStorageCart = false;
 		
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
 	private final TCWorldListener worldListener = new TCWorldListener();
 	private final TCVehicleListener vehicleListener = new TCVehicleListener();	
+	private final TCBlockListener blockListener = new TCBlockListener();	
+	private final TCCustomListener customListener = new TCCustomListener();	
+	
 	private Task ctask;
 	
-	public void onEnable() {
-		
+	public void onEnable() {		
 		plugin = this;
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
@@ -50,8 +60,14 @@ public class TrainCarts extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
+		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this);	
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest, this);
+		if (this.getServer().getPluginManager().isPluginEnabled("MinecartManiaCore")) {
+			Util.log(Level.INFO, "Minecart Mania detected, support added!");
+			pm.registerEvent(Event.Type.CUSTOM_EVENT, customListener, Priority.Lowest, this);
+		}
 		
 		//Load from config
 		Configuration config = this.getConfiguration();
@@ -79,6 +95,7 @@ public class TrainCarts extends JavaPlugin {
 			pushAwayPlayers = config.getBoolean("pushAway.pushPlayers", pushAwayPlayers);
 			pushAwayMisc = config.getBoolean("pushAway.pushMisc", pushAwayMisc);
 			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
+			useCoalFromStorageCart = config.getBoolean("useCoalFromStorageCart", useCoalFromStorageCart);
 			
 			//save it again (no file was there or invalid)
 			config.setHeader("# In here you can change the settings for the TrainCarts plugin", 
@@ -123,6 +140,7 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("pushAway.pushPlayer", pushAwayPlayers);
 			config.setProperty("pushAway.pushMisc", pushAwayMisc);
 			config.setProperty("keepChunksLoaded", keepChunksLoaded);
+			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
 			config.save();
 		}
 		

@@ -28,7 +28,7 @@ public class GroupManager {
 		}
 		getGroups(w).remove(wg);
 	}
-	
+		
 	public static void loadGroups(String filename) {
 		hiddengroups.clear();
 		try {
