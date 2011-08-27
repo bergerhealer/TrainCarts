@@ -13,7 +13,11 @@ public class TCCustomListener extends CustomEventListener implements Listener {
 	public void onCaught(MinecartCaughtEvent event) {
 		MinecartMember mm = MinecartMember.get(event.getMinecart().minecart);
 		if (mm != null && mm.getGroup() != null) {
-			mm.getGroup().stop();
+			if (mm == mm.getGroup().head()) {
+				mm.getGroup().stop();
+			} else {
+				event.setActionTaken(false);
+			}
 		}
 	}
 	

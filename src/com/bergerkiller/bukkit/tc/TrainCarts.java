@@ -175,11 +175,6 @@ public class TrainCarts extends JavaPlugin {
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
 		
 		
-		//MinecartMember.undoReplacement();
-		
-		
-		
-		
 		System.out.println("TrainCarts disabled!");
 	}
 		

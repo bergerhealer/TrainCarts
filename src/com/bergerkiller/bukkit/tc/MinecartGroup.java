@@ -79,6 +79,17 @@ public class MinecartGroup {
 		return mm.getGroup();
 	}
 	
+	public static boolean isInSameGroup(Minecart... minecarts) {
+		MinecartMember[] members = MinecartMember.getAll(minecarts);
+		for (int i = 0;i < minecarts.length - 1; i++) {
+			if (members[i] == null) return false;
+			if (members[i + 1] == null) return false;
+			if (members[i].getGroup() == null) return false;
+			if (members[i].getGroup() != members[i + 1].getGroup()) return false;
+		}
+		return true;
+	}
+	
 	public static boolean link(Minecart m1, Minecart m2) {
 		MinecartGroup g1 = get(m1);
 		MinecartGroup g2 = get(m2);

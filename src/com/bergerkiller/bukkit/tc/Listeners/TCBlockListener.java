@@ -3,12 +3,14 @@ package com.bergerkiller.bukkit.tc.Listeners;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
@@ -90,4 +92,20 @@ public class TCBlockListener extends BlockListener {
 		
 	}
 	
+	public void onSignChange(SignChangeEvent event) {
+		if (event.getLine(0).equalsIgnoreCase("[train]")) {
+			String line = event.getLine(1).toLowerCase();
+			if (line.startsWith("station")) {
+				if (!event.getPlayer().hasPermission("train.build.station")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				}
+			} else if (line.startsWith("spawn")) {
+				if (!event.getPlayer().hasPermission("train.build.spawner")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				}
+			}	
+		}
+	}
 }

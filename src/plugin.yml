@@ -1,6 +1,12 @@
 name: Train Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
-version: 1.24
+version: 1.25
 author: bergerkiller
 description: Plugin that allows the use of minecart trains with adjustable settings
-commands:
+permissions:
+    train.build.station:
+        description: Allows you to build station signs
+        default: op
+    train.build.spawner:
+        description: Allows you to build the train spawner signs
+        default: op

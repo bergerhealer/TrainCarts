@@ -97,7 +97,7 @@ public class TCVehicleListener extends VehicleListener {
 
 			//What do we do?
 			//which directions to move, or brake?
-			Location l = signblock.getLocation().add(0, 2, 0);
+			Location l = railsblock.getLocation();
 			if (dir == BlockFace.WEST) {
 				boolean west = signblock.getRelative(BlockFace.WEST).isBlockIndirectlyPowered();
 				boolean east = signblock.getRelative(BlockFace.EAST).isBlockIndirectlyPowered();
@@ -139,7 +139,7 @@ public class TCVehicleListener extends VehicleListener {
 				Sign s = Util.getSign(sb);
 				if (s != null) {
 					if (s.getLine(0).equals("[train]")) {
-						if (s.getLine(1).equals("station")) {
+						if (s.getLine(1).toLowerCase().startsWith("station")) {
 							double length = 0;
 							try {
 								length = Double.parseDouble(s.getLine(2));
@@ -165,8 +165,10 @@ public class TCVehicleListener extends VehicleListener {
 			if (event.getEntity() instanceof Minecart) {			
 				Minecart m1 = (Minecart) event.getEntity();
 				Minecart m2 = (Minecart) event.getVehicle();
-				if (!MinecartGroup.link(m1, m2)) {
+				if (MinecartGroup.isInSameGroup(m1, m2)) {
 					event.setCancelled(true);
+				} else {
+					MinecartGroup.link(m1, m2);
 				}
 			} else if (Util.pushAway((Minecart) event.getVehicle(), event.getEntity())) {
 				event.setCancelled(true);

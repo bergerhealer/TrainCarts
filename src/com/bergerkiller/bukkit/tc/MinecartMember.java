@@ -90,6 +90,13 @@ public class MinecartMember extends NativeMinecartMember {
 	 * MinecartMember <> EntityMinecart replacement functions
 	 */
 	private static HashSet<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
+	public static MinecartMember[] getAll(Entity... entities) {
+		MinecartMember[] rval = new MinecartMember[entities.length];
+		for (int i = 0; i < rval.length; i++) {
+			rval[i] = get(entities[i]);
+		}
+		return rval;
+	}
 	public static MinecartMember get(Entity e) {
 		if (!(e instanceof Minecart)) return null;
 		EntityMinecart em = Util.getNative((Minecart) e);
