@@ -22,15 +22,21 @@ public class VelocityTarget {
 		this.goalDistance = target.distance(e.getLocation());
 	}
 	
+	public void setDelay(long delayMS) {
+		this.startTime = System.currentTimeMillis() + delayMS;
+	}
+	
 	private Location target;
 	public double distance;
 	public double goalDistance;
 	public double startVelocity;
 	public double goalVelocity;
 	private double prevdistance;
+	public long startTime;
 	private boolean prevset = false;
 	
 	public boolean update(Entity e) {
+		if (this.startTime > System.currentTimeMillis()) return false;
 		net.minecraft.server.Entity ee = Util.getNative(e);
 		//Increment distance
 		this.distance += Util.distance(ee.locX, ee.locY, ee.locZ, ee.lastX, ee.lastY, ee.lastZ);

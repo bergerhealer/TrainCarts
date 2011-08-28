@@ -12,6 +12,7 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
 public class GroupManager {
+	
 	private static HashMap<UUID, ArrayList<WorldGroup>> hiddengroups = new HashMap<UUID, ArrayList<WorldGroup>>();
 	private static ArrayList<WorldGroup> getGroups(World w) {
 		ArrayList<WorldGroup> rval = hiddengroups.get(w.getUID());
@@ -21,6 +22,12 @@ public class GroupManager {
 		}
 		return rval;
 	}
+	
+	/**
+	 * Re-groups the minecarts in the buffered group in the real-time world
+	 * @param w - The world to look into
+	 * @param wg - The world group to read from
+	 */
 	private static void restoreGroup(World w, WorldGroup wg) {
 		Minecart[] minecarts = wg.getMinecarts(w);
 		if (minecarts.length > 1) {
@@ -29,6 +36,10 @@ public class GroupManager {
 		getGroups(w).remove(wg);
 	}
 		
+	/**
+	 * Loads the buffered groups from file
+	 * @param filename - The groupdata file to read from
+	 */
 	public static void loadGroups(String filename) {
 		hiddengroups.clear();
 		try {
@@ -73,6 +84,11 @@ public class GroupManager {
 			ex.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Saves the buffered groups to file
+	 * @param filename - The groupdata file to write to
+	 */
 	public static void saveGroups(String filename) {
 		try {
 			File f = new File(filename);
@@ -114,6 +130,11 @@ public class GroupManager {
 		}
 	}
 	
+	/**
+	 * A class containing an array of Minecart Members
+	 * Also adds functions to handle multiple members at once
+	 * Also adds functions to write and load from/to file
+	 */
 	private static class WorldGroup {
 		public WorldGroup() {}
 		public WorldGroup(MinecartGroup group) {
@@ -123,6 +144,12 @@ public class GroupManager {
 			}
 		}
 		public WorldMember[] members;
+		
+		/**
+		 * Tries to find all Minecarts based on their UID
+		 * @param w
+		 * @return An array of Minecarts
+		 */
 		public Minecart[] getMinecarts(World w) {
 			ArrayList<Minecart> rval = new ArrayList<Minecart>();
 			for (WorldMember member : members) {
@@ -134,6 +161,12 @@ public class GroupManager {
 			}
 			return rval.toArray(new Minecart[0]);
 		}
+		
+		/**
+		 * Checks if this groups is fully in loaded chunks
+		 * @param w - The world to look in
+		 * @return If this group is fully in loaded chunks
+		 */
 		public boolean isInLoadedChunks(World w) {
 			for (WorldMember wm : members) {
 				if (!wm.isInLoadedChunk(w)) return false;
@@ -141,6 +174,9 @@ public class GroupManager {
 			return true;
 		}
 		
+		/*
+		 * Read and write functions used internally
+		 */
 		public void writeTo(DataOutputStream stream) throws IOException {
 			stream.writeInt(members.length);
 			for (WorldMember member : members) member.writeTo(stream);
@@ -154,6 +190,9 @@ public class GroupManager {
 			return wg;
 		}
 	}
+	/**
+	 * Contains the information to get and restore a Minecart
+	 */
 	private static class WorldMember {
 		public WorldMember() {}
 		public WorldMember(MinecartMember instance) {
@@ -188,6 +227,10 @@ public class GroupManager {
 		}
 	}
 	
+	/*
+	 * Refreshes a world or all loaded worlds
+	 * This means restoring groups in loaded chunks
+	 */
 	public static void refresh() {
 		for (World w : Bukkit.getServer().getWorlds()) {
 			refresh(w);
@@ -202,6 +245,11 @@ public class GroupManager {
 			}
 		}
 	}
+	
+	/**
+	 * Buffers the group and unlinks the members
+	 * @param group - The group to buffer
+	 */
 	public static void hideGroup(MinecartGroup group) {
 		if (group.isGrouped()) {
 			getGroups(group.getWorld()).add(new WorldGroup(group));
@@ -209,6 +257,11 @@ public class GroupManager {
 		}
 	}
 
+	/**
+	 * Check if this minecart is in a buffered group
+	 * Used to check if a minecart can be linked
+	 * @param m - The minecart to check
+	 */
 	public static boolean wasInGroup(Minecart m) {
 		for (WorldGroup wg : getGroups(m.getWorld())) {
 			for (WorldMember wm : wg.members) {

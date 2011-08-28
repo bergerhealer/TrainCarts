@@ -28,7 +28,7 @@ public class MinecartGroup {
 			//Remove dead carts and lonely groups caused by this
 			for (MinecartMember mm : mg.getMembers()) {
 				if (!MinecartMember.validate(mm)) {
-					remove(mm);
+					mm.getGroup().removeCart(mm);
 				}
 			}
 			//Unloaded chunk handling
@@ -42,16 +42,7 @@ public class MinecartGroup {
 			}
 		}
 	}
-	
-	public static void remove(MinecartMember mm) {
-		if (mm == null) return;
-		MinecartGroup g = mm.getGroup();
-		if (g != null) g.removeCart(g.mc.indexOf(mm));
-	}
-	public static void remove(Minecart m) {
-		remove(MinecartMember.get(m));
-	}
-	
+		
 	public static void unload(MinecartGroup group) {
 		group.stop();
 		for (MinecartMember mm : group.mc) {
@@ -100,10 +91,10 @@ public class MinecartGroup {
     			if (GroupManager.wasInGroup(m1)) return false;
     			if (GroupManager.wasInGroup(m2)) return false;
     			if (g1 == null && g2 == null) {
+    				playLinkEffect(m1);
     				MinecartGroup g = new MinecartGroup(m1, m2);
     				g.shareForce();
     				load(g);
-    				playLinkEffect(m1);
     				return true;
     			} else if (g1 == null && g2 != null) {
     				//add cart 1 to group 2
@@ -184,9 +175,10 @@ public class MinecartGroup {
 	public MinecartMember tail() {
 		return tail(0);
 	}
-		
+	
 	public MinecartMember connect(Minecart contained, Minecart toadd) {
-		MinecartMember rval = null;;
+		MinecartMember rval = null;
+		if (this.size() <= 1) return null;
 		if (head().getMinecart() == contained) {
 			rval = MinecartMember.get(toadd, this);
 			mc.add(0, rval);
@@ -241,6 +233,12 @@ public class MinecartGroup {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
 	
+	public boolean removeCart(MinecartMember mm) {
+		int index = indexOf(mm);
+		if (index == -1) return false;
+		removeCart(index);
+		return true;
+	}
 	public boolean removeCart(Minecart m) {
 		int index = indexOf(m);
 		if (index == -1) return false;
@@ -298,15 +296,32 @@ public class MinecartGroup {
 		}
 	}
 	public void shareForce() {
-		double f = 0;
-		for (MinecartMember m : mc) {
-			f += m.getForce();
-		}
-		f /= mc.size();
-		updateReverse();
+		double f = this.getAverageForce();
 		for (MinecartMember m : mc) {
 			m.setForwardForce(f);
 		}
+	}
+	
+	public double getAverageForce() {
+		//Get the average forwarding force of all carts
+		double force = 0;
+		double fforce = 0;
+		for (MinecartMember m : mc) {
+			double f = m.getForwardForce();
+			fforce += f;
+			if (f < 0) {
+				force -= m.getForce();
+			} else {
+				force += m.getForce();
+			}
+		}
+		force /= mc.size();
+		
+		//Reverse
+		if (fforce < 0) {
+			Collections.reverse(mc);
+		}
+		return force;
 	}
 	
 	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
@@ -326,21 +341,23 @@ public class MinecartGroup {
 			mm.setGroup(this);
 		}
 	}
-	public void updateReverse() {
-		//Sorting the carts, head at 0
-		double fullforce  = 0;
-		for (MinecartMember m : mc) {
-			fullforce += m.getForwardForce();
-		}
-		if (fullforce < 0) {
-			Collections.reverse(mc);
-		}
-	}
 	public void update() {
 		//Prevent index exceptions: remove if not a train
 		if (mc.size() <= 1) {
 			this.remove();
 			return;
+		}
+		
+		//Validation time :D
+		for (int i = this.size() - 1;i > 1;i--) {
+			double d1 = head(i).distance(head(i - 1));
+			double d2 = head(i).distance(head(i - 2));
+			if (d1 >= d2 || (d1 > TrainCarts.maxCartDistance && !head(i).isDerailed())) {
+				//Ow no! this is bad! :(
+				this.removeCart(i);
+				this.update();
+				return;
+			}
 		}
 		
 		//calculate the yaw for all carts; tail is the initial yaw to start at
@@ -349,14 +366,10 @@ public class MinecartGroup {
 			mc.get(i).setYawFrom(mc.get(i + 1));
 		}
 		
-		updateReverse();
+		//updateReverse();
 				
 		//Get the average forwarding force of all carts
-		double force = 0;
-		for (MinecartMember m : mc) {
-			force += m.getForce();
-		}
-		force /= mc.size();
+		double force = this.getAverageForce();
 				
 		mc.get(mc.size() - 1).addForceFactor(0, 0); //last cart max speed
 
@@ -373,11 +386,6 @@ public class MinecartGroup {
 				forcer = TrainCarts.cartDistanceForcer;
 			}
 			if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
-			if (distance > TrainCarts.maxCartDistance) {
-				this.removeCart(i);
-				this.update();
-				return;
-			}
 			mc.get(i).addForceFactor(forcer, threshold - distance);
 		}
 		

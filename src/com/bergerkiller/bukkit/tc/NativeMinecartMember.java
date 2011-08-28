@@ -117,7 +117,7 @@ public class NativeMinecartMember extends EntityMinecart {
                     return true;
                 }
                 // CraftBukkit end
-
+                
                 this.die();
                 if (TrainCarts.breakCombinedCarts || this.type == 0) {
                 	if (TrainCarts.spawnItemDrops) this.a(Item.MINECART.id, 1, 0.0F);
@@ -389,6 +389,11 @@ public class NativeMinecartMember extends EntityMinecart {
 	public void postUpdate(double speedFactor) {
 		double motX = this.motX;
 		double motZ = this.motZ;
+		//Prevent NaN (you never know!)
+		if (Double.isNaN(motX)) motX = 0;
+		if (Double.isNaN(motX)) motZ = 0;
+		if (Double.isNaN(speedFactor)) speedFactor = 1;
+		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
         if (motX < -TrainCarts.maxCartSpeed) {
             motX = -TrainCarts.maxCartSpeed;
         }

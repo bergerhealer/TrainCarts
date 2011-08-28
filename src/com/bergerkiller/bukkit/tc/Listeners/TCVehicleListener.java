@@ -50,11 +50,28 @@ public class TCVehicleListener extends VehicleListener {
 					e.teleport(loc);
 				}
 			};
-			t.startDelayed(1);
+			t.startDelayed(0);
 		}
 	}
 	
-	public static void handleStation(MinecartGroup group, Block railsblock, Block signblock, double length) {
+	public static void handleStation(MinecartGroup group, Block signblock) {
+		Sign sign = Util.getSign(signblock);
+		if (sign == null) return;
+		Block railsblock = signblock.getRelative(0, 2, 0);
+		if (!Util.isRails(railsblock)) return;
+		if (!sign.getLine(0).equalsIgnoreCase("[train]")) return;
+		if (!sign.getLine(1).toLowerCase().startsWith("station")) return;
+		double length = 0;
+		try {
+			length = Double.parseDouble(sign.getLine(1).substring(7).trim());
+		} catch (Exception ex) {};
+		double delay = 0;
+		try {
+			 delay = Double.parseDouble(sign.getLine(2));
+		} catch (Exception ex) {};
+		handleStation(group, railsblock, length, (long) (delay * 1000));
+	}
+	public static void handleStation(MinecartGroup group, Block railsblock, double length, long delayMS) {
 		//Get the middle minecart
 		MinecartMember midd = group.getMember((int) Math.floor((double) group.size() / 2));
 		
@@ -98,16 +115,17 @@ public class TCVehicleListener extends VehicleListener {
 			//What do we do?
 			//which directions to move, or brake?
 			Location l = railsblock.getLocation();
+			Block signblock = railsblock.getRelative(0, -2, 0);
 			if (dir == BlockFace.WEST) {
 				boolean west = signblock.getRelative(BlockFace.WEST).isBlockIndirectlyPowered();
 				boolean east = signblock.getRelative(BlockFace.EAST).isBlockIndirectlyPowered();
 				if (west && !east) {
-					midd.setTarget(l.add(0, 0, length), TrainCarts.maxCartSpeed);
+					midd.setTarget(delayMS, l.add(0, 0, length), TrainCarts.maxCartSpeed);
 				} else if (!west && east) {
-					midd.setTarget(l.add(0, 0, -length), TrainCarts.maxCartSpeed);
+					midd.setTarget(delayMS, l.add(0, 0, -length), TrainCarts.maxCartSpeed);
 				} else if (west && east) {
 					if (midd.getMinecart().getVelocity().length() > 0.1 && l.distance(midd.getLocation()) > 1) {
-						midd.setTarget(l, 0);
+						midd.setTarget(0, l, 0);
 					} else {
 						group.stop();
 					}
@@ -116,12 +134,12 @@ public class TCVehicleListener extends VehicleListener {
 				boolean north = signblock.getRelative(BlockFace.NORTH).isBlockIndirectlyPowered();
 				boolean south = signblock.getRelative(BlockFace.SOUTH).isBlockIndirectlyPowered();
 				if (north && !south) {
-					midd.setTarget(l.add(-length, 0, 0), TrainCarts.maxCartSpeed);
+					midd.setTarget(delayMS, l.add(-length, 0, 0), TrainCarts.maxCartSpeed);
 				} else if (!north && south) {
-					midd.setTarget(l.add(length, 0,  0), TrainCarts.maxCartSpeed);
+					midd.setTarget(delayMS, l.add(length, 0,  0), TrainCarts.maxCartSpeed);
 				} else if (north && south) {
 					if (midd.getMinecart().getVelocity().length() > 0.1 && l.distance(midd.getLocation()) > 1) {
-						midd.setTarget(l, 0);
+						midd.setTarget(0, l, 0);
 					} else {
 						group.stop();
 					}
@@ -135,19 +153,7 @@ public class TCVehicleListener extends VehicleListener {
 		MinecartMember mm = MinecartMember.get(event.getVehicle());
 		if (mm != null) {
 			if (mm.getGroup() != null) {
-			    Block sb = mm.getSignBlock();
-				Sign s = Util.getSign(sb);
-				if (s != null) {
-					if (s.getLine(0).equals("[train]")) {
-						if (s.getLine(1).toLowerCase().startsWith("station")) {
-							double length = 0;
-							try {
-								length = Double.parseDouble(s.getLine(2));
-							} catch (Exception ex) {};
-							handleStation(mm.getGroup(), mm.getRailsBlock(), sb, length);
-						}
-					}
-				}
+				handleStation(mm.getGroup(), mm.getSignBlock());
 			}
 		}
 	}
@@ -155,7 +161,7 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
-			MinecartGroup.remove((Minecart) event.getVehicle());
+			MinecartMember.remove((Minecart) event.getVehicle());
 		}
 	}
 	

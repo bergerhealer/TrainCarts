@@ -36,28 +36,43 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	@Override
 	public void m_() {
+		if (Double.isNaN(motX)) motX = 0;
+		if (Double.isNaN(motY)) motY = 0;
+		if (Double.isNaN(motZ)) motZ = 0;
 		MinecartGroup g = this.getGroup();
 		if (g != null) {
-			if (g.tail() == this) {
-				if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
-					for (MinecartMember m : g.getMembers()) {
-						//Update targets
-						if (m.target != null && m.target.update(m.getBukkitEntity())) {
-							if (m.target.goalVelocity < 0.01) {
-								g.stop();
+			if (g.size() < 2) {
+				this.group = null;
+				g.remove();
+				super.m_();
+			} else {
+				if (g.tail() == this) {
+					if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
+						for (MinecartMember m : g.getMembers()) {
+							if (Double.isNaN(m.motX)) m.motX = 0;
+							if (Double.isNaN(m.motY)) m.motY = 0;
+							if (Double.isNaN(m.motZ)) m.motZ = 0;
+							
+							//Update targets
+							if (m.target != null && m.target.update(m.getBukkitEntity())) {
+								if (m.target.goalVelocity < 0.01) {
+									g.stop();
+								}
+								m.target = null;
 							}
-							m.target = null;
+							//General velocity update
+							m.preUpdate();
 						}
-						//General velocity update
-						m.preUpdate();
-					}
-					if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
-						g.update();
-						if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
-							for (MinecartMember m : g.getMembers()) {
-								m.postUpdate(m.forceFactor);
+						if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
+							g.update();
+							if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
+								for (MinecartMember m : g.getMembers()) {
+									m.postUpdate(m.forceFactor);
+				
+									//Util.broadcast(m.getMinecart().getVelocity());
+								}
+								GroupUpdateEvent.call(g, UpdateStage.LAST);
 							}
-							GroupUpdateEvent.call(g, UpdateStage.LAST);
 						}
 					}
 				}
@@ -145,12 +160,14 @@ public class MinecartMember extends NativeMinecartMember {
 		replacedCarts.add(f);
 		return f;
 	}
-	public static void undoReplacement(MinecartMember mm) {
+	public static EntityMinecart undoReplacement(MinecartMember mm) {
 		if (!mm.dead) {
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
 			Util.replaceMinecarts(mm, em);
+			return em;
 		}
 		replacedCarts.remove(mm);
+		return null;
 	}
 	public static void undoReplacement() {
 		for (MinecartMember m : replacedCarts.toArray(new MinecartMember[0])) {
@@ -164,6 +181,21 @@ public class MinecartMember extends NativeMinecartMember {
 	public void destroy() {
 		if (this.passenger != null) this.passenger.setPassengerOf(null);
 		this.world.removeEntity(this);
+	}
+	/**
+	 * Removes this minecart member from the group
+	 * @return If the operation was successful
+	 */
+	public boolean remove() {
+		if (this.grouped()) {
+			return this.group.removeCart(this);
+		}
+		return false;
+	}
+	public static boolean remove(Minecart m) {
+		MinecartMember mm = get(m);
+		if (mm == null) return false;
+		return mm.remove();
 	}
 	
 	/*
@@ -228,9 +260,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motZ = 0;
 	}
 	public double getForce() {
-		double force = Math.sqrt(motX * motX + motZ * motZ);
-		if (getForwardForce() < 0) force = -force;
-		return force;
+		return Util.length(motX, motZ);
 	}
 	public double getForwardForce() {
 		double ryaw = -this.getYaw() / 180 * Math.PI;
@@ -260,20 +290,23 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean hasTarget() {
 		return this.target != null;
 	}
-	public void setTarget(Location target, double targetVelocity) {
+	public void setTarget(long delayMS, Location target, double targetVelocity) {
 		if (target == null) {
 			this.target = null;
 		} else {
 			this.target = new VelocityTarget(target, targetVelocity, this.getBukkitEntity());
+			this.target.setDelay(delayMS);
 		}
 	}
-	public void setTarget(Location target, double fromVelocity, double toVelocity) {
+	public void setTarget(long delayMS, Location target, double fromVelocity, double toVelocity) {
 		if (target == null) {
 			this.target = null;
 		} else {
 			this.target = new VelocityTarget(target, fromVelocity, toVelocity, this.getBukkitEntity());
+			this.target.setDelay(delayMS);
 		}
 	}
+	
 	public TrackMap makeTrackMap(int size) {
 		return new TrackMap(Util.getRailsBlock(this.getLocation()), this.getDirection(), size);
 	}

@@ -72,18 +72,13 @@ public class TCBlockListener extends BlockListener {
 				} else if (powered && event.getNewCurrent() == 0) {
 					poweredBlocks.remove(event.getBlock());
 				}
-				if (s.getLine(1).equalsIgnoreCase("station")) {
+				if (s.getLine(1).toLowerCase().startsWith("station")) {
 					//get a rails
 					Block rb = event.getBlock().getRelative(0, 2, 0);
 					if (Util.isRails(rb)) {
 						MinecartMember mm = MinecartMember.getAt(rb.getLocation());
 						if (mm != null && mm.grouped()) {
-							double length = 0;
-							try {
-								length = Double.parseDouble(s.getLine(2));
-							} catch (Exception ex) {};
-							TCVehicleListener.handleStation(mm.getGroup(), rb, event.getBlock(), length);
-							return;
+							TCVehicleListener.handleStation(mm.getGroup(), event.getBlock());
 						}
 					}
 				}
@@ -95,12 +90,12 @@ public class TCBlockListener extends BlockListener {
 	public void onSignChange(SignChangeEvent event) {
 		if (event.getLine(0).equalsIgnoreCase("[train]")) {
 			String line = event.getLine(1).toLowerCase();
-			if (line.startsWith("station")) {
+			if (line.toLowerCase().startsWith("station")) {
 				if (!event.getPlayer().hasPermission("train.build.station")) {
 					event.setCancelled(true);
 					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
 				}
-			} else if (line.startsWith("spawn")) {
+			} else if (line.toLowerCase().startsWith("spawn")) {
 				if (!event.getPlayer().hasPermission("train.build.spawner")) {
 					event.setCancelled(true);
 					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
