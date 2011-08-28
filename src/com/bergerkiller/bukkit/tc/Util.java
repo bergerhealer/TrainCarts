@@ -8,7 +8,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
+import net.minecraft.server.Packet29DestroyEntity;
 
 import org.bukkit.craftbukkit.CraftWorld;
 
@@ -20,6 +22,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -43,11 +46,14 @@ public class Util {
 		broadcast("HEARTBEAT: " + System.currentTimeMillis());
 	}
 	
-	public static net.minecraft.server.EntityMinecart getNative(Minecart m) {
-		return (net.minecraft.server.EntityMinecart) getNative((Entity) m);
+	public static EntityMinecart getNative(Minecart m) {
+		return (EntityMinecart) getNative((Entity) m);
 	}
 	public static net.minecraft.server.Entity getNative(Entity e) {
 		return ((CraftEntity) e).getHandle();
+	}
+	public static EntityPlayer getNative(Player p) {
+		return ((EntityPlayer) getNative((Entity) p));
 	}
 	public static net.minecraft.server.WorldServer getNative(World w) {
 		return ((CraftWorld) w).getHandle();
@@ -225,6 +231,7 @@ public class Util {
 		with.f = toreplace.f;
 		with.g = toreplace.g;
 		with.uniqueId = toreplace.uniqueId;
+		toreplace.uniqueId = new UUID(0, 0);
 		ItemStack[] items = toreplace.getContents();
 		for (int i = 0;i < items.length;i++) {
 			if (items[i] != null) {
@@ -233,14 +240,13 @@ public class Util {
 		}
 		for (int i = 0;i < items.length;i++) toreplace.setItem(i, null);
 		
-		//If it is a raw bukkit entity it requires a bukkit remove, else set to dead (weird?)
-		if (toreplace instanceof MinecartMember) {
-			toreplace.world.removeEntity(toreplace);
-		} else {
-			toreplace.dead = true;
-			toreplace.locY = -1000;
-			toreplace.lastY = -1000;
+		//This is the only 'real' remove method that seems to work...
+		toreplace.dead = true;
+		Packet29DestroyEntity packet = new Packet29DestroyEntity(toreplace.id);
+		for (Player p : toreplace.world.getWorld().getPlayers()) {
+			getNative(p).netServerHandler.sendPacket(packet);
 		}
+		
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}

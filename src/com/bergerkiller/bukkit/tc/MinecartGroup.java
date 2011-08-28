@@ -181,9 +181,17 @@ public class MinecartGroup {
 		if (this.size() <= 1) return null;
 		if (head().getMinecart() == contained) {
 			rval = MinecartMember.get(toadd, this);
+			//Validate
+			double d1 = rval.distance(head(0));
+			double d2 = rval.distance(head(1));
+			if (d1 >= d2) return null;
 			mc.add(0, rval);
 		} else if (tail().getMinecart() == contained) {
 			rval = MinecartMember.get(toadd, this);
+			//Validate
+			double d1 = rval.distance(tail(0));
+			double d2 = rval.distance(tail(1));
+			if (d1 >= d2) return null;
 			mc.add(rval);
 		}
 		return rval;
