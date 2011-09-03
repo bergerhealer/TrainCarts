@@ -11,6 +11,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.tc.Utils.ChunkUtil;
+import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
+
 public class GroupManager {
 	
 	private static HashMap<UUID, ArrayList<WorldGroup>> hiddengroups = new HashMap<UUID, ArrayList<WorldGroup>>();
@@ -153,7 +156,7 @@ public class GroupManager {
 		public Minecart[] getMinecarts(World w) {
 			ArrayList<Minecart> rval = new ArrayList<Minecart>();
 			for (WorldMember member : members) {
-				Minecart m = Util.getMinecart(w, member.entityUID);
+				Minecart m = EntityUtil.getMinecart(w, member.entityUID);
 				if (m != null) {
 					m.setVelocity(new Vector(member.motX, 0, member.motZ));
 					rval.add(m);
@@ -206,7 +209,7 @@ public class GroupManager {
 		public UUID entityUID;
 		private int cx, cz;
 		public boolean isInLoadedChunk(World w) {
-			return Util.getChunkSafe(w, cx, cz);
+			return ChunkUtil.getChunkSafe(w, cx, cz);
 		}
 		public void writeTo(DataOutputStream stream) throws IOException {
 			stream.writeLong(entityUID.getMostSignificantBits());
@@ -251,7 +254,7 @@ public class GroupManager {
 	 * @param group - The group to buffer
 	 */
 	public static void hideGroup(MinecartGroup group) {
-		if (group.isGrouped()) {
+		if (group.grouped()) {
 			getGroups(group.getWorld()).add(new WorldGroup(group));
 			MinecartGroup.unload(group);
 		}

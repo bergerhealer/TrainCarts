@@ -1,79 +1,83 @@
 package com.bergerkiller.bukkit.tc;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
+
 
 public class VelocityTarget {
 	
-	public VelocityTarget(Location target, double startVelocity, double goalVelocity, Entity e) {
+	public VelocityTarget(MinecartMember from, Location target, double goalVelocity, long delayMS) {
 		this.distance = 0;
-		this.target = target;
-		this.startVelocity = startVelocity;
+		this.target = target.clone();
+		this.startTime = 0;
 		this.goalVelocity = goalVelocity;
-		if (startVelocity < 0.01) startVelocity = 0.01;
-		this.goalDistance = target.distance(e.getLocation());
+		if (startVelocity < 0.05) startVelocity = 0.05;
+		this.goalDistance = 0;
+		this.delay = delayMS;
+		this.from = from;
 	}
-	public VelocityTarget(Location target, double goalVelocity, Entity e) {
-		this.distance = 0;
-		this.target = target;
-		this.goalVelocity = goalVelocity;
-		this.startVelocity = e.getVelocity().length();
-		if (startVelocity < 0.01) startVelocity = 0.01;
-		this.goalDistance = target.distance(e.getLocation());
-	}
-	
-	public void setDelay(long delayMS) {
-		this.startTime = System.currentTimeMillis() + delayMS;
-	}
-	
+		
+	private MinecartMember from;
 	private Location target;
 	public double distance;
 	public double goalDistance;
 	public double startVelocity;
 	public double goalVelocity;
-	private double prevdistance;
-	public long startTime;
-	private boolean prevset = false;
+	private long startTime;
+	private long delay;
+	private final double minVelocity = 0.1;
 	
-	public boolean update(Entity e) {
-		if (this.startTime > System.currentTimeMillis()) return false;
-		net.minecraft.server.Entity ee = Util.getNative(e);
+	public boolean update() {
+		//Update time
+		if (this.startTime == 0) {
+			this.startTime = System.currentTimeMillis() + this.delay;
+			if (this.delay > 0) return false;
+		} else if (this.startTime > System.currentTimeMillis()) {
+			return false;
+		}
+		//First start
+		if (this.goalDistance == 0) {
+			this.goalDistance = from.distanceXZ(target);
+			this.startVelocity = from.getForce();
+			if (this.startVelocity > from.maxSpeed) {
+				this.startVelocity = from.maxSpeed;
+			}
+			if (this.startVelocity < minVelocity) this.startVelocity = minVelocity;
+		}
+		
+		from.getGroup().limitSpeed();
+
 		//Increment distance
-		this.distance += Util.distance(ee.locX, ee.locY, ee.locZ, ee.lastX, ee.lastY, ee.lastZ);
+		this.distance += Util.distance(from.locX, from.locZ, from.lastX, from.lastZ);
 
 		//Did not pass the goal already?
-		boolean reached = this.distance >= this.goalDistance;
-		double newdist = e.getLocation().distance(this.target);
-		if (newdist > this.prevdistance && prevset) {
-			reached = true;
-		}
-		this.prevdistance = newdist;
-		prevset = true;
+		boolean reached = this.distance > this.goalDistance - 0.2;
 		
 		//Get the velocity to set the cart to
-		double targetvel = Util.stage(this.startVelocity, this.goalVelocity, this.distance / this.goalDistance);
+		double targetvel = Util.stage(this.startVelocity, this.goalVelocity, (this.distance - 0.6) / this.goalDistance);
 		
 		//Are we heading towards the target?
-		if (reached || Util.isHeadingTo(e.getLocation(), this.target, e.getVelocity())) {
+		if (reached || Util.isHeadingTo(from.getLocation(), this.target, from.getVelocity())) {
 			//set motion using a factor
-			double currvel = Util.length(ee.motX, ee.motY, ee.motZ);
-			if (currvel < 0.01) {
-				ee.motX = 0;
-				ee.motZ = 0;
-				return true;
-			} else {
-				double factor = targetvel / currvel;
-				ee.motX *= factor;
-				ee.motZ *= factor;
+			double currvel = Util.length(from.motX, from.motZ);
+			if (currvel < minVelocity) {
+				currvel = minVelocity;
 			}
+			double factor = targetvel / currvel;
+			from.motX *= factor;
+			from.motZ *= factor;
 		} else {
 			//set motion using the angle
-			float yaw = Util.getLookAtYaw(e.getLocation(), this.target);
-			double ryaw = -yaw / 180 * Math.PI;
-			ee.motX = Math.sin(ryaw) * targetvel;
-			ee.motZ = Math.cos(ryaw) * targetvel;
+			from.setForce(targetvel, target);
 		}
 		
+		//Stop if dest. vel. was 0
+		if (reached && this.goalVelocity == 0) {
+			if (from.grouped()) {
+				from.getGroup().stop();
+			} else {
+				from.stop();
+			}
+		}
 		return reached;
 	}
 		

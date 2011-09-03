@@ -3,11 +3,11 @@ package com.bergerkiller.bukkit.tc.API;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class CoalUsedEvent extends Event {
+	private static final long serialVersionUID = -4536478305019224422L;
 	private MinecartMember member;
 	private boolean useCoal;
 	private boolean refill;

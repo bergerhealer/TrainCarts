@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.List;
 
-import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -13,13 +12,16 @@ import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
-import org.bukkit.util.Vector;
+
+import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
 import net.minecraft.server.BlockMinecartTrack;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
+import net.minecraft.server.EntityLiving;
 import net.minecraft.server.Item;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
@@ -75,7 +77,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.lastY = this.locY;
 		this.lastZ = this.locZ;
 		Location loc = new Location(this.world.getWorld(), this.locX, this.locY, this.locZ);
-		this.yaw = Util.getRailsYaw(Util.getRails(loc)) - 90;
+		this.yaw = BlockUtil.getRailsYaw(BlockUtil.getRails(loc));
 	}
 	
 	/*
@@ -394,20 +396,20 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (Double.isNaN(motX)) motZ = 0;
 		if (Double.isNaN(speedFactor)) speedFactor = 1;
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
-        if (motX < -TrainCarts.maxCartSpeed) {
-            motX = -TrainCarts.maxCartSpeed;
+        if (motX < -this.maxSpeed) {
+            motX = -this.maxSpeed;
         }
 
-        if (motX > TrainCarts.maxCartSpeed) {
-            motX = TrainCarts.maxCartSpeed;
+        if (motX > this.maxSpeed) {
+            motX = this.maxSpeed;
         }
 
-        if (motZ < -TrainCarts.maxCartSpeed) {
-            motZ = -TrainCarts.maxCartSpeed;
+        if (motZ < -this.maxSpeed) {
+            motZ = -this.maxSpeed;
         }
 
-        if (motZ > TrainCarts.maxCartSpeed) {
-            motZ = TrainCarts.maxCartSpeed;
+        if (motZ > this.maxSpeed) {
+            motZ = this.maxSpeed;
         }
         motX *= speedFactor;
         motZ *= speedFactor;
@@ -421,13 +423,13 @@ public class NativeMinecartMember extends EntityMinecart {
 
             // CraftBukkit
             //==================TrainCarts edited==============
-            if (this.passenger != null) { // || !this.slowWhenEmpty) {
+            if (this.passenger != null || !this.slowWhenEmpty) {
+//                 this.motX *= 0.9599999785423279D;
+//                 this.motY *= 0.0D;
+//                 this.motZ *= 0.9599999785423279D;
                  this.motX *= 0.996999979019165D;
                  this.motY *= 0.0D;
                  this.motZ *= 0.996999979019165D;
-                 //this.motX *= 0.9599999785423279D;
-                 //this.motY *= 0.0D;
-                 //this.motZ *= 0.9599999785423279D;
             } else {
                 if (this.type == 2) { 	
                     double d17 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
@@ -938,13 +940,16 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Prevents passengers and Minecarts from colliding with Minecarts
 	 */
+	@SuppressWarnings("unchecked")
 	private void filterCollisionList(List list) {
         int ri = 0;
+        
+        Entity[] entityList = (Entity[]) this.world.entityList.toArray(new Entity[0]);
+
         while (ri < list.size()) {
         	AxisAlignedBB a = (AxisAlignedBB) list.get(ri);
         	boolean remove = false;
-        	for (Object o : this.world.entityList) {
-        		Entity e = (Entity) o;
+        	for (Entity e : entityList) {
         		if (e.boundingBox == a) {
         			if (e instanceof MinecartMember) {
         				//colliding with a member in the group, or not?
@@ -956,13 +961,13 @@ public class NativeMinecartMember extends EntityMinecart {
                 				remove = true;
         					}
         				}
-        			} else if (e instanceof net.minecraft.server.EntityLiving) {
+        			} else if (e instanceof EntityLiving) {
         				if (e.vehicle != null && e.vehicle instanceof EntityMinecart) {
         					remove = true;
-        				} else if (Util.pushAway(this, e.getBukkitEntity())) {
+        				} else if (EntityUtil.pushAway(this, e.getBukkitEntity())) {
         					remove = true;
         				}
-    				} else if (Util.pushAway(this, e.getBukkitEntity())) {
+    				} else if (EntityUtil.pushAway(this, e.getBukkitEntity())) {
     					remove = true;
         			}
         		}

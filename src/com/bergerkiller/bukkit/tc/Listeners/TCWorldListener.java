@@ -47,5 +47,5 @@ public class TCWorldListener extends WorldListener {
 	public void onChunkLoad(ChunkLoadEvent event) {
 		GroupManager.refresh(event.getWorld());
 	}
-	
+		
 }

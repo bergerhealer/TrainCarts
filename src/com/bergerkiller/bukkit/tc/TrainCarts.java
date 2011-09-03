@@ -41,6 +41,9 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean pushAwayMisc = true;
 	public static boolean keepChunksLoaded = true;
 	public static boolean useCoalFromStorageCart = false;
+	
+	public static boolean SignLinkEnabled = false;
+	public static boolean MinecartManiaEnabled = false;
 		
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
@@ -50,26 +53,9 @@ public class TrainCarts extends JavaPlugin {
 	private final TCCustomListener customListener = new TCCustomListener();	
 	
 	private Task ctask;
-	
-	public void onEnable() {		
-		plugin = this;
-		PluginManager pm = getServer().getPluginManager();
-		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
-		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this);	
-		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest, this);
-		if (this.getServer().getPluginManager().isPluginEnabled("MinecartManiaCore")) {
-			Util.log(Level.INFO, "Minecart Mania detected, support added!");
-			pm.registerEvent(Event.Type.CUSTOM_EVENT, customListener, Priority.Lowest, this);
-		}
+	private Task signtask;
 		
-		//Load from config
+	public void loadConfig() {
 		Configuration config = this.getConfiguration();
 		boolean use = config.getBoolean("use", true);
 		if (use) {
@@ -143,6 +129,41 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
 			config.save();
 		}
+	}
+	
+	public void onEnable() {		
+		plugin = this;
+				
+		PluginManager pm = getServer().getPluginManager();
+		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
+		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this);	
+		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest, this);
+		if (this.getServer().getPluginManager().isPluginEnabled("MinecartManiaCore")) {
+			Util.log(Level.INFO, "Minecart Mania detected, support added!");
+			MinecartManiaEnabled = true;
+			pm.registerEvent(Event.Type.CUSTOM_EVENT, customListener, Priority.Lowest, this);
+		}
+		if (this.getServer().getPluginManager().isPluginEnabled("SignLink")) {
+			Util.log(Level.INFO, "SignLink detected, support for arrival signs added!");
+			SignLinkEnabled = true;
+			signtask = new Task(this) {
+				public void run() {
+					ArrivalSigns.updateAll();
+				}
+			};
+			signtask.startRepeating(20);
+		}
+				
+		//Load configuration
+		loadConfig();
 		
 		//Load groups
 		GroupManager.loadGroups(getDataFolder() + File.separator + "trains.groupdata");
@@ -157,15 +178,17 @@ public class TrainCarts extends JavaPlugin {
 			}
 		};
 		ctask.startRepeating(5L);
-    		
+		    		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
         Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!" );
+        
 	}
 	public void onDisable() {
 		//Stop tasks
 		ctask.stop();
-		
+		if (signtask != null) signtask.stop();
+				
 		//undo replacements for correct saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
@@ -173,8 +196,7 @@ public class TrainCarts extends JavaPlugin {
 		
 		//Save for next load
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
-		
-		
+
 		System.out.println("TrainCarts disabled!");
 	}
 		

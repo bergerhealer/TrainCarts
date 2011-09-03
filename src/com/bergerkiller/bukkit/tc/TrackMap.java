@@ -7,6 +7,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
 
+import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
+
 public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;
 	private BlockFace direction;
@@ -32,6 +35,33 @@ public class TrackMap extends ArrayList<Block> {
 	public static Location[] walk(Block start, BlockFace direction, int size, double stepsize) {
 		return new TrackMap(start, direction, size, stepsize).walk(size, stepsize);
 	}
+	public static boolean connected(Block rail1, Block rail2) {
+		return connected(rail1, rail2, 0);
+	}
+	public static boolean connected(Block rail1, Block rail2, int stepcount) {
+		if (!BlockUtil.isRails(rail1)) return false;
+		if (!BlockUtil.isRails(rail2)) return false;
+		if (stepcount == 0) {
+			stepcount = BlockUtil.getBlockSteps(rail1, rail2, false);
+			if (stepcount < 2) stepcount = 2;
+		}
+		float yaw = Util.getLookAtYaw(rail1, rail2);
+		BlockFace direction = FaceUtil.yawToFace(yaw, false);
+		TrackMap map1 = new TrackMap(rail1, direction);
+		TrackMap map2 = new TrackMap(rail2, direction.getOppositeFace());
+		Block next;
+		for (int i = 0;i < stepcount;i++) {
+			next = map1.next();
+			if (next != null && next.getLocation().equals(rail2.getLocation())) {
+				return true;
+			}
+			next = map2.next();
+			if (next != null && next.getLocation().equals(rail1.getLocation())) {
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	public Block last() {
 		return last(0);
@@ -46,11 +76,11 @@ public class TrackMap extends ArrayList<Block> {
 		return totaldistance;
 	}
 	public BlockFace getNextDirection() {
-		Rails rails = Util.getRails(last());
+		Rails rails = BlockUtil.getRails(last());
 		if (rails == null) return null;
 		
 		//Get a set of possible directions to go
-		BlockFace[] possible = Util.getFaces(rails.getDirection());
+		BlockFace[] possible = FaceUtil.getFaces(rails.getDirection());
 		
 		//simple forward - always true
 		for (BlockFace newdir : possible) {
@@ -106,7 +136,7 @@ public class TrackMap extends ArrayList<Block> {
 	public Location getPoint(int index) {
 		Location loc = this.get(index).getLocation();
 		BlockFace dir = getDirection(index);
-		loc.setYaw(Util.getFaceYaw(dir));
+		loc.setYaw(FaceUtil.faceToYaw(dir));
 		//loc.setYaw(Util.getRailsYaw(Util.getRails(this.get(index))));
 		return loc;
 	}
@@ -162,11 +192,11 @@ public class TrackMap extends ArrayList<Block> {
 		
 		//Get the Rails block at this direction (up/down?)
 		Block next = last().getRelative(direction);
-		if (next != null && !Util.isRails(next)) {
+		if (next != null && !BlockUtil.isRails(next)) {
 			Block tmp = next.getRelative(BlockFace.UP);
-			if (!Util.isRails(tmp)) {
+			if (!BlockUtil.isRails(tmp)) {
 				tmp = next.getRelative(BlockFace.DOWN);
-				if (!Util.isRails(tmp)) {
+				if (!BlockUtil.isRails(tmp)) {
 					//Failed rails validation, no next track is possible
 					return null;
 				}
