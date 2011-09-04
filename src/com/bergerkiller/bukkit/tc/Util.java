@@ -23,6 +23,14 @@ public class Util {
 	public static void heartbeat() {
 		broadcast("HEARTBEAT: " + System.currentTimeMillis());
 	}
+	
+	public static double tryParse(String text, double def) {
+		try {
+			return Double.parseDouble(text);
+		} catch (Exception ex) {
+			return def;
+		}
+	}
 
 	public static double length(double... values) {
 		double rval = 0;
@@ -58,7 +66,11 @@ public class Util {
         // Values of change in distance (make it relative)
         double dx = lookat.getX() - loc.getX();
         double dz = lookat.getZ() - loc.getZ();
-
+        return getLookAtYaw(new Vector(dx, 0, dz));
+	}
+	public static float getLookAtYaw(Vector motion) {
+		double dx = motion.getX();
+		double dz = motion.getZ();
         double yaw = 0;
         // Set yaw
         if (dx != 0) {

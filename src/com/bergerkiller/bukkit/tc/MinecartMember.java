@@ -47,7 +47,7 @@ public class MinecartMember extends NativeMinecartMember {
 		motZ = Util.fixNaN(motZ);
 		MinecartGroup g = this.getGroup();
 		if (g != null) {
-			if (g.size() < 2) {
+			if (g.size() == 0) {
 				this.group = null;
 				g.remove();
 				super.m_();
@@ -177,13 +177,31 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	public void destroy() {
 		if (this.passenger != null) this.passenger.setPassengerOf(null);
-		this.world.removeEntity(this);
+		this.die();
+		this.remove();
 	}
 	public boolean remove() {
 		if (this.grouped()) {
 			return this.group.removeCart(this);
 		}
 		return false;
+	}
+	public void eject() {
+		this.getMinecart().eject();
+	}
+	public void eject(Vector offset) {
+		if (this.passenger != null) {
+			Entity passenger = this.passenger.getBukkitEntity();
+			this.passenger.setPassengerOf(null);
+			Task t = new Task(TrainCarts.plugin, passenger, offset) {
+				public void run() {
+					Entity e = (Entity) getArg(0);
+					Vector offset = (Vector) getArg(1);
+					e.teleport(e.getLocation().add(offset.getX(), offset.getY(), offset.getZ()));
+				}
+			};
+			t.startDelayed(0);
+		}
 	}
 	public static boolean remove(Minecart m) {
 		MinecartMember mm = get(m);
@@ -243,15 +261,19 @@ public class MinecartMember extends NativeMinecartMember {
 	public Sign getSign() {
 		return BlockUtil.getSign(getSignBlock());
 	}
-	public void addTarget(Location to, double toVelocity, long delayMS) {
+	public VelocityTarget addTarget(Location to, double toVelocity, long delayMS) {
 		if (this.grouped()) {
-			this.group.addTarget(this, to, toVelocity, delayMS);
+			return this.group.addTarget(this, to, toVelocity, delayMS);
+		} else {
+			return null;
 		}
 	}
-	public void setTarget(Location to, double toVelocity, long delayMS) {
+	public VelocityTarget setTarget(Location to, double toVelocity, long delayMS) {
 		if (this.grouped()) {
 			this.group.clearTargets();
-			this.group.addTarget(this, to, toVelocity, delayMS);
+			return this.group.addTarget(this, to, toVelocity, delayMS);
+		} else {
+			return null;
 		}
 	}
 	
@@ -286,6 +308,11 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public void setForce(double force, Location to) {
 		setForce(force, Util.getLookAtYaw(this.getLocation(), to));
+	}
+	public void setForce(double force, BlockFace direction) {
+		Location loc = this.getLocation();
+		loc = loc.add(direction.getModX(), 0, direction.getModZ());
+		setForce(force, loc);
 	}
 	public void setForwardForce(double force) {
 		setForce(force, this.getYaw());
@@ -392,7 +419,8 @@ public class MinecartMember extends NativeMinecartMember {
 		return setYaw(Util.getLookAtYaw(tail, this));
 	}
 	public BlockFace getDirection() {
-		return FaceUtil.yawToFace(customYaw);
+		float yaw = Util.getLookAtYaw(this.getVelocity());
+		return FaceUtil.yawToFace(yaw, false);
 	}
 	public boolean isMovingTo(Location to) {
 		BlockFace dir = getDirection();
@@ -409,11 +437,11 @@ public class MinecartMember extends NativeMinecartMember {
 		return EntityUtil.getNative(m) instanceof MinecartMember;
 	}
  	public static boolean validate(Minecart m) {
- 		return !(m.isDead() || (TrainCarts.removeDerailedCarts && isDerailed(m)));
+ 		return !(m.isDead() || TrainCarts.removeDerailedCarts && isDerailed(m));
  	}
  	public static boolean validate(MinecartMember mm) {
  		return !(mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed()));
- 	}	
+ 	}
  	public boolean isMoving() {
 		if (motX > 0.001) return true;
 		if (motX < -0.001) return true;

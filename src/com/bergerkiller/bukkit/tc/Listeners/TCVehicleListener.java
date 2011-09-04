@@ -5,6 +5,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
@@ -53,6 +54,16 @@ public class TCVehicleListener extends VehicleListener {
 			t.startDelayed(0);
 		}
 	}
+	
+	@Override
+	public void onVehicleCreate(VehicleCreateEvent event) {
+		if (event.getVehicle() instanceof Minecart) {
+			Minecart m = (Minecart) event.getVehicle();
+			if (!MinecartMember.isMember(m)) {
+				MinecartGroup.load(new MinecartGroup(m));
+			}
+		}
+	}
 		
 	@Override
 	public void onVehicleMove(VehicleMoveEvent event) {
@@ -87,8 +98,11 @@ public class TCVehicleListener extends VehicleListener {
 	
 	@Override
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
-		if (event.getVehicle() instanceof Minecart) {
-			MinecartMember.remove((Minecart) event.getVehicle());
+		if (!event.isCancelled()) {
+			if (event.getVehicle() instanceof Minecart) {
+				event.getVehicle().remove();
+				MinecartMember.remove((Minecart) event.getVehicle());
+			}
 		}
 	}
 	

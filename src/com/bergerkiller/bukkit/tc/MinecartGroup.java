@@ -18,6 +18,7 @@ import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.tc.API.ForceUpdateEvent;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class MinecartGroup {
 	/*
@@ -28,9 +29,13 @@ public class MinecartGroup {
 	public static void updateGroups() {
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
-			for (MinecartMember mm : mg.getMembers()) {
-				if (!MinecartMember.validate(mm)) {
-					mm.remove();
+			if (mg.size() == 0) {
+				groups.remove(mg);
+			} else {
+				for (MinecartMember mm : mg.getMembers()) {
+					if (!MinecartMember.validate(mm)) {
+						mm.remove();
+					}
 				}
 			}
 			//Unloaded chunk handling
@@ -45,11 +50,20 @@ public class MinecartGroup {
 		}
 	}
 		
+	public static void setSingle(MinecartMember mm) {
+		if (MinecartMember.validate(mm)) {
+			MinecartGroup group = new MinecartGroup();
+			group.addMember(mm);
+			mm.setGroup(group);
+			load(group);
+		} else {
+			mm.setGroup(null);
+		}
+	}
 	public static void unload(MinecartGroup group) {
 		if (group == null) return;
 		group.stop();
 		for (MinecartMember mm : group.mc) {
-			mm.setGroup(null);
 			MinecartMember.undoReplacement(mm);
 		}
 	    group.mc.clear();
@@ -167,6 +181,7 @@ public class MinecartGroup {
 	private ArrayList<MinecartMember> mc = new ArrayList<MinecartMember>();
 	private HashSet<Location> activeSigns = new HashSet<Location>();
 	private Queue<VelocityTarget> targets = new LinkedList<VelocityTarget>();
+	public boolean ignorePushes = false;
 	
 	public MinecartGroup() {}
 	public MinecartGroup(Minecart... members) {
@@ -184,8 +199,28 @@ public class MinecartGroup {
 	public void clearTargets() {
 		this.targets.clear();
 	}
-	public void addTarget(MinecartMember from, Location to,  double toVelocity, long delayMS) {
-		this.targets.offer(new VelocityTarget(from, to, toVelocity, delayMS));
+	public VelocityTarget addTarget(MinecartMember from, Location to,  double toVelocity, long delayMS) {
+		return this.addTarget(new VelocityTarget(from, to, toVelocity, delayMS));
+	}
+	public VelocityTarget addTarget(VelocityTarget target) {
+		this.targets.offer(target);
+		return target;
+	}
+	public VelocityTarget getTarget() {
+		if (hasTarget()) {
+			return this.targets.peek();
+		} else {
+			return null;
+		}
+	}
+	public VelocityTarget[] getTargets() {
+		return this.targets.toArray(new VelocityTarget[0]);
+	}
+	public void setTargets(VelocityTarget... targets) {
+		this.clearTargets();
+		for (VelocityTarget target: targets) {
+			this.targets.offer(target);
+		}
 	}
 	
 	/*
@@ -304,10 +339,11 @@ public class MinecartGroup {
 		playLinkEffect(mc.get(index).getMinecart());
 		
 		//remove cart from global info
-		mc.get(index).setGroup(null);
+		setSingle(mc.get(index));
 		
 		//split the train at the index
 		MinecartGroup gnew = new MinecartGroup();
+		gnew.ignorePushes = this.ignorePushes;
 		for (int i = 0;i < index;i++) {
 			MinecartMember mm = mc.get(i);
 			gnew.mc.add(mm);
@@ -317,7 +353,7 @@ public class MinecartGroup {
 		groups.add(gnew);
 		
 		//Remove if empty
-		if (gnew.mc.size() <= 1) gnew.remove();
+		if (gnew.size() == 0) gnew.remove();
 
 		//remove transferred carts
 		for (int i = 0;i <= index;i++) {
@@ -325,21 +361,22 @@ public class MinecartGroup {
 		}
 		
 		//Remove if empty
-		if (this.mc.size() <= 1) this.remove();
+		if (this.size() == 0) this.remove();
 	}
+	
 	public void remove() {
 		for (MinecartMember mm : this.mc) {
-			mm.setGroup(null);
+			setSingle(mm);
 		}
 		this.mc.clear();
 		groups.remove(this);
 	}
-
 	public void destroy() {
-		for (MinecartMember mm : mc) {
+		for (MinecartMember mm : getMembers()) {
 			mm.destroy();
 		}
-		this.remove();
+		this.mc.clear();
+		groups.remove(this);
 	}	
 	public void stop() {
 		for (MinecartMember m : mc) {
@@ -385,6 +422,9 @@ public class MinecartGroup {
 		}
 		return force;
 	}
+	public double getMaxSpeed() {
+		return head().maxSpeed;
+	}
 	
 	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
 		ArrayList<SimpleChunk> rval = new ArrayList<SimpleChunk>();
@@ -394,18 +434,18 @@ public class MinecartGroup {
 		return rval.toArray(new SimpleChunk[0]);
 	}
 	
-	public void move(double force) {
-		tail().setForwardForce(-force);
-	}
-	
 	public void updateTarget() {
-		if (this.hasTarget() && this.targets.peek().update()) {
+		if (this.hasTarget() && this.getTarget().update()) {
 			this.targets.remove();
 		}
 	}	
 	public void update() {
 		//Prevent index exceptions: remove if not a train
-		if (mc.size() <= 1) {
+		if (this.size() == 1) {
+			//Set the yaw (IS important!)
+			head().setYaw(FaceUtil.faceToYaw(head().getDirection()));
+			return;
+		} else if (mc.size() == 0) {
 			this.remove();
 			return;
 		}

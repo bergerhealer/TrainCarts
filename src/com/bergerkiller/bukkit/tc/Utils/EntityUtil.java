@@ -103,37 +103,48 @@ public class EntityUtil {
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}	
 	public static boolean pushAway(EntityMinecart vehicle, Entity topush) {
-		if (topush instanceof Player) {
-			if (!TrainCarts.pushAwayPlayers) return false;
-		} else if (topush instanceof Creature) {
-			if (TrainCarts.pushAwayMobs) {
-				//Enter if possible
-				if (vehicle.passenger == null) {
-					getNative(topush).setPassengerOf(vehicle);
-					return true;
+		//Targeting?
+		boolean ignorePushes = false;
+		MinecartMember mm = MinecartMember.get(vehicle.getBukkitEntity());
+		if (mm != null && mm.grouped() && mm.getGroup().ignorePushes) {
+			ignorePushes = true;
+		}
+		
+		if (!ignorePushes) {
+			if (topush instanceof Player) {
+				if (!TrainCarts.pushAwayPlayers) return false;
+			} else if (topush instanceof Creature) {
+				if (TrainCarts.pushAwayMobs) {
+					//Enter if possible
+					if (vehicle.passenger == null) {
+						getNative(topush).setPassengerOf(vehicle);
+						return true;
+					}
+				} else {
+					return false;
 				}
 			} else {
-				return false;
-			}
-		} else {
-			if (!TrainCarts.pushAwayMisc) {
-				return false;
-			} else {
-				if (topush instanceof Minecart) {
+				if (!TrainCarts.pushAwayMisc) {
 					return false;
+				} else {
+					if (topush instanceof Minecart) {
+						return false;
+					}
 				}
 			}
 		}
+		
 		//===============================Entity check end======================
 		double speed = Util.length(vehicle.motX, vehicle.motY, vehicle.motZ);
-		if (speed > TrainCarts.pushAwayAtVelocity) {
+		if (ignorePushes || speed > TrainCarts.pushAwayAtVelocity) {
 			//push that bastard away!
 			float yaw = getMinecartYaw(vehicle);
 			//which do we choose, -90 or 90?
 			while (yaw < 0) yaw += 360;
 			while (yaw >= 360) yaw -= 360;
 			float lookat = Util.getLookAtYaw(vehicle.getBukkitEntity(), topush) - yaw;
-			if (Util.getAngleDifference(lookat, 180) < 90) return false; //pushing
+
+			if (!ignorePushes && Util.getAngleDifference(lookat, 180) < 90) return false; //pushing
 			while (lookat > 180) lookat -= 360;
 			while (lookat < -180) lookat += 360;
 			yaw -= 90;

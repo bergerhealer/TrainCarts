@@ -6,8 +6,6 @@ import org.bukkit.event.Listener;
 
 import com.afforess.minecartmaniacore.event.MinecartCaughtEvent;
 import com.afforess.minecartmaniacore.event.MinecartClickedEvent;
-import com.afforess.minecartmaniacore.event.MinecartSpeedMultiplierEvent;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
 public class TCCustomListener extends CustomEventListener implements Listener {

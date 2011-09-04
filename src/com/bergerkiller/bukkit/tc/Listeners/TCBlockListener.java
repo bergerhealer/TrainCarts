@@ -39,11 +39,15 @@ public class TCBlockListener extends BlockListener {
 				if (!event.getPlayer().hasPermission("train.build.station")) {
 					event.setCancelled(true);
 					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a station!");
 				}
 			} else if (line.toLowerCase().startsWith("spawn")) {
 				if (!event.getPlayer().hasPermission("train.build.spawner")) {
 					event.setCancelled(true);
 					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train spawner!");
 				}
 			} else if (line.toLowerCase().startsWith("trigger")) {
 				if (!event.getPlayer().hasPermission("train.build.trigger")) {
@@ -51,6 +55,29 @@ public class TCBlockListener extends BlockListener {
 					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
 				} else {
 					event.getPlayer().sendMessage(ChatColor.GREEN + "Trigger built!");
+				}
+			} else if (line.toLowerCase().startsWith("destroy")) {
+				if (!event.getPlayer().hasPermission("train.build.destructor")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train destructor!");
+				}
+			} else if (line.toLowerCase().startsWith("eject")) {
+				if (!event.getPlayer().hasPermission("train.build.ejector")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train passenger ejector!");
+				}
+			} else if (line.toLowerCase().startsWith("push")) {
+				if (!event.getPlayer().hasPermission("train.build.pushHandler")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else if (line.equalsIgnoreCase("push deny")) {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train push denier!");
+				} else if (line.equalsIgnoreCase("push allow")) {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train push allower!");
 				}
 			}
 		}

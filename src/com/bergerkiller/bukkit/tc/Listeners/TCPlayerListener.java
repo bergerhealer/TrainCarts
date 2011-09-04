@@ -15,7 +15,7 @@ public class TCPlayerListener extends PlayerListener {
 	
 	@Override
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-		
+
 	}
 	
 }

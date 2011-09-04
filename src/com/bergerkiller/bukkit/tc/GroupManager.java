@@ -33,7 +33,7 @@ public class GroupManager {
 	 */
 	private static void restoreGroup(World w, WorldGroup wg) {
 		Minecart[] minecarts = wg.getMinecarts(w);
-		if (minecarts.length > 1) {
+		if (minecarts.length != 0) {
 			MinecartGroup.load(new MinecartGroup(minecarts));
 		}
 		getGroups(w).remove(wg);

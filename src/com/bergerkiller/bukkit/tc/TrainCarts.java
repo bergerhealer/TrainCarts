@@ -39,6 +39,7 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean pushAwayMobs = false;
 	public static boolean pushAwayPlayers = false;
 	public static boolean pushAwayMisc = true;
+	public static boolean pushAwayStation = true;
 	public static boolean keepChunksLoaded = true;
 	public static boolean useCoalFromStorageCart = false;
 	
@@ -80,6 +81,7 @@ public class TrainCarts extends JavaPlugin {
 			pushAwayMobs = config.getBoolean("pushAway.pushMobs", pushAwayMobs);
 			pushAwayPlayers = config.getBoolean("pushAway.pushPlayers", pushAwayPlayers);
 			pushAwayMisc = config.getBoolean("pushAway.pushMisc", pushAwayMisc);
+			pushAwayStation = config.getBoolean("pushAway.whenAtStation", pushAwayStation);
 			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
 			useCoalFromStorageCart = config.getBoolean("useCoalFromStorageCart", useCoalFromStorageCart);
 			
@@ -125,6 +127,7 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("pushAway.pushMobs", pushAwayMobs);
 			config.setProperty("pushAway.pushPlayer", pushAwayPlayers);
 			config.setProperty("pushAway.pushMisc", pushAwayMisc);
+			config.setProperty("pushAway.whenAtStation", pushAwayStation);
 			config.setProperty("keepChunksLoaded", keepChunksLoaded);
 			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
 			config.save();
@@ -137,7 +140,8 @@ public class TrainCarts extends JavaPlugin {
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.VEHICLE_CREATE, vehicleListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
@@ -177,7 +181,7 @@ public class TrainCarts extends JavaPlugin {
 				MinecartGroup.updateGroups();
 			}
 		};
-		ctask.startRepeating(5L);
+		ctask.startRepeating(10L);
 		    		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();

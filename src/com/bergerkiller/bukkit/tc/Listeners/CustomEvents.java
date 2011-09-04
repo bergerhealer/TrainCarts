@@ -7,12 +7,16 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.VelocityTarget;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
@@ -38,7 +42,7 @@ public class CustomEvents {
 			return this.getBlock().getRelative(from).isBlockIndirectlyPowered();
 		}
 		public boolean isPowered() {
-			return this.getBlock().isBlockPowered();
+			return this.getBlock().isBlockIndirectlyPowered();
 		}
 		public Block getBlock() {
 			return this.signblock;
@@ -66,6 +70,10 @@ public class CustomEvents {
 				this.facing = BlockUtil.getFacing(this.getBlock());
 			}
 			return this.facing;
+		}
+		public boolean isFacing() {
+			if (getMember() == null) return false;
+			return getMember().getDirection() != getFacing();
 		}
 		public Sign getSign() {
 			if (this.sign == null) {
@@ -95,7 +103,7 @@ public class CustomEvents {
 	public static void handleStation(SignInfo info) {
 		//Check if not already targeting
 		MinecartGroup group = info.getGroup();
-		if (group != null && info.hasRails() && !group.hasTarget()) {
+		if (group != null && info.hasRails()) {			
 			//Get station length
 			if (!info.getLine(0).equalsIgnoreCase("[train]")) return;
 			if (!info.getLine(1).toLowerCase().startsWith("station")) return;
@@ -156,7 +164,6 @@ public class CustomEvents {
 				}
 			}
 			
-
 			//which directions to move, or brake?
 			BlockFace instruction = BlockFace.UP; //SELF is brake
 			if (dir == BlockFace.WEST) {
@@ -166,7 +173,7 @@ public class CustomEvents {
 					instruction = BlockFace.WEST;
 				} else if (east && !west) {
 					instruction = BlockFace.EAST;
-				} else if (east && west) {
+				} else {
 					instruction = BlockFace.SELF;
 				}
 			} else if (dir == BlockFace.SOUTH) {
@@ -176,15 +183,22 @@ public class CustomEvents {
 					instruction = BlockFace.NORTH;
 				} else if (south && !north) {
 					instruction = BlockFace.SOUTH;
-				} else if (south && north) {
+				} else {
 					instruction = BlockFace.SELF;
 				}
 			}
+			if (instruction == BlockFace.UP) return; 
+			
+			VelocityTarget lastTarget = null;
+			
 			//What do we do?
 			Location l = info.getRailLocation().add(0.5, 0, 0.5);
-			if (instruction == BlockFace.SELF) {
+			if (instruction == BlockFace.SELF && info.isPowered()) {
 				//Brake
-				midd.setTarget(l, 0, 0);			
+				if (TrainCarts.pushAwayStation) {
+					group.ignorePushes = true;
+				}
+				lastTarget = midd.setTarget(l, 0, 0);			
 				BlockFace trainDirection = null;
 				if (mode == 1) {
 					//Continue
@@ -212,13 +226,25 @@ public class CustomEvents {
 				if (l != null) {
 					//Actual launching here
 					l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
-					midd.addTarget(l, TrainCarts.maxCartSpeed, delayMS);
+					lastTarget = midd.addTarget(l, midd.maxSpeed, delayMS);
 				}
 			} else {
 				//Launch
+				if (TrainCarts.pushAwayStation) {
+					group.ignorePushes = true;
+				}
 				l = l.add(instruction.getModX() * length, 0, instruction.getModZ() * length);
-				midd.setTarget(l, TrainCarts.maxCartSpeed, delayMS);
+				lastTarget = midd.setTarget(l, midd.maxSpeed, delayMS);
 			}
+			if (TrainCarts.pushAwayStation && lastTarget != null) {
+				lastTarget.afterTask = new Task(TrainCarts.plugin, group) {
+					public void run() {
+						MinecartGroup group = (MinecartGroup) getArg(0);
+						group.ignorePushes = false;
+					}
+				};
+			}
+		
 		}
 	}
 	public static void spawnTrain(SignInfo info) {
@@ -238,6 +264,9 @@ public class CustomEvents {
 				types.add(2);
 			}
 		}
+		
+		if (types.size() == 0) return;
+		
 		//Create the group
 		MinecartGroup g = new MinecartGroup();
 		BlockFace dir = info.getFacing();
@@ -247,12 +276,13 @@ public class CustomEvents {
 		for (int i = 0;i < locs.length;i++) {
 			if (MinecartMember.getAt(locs[i]) != null) return;
 		}
+		
 		//Spawn the train
 		for (int i = 0;i < types.size();i++) {
 			g.addMember(MinecartMember.get(locs[i], types.get(i), g));
 		}
+		g.tail().setForwardForce(force);
 		MinecartGroup.load(g);
-		g.move(force);
 	}
 	
 	public static void onSign(SignInfo info, ActionType actionType) {
@@ -290,7 +320,57 @@ public class CustomEvents {
 		if (actionType == ActionType.REDSTONE_ON || actionType == ActionType.GROUP_ENTER) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("trigger")) {
-					ArrivalSigns.trigger(info.getSign());
+					if (actionType == ActionType.REDSTONE_ON || info.isFacing()) {
+						ArrivalSigns.trigger(info.getSign());
+					}
+				} else if (info.getLine(1).equalsIgnoreCase("push deny")) {
+					if (info.isFacing() && info.getGroup() != null) {
+						info.getGroup().ignorePushes = true;
+					}
+				} else if (info.getLine(1).equalsIgnoreCase("push allow")) {
+					if (info.isFacing() && info.getGroup() != null) {
+						info.getGroup().ignorePushes = false;
+					}
+				}
+			}
+		}
+		
+		if (actionType == ActionType.REDSTONE_ON || actionType == ActionType.MEMBER_ENTER) {
+			if (info.isFacing()) {
+				if (info.getLine(1).equalsIgnoreCase("destroy") && info.isPowered()) {
+					if (info.getMember() != null) {
+						info.getMember().destroy();
+					}
+				} else if (info.getLine(1).equalsIgnoreCase("destroy all") && info.isPowered() ) {
+					if (info.getGroup() != null) {
+						MinecartGroup group = info.getGroup();
+						group.destroy();
+					}	
+				} else if (info.getLine(1).toLowerCase().startsWith("eject") && info.isPowered()) {
+					String[] offsettext = info.getLine(2).split("/");
+					Vector offset = new Vector();
+					if (offsettext.length == 3) {
+						offset.setX(Util.tryParse(offsettext[0], 0));
+						offset.setY(Util.tryParse(offsettext[1], 0));
+						offset.setZ(Util.tryParse(offsettext[2], 0));
+					} else if (offsettext.length == 1) {
+						offset.setY(Util.tryParse(offsettext[0], 0));
+					}
+					if (info.getLine(1).equalsIgnoreCase("eject all") && info.getGroup() != null) {
+						for (MinecartMember mm : info.getGroup().getMembers()) {
+							if (offset.equals(new Vector())) {
+								mm.eject();
+							} else {
+								mm.eject(offset);
+							}
+						}
+					} else if (info.getMember() != null) {
+						if (offset.equals(new Vector())) {
+							info.getMember().eject();
+						} else {
+							info.getMember().eject(offset);
+						}
+					}
 				}
 			}
 		}

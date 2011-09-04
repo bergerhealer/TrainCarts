@@ -136,7 +136,7 @@ public class TrackMap extends ArrayList<Block> {
 	public Location getPoint(int index) {
 		Location loc = this.get(index).getLocation();
 		BlockFace dir = getDirection(index);
-		loc.setYaw(FaceUtil.faceToYaw(dir));
+		loc.setYaw(FaceUtil.faceToYaw(dir) + 90);
 		//loc.setYaw(Util.getRailsYaw(Util.getRails(this.get(index))));
 		return loc;
 	}
@@ -149,8 +149,10 @@ public class TrackMap extends ArrayList<Block> {
 	}
 	
 	public Location[] walk(int stepCount, double stepSize) {
+		if (stepCount == 0) return new Location[0];
 		Location[] guide = getPoints();
 		Location[] rval = new Location[stepCount];
+		if (guide.length == 0) return new Location[0];
 		rval[0] = guide[0];
 		int guideindex = 1;
 		for (int i = 1;i < stepCount;i++) {

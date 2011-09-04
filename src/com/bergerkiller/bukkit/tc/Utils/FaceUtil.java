@@ -52,8 +52,7 @@ public class FaceUtil {
 					BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP};
 		}
 	}
-	
-	
+		
 	public static float faceToYaw(BlockFace face) {
 		switch (face) {
 		case NORTH : return 0;

@@ -24,14 +24,33 @@ public class VelocityTarget {
 	public double goalVelocity;
 	private long startTime;
 	private long delay;
+	public Task afterTask = null;
 	private final double minVelocity = 0.1;
+		
+	public long getDelay() {
+		if (startTime == 0) {
+			return this.delay;
+		} else {
+			long delay = startTime - System.currentTimeMillis();
+			if (delay < 0) return 0;
+			return delay;
+		}
+	}
+	public void setDelay(long delay) {
+		this.delay = delay;
+	}
+	
+	public boolean started() {
+		if (this.delay == 0) return true;
+		return this.startTime <= System.currentTimeMillis();
+	}
 	
 	public boolean update() {
 		//Update time
 		if (this.startTime == 0) {
 			this.startTime = System.currentTimeMillis() + this.delay;
 			if (this.delay > 0) return false;
-		} else if (this.startTime > System.currentTimeMillis()) {
+		} else if (!started()) {
 			return false;
 		}
 		//First start
@@ -44,7 +63,12 @@ public class VelocityTarget {
 			if (this.startVelocity < minVelocity) this.startVelocity = minVelocity;
 		}
 		
-		from.getGroup().limitSpeed();
+		//Ensure we can even target, too high values is never nice!
+		if (from.grouped()) {
+			from.getGroup().limitSpeed();
+		} else {
+			from.limitSpeed();
+		}
 
 		//Increment distance
 		this.distance += Util.distance(from.locX, from.locZ, from.lastX, from.lastZ);
@@ -66,6 +90,14 @@ public class VelocityTarget {
 			from.motX *= factor;
 			from.motZ *= factor;
 		} else {
+			//Stop to stop MM from ruining it all...
+			if (TrainCarts.MinecartManiaEnabled) {
+				if (from.grouped()) {
+					from.getGroup().stop();
+				} else {
+					from.stop();
+				}
+			}
 			//set motion using the angle
 			from.setForce(targetvel, target);
 		}
@@ -77,6 +109,10 @@ public class VelocityTarget {
 			} else {
 				from.stop();
 			}
+		}
+		
+		if (reached && afterTask != null) {
+			afterTask.run();
 		}
 		return reached;
 	}
