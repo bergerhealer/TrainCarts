@@ -17,8 +17,8 @@ import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents.ActionType;
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents.SignInfo;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 public class TCVehicleListener extends VehicleListener {
@@ -71,7 +71,7 @@ public class TCVehicleListener extends VehicleListener {
 		if (mm != null) {
 			Block signblock = mm.getSignBlock();
 			if (signblock != null) {
-				SignInfo info = new SignInfo(signblock, mm);
+				SignActionEvent info = new SignActionEvent(signblock, mm);
 				CustomEvents.onSign(info, ActionType.MEMBER_MOVE);
 				if (!mm.isActiveSign(signblock)) {
 					mm.setActiveSign(signblock);
@@ -88,7 +88,7 @@ public class TCVehicleListener extends VehicleListener {
 					if (mm == mm.getGroup().tail()) {
 						signblock = mm.getActiveSign();
 						mm.getGroup().setSignActive(signblock, false);
-						CustomEvents.onSign(new SignInfo(signblock, mm), ActionType.GROUP_LEAVE);
+						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, signblock, mm));
 					}
 				}
 				mm.setActiveSign(null);

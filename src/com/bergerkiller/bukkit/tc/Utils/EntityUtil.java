@@ -70,6 +70,15 @@ public class EntityUtil {
 		Block bm2 = BlockUtil.getRailsBlock(m2);
 		return TrackMap.connected(bm1, bm2);
 	}
+	public static void transferItems(EntityMinecart from, EntityMinecart to) {
+		ItemStack[] items = from.getContents();
+		for (int i = 0;i < items.length;i++) {
+			if (items[i] != null) {
+				to.setItem(i, new ItemStack(items[i].id, items[i].count, items[i].damage));
+			}
+		}
+		for (int i = 0;i < items.length;i++) from.setItem(i, null);
+	}
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
 		with.yaw = toreplace.yaw;
 		with.pitch = toreplace.pitch;
@@ -84,13 +93,7 @@ public class EntityUtil {
 		with.g = toreplace.g;
 		with.uniqueId = toreplace.uniqueId;
 		toreplace.uniqueId = new UUID(0, 0);
-		ItemStack[] items = toreplace.getContents();
-		for (int i = 0;i < items.length;i++) {
-			if (items[i] != null) {
-				with.setItem(i, new ItemStack(items[i].id, items[i].count, items[i].damage));
-			}
-		}
-		for (int i = 0;i < items.length;i++) toreplace.setItem(i, null);
+		transferItems(toreplace, with);
 		
 		//This is the only 'real' remove method that seems to work...
 		toreplace.dead = true;

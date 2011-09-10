@@ -125,15 +125,20 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	
 	public static MinecartMember getAt(Location at) {
-		return getAt(at, 1);
+		return getAt(at, null);
 	}
-	public static MinecartMember getAt(Location at, double searchRadius) {
+	public static MinecartMember getAt(Location at, MinecartGroup in) {
+		return getAt(at, in, 1);
+	}
+	public static MinecartMember getAt(Location at, MinecartGroup in, double searchRadius) {
 		for (Entity e : at.getBlock().getChunk().getEntities()) {
 			if (e instanceof Minecart) {
 				MinecartMember mm = get(e);
 				if (mm != null) {
-					if (mm.getLocation().distance(at) <= searchRadius) {
-						return mm;
+					if (in == null || mm.getGroup() == in) {
+						if (mm.getLocation().distance(at) <= searchRadius) {
+							return mm;
+						}
 					}
 				}
 			}
@@ -350,6 +355,9 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * Location functions
 	 */
+	public void teleport(Location to) {
+		getMinecart().teleport(to);
+	}
 	public double getSubX() {
 		double x = getX() + 0.5;
 		return x - (int) x;

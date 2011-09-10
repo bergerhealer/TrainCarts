@@ -1,14 +1,24 @@
 package com.bergerkiller.bukkit.tc.Listeners;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
+import net.minecraft.server.EntityPlayer;
+
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Player;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.mw.Localization;
+import com.bergerkiller.bukkit.mw.MyWorlds;
+import com.bergerkiller.bukkit.mw.Permission;
+import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
@@ -17,90 +27,15 @@ import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.VelocityTarget;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class CustomEvents {
-	
-	public static class SignInfo {
-		public SignInfo(Block signblock, MinecartMember member) {
-			this.signblock = signblock;
-			this.member = member;
-			this.memberchecked = true;
-		}
-		public SignInfo(Block signblock) {
-			this.signblock = signblock;
-		}
-		private Block signblock;
-		private BlockFace facing = null;
-		private BlockFace raildirection = null;
-		private Sign sign = null;
-		private MinecartMember member = null;
-		private boolean memberchecked = false;
-		
-		public boolean isPowered(BlockFace from) {
-			return this.getBlock().getRelative(from).isBlockIndirectlyPowered();
-		}
-		public boolean isPowered() {
-			return this.getBlock().isBlockIndirectlyPowered();
-		}
-		public Block getBlock() {
-			return this.signblock;
-		}
-		public Block getRails() {
-			return this.signblock.getRelative(0, 2, 0);
-		}
-		public boolean hasRails() {
-			return BlockUtil.isRails(this.getRails());
-		}
-		public BlockFace getRailDirection() {
-			if (this.raildirection == null) {
-				this.raildirection = BlockUtil.getRails(getRails()).getDirection();
-			}
-			return this.raildirection;
-		}
-		public Location getRailLocation() {
-			return getLocation().add(0, 2, 0);
-		}
-		public Location getLocation() {
-			return this.signblock.getLocation();
-		}
-		public BlockFace getFacing() {
-			if (this.facing == null) {
-				this.facing = BlockUtil.getFacing(this.getBlock());
-			}
-			return this.facing;
-		}
-		public boolean isFacing() {
-			if (getMember() == null) return false;
-			return getMember().getDirection() != getFacing();
-		}
-		public Sign getSign() {
-			if (this.sign == null) {
-				this.sign = BlockUtil.getSign(signblock);
-			}
-			return this.sign;
-		}
-		public MinecartMember getMember() {
-			if (!this.memberchecked) {
-				this.member = MinecartMember.getAt(getRailLocation());
-				this.memberchecked = true;
-			}
-			return this.member;
-		}
-		public MinecartGroup getGroup() {
-			MinecartMember mm = this.getMember();
-			if (mm == null) return null;
-			return mm.getGroup();
-		}
-		public String getLine(int index) {
-			return this.getSign().getLine(index);
-		}
-	}
-	
-	public static enum ActionType {REDSTONE_CHANGE, REDSTONE_ON, REDSTONE_OFF, MEMBER_ENTER, MEMBER_MOVE, GROUP_ENTER, GROUP_LEAVE}
-	
-	public static void handleStation(SignInfo info) {
+    
+	public static void handleStation(SignActionEvent info) {
 		//Check if not already targeting
 		MinecartGroup group = info.getGroup();
 		if (group != null && info.hasRails()) {			
@@ -198,7 +133,7 @@ public class CustomEvents {
 				if (TrainCarts.pushAwayStation) {
 					group.ignorePushes = true;
 				}
-				lastTarget = midd.setTarget(l, 0, 0);			
+				midd.setTarget(l, 0, 0);			
 				BlockFace trainDirection = null;
 				if (mode == 1) {
 					//Continue
@@ -247,7 +182,7 @@ public class CustomEvents {
 		
 		}
 	}
-	public static void spawnTrain(SignInfo info) {
+	public static void spawnTrain(SignActionEvent info) {
 		double force = 0;
 		try {
 			force = Double.parseDouble(info.getLine(1).substring(5).trim());
@@ -285,28 +220,122 @@ public class CustomEvents {
 		MinecartGroup.load(g);
 	}
 	
-	public static void onSign(SignInfo info, ActionType actionType) {
-		if (actionType == ActionType.REDSTONE_ON) {
+	private static HashMap<MinecartGroup, Long> teleportTimes = new HashMap<MinecartGroup, Long>();
+	private static void setTPT(MinecartGroup at) {
+		teleportTimes.put(at, System.currentTimeMillis());
+	}
+	private static boolean getTPT(MinecartGroup at) {
+		if (!teleportTimes.containsKey(at)) return true;
+		long time = teleportTimes.get(at);
+		return ((System.currentTimeMillis() - time) > MyWorlds.teleportInterval);
+	}
+	public static void teleportTrain(SignActionEvent info, Block destinationRail) {
+		if (!getTPT(info.getGroup())) {
+			setTPT(info.getGroup());
+			return;
+		}
+		
+		//Let's do this (...)
+		BlockFace direction = info.getFacing().getOppositeFace();
+		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
+		double force = info.getGroup().getAverageForce();
+		
+		MinecartGroup gnew = new MinecartGroup();
+		gnew.ignorePushes = info.getGroup().ignorePushes;
+		
+		for (int i = 0; i < newLocations.length; i++) {
+			MinecartMember mm = info.getGroup().getMember(i);
+			Location to = newLocations[newLocations.length - i - 1].add(0.5, 0.5, 0.5);
+			MinecartMember mnew = MinecartMember.get(to, mm.type, gnew);
+			//Set important data over
+			EntityUtil.transferItems(mm, mnew);
+			mnew.e = mm.e;
+			mnew.f = mm.f;
+			mnew.g = mm.g;
+			
+			gnew.addMember(mnew);
+						
+			//Teleport passenger
+			if (mm.passenger != null) {
+				net.minecraft.server.Entity e = mm.passenger;
+				//e.setPassengerOf(null);
+				Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to, mnew.getBukkitEntity()) {
+					public void run() {
+						Entity e = (Entity) getArg(0);
+						Location to = (Location) getArg(1);
+						Minecart mnew = (Minecart) getArg(2);
+						if (e.getLocation().getWorld() != to.getWorld()) {
+							e.teleport(to);
+						}
+						mnew.setPassenger(e);
+					}
+				};
+				t.startDelayed(0);
+			}
+		}
+		MinecartGroup.load(gnew);
+		setTPT(gnew);
+		
+		//Remove the old group (with delay or we hear the sizzle)
+		Task t = new Task(TrainCarts.plugin, info.getGroup()) {
+			public void run() {
+				((MinecartGroup) getArg(0)).destroy();
+			}
+		};
+		t.startDelayed(2);
+		
+		//Force
+		t = new Task(TrainCarts.plugin, gnew, gnew.head(), direction, force) {
+			public void run() {
+				MinecartGroup group = (MinecartGroup) getArg(0);
+				MinecartMember head = (MinecartMember) getArg(1);
+				BlockFace direction = (BlockFace) getArg(2);
+				double force = getDoubleArg(3);
+				if (group.size() == 0) return;
+				if (group.size() == 1) {
+					head.setForce(force, FaceUtil.faceToYaw(direction));
+				} else {
+					group.updateYaw();
+					for (MinecartMember mm : group.getMembers()) {
+						mm.setForwardForce(force);
+					}
+				}
+			}
+		};
+		t.startDelayed(1);
+	}
+	
+	public static void onSign(SignActionEvent info, ActionType action) {
+		info.setAction(action);
+		onSign(info);
+	}
+	public static void onSign(SignActionEvent info) {
+		//Event
+		info.setCancelled(false);
+		Bukkit.getServer().getPluginManager().callEvent(info);
+		if (info.isCancelled()) return;
+		
+		if (info.isAction(ActionType.REDSTONE_ON)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				String secondline = info.getLine(1).toLowerCase();
 				if (secondline.startsWith("spawn")) {
 					spawnTrain(info);
 				}
 			}
-		} else if (actionType == ActionType.REDSTONE_CHANGE || 
-				actionType == ActionType.GROUP_ENTER || 
-				actionType == ActionType.GROUP_LEAVE) {
+		}
+		
+		if (info.isAction(ActionType.REDSTONE_CHANGE, ActionType.GROUP_ENTER, ActionType.GROUP_LEAVE)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("station")) {
 					if (info.hasRails()) {
 						MinecartGroup group = info.getGroup();
-						if (group != null && actionType != ActionType.GROUP_LEAVE) {
+						if (group != null && !info.isAction(ActionType.GROUP_LEAVE)) {
 							handleStation(info);
 						}
-						if (actionType != ActionType.REDSTONE_CHANGE) {
+						if (!info.isAction(ActionType.REDSTONE_CHANGE)) {
 							//Toggle the lever if present
 							Block main = BlockUtil.getAttachedBlock(info.getBlock());
-							boolean down = actionType == ActionType.GROUP_ENTER;
+							boolean down = info.isAction(ActionType.GROUP_ENTER);
 							for (Block b : BlockUtil.getRelative(main, FaceUtil.getAttached())) {
 								BlockUtil.setLever(b, down);
 							}
@@ -317,10 +346,10 @@ public class CustomEvents {
 		}
 		
 		
-		if (actionType == ActionType.REDSTONE_ON || actionType == ActionType.GROUP_ENTER) {
+		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("trigger")) {
-					if (actionType == ActionType.REDSTONE_ON || info.isFacing()) {
+					if (info.isAction(ActionType.REDSTONE_ON) || info.isFacing()) {
 						ArrivalSigns.trigger(info.getSign());
 					}
 				} else if (info.getLine(1).equalsIgnoreCase("push deny")) {
@@ -335,7 +364,51 @@ public class CustomEvents {
 			}
 		}
 		
-		if (actionType == ActionType.REDSTONE_ON || actionType == ActionType.MEMBER_ENTER) {
+		if (TrainCarts.MyWorldsEnabled && info.isAction(ActionType.GROUP_ENTER, ActionType.REDSTONE_ON)) {
+			if (info.getGroup() != null) {
+				if (info.isAction(ActionType.REDSTONE_ON) || (info.isFacing() && info.isPowered())) {
+					Portal portal = Portal.get(info.getLocation());
+					if (portal != null) {
+						String destname = portal.getDestinationName();
+						Location dest = Portal.getPortalLocation(destname);
+						if (dest != null) {
+							//Teleport the ENTIRE train to the destination...
+							Block dblock = dest.getBlock().getRelative(0, 2, 0);
+							if (BlockUtil.isRails(dblock)) {
+								//Can the passengers teleport? If not, get them out of the train!
+								for (MinecartMember mm : info.getGroup().getMembers()) {
+									if (mm.passenger != null) {
+										if (mm.passenger instanceof EntityPlayer) {
+											Player p = (Player) mm.passenger.getBukkitEntity();
+											//has permission?
+											if (Permission.canEnter(p, dest.getWorld().getName())) {
+												if (Permission.has(p, "portal.use") && 
+														(!MyWorlds.usePortalEnterPermissions || 
+														Permission.has(p, "portal.enter." + destname))) {
+													//Has permission, show message
+													p.sendMessage(Localization.getPortalEnter(destname));
+												} else {
+													Localization.message(p, "portal.noaccess");
+													mm.passenger.setPassengerOf(null);
+												}
+											} else {
+												Localization.message(p, "world.noaccess");
+												mm.passenger.setPassengerOf(null);
+											}
+										}
+									}
+								}
+								
+								teleportTrain(info, dblock);
+							}
+						}
+					}
+					
+				}
+			}
+		}
+		
+		if (info.isAction(ActionType.REDSTONE_ON, ActionType.MEMBER_ENTER)) {
 			if (info.isFacing()) {
 				if (info.getLine(1).equalsIgnoreCase("destroy") && info.isPowered()) {
 					if (info.getMember() != null) {

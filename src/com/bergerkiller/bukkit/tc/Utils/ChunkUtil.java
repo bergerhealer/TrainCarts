@@ -2,9 +2,7 @@ package com.bergerkiller.bukkit.tc.Utils;
 
 import java.util.ArrayList;
 
-import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
 
 import com.bergerkiller.bukkit.tc.SimpleChunk;
 

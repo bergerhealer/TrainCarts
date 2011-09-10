@@ -102,7 +102,7 @@ public class ArrivalSigns {
 			long remaining = (duration - elapsed) / 1000;
 			if (remaining < 0) remaining = 0;
 			if (remaining == 0) {
-				com.bergerkiller.bukkit.sl.Variables.set(this.name, ChatColor.WHITE + "00:00:00").update();
+				com.bergerkiller.bukkit.sl.API.Variables.set(this.name, ChatColor.WHITE + "00:00:00").update();
 			} else {
 				//Convert to a String
 				String seconds = Integer.toString((int)(remaining % 60));  
@@ -112,7 +112,7 @@ public class ArrivalSigns {
 				if (minutes.length() == 1) minutes = "0" + minutes;
 				if (hours.length() == 1) hours = "0" + hours;
 				String finalTime = ChatColor.WHITE + hours + ":" + minutes + ":" + seconds;
-				com.bergerkiller.bukkit.sl.Variables.set(this.name, finalTime).update();
+				com.bergerkiller.bukkit.sl.API.Variables.set(this.name, finalTime).update();
 			}
 		}
 	}

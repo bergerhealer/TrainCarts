@@ -17,6 +17,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.tc.API.ForceUpdateEvent;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
+import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
@@ -27,7 +30,7 @@ public class MinecartGroup {
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	public static boolean isDisabled = false;
 	
-	public static void updateGroups() {
+	public static void updateGroups() {				
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
 			if (mg.size() == 0) {
@@ -148,10 +151,8 @@ public class MinecartGroup {
     				int m1index = g1.indexOf(m1);
     				int m2index = g2.indexOf(m2);	
     				if (m1index == 0 && m2index == 0) {
-    					Collections.reverse(g1.mc);
-    					//head-on collision, this will go real bad if we don't slow it down!
+    					g1.reverseOrder();
     					g2.mc.addAll(0, g1.mc);
-    					//g2.stop();
     				} else if (m1index == 0 && m2index == g2.size() - 1) {
     					g2.mc.addAll(g1.mc);
     				} else if (m1index == g1.size() - 1 && m2index == 0) {
@@ -159,6 +160,21 @@ public class MinecartGroup {
     				} else {
     					return false;
     				}
+    				
+    				//Clear targets and active signs
+    				g2.clearTargets();
+    				
+    				//Get the freshly added signs
+    				g2.activeSigns.addAll(g1.activeSigns);
+    				//Re-activate the signs underneath the train
+    				for (MinecartMember mm : g2.mc) {
+    					Block s = mm.getActiveSign();
+    					if (s != null) {
+    						g2.activeSigns.add(s.getLocation());
+    						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_ENTER, s, g2));
+    					}
+    				}
+    				
     				groups.remove(g1);
     				for (MinecartMember mm : g2.mc) {
     					mm.setGroup(g2);
@@ -338,10 +354,17 @@ public class MinecartGroup {
 		return true;
 	}
 	public void removeCart(int index) {
+		
 		playLinkEffect(mc.get(index).getMinecart());
 		
 		//remove cart from global info
 		setSingle(mc.get(index));
+		
+		//Set the deactivated signs that need updating
+		HashSet<Location> deactivatedSigns = new HashSet<Location>();
+		for (Location loc : this.activeSigns) {
+			deactivatedSigns.add(loc);
+		}
 		
 		//split the train at the index
 		MinecartGroup gnew = new MinecartGroup();
@@ -351,22 +374,58 @@ public class MinecartGroup {
 			gnew.mc.add(mm);
 			mm.setGroup(gnew);
 		}
+		
 		//Add the group
 		groups.add(gnew);
 		
+		//Set the new active signs
+		for (MinecartMember mm : gnew.mc) {
+			Block b = mm.getActiveSign();
+			if (b != null) {
+				gnew.activeSigns.add(b.getLocation());
+				deactivatedSigns.remove(b.getLocation());
+			}
+		}
+		
 		//Remove if empty
-		if (gnew.size() == 0) gnew.remove();
+		if (gnew.size() == 0) {
+			gnew.remove();
+		}
 
 		//remove transferred carts
 		for (int i = 0;i <= index;i++) {
 			this.mc.remove(0);
 		}
 		
+		//Set the new active signs
+		this.activeSigns.clear();
+		for (MinecartMember mm : this.mc) {
+			Block b = mm.getActiveSign();
+			if (b != null) {
+				this.activeSigns.add(b.getLocation());
+				deactivatedSigns.remove(b.getLocation());
+			}
+		}
+		
 		//Remove if empty
-		if (this.size() == 0) this.remove();
+		if (this.size() == 0) {
+			this.remove();
+		}
+		
+		//Remove deactived signs
+		for (Location location : deactivatedSigns) {
+			CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, location.getBlock(), this));
+		}
 	}
 	
 	public void remove() {
+		//Trigger all signs currently active
+		if (this.size() > 0) {
+			for (Location location : this.activeSigns) {
+				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, location.getBlock(), this));
+			}
+		}
+		activeSigns.clear();
 		for (MinecartMember mm : this.mc) {
 			setSingle(mm);
 		}
@@ -396,13 +455,21 @@ public class MinecartGroup {
 			m.setForwardForce(f);
 		}
 	}
-	
-	public double getAverageForce() {
-		//calculate the yaw for all carts; tail is the initial yaw to start at
+	public void reverseOrder() {
+		Collections.reverse(this.mc);
+	}
+	public void updateYaw() {
 		tail().setYawTo(tail(1));
 		for (int i = mc.size() - 2;i >= 0;i--) {
 			mc.get(i).setYawFrom(mc.get(i + 1));
 		}
+	}
+	
+	public double getAverageForce() {
+		if (size() == 0) return 0;
+		if (size() == 1) return mc.get(0).getForce();
+		
+		updateYaw();
 		
 		//Get the average forwarding force of all carts
 		double force = 0;
@@ -420,7 +487,7 @@ public class MinecartGroup {
 		
 		//Reverse
 		if (fforce < 0) {
-			Collections.reverse(mc);
+			reverseOrder();
 		}
 		return force;
 	}

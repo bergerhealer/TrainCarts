@@ -27,6 +27,13 @@ public class VelocityTarget {
 	public Task afterTask = null;
 	private final double minVelocity = 0.1;
 		
+	public MinecartMember getFrom() {
+		return this.from;
+	}
+	public Location getTarget() {
+		return this.target;
+	}
+	
 	public long getDelay() {
 		if (startTime == 0) {
 			return this.delay;

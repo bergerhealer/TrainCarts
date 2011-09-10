@@ -8,8 +8,8 @@ import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents.ActionType;
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents.SignInfo;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 
 public class TCBlockListener extends BlockListener {
@@ -19,7 +19,7 @@ public class TCBlockListener extends BlockListener {
 	@Override
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
 		if (BlockUtil.isSign(event.getBlock())) {
-			SignInfo info = new SignInfo(event.getBlock());
+			SignActionEvent info = new SignActionEvent(event.getBlock());
 			CustomEvents.onSign(info, ActionType.REDSTONE_CHANGE);
 			boolean powered = poweredBlocks.contains(event.getBlock());
 			if (event.getNewCurrent() > 0 && !powered) {

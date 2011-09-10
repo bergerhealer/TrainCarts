@@ -45,6 +45,7 @@ public class TrainCarts extends JavaPlugin {
 	
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
+	public static boolean MyWorldsEnabled = false;
 		
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
@@ -164,6 +165,10 @@ public class TrainCarts extends JavaPlugin {
 				}
 			};
 			signtask.startRepeating(20);
+		}
+		if (this.getServer().getPluginManager().isPluginEnabled("My Worlds")) {
+			Util.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
+			MyWorldsEnabled = true;
 		}
 				
 		//Load configuration
