@@ -57,7 +57,7 @@ public class TCVehicleListener extends VehicleListener {
 	
 	@Override
 	public void onVehicleCreate(VehicleCreateEvent event) {
-		if (event.getVehicle() instanceof Minecart) {
+		if (event.getVehicle() instanceof Minecart && !MinecartGroup.isDisabled) {
 			Minecart m = (Minecart) event.getVehicle();
 			if (!MinecartMember.isMember(m)) {
 				MinecartGroup.load(new MinecartGroup(m));

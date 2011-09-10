@@ -79,7 +79,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		Location loc = new Location(this.world.getWorld(), this.locX, this.locY, this.locZ);
 		this.yaw = BlockUtil.getRailsYaw(BlockUtil.getRails(loc));
 	}
-	
+		
 	/*
 	 * Replaced standard droppings based on TrainCarts settings. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
@@ -941,7 +941,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Prevents passengers and Minecarts from colliding with Minecarts
 	 */
 	@SuppressWarnings("unchecked")
-	private void filterCollisionList(List list) {
+	private void filterCollisionList(List list) {		
         int ri = 0;
         
         Entity[] entityList = (Entity[]) this.world.entityList.toArray(new Entity[0]);

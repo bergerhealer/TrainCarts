@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.util.logging.Level;
 
-
 public class SafeWriter {
 	private String filename;
 	private BufferedWriter w;
@@ -15,8 +14,7 @@ public class SafeWriter {
 		this.filename = filename;
 		try {
 			File f = new File(filename);
-			if (f.exists()) f.delete();
-			f.getParentFile().mkdirs();
+			if (!f.exists()) f.createNewFile();
 			w = new BufferedWriter(new FileWriter(filename));
 		} catch (FileNotFoundException ex) {
 			Util.log(Level.SEVERE, "Failed to write to: " + filename);
@@ -35,7 +33,6 @@ public class SafeWriter {
 			} catch (Exception ex) {
 				Util.log(Level.SEVERE, "Error while writing data to file: " + this.filename);
 				this.close();
-				this.w = null;
 			}
 		}
 	}
@@ -44,6 +41,7 @@ public class SafeWriter {
 		if (this.w == null) return;
 		try {
 			this.w.close();
+			this.w = null;
 		} catch (Exception ex) {
 			Util.log(Level.SEVERE, "Error while closing stream: " + this.filename);
 			ex.printStackTrace();

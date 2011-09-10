@@ -43,7 +43,7 @@ public class BlockUtil {
     	return rval;
     }
     public static Block getAttachedBlock(Block b) {
-    	MaterialData m = b.getState().getData();
+    	MaterialData m = getData(b);
     	BlockFace face = BlockFace.DOWN;
     	if (m instanceof Attachable) {
     		face = ((Attachable) m).getAttachedFace();
@@ -104,8 +104,8 @@ public class BlockUtil {
 	public static float getRailsYaw(Rails rails) {
 		if (rails != null) {
 			switch (rails.getDirection()) {
-			case WEST : return 90;
-			case SOUTH : return 0;
+			case WEST : return -90;
+			case SOUTH : return 180;
 			case SOUTH_WEST : return 135;
 			case NORTH_WEST : return 45;
 			case NORTH_EAST : return 135;

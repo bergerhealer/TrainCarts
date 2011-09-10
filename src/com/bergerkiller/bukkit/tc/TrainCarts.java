@@ -189,6 +189,7 @@ public class TrainCarts extends JavaPlugin {
         
 	}
 	public void onDisable() {
+		MinecartGroup.isDisabled = true;
 		//Stop tasks
 		ctask.stop();
 		if (signtask != null) signtask.stop();

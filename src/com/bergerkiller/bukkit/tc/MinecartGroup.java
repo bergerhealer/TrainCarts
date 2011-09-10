@@ -25,6 +25,7 @@ public class MinecartGroup {
 	 * STATIC REGION
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
+	public static boolean isDisabled = false;
 	
 	public static void updateGroups() {
 		for (MinecartGroup mg : getGroups()) {
@@ -104,6 +105,7 @@ public class MinecartGroup {
 	}
 	
 	public static boolean link(Minecart m1, Minecart m2) {
+		if (isDisabled) return false;
 		MinecartGroup g1 = get(m1);
 		MinecartGroup g2 = get(m2);
 		if (g1 != g2 || g1 == null) {

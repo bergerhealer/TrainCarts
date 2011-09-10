@@ -394,21 +394,20 @@ public class MinecartMember extends NativeMinecartMember {
 		return Util.getAngleDifference(customYaw, yawcomparer);
 	}	
 	public float setYaw(float yawcomparer) {
-		customYaw = 0;
-		double x = getSubX();
-		double z = getSubZ();
-		if (x == 0 && Math.abs(motX) < 0.001) {
+		double x = this.getSubX();
+		double z = this.getSubZ();
+		if (x == 0 && z != 0 && Math.abs(motX) < 0.001) {
 			//cart is driving along the x-axis
-			customYaw = 90;
-		} else if (z == 0 && Math.abs(motZ) < 0.001) {
+			customYaw = -90;
+		} else if (z == 0 && x != 0 && Math.abs(motZ) < 0.001) {
 			//cart is driving along the z-axis
-			customYaw = 0;
+			customYaw = -180;
 		} else {
 			//try to get the yaw from the rails
 			customYaw = BlockUtil.getRailsYaw(getRails());
 		}
 		//Fine tuning
-		if (getYawDifference(yawcomparer) > 90) customYaw -= 180;
+		if (getYawDifference(yawcomparer) > 90) customYaw += 180;
 		
 		return customYaw;
 	}

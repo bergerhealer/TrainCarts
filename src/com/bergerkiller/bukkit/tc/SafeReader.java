@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
-
 public class SafeReader {
 	private String filename;
 	private BufferedReader r = null;
@@ -48,6 +47,7 @@ public class SafeReader {
 		if (this.r == null) return;
 		try {
 			this.r.close();
+			this.r = null;
 		} catch (Exception ex) {
 			Util.log(Level.SEVERE, "Error while closing stream: " + this.filename);
 			ex.printStackTrace();

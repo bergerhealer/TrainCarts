@@ -209,7 +209,7 @@ public class GroupManager {
 		public UUID entityUID;
 		private int cx, cz;
 		public boolean isInLoadedChunk(World w) {
-			return ChunkUtil.getChunkSafe(w, cx, cz);
+			return !ChunkUtil.addNearChunks(null, w, cx, cz, 2, false, true);
 		}
 		public void writeTo(DataOutputStream stream) throws IOException {
 			stream.writeLong(entityUID.getMostSignificantBits());
