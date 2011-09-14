@@ -71,6 +71,11 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 	}
     
+	private boolean ignoreForces() {
+    	MinecartMember mm = (MinecartMember) this;
+    	return mm.grouped() && mm.getGroup().ignoreForces;
+	}
+	
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
 		this.lastX = this.locX;
@@ -275,7 +280,6 @@ public class NativeMinecartMember extends EntityMinecart {
                 moveinfo.flag2 = false;
 
                 // TrainNote: Used to boost a Minecart on powered tracks
-                
                 if (l == Block.GOLDEN_RAIL.id) {
                 	moveinfo.flag1 = (moveinfo.i1 & 8) != 0;
                 	moveinfo.flag2 = !moveinfo.flag1;
@@ -284,26 +288,29 @@ public class NativeMinecartMember extends EntityMinecart {
                 if (((BlockMinecartTrack) Block.byId[l]).f()) {
                 	moveinfo.i1 &= 7;
                 }
-
                 if (moveinfo.i1 >= 2 && moveinfo.i1 <= 5) {
                     this.locY = (double) (moveinfo.j + 1);
                 }
+
+                if (!ignoreForces()) {
+                	if (moveinfo.i1 == 2) {
+                		this.motX -= d0;
+                	}
+                     
+                    if (moveinfo.i1 == 3) {
+                        this.motX += d0;
+                    }
+                     
+                    if (moveinfo.i1 == 4) {
+                        this.motZ += d0;
+                    }
+                     
+                    if (moveinfo.i1 == 5) {
+                        this.motZ -= d0;
+                    }
+                }
                 
-            	if (moveinfo.i1 == 2) {
-            		this.motX -= d0;
-            	}
-                 
-                if (moveinfo.i1 == 3) {
-                    this.motX += d0;
-                }
-                 
-                if (moveinfo.i1 == 4) {
-                    this.motZ += d0;
-                }
-                 
-                if (moveinfo.i1 == 5) {
-                    this.motZ -= d0;
-                }
+
                 
                 //TrainNote end
 
@@ -423,7 +430,7 @@ public class NativeMinecartMember extends EntityMinecart {
 
             // CraftBukkit
             //==================TrainCarts edited==============
-            if (this.passenger != null || !this.slowWhenEmpty) {
+            if (this.passenger != null) {
 //                 this.motX *= 0.9599999785423279D;
 //                 this.motY *= 0.0D;
 //                 this.motZ *= 0.9599999785423279D;
@@ -431,24 +438,30 @@ public class NativeMinecartMember extends EntityMinecart {
                  this.motY *= 0.0D;
                  this.motZ *= 0.996999979019165D;
             } else {
-                if (this.type == 2) { 	
-                    double d17 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
-                    if (d17 > 0.01D) {
-                        moveinfo.flag = true;
-                        this.f /= d17;
-                        this.g /= d17;
-                        double d18 = 0.04D;
+            	//Is in a group that is targetting?
+                if (this.type == 2) {
+                	if (!ignoreForces()) {
+                        double d17 = (double) MathHelper.a(this.f * this.f + this.g * this.g);
+                        if (d17 > 0.01D) {
+                            moveinfo.flag = true;
+                            this.f /= d17;
+                            this.g /= d17;
+                            double d18 = 0.04D;
 
-                        this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
-                        this.motY *= 0.0D;
-                        this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
-                        this.motX += this.f * d18;
-                        this.motZ += this.g * d18;
-                    } else {
-                        this.motX *= 0.8999999761581421D;
-                        this.motY *= 0.0D;
-                        this.motZ *= 0.8999999761581421D;
-                    }
+                            this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
+                            this.motY *= 0.0D;
+                            this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
+                            this.motX += this.f * d18;
+                            this.motZ += this.g * d18;
+                        } else {
+                            this.motX *= 0.8999999761581421D;
+                            this.motY *= 0.0D;
+                            this.motZ *= 0.8999999761581421D;
+                        }
+                	} else {
+                		this.f = this.motX;
+                		this.g = this.motZ;
+                	}
                 }
                 this.motX *= 0.996999979019165D;
                 this.motY *= 0.0D;
@@ -628,7 +641,6 @@ public class NativeMinecartMember extends EntityMinecart {
 	public boolean onCoalUsed() {
 		return false;
 	}
-	
 	
 	/*
 	 * Cloned and updated to prevent collisions. For source, see:
@@ -937,6 +949,7 @@ public class NativeMinecartMember extends EntityMinecart {
             //TrainNote end
         }
     }
+	
 	/*
 	 * Prevents passengers and Minecarts from colliding with Minecarts
 	 */

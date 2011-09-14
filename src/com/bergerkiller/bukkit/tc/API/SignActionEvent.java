@@ -80,7 +80,10 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.getBlock().getRelative(from).isBlockIndirectlyPowered();
 	}
 	public boolean isPowered() {
-		return this.getBlock().isBlockIndirectlyPowered();
+		return isPowered(BlockFace.NORTH) ||
+				isPowered(BlockFace.EAST) ||
+				isPowered(BlockFace.SOUTH) ||
+				isPowered(BlockFace.WEST);
 	}
 	public Block getBlock() {
 		return this.signblock;

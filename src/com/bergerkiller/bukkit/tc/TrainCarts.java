@@ -25,9 +25,9 @@ public class TrainCarts extends JavaPlugin {
 	public static double cartDistance = 1.5;
 	public static double turnedCartDistance = 1.6;
 	public static boolean removeDerailedCarts = false;
-	public static double cartDistanceForcer = 0.2;
-	public static double turnedCartDistanceForcer = 0.3;
-	public static double nearCartDistanceFactor = 1.4;
+	public static double cartDistanceForcer = 0.1;
+	public static double turnedCartDistanceForcer = 0.2;
+	public static double nearCartDistanceFactor = 1.2;
 	public static double maxCartSpeed = 0.35;
 	public static double maxCartDistance = 4;
 	public static boolean breakCombinedCarts = false;
@@ -164,7 +164,7 @@ public class TrainCarts extends JavaPlugin {
 					ArrivalSigns.updateAll();
 				}
 			};
-			signtask.startRepeating(20);
+			signtask.startRepeating(10);
 		}
 		if (this.getServer().getPluginManager().isPluginEnabled("My Worlds")) {
 			Util.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
@@ -177,6 +177,9 @@ public class TrainCarts extends JavaPlugin {
 		//Load groups
 		GroupManager.loadGroups(getDataFolder() + File.separator + "trains.groupdata");
 		
+		//Load arrival times
+		ArrivalSigns.load(getDataFolder() + File.separator + "arrivaltimes.txt");
+		
 		//Restore carts where possible
 		GroupManager.refresh();
 		
@@ -187,7 +190,7 @@ public class TrainCarts extends JavaPlugin {
 			}
 		};
 		ctask.startRepeating(10L);
-		    		
+
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
         Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!" );
@@ -203,6 +206,9 @@ public class TrainCarts extends JavaPlugin {
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
 		}
+		
+		//Save arrival times
+		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
 		
 		//Save for next load
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");

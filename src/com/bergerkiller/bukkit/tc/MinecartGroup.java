@@ -200,6 +200,7 @@ public class MinecartGroup {
 	private HashSet<Location> activeSigns = new HashSet<Location>();
 	private Queue<VelocityTarget> targets = new LinkedList<VelocityTarget>();
 	public boolean ignorePushes = false;
+	public boolean ignoreForces = false;
 	
 	public MinecartGroup() {}
 	public MinecartGroup(Minecart... members) {

@@ -163,12 +163,12 @@ public class MinecartMember extends NativeMinecartMember {
 		return f;
 	}
 	public static EntityMinecart undoReplacement(MinecartMember mm) {
+		replacedCarts.remove(mm);
 		if (!mm.dead) {
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
 			EntityUtil.replaceMinecarts(mm, em);
 			return em;
 		}
-		replacedCarts.remove(mm);
 		return null;
 	}
 	public static void undoReplacement() {

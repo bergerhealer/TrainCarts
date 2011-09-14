@@ -59,7 +59,7 @@ public class EntityUtil {
 	}
 	public static float getMinecartYaw(EntityMinecart minecart) {
 		if (minecart instanceof MinecartMember) return ((MinecartMember) minecart).getYaw();
-		return minecart.yaw + 90;
+		return minecart.yaw;
 	}
 	
 	/*
@@ -91,6 +91,16 @@ public class EntityUtil {
 		with.e = toreplace.e;
 		with.f = toreplace.f;
 		with.g = toreplace.g;
+		with.maxSpeed = toreplace.maxSpeed;
+		with.derailedX = toreplace.derailedX;
+		with.derailedY = toreplace.derailedY;
+		with.derailedZ = toreplace.derailedZ;
+		with.flyingX = toreplace.flyingX;
+		with.flyingY = toreplace.flyingY;
+		with.flyingZ = toreplace.flyingZ;
+		with.damage = toreplace.damage;
+		with.fallDistance = toreplace.fallDistance;
+		with.ticksLived = toreplace.ticksLived;
 		with.uniqueId = toreplace.uniqueId;
 		toreplace.uniqueId = new UUID(0, 0);
 		transferItems(toreplace, with);
@@ -150,7 +160,6 @@ public class EntityUtil {
 			if (!ignorePushes && Util.getAngleDifference(lookat, 180) < 90) return false; //pushing
 			while (lookat > 180) lookat -= 360;
 			while (lookat < -180) lookat += 360;
-			yaw -= 90;
 			if (lookat > 0) {
 				yaw -= 90;
 			} else {

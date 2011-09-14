@@ -38,7 +38,10 @@ public class CustomEvents {
 	public static void handleStation(SignActionEvent info) {
 		//Check if not already targeting
 		MinecartGroup group = info.getGroup();
-		if (group != null && info.hasRails()) {			
+		if (group != null && info.hasRails()) {		
+			//Not already targeting from this station?
+			
+			
 			//Get station length
 			if (!info.getLine(0).equalsIgnoreCase("[train]")) return;
 			if (!info.getLine(1).toLowerCase().startsWith("station")) return;
@@ -98,12 +101,14 @@ public class CustomEvents {
 					if (length == 0 || tlength < length) length = tlength;
 				}
 			}
+			boolean west = info.isPowered(BlockFace.WEST);
+			boolean east = info.isPowered(BlockFace.EAST);
+			boolean north = info.isPowered(BlockFace.NORTH);
+			boolean south = info.isPowered(BlockFace.SOUTH);
 			
 			//which directions to move, or brake?
 			BlockFace instruction = BlockFace.UP; //SELF is brake
 			if (dir == BlockFace.WEST) {
-				boolean west = info.isPowered(BlockFace.WEST);
-				boolean east = info.isPowered(BlockFace.EAST);
 				if (west && !east) {
 					instruction = BlockFace.WEST;
 				} else if (east && !west) {
@@ -112,8 +117,6 @@ public class CustomEvents {
 					instruction = BlockFace.SELF;
 				}
 			} else if (dir == BlockFace.SOUTH) {
-				boolean north = info.isPowered(BlockFace.NORTH);
-				boolean south = info.isPowered(BlockFace.SOUTH);
 				if (north && !south) {
 					instruction = BlockFace.NORTH;
 				} else if (south && !north) {
@@ -128,46 +131,51 @@ public class CustomEvents {
 			
 			//What do we do?
 			Location l = info.getRailLocation().add(0.5, 0, 0.5);
-			if (instruction == BlockFace.SELF && info.isPowered()) {
-				//Brake
-				if (TrainCarts.pushAwayStation) {
-					group.ignorePushes = true;
-				}
-				midd.setTarget(l, 0, 0);			
-				BlockFace trainDirection = null;
-				if (mode == 1) {
-					//Continue
-					trainDirection = midd.getDirection();
-				} else if (mode == 2) {
-					//Reverse
-					trainDirection = midd.getDirection().getOppositeFace();
-				} else if (mode == 3 || mode == 4) {
-					//Relative left/right
-					BlockFace signdir = info.getFacing();
-					//Convert :)
-					float yaw = FaceUtil.faceToYaw(signdir);
-					if (mode == 3) {
-						//Left
-						yaw += 90;
-					} else {
-						//Right
-						yaw -= 90;
+			if (instruction == BlockFace.SELF && (north || east || south || west)) {
+				//Redstone change and moving?
+				if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
+					//Brake
+					if (TrainCarts.pushAwayStation) {
+						group.ignorePushes = true;
 					}
-					//Apply
-					trainDirection = FaceUtil.yawToFace(yaw);					
-				} else {
-					l = null; //Nothing
-				}
-				if (l != null) {
-					//Actual launching here
-					l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
-					lastTarget = midd.addTarget(l, midd.maxSpeed, delayMS);
+					group.ignoreForces = true;
+					midd.setTarget(l, 0, 0);			
+					BlockFace trainDirection = null;
+					if (mode == 1) {
+						//Continue
+						trainDirection = midd.getDirection();
+					} else if (mode == 2) {
+						//Reverse
+						trainDirection = midd.getDirection().getOppositeFace();
+					} else if (mode == 3 || mode == 4) {
+						//Relative left/right
+						BlockFace signdir = info.getFacing();
+						//Convert :)
+						float yaw = FaceUtil.faceToYaw(signdir);
+						if (mode == 3) {
+							//Left
+							yaw += 90;
+						} else {
+							//Right
+							yaw -= 90;
+						}
+						//Apply
+						trainDirection = FaceUtil.yawToFace(yaw);					
+					} else {
+						l = null; //Nothing
+					}
+					if (l != null) {
+						//Actual launching here
+						l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
+						lastTarget = midd.addTarget(l, midd.maxSpeed, delayMS);
+					}
 				}
 			} else {
 				//Launch
 				if (TrainCarts.pushAwayStation) {
 					group.ignorePushes = true;
 				}
+				group.ignoreForces = true;
 				l = l.add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 				lastTarget = midd.setTarget(l, midd.maxSpeed, delayMS);
 			}
@@ -176,6 +184,7 @@ public class CustomEvents {
 					public void run() {
 						MinecartGroup group = (MinecartGroup) getArg(0);
 						group.ignorePushes = false;
+						group.ignoreForces = false;
 					}
 				};
 			}
@@ -346,19 +355,24 @@ public class CustomEvents {
 		}
 		
 		
-		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER)) {
+		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER, ActionType.REDSTONE_OFF)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("trigger")) {
 					if (info.isAction(ActionType.REDSTONE_ON) || info.isFacing()) {
-						ArrivalSigns.trigger(info.getSign());
+						ArrivalSigns.trigger(info.getSign(), info.getMember());
+					} else if (info.isAction(ActionType.REDSTONE_OFF)) {
+						ArrivalSigns.timeCalcStop(info.getLocation());
 					}
-				} else if (info.getLine(1).equalsIgnoreCase("push deny")) {
-					if (info.isFacing() && info.getGroup() != null) {
-						info.getGroup().ignorePushes = true;
-					}
-				} else if (info.getLine(1).equalsIgnoreCase("push allow")) {
-					if (info.isFacing() && info.getGroup() != null) {
-						info.getGroup().ignorePushes = false;
+				}
+				if (!info.isAction(ActionType.REDSTONE_OFF)) {
+					if (info.getLine(1).equalsIgnoreCase("push deny")) {
+						if (info.isFacing() && info.getGroup() != null) {
+							info.getGroup().ignorePushes = true;
+						}
+					} else if (info.getLine(1).equalsIgnoreCase("push allow")) {
+						if (info.isFacing() && info.getGroup() != null) {
+							info.getGroup().ignorePushes = false;
+						}
 					}
 				}
 			}
