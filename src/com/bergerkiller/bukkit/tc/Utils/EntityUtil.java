@@ -91,7 +91,6 @@ public class EntityUtil {
 		with.e = toreplace.e;
 		with.f = toreplace.f;
 		with.g = toreplace.g;
-		with.maxSpeed = toreplace.maxSpeed;
 		with.derailedX = toreplace.derailedX;
 		with.derailedY = toreplace.derailedY;
 		with.derailedZ = toreplace.derailedZ;

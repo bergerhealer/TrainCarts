@@ -495,6 +495,11 @@ public class MinecartGroup {
 	public double getMaxSpeed() {
 		return head().maxSpeed;
 	}
+	public void setMaxSpeed(double maxspeed) {
+		for (MinecartMember mm : mc) {
+			mm.maxSpeed = maxspeed;
+		}
+	}
 	
 	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
 		ArrayList<SimpleChunk> rval = new ArrayList<SimpleChunk>();
@@ -556,13 +561,8 @@ public class MinecartGroup {
 		//Bring the force through the listener
 		force = ForceUpdateEvent.call(this, force);
 
-		//Set max speed (Minecart Mania)
-		if (TrainCarts.MinecartManiaEnabled) {
-			double maxspeed = head().maxSpeed;
-			for (MinecartMember mm : mc) {
-				mm.maxSpeed = maxspeed;
-			}
-		}
+		//Set max speed of head to tails automatically
+		setMaxSpeed(getMaxSpeed());
 		
 		//update all carts
 		for (MinecartMember m : mc) {
