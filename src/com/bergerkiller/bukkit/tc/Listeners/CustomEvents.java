@@ -211,8 +211,6 @@ public class CustomEvents {
 		
 		if (types.size() == 0) return;
 		
-		//Create the group
-		MinecartGroup g = new MinecartGroup();
 		BlockFace dir = info.getFacing();
 		Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance);
 		
@@ -221,12 +219,14 @@ public class CustomEvents {
 			if (MinecartMember.getAt(locs[i]) != null) return;
 		}
 		
+		//Create the group
+		MinecartGroup g = MinecartGroup.create();
+		
 		//Spawn the train
 		for (int i = 0;i < types.size();i++) {
-			g.addMember(MinecartMember.get(locs[i], types.get(i), g));
+			g.addMember(MinecartMember.get(locs[i], types.get(i)));
 		}
 		g.tail().setForwardForce(force);
-		MinecartGroup.load(g);
 	}
 	
 	private static HashMap<MinecartGroup, Long> teleportTimes = new HashMap<MinecartGroup, Long>();
@@ -249,13 +249,13 @@ public class CustomEvents {
 		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
 		double force = info.getGroup().getAverageForce();
 		
-		MinecartGroup gnew = new MinecartGroup();
+		MinecartGroup gnew = MinecartGroup.create();
 		gnew.ignorePushes = info.getGroup().ignorePushes;
 		
 		for (int i = 0; i < newLocations.length; i++) {
 			MinecartMember mm = info.getGroup().getMember(i);
 			Location to = newLocations[newLocations.length - i - 1].add(0.5, 0.5, 0.5);
-			MinecartMember mnew = MinecartMember.get(to, mm.type, gnew);
+			MinecartMember mnew = MinecartMember.get(to, mm.type);
 			//Set important data over
 			EntityUtil.transferItems(mm, mnew);
 			mnew.e = mm.e;
@@ -282,7 +282,6 @@ public class CustomEvents {
 				t.startDelayed(0);
 			}
 		}
-		MinecartGroup.load(gnew);
 		setTPT(gnew);
 		
 		//Remove the old group (with delay or we hear the sizzle)
@@ -432,7 +431,11 @@ public class CustomEvents {
 					if (info.getGroup() != null) {
 						MinecartGroup group = info.getGroup();
 						group.destroy();
-					}	
+					}
+				} else if (info.getLine(1).equalsIgnoreCase("unlink")) {
+					if (info.getMember() != null) {
+						info.getMember().remove();
+					}
 				} else if (info.getLine(1).toLowerCase().startsWith("eject") && info.isPowered()) {
 					String[] offsettext = info.getLine(2).split("/");
 					Vector offset = new Vector();

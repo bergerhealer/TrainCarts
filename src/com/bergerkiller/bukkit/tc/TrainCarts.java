@@ -3,6 +3,10 @@ package com.bergerkiller.bukkit.tc;
 import java.io.File;
 import java.util.logging.Level;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -42,6 +46,7 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean pushAwayStation = true;
 	public static boolean keepChunksLoaded = true;
 	public static boolean useCoalFromStorageCart = false;
+	public static boolean setOwnerOnPlacement = true;
 	
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -85,6 +90,7 @@ public class TrainCarts extends JavaPlugin {
 			pushAwayStation = config.getBoolean("pushAway.whenAtStation", pushAwayStation);
 			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
 			useCoalFromStorageCart = config.getBoolean("useCoalFromStorageCart", useCoalFromStorageCart);
+			setOwnerOnPlacement = config.getBoolean("setOwnerOnPlacement", setOwnerOnPlacement);
 			
 			//save it again (no file was there or invalid)
 			config.setHeader("# In here you can change the settings for the TrainCarts plugin", 
@@ -131,6 +137,7 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("pushAway.whenAtStation", pushAwayStation);
 			config.setProperty("keepChunksLoaded", keepChunksLoaded);
 			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
+			config.setProperty("setOwnerOnPlacement", setOwnerOnPlacement);
 			config.save();
 		}
 	}
@@ -146,7 +153,9 @@ public class TrainCarts extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
+		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, Priority.Highest, this);	
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this);	
+		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.Highest, this);	
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest, this);
@@ -177,6 +186,9 @@ public class TrainCarts extends JavaPlugin {
 		//Load groups
 		GroupManager.loadGroups(getDataFolder() + File.separator + "trains.groupdata");
 		
+		//Load properties
+		TrainProperties.load(getDataFolder() + File.separator + "trainflags.yml");
+		
 		//Load arrival times
 		ArrivalSigns.load(getDataFolder() + File.separator + "arrivaltimes.txt");
 		
@@ -191,6 +203,9 @@ public class TrainCarts extends JavaPlugin {
 		};
 		ctask.startRepeating(10L);
 
+		//commands
+		getCommand("train").setExecutor(this);
+		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
         Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!" );
@@ -199,9 +214,9 @@ public class TrainCarts extends JavaPlugin {
 	public void onDisable() {
 		MinecartGroup.isDisabled = true;
 		//Stop tasks
-		ctask.stop();
+		if (ctask != null) ctask.stop();
 		if (signtask != null) signtask.stop();
-				
+
 		//undo replacements for correct saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
@@ -210,10 +225,106 @@ public class TrainCarts extends JavaPlugin {
 		//Save arrival times
 		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
 		
+		//Save properties
+		TrainProperties.save(getDataFolder() + File.separator + "trainflags.yml");
+		
 		//Save for next load
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
 
 		System.out.println("TrainCarts disabled!");
 	}
 		
+	private boolean getBool(String name) {
+		name = name.toLowerCase().trim();
+		if (name.equals("yes")) return true;
+		if (name.equals("allow")) return true;
+		if (name.equals("true")) return true;
+		if (name.equals("ye")) return true;
+		if (name.equals("y")) return true;
+		if (name.equals("t")) return true;
+		return false;
+	}
+	
+	public boolean onCommand(CommandSender sender, Command c, String cmd, String[] args) {
+		if (args.length != 0 && sender instanceof Player) {
+			cmd = args[0].toLowerCase();
+			args = Util.remove(args, 0);
+			Player p = (Player) sender;
+			//get the train this player is editing
+			TrainProperties prop = TrainProperties.getEditing(p);
+			if (prop == null) {
+				if (TrainProperties.canBeOwner(p)) {
+					p.sendMessage(ChatColor.RED + "You don't own a train you can change!");
+				}
+			} else {
+				//let's do stuff with it
+				if (cmd.equals("info")) {
+					p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
+					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+					p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.allowMobsEnter);
+					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + " " + (prop.enterMessage == null ? "None" : prop.enterMessage));
+					if (prop.owners.size() == 0) {
+						p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + "Everyone");
+					} else {
+						p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + " " + Util.combineNames(prop.owners));
+					}
+					if (prop.passengers.size() == 0) {
+						p.sendMessage(ChatColor.YELLOW + "Enterable by: " + ChatColor.WHITE + "Everyone");
+					} else {
+						p.sendMessage(ChatColor.YELLOW + "Enterable by: " + ChatColor.WHITE + " " + Util.combineNames(prop.passengers));
+					}
+				} else if (cmd.equals("linking")) {
+					if (args.length == 1) {
+						prop.allowLinking = getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+				} else if (cmd.equals("mobenter") || cmd.equals("mobsenter")) {
+					if (args.length == 1) {
+						prop.allowMobsEnter = getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.allowMobsEnter);
+				} else if (cmd.equals("claim")) {
+					prop.owners.clear();
+					prop.owners.add(p.getName());
+					p.sendMessage(ChatColor.YELLOW + "You claimed this train your own!");
+				} else if (cmd.equals("addowner") || cmd.equals("addowners")) {
+					if (args.length == 0) {
+						prop.owners.add(p.getName());
+						p.sendMessage(ChatColor.YELLOW + "You added yourself as owner of this train!");
+					} else {
+						for (String owner : args) {
+							prop.owners.add(owner);
+						}
+						p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as owners of this train!");
+					}
+				} else if (cmd.equals("setowner") || cmd.equals("setowners")) {
+					if (args.length == 0) {
+						prop.owners.clear();
+						p.sendMessage(ChatColor.YELLOW + "All owners for this train are cleared!");
+					} else {
+						prop.owners.clear();
+						for (String owner : args) {
+							prop.owners.add(owner);
+						}
+						p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as owners of this train!");
+					}
+				} else if (cmd.equals("rename") || cmd.equals("setname") || cmd.equals("name")) {
+					if (args.length == 0) {
+						p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
+					} else {
+						String newname = Util.combine(" ", args);
+						if (TrainProperties.exists(newname)) {
+							p.sendMessage(ChatColor.RED + "This name is already taken!");
+						} else {
+							GroupManager.rename(prop.getTrainName(), newname);
+							p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
+						}
+					}
+				} else {
+					p.sendMessage(ChatColor.RED + "Unknown command: '" + cmd + "'!");
+				}
+			}
+		}
+		return true;
+	}
 }

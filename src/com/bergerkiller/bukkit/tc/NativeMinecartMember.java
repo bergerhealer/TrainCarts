@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
 import net.minecraft.server.BlockMinecartTrack;
+import net.minecraft.server.DamageSource;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityLiving;
@@ -72,8 +73,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
     
 	private boolean ignoreForces() {
-    	MinecartMember mm = (MinecartMember) this;
-    	return mm.grouped() && mm.getGroup().ignoreForces;
+    	return ((MinecartMember) this).getGroup().ignoreForces;
 	}
 	
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
@@ -91,11 +91,11 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
 	 */
 	@Override
-    public boolean damageEntity(Entity entity, int i) {
+    public boolean damageEntity(DamageSource damagesource, int i) {
         if (!this.world.isStatic && !this.dead) {
             // CraftBukkit start
             Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-            org.bukkit.entity.Entity passenger = (entity == null) ? null : entity.getBukkitEntity();
+            org.bukkit.entity.Entity passenger = (damagesource.e() == null) ? null : damagesource.e().getBukkitEntity();
 
             VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
             this.world.getServer().getPluginManager().callEvent(event);
@@ -109,7 +109,7 @@ public class NativeMinecartMember extends EntityMinecart {
 
             this.c = -this.c;
             this.b = 10;
-            this.af();
+            this.aq();
             this.damage += i * 10;
             if (this.damage > 40) {
                 if (this.passenger != null) {
@@ -125,7 +125,7 @@ public class NativeMinecartMember extends EntityMinecart {
                     return true;
                 }
                 // CraftBukkit end
-                
+
                 this.die();
                 if (TrainCarts.breakCombinedCarts || this.type == 0) {
                 	if (TrainCarts.spawnItemDrops) this.a(Item.MINECART.id, 1, 0.0F);
@@ -172,12 +172,13 @@ public class NativeMinecartMember extends EntityMinecart {
                 	}
                 }
             }
+
             return true;
         } else {
             return true;
         }
     }
-		
+	
 	/*
 	 * Stores m_ information (since functions are now pretty much scattered around)
 	 */
@@ -607,7 +608,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			for (int l1 = 0; l1 < list.size(); ++l1) {
 				Entity entity = (Entity) list.get(l1);
 
-				if (entity != this.passenger && entity.d_()
+				if (entity != this.passenger && entity.g()
 						&& entity instanceof EntityMinecart) {
 					entity.collide(this);
 				}
@@ -648,19 +649,19 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/Entity.java
 	 */
 	@Override
-	public void move(double d0, double d1, double d2) {
-        if (this.bt) {
+    public void move(double d0, double d1, double d2) {
+        if (this.bJ) {
             this.boundingBox.d(d0, d1, d2);
             this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-            this.locY = this.boundingBox.b + (double) this.height - (double) this.br;
+            this.locY = this.boundingBox.b + (double) this.height - (double) this.bH;
             this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
         } else {
-            this.br *= 0.4F;
+            this.bH *= 0.4F;
             double d3 = this.locX;
             double d4 = this.locZ;
 
-            if (this.bf) {
-                this.bf = false;
+            if (this.bv) {
+                this.bv = false;
                 d0 *= 0.25D;
                 d1 *= 0.05000000074505806D;
                 d2 *= 0.25D;
@@ -705,13 +706,12 @@ public class NativeMinecartMember extends EntityMinecart {
             filterCollisionList(list);
             //=========================TrainCarts Changes End==============================
             
-            
             for (int i = 0; i < list.size(); ++i) {
                 d1 = ((AxisAlignedBB) list.get(i)).b(this.boundingBox, d1);
             }
 
             this.boundingBox.d(0.0D, d1, 0.0D);
-            if (!this.bg && d6 != d1) {
+            if (!this.bw && d6 != d1) {
                 d2 = 0.0D;
                 d1 = 0.0D;
                 d0 = 0.0D;
@@ -726,7 +726,7 @@ public class NativeMinecartMember extends EntityMinecart {
             }
 
             this.boundingBox.d(d0, 0.0D, 0.0D);
-            if (!this.bg && d5 != d0) {
+            if (!this.bw && d5 != d0) {
                 d2 = 0.0D;
                 d1 = 0.0D;
                 d0 = 0.0D;
@@ -737,7 +737,7 @@ public class NativeMinecartMember extends EntityMinecart {
             }
 
             this.boundingBox.d(0.0D, 0.0D, d2);
-            if (!this.bg && d7 != d2) {
+            if (!this.bw && d7 != d2) {
                 d2 = 0.0D;
                 d1 = 0.0D;
                 d0 = 0.0D;
@@ -747,13 +747,13 @@ public class NativeMinecartMember extends EntityMinecart {
             double d10;
             int k;
 
-            if (this.bs > 0.0F && flag1 && (flag || this.br < 0.05F) && (d5 != d0 || d7 != d2)) {
+            if (this.bI > 0.0F && flag1 && (flag || this.bH < 0.05F) && (d5 != d0 || d7 != d2)) {
                 d9 = d0;
                 d10 = d1;
                 double d11 = d2;
 
                 d0 = d5;
-                d1 = (double) this.bs;
+                d1 = (double) this.bI;
                 d2 = d7;
                 AxisAlignedBB axisalignedbb1 = this.boundingBox.clone();
 
@@ -769,7 +769,7 @@ public class NativeMinecartMember extends EntityMinecart {
                 }
 
                 this.boundingBox.d(0.0D, d1, 0.0D);
-                if (!this.bg && d6 != d1) {
+                if (!this.bw && d6 != d1) {
                     d2 = 0.0D;
                     d1 = 0.0D;
                     d0 = 0.0D;
@@ -780,7 +780,7 @@ public class NativeMinecartMember extends EntityMinecart {
                 }
 
                 this.boundingBox.d(d0, 0.0D, 0.0D);
-                if (!this.bg && d5 != d0) {
+                if (!this.bw && d5 != d0) {
                     d2 = 0.0D;
                     d1 = 0.0D;
                     d0 = 0.0D;
@@ -791,18 +791,18 @@ public class NativeMinecartMember extends EntityMinecart {
                 }
 
                 this.boundingBox.d(0.0D, 0.0D, d2);
-                if (!this.bg && d7 != d2) {
+                if (!this.bw && d7 != d2) {
                     d2 = 0.0D;
                     d1 = 0.0D;
                     d0 = 0.0D;
                 }
 
-                if (!this.bg && d6 != d1) {
+                if (!this.bw && d6 != d1) {
                     d2 = 0.0D;
                     d1 = 0.0D;
                     d0 = 0.0D;
                 } else {
-                    d1 = (double) (-this.bs);
+                    d1 = (double) (-this.bI);
 
                     for (k = 0; k < list.size(); ++k) {
                         d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
@@ -820,18 +820,18 @@ public class NativeMinecartMember extends EntityMinecart {
                     double d12 = this.boundingBox.b - (double) ((int) this.boundingBox.b);
 
                     if (d12 > 0.0D) {
-                        this.br = (float) ((double) this.br + d12 + 0.01D);
+                        this.bH = (float) ((double) this.bH + d12 + 0.01D);
                     }
                 }
             }
 
             this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-            this.locY = this.boundingBox.b + (double) this.height - (double) this.br;
+            this.locY = this.boundingBox.b + (double) this.height - (double) this.bH;
             this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
             this.positionChanged = d5 != d0 || d7 != d2;
-            this.bc = d6 != d1;
+            this.bs = d6 != d1;
             this.onGround = d6 != d1 && d6 < 0.0D;
-            this.bd = this.positionChanged || this.bc;
+            this.bt = this.positionChanged || this.bs;
             this.a(d1, this.onGround);
             if (d5 != d0) {
                 this.motX = 0.0D;
@@ -871,8 +871,8 @@ public class NativeMinecartMember extends EntityMinecart {
             }
             // CraftBukkit end
 
-            if (this.n() && !flag && this.vehicle == null) {
-                this.bm = (float) ((double) this.bm + (double) MathHelper.a(d9 * d9 + d10 * d10) * 0.6D);
+            if (this.e_() && !flag && this.vehicle == null) {
+                this.bC = (float) ((double) this.bC + (double) MathHelper.a(d9 * d9 + d10 * d10) * 0.6D);
                 l = MathHelper.floor(this.locX);
                 i1 = MathHelper.floor(this.locY - 0.20000000298023224D - (double) this.height);
                 j1 = MathHelper.floor(this.locZ);
@@ -881,8 +881,8 @@ public class NativeMinecartMember extends EntityMinecart {
                     k = this.world.getTypeId(l, i1 - 1, j1);
                 }
 
-                if (this.bm > (float) this.b && k > 0) {
-                    ++this.b;
+                if (this.bC > (float) this.b && k > 0) {
+                    this.b = (int) this.bC + 1;
                     StepSound stepsound = Block.byId[k].stepSound;
 
                     if (this.world.getTypeId(l, i1 + 1, j1) == Block.SNOW.id) {
@@ -896,7 +896,6 @@ public class NativeMinecartMember extends EntityMinecart {
                 }
             }
 
-            //TrainNote: updates block physics as the entity moves around
             l = MathHelper.floor(this.boundingBox.a + 0.0010D);
             i1 = MathHelper.floor(this.boundingBox.b + 0.0010D);
             j1 = MathHelper.floor(this.boundingBox.c + 0.0010D);
@@ -917,11 +916,9 @@ public class NativeMinecartMember extends EntityMinecart {
                     }
                 }
             }
-            //TrainNote end
 
-            boolean flag2 = this.ac();
+            boolean flag2 = this.an();
 
-            //TrainNote: used for 'entity burning'
             if (this.world.d(this.boundingBox.shrink(0.0010D, 0.0010D, 0.0010D))) {
                 this.burn(1);
                 if (!flag2) {
@@ -947,10 +944,9 @@ public class NativeMinecartMember extends EntityMinecart {
                 this.world.makeSound(this, "random.fizz", 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                 this.fireTicks = -this.maxFireTicks;
             }
-            //TrainNote end
         }
     }
-	
+		
 	/*
 	 * Prevents passengers and Minecarts from colliding with Minecarts
 	 */

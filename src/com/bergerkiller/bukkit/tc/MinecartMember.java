@@ -41,7 +41,7 @@ public class MinecartMember extends NativeMinecartMember {
 	 * Overridden Minecart functions
 	 */
 	@Override
-	public void m_() {
+	public void s_() {
 		motX = Util.fixNaN(motX);
 		motY = Util.fixNaN(motY);
 		motZ = Util.fixNaN(motZ);
@@ -50,7 +50,7 @@ public class MinecartMember extends NativeMinecartMember {
 			if (g.size() == 0) {
 				this.group = null;
 				g.remove();
-				super.m_();
+				super.s_();
 			} else {
 				if (g.tail() == this) {
 					if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
@@ -75,7 +75,7 @@ public class MinecartMember extends NativeMinecartMember {
 				}
 			}
 		} else {
-			super.m_();
+			super.s_();
 		}
 	}	
 	@Override
@@ -102,6 +102,13 @@ public class MinecartMember extends NativeMinecartMember {
 	 * MinecartMember <> EntityMinecart replacement functions
 	 */
 	private static HashSet<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
+	
+	public static MinecartMember get(Entity e) {
+		if (!(e instanceof Minecart)) return null;
+		EntityMinecart em = EntityUtil.getNative((Minecart) e);
+		if (em instanceof MinecartMember) return (MinecartMember) em;
+		return null;
+	}
 	public static MinecartMember[] getAll(Entity... entities) {
 		MinecartMember[] rval = new MinecartMember[entities.length];
 		for (int i = 0; i < rval.length; i++) {
@@ -109,17 +116,28 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return rval;
 	}
-	public static MinecartMember get(Entity e) {
+	public static MinecartMember convert(Entity e) {
 		if (!(e instanceof Minecart)) return null;
 		EntityMinecart em = EntityUtil.getNative((Minecart) e);
 		if (em instanceof MinecartMember) return (MinecartMember) em;
-		return null;
+		//not found, replace
+		MinecartMember mm = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
+		EntityUtil.replaceMinecarts(em, mm);
+		replacedCarts.add(mm);
+		return mm;
 	}
-	public static MinecartMember get(Location loc, int type, MinecartGroup group) {
+	public static MinecartMember[] convertAll(Entity... entities) {
+		MinecartMember[] rval = new MinecartMember[entities.length];
+		for (int i = 0; i < rval.length; i++) {
+			rval[i] = convert(entities[i]);
+		}
+		return rval;
+	}
+	
+	public static MinecartMember get(Location loc, int type) {
 		MinecartMember mm = new MinecartMember(EntityUtil.getNative(loc.getWorld()), loc.getX(), loc.getY(), loc.getZ(), type);
 		mm.yaw = loc.getYaw();
 		mm.pitch = loc.getPitch();
-		mm.group = group;
 		mm.world.addEntity(mm);
 		return mm;
 	}
@@ -145,23 +163,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return null;
 	}
-	public static MinecartMember get(Minecart m, MinecartGroup group) {
-		//to prevent unneeded cart conversions
-		EntityMinecart em = EntityUtil.getNative(m);
-		if (em instanceof MinecartMember) {
-			MinecartMember mm = (MinecartMember) em;
-			mm.group = group;
-			return mm;
-		}
-				
-		//declare a new MinecartMember with the same characteristics as the previous EntityMinecart
-		MinecartMember f = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
-		f.group = group;
-		EntityUtil.replaceMinecarts(em, f);
-		
-		replacedCarts.add(f);
-		return f;
-	}
+	
 	public static EntityMinecart undoReplacement(MinecartMember mm) {
 		replacedCarts.remove(mm);
 		if (!mm.dead) {
@@ -182,14 +184,12 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	public void destroy() {
 		if (this.passenger != null) this.passenger.setPassengerOf(null);
+		replacedCarts.remove(this);
 		this.die();
 		this.remove();
 	}
 	public boolean remove() {
-		if (this.grouped()) {
-			return this.group.removeCart(this);
-		}
-		return false;
+		return this.getGroup().removeCart(this);
 	}
 	public void eject() {
 		this.getMinecart().eject();
@@ -208,11 +208,6 @@ public class MinecartMember extends NativeMinecartMember {
 			t.startDelayed(0);
 		}
 	}
-	public static boolean remove(Minecart m) {
-		MinecartMember mm = get(m);
-		if (mm == null) return false;
-		return mm.remove();
-	}
 	
 	/*
 	 * General getters and setters
@@ -220,15 +215,17 @@ public class MinecartMember extends NativeMinecartMember {
  	public Minecart getMinecart() {
 		return (Minecart) this.getBukkitEntity();
 	}
- 	public boolean grouped() {
- 		return this.group != null;
- 	}
+
  	public MinecartGroup getGroup() {
+ 		if (this.group == null) {
+ 			this.group = MinecartGroup.create(this);
+ 		}
  		return this.group;
  	}
- 	public void setGroup(MinecartGroup group) {
+ 	void setGroup(MinecartGroup group) {
  		this.group = group;
  	}
+ 	
 	public MinecartMember[] getNeightbours() {
 		if (this.getGroup() == null) return new MinecartMember[0];
 		int index = this.getGroup().indexOf(this);
@@ -267,19 +264,11 @@ public class MinecartMember extends NativeMinecartMember {
 		return BlockUtil.getSign(getSignBlock());
 	}
 	public VelocityTarget addTarget(Location to, double toVelocity, long delayMS) {
-		if (this.grouped()) {
-			return this.group.addTarget(this, to, toVelocity, delayMS);
-		} else {
-			return null;
-		}
+		return this.getGroup().addTarget(this, to, toVelocity, delayMS);
 	}
 	public VelocityTarget setTarget(Location to, double toVelocity, long delayMS) {
-		if (this.grouped()) {
-			this.group.clearTargets();
-			return this.group.addTarget(this, to, toVelocity, delayMS);
-		} else {
-			return null;
-		}
+		this.getGroup().clearTargets();
+		return this.getGroup().addTarget(this, to, toVelocity, delayMS);
 	}
 	
 	/*
@@ -440,15 +429,6 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * States
 	 */
-	public static boolean isMember(Minecart m) {
-		return EntityUtil.getNative(m) instanceof MinecartMember;
-	}
- 	public static boolean validate(Minecart m) {
- 		return !(m.isDead() || TrainCarts.removeDerailedCarts && isDerailed(m));
- 	}
- 	public static boolean validate(MinecartMember mm) {
- 		return !(mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed()));
- 	}
  	public boolean isMoving() {
 		if (motX > 0.001) return true;
 		if (motX < -0.001) return true;
@@ -463,6 +443,9 @@ public class MinecartMember extends NativeMinecartMember {
 		if (getYaw() == 315 || getYaw() == -315) return true;
 		return getSubX() != 0 && getSubZ() != 0;
 	}	
+	public boolean isDerailed() {
+		return isDerailed(this);
+	}
 	public static boolean isDerailed(Minecart m) {
 		if (m == null) return true;
 		MinecartMember mm = get(m);
@@ -476,9 +459,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (mm == null) return true;
 		return mm.getRailsBlock() == null;
 	}	
-	public boolean isDerailed() {
-		return isDerailed(this);
-	}
+
  	
 	/*
 	 * Active sign (sign underneath tracks)

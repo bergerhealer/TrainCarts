@@ -71,11 +71,7 @@ public class VelocityTarget {
 		}
 		
 		//Ensure we can even target, too high values is never nice!
-		if (from.grouped()) {
-			from.getGroup().limitSpeed();
-		} else {
-			from.limitSpeed();
-		}
+		from.getGroup().limitSpeed();
 
 		//Increment distance
 		this.distance += Util.distance(from.locX, from.locZ, from.lastX, from.lastZ);
@@ -99,11 +95,7 @@ public class VelocityTarget {
 		} else {
 			//Stop to stop MM from ruining it all...
 			if (TrainCarts.MinecartManiaEnabled) {
-				if (from.grouped()) {
-					from.getGroup().stop();
-				} else {
-					from.stop();
-				}
+				from.getGroup().stop();
 			}
 			//set motion using the angle
 			from.setForce(targetvel, target);
@@ -111,11 +103,7 @@ public class VelocityTarget {
 		
 		//Stop if dest. vel. was 0
 		if (reached && this.goalVelocity == 0) {
-			if (from.grouped()) {
-				from.getGroup().stop();
-			} else {
-				from.stop();
-			}
+			from.getGroup().stop();
 		}
 		
 		if (reached && afterTask != null) {

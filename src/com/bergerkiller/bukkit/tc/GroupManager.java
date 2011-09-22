@@ -34,7 +34,7 @@ public class GroupManager {
 	private static void restoreGroup(World w, WorldGroup wg) {
 		Minecart[] minecarts = wg.getMinecarts(w);
 		if (minecarts.length != 0) {
-			MinecartGroup.load(new MinecartGroup(minecarts));
+			MinecartGroup.create(minecarts).setName(wg.name);
 		}
 		getGroups(w).remove(wg);
 	}
@@ -145,8 +145,10 @@ public class GroupManager {
 			for (int i = 0;i < members.length;i++) {
 				this.members[i] = new WorldMember(group.getMember(i));
 			}
+			this.name = group.getName();
 		}
 		public WorldMember[] members;
+		public String name;
 		
 		/**
 		 * Tries to find all Minecarts based on their UID
@@ -183,6 +185,7 @@ public class GroupManager {
 		public void writeTo(DataOutputStream stream) throws IOException {
 			stream.writeInt(members.length);
 			for (WorldMember member : members) member.writeTo(stream);
+			stream.writeUTF(this.name);
 		}
 		public static WorldGroup readFrom(DataInputStream stream) throws IOException {
 			WorldGroup wg = new WorldGroup();
@@ -190,6 +193,7 @@ public class GroupManager {
 			for (int i = 0;i < wg.members.length;i++) {
 				wg.members[i] = WorldMember.readFrom(stream);
 			}
+			wg.name = stream.readUTF();
 			return wg;
 		}
 	}
@@ -254,10 +258,8 @@ public class GroupManager {
 	 * @param group - The group to buffer
 	 */
 	public static void hideGroup(MinecartGroup group) {
-		if (group.grouped()) {
-			getGroups(group.getWorld()).add(new WorldGroup(group));
-			MinecartGroup.unload(group);
-		}
+		getGroups(group.getWorld()).add(new WorldGroup(group));
+		MinecartGroup.unload(group);
 	}
 
 	/**
@@ -272,5 +274,16 @@ public class GroupManager {
 			}
 		}
 		return false;
+	}
+
+	public static void rename(String oldtrainname, String newtrainname) {
+		MinecartGroup.rename(oldtrainname, newtrainname);
+		for (ArrayList<WorldGroup> list : hiddengroups.values()) {
+			for (WorldGroup group : list) {
+				if (group.name.equals(oldtrainname)) {
+					group.name = newtrainname;
+				}
+			}
+		}
 	}
 }

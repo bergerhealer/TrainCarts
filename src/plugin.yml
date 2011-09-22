@@ -1,9 +1,14 @@
 name: Train Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
-version: 1.34
+version: 1.35
 author: bergerkiller
 description: Plugin that allows the use of minecart trains with adjustable settings
 softdepend: [MinecartManiaCore, SignLink, My Worlds]
+commands:
+    train:
+        description: Perform TrainCarts commands
+        usage: |
+            /train setowner (owners...)
 permissions:
     train.build.station:
         description: Allows you to build station signs
@@ -25,4 +30,13 @@ permissions:
         default: op
     train.place.minecart:
         description: Allows you to place a minecart
+        default: true
+    train.owner.override:
+        description: Allows you to override the default owner permissions
+        default: op
+    train.command.globalproperties:
+        description: Allows you to view and change properties of all trains
+        default: op
+    train.command.properties:
+        description: Allows you to view and change properties of trains you own
         default: true

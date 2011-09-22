@@ -4,14 +4,18 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.vehicle.VehicleListener;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 
+import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
@@ -26,7 +30,7 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleBlockCollision(VehicleBlockCollisionEvent event) {
 		MinecartMember mm = MinecartMember.get(event.getVehicle());
-		if (mm != null && mm.grouped()) {
+		if (mm != null) {
 			//direct hit or not?
 			if (!mm.isTurned()) {
 				mm.getGroup().stop();
@@ -55,16 +59,53 @@ public class TCVehicleListener extends VehicleListener {
 		}
 	}
 	
+	public static String lastPlayer = null;
 	@Override
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (event.getVehicle() instanceof Minecart && !MinecartGroup.isDisabled) {
-			Minecart m = (Minecart) event.getVehicle();
-			if (!MinecartMember.isMember(m)) {
-				MinecartGroup.load(new MinecartGroup(m));
+			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
+				MinecartGroup g = MinecartGroup.create(event.getVehicle());
+				if (lastPlayer != null) {
+					g.getProperties().owners.add(lastPlayer);
+					lastPlayer = null;
+				}
 			}
 		}
 	}
 		
+	@Override
+	public void onVehicleEnter(VehicleEnterEvent event) {
+		if (!event.isCancelled() && event.getEntered() instanceof Player) {
+			MinecartGroup g = MinecartGroup.get(event.getVehicle());
+			if (g != null) {
+				TrainProperties prop = g.getProperties();
+				if (prop.isPassenger(event.getEntered())) {
+					prop.showEnterMessage(event.getEntered());
+				} else {
+					event.setCancelled(true);
+				}
+			}
+		}
+	}
+	
+	@Override
+	public void onVehicleDamage(VehicleDamageEvent event) {
+		if (event.getAttacker() != null && event.getAttacker() instanceof Player) {
+			if (!event.isCancelled()) {
+				MinecartGroup g = MinecartGroup.get(event.getVehicle());
+				if (g != null) {
+					Player p = (Player) event.getAttacker();
+					TrainProperties prop = g.getProperties();
+					if (prop.isOwner(p)) {
+						prop.setEditing(p);
+					} else {
+						event.setCancelled(true);
+					}
+				}
+			}
+		}
+	}
+	
 	@Override
 	public void onVehicleMove(VehicleMoveEvent event) {
 		MinecartMember mm = MinecartMember.get(event.getVehicle());
@@ -77,19 +118,15 @@ public class TCVehicleListener extends VehicleListener {
 					mm.setActiveSign(signblock);
 					CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
 				}
-				if (mm.grouped()) {
-					if (!mm.getGroup().getSignActive(signblock)) {
-						mm.getGroup().setSignActive(signblock, true);
-						CustomEvents.onSign(info, ActionType.GROUP_ENTER);
-					}
+				if (!mm.getGroup().getSignActive(signblock)) {
+					mm.getGroup().setSignActive(signblock, true);
+					CustomEvents.onSign(info, ActionType.GROUP_ENTER);
 				}
 			} else if (mm.hasActiveSign()) {
-				if (mm.grouped()) {
-					if (mm == mm.getGroup().tail()) {
-						signblock = mm.getActiveSign();
-						mm.getGroup().setSignActive(signblock, false);
-						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, signblock, mm));
-					}
+				if (mm == mm.getGroup().tail()) {
+					signblock = mm.getActiveSign();
+					mm.getGroup().setSignActive(signblock, false);
+					CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, signblock, mm));
 				}
 				mm.setActiveSign(null);
 			}
@@ -100,8 +137,8 @@ public class TCVehicleListener extends VehicleListener {
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
 		if (!event.isCancelled()) {
 			if (event.getVehicle() instanceof Minecart) {
-				event.getVehicle().remove();
-				MinecartMember.remove((Minecart) event.getVehicle());
+				MinecartMember mm = MinecartMember.get(event.getVehicle());
+				if (mm != null) mm.remove();
 			}
 		}
 	}

@@ -79,9 +79,9 @@ public class FaceUtil {
 			case 90 : return BlockFace.EAST;
 			case 135 : return BlockFace.SOUTH_EAST;
 			case 180 : return BlockFace.SOUTH;
-			case 225 : return BlockFace.SOUTH_WEST;
-			case 270 : return BlockFace.WEST;
-			case 315 : return BlockFace.NORTH_WEST;
+			case -135 : return BlockFace.SOUTH_WEST;
+			case -90 : return BlockFace.WEST;
+			case -45 : return BlockFace.NORTH_WEST;
 			}
 			//Let's apply angle differences
 			if (yaw >= -22.5 && yaw < 22.5) {
@@ -106,7 +106,7 @@ public class FaceUtil {
 			case 0 : return BlockFace.NORTH;
 			case 90 : return BlockFace.EAST;
 			case 180 : return BlockFace.SOUTH;
-			case 270 : return BlockFace.WEST;
+			case -90 : return BlockFace.WEST;
 			}
 			//Let's apply angle differences
 			if (yaw >= -45 && yaw < 45) {

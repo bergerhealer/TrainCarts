@@ -110,7 +110,7 @@ public class EntityUtil {
 		for (Player p : toreplace.world.getWorld().getPlayers()) {
 			getNative(p).netServerHandler.sendPacket(packet);
 		}
-		
+				
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}	
@@ -118,7 +118,8 @@ public class EntityUtil {
 		//Targeting?
 		boolean ignorePushes = false;
 		MinecartMember mm = MinecartMember.get(vehicle.getBukkitEntity());
-		if (mm != null && mm.grouped() && mm.getGroup().ignorePushes) {
+		if (mm == null) return false;
+		if (mm.getGroup().ignorePushes) {
 			ignorePushes = true;
 		}
 		
@@ -157,12 +158,9 @@ public class EntityUtil {
 			float lookat = Util.getLookAtYaw(vehicle.getBukkitEntity(), topush) - yaw;
 
 			if (!ignorePushes && Util.getAngleDifference(lookat, 180) < 90) return false; //pushing
-			while (lookat > 180) lookat -= 360;
-			while (lookat < -180) lookat += 360;
+			lookat = Util.normalAngle(lookat);
 			if (lookat > 0) {
-				yaw -= 90;
-			} else {
-				yaw += 90;
+				yaw -= 180;
 			}
 			//push the obstacle awaayyy :d
 			Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);

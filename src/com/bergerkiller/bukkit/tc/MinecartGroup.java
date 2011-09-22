@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,15 +30,15 @@ public class MinecartGroup {
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	public static boolean isDisabled = false;
-	
+		
 	public static void updateGroups() {				
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
 			if (mg.size() == 0) {
 				groups.remove(mg);
-			} else {
+			} else if (mg.size() != 1) {
 				for (MinecartMember mm : mg.getMembers()) {
-					if (!MinecartMember.validate(mm)) {
+					if (mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
 						mm.remove();
 					}
 				}
@@ -54,16 +55,6 @@ public class MinecartGroup {
 		}
 	}
 		
-	public static void setSingle(MinecartMember mm) {
-		if (MinecartMember.validate(mm)) {
-			MinecartGroup group = new MinecartGroup();
-			group.addMember(mm);
-			mm.setGroup(group);
-			load(group);
-		} else {
-			mm.setGroup(null);
-		}
-	}
 	public static void unload(MinecartGroup group) {
 		if (group == null) return;
 		group.stop();
@@ -73,8 +64,18 @@ public class MinecartGroup {
 	    group.mc.clear();
 		groups.remove(group);
 	}
-	public static void load(MinecartGroup group) {
-		if (group != null) groups.add(group);
+	public static MinecartGroup create() {
+		return new MinecartGroup();
+	}
+	public static MinecartGroup create(Entity... members) {
+		return create(MinecartMember.convertAll(members));
+	}
+	public static MinecartGroup create(MinecartMember... members) {
+		MinecartGroup g = new MinecartGroup();
+		for (MinecartMember member : members) {
+			g.addMember(member);
+		}
+		return g;
 	}
 	
 	public static MinecartGroup[] getGroups() {
@@ -87,13 +88,16 @@ public class MinecartGroup {
 		return rval;
 	}
 	public static MinecartGroup get(Entity e) {
-		if (e instanceof Minecart) return get((Minecart) e);
-		return null;
-	}
-	public static MinecartGroup get(Minecart m) {
-		MinecartMember mm = MinecartMember.get(m);
+		MinecartMember mm = MinecartMember.get(e);
 		if (mm == null) return null;
 		return mm.getGroup();
+	}
+	public static MinecartGroup get(String name) {
+		for (MinecartGroup group : groups) {
+			if (group.name == null) continue;
+			if (group.name.equalsIgnoreCase(name)) return group;
+		}
+		return null;
 	}
 	
 	public static boolean isInSameGroup(Minecart... minecarts) {
@@ -109,80 +113,76 @@ public class MinecartGroup {
 	
 	public static boolean link(Minecart m1, Minecart m2) {
 		if (isDisabled) return false;
-		MinecartGroup g1 = get(m1);
-		MinecartGroup g2 = get(m2);
-		if (g1 != g2 || g1 == null) {
-    		if (EntityUtil.isSharingRails(m1, m2)) {
-    			if (!MinecartMember.validate(m1)) return false;
-    			if (!MinecartMember.validate(m2)) return false;
-    			if (GroupManager.wasInGroup(m1)) return false;
-    			if (GroupManager.wasInGroup(m2)) return false;		
-    			if (g1 == null && g2 == null) {
-    				playLinkEffect(m1);
-    				MinecartGroup g = new MinecartGroup(m1, m2);
-    				g.shareForce();
-    				load(g);
-    				return true;
-    			} else if (g1 == null && g2 != null) {
-    				//add cart 1 to group 2
-    				MinecartMember m = g2.connect(m2, m1);
-    				if (m != null) {
-    					m1 = m.getMinecart();
-    					g2.shareForce();
-    					playLinkEffect(m1);
-    					return true;
-    				} else {
-    					return false;	
-    				}
-    			} else if (g2 == null && g1 != null) {
-    				//add cart 2 to group 1
-    				MinecartMember m = g1.connect(m1, m2);
-    				if (m != null) {
-    					m2 = m.getMinecart();
-    					g1.shareForce();
-    					playLinkEffect(m2);
-    					return true;
-    				} else {
-    					return false;	
-    				}
-    			} else if (g1 != null && g2 != null && g1 != g2) {
-    				//add group1 to group2
-    				//append group1 before or after group2?
-    				int m1index = g1.indexOf(m1);
-    				int m2index = g2.indexOf(m2);	
-    				if (m1index == 0 && m2index == 0) {
-    					g1.reverseOrder();
-    					g2.mc.addAll(0, g1.mc);
-    				} else if (m1index == 0 && m2index == g2.size() - 1) {
-    					g2.mc.addAll(g1.mc);
-    				} else if (m1index == g1.size() - 1 && m2index == 0) {
-    					g2.mc.addAll(0, g1.mc);
-    				} else {
-    					return false;
-    				}
-    				
-    				//Clear targets and active signs
-    				g2.clearTargets();
-    				
-    				//Get the freshly added signs
-    				g2.activeSigns.addAll(g1.activeSigns);
-    				//Re-activate the signs underneath the train
-    				for (MinecartMember mm : g2.mc) {
-    					Block s = mm.getActiveSign();
-    					if (s != null) {
-    						g2.activeSigns.add(s.getLocation());
-    						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_ENTER, s, g2));
+		if (m1.isDead()) return false;
+		if (m2.isDead()) return false;
+		return link(MinecartMember.get(m1), MinecartMember.get(m2));
+	}
+	public static boolean link(MinecartMember m1, MinecartMember m2) {
+		if (isDisabled) return false;
+		MinecartGroup g1 = m1.getGroup();
+		MinecartGroup g2 = m2.getGroup();
+		if (g1 != g2) {
+    		if (EntityUtil.isSharingRails(m1.getMinecart(), m2.getMinecart())) {
+    			if (m1.dead || m1.isDerailed()) return false;
+    			if (m2.dead || m2.isDerailed()) return false;
+    			if (GroupManager.wasInGroup(m1.getMinecart())) return false;
+    			if (GroupManager.wasInGroup(m2.getMinecart())) return false;		
+    		    		
+    			//Can the two groups bind?
+    			TrainProperties prop1 = g1.getProperties();
+    			TrainProperties prop2 = g2.getProperties();
+    			if (!prop1.sharesOwner(prop2)) {
+    				return false;
+    			} else if (!prop1.allowLinking || !prop2.allowLinking) {
+    				return false;
+    			}
+    			
+    			//Share owners and add to g2
+    			for (String owner : prop1.owners) {
+    				boolean allow = true;
+    				for (String owner2 : prop2.owners) {
+    					if (owner2.equalsIgnoreCase(owner)) {
+    						allow = false;
+    						break;
     					}
     				}
-    				
-    				groups.remove(g1);
-    				for (MinecartMember mm : g2.mc) {
-    					mm.setGroup(g2);
-    				}
-    				g2.update();
-    				playLinkEffect(m2);
-    				return true;
+    				if (allow) prop2.owners.add(owner);
     			}
+    			    			
+				//append group1 before or after group2?
+				int m1index = g1.indexOf(m1);
+				int m2index = g2.indexOf(m2);	
+				if (m1index == 0 && m2index == 0) {
+					g1.reverseOrder();
+					g2.addMember(0, g1.mc);
+				} else if (m1index == 0 && m2index == g2.size() - 1) {
+					g2.addMember(g1.mc);
+				} else if (m1index == g1.size() - 1 && m2index == 0) {
+					g2.addMember(0, g1.mc);
+				} else {
+					return false;
+				}
+				
+				//Clear targets and active signs
+				g2.clearTargets();
+				
+				//Get the freshly added signs
+				g2.activeSigns.addAll(g1.activeSigns);
+				//Re-activate the signs underneath the train
+				for (MinecartMember mm : g2.mc) {
+					Block s = mm.getActiveSign();
+					if (s != null) {
+						g2.activeSigns.add(s.getLocation());
+						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_ENTER, s, g2));
+					}
+				}
+				
+				g1.remove();
+
+				g2.update();
+				playLinkEffect(m2.getMinecart());
+				return true;
+    			
     		}
 		}
 		return false;
@@ -191,6 +191,19 @@ public class MinecartGroup {
 		Location loc = at.getLocation();
 		loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
 		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
+	}
+		
+	public static void rename(String oldtrainname, String newtrainname) {
+		boolean renamed = false;
+		for (MinecartGroup group : groups) {
+			if (group.getName().equals(oldtrainname)) {
+				group.setName(newtrainname);
+				renamed = true;
+			}
+		}
+		if (!renamed) {
+			TrainProperties.get(oldtrainname).rename(newtrainname);
+		}
 	}
 	
     /*
@@ -201,12 +214,42 @@ public class MinecartGroup {
 	private Queue<VelocityTarget> targets = new LinkedList<VelocityTarget>();
 	public boolean ignorePushes = false;
 	public boolean ignoreForces = false;
+	private String name;
 	
-	public MinecartGroup() {}
-	public MinecartGroup(Minecart... members) {
-		for (int i = 0;i < members.length;i++) {
-			mc.add(MinecartMember.get(members[i], this));
+	private MinecartGroup() {
+		groups.add(this);
+	}
+		
+	/*
+	 * Name
+	 */
+	public String getName() {
+		if (this.name == null) {
+			for (int i = groups.size(); i < Integer.MAX_VALUE; i++) {
+				if (!TrainProperties.exists("train" + i)) {
+					this.name = "train" + i;
+					break;
+				}
+			}
 		}
+		return this.name;
+	}
+	public void setName(String name) {
+		if (name != null) {
+			if (this.name == null) {
+				TrainProperties.get(name);
+			} else if (!this.name.equals(name)) {
+				TrainProperties.get(this.name).rename(name);
+			}
+		}
+		this.name = name;
+	}
+	
+	/*
+	 * Properties
+	 */
+	public TrainProperties getProperties() {
+		return TrainProperties.get(this.getName());
 	}
 	
 	/*
@@ -271,30 +314,25 @@ public class MinecartGroup {
 	public MinecartMember middle() {
 		return getMember((int) Math.floor((double) size() / 2));
 	}
-	public boolean grouped() {
-		return groups.contains(this);
+	
+	public boolean connect(MinecartMember contained, MinecartMember toadd) {
+		if (this.size() <= 1) return false;
+		if (head().getMinecart() == contained) {
+			//Validate
+			double d1 = toadd.distance(head(0));
+			double d2 = toadd.distance(head(1));
+			if (d1 >= d2) return false;
+			this.addMember(0, toadd);
+		} else if (tail().getMinecart() == contained) {
+			//Validate
+			double d1 = toadd.distance(tail(0));
+			double d2 = toadd.distance(tail(1));
+			if (d1 >= d2) return false;
+			this.addMember(toadd);
+		}
+		return true;
 	}
 	
-	public MinecartMember connect(Minecart contained, Minecart toadd) {
-		MinecartMember rval = null;
-		if (this.size() <= 1) return null;
-		if (head().getMinecart() == contained) {
-			rval = MinecartMember.get(toadd, this);
-			//Validate
-			double d1 = rval.distance(head(0));
-			double d2 = rval.distance(head(1));
-			if (d1 >= d2) return null;
-			mc.add(0, rval);
-		} else if (tail().getMinecart() == contained) {
-			rval = MinecartMember.get(toadd, this);
-			//Validate
-			double d1 = rval.distance(tail(0));
-			double d2 = rval.distance(tail(1));
-			if (d1 >= d2) return null;
-			mc.add(rval);
-		}
-		return rval;
-	}	
 	public MinecartMember[] sortOnIndex(Minecart... mm) {
 		HashMap<Integer, MinecartMember> rval = new HashMap<Integer, MinecartMember>(mm.length);
 		for (int i = 0;i < mm.length;i++) {
@@ -313,9 +351,28 @@ public class MinecartGroup {
 	public int indexOf(MinecartMember instance) {
 		return mc.indexOf(instance);
 	}
-	public void addMember(MinecartMember mm) {
-		this.mc.add(mm);
+	
+	public void addMember(int index, MinecartMember member) {
+		this.mc.add(index, member);
+		member.setGroup(this);
 	}
+	public void addMember(MinecartMember member) {
+		this.mc.add(member);
+		member.setGroup(this);
+	}
+	public void addMember(int index, Collection<MinecartMember> members) {
+		this.mc.addAll(index, members);
+		for (MinecartMember m : members) {
+			m.setGroup(this);
+		}
+	}
+	public void addMember(Collection<MinecartMember> members) {
+		this.mc.addAll(members);
+		for (MinecartMember m : members) {
+			m.setGroup(this);
+		}
+	}
+	
 	public MinecartMember getMember(int index) {
 		return mc.get(index);
 	}
@@ -359,7 +416,9 @@ public class MinecartGroup {
 		playLinkEffect(mc.get(index).getMinecart());
 		
 		//remove cart from global info
-		setSingle(mc.get(index));
+		if (mc.get(index).getGroup() == this) {
+			mc.get(index).setGroup(null);
+		}
 		
 		//Set the deactivated signs that need updating
 		HashSet<Location> deactivatedSigns = new HashSet<Location>();
@@ -372,8 +431,7 @@ public class MinecartGroup {
 		gnew.ignorePushes = this.ignorePushes;
 		for (int i = 0;i < index;i++) {
 			MinecartMember mm = mc.get(i);
-			gnew.mc.add(mm);
-			mm.setGroup(gnew);
+			gnew.addMember(mm);
 		}
 		
 		//Add the group
@@ -428,10 +486,15 @@ public class MinecartGroup {
 		}
 		activeSigns.clear();
 		for (MinecartMember mm : this.mc) {
-			setSingle(mm);
+			if (mm.getGroup() == this) {
+				mm.setGroup(null);
+			}
 		}
 		this.mc.clear();
 		groups.remove(this);
+		if (this.name != null) {
+			TrainProperties.get(this.name).remove();
+		}
 	}
 	public void destroy() {
 		for (MinecartMember mm : getMembers()) {
@@ -439,6 +502,7 @@ public class MinecartGroup {
 		}
 		this.mc.clear();
 		groups.remove(this);
+		TrainProperties.get(this.name).remove();
 	}	
 	public void stop() {
 		for (MinecartMember m : mc) {
@@ -520,7 +584,7 @@ public class MinecartGroup {
 			//Set the yaw (IS important!)
 			head().setYaw(FaceUtil.faceToYaw(head().getDirection()));
 			return;
-		} else if (mc.size() == 0) {
+		} else if (size() == 0) {
 			this.remove();
 			return;
 		}
@@ -540,10 +604,10 @@ public class MinecartGroup {
 		//Get the average forwarding force of all carts
 		double force = this.getAverageForce();
 				
-		mc.get(mc.size() - 1).addForceFactor(0, 0); //last cart max speed
+		tail().addForceFactor(0, 0); //last cart max speed
 
 		//Apply force factors to carts from last cart
-		for (int i = mc.size() - 2;i >= 0;i--) {
+		for (int i = size() - 2;i >= 0;i--) {
 			double distance = mc.get(i).distanceXZ(mc.get(i + 1));
 			double threshold = 0;
 			double forcer = 1;

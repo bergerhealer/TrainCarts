@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -113,6 +114,52 @@ public class Util {
     	if (Double.isNaN(value)) return 0;
     	return value;
     }
+    
+    public static String[] remove(String[] input, int index) {
+    	String[] rval = new String[input.length - 1];
+    	int i = 0;
+    	for (int ii = 0; ii < input.length; ii++) {
+    		if (ii != index) {
+    			rval[i] = input[ii];
+    			i++;
+    		}
+    	}
+    	return rval;
+    }
+	public static String combineNames(List<String> items) {
+		if (items.size() == 0) return "";
+		String[] sitems = new String[items.size()];
+		for (int i = 0;i < sitems.length;i++) {
+			sitems[i] = items.get(i);
+		}
+		return combineNames(sitems);
+	}
+    public static String combine(String separator, String... lines) {
+    	String rval = "";
+    	for (String line : lines) {
+    		if (line != null && line.equals("") == false) {
+        		if (rval.equals("") == false) rval += separator;
+        		rval += line;
+    		}
+    	}
+    	return rval;
+    }
+	public static String combineNames(String[] items) {	
+		if (items.length == 0) return "";
+    	if (items.length == 1) return items[0];
+    	int count = 1;
+    	String name = "";
+    	for (String item : items) {
+    		name += item;
+    		if (count == items.length - 1) {
+    			name += " and ";
+    		} else if (count != items.length) {
+    			name += ", ";
+    		}
+    		count++;
+    	}
+		return name;
+	}
 
     /*
      * Stages the value between the two points using a stage from 0 to 1
