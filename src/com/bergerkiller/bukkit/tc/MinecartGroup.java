@@ -115,10 +115,11 @@ public class MinecartGroup {
 		if (isDisabled) return false;
 		if (m1.isDead()) return false;
 		if (m2.isDead()) return false;
-		return link(MinecartMember.get(m1), MinecartMember.get(m2));
+		return link(MinecartMember.convert(m1), MinecartMember.convert(m2));
 	}
 	public static boolean link(MinecartMember m1, MinecartMember m2) {
 		if (isDisabled) return false;
+		if (m1 == null || m2 == null) return false;
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
 		if (g1 != g2) {

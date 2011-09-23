@@ -46,36 +46,32 @@ public class MinecartMember extends NativeMinecartMember {
 		motY = Util.fixNaN(motY);
 		motZ = Util.fixNaN(motZ);
 		MinecartGroup g = this.getGroup();
-		if (g != null) {
-			if (g.size() == 0) {
-				this.group = null;
-				g.remove();
-				super.s_();
-			} else {
-				if (g.tail() == this) {
-					if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
-						g.updateTarget();
-						for (MinecartMember m : g.getMembers()) {
-							motX = Util.fixNaN(motX);
-							motY = Util.fixNaN(motY);
-							motZ = Util.fixNaN(motZ);
-							//General velocity update
-							m.preUpdate();
-						}
-						if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
-							g.update();
-							if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
-								for (MinecartMember m : g.getMembers()) {
-									m.postUpdate(m.forceFactor);
-								}
-								GroupUpdateEvent.call(g, UpdateStage.LAST);
+		if (g.size() == 0) {
+			this.group = null;
+			g.remove();
+			super.s_();
+		} else {
+			if (g.tail() == this) {
+				if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
+					g.updateTarget();
+					for (MinecartMember m : g.getMembers()) {
+						motX = Util.fixNaN(motX);
+						motY = Util.fixNaN(motY);
+						motZ = Util.fixNaN(motZ);
+						//General velocity update
+						m.preUpdate();
+					}
+					if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
+						g.update();
+						if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
+							for (MinecartMember m : g.getMembers()) {
+								m.postUpdate(m.forceFactor);
 							}
+							GroupUpdateEvent.call(g, UpdateStage.LAST);
 						}
 					}
 				}
 			}
-		} else {
-			super.s_();
 		}
 	}	
 	@Override
@@ -245,9 +241,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 	public Block getRailsBlock() {
-		if (this.group != null) {
-			if (super.isDerailed()) return null;
-		}
+		if (super.isDerailed()) return null;
 		return BlockUtil.getRailsBlock(this.getMinecart());
 	}
 	public Rails getRails() {
@@ -458,7 +452,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public static boolean isDerailed(MinecartMember mm) {
 		if (mm == null) return true;
 		return mm.getRailsBlock() == null;
-	}	
+	}
 
  	
 	/*
