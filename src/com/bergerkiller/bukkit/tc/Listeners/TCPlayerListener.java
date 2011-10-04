@@ -8,13 +8,10 @@ import org.bukkit.event.player.PlayerListener;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 
 public class TCPlayerListener extends PlayerListener {
 
-	//this class is only used when debugging
-	
 	@Override
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -27,8 +24,8 @@ public class TCPlayerListener extends PlayerListener {
 						//Placing a minecart on the tracks
 						if (!event.getPlayer().hasPermission("train.place.minecart")) {
 							event.setCancelled(true);
-						} else if (TrainCarts.setOwnerOnPlacement) {
-							TCVehicleListener.lastPlayer = event.getPlayer().getName();
+						} else {
+							TCVehicleListener.lastPlayer = event.getPlayer();
 						}
 					}
 				}

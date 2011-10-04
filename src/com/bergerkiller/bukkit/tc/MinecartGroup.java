@@ -101,12 +101,14 @@ public class MinecartGroup {
 	}
 	
 	public static boolean isInSameGroup(Minecart... minecarts) {
-		MinecartMember[] members = MinecartMember.getAll(minecarts);
+		return isInSameGroup(MinecartMember.getAll(minecarts));
+	}
+	public static boolean isInSameGroup(MinecartMember... minecarts) {
 		for (int i = 0;i < minecarts.length - 1; i++) {
-			if (members[i] == null) return false;
-			if (members[i + 1] == null) return false;
-			if (members[i].getGroup() == null) return false;
-			if (members[i].getGroup() != members[i + 1].getGroup()) return false;
+			if (minecarts[i] == null) return false;
+			if (minecarts[i + 1] == null) return false;
+			if (minecarts[i].getGroup() == null) return false;
+			if (minecarts[i].getGroup() != minecarts[i + 1].getGroup()) return false;
 		}
 		return true;
 	}
@@ -216,6 +218,7 @@ public class MinecartGroup {
 	public boolean ignorePushes = false;
 	public boolean ignoreForces = false;
 	private String name;
+	private TrainProperties prop = null;
 	
 	private MinecartGroup() {
 		groups.add(this);
@@ -250,7 +253,22 @@ public class MinecartGroup {
 	 * Properties
 	 */
 	public TrainProperties getProperties() {
-		return TrainProperties.get(this.getName());
+		if (this.prop == null) {
+			this.prop = TrainProperties.get(this.getName());
+		}
+		return this.prop;
+	}
+	public void setProperties(TrainProperties properties) {
+		if (this.prop != null) {
+			this.prop.remove();
+		}
+		this.prop = properties;
+		if (this.prop != null) {
+			this.name = this.prop.getTrainName();
+			this.prop.add();
+		} else {
+			this.name = null;
+		}
 	}
 	
 	/*
@@ -604,7 +622,7 @@ public class MinecartGroup {
 		
 		//Get the average forwarding force of all carts
 		double force = this.getAverageForce();
-				
+						
 		tail().addForceFactor(0, 0); //last cart max speed
 
 		//Apply force factors to carts from last cart

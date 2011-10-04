@@ -74,7 +74,7 @@ public class EntityUtil {
 		ItemStack[] items = from.getContents();
 		for (int i = 0;i < items.length;i++) {
 			if (items[i] != null) {
-				to.setItem(i, new ItemStack(items[i].id, items[i].count, items[i].damage));
+				to.setItem(i, new ItemStack(items[i].id, items[i].count, items[i].b));
 			}
 		}
 		for (int i = 0;i < items.length;i++) from.setItem(i, null);
@@ -114,12 +114,15 @@ public class EntityUtil {
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}	
-	public static boolean pushAway(EntityMinecart vehicle, Entity topush) {
+	
+	public static boolean pushAway(Entity vehicle, Entity topush) {
+		return pushAway(MinecartMember.get(vehicle), topush);
+	}
+	public static boolean pushAway(MinecartMember member, Entity topush) {
+		if (member == null) return false;
 		//Targeting?
 		boolean ignorePushes = false;
-		MinecartMember mm = MinecartMember.get(vehicle.getBukkitEntity());
-		if (mm == null) return false;
-		if (mm.getGroup().ignorePushes) {
+		if (member.getGroup().ignorePushes) {
 			ignorePushes = true;
 		}
 		
@@ -128,12 +131,6 @@ public class EntityUtil {
 				if (!TrainCarts.pushAwayPlayers) return false;
 			} else if (topush instanceof Creature) {
 				if (TrainCarts.pushAwayMobs) {
-					//Enter if possible
-					if (vehicle.passenger == null) {
-						getNative(topush).setPassengerOf(vehicle);
-						return true;
-					}
-				} else {
 					return false;
 				}
 			} else {
@@ -148,14 +145,14 @@ public class EntityUtil {
 		}
 		
 		//===============================Entity check end======================
-		double speed = Util.length(vehicle.motX, vehicle.motY, vehicle.motZ);
+		double speed = Util.length(member.motX, member.motY, member.motZ);
 		if (ignorePushes || speed > TrainCarts.pushAwayAtVelocity) {
 			//push that bastard away!
-			float yaw = getMinecartYaw(vehicle);
+			float yaw = getMinecartYaw(member);
 			//which do we choose, -90 or 90?
 			while (yaw < 0) yaw += 360;
 			while (yaw >= 360) yaw -= 360;
-			float lookat = Util.getLookAtYaw(vehicle.getBukkitEntity(), topush) - yaw;
+			float lookat = Util.getLookAtYaw(member.getBukkitEntity(), topush) - yaw;
 
 			if (!ignorePushes && Util.getAngleDifference(lookat, 180) < 90) return false; //pushing
 			lookat = Util.normalAngle(lookat);
@@ -169,9 +166,6 @@ public class EntityUtil {
 		} else {
 			return false;
 		}
-	}
-	public static boolean pushAway(Minecart vehicle, Entity topush) {
-		return pushAway(getNative(vehicle), topush);
 	}
 	
 }

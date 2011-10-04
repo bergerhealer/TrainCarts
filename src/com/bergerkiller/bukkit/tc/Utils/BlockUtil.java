@@ -64,6 +64,27 @@ public class BlockUtil {
 	        }
     	}
     }
+    public static void setRails(Block rails, BlockFace from, BlockFace to) {
+    	setRails(rails, FaceUtil.combine(from, to).getOppositeFace());
+    }
+    public static void setRails(Block rails, BlockFace direction) {
+    	Material type = rails.getType();
+    	if (type == Material.RAILS) {
+    		if (direction == BlockFace.NORTH) {
+    			direction = BlockFace.SOUTH;
+    		} else if (direction == BlockFace.EAST) {
+    			direction = BlockFace.WEST;
+    		}
+    		byte olddata = rails.getData();
+    		Rails r = (Rails) type.getNewData(olddata);
+    		r.setDirection(direction, r.isOnSlope());
+    		byte newdata = r.getData();
+    		if (olddata != newdata) {
+        		rails.setData(newdata);
+    		}
+    	}
+    }
+    
     public static boolean isRails(Block b) {
     	if (b == null) return false;
         Material type = b.getType();

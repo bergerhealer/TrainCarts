@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.VelocityTarget;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
@@ -222,6 +223,9 @@ public class CustomEvents {
 		//Create the group
 		MinecartGroup g = MinecartGroup.create();
 		
+		//Default properties
+		g.getProperties().setDefault();
+		
 		//Spawn the train
 		for (int i = 0;i < types.size();i++) {
 			g.addMember(MinecartMember.get(locs[i], types.get(i)));
@@ -251,6 +255,9 @@ public class CustomEvents {
 		
 		MinecartGroup gnew = MinecartGroup.create();
 		gnew.ignorePushes = info.getGroup().ignorePushes;
+		gnew.ignoreForces = info.getGroup().ignoreForces;
+		gnew.setProperties(info.getGroup().getProperties());
+		info.getGroup().setProperties(null);
 		
 		for (int i = 0; i < newLocations.length; i++) {
 			MinecartMember mm = info.getGroup().getMember(i);
@@ -341,11 +348,38 @@ public class CustomEvents {
 							handleStation(info);
 						}
 						if (!info.isAction(ActionType.REDSTONE_CHANGE)) {
-							//Toggle the lever if present
-							Block main = BlockUtil.getAttachedBlock(info.getBlock());
-							boolean down = info.isAction(ActionType.GROUP_ENTER);
-							for (Block b : BlockUtil.getRelative(main, FaceUtil.getAttached())) {
-								BlockUtil.setLever(b, down);
+							info.setLevers(info.isAction(ActionType.GROUP_ENTER));
+						}
+					}
+				}
+			}
+		}
+		
+		
+		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER)) {
+			if (info.getLine(0).equalsIgnoreCase("[train]")) {
+				if (info.getLine(1).equalsIgnoreCase("property")) {
+					if (info.isAction(ActionType.REDSTONE_ON) || (info.isPowered() && info.isFacing())) {
+						if (info.getGroup() != null) {
+							//Handle property changes
+							String mode = info.getLine(2).toLowerCase().trim();
+							TrainProperties prop = info.getGroup().getProperties();
+							if (mode.equals("addtag")) {
+								prop.addTags(info.getLine(3));
+							} else if (mode.equals("settag")) {
+								prop.setTags(info.getLine(3));
+							} else if (mode.equals("remtag")) {
+								prop.tags.remove(info.getLine(3));
+							} else if (mode.equals("collision") || mode.equals("collide")) {
+								prop.trainCollision = Util.getBool(info.getLine(3));
+							} else if (mode.equals("linking") || mode.equals("link")) {
+								prop.allowLinking = Util.getBool(info.getLine(3));
+							} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
+								prop.allowMobsEnter = Util.getBool(info.getLine(3));
+							} else if (mode.equals("slow") || mode.equals("slowdown")) {
+								prop.slowDown = Util.getBool(info.getLine(3));
+							} else if (mode.equals("setdefault") || mode.equals("default")) {
+								prop.setDefault(info.getLine(3));
 							}
 						}
 					}
@@ -421,8 +455,30 @@ public class CustomEvents {
 			}
 		}
 		
+		if (info.isAction(ActionType.GROUP_ENTER) || info.isAction(ActionType.GROUP_LEAVE)) {
+			if (info.getLine(0).equalsIgnoreCase("[train]")) {
+				if (info.getLine(1).toLowerCase().startsWith("tag")) {
+					boolean down = false;
+					if (info.isAction(ActionType.GROUP_ENTER) && info.isFacing()) {
+						//get the tags
+						TrainProperties prop = info.getGroup().getProperties();
+						boolean left = prop.hasTag(info.getLine(2));
+						boolean right = prop.hasTag(info.getLine(3));
+						down = left || right;
+						if (info.isPowered()) {
+							BlockFace dir = BlockFace.NORTH;
+							if (left) dir = BlockFace.WEST;
+							if (right) dir = BlockFace.EAST;
+							info.setRailsRelative(dir);
+						}
+					}
+					info.setLevers(down);
+				}
+			}
+		}
+
 		if (info.isAction(ActionType.REDSTONE_ON, ActionType.MEMBER_ENTER)) {
-			if (info.isFacing()) {
+			if (info.isFacing() && info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).equalsIgnoreCase("destroy") && info.isPowered()) {
 					if (info.getMember() != null) {
 						info.getMember().destroy();
@@ -431,10 +487,6 @@ public class CustomEvents {
 					if (info.getGroup() != null) {
 						MinecartGroup group = info.getGroup();
 						group.destroy();
-					}
-				} else if (info.getLine(1).equalsIgnoreCase("unlink")) {
-					if (info.getMember() != null) {
-						info.getMember().remove();
 					}
 				} else if (info.getLine(1).toLowerCase().startsWith("eject") && info.isPowered()) {
 					String[] offsettext = info.getLine(2).split("/");

@@ -7,6 +7,55 @@ import com.bergerkiller.bukkit.tc.Util;
 
 public class FaceUtil {
 	
+	public static BlockFace combine(BlockFace from, BlockFace to) {
+		if (from == BlockFace.NORTH) {
+			if (to == BlockFace.WEST) {
+				return BlockFace.NORTH_WEST;
+			} else if (to == BlockFace.EAST) {
+				return BlockFace.NORTH_EAST;
+			}
+		} else 	if (from == BlockFace.EAST) {
+			if (to == BlockFace.NORTH) {
+				return BlockFace.NORTH_EAST;
+			} else if (to == BlockFace.SOUTH) {
+				return BlockFace.SOUTH_EAST;
+			}
+		} else 	if (from == BlockFace.SOUTH) {
+			if (to == BlockFace.WEST) {
+				return BlockFace.SOUTH_WEST;
+			} else if (to == BlockFace.EAST) {
+				return BlockFace.SOUTH_EAST;
+			}
+		} else 	if (from == BlockFace.WEST) {
+			if (to == BlockFace.NORTH) {
+				return BlockFace.NORTH_WEST;
+			} else if (to == BlockFace.SOUTH) {
+				return BlockFace.SOUTH_WEST;
+			}
+		}
+		return from;
+	}
+	public static BlockFace offset(BlockFace main, BlockFace offset) {
+		if (offset == BlockFace.EAST) {
+			switch (main) {
+			case NORTH : return BlockFace.EAST;
+			case EAST : return BlockFace.SOUTH;
+			case SOUTH : return BlockFace.WEST;
+			case WEST : return BlockFace.NORTH;
+			}
+		} else if (offset == BlockFace.WEST) {
+			switch (main) {
+			case NORTH : return BlockFace.WEST;
+			case EAST : return BlockFace.NORTH;
+			case SOUTH : return BlockFace.EAST;
+			case WEST : return BlockFace.SOUTH;
+			}
+		} else if (offset == BlockFace.SOUTH) {
+			return main.getOppositeFace();
+		}
+		return main;
+	}
+	
 	public static BlockFace[] getFaces(BlockFace main) {
 		BlockFace[] possible = new BlockFace[2];
 		if (main == BlockFace.NORTH || main == BlockFace.SOUTH) {

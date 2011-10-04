@@ -276,6 +276,19 @@ public class GroupManager {
 		return false;
 	}
 
+	public static boolean contains(String trainname) {
+		if (MinecartGroup.get(trainname) != null) {
+			return true;
+		}
+		for (ArrayList<WorldGroup> list : hiddengroups.values()) {
+			for (WorldGroup group : list) {
+				if (group.name.equals(trainname)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 	public static void rename(String oldtrainname, String newtrainname) {
 		MinecartGroup.rename(oldtrainname, newtrainname);
 		for (ArrayList<WorldGroup> list : hiddengroups.values()) {

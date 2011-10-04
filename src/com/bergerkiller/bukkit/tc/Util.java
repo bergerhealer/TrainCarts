@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 public class Util {
@@ -19,7 +20,10 @@ public class Util {
 		broadcast("VECTOR: [X=" + round(vec.getX(), 3) + " | Y=" + round(vec.getY(), 3) + " | Z=" + round(vec.getZ(), 3) + "]");
 	}
 	public static void broadcast(String msg) {
-		Bukkit.getServer().broadcastMessage(msg);
+		for (Player p : Bukkit.getServer().getOnlinePlayers()) {
+			p.sendMessage(msg);
+		}
+		//Bukkit.getServer().broadcastMessage(msg);
 	}
 	public static void heartbeat() {
 		broadcast("HEARTBEAT: " + System.currentTimeMillis());
@@ -159,6 +163,20 @@ public class Util {
     		count++;
     	}
 		return name;
+	}
+	
+	public static boolean getBool(String name) {
+		name = name.toLowerCase().trim();
+		if (name.equals("yes")) return true;
+		if (name.equals("allow")) return true;
+		if (name.equals("true")) return true;
+		if (name.equals("ye")) return true;
+		if (name.equals("y")) return true;
+		if (name.equals("t")) return true;
+		if (name.equals("on")) return true;
+		if (name.equals("enabled")) return true;
+		if (name.equals("enable")) return true;
+		return false;
 	}
 
     /*

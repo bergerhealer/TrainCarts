@@ -10,6 +10,7 @@ import org.bukkit.event.Event;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = -7414386763414357918L;
@@ -63,6 +64,21 @@ public class SignActionEvent extends Event implements Cancellable {
 	private boolean cancelled = false;
 	private ActionType actionType;
 	
+	public void setLevers(boolean down) {
+		//Toggle the lever if present
+		Block main = BlockUtil.getAttachedBlock(getBlock());
+		for (Block b : BlockUtil.getRelative(main, FaceUtil.getAttached())) {
+			BlockUtil.setLever(b, down);
+		}
+	}
+	public void setRails(BlockFace to) {
+		BlockUtil.setRails(this.getRails(), this.getFacing(), to);
+	}
+	public void setRailsRelative(BlockFace direction) {
+		BlockFace main = this.getFacing().getOppositeFace();
+		setRails(FaceUtil.offset(main, direction));
+	}
+	
 	public ActionType getAction() {
 		return this.actionType;
 	}
@@ -80,7 +96,8 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.getBlock().getRelative(from).isBlockIndirectlyPowered();
 	}
 	public boolean isPowered() {
-		return isPowered(BlockFace.NORTH) ||
+		return this.getBlock().isBlockPowered() ||
+				isPowered(BlockFace.NORTH) ||
 				isPowered(BlockFace.EAST) ||
 				isPowered(BlockFace.SOUTH) ||
 				isPowered(BlockFace.WEST);

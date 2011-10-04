@@ -5,6 +5,7 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
@@ -23,6 +24,7 @@ import net.minecraft.server.DamageSource;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityLiving;
+import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Item;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
@@ -73,7 +75,14 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
     
 	private boolean ignoreForces() {
-    	return ((MinecartMember) this).getGroup().ignoreForces;
+    	return group().ignoreForces;
+	}
+	
+	private MinecartMember member() {
+		return (MinecartMember) this;
+	}
+	private MinecartGroup group() {
+		return member().getGroup();
 	}
 	
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
@@ -282,7 +291,7 @@ public class NativeMinecartMember extends EntityMinecart {
                 moveinfo.flag2 = false;
 
                 // TrainNote: Used to boost a Minecart on powered tracks
-                if (l == Block.GOLDEN_RAIL.id) {
+                if (l == Block.GOLDEN_RAIL.id && !ignoreForces()) {
                 	moveinfo.flag1 = (moveinfo.i1 & 8) != 0;
                 	moveinfo.flag2 = !moveinfo.flag1;
                 }
@@ -294,26 +303,21 @@ public class NativeMinecartMember extends EntityMinecart {
                     this.locY = (double) (moveinfo.j + 1);
                 }
 
-                if (!ignoreForces()) {
-                	if (moveinfo.i1 == 2) {
-                		this.motX -= d0;
-                	}
-                     
-                    if (moveinfo.i1 == 3) {
-                        this.motX += d0;
-                    }
-                     
-                    if (moveinfo.i1 == 4) {
-                        this.motZ += d0;
-                    }
-                     
-                    if (moveinfo.i1 == 5) {
-                        this.motZ -= d0;
-                    }
+            	if (moveinfo.i1 == 2) {
+            		this.motX -= d0;
+            	}
+                 
+                if (moveinfo.i1 == 3) {
+                    this.motX += d0;
                 }
-                
-
-                
+                 
+                if (moveinfo.i1 == 4) {
+                    this.motZ += d0;
+                }
+                 
+                if (moveinfo.i1 == 5) {
+                    this.motZ -= d0;
+                }
                 //TrainNote end
 
 				moveinfo.aint = matrix[moveinfo.i1];
@@ -436,9 +440,11 @@ public class NativeMinecartMember extends EntityMinecart {
 //                 this.motX *= 0.9599999785423279D;
 //                 this.motY *= 0.0D;
 //                 this.motZ *= 0.9599999785423279D;
-                 this.motX *= 0.996999979019165D;
-                 this.motY *= 0.0D;
-                 this.motZ *= 0.996999979019165D;
+            	if (this.group().getProperties().slowDown) {
+                	this.motX *= 0.996999979019165D;
+                	this.motY *= 0.0D;
+                    this.motZ *= 0.996999979019165D;
+            	}
             } else {
             	//Is in a group that is targetting?
                 if (this.type == 2) {
@@ -465,9 +471,11 @@ public class NativeMinecartMember extends EntityMinecart {
                 		this.g = this.motZ;
                 	}
                 }
-                this.motX *= 0.996999979019165D;
-                this.motY *= 0.0D;
-                this.motZ *= 0.996999979019165D;
+                if (this.group().getProperties().slowDown) {
+                    this.motX *= 0.996999979019165D;
+                    this.motY *= 0.0D;
+                    this.motZ *= 0.996999979019165D;
+                }
             }
             //==================================================
 
@@ -603,11 +611,10 @@ public class NativeMinecartMember extends EntityMinecart {
 
 		List list = this.world.b((Entity) this, this.boundingBox.b(
 				0.20000000298023224D, 0.0D, 0.20000000298023224D));
-
+		
 		if (list != null && list.size() > 0) {
 			for (int l1 = 0; l1 < list.size(); ++l1) {
 				Entity entity = (Entity) list.get(l1);
-
 				if (entity != this.passenger && entity.g()
 						&& entity instanceof EntityMinecart) {
 					entity.collide(this);
@@ -948,6 +955,51 @@ public class NativeMinecartMember extends EntityMinecart {
     }
 		
 	/*
+	 * Returns if this entity is allowed to collide with another entity
+	 */
+	private boolean canCollide(Entity e) {
+		if (e instanceof MinecartMember) {
+			//colliding with a member in the group, or not?
+			MinecartMember mm1 = this.member();
+			MinecartMember mm2 = (MinecartMember) e;
+			if (mm1.getGroup() == mm2.getGroup()) {
+				//Same group, but do prevent penetration
+				if (mm1.distance(mm2) > 0.5) {
+    				return false;
+				}
+			} else if (!mm1.getGroup().getProperties().trainCollision) {
+				//Allows train collisions?
+				return false;
+			} else if (!mm2.getGroup().getProperties().trainCollision) {
+				//Other train allows train collisions?
+				return false;
+			}
+		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {
+			//Ignore passenger collisions
+			return false;
+		} else {
+			//Use push-away?
+			TrainProperties prop = this.group().getProperties();
+			if (!this.group().getProperties().trainCollision) {
+				if (e instanceof EntityPlayer) {
+					Player p = (Player) e.getBukkitEntity();
+					if (!prop.isOwner(p)) {
+						return false;
+					}
+				} else if (prop.allowMobsEnter && this.passenger == null) {
+					e.setPassengerOf(this);
+					return false;
+				} else {
+					return false;
+				}
+			} else if (EntityUtil.pushAway(this.getBukkitEntity(), e.getBukkitEntity())) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/*
 	 * Prevents passengers and Minecarts from colliding with Minecarts
 	 */
 	@SuppressWarnings("unchecked")
@@ -961,25 +1013,7 @@ public class NativeMinecartMember extends EntityMinecart {
         	boolean remove = false;
         	for (Entity e : entityList) {
         		if (e.boundingBox == a) {
-        			if (e instanceof MinecartMember) {
-        				//colliding with a member in the group, or not?
-        				MinecartMember mm1 = (MinecartMember) this;
-        				MinecartMember mm2 = (MinecartMember) e;
-        				if (mm1.getGroup() == mm2.getGroup() && mm1.getGroup() != null) {
-        					//Same group, but do prevent penetration
-        					if (mm1.distance(mm2) > 0.5) {
-                				remove = true;
-        					}
-        				}
-        			} else if (e instanceof EntityLiving) {
-        				if (e.vehicle != null && e.vehicle instanceof EntityMinecart) {
-        					remove = true;
-        				} else if (EntityUtil.pushAway(this, e.getBukkitEntity())) {
-        					remove = true;
-        				}
-    				} else if (EntityUtil.pushAway(this, e.getBukkitEntity())) {
-    					remove = true;
-        			}
+        			remove = !canCollide(e);
         		}
         		if (remove) break;
         	}

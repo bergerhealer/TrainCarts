@@ -233,18 +233,7 @@ public class TrainCarts extends JavaPlugin {
 
 		System.out.println("TrainCarts disabled!");
 	}
-		
-	private boolean getBool(String name) {
-		name = name.toLowerCase().trim();
-		if (name.equals("yes")) return true;
-		if (name.equals("allow")) return true;
-		if (name.equals("true")) return true;
-		if (name.equals("ye")) return true;
-		if (name.equals("y")) return true;
-		if (name.equals("t")) return true;
-		return false;
-	}
-	
+			
 	public boolean onCommand(CommandSender sender, Command c, String cmd, String[] args) {
 		if (args.length != 0 && sender instanceof Player) {
 			cmd = args[0].toLowerCase();
@@ -258,11 +247,17 @@ public class TrainCarts extends JavaPlugin {
 				}
 			} else {
 				//let's do stuff with it
-				if (cmd.equals("info")) {
+				if (cmd.equals("info") || cmd.equals("i")) {
 					p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
 					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
 					p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.allowMobsEnter);
+					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
 					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + " " + (prop.enterMessage == null ? "None" : prop.enterMessage));
+					if (prop.tags.size() == 0) {
+						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + "None");
+					} else {
+						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + " " + Util.combineNames(prop.tags));
+					}
 					if (prop.owners.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + "Everyone");
 					} else {
@@ -273,14 +268,14 @@ public class TrainCarts extends JavaPlugin {
 					} else {
 						p.sendMessage(ChatColor.YELLOW + "Enterable by: " + ChatColor.WHITE + " " + Util.combineNames(prop.passengers));
 					}
-				} else if (cmd.equals("linking")) {
+				} else if (cmd.equals("linking") || cmd.equals("link")) {
 					if (args.length == 1) {
-						prop.allowLinking = getBool(args[0]);
+						prop.allowLinking = Util.getBool(args[0]);
 					}
 					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
 				} else if (cmd.equals("mobenter") || cmd.equals("mobsenter")) {
 					if (args.length == 1) {
-						prop.allowMobsEnter = getBool(args[0]);
+						prop.allowMobsEnter = Util.getBool(args[0]);
 					}
 					p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.allowMobsEnter);
 				} else if (cmd.equals("claim")) {
@@ -308,6 +303,36 @@ public class TrainCarts extends JavaPlugin {
 						}
 						p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as owners of this train!");
 					}
+				} else if (cmd.equals("addtags") || cmd.equals("addtag")) {
+					if (args.length == 0) {
+						p.sendMessage(ChatColor.RED + "You need to give at least one tag to add!");
+					} else {
+						for (String tag : args) {
+							prop.tags.add(tag);
+						}
+						p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as tags for this train!");
+					}
+				} else if (cmd.equals("slowdown") || cmd.equals("slow") || cmd.equals("setslow") || cmd.equals("setslowdown")) {
+					if (args.length == 1) {
+						prop.slowDown = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + " " + prop.slowDown);
+				} else if (cmd.equals("settags") || cmd.equals("settag") || cmd.equals("tags") || cmd.equals("tag")) {
+					if (args.length == 0) {
+						prop.tags.clear();
+						p.sendMessage(ChatColor.YELLOW + "All tags for this train are cleared!");
+					} else {
+						prop.tags.clear();
+						for (String tag : args) {
+							prop.tags.add(tag);
+						}
+						p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as tags for this train!");
+					}
+				} else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
+					if (args.length == 1) {
+						prop.trainCollision = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
 				} else if (cmd.equals("rename") || cmd.equals("setname") || cmd.equals("name")) {
 					if (args.length == 0) {
 						p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");

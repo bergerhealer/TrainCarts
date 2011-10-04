@@ -59,15 +59,18 @@ public class TCVehicleListener extends VehicleListener {
 		}
 	}
 	
-	public static String lastPlayer = null;
+	public static Player lastPlayer = null;
 	@Override
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (event.getVehicle() instanceof Minecart && !MinecartGroup.isDisabled) {
 			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
 				MinecartGroup g = MinecartGroup.create(event.getVehicle());
 				if (lastPlayer != null) {
-					g.getProperties().owners.add(lastPlayer);
+					g.getProperties().setDefault(lastPlayer);
 					lastPlayer = null;
+				}
+				if (g.size() != 0) {
+					updateSign(g.head());
 				}
 			}
 		}
@@ -106,9 +109,7 @@ public class TCVehicleListener extends VehicleListener {
 		}
 	}
 	
-	@Override
-	public void onVehicleMove(VehicleMoveEvent event) {
-		MinecartMember mm = MinecartMember.get(event.getVehicle());
+	private void updateSign(MinecartMember mm) {
 		if (mm != null) {
 			Block signblock = mm.getSignBlock();
 			if (signblock != null) {
@@ -134,6 +135,11 @@ public class TCVehicleListener extends VehicleListener {
 	}
 	
 	@Override
+	public void onVehicleMove(VehicleMoveEvent event) {
+		updateSign(MinecartMember.get(event.getVehicle()));
+	}
+	
+	@Override
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
 		if (!event.isCancelled()) {
 			if (event.getVehicle() instanceof Minecart) {
@@ -146,16 +152,19 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
-			if (event.getEntity() instanceof Minecart) {			
-				Minecart m1 = (Minecart) event.getEntity();
-				Minecart m2 = (Minecart) event.getVehicle();
-				if (MinecartGroup.isInSameGroup(m1, m2)) {
-					event.setCancelled(true);
-				} else {
-					MinecartGroup.link(m1, m2);
+			MinecartMember mm1 = MinecartMember.get(event.getVehicle());
+			if (mm1 != null) {
+				if (event.getEntity() instanceof Minecart) {
+					MinecartMember mm2 = MinecartMember.get(event.getEntity());
+					if (MinecartGroup.isInSameGroup(mm1, mm2) || MinecartGroup.link(mm1, mm2)) {
+						event.setCancelled(true);
+					}
 				}
-			} else if (EntityUtil.pushAway((Minecart) event.getVehicle(), event.getEntity())) {
-				event.setCancelled(true);
+				if (!mm1.getGroup().getProperties().canCollide(event.getEntity())) {
+					event.setCancelled(true);
+				} else if (EntityUtil.pushAway(mm1, event.getEntity())) {
+					event.setCancelled(true);
+				}
 			}
 		}
 	}

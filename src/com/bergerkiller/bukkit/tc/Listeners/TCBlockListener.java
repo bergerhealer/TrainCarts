@@ -56,6 +56,13 @@ public class TCBlockListener extends BlockListener {
 				} else {
 					event.getPlayer().sendMessage(ChatColor.GREEN + "Trigger built!");
 				}
+			} else if (line.toLowerCase().equals("tag")) {
+				if (!event.getPlayer().hasPermission("train.build.tagswitcher")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else {
+					event.getPlayer().sendMessage(ChatColor.GREEN + "Tag switcher built!");
+				}
 			} else if (line.toLowerCase().startsWith("destroy")) {
 				if (!event.getPlayer().hasPermission("train.build.destructor")) {
 					event.setCancelled(true);
@@ -78,6 +85,30 @@ public class TCBlockListener extends BlockListener {
 					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train push denier!");
 				} else if (line.equalsIgnoreCase("push allow")) {
 					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train push allower!");
+				}
+			} else if (line.toLowerCase().startsWith("property")) {
+				if (!event.getPlayer().hasPermission("train.build.propertychanger")) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+				} else {
+					String mode = event.getLine(2).toLowerCase().trim();
+					if (mode.equals("settag")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets a tag!");
+					} else if (mode.equals("addtag")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which adds a tag!");
+					} else if (mode.equals("remtag")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which removes a tag!");
+					} else if (mode.equals("collision") || mode.equals("collide")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if the train can collide!");
+					} else if (mode.equals("linking") || mode.equals("link")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if the train can link!");
+					} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if mobs can enter the train!");
+					} else if (mode.equals("slow") || mode.equals("slowdown")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if the train slow down!");
+					} else if (mode.equals("setdefault") || mode.equals("default")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets train properties to a default!");
+					}
 				}
 			}
 		}
