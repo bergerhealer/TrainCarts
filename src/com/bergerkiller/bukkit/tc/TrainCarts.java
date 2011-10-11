@@ -1,9 +1,12 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -38,12 +41,7 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean spawnItemDrops = true;
 	public static double poweredCartBoost = 0.1;
 	public static Vector exitOffset = new Vector(0, 0, 0);
-	public static double pushAwayAtVelocity = 0.1;
 	public static double pushAwayForce = 0.2;
-	public static boolean pushAwayMobs = false;
-	public static boolean pushAwayPlayers = false;
-	public static boolean pushAwayMisc = true;
-	public static boolean pushAwayStation = true;
 	public static boolean keepChunksLoaded = true;
 	public static boolean useCoalFromStorageCart = false;
 	public static boolean setOwnerOnPlacement = true;
@@ -82,12 +80,7 @@ public class TrainCarts extends JavaPlugin {
 			exity = config.getDouble("exitOffset.y", exitOffset.getY());
 			exitz = config.getDouble("exitOffset.z", exitOffset.getZ());
 			exitOffset = new Vector(exitx, exity, exitz);
-			pushAwayAtVelocity = config.getDouble("pushAway.atVelocity", pushAwayAtVelocity);
-			pushAwayForce = config.getDouble("pushAway.force", pushAwayForce);
-			pushAwayMobs = config.getBoolean("pushAway.pushMobs", pushAwayMobs);
-			pushAwayPlayers = config.getBoolean("pushAway.pushPlayers", pushAwayPlayers);
-			pushAwayMisc = config.getBoolean("pushAway.pushMisc", pushAwayMisc);
-			pushAwayStation = config.getBoolean("pushAway.whenAtStation", pushAwayStation);
+			pushAwayForce = config.getDouble("pushAwayForce", pushAwayForce);
 			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
 			useCoalFromStorageCart = config.getBoolean("useCoalFromStorageCart", useCoalFromStorageCart);
 			setOwnerOnPlacement = config.getBoolean("setOwnerOnPlacement", setOwnerOnPlacement);
@@ -129,12 +122,7 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("exitOffset.x", exitx);
 			config.setProperty("exitOffset.y", exity);
 			config.setProperty("exitOffset.z", exitz);
-			config.setProperty("pushAway.atVelocity", pushAwayAtVelocity);
-			config.setProperty("pushAway.force", pushAwayForce);
-			config.setProperty("pushAway.pushMobs", pushAwayMobs);
-			config.setProperty("pushAway.pushPlayer", pushAwayPlayers);
-			config.setProperty("pushAway.pushMisc", pushAwayMisc);
-			config.setProperty("pushAway.whenAtStation", pushAwayStation);
+			config.setProperty("pushAwayForce", pushAwayForce);
 			config.setProperty("keepChunksLoaded", keepChunksLoaded);
 			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
 			config.setProperty("setOwnerOnPlacement", setOwnerOnPlacement);
@@ -152,7 +140,7 @@ public class TrainCarts extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_CREATE, vehicleListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Monitor, this);	
+		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Highest, this);	
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, Priority.Highest, this);	
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this);	
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.Highest, this);	
@@ -220,6 +208,7 @@ public class TrainCarts extends JavaPlugin {
 		//undo replacements for correct saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
+			mg.reinitProperties();
 		}
 		
 		//Save arrival times
@@ -235,23 +224,100 @@ public class TrainCarts extends JavaPlugin {
 	}
 			
 	public boolean onCommand(CommandSender sender, Command c, String cmd, String[] args) {
-		if (args.length != 0 && sender instanceof Player) {
-			cmd = args[0].toLowerCase();
-			args = Util.remove(args, 0);
+		if (args.length == 0) return false;
+		cmd = args[0].toLowerCase();
+		args = Util.remove(args, 0);
+		if (cmd.equals("removeall") || cmd.equals("destroyall")) {
+			if (!(sender instanceof Player) || ((Player) sender).hasPermission("train.command.remove")) {
+				boolean destroy = cmd.equals("destroyall");
+				if (args.length == 1) {
+					String cname = args[0].toLowerCase();
+					World w = null;
+					for (World world : Bukkit.getServer().getWorlds()) {
+						String wname = world.getName().toLowerCase();
+						if (wname.equals(cname)) {
+							w = world;
+							break;
+						}
+					}
+					if (w == null) {
+						for (World world : Bukkit.getServer().getWorlds()) {
+							String wname = world.getName().toLowerCase();
+							if (wname.contains(cname)) {
+								w = world;
+								break;
+							}
+						}
+					}
+					if (w != null) {
+						GroupManager.removeAll(w, destroy);
+						sender.sendMessage(ChatColor.RED + "All train information of '" + w.getName() + "' has been cleared!");
+						if (destroy) {
+							sender.sendMessage(ChatColor.RED + "All (visible) trains have been destroyed!");
+						}
+					} else {
+						sender.sendMessage(ChatColor.RED + "World not found!");
+					}
+				} else {
+					GroupManager.removeAll(destroy);
+					sender.sendMessage(ChatColor.RED + "All train information of this server has been cleared!");
+					if (destroy) {
+						sender.sendMessage(ChatColor.RED + "All (visible) trains have been destroyed!");				
+					}
+				}
+			} else {
+				sender.sendMessage(ChatColor.RED + "You don't have permission to use this!");
+			}
+			return true;
+		}
+		if (sender instanceof Player) {
 			Player p = (Player) sender;
 			//get the train this player is editing
 			TrainProperties prop = TrainProperties.getEditing(p);
+			//permissions
 			if (prop == null) {
 				if (TrainProperties.canBeOwner(p)) {
+					p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+				} else {
 					p.sendMessage(ChatColor.RED + "You don't own a train you can change!");
-				}
+				}			
+			} else if (!prop.isOwner(p)) {
+				p.sendMessage(ChatColor.RED + "You don't own this train!");
 			} else {
 				//let's do stuff with it
 				if (cmd.equals("info") || cmd.equals("i")) {
+					//warning message
+					if (!prop.isDirectOwner(p)) {
+						if (prop.owners.size() == 0) {
+							p.sendMessage(ChatColor.YELLOW + "Note: This train is not owned, claim it using /train claim!");
+						} else {
+							p.sendMessage(ChatColor.RED + "Warning: You do not own this train!");
+						}
+					}
 					p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
 					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
-					p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.allowMobsEnter);
+					if (prop.allowMobsEnter) {
+						if (prop.allowPlayerEnter) {
+							p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
+						} else {
+							p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs");
+						}
+					} else if (prop.allowPlayerEnter) {
+						p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Players");
+					} else {
+						p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.RED + " No one");
+					}
 					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
+					//push away
+					ArrayList<String> pushlist = new ArrayList<String>();
+					if (prop.pushMobs) pushlist.add("Mobs");
+					if (prop.pushPlayers) pushlist.add("Players");
+					if (prop.pushMisc) pushlist.add("Misc");
+					if (pushlist.size() == 0) {
+						p.sendMessage(ChatColor.YELLOW + "This train will never push anything.");
+					} else {
+						p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist) + ChatColor.YELLOW + ": " + ChatColor.WHITE + " " + prop.pushAway);
+					}
 					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + " " + (prop.enterMessage == null ? "None" : prop.enterMessage));
 					if (prop.tags.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + "None");
@@ -282,6 +348,46 @@ public class TrainCarts extends JavaPlugin {
 					prop.owners.clear();
 					prop.owners.add(p.getName());
 					p.sendMessage(ChatColor.YELLOW + "You claimed this train your own!");
+				} else if (cmd.equals("push") || cmd.equals("pushing")) {
+					if (args.length == 1) {
+						prop.pushAway = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Is pushing away: " + ChatColor.WHITE + " " + prop.pushAway);
+				} else if (cmd.equals("pushmobs")) {
+					if (args.length == 1) {
+						prop.pushMobs = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Pushes away mobs: " + ChatColor.WHITE + " " + prop.pushMobs);
+				} else if (cmd.equals("pushplayers")) {
+					if (args.length == 1) {
+						prop.pushPlayers = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Pushes away players: " + ChatColor.WHITE + " " + prop.pushPlayers);
+				} else if (cmd.equals("pushmisc")) {
+					if (args.length == 1) {
+						prop.pushMisc = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Pushes away misc. entities: " + ChatColor.WHITE + " " + prop.pushMisc);
+				} else if (cmd.equals("pushatstation")) {
+					if (args.length == 1) {
+						prop.pushAtStation = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Turns pushing on at stations: " + ChatColor.WHITE + " " + prop.pushAtStation);
+				} else if (cmd.equals("playerenter")) {
+					if (args.length == 1) {
+						prop.allowPlayerEnter = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Players can enter this train: " + ChatColor.WHITE + " " + prop.allowPlayerEnter);
+				} else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
+					if (args.length == 1) {
+						if (p.hasPermission("train.command.playerexit")) {
+							prop.allowPlayerExit = Util.getBool(args[0]);
+						} else {
+							p.sendMessage(ChatColor.RED + "You don't have permission, ask an admin to do this.");
+						}
+					}
+					p.sendMessage(ChatColor.YELLOW + "Players can exit this train: " + ChatColor.WHITE + " " + prop.allowPlayerExit);
+					
 				} else if (cmd.equals("addowner") || cmd.equals("addowners")) {
 					if (args.length == 0) {
 						prop.owners.add(p.getName());
@@ -344,6 +450,11 @@ public class TrainCarts extends JavaPlugin {
 							GroupManager.rename(prop.getTrainName(), newname);
 							p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 						}
+					}
+				} else if (cmd.equals("remove") || cmd.equals("destroy")) {
+					MinecartGroup g = MinecartGroup.get(prop.getTrainName());
+					if (g != null) {
+						g.destroy();
 					}
 				} else {
 					p.sendMessage(ChatColor.RED + "Unknown command: '" + cmd + "'!");

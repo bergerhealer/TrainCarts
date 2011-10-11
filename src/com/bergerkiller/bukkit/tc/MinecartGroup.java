@@ -34,14 +34,16 @@ public class MinecartGroup {
 	public static void updateGroups() {				
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
-			if (mg.size() == 0) {
-				groups.remove(mg);
-			} else if (mg.size() != 1) {
+			if (mg.size() > 0) {
 				for (MinecartMember mm : mg.getMembers()) {
 					if (mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
 						mm.remove();
 					}
 				}
+			}
+			if (mg.size() == 0) {
+				mg.remove();
+				continue;
 			}
 			//Unloaded chunk handling
 			SimpleChunk[] unloaded = mg.getNearChunks(false, true);
@@ -107,7 +109,6 @@ public class MinecartGroup {
 		for (int i = 0;i < minecarts.length - 1; i++) {
 			if (minecarts[i] == null) return false;
 			if (minecarts[i + 1] == null) return false;
-			if (minecarts[i].getGroup() == null) return false;
 			if (minecarts[i].getGroup() != minecarts[i + 1].getGroup()) return false;
 		}
 		return true;
@@ -134,9 +135,7 @@ public class MinecartGroup {
     			//Can the two groups bind?
     			TrainProperties prop1 = g1.getProperties();
     			TrainProperties prop2 = g2.getProperties();
-    			if (!prop1.sharesOwner(prop2)) {
-    				return false;
-    			} else if (!prop1.allowLinking || !prop2.allowLinking) {
+    			if (!prop1.sharesOwner(prop2) || !prop1.allowLinking || !prop2.allowLinking) {
     				return false;
     			}
     			
@@ -167,15 +166,16 @@ public class MinecartGroup {
 				}
 				
 				//Clear targets and active signs
+				g1.activeSigns.clear();
+				g2.activeSigns.clear();
 				g2.clearTargets();
 				
-				//Get the freshly added signs
-				g2.activeSigns.addAll(g1.activeSigns);
 				//Re-activate the signs underneath the train
 				for (MinecartMember mm : g2.mc) {
 					Block s = mm.getActiveSign();
 					if (s != null) {
 						g2.activeSigns.add(s.getLocation());
+						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, s, g2));
 						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_ENTER, s, g2));
 					}
 				}
@@ -215,7 +215,6 @@ public class MinecartGroup {
 	private ArrayList<MinecartMember> mc = new ArrayList<MinecartMember>();
 	private HashSet<Location> activeSigns = new HashSet<Location>();
 	private Queue<VelocityTarget> targets = new LinkedList<VelocityTarget>();
-	public boolean ignorePushes = false;
 	public boolean ignoreForces = false;
 	private String name;
 	private TrainProperties prop = null;
@@ -269,6 +268,9 @@ public class MinecartGroup {
 		} else {
 			this.name = null;
 		}
+	}
+	public void reinitProperties() {
+		this.prop = null;
 	}
 	
 	/*
@@ -432,7 +434,16 @@ public class MinecartGroup {
 	}
 	public void removeCart(int index) {
 		
-		playLinkEffect(mc.get(index).getMinecart());
+		if (this.mc.size() == 1) {
+			//Simplified
+			for (Location location : this.activeSigns) {
+				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, location.getBlock(), this));
+			}
+			this.remove();
+			return;
+		} else {
+			playLinkEffect(mc.get(index).getMinecart());
+		}
 		
 		//remove cart from global info
 		if (mc.get(index).getGroup() == this) {
@@ -447,27 +458,27 @@ public class MinecartGroup {
 		
 		//split the train at the index
 		MinecartGroup gnew = new MinecartGroup();
-		gnew.ignorePushes = this.ignorePushes;
 		for (int i = 0;i < index;i++) {
 			MinecartMember mm = mc.get(i);
 			gnew.addMember(mm);
 		}
-		
-		//Add the group
-		groups.add(gnew);
-		
-		//Set the new active signs
-		for (MinecartMember mm : gnew.mc) {
-			Block b = mm.getActiveSign();
-			if (b != null) {
-				gnew.activeSigns.add(b.getLocation());
-				deactivatedSigns.remove(b.getLocation());
+			
+		//Remove if empty, else add
+		if (gnew.size() > 0) {
+			//Add the group
+			groups.add(gnew);
+			
+			//Set the new active signs
+			for (MinecartMember mm : gnew.mc) {
+				Block b = mm.getActiveSign();
+				if (b != null) {
+					gnew.activeSigns.add(b.getLocation());
+					deactivatedSigns.remove(b.getLocation());
+				}
 			}
-		}
-		
-		//Remove if empty
-		if (gnew.size() == 0) {
-			gnew.remove();
+			
+			//Set the new group properties
+			gnew.getProperties().load(this.getProperties());
 		}
 
 		//remove transferred carts
@@ -511,8 +522,8 @@ public class MinecartGroup {
 		}
 		this.mc.clear();
 		groups.remove(this);
-		if (this.name != null) {
-			TrainProperties.get(this.name).remove();
+		if (this.prop != null) {
+			this.prop.remove();
 		}
 	}
 	public void destroy() {
@@ -521,7 +532,9 @@ public class MinecartGroup {
 		}
 		this.mc.clear();
 		groups.remove(this);
-		TrainProperties.get(this.name).remove();
+		if (this.prop != null) {
+			this.prop.remove();
+		}
 	}	
 	public void stop() {
 		for (MinecartMember m : mc) {
@@ -531,6 +544,11 @@ public class MinecartGroup {
 	public void limitSpeed() {
 		for (MinecartMember mm : mc) {
 			mm.limitSpeed();
+		}
+	}
+	public void setSpeedFactor(double factor) {
+		for (MinecartMember mm : this.mc) {
+			mm.setForceFactor(factor);
 		}
 	}
 	public void shareForce() {

@@ -108,6 +108,18 @@ public class TCBlockListener extends BlockListener {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if the train slow down!");
 					} else if (mode.equals("setdefault") || mode.equals("default")) {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets train properties to a default!");
+					} else if (mode.equals("push") || mode.equals("pushing")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which toggles pushing on and off!");
+					} else if (mode.equals("pushmobs")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if mobs are pushed!");
+					} else if (mode.equals("pushplayers")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if players are pushed!");
+					} else if (mode.equals("pushmisc")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if misc entities are pushed!");
+					} else if (mode.equals("playerenter")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if players can enter the train!");
+					} else if (mode.equals("playerexit")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if players can exit the train!");
 					}
 				}
 			}

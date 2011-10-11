@@ -980,19 +980,22 @@ public class NativeMinecartMember extends EntityMinecart {
 		} else {
 			//Use push-away?
 			TrainProperties prop = this.group().getProperties();
-			if (!this.group().getProperties().trainCollision) {
+			if (prop.canPushAway(e.getBukkitEntity())) {
+				this.member().push(e.getBukkitEntity());
+				return false;
+			}
+			if (!prop.trainCollision) {
+				//No collision is allowed? (Owners override)
 				if (e instanceof EntityPlayer) {
 					Player p = (Player) e.getBukkitEntity();
 					if (!prop.isOwner(p)) {
 						return false;
 					}
-				} else if (prop.allowMobsEnter && this.passenger == null) {
-					e.setPassengerOf(this);
-					return false;
 				} else {
 					return false;
 				}
-			} else if (EntityUtil.pushAway(this.getBukkitEntity(), e.getBukkitEntity())) {
+			} else if (EntityUtil.isMob(e.getBukkitEntity()) && prop.allowMobsEnter && this.passenger == null) {
+				e.setPassengerOf(this);
 				return false;
 			}
 		}

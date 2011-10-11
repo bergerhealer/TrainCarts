@@ -1,6 +1,6 @@
 name: Train Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
-version: 1.39
+version: 1.40
 author: bergerkiller
 description: Plugin that allows the use of minecart trains with adjustable settings
 softdepend: [MinecartManiaCore, SignLink, My Worlds]
@@ -42,6 +42,12 @@ permissions:
     train.command.properties:
         description: Allows you to view and change properties of trains you own
         default: true
+    train.command.remove:
+        description: Allows you to remove trains globally
+        default: op
+    train.command.playerexit:
+        description: Allows you to set if a train can be exited by players
+        default: op
     train.properties.default:
         description: Sets the players that use the default train properties
         default: not_op

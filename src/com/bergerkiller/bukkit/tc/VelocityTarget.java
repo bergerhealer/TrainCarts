@@ -80,10 +80,15 @@ public class VelocityTarget {
 		boolean reached = this.distance > this.goalDistance - 0.2;
 		
 		//Get the velocity to set the cart to
-		double targetvel = Util.stage(this.startVelocity, this.goalVelocity, (this.distance - 0.6) / this.goalDistance);
+		double targetvel;
+		if (this.goalVelocity > 0 || (this.goalDistance - this.distance) < 3) {
+			targetvel = Util.stage(this.startVelocity, this.goalVelocity, (this.distance - 0.6) / this.goalDistance);
+		} else {
+			targetvel = this.startVelocity;
+		}
 		
 		//Are we heading towards the target?
-		if (reached || Util.isHeadingTo(from.getLocation(), this.target, from.getVelocity())) {
+		if (reached || from.isHeadingTo(this.target)) {
 			//set motion using a factor
 			double currvel = Util.length(from.motX, from.motZ);
 			if (currvel < minVelocity) {
@@ -93,8 +98,8 @@ public class VelocityTarget {
 			from.motX *= factor;
 			from.motZ *= factor;
 		} else {
-			//Stop to stop MM from ruining it all...
 			if (TrainCarts.MinecartManiaEnabled) {
+				//Stop to stop MM from ruining it all...
 				from.getGroup().stop();
 			}
 			//set motion using the angle

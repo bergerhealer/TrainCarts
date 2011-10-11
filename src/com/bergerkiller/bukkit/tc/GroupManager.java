@@ -8,6 +8,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
@@ -24,6 +25,45 @@ public class GroupManager {
 			hiddengroups.put(w.getUID(), rval);
 		}
 		return rval;
+	}
+	
+	/*
+	 * Train removal
+	 */
+	public static void removeAll(World world, boolean destroy) {
+		getGroups(world).clear();
+		for (MinecartGroup g : MinecartGroup.getGroups()) {
+			if (g.getWorld() == world) {
+				if (destroy) {
+					g.destroy();
+				} else {
+					g.remove();
+				}
+			}
+		}
+		if (destroy) destroyMinecarts(world);
+	}
+	public static void removeAll(boolean destroy) {
+		hiddengroups.clear();
+		for (MinecartGroup g : MinecartGroup.getGroups()) {
+			if (destroy) {
+				g.destroy();
+			} else {
+				g.remove();
+			}
+		}
+		if (destroy) {
+			for (World world : Bukkit.getServer().getWorlds()) {
+				destroyMinecarts(world);
+			}
+		}
+	}
+	public static void destroyMinecarts(World world) {
+		for (Entity e : world.getEntities()) {
+			if (!e.isDead()) {
+				if (e instanceof Minecart) e.remove();
+			}
+		}
 	}
 	
 	/**

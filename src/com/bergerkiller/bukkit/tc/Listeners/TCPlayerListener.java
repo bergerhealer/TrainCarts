@@ -22,10 +22,10 @@ public class TCPlayerListener extends PlayerListener {
 							item.getType() == Material.POWERED_MINECART || 
 							item.getType() == Material.STORAGE_MINECART) {
 						//Placing a minecart on the tracks
-						if (!event.getPlayer().hasPermission("train.place.minecart")) {
-							event.setCancelled(true);
-						} else {
+						if (event.getPlayer().hasPermission("train.place.minecart")) {
 							TCVehicleListener.lastPlayer = event.getPlayer();
+						} else {
+							event.setCancelled(true);
 						}
 					}
 				}
@@ -38,6 +38,10 @@ public class TCPlayerListener extends PlayerListener {
 		MinecartGroup g = MinecartGroup.get(event.getRightClicked());
 		if (g != null) {
 			g.getProperties().setEditing(event.getPlayer());
+			MinecartGroup entered = MinecartGroup.get(event.getPlayer().getVehicle());
+			if (entered != null && !entered.getProperties().allowPlayerExit) {
+				event.setCancelled(true);
+			}
 		}
 	}
 	

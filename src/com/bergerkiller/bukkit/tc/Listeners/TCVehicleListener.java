@@ -40,7 +40,7 @@ public class TCVehicleListener extends VehicleListener {
 	
 	@Override
 	public void onVehicleExit(VehicleExitEvent event) {
-		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {
+		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {			
 			Minecart m = (Minecart) event.getVehicle();
 			Location loc = m.getLocation();
 			loc.setYaw(EntityUtil.getMinecartYaw(m) + 180);
@@ -65,11 +65,11 @@ public class TCVehicleListener extends VehicleListener {
 		if (event.getVehicle() instanceof Minecart && !MinecartGroup.isDisabled) {
 			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
 				MinecartGroup g = MinecartGroup.create(event.getVehicle());
-				if (lastPlayer != null) {
-					g.getProperties().setDefault(lastPlayer);
-					lastPlayer = null;
-				}
 				if (g.size() != 0) {
+					if (TrainCarts.setOwnerOnPlacement && lastPlayer != null) {
+						g.getProperties().setDefault(lastPlayer);
+						lastPlayer = null;
+					}
 					updateSign(g.head());
 				}
 			}
@@ -78,13 +78,17 @@ public class TCVehicleListener extends VehicleListener {
 		
 	@Override
 	public void onVehicleEnter(VehicleEnterEvent event) {
-		if (!event.isCancelled() && event.getEntered() instanceof Player) {
+		if (!event.isCancelled()) {
 			MinecartGroup g = MinecartGroup.get(event.getVehicle());
 			if (g != null) {
 				TrainProperties prop = g.getProperties();
-				if (prop.isPassenger(event.getEntered())) {
-					prop.showEnterMessage(event.getEntered());
-				} else {
+				if (event.getEntered() instanceof Player) {
+					if (prop.isPassenger(event.getEntered()) && prop.allowPlayerEnter) {
+						prop.showEnterMessage(event.getEntered());
+					} else {
+						event.setCancelled(true);
+					}
+				} else if (!prop.allowMobsEnter) {
 					event.setCancelled(true);
 				}
 			}
@@ -152,17 +156,18 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
-			MinecartMember mm1 = MinecartMember.get(event.getVehicle());
+			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
 			if (mm1 != null) {
+				TrainProperties prop = mm1.getGroup().getProperties();
 				if (event.getEntity() instanceof Minecart) {
-					MinecartMember mm2 = MinecartMember.get(event.getEntity());
+					MinecartMember mm2 = MinecartMember.convert(event.getEntity());
 					if (MinecartGroup.isInSameGroup(mm1, mm2) || MinecartGroup.link(mm1, mm2)) {
 						event.setCancelled(true);
 					}
-				}
-				if (!mm1.getGroup().getProperties().canCollide(event.getEntity())) {
+				} else if (prop.canPushAway(event.getEntity())) {
+					mm1.push(event.getEntity());
 					event.setCancelled(true);
-				} else if (EntityUtil.pushAway(mm1, event.getEntity())) {
+				} else if (!prop.canCollide(event.getEntity())) {
 					event.setCancelled(true);
 				}
 			}

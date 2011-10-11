@@ -11,16 +11,14 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftEntity;
-import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrackMap;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class EntityUtil {
 	
@@ -61,7 +59,7 @@ public class EntityUtil {
 		if (minecart instanceof MinecartMember) return ((MinecartMember) minecart).getYaw();
 		return minecart.yaw;
 	}
-	
+		
 	/*
 	 * Entity miscellaneous
 	 */
@@ -101,6 +99,7 @@ public class EntityUtil {
 		with.fallDistance = toreplace.fallDistance;
 		with.ticksLived = toreplace.ticksLived;
 		with.uniqueId = toreplace.uniqueId;
+		with.dead = toreplace.dead;
 		toreplace.uniqueId = new UUID(0, 0);
 		transferItems(toreplace, with);
 		
@@ -114,58 +113,16 @@ public class EntityUtil {
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}	
-	
-	public static boolean pushAway(Entity vehicle, Entity topush) {
-		return pushAway(MinecartMember.get(vehicle), topush);
-	}
-	public static boolean pushAway(MinecartMember member, Entity topush) {
-		if (member == null) return false;
-		//Targeting?
-		boolean ignorePushes = false;
-		if (member.getGroup().ignorePushes) {
-			ignorePushes = true;
-		}
 		
-		if (!ignorePushes) {
-			if (topush instanceof Player) {
-				if (!TrainCarts.pushAwayPlayers) return false;
-			} else if (topush instanceof Creature) {
-				if (TrainCarts.pushAwayMobs) {
-					return false;
-				}
-			} else {
-				if (!TrainCarts.pushAwayMisc) {
-					return false;
-				} else {
-					if (topush instanceof Minecart) {
-						return false;
-					}
-				}
+	/* 
+	 * States
+	 */
+	public static boolean isMob(Entity e) {
+		if (e instanceof LivingEntity) {
+			if (!(e instanceof HumanEntity)) {
+				return true;
 			}
 		}
-		
-		//===============================Entity check end======================
-		double speed = Util.length(member.motX, member.motY, member.motZ);
-		if (ignorePushes || speed > TrainCarts.pushAwayAtVelocity) {
-			//push that bastard away!
-			float yaw = getMinecartYaw(member);
-			//which do we choose, -90 or 90?
-			while (yaw < 0) yaw += 360;
-			while (yaw >= 360) yaw -= 360;
-			float lookat = Util.getLookAtYaw(member.getBukkitEntity(), topush) - yaw;
-
-			if (!ignorePushes && Util.getAngleDifference(lookat, 180) < 90) return false; //pushing
-			lookat = Util.normalAngle(lookat);
-			if (lookat > 0) {
-				yaw -= 180;
-			}
-			//push the obstacle awaayyy :d
-			Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
-			topush.setVelocity(vel);
-			return true;
-		} else {
-			return false;
-		}
+		return false;
 	}
-	
 }

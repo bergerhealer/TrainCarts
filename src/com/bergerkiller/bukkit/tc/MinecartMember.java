@@ -93,7 +93,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return event.refill();
 	}
-
+	
 	/*
 	 * MinecartMember <> EntityMinecart replacement functions
 	 */
@@ -280,6 +280,10 @@ public class MinecartMember extends NativeMinecartMember {
 		double ryaw = this.getYaw() / 180 * Math.PI;
         return -Math.sin(ryaw) * this.motZ - Math.cos(ryaw) * this.motX;
 	}
+	public void setForceFactor(double factor) {
+		this.motX *= factor;
+		this.motZ *= factor;
+	}
 	public void setForce(double force, float yaw) {
 		 if (isTurned()) {
 		     double l = this.getForce();
@@ -412,13 +416,6 @@ public class MinecartMember extends NativeMinecartMember {
 		float yaw = Util.getLookAtYaw(this.getVelocity());
 		return FaceUtil.yawToFace(yaw, false);
 	}
-	public boolean isMovingTo(Location to) {
-		BlockFace dir = getDirection();
-		Location next = getLocation().add(dir.getModX(), 0, dir.getModZ());
-		double d1 = to.distance(getLocation());
-		double d2 = next.distance(getLocation());
-		return d2 < d1;
-	}
 
 	/*
 	 * States
@@ -440,6 +437,9 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isDerailed() {
 		return isDerailed(this);
 	}
+	public boolean isHeadingTo(Location target) {
+		return Util.isHeadingTo(this.getLocation(), target, this.getVelocity());
+	}
 	public static boolean isDerailed(Minecart m) {
 		if (m == null) return true;
 		MinecartMember mm = get(m);
@@ -454,7 +454,6 @@ public class MinecartMember extends NativeMinecartMember {
 		return mm.getRailsBlock() == null;
 	}
 
- 	
 	/*
 	 * Active sign (sign underneath tracks)
 	 */
@@ -487,4 +486,20 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
  	
+	/*
+	 * Actions
+	 */
+	public void push(Entity entity) {
+		float yaw = this.getYaw();
+		while (yaw < 0) yaw += 360;
+		while (yaw >= 360) yaw -= 360;
+		float lookat = Util.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
+		lookat = Util.normalAngle(lookat);
+		if (lookat > 0) {
+			yaw -= 180;
+		}
+		//push the obstacle awaayyy :d
+		Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
+		entity.setVelocity(vel);
+	}
 }

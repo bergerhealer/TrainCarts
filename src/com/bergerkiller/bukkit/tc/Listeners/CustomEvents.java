@@ -129,6 +129,7 @@ public class CustomEvents {
 			if (instruction == BlockFace.UP) return; 
 			
 			VelocityTarget lastTarget = null;
+			TrainProperties prop = group.getProperties();
 			
 			//What do we do?
 			Location l = info.getRailLocation().add(0.5, 0, 0.5);
@@ -136,8 +137,8 @@ public class CustomEvents {
 				//Redstone change and moving?
 				if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
 					//Brake
-					if (TrainCarts.pushAwayStation) {
-						group.ignorePushes = true;
+					if (prop.pushAtStation) {
+						prop.pushAway = true;
 					}
 					group.ignoreForces = true;
 					midd.setTarget(l, 0, 0);			
@@ -173,18 +174,23 @@ public class CustomEvents {
 				}
 			} else {
 				//Launch
-				if (TrainCarts.pushAwayStation) {
-					group.ignorePushes = true;
+				if (prop.pushAtStation) {
+					prop.pushAway = true;
 				}
 				group.ignoreForces = true;
-				l = l.add(instruction.getModX() * length, 0, instruction.getModZ() * length);
-				lastTarget = midd.setTarget(l, midd.maxSpeed, delayMS);
+				midd.getGroup().clearTargets();
+				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
+				if (midd.isMoving() && !midd.isHeadingTo(next)) {
+					//Reversing, need to center it in the middle first
+					midd.setTarget(l, 0, 0);
+				}
+				lastTarget = midd.addTarget(next, midd.maxSpeed, delayMS);
 			}
-			if (TrainCarts.pushAwayStation && lastTarget != null) {
+			if (prop.pushAtStation && lastTarget != null) {
 				lastTarget.afterTask = new Task(TrainCarts.plugin, group) {
 					public void run() {
 						MinecartGroup group = (MinecartGroup) getArg(0);
-						group.ignorePushes = false;
+						group.getProperties().pushAway = false;
 						group.ignoreForces = false;
 					}
 				};
@@ -254,7 +260,6 @@ public class CustomEvents {
 		double force = info.getGroup().getAverageForce();
 		
 		MinecartGroup gnew = MinecartGroup.create();
-		gnew.ignorePushes = info.getGroup().ignorePushes;
 		gnew.ignoreForces = info.getGroup().ignoreForces;
 		gnew.setProperties(info.getGroup().getProperties());
 		info.getGroup().setProperties(null);
@@ -319,6 +324,37 @@ public class CustomEvents {
 		};
 		t.startDelayed(1);
 	}
+	private static void handleProperties(SignActionEvent info, TrainProperties prop, String mode) {
+		if (mode.equals("addtag")) {
+			prop.addTags(info.getLine(3));
+		} else if (mode.equals("settag")) {
+			prop.setTags(info.getLine(3));
+		} else if (mode.equals("remtag")) {
+			prop.tags.remove(info.getLine(3));
+		} else if (mode.equals("collision") || mode.equals("collide")) {
+			prop.trainCollision = Util.getBool(info.getLine(3));
+		} else if (mode.equals("linking") || mode.equals("link")) {
+			prop.allowLinking = Util.getBool(info.getLine(3));
+		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
+			prop.allowMobsEnter = Util.getBool(info.getLine(3));
+		} else if (mode.equals("slow") || mode.equals("slowdown")) {
+			prop.slowDown = Util.getBool(info.getLine(3));
+		} else if (mode.equals("setdefault") || mode.equals("default")) {
+			prop.setDefault(info.getLine(3));
+		} else if (mode.equals("push") || mode.equals("pushing")) {
+			prop.pushAway = Util.getBool(info.getLine(3));
+		} else if (mode.equals("pushmobs")) {
+			prop.pushMobs = Util.getBool(info.getLine(3));
+		} else if (mode.equals("pushplayers")) {
+			prop.pushPlayers = Util.getBool(info.getLine(3));
+		} else if (mode.equals("pushmisc")) {
+			prop.pushMisc = Util.getBool(info.getLine(3));
+		} else if (mode.equals("playerenter")) {
+			prop.allowPlayerEnter = Util.getBool(info.getLine(3));
+		} else if (mode.equals("playerexit")) {
+			prop.allowPlayerExit = Util.getBool(info.getLine(3));
+		}
+	}
 	
 	public static void onSign(SignActionEvent info, ActionType action) {
 		info.setAction(action);
@@ -364,23 +400,7 @@ public class CustomEvents {
 							//Handle property changes
 							String mode = info.getLine(2).toLowerCase().trim();
 							TrainProperties prop = info.getGroup().getProperties();
-							if (mode.equals("addtag")) {
-								prop.addTags(info.getLine(3));
-							} else if (mode.equals("settag")) {
-								prop.setTags(info.getLine(3));
-							} else if (mode.equals("remtag")) {
-								prop.tags.remove(info.getLine(3));
-							} else if (mode.equals("collision") || mode.equals("collide")) {
-								prop.trainCollision = Util.getBool(info.getLine(3));
-							} else if (mode.equals("linking") || mode.equals("link")) {
-								prop.allowLinking = Util.getBool(info.getLine(3));
-							} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-								prop.allowMobsEnter = Util.getBool(info.getLine(3));
-							} else if (mode.equals("slow") || mode.equals("slowdown")) {
-								prop.slowDown = Util.getBool(info.getLine(3));
-							} else if (mode.equals("setdefault") || mode.equals("default")) {
-								prop.setDefault(info.getLine(3));
-							}
+							handleProperties(info, prop, mode);
 						}
 					}
 				}
@@ -395,17 +415,6 @@ public class CustomEvents {
 						ArrivalSigns.trigger(info.getSign(), info.getMember());
 					} else if (info.isAction(ActionType.REDSTONE_OFF)) {
 						ArrivalSigns.timeCalcStop(info.getLocation());
-					}
-				}
-				if (!info.isAction(ActionType.REDSTONE_OFF)) {
-					if (info.getLine(1).equalsIgnoreCase("push deny")) {
-						if (info.isFacing() && info.getGroup() != null) {
-							info.getGroup().ignorePushes = true;
-						}
-					} else if (info.getLine(1).equalsIgnoreCase("push allow")) {
-						if (info.isFacing() && info.getGroup() != null) {
-							info.getGroup().ignorePushes = false;
-						}
 					}
 				}
 			}
@@ -428,7 +437,7 @@ public class CustomEvents {
 										if (mm.passenger instanceof EntityPlayer) {
 											Player p = (Player) mm.passenger.getBukkitEntity();
 											//has permission?
-											if (Permission.canEnter(p, dest.getWorld().getName())) {
+											if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
 												if (Permission.has(p, "portal.use") && 
 														(!MyWorlds.usePortalEnterPermissions || 
 														Permission.has(p, "portal.enter." + destname))) {
