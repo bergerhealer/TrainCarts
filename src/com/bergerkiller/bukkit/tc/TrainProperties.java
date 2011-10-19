@@ -75,11 +75,38 @@ public class TrainProperties {
         }
 	}
 	
+	public boolean hasTag(String[] requirements, boolean firstIsAllPossible, boolean lastIsAllPossible) {
+		if (requirements.length == 0) return this.tags.size() > 0;
+		for (String tag : this.tags) {
+			int index = 0;
+			boolean has = true;
+			boolean first = true;
+			for (int i = 0; i < requirements.length; i++) {
+				if (requirements[i].length() == 0) continue;
+				index = tag.indexOf(requirements[i], index);
+				if (index == -1 || (first && !firstIsAllPossible && index != 0)) {
+					has = false;
+					break;
+				} else {
+					index += requirements[i].length();
+				}
+				first = false;
+			}
+			if (has) {
+				if (lastIsAllPossible || index == tag.length()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
 	public boolean hasTag(String tag) {
 		if (tag.startsWith("!")) {
-			return !this.tags.contains(tag.substring(1));
+			return !hasTag(tag.substring(1));
 		} else {
-			return this.tags.contains(tag);
+			if (tag.length() == 0) return false;
+			return hasTag(tag.split("\\*"), tag.startsWith("*"), tag.endsWith("*"));
 		}
 	}
 	public void addTags(String... tags) {
@@ -103,12 +130,16 @@ public class TrainProperties {
 		return false;
 	}
 	public boolean isOwner(Player player) {
+		return this.isOwner(player, true);
+	}
+	public boolean isOwner(Player player, boolean checkGlobal) {
 		if (owners.size() == 0) {
 			return canBeOwner(player);
-		} else if (player.hasPermission("train.command.globalproperties")) {
+		} else if (checkGlobal && player.hasPermission("train.command.globalproperties")) {
 			return true;
+		} else {
+			return this.isDirectOwner(player);
 		}
-		return this.isDirectOwner(player);
 	}
 	public boolean isPassenger(Entity entered) {
 		if (entered instanceof Player) {
@@ -139,7 +170,9 @@ public class TrainProperties {
 	
 	public boolean canPushAway(Entity entity) {
 		if (entity instanceof Player) {
-			if (this.pushPlayers) return !this.isOwner((Player) entity);
+			if (this.pushPlayers) {
+				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
+			}
 		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {
 			if (this.pushMobs) return true;
 		} else {

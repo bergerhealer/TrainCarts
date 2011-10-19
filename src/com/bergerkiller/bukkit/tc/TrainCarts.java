@@ -42,9 +42,11 @@ public class TrainCarts extends JavaPlugin {
 	public static double poweredCartBoost = 0.1;
 	public static Vector exitOffset = new Vector(0, 0, 0);
 	public static double pushAwayForce = 0.2;
+	public static boolean pushAwayIgnoreGlobalOwners = false;
 	public static boolean keepChunksLoaded = true;
 	public static boolean useCoalFromStorageCart = false;
 	public static boolean setOwnerOnPlacement = true;
+	
 	
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -81,6 +83,7 @@ public class TrainCarts extends JavaPlugin {
 			exitz = config.getDouble("exitOffset.z", exitOffset.getZ());
 			exitOffset = new Vector(exitx, exity, exitz);
 			pushAwayForce = config.getDouble("pushAwayForce", pushAwayForce);
+			pushAwayIgnoreGlobalOwners = config.getBoolean("pushAwayIgnoreGlobalOwners", pushAwayIgnoreGlobalOwners);
 			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
 			useCoalFromStorageCart = config.getBoolean("useCoalFromStorageCart", useCoalFromStorageCart);
 			setOwnerOnPlacement = config.getBoolean("setOwnerOnPlacement", setOwnerOnPlacement);
@@ -123,6 +126,7 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("exitOffset.y", exity);
 			config.setProperty("exitOffset.z", exitz);
 			config.setProperty("pushAwayForce", pushAwayForce);
+			config.setProperty("pushAwayIgnoreGlobalOwners", pushAwayIgnoreGlobalOwners);
 			config.setProperty("keepChunksLoaded", keepChunksLoaded);
 			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
 			config.setProperty("setOwnerOnPlacement", setOwnerOnPlacement);

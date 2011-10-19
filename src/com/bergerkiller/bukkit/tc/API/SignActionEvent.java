@@ -96,7 +96,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.getBlock().getRelative(from).isBlockIndirectlyPowered();
 	}
 	public boolean isPowered() {
-		return this.getBlock().isBlockPowered() ||
+		return this.getBlock().isBlockIndirectlyPowered() ||
 				isPowered(BlockFace.NORTH) ||
 				isPowered(BlockFace.EAST) ||
 				isPowered(BlockFace.SOUTH) ||
@@ -118,7 +118,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.raildirection;
 	}
 	public Location getRailLocation() {
-		return getLocation().add(0, 2, 0);
+		return this.getLocation().add(0.5, 2, 0.5);
 	}
 	public Location getLocation() {
 		return this.signblock.getLocation();
@@ -154,8 +154,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.member;
 	}
 	public MinecartGroup getGroup() {
+		if (this.group != null) return this.group;
 		MinecartMember mm = this.getMember();
-		if (mm == null) return this.group;
+		if (mm == null) return null;
 		return mm.getGroup();
 	}
 	public String getLine(int index) {

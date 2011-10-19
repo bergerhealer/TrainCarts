@@ -390,8 +390,7 @@ public class CustomEvents {
 				}
 			}
 		}
-		
-		
+				
 		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).equalsIgnoreCase("property")) {
@@ -426,36 +425,45 @@ public class CustomEvents {
 					Portal portal = Portal.get(info.getLocation());
 					if (portal != null) {
 						String destname = portal.getDestinationName();
-						Location dest = Portal.getPortalLocation(destname);
+						Location dest = Portal.getPortalLocation(destname, info.getGroup().getWorld().getName());
 						if (dest != null) {
 							//Teleport the ENTIRE train to the destination...
-							Block dblock = dest.getBlock().getRelative(0, 2, 0);
-							if (BlockUtil.isRails(dblock)) {
-								//Can the passengers teleport? If not, get them out of the train!
-								for (MinecartMember mm : info.getGroup().getMembers()) {
-									if (mm.passenger != null) {
-										if (mm.passenger instanceof EntityPlayer) {
-											Player p = (Player) mm.passenger.getBukkitEntity();
-											//has permission?
-											if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
-												if (Permission.has(p, "portal.use") && 
-														(!MyWorlds.usePortalEnterPermissions || 
-														Permission.has(p, "portal.enter." + destname))) {
-													//Has permission, show message
-													p.sendMessage(Localization.getPortalEnter(destname));
-												} else {
-													Localization.message(p, "portal.noaccess");
-													mm.passenger.setPassengerOf(null);
+							Block sign = dest.getBlock();
+							sign.getChunk(); //load the chunk
+							if (BlockUtil.isSign(sign)) {
+								BlockFace facing = BlockUtil.getFacing(sign);
+								Block dblock = sign.getRelative(0, 2, 0);
+								if (BlockUtil.isRails(dblock)) {
+									//rail aligned at sign?
+								    if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
+								    if (facing == BlockFace.EAST) facing = BlockFace.WEST;
+									if (facing == BlockUtil.getRails(dblock).getDirection()) {
+										//Can the passengers teleport? If not, get them out of the train!
+										for (MinecartMember mm : info.getGroup().getMembers()) {
+											if (mm.passenger != null) {
+												if (mm.passenger instanceof EntityPlayer) {
+													Player p = (Player) mm.passenger.getBukkitEntity();
+													//has permission?
+													if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
+														if (Permission.has(p, "portal.use") && 
+																(!MyWorlds.usePortalEnterPermissions || 
+																Permission.has(p, "portal.enter." + destname))) {
+															//Has permission, show message
+															p.sendMessage(Localization.getPortalEnter(destname));
+														} else {
+															Localization.message(p, "portal.noaccess");
+															mm.passenger.setPassengerOf(null);
+														}
+													} else {
+														Localization.message(p, "world.noaccess");
+														mm.passenger.setPassengerOf(null);
+													}
 												}
-											} else {
-												Localization.message(p, "world.noaccess");
-												mm.passenger.setPassengerOf(null);
 											}
 										}
 									}
+									teleportTrain(info, dblock);
 								}
-								
-								teleportTrain(info, dblock);
 							}
 						}
 					}
