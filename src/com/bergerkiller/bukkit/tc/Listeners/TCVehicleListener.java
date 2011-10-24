@@ -70,7 +70,6 @@ public class TCVehicleListener extends VehicleListener {
 						g.getProperties().setDefault(lastPlayer);
 						lastPlayer = null;
 					}
-					updateSign(g.head());
 				}
 			}
 		}
@@ -112,35 +111,11 @@ public class TCVehicleListener extends VehicleListener {
 			}
 		}
 	}
-	
-	private void updateSign(MinecartMember mm) {
-		if (mm != null) {
-			Block signblock = mm.getSignBlock();
-			if (signblock != null) {
-				SignActionEvent info = new SignActionEvent(signblock, mm);
-				CustomEvents.onSign(info, ActionType.MEMBER_MOVE);
-				if (!mm.isActiveSign(signblock)) {
-					mm.setActiveSign(signblock);
-					CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
-				}
-				if (!mm.getGroup().getSignActive(signblock)) {
-					mm.getGroup().setSignActive(signblock, true);
-					CustomEvents.onSign(info, ActionType.GROUP_ENTER);
-				}
-			} else if (mm.hasActiveSign()) {
-				if (mm == mm.getGroup().tail()) {
-					signblock = mm.getActiveSign();
-					mm.getGroup().setSignActive(signblock, false);
-					CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, signblock, mm));
-				}
-				mm.setActiveSign(null);
-			}
-		}
-	}
-	
+		
 	@Override
 	public void onVehicleMove(VehicleMoveEvent event) {
-		updateSign(MinecartMember.get(event.getVehicle()));
+		MinecartMember mm = MinecartMember.get(event.getVehicle());
+		if (mm != null) mm.updateActiveSign();
 	}
 	
 	@Override

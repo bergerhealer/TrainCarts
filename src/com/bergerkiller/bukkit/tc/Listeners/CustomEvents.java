@@ -133,43 +133,45 @@ public class CustomEvents {
 			
 			//What do we do?
 			Location l = info.getRailLocation().add(0.5, 0, 0.5);
-			if (instruction == BlockFace.SELF && (north || east || south || west)) {
-				//Redstone change and moving?
-				if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
-					//Brake
-					if (prop.pushAtStation) {
-						prop.pushAway = true;
-					}
-					group.ignoreForces = true;
-					midd.setTarget(l, 0, 0);			
-					BlockFace trainDirection = null;
-					if (mode == 1) {
-						//Continue
-						trainDirection = midd.getDirection();
-					} else if (mode == 2) {
-						//Reverse
-						trainDirection = midd.getDirection().getOppositeFace();
-					} else if (mode == 3 || mode == 4) {
-						//Relative left/right
-						BlockFace signdir = info.getFacing();
-						//Convert :)
-						float yaw = FaceUtil.faceToYaw(signdir);
-						if (mode == 3) {
-							//Left
-							yaw += 90;
-						} else {
-							//Right
-							yaw -= 90;
+			if (instruction == BlockFace.SELF) {
+				if (north || east || south || west) {
+					//Redstone change and moving?
+					if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
+						//Brake
+						if (prop.pushAtStation) {
+							prop.pushAway = true;
 						}
-						//Apply
-						trainDirection = FaceUtil.yawToFace(yaw);					
-					} else {
-						l = null; //Nothing
-					}
-					if (l != null) {
-						//Actual launching here
-						l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
-						lastTarget = midd.addTarget(l, midd.maxSpeed, delayMS);
+						group.ignoreForces = true;
+						midd.setTarget(l, 0, 0);			
+						BlockFace trainDirection = null;
+						if (mode == 1) {
+							//Continue
+							trainDirection = midd.getDirection();
+						} else if (mode == 2) {
+							//Reverse
+							trainDirection = midd.getDirection().getOppositeFace();
+						} else if (mode == 3 || mode == 4) {
+							//Relative left/right
+							BlockFace signdir = info.getFacing();
+							//Convert :)
+							float yaw = FaceUtil.faceToYaw(signdir);
+							if (mode == 3) {
+								//Left
+								yaw += 90;
+							} else {
+								//Right
+								yaw -= 90;
+							}
+							//Apply
+							trainDirection = FaceUtil.yawToFace(yaw);					
+						} else {
+							l = null; //Nothing
+						}
+						if (l != null) {
+							//Actual launching here
+							l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
+							lastTarget = midd.addTarget(l, midd.maxSpeed, delayMS);
+						}
 					}
 				}
 			} else {
@@ -353,6 +355,12 @@ public class CustomEvents {
 			prop.allowPlayerEnter = Util.getBool(info.getLine(3));
 		} else if (mode.equals("playerexit")) {
 			prop.allowPlayerExit = Util.getBool(info.getLine(3));
+		} else if (mode.equals("speedlimit") || mode.equals("maxspeed")) {
+			 try {
+				 prop.speedLimit = Double.parseDouble(info.getLine(3));
+			 } catch (NumberFormatException ex) {
+				 prop.speedLimit = 0.4;
+			 }
 		}
 	}
 	
@@ -361,6 +369,7 @@ public class CustomEvents {
 		onSign(info);
 	}
 	public static void onSign(SignActionEvent info) {
+		if (info.getSign() == null) return;
 		//Event
 		info.setCancelled(false);
 		Bukkit.getServer().getPluginManager().callEvent(info);

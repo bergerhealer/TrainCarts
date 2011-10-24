@@ -15,7 +15,7 @@ import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 public class SignActionEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = -7414386763414357918L;
 
-	public static enum ActionType {REDSTONE_CHANGE, REDSTONE_ON, REDSTONE_OFF, MEMBER_ENTER, MEMBER_MOVE, GROUP_ENTER, GROUP_LEAVE}
+	public static enum ActionType {REDSTONE_CHANGE, REDSTONE_ON, REDSTONE_OFF, MEMBER_ENTER, MEMBER_MOVE, MEMBER_LEAVE, GROUP_ENTER, GROUP_LEAVE}
 	
 	public SignActionEvent(Block signblock, MinecartMember member) {
 		super("SignActionEvent");

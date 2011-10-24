@@ -48,6 +48,8 @@ public class TrainProperties {
 	public boolean pushMisc = true;
 	public boolean pushAtStation = true;
 	public boolean pushAway = false;
+	public double speedLimit = 0.4;
+	public boolean requirePoweredMinecart = false;
 	
 	public void showEnterMessage(Entity forEntity) {
 		if (forEntity instanceof Player && enterMessage != null && !enterMessage.equals("")) {
@@ -233,6 +235,8 @@ public class TrainProperties {
 		this.pushPlayers = config.getBoolean(key + ".pushAway.players", this.pushPlayers);
 		this.pushMisc = config.getBoolean(key + ".pushAway.misc", this.pushMisc);
 		this.pushAtStation = config.getBoolean(key + ".pushAway.atStation", this.pushAtStation);
+		this.speedLimit = config.getDouble(key + ".speedLimit", this.speedLimit);
+		this.requirePoweredMinecart = config.getBoolean(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
 	}
 	public void load(TrainProperties source) {
 		this.owners.addAll(source.owners);
@@ -250,6 +254,8 @@ public class TrainProperties {
 		this.pushPlayers = source.pushPlayers;
 		this.pushMisc = source.pushMisc;
 		this.pushAtStation = source.pushAtStation;
+		this.speedLimit = source.speedLimit;
+		this.requirePoweredMinecart = source.requirePoweredMinecart;
 	}
 	public void save(Configuration config, String key) {		
 		config.setProperty(key + ".owners", this.owners);
@@ -259,8 +265,10 @@ public class TrainProperties {
 		config.setProperty(key + ".allowPlayerExit", this.allowPlayerExit);
 		config.setProperty(key + ".enterMessage", this.enterMessage);
 		config.setProperty(key + ".allowLinking", this.allowLinking);
+		config.setProperty(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
 		config.setProperty(key + ".trainCollision", this.trainCollision);
 		config.setProperty(key + ".tags", this.tags);
+		config.setProperty(key + ".speedLimit", this.speedLimit);
 		config.setProperty(key + ".slowDown", this.slowDown);
 		config.setProperty(key + ".pushAway.isPushing", this.pushAway);
 		config.setProperty(key + ".pushAway.mobs", this.pushMobs);

@@ -12,6 +12,7 @@ import net.minecraft.server.EntityMinecart;
 
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -34,14 +35,14 @@ public class MinecartGroup {
 	public static void updateGroups() {				
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
-			if (mg.size() > 0) {
+			if (mg.isValid()) {
 				for (MinecartMember mm : mg.getMembers()) {
 					if (mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
 						mm.remove();
 					}
 				}
 			}
-			if (mg.size() == 0) {
+			if (!mg.isValid()) {
 				mg.remove();
 				continue;
 			}
@@ -75,7 +76,14 @@ public class MinecartGroup {
 	public static MinecartGroup create(MinecartMember... members) {
 		MinecartGroup g = new MinecartGroup();
 		for (MinecartMember member : members) {
-			g.addMember(member);
+			if (!member.dead) {
+				g.addMember(member);
+				member.preUpdate();
+			}
+		}
+		//handle events
+		for (MinecartMember mm : g.mc) {
+			mm.updateActiveSign();
 		}
 		return g;
 	}
@@ -137,6 +145,13 @@ public class MinecartGroup {
     			TrainProperties prop2 = g2.getProperties();
     			if (!prop1.sharesOwner(prop2) || !prop1.allowLinking || !prop2.allowLinking) {
     				return false;
+    			}
+    			
+    			//Is a powered minecart required?
+    			if (prop1.requirePoweredMinecart || prop2.requirePoweredMinecart) {
+    				if (g1.getCartCount(Material.POWERED_MINECART) == 0 && g2.getCartCount(Material.POWERED_MINECART) == 0) {
+    					return false;
+    				}
     			}
     			
     			//Share owners and add to g2
@@ -419,6 +434,32 @@ public class MinecartGroup {
 	public double length() {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
+	public int getCartCount(Material type) {
+		int typeid = 0;
+		if (type == Material.STORAGE_MINECART) {
+			typeid = 1;
+		} else if (type == Material.POWERED_MINECART) {
+			typeid = 2;
+		}
+		return getCartCount(typeid);
+	}
+	public int getCartCount(int type) {
+		int rval = 0;
+		for (MinecartMember mm : this.mc) {
+			if (mm.type == type) rval++;
+		}
+		return rval;
+	}
+	
+	public boolean isValid() {
+		if (this.size() == 0) return false;
+		if (this.size() == 1) return true;
+		if (this.getProperties().requirePoweredMinecart) {
+			return this.getCartCount(Material.POWERED_MINECART) > 0;
+		} else {
+			return true;
+		}
+	}
 	
 	public boolean removeCart(MinecartMember mm) {
 		int index = indexOf(mm);
@@ -433,12 +474,8 @@ public class MinecartGroup {
 		return true;
 	}
 	public void removeCart(int index) {
-		
 		if (this.mc.size() == 1) {
 			//Simplified
-			for (Location location : this.activeSigns) {
-				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, location.getBlock(), this));
-			}
 			this.remove();
 			return;
 		} else {
@@ -463,8 +500,8 @@ public class MinecartGroup {
 			gnew.addMember(mm);
 		}
 			
-		//Remove if empty, else add
-		if (gnew.size() > 0) {
+		//Remove if empty or not allowed, else add
+		if (gnew.isValid()) {
 			//Add the group
 			groups.add(gnew);
 			
@@ -497,7 +534,7 @@ public class MinecartGroup {
 		}
 		
 		//Remove if empty
-		if (this.size() == 0) {
+		if (!this.isValid()) {
 			this.remove();
 		}
 		
@@ -518,6 +555,12 @@ public class MinecartGroup {
 		for (MinecartMember mm : this.mc) {
 			if (mm.getGroup() == this) {
 				mm.setGroup(null);
+			}
+		}
+		if (this.mc.size() > 0) {
+			//set props
+			for (MinecartMember mm : this.mc) {
+				mm.getGroup().getProperties().load(this.getProperties());
 			}
 		}
 		this.mc.clear();
@@ -593,14 +636,6 @@ public class MinecartGroup {
 		}
 		return force;
 	}
-	public double getMaxSpeed() {
-		return head().maxSpeed;
-	}
-	public void setMaxSpeed(double maxspeed) {
-		for (MinecartMember mm : mc) {
-			mm.maxSpeed = maxspeed;
-		}
-	}
 	
 	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
 		ArrayList<SimpleChunk> rval = new ArrayList<SimpleChunk>();
@@ -662,9 +697,6 @@ public class MinecartGroup {
 		//Bring the force through the listener
 		force = ForceUpdateEvent.call(this, force);
 
-		//Set max speed of head to tails automatically
-		setMaxSpeed(getMaxSpeed());
-		
 		//update all carts
 		for (MinecartMember m : mc) {
 			m.setForwardForce(force);

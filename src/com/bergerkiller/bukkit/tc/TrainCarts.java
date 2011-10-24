@@ -9,6 +9,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
@@ -23,6 +24,7 @@ import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCVehicleListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCWorldListener;
+import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 
 public class TrainCarts extends JavaPlugin {
@@ -35,7 +37,6 @@ public class TrainCarts extends JavaPlugin {
 	public static double cartDistanceForcer = 0.1;
 	public static double turnedCartDistanceForcer = 0.2;
 	public static double nearCartDistanceFactor = 1.2;
-	public static double maxCartSpeed = 0.35;
 	public static double maxCartDistance = 4;
 	public static boolean breakCombinedCarts = false;
 	public static boolean spawnItemDrops = true;
@@ -73,7 +74,6 @@ public class TrainCarts extends JavaPlugin {
 			turnedCartDistanceForcer = config.getDouble("turned.cartDistanceForcer", turnedCartDistanceForcer);	
 			nearCartDistanceFactor = config.getDouble("nearCartDistanceFactor", nearCartDistanceFactor);	
 			removeDerailedCarts = config.getBoolean("removeDerailedCarts", removeDerailedCarts);
-			maxCartSpeed = config.getDouble("maxCartSpeed", maxCartSpeed);
 			maxCartDistance = config.getDouble("maxCartDistance", maxCartDistance);
 			breakCombinedCarts = config.getBoolean("breakCombinedCarts", breakCombinedCarts);
 			spawnItemDrops = config.getBoolean("spawnItemDrops", spawnItemDrops);
@@ -117,7 +117,6 @@ public class TrainCarts extends JavaPlugin {
 			config.setProperty("turned.cartDistanceForcer", turnedCartDistanceForcer);
 			config.setProperty("nearCartDistanceFactor", nearCartDistanceFactor);
 			config.setProperty("removeDerailedCarts", removeDerailedCarts);
-			config.setProperty("maxCartSpeed", maxCartSpeed);
 			config.setProperty("maxCartDistance", maxCartDistance);
 			config.setProperty("breakCombinedCarts", breakCombinedCarts);
 			config.setProperty("spawnItemDrops", spawnItemDrops);
@@ -213,6 +212,22 @@ public class TrainCarts extends JavaPlugin {
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
 			mg.reinitProperties();
+			mg.stop();
+		}
+		//entities left behind?
+		for (World w : Bukkit.getServer().getWorlds()) {
+			for (Entity e : w.getEntities()) {
+				net.minecraft.server.Entity ee = EntityUtil.getNative(e);
+				if (ee instanceof MinecartMember) {
+					MinecartMember mm = (MinecartMember) ee;
+					if (!mm.dead) {
+						MinecartGroup g = mm.getGroup();
+						GroupManager.hideGroup(g);
+						g.reinitProperties();
+						g.stop();
+					}
+				}
+			}
 		}
 		
 		//Save arrival times
@@ -323,6 +338,7 @@ public class TrainCarts extends JavaPlugin {
 						p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist) + ChatColor.YELLOW + ": " + ChatColor.WHITE + " " + prop.pushAway);
 					}
 					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + " " + (prop.enterMessage == null ? "None" : prop.enterMessage));
+					p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
 					if (prop.tags.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + "None");
 					} else {
@@ -426,7 +442,7 @@ public class TrainCarts extends JavaPlugin {
 					if (args.length == 1) {
 						prop.slowDown = Util.getBool(args[0]);
 					}
-					p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + " " + prop.slowDown);
+					p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.slowDown);
 				} else if (cmd.equals("settags") || cmd.equals("settag") || cmd.equals("tags") || cmd.equals("tag")) {
 					if (args.length == 0) {
 						prop.tags.clear();
@@ -442,7 +458,21 @@ public class TrainCarts extends JavaPlugin {
 					if (args.length == 1) {
 						prop.trainCollision = Util.getBool(args[0]);
 					}
-					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
+					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.trainCollision);
+				} else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
+					if (args.length == 1) {
+						 try {
+							 prop.speedLimit = Double.parseDouble(args[0]);
+						 } catch (NumberFormatException ex) {
+							 prop.speedLimit = 0.4;
+						 }
+					}
+					p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
+				} else if (cmd.equals("requirepoweredminecart") || cmd.equals("requirepowered")) {
+					if (args.length == 1) {
+						prop.requirePoweredMinecart = Util.getBool(args[0]);
+					}
+					p.sendMessage(ChatColor.YELLOW + "Requires powered minecart to stay alive: " + ChatColor.WHITE + prop.requirePoweredMinecart);
 				} else if (cmd.equals("rename") || cmd.equals("setname") || cmd.equals("name")) {
 					if (args.length == 0) {
 						p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");

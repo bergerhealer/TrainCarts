@@ -18,7 +18,10 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.API.CoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.GroupUpdateEvent;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.API.UpdateStage;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
+import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Utils.ChunkUtil;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
@@ -34,7 +37,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public MinecartMember(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
 		this.customYaw = this.yaw + 90;
-		this.maxSpeed = TrainCarts.maxCartSpeed;
 	}
 	
 	/*
@@ -55,6 +57,7 @@ public class MinecartMember extends NativeMinecartMember {
 				if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
 					g.updateTarget();
 					for (MinecartMember m : g.getMembers()) {
+						m.maxSpeed = getGroup().getProperties().speedLimit;
 						motX = Util.fixNaN(motX);
 						motY = Util.fixNaN(motY);
 						motZ = Util.fixNaN(motZ);
@@ -485,7 +488,30 @@ public class MinecartMember extends NativeMinecartMember {
 			return false;
 		}
 	}
- 	
+	public void updateActiveSign() {
+		Block signblock = this.getSignBlock();
+		if (signblock != null) {
+			SignActionEvent info = new SignActionEvent(signblock, this);
+			CustomEvents.onSign(info, ActionType.MEMBER_MOVE);
+			if (!this.isActiveSign(signblock)) {
+				this.setActiveSign(signblock);
+				CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
+			}
+			if (!this.getGroup().getSignActive(signblock)) {
+				this.getGroup().setSignActive(signblock, true);
+				CustomEvents.onSign(info, ActionType.GROUP_ENTER);
+			}
+		} else if (this.hasActiveSign()) {
+			signblock = this.getActiveSign();
+			CustomEvents.onSign(new SignActionEvent(ActionType.MEMBER_LEAVE, signblock, this));
+			if (this == this.getGroup().tail()) {
+				this.getGroup().setSignActive(signblock, false);
+				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, signblock, this));
+			}
+			this.setActiveSign(null);
+		}
+	}
+		
 	/*
 	 * Actions
 	 */

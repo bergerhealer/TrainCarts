@@ -92,7 +92,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.lastZ = this.locZ;
 		Location loc = new Location(this.world.getWorld(), this.locX, this.locY, this.locZ);
 		this.yaw = BlockUtil.getRailsYaw(BlockUtil.getRails(loc));
-		this.maxSpeed = TrainCarts.maxCartSpeed;
 	}
 		
 	/*

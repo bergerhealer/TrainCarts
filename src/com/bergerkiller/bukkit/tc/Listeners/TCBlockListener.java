@@ -120,6 +120,8 @@ public class TCBlockListener extends BlockListener {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if players can enter the train!");
 					} else if (mode.equals("playerexit")) {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if players can exit the train!");
+					} else if (mode.equals("maxspeed") || mode.equals("speedlimit")) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets the train speed limit!");
 					}
 				}
 			}
