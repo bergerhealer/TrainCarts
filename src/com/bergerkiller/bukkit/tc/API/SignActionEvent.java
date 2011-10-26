@@ -7,6 +7,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 
+import com.bergerkiller.bukkit.tc.Destinations;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
@@ -71,6 +72,8 @@ public class SignActionEvent extends Event implements Cancellable {
 			BlockUtil.setLever(b, down);
 		}
 	}
+	
+
 	public void setRails(BlockFace to) {
 		BlockUtil.setRails(this.getRails(), this.getFacing(), to);
 	}
@@ -138,6 +141,9 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.sign = BlockUtil.getSign(signblock);
 		}
 		return this.sign;
+	}
+	public BlockFace getDestDir(String destination){
+		   return Destinations.getDir(destination, this.getRailLocation());
 	}
 	public MinecartMember getMember() {
 		if (!this.memberchecked) {

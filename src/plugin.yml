@@ -18,6 +18,9 @@ permissions:
     train.build.trigger:
         description: Allows you to build trigger signs (arrival times)
         default: op
+    train.build.destination:
+        description: Allows you to build the train destination signs
+        default: op
     train.build.tagswitcher:
         description: Allows you to build the tag track switcher
         default: op

@@ -180,6 +180,9 @@ public class TrainCarts extends JavaPlugin {
 		//Load properties
 		TrainProperties.load(getDataFolder() + File.separator + "trainflags.yml");
 		
+		//Load destinations
+		Destinations.load(getDataFolder() + File.separator + "destinations.yml");
+		
 		//Load arrival times
 		ArrivalSigns.load(getDataFolder() + File.separator + "arrivaltimes.txt");
 		
@@ -235,6 +238,9 @@ public class TrainCarts extends JavaPlugin {
 		
 		//Save properties
 		TrainProperties.save(getDataFolder() + File.separator + "trainflags.yml");
+		
+		//Save destinations
+		Destinations.save(getDataFolder() + File.separator + "destinations.yml");
 		
 		//Save for next load
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
@@ -343,6 +349,9 @@ public class TrainCarts extends JavaPlugin {
 						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + "None");
 					} else {
 						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + " " + Util.combineNames(prop.tags));
+					}
+					if (prop.destination != null && !prop.destination.isEmpty()){					
+						p.sendMessage(ChatColor.YELLOW + "This train will ignore tag switchers and will attempt to reach " + ChatColor.WHITE + prop.destination);
 					}
 					if (prop.owners.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + "Everyone");
@@ -454,6 +463,14 @@ public class TrainCarts extends JavaPlugin {
 						}
 						p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as tags for this train!");
 					}
+				} else if (cmd.equals("dest") || cmd.equals("destination")) {
+					if (args.length == 0) {
+						prop.destination = "";
+						p.sendMessage(ChatColor.YELLOW + "Destination for this train has been cleared!");
+					} else {
+						prop.destination = args[0];
+						p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + args[0] + ChatColor.YELLOW + " as destination for this train!");
+					}
 				} else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
 					if (args.length == 1) {
 						prop.trainCollision = Util.getBool(args[0]);
@@ -484,6 +501,11 @@ public class TrainCarts extends JavaPlugin {
 							GroupManager.rename(prop.getTrainName(), newname);
 							p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 						}
+					}
+				} else if (cmd.equals("reroute")){
+					if (!(sender instanceof Player) || ((Player) sender).hasPermission("train.build.destination")) {
+						Destinations.clear();
+						sender.sendMessage("All train routings will be recalculated.");
 					}
 				} else if (cmd.equals("remove") || cmd.equals("destroy")) {
 					MinecartGroup g = MinecartGroup.get(prop.getTrainName());

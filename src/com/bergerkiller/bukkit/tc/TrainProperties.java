@@ -50,6 +50,7 @@ public class TrainProperties {
 	public boolean pushAway = false;
 	public double speedLimit = 0.4;
 	public boolean requirePoweredMinecart = false;
+	public String destination = "";
 	
 	public void showEnterMessage(Entity forEntity) {
 		if (forEntity instanceof Player && enterMessage != null && !enterMessage.equals("")) {
@@ -237,6 +238,7 @@ public class TrainProperties {
 		this.pushAtStation = config.getBoolean(key + ".pushAway.atStation", this.pushAtStation);
 		this.speedLimit = config.getDouble(key + ".speedLimit", this.speedLimit);
 		this.requirePoweredMinecart = config.getBoolean(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
+		this.destination = config.getString(key + ".destination", this.destination);
 	}
 	public void load(TrainProperties source) {
 		this.owners.addAll(source.owners);
@@ -256,6 +258,7 @@ public class TrainProperties {
 		this.pushAtStation = source.pushAtStation;
 		this.speedLimit = source.speedLimit;
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
+		this.destination = source.destination;
 	}
 	public void save(Configuration config, String key) {		
 		config.setProperty(key + ".owners", this.owners);
@@ -270,6 +273,7 @@ public class TrainProperties {
 		config.setProperty(key + ".tags", this.tags);
 		config.setProperty(key + ".speedLimit", this.speedLimit);
 		config.setProperty(key + ".slowDown", this.slowDown);
+		config.setProperty(key + ".destination", this.destination);
 		config.setProperty(key + ".pushAway.isPushing", this.pushAway);
 		config.setProperty(key + ".pushAway.mobs", this.pushMobs);
 		config.setProperty(key + ".pushAway.players", this.pushPlayers);

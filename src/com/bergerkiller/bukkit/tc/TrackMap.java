@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
@@ -209,4 +210,16 @@ public class TrackMap extends ArrayList<Block> {
 		this.add(next);
 		return next;
 	}
+	
+	public Block getSignBlock() {
+		Block b = last();
+		if (b == null) return null;
+		b = b.getRelative(0, -2, 0);
+		if (BlockUtil.isSign(b)) return b;
+		return null;
+	}
+	public Sign getSign() {
+		return BlockUtil.getSign(getSignBlock());
+    }
+		
 }
