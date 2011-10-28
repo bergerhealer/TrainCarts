@@ -153,6 +153,7 @@ public class MinecartMember extends NativeMinecartMember {
 				MinecartMember mm = get(e);
 				if (mm != null) {
 					if (in == null || mm.getGroup() == in) {
+					  if (mm.getLocation().getWorld() != at.getWorld()){continue;}//cannot measure between worlds
 						if (mm.getLocation().distance(at) <= searchRadius) {
 							return mm;
 						}
