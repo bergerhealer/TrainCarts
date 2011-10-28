@@ -34,6 +34,7 @@ public class Destinations {
 	private String destname;
 	private static List<String> checked = new ArrayList<String>();
 	public HashMap<String, Destination> dests = new HashMap<String, Destination>();
+  public List<String> neighbours = new ArrayList<String>();
 
 	private Destinations() {};
 	private Destinations(String destname) {
@@ -69,34 +70,35 @@ public class Destinations {
 	public Destination getDir(String reqname){
 		//is this us? return DOWN;
 		if (reqname == destname){return new Destination(BlockFace.DOWN, 0.0);}
-		//were we already checked? cancel by returning unknown.
-		if (checked.contains(destname)){return new Destination(BlockFace.UP, 100000.0);}
-		//put ourselves in the checked list, preventing loops.
-		checked.add(destname);
-		//first check what we already know
-		if (dests.containsKey(reqname)){return dests.get(reqname);}
+    //if we don't know anything, explore first.
+    if (neighbours.isEmpty()){
 		explore(BlockFace.NORTH);
 		explore(BlockFace.EAST);
 		explore(BlockFace.SOUTH);
 		explore(BlockFace.WEST);
+    }
+    //if unknown, ask neighbours
+    if (!checked.contains(destname)){
+      checked.add(destname);
+      if (!dests.containsKey(reqname)){askNeighbours(reqname);}
+    }
+    //check what we know
 		if (dests.containsKey(reqname)){return dests.get(reqname);}
-		//destination not known - try asking all known destinations if they can reach this
-		Destination r = new Destination(BlockFace.UP, 100000.0);
-		List<String> keys = new ArrayList<String>();
-		keys.addAll(dests.keySet());
-		for (String other : keys){
-			Destination node = dests.get(other);
-			Destination end = get(other).getDir(reqname);
-			if (end.getDir() != BlockFace.UP){
-				if (end.getDist() + node.getDist() < r.getDist()){
-					r.setDist(end.getDist() + node.getDist());
-					r.setDir(node.getDir());
-				}
-			}
-		}
-		//save and return what we could find
-		updateDest(reqname, r.getDir(), r.getDist());
-		return r;
+    //destination not known
+    return new Destination(BlockFace.UP, 100000.0);
+  }
+  
+  private void askNeighbours(String reqname){
+    for (String Neigh : neighbours){
+      if (Neigh == this.destname){continue;}//skip self
+      Destination node = dests.get(Neigh);
+      Destinations N = get(Neigh);//get this neighbour
+      N.getDir(reqname);//make sure this node is explored
+      for (String newdest : N.dests.keySet()){
+        if (newdest == this.destname){continue;}//skip self
+        updateDest(newdest, node.getDir(), N.dests.get(newdest).getDist()+node.getDist()+1, false);
+      }
+    }
 	}
 
 	/**
@@ -113,7 +115,6 @@ public class Destinations {
 		tmp = tmp.getRelative(dir);
 		if (tmp == null){return;}
 		TrackMap map = new TrackMap(tmp, dir);
-		int maxDistance = 500; //Maximum allowed distance between destination signs in blocks
 		while (tmp != null){
 			Sign sign = map.getSign();
 			if (sign != null){
@@ -127,13 +128,13 @@ public class Destinations {
 					}
 					if (newdest == destname) newdest = "";
 					if (!newdest.isEmpty()){
-						updateDest(newdest, dir, map.getTotalDistance()+1);
+            neighbours.add(newdest);
+            updateDest(newdest, dir, map.getTotalDistance()+1, true);
 						return;
 					}
 				}
 			}
 			tmp = map.next();
-			if (--maxDistance == 0) break;
 		}
 	}
 
@@ -145,33 +146,16 @@ public class Destinations {
 	 * @param newdir Direction the destination is in, with this distance.
 	 * @param newdist Distance the destination is in, with this direction.
 	 */
-	private void updateDest(String newdest, BlockFace newdir, double newdist){
-		boolean isNew = false;
+  private void updateDest(String newdest, BlockFace newdir, double newdist, boolean exploring){
 		if (newdist >= 100000.0){return;} //don't store failed calculations
 		//if we already know about this destination, and we are not faster, ignore it.
 		if (dests.containsKey(newdest)){
 			if (dests.get(newdest).getDist() <= newdist){return;}
+      if (neighbours.contains(newdest)){return;}//skip alternatives for direct neighbours
 		}else{
-			isNew = true;
 		}
-		//otherwise, save.
+    //save.
 		dests.put(newdest, new Destination(newdir, newdist));
-		//also, check all other points and update this destination there, if better.
-		List<String> keys = new ArrayList<String>();
-		keys.addAll(properties.keySet());
-		for (String propkey : keys){
-			Destinations D = properties.get(propkey);
-			if (D.destname == this.destname){continue;}//skip self
-			Destination node = D.getDir(this.destname);
-			D.updateDest(newdest, node.getDir(), newdist+node.getDist());
-		}
-		//lastly, if this was a new point, check if it has any faster routes for us
-		if (isNew){
-			Destinations D = get(newdest);
-			for (String posNode : D.dests.keySet()){
-				updateDest(posNode, newdir, newdist + D.dests.get(posNode).getDist());
-			}
-		}
 	}
 
 	/**
@@ -223,8 +207,12 @@ public class Destinations {
 		properties.put(newdestname, this);
 	}
 
+  @SuppressWarnings("unchecked") //prevent warning for getlist -> stringlist
 	public void load(ConfigurationSection config) {
+    if (config == null){return;}
+    this.neighbours = config.getList("neighbours");
 		for (String k : config.getKeys(false)){
+      if (k == "neighbours"){continue;}//skip neighbours
 			BlockFace bf = BlockFace.UP;
 			String dir = config.getString(k+".dir");
 			if (dir.equals("NORTH")){bf = BlockFace.NORTH;}
@@ -238,6 +226,7 @@ public class Destinations {
 		this.dests.putAll(source.dests);
 	}
 	public void save(FileConfiguration config, String key) {
+    config.set(key + ".neighbours", this.neighbours);
 		for ( String d : dests.keySet()){
 			config.set(key + "." + d + ".dir", dests.get(d).getDir().toString());
 			config.set(key + "." + d + ".dist", dests.get(d).getDist());

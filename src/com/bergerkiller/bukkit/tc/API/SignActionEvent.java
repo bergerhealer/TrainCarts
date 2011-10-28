@@ -72,14 +72,37 @@ public class SignActionEvent extends Event implements Cancellable {
 			BlockUtil.setLever(b, down);
 		}
 	}
-	
-
 	public void setRails(BlockFace to) {
 		BlockUtil.setRails(this.getRails(), this.getFacing(), to);
 	}
 	public void setRailsRelative(BlockFace direction) {
-		BlockFace main = this.getFacing().getOppositeFace();
+	  BlockFace main = this.getFacing().getOppositeFace();
 		setRails(FaceUtil.offset(main, direction));
+	}
+	
+	/**
+	 * Sets rail of current event in given direction, coming from direction the minecart is coming from.
+	 * This will go straight if trying to go into the direction the cart is coming from.
+	 * This function requires a MinecartMember to work!
+	 * @param to Absolute direction to go to.
+	 */
+  public void setRailsFromCart(BlockFace to) {
+    BlockUtil.setRails(this.getRails(), this.getMember().getDirection().getOppositeFace(), to);
+  }
+  public void setRailsRelativeFromCart(BlockFace direction) {
+    BlockFace main = this.getMember().getDirection();
+    setRailsFromCart(FaceUtil.offset(main, direction));
+  }
+	
+	/**
+	 * Finds the direction to go in to reach destination from here.
+	 * Designed to be used by self-routing tag signs.
+	 * If the destination is not known or reachable, goes NORTH.
+	 * @param destination The wanted destination to reach.
+	 * @return The direction to go in to reach the wanted destination.
+	 */
+	public BlockFace getDestDir(String destination){
+	  return Destinations.getDir(destination, this.getLocation().add(0, 2, 0));
 	}
 	
 	public ActionType getAction() {
@@ -141,9 +164,6 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.sign = BlockUtil.getSign(signblock);
 		}
 		return this.sign;
-	}
-	public BlockFace getDestDir(String destination){
-		   return Destinations.getDir(destination, this.getRailLocation());
 	}
 	public MinecartMember getMember() {
 		if (!this.memberchecked) {

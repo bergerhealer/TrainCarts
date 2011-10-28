@@ -70,6 +70,13 @@ public class TCBlockListener extends BlockListener {
 				} else {
 					event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train destructor!");
 				}
+      } else if (line.toLowerCase().startsWith("destination")) {
+        if (!event.getPlayer().hasPermission("train.build.destination")) {
+          event.setCancelled(true);
+          event.getPlayer().sendMessage(ChatColor.RED + "You don't have permission to use this sign");
+        } else {
+          event.getPlayer().sendMessage(ChatColor.GREEN + "You built a train destination!");
+        }
 			} else if (line.toLowerCase().startsWith("eject")) {
 				if (!event.getPlayer().hasPermission("train.build.ejector")) {
 					event.setCancelled(true);
@@ -98,6 +105,8 @@ public class TCBlockListener extends BlockListener {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which adds a tag!");
 					} else if (mode.equals("remtag")) {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which removes a tag!");
+          } else if (mode.equals("destination")) {
+            event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets train destination!");
 					} else if (mode.equals("collision") || mode.equals("collide")) {
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You built a property changer which sets if the train can collide!");
 					} else if (mode.equals("linking") || mode.equals("link")) {

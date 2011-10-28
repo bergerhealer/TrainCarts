@@ -206,6 +206,12 @@ public class TrackMap extends ArrayList<Block> {
 			}
 			next = tmp;
 		}
+		//prevent loops by checking for double every 20 tiles
+    if (this.size() % 20 == 0){
+      if (this.contains(next)){
+        return null;
+      }
+    }
 		totaldistance += last().getLocation().distance(next.getLocation());
 		this.add(next);
 		return next;
