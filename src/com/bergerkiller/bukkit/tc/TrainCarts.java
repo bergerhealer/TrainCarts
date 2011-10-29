@@ -78,10 +78,9 @@ public class TrainCarts extends JavaPlugin {
 			breakCombinedCarts = config.getProperty("breakCombinedCarts", false);
 			spawnItemDrops = config.getProperty("spawnItemDrops", true);
 			poweredCartBoost = config.getProperty("poweredCartBoost", 0.1);
-			exitx = config.getProperty("exitOffset.x", exitOffset.getX());
-			exity = config.getProperty("exitOffset.y", exitOffset.getY());
-			exitz = config.getProperty("exitOffset.z", exitOffset.getZ());
-			exitOffset = new Vector(exitx.get(), exity.get(), exitz.get());
+			exitx = config.getProperty("exitOffset.x", (double) 0);
+			exity = config.getProperty("exitOffset.y", (double) 0);
+			exitz = config.getProperty("exitOffset.z", (double) 0);
 			pushAwayForce = config.getProperty("pushAwayForce", 0.2);
 			pushAwayIgnoreGlobalOwners = config.getProperty("pushAwayIgnoreGlobalOwners", false);
 			keepChunksLoaded = config.getProperty("keepChunksLoaded", true);
@@ -89,6 +88,7 @@ public class TrainCarts extends JavaPlugin {
 			setOwnerOnPlacement = config.getProperty("setOwnerOnPlacement", true);
 			config.load();
 			config.set("use", true);
+			exitOffset = new Vector(exitx.get(), exity.get(), exitz.get());
 			config.save();
 		}
 	}
