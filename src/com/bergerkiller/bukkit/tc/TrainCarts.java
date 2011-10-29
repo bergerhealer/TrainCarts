@@ -17,8 +17,8 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
-import org.bukkit.util.config.Configuration;
 
+import com.bergerkiller.bukkit.tc.Configuration.Property;
 import com.bergerkiller.bukkit.tc.Listeners.TCBlockListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
@@ -31,22 +31,22 @@ public class TrainCarts extends JavaPlugin {
 	/*
 	 * Settings
 	 */	
-	public static double cartDistance = 1.5;
-	public static double turnedCartDistance = 1.6;
-	public static boolean removeDerailedCarts = false;
-	public static double cartDistanceForcer = 0.1;
-	public static double turnedCartDistanceForcer = 0.2;
-	public static double nearCartDistanceFactor = 1.2;
-	public static double maxCartDistance = 4;
-	public static boolean breakCombinedCarts = false;
-	public static boolean spawnItemDrops = true;
-	public static double poweredCartBoost = 0.1;
+	public static Property<Double> cartDistance;
+	public static Property<Double> turnedCartDistance;
+	public static Property<Boolean> removeDerailedCarts;
+	public static Property<Double> cartDistanceForcer;
+	public static Property<Double> turnedCartDistanceForcer;
+	public static Property<Double> nearCartDistanceFactor;
+	public static Property<Double> maxCartDistance;
+	public static Property<Boolean> breakCombinedCarts;
+	public static Property<Boolean> spawnItemDrops;
+	public static Property<Double> poweredCartBoost;
 	public static Vector exitOffset = new Vector(0, 0, 0);
-	public static double pushAwayForce = 0.2;
-	public static boolean pushAwayIgnoreGlobalOwners = false;
-	public static boolean keepChunksLoaded = true;
-	public static boolean useCoalFromStorageCart = false;
-	public static boolean setOwnerOnPlacement = true;
+	public static Property<Double> pushAwayForce;
+	public static Property<Boolean> pushAwayIgnoreGlobalOwners;
+	public static Property<Boolean> keepChunksLoaded;
+	public static Property<Boolean> useCoalFromStorageCart;
+	public static Property<Boolean> setOwnerOnPlacement;
 	
 	
 	public static boolean SignLinkEnabled = false;
@@ -64,71 +64,31 @@ public class TrainCarts extends JavaPlugin {
 	private Task signtask;
 		
 	public void loadConfig() {
-		Configuration config = this.getConfiguration();
+		Configuration config = new Configuration(this);
 		boolean use = config.getBoolean("use", true);
 		if (use) {
-			double exitx, exity, exitz;
-			cartDistance = config.getDouble("normal.cartDistance", cartDistance);
-			cartDistanceForcer = config.getDouble("normal.cartDistanceForcer", cartDistanceForcer);	
-			turnedCartDistance = config.getDouble("turned.cartDistance", turnedCartDistance);
-			turnedCartDistanceForcer = config.getDouble("turned.cartDistanceForcer", turnedCartDistanceForcer);	
-			nearCartDistanceFactor = config.getDouble("nearCartDistanceFactor", nearCartDistanceFactor);	
-			removeDerailedCarts = config.getBoolean("removeDerailedCarts", removeDerailedCarts);
-			maxCartDistance = config.getDouble("maxCartDistance", maxCartDistance);
-			breakCombinedCarts = config.getBoolean("breakCombinedCarts", breakCombinedCarts);
-			spawnItemDrops = config.getBoolean("spawnItemDrops", spawnItemDrops);
-			poweredCartBoost = config.getDouble("poweredCartBoost", poweredCartBoost);
-			exitx = config.getDouble("exitOffset.x", exitOffset.getX());
-			exity = config.getDouble("exitOffset.y", exitOffset.getY());
-			exitz = config.getDouble("exitOffset.z", exitOffset.getZ());
-			exitOffset = new Vector(exitx, exity, exitz);
-			pushAwayForce = config.getDouble("pushAwayForce", pushAwayForce);
-			pushAwayIgnoreGlobalOwners = config.getBoolean("pushAwayIgnoreGlobalOwners", pushAwayIgnoreGlobalOwners);
-			keepChunksLoaded = config.getBoolean("keepChunksLoaded", keepChunksLoaded);
-			useCoalFromStorageCart = config.getBoolean("useCoalFromStorageCart", useCoalFromStorageCart);
-			setOwnerOnPlacement = config.getBoolean("setOwnerOnPlacement", setOwnerOnPlacement);
-			
-			//save it again (no file was there or invalid)
-			config.setHeader("# In here you can change the settings for the TrainCarts plugin", 
-					"# Please note that the default settings are usually the best", 
-					"# Changing these settings can cause the plugin to fail", 
-					"# To reset the settings, remove this file or set 'use' to false to ignore these settings", 
-					"# ======================================================================================", 
-					"# cartDistance is the distance kept between normal/turned carts in a group", 
-					"# cartDistanceForcer is the factor applied to adjust this distance, too high and it will bump violently", 
-					"# nearCartDistanceFactor is the factor applied to the regular forcers if the carts are too close to each other", 
-					"# removeDerailedCarts sets if carts without tracks underneath are cleared from the group", 
-					"# maxCartSpeed is the maximum speed to use for trains. Use a value between 0 and ~0.4, > 0.4 can cause derailments!", 
-					"# maxCartDistance sets the distance at which carts are thrown out of their group",  
-					"# breakCombinedCarts sets if combined carts (e.g. PoweredMinecart) breaks up into multiple parts upon breaking (e.g. furnace and minecart)", 
-					"# spawnItemDrops sets if items are spawned when breaking a minecart", 
-					"# exitOffset is the relative offset of where a player is teleported when exiting a Minecart", 
-					"# pushAway settings are settings that push mobs, players, items and others away from a riding minecart", 
-					"#    atVelocity sets the velocity of the minecart at which it starts pushing others", 
-					"#    force sets the pushing force of a pushing Minecart", 
-					"#    pushMobs sets if mobs are pushed away",
-					"#    pushPlayers sets if players are pushed away", 
-					"#    pushMisc sets if misc. entities, such as boats and dropped items, are pushed away", 
-					"# keepChunksLoaded sets if chunks are loaded near minecart Trains");
-			config.setProperty("use", use);
-			config.setProperty("normal.cartDistance", cartDistance);
-			config.setProperty("normal.cartDistanceForcer", cartDistanceForcer);
-			config.setProperty("turned.cartDistance", turnedCartDistance);
-			config.setProperty("turned.cartDistanceForcer", turnedCartDistanceForcer);
-			config.setProperty("nearCartDistanceFactor", nearCartDistanceFactor);
-			config.setProperty("removeDerailedCarts", removeDerailedCarts);
-			config.setProperty("maxCartDistance", maxCartDistance);
-			config.setProperty("breakCombinedCarts", breakCombinedCarts);
-			config.setProperty("spawnItemDrops", spawnItemDrops);
-			config.setProperty("poweredCartBoost", poweredCartBoost);
-			config.setProperty("exitOffset.x", exitx);
-			config.setProperty("exitOffset.y", exity);
-			config.setProperty("exitOffset.z", exitz);
-			config.setProperty("pushAwayForce", pushAwayForce);
-			config.setProperty("pushAwayIgnoreGlobalOwners", pushAwayIgnoreGlobalOwners);
-			config.setProperty("keepChunksLoaded", keepChunksLoaded);
-			config.setProperty("useCoalFromStorageCart", useCoalFromStorageCart);
-			config.setProperty("setOwnerOnPlacement", setOwnerOnPlacement);
+			Property<Double> exitx, exity, exitz;
+			cartDistance = config.getProperty("normal.cartDistance", 1.5);
+			cartDistanceForcer = config.getProperty("normal.cartDistanceForcer", 0.1);	
+			turnedCartDistance = config.getProperty("turned.cartDistance", 1.6);
+			turnedCartDistanceForcer = config.getProperty("turned.cartDistanceForcer", 0.2);	
+			nearCartDistanceFactor = config.getProperty("nearCartDistanceFactor", 1.2);	
+			removeDerailedCarts = config.getProperty("removeDerailedCarts", false);
+			maxCartDistance = config.getProperty("maxCartDistance", (double) 4);
+			breakCombinedCarts = config.getProperty("breakCombinedCarts", false);
+			spawnItemDrops = config.getProperty("spawnItemDrops", true);
+			poweredCartBoost = config.getProperty("poweredCartBoost", 0.1);
+			exitx = config.getProperty("exitOffset.x", exitOffset.getX());
+			exity = config.getProperty("exitOffset.y", exitOffset.getY());
+			exitz = config.getProperty("exitOffset.z", exitOffset.getZ());
+			exitOffset = new Vector(exitx.get(), exity.get(), exitz.get());
+			pushAwayForce = config.getProperty("pushAwayForce", 0.2);
+			pushAwayIgnoreGlobalOwners = config.getProperty("pushAwayIgnoreGlobalOwners", false);
+			keepChunksLoaded = config.getProperty("keepChunksLoaded", true);
+			useCoalFromStorageCart = config.getProperty("useCoalFromStorageCart", false);
+			setOwnerOnPlacement = config.getProperty("setOwnerOnPlacement", true);
+			config.load();
+			config.set("use", true);
 			config.save();
 		}
 	}

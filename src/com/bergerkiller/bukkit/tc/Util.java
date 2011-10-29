@@ -37,6 +37,41 @@ public class Util {
 		}
 	}
 
+	/**
+	 * Converts a Location to a destination name.
+	 * @param loc The Location to convert
+	 * @return A string representing the destination name.
+	 */
+	public static String loc2string(Location loc){
+		return loc.getWorld().getName() + "_" + loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ();
+	}
+	/**
+	 * Converts a destination name to a String.
+	 * @param str The String to convert
+	 * @return A Location representing the String.
+	 */
+	public static Location string2loc(String str){
+		try{
+			String s[] = str.split("_");
+			String w = "";
+			Double X = 0.0, Y = 0.0, Z = 0.0;
+			for (int i = 0; i < s.length; i++){
+				switch (s.length - i){
+				case 1: Z = Double.parseDouble(s[i]); break;
+				case 2: Y = Double.parseDouble(s[i]); break;
+				case 3: X = Double.parseDouble(s[i]); break;
+				default: if (!w.isEmpty()){w += "_";} w += s[i]; break;
+				}
+			}
+			Location r = new Location(Bukkit.getServer().getWorld(w), X, Y, Z);
+			if (r.getWorld() == null) return null;
+			return r;
+		} catch (Exception e){
+			return null;
+		}
+	}
+
+	
 	public static double length(double... values) {
 		double rval = 0;
 		for (double value : values) {

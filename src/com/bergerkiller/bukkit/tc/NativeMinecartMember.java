@@ -135,8 +135,8 @@ public class NativeMinecartMember extends EntityMinecart {
                 // CraftBukkit end
 
                 this.die();
-                if (TrainCarts.breakCombinedCarts || this.type == 0) {
-                	if (TrainCarts.spawnItemDrops) this.a(Item.MINECART.id, 1, 0.0F);
+                if (TrainCarts.breakCombinedCarts.get() || this.type == 0) {
+                	if (TrainCarts.spawnItemDrops.get()) this.a(Item.MINECART.id, 1, 0.0F);
                 }
                 if (this.type == 1) {
                     EntityMinecart entityminecart = this;
@@ -167,16 +167,16 @@ public class NativeMinecartMember extends EntityMinecart {
                             }
                         }
                     }
-                    if (TrainCarts.breakCombinedCarts) {
-                    	if (TrainCarts.spawnItemDrops) this.a(Block.CHEST.id, 1, 0.0F);
+                    if (TrainCarts.breakCombinedCarts.get()) {
+                    	if (TrainCarts.spawnItemDrops.get()) this.a(Block.CHEST.id, 1, 0.0F);
                     } else {
-                    	if (TrainCarts.spawnItemDrops) this.a(Material.STORAGE_MINECART.getId(), 1, 0.0F);
+                    	if (TrainCarts.spawnItemDrops.get()) this.a(Material.STORAGE_MINECART.getId(), 1, 0.0F);
                     }
                 } else if (this.type == 2) {
-                	if (TrainCarts.breakCombinedCarts) {
-                		if (TrainCarts.spawnItemDrops) this.a(Block.FURNACE.id, 1, 0.0F);
+                	if (TrainCarts.breakCombinedCarts.get()) {
+                		if (TrainCarts.spawnItemDrops.get()) this.a(Block.FURNACE.id, 1, 0.0F);
                 	} else {
-                		if (TrainCarts.spawnItemDrops) this.a(Material.POWERED_MINECART.getId(), 1, 0.0F);
+                		if (TrainCarts.spawnItemDrops.get()) this.a(Material.POWERED_MINECART.getId(), 1, 0.0F);
                 	}
                 }
             }
@@ -455,9 +455,9 @@ public class NativeMinecartMember extends EntityMinecart {
                             this.g /= d17;
                             double d18 = 0.04D;
 
-                            this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
+                            this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost.get(); //Traincarts edited
                             this.motY *= 0.0D;
-                            this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
+                            this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost.get(); //Traincarts edited
                             this.motX += this.f * d18;
                             this.motZ += this.g * d18;
                         } else {

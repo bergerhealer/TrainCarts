@@ -17,7 +17,7 @@ public class TCWorldListener extends WorldListener {
 	@Override
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
-			if (TrainCarts.keepChunksLoaded) {
+			if (TrainCarts.keepChunksLoaded.get()) {
 				for (MinecartGroup mg : MinecartGroup.getGroups()) {
 					for (SimpleChunk c :  mg.getNearChunks(true, true)) {
 						if (c.chunkX == event.getChunk().getX() && c.chunkZ == event.getChunk().getZ()) {

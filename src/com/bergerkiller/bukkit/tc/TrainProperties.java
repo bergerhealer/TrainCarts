@@ -12,7 +12,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Ghast;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
-import org.bukkit.util.config.Configuration;
 
 public class TrainProperties {
 	private static HashMap<String, String> editing = new HashMap<String, String>();
@@ -174,7 +173,7 @@ public class TrainProperties {
 	public boolean canPushAway(Entity entity) {
 		if (entity instanceof Player) {
 			if (this.pushPlayers) {
-				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
+				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners.get());
 			}
 		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {
 			if (this.pushMobs) return true;
@@ -221,15 +220,15 @@ public class TrainProperties {
 	}
 
 	public void load(Configuration config, String key) {
-		this.owners = config.getStringList(key + ".owners", this.owners);
-		this.passengers = config.getStringList(key + ".passengers", this.passengers);
+		this.owners = config.getListOf(key + ".owners", this.owners);
+		this.passengers = config.getListOf(key + ".passengers", this.passengers);
 		this.allowMobsEnter = config.getBoolean(key + ".allowMobsEnter", this.allowMobsEnter);
 		this.allowPlayerEnter = config.getBoolean(key + ".allowPlayerEnter", this.allowPlayerEnter);
 		this.allowPlayerExit = config.getBoolean(key + ".allowPlayerExit", this.allowPlayerExit);
 		this.enterMessage = config.getString(key + ".enterMessage", this.enterMessage);
 		this.allowLinking = config.getBoolean(key + ".allowLinking", this.allowLinking);
 		this.trainCollision = config.getBoolean(key + ".trainCollision", this.trainCollision);
-		this.tags = config.getStringList(key + ".tags", this.tags);
+		this.tags = config.getListOf(key + ".tags", this.tags);
 		this.slowDown = config.getBoolean(key + ".slowDown", this.slowDown);
 		this.pushAway = config.getBoolean(key + ".pushAway.isPushing", this.pushAway);
 		this.pushMobs = config.getBoolean(key + ".pushAway.mobs", this.pushMobs);
@@ -261,29 +260,29 @@ public class TrainProperties {
 		this.destination = source.destination;
 	}
 	public void save(Configuration config, String key) {		
-		config.setProperty(key + ".owners", this.owners);
-		config.setProperty(key + ".passengers", this.passengers);
-		config.setProperty(key + ".allowMobsEnter", this.allowMobsEnter);
-		config.setProperty(key + ".allowPlayerEnter", this.allowPlayerEnter);
-		config.setProperty(key + ".allowPlayerExit", this.allowPlayerExit);
-		config.setProperty(key + ".enterMessage", this.enterMessage);
-		config.setProperty(key + ".allowLinking", this.allowLinking);
-		config.setProperty(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
-		config.setProperty(key + ".trainCollision", this.trainCollision);
-		config.setProperty(key + ".tags", this.tags);
-		config.setProperty(key + ".speedLimit", this.speedLimit);
-		config.setProperty(key + ".slowDown", this.slowDown);
-		config.setProperty(key + ".destination", this.destination);
-		config.setProperty(key + ".pushAway.isPushing", this.pushAway);
-		config.setProperty(key + ".pushAway.mobs", this.pushMobs);
-		config.setProperty(key + ".pushAway.players", this.pushPlayers);
-		config.setProperty(key + ".pushAway.misc", this.pushMisc);
-		config.setProperty(key + ".pushAway.atStation", this.pushAtStation);
+		config.set(key + ".owners", this.owners);
+		config.set(key + ".passengers", this.passengers);
+		config.set(key + ".allowMobsEnter", this.allowMobsEnter);
+		config.set(key + ".allowPlayerEnter", this.allowPlayerEnter);
+		config.set(key + ".allowPlayerExit", this.allowPlayerExit);
+		config.set(key + ".enterMessage", this.enterMessage);
+		config.set(key + ".allowLinking", this.allowLinking);
+		config.set(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
+		config.set(key + ".trainCollision", this.trainCollision);
+		config.set(key + ".tags", this.tags);
+		config.set(key + ".speedLimit", this.speedLimit);
+		config.set(key + ".slowDown", this.slowDown);
+		config.set(key + ".destination", this.destination);
+		config.set(key + ".pushAway.isPushing", this.pushAway);
+		config.set(key + ".pushAway.mobs", this.pushMobs);
+		config.set(key + ".pushAway.players", this.pushPlayers);
+		config.set(key + ".pushAway.misc", this.pushMisc);
+		config.set(key + ".pushAway.atStation", this.pushAtStation);
 	}
 	public static void load(String filename) {
 		Configuration config = new Configuration(new File(filename));
 		config.load();
-		for (String trainname : config.getKeys()) {
+		for (String trainname : config.getKeys(false)) {
 			get(trainname).load(config, trainname);
 		}
 	}
@@ -294,7 +293,7 @@ public class TrainProperties {
 			if (GroupManager.contains(prop.getTrainName())) {
 				prop.save(config, prop.getTrainName());
 			} else {
-				config.removeProperty(prop.getTrainName());
+				config.set(prop.getTrainName(), null);
 			}
 		}
 		config.save();
@@ -336,14 +335,14 @@ public class TrainProperties {
 		} else {
 			getDefaults();
 			//Load it
-			for (String key : defconfig.getKeys()) {
+			for (String key : defconfig.getKeys(false)) {
 				if (player.hasPermission("train.properties." + key)) {
 					this.load(defconfig, key);
 					break;
 				}
 			}
 			//Set owner
-			if (TrainCarts.setOwnerOnPlacement) {
+			if (TrainCarts.setOwnerOnPlacement.get()) {
 				this.owners.add(player.getName());
 			}
 		}

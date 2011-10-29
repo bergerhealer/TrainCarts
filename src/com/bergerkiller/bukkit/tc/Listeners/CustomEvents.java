@@ -221,7 +221,7 @@ public class CustomEvents {
 		if (types.size() == 0) return;
 		
 		BlockFace dir = info.getFacing();
-		Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance);
+		Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance.get());
 		
 		//Check if spot is taken
 		for (int i = 0;i < locs.length;i++) {
@@ -258,7 +258,7 @@ public class CustomEvents {
 		
 		//Let's do this (...)
 		BlockFace direction = info.getFacing().getOppositeFace();
-		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
+		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance.get());
 		double force = info.getGroup().getAverageForce();
 		
 		MinecartGroup gnew = MinecartGroup.create();
@@ -331,6 +331,8 @@ public class CustomEvents {
 			prop.addTags(info.getLine(3));
 		} else if (mode.equals("settag")) {
 			prop.setTags(info.getLine(3));
+    } else if (mode.equals("destination")) {
+      prop.destination = info.getLine(3);
 		} else if (mode.equals("remtag")) {
 			prop.tags.remove(info.getLine(3));
 		} else if (mode.equals("collision") || mode.equals("collide")) {
@@ -484,12 +486,11 @@ public class CustomEvents {
 		if (info.isAction(ActionType.GROUP_ENTER) || info.isAction(ActionType.GROUP_LEAVE)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("tag")) {
-					TrainProperties prop = info.getGroup().getProperties(); 
-					//=============================
+					TrainProperties prop = info.getGroup().getProperties();
 					if (!prop.destination.isEmpty()){
 						//Handle rails based on destination
 						if (info.isAction(ActionType.GROUP_ENTER)){
-							info.setRails(info.getDestDir(prop.destination));
+							info.setRailsFromCart(info.getDestDir(prop.destination));
 						}
 					}else{
 						//Toggle levers and rails based on tags
