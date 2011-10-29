@@ -2,7 +2,9 @@ package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -18,18 +20,15 @@ public class Configuration extends YamlConfiguration {
 	}
 	public Configuration(File source) {
 		this.source = source;
-		this.properties = new ArrayList<Property>();
 	}
 	
-	private ArrayList<Property> properties;
 	private File source;
 	
-	public <T> Property<T> getProperty(String path, T def) {
-		Property<T> prop = new Property<T>();
-		prop.path = path;
-		prop.value = def;
-		this.properties.add(prop);
-		return prop;
+	@SuppressWarnings("unchecked")
+	public <T> T parse(String path, T def) {
+		T rval = (T) this.get(path, def);
+		this.set(path, rval);
+		return rval;
 	}
 	
 	public boolean exists() {
@@ -39,13 +38,10 @@ public class Configuration extends YamlConfiguration {
 		this.load();
 		this.save();
 	}
-	@SuppressWarnings("unchecked")
+
 	public void load() {
 		try {
 			this.load(this.source);
-			for (Property p : this.properties) {
-				p.value = this.get(p.path, p.value);
-			}
 		} catch (Exception ex) {
 			System.out.println("[Configuration] Error while loading file '" + this.source + "':");
 			ex.printStackTrace();
@@ -53,9 +49,6 @@ public class Configuration extends YamlConfiguration {
 	}
 	public void save() {
 		try {
-			for (Property p : this.properties) {
-				this.set(p.path, p.value);
-			}
 			this.save(this.source);
 		} catch (Exception ex) {
 			System.out.println("[Configuration] Error while saving to file '" + this.source + "':");
@@ -79,18 +72,12 @@ public class Configuration extends YamlConfiguration {
 		}
 	}
 	
-	public static class Property<T> {
-		private String path;
-		private T value;
-		private Property() {};
-		
-		public T get() {
-			return this.value;
+	public Set<String> getKeys(String path) {
+		try {
+			return this.getConfigurationSection(path).getKeys(false);
+		} catch (Exception ex) {
+			return new HashSet<String>();
 		}
-		public void set(T value) {
-			this.value = value;
-		}
-
 	}
-
+	
 }

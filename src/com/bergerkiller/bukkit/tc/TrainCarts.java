@@ -18,7 +18,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Configuration.Property;
 import com.bergerkiller.bukkit.tc.Listeners.TCBlockListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
@@ -31,22 +30,22 @@ public class TrainCarts extends JavaPlugin {
 	/*
 	 * Settings
 	 */	
-	public static Property<Double> cartDistance;
-	public static Property<Double> turnedCartDistance;
-	public static Property<Boolean> removeDerailedCarts;
-	public static Property<Double> cartDistanceForcer;
-	public static Property<Double> turnedCartDistanceForcer;
-	public static Property<Double> nearCartDistanceFactor;
-	public static Property<Double> maxCartDistance;
-	public static Property<Boolean> breakCombinedCarts;
-	public static Property<Boolean> spawnItemDrops;
-	public static Property<Double> poweredCartBoost;
+	public static double cartDistance;
+	public static double turnedCartDistance;
+	public static boolean removeDerailedCarts;
+	public static double cartDistanceForcer;
+	public static double turnedCartDistanceForcer;
+	public static double nearCartDistanceFactor;
+	public static double maxCartDistance;
+	public static boolean breakCombinedCarts;
+	public static boolean spawnItemDrops;
+	public static double poweredCartBoost;
 	public static Vector exitOffset = new Vector(0, 0, 0);
-	public static Property<Double> pushAwayForce;
-	public static Property<Boolean> pushAwayIgnoreGlobalOwners;
-	public static Property<Boolean> keepChunksLoaded;
-	public static Property<Boolean> useCoalFromStorageCart;
-	public static Property<Boolean> setOwnerOnPlacement;
+	public static double pushAwayForce;
+	public static boolean pushAwayIgnoreGlobalOwners;
+	public static boolean keepChunksLoaded;
+	public static boolean useCoalFromStorageCart;
+	public static boolean setOwnerOnPlacement;
 	
 	
 	public static boolean SignLinkEnabled = false;
@@ -67,28 +66,28 @@ public class TrainCarts extends JavaPlugin {
 		Configuration config = new Configuration(this);
 		boolean use = config.getBoolean("use", true);
 		if (use) {
-			Property<Double> exitx, exity, exitz;
-			cartDistance = config.getProperty("normal.cartDistance", 1.5);
-			cartDistanceForcer = config.getProperty("normal.cartDistanceForcer", 0.1);	
-			turnedCartDistance = config.getProperty("turned.cartDistance", 1.6);
-			turnedCartDistanceForcer = config.getProperty("turned.cartDistanceForcer", 0.2);	
-			nearCartDistanceFactor = config.getProperty("nearCartDistanceFactor", 1.2);	
-			removeDerailedCarts = config.getProperty("removeDerailedCarts", false);
-			maxCartDistance = config.getProperty("maxCartDistance", (double) 4);
-			breakCombinedCarts = config.getProperty("breakCombinedCarts", false);
-			spawnItemDrops = config.getProperty("spawnItemDrops", true);
-			poweredCartBoost = config.getProperty("poweredCartBoost", 0.1);
-			exitx = config.getProperty("exitOffset.x", (double) 0);
-			exity = config.getProperty("exitOffset.y", (double) 0);
-			exitz = config.getProperty("exitOffset.z", (double) 0);
-			pushAwayForce = config.getProperty("pushAwayForce", 0.2);
-			pushAwayIgnoreGlobalOwners = config.getProperty("pushAwayIgnoreGlobalOwners", false);
-			keepChunksLoaded = config.getProperty("keepChunksLoaded", true);
-			useCoalFromStorageCart = config.getProperty("useCoalFromStorageCart", false);
-			setOwnerOnPlacement = config.getProperty("setOwnerOnPlacement", true);
+			double exitx, exity, exitz;
 			config.load();
+			cartDistance = config.parse("normal.cartDistance", 1.5);
+			cartDistanceForcer = config.parse("normal.cartDistanceForcer", 0.1);	
+			turnedCartDistance = config.parse("turned.cartDistance", 1.6);
+			turnedCartDistanceForcer = config.parse("turned.cartDistanceForcer", 0.2);	
+			nearCartDistanceFactor = config.parse("nearCartDistanceFactor", 1.2);	
+			removeDerailedCarts = config.parse("removeDerailedCarts", false);
+			maxCartDistance = config.parse("maxCartDistance", (double) 4);
+			breakCombinedCarts = config.parse("breakCombinedCarts", false);
+			spawnItemDrops = config.parse("spawnItemDrops", true);
+			poweredCartBoost = config.parse("poweredCartBoost", 0.1);
+			exitx = config.parse("exitOffset.x", (double) 0);
+			exity = config.parse("exitOffset.y", (double) 0);
+			exitz = config.parse("exitOffset.z", (double) 0);
+			pushAwayForce = config.parse("pushAwayForce", 0.2);
+			pushAwayIgnoreGlobalOwners = config.parse("pushAwayIgnoreGlobalOwners", false);
+			keepChunksLoaded = config.parse("keepChunksLoaded", true);
+			useCoalFromStorageCart = config.parse("useCoalFromStorageCart", false);
+			setOwnerOnPlacement = config.parse("setOwnerOnPlacement", true);
 			config.set("use", true);
-			exitOffset = new Vector(exitx.get(), exity.get(), exitz.get());
+			exitOffset = new Vector(exitx, exity, exitz);
 			config.save();
 		}
 	}

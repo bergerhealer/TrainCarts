@@ -63,7 +63,7 @@ public class TCVehicleListener extends VehicleListener {
 			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
 				MinecartGroup g = MinecartGroup.create(event.getVehicle());
 				if (g.size() != 0) {
-					if (TrainCarts.setOwnerOnPlacement.get() && lastPlayer != null) {
+					if (TrainCarts.setOwnerOnPlacement && lastPlayer != null) {
 						g.getProperties().setDefault(lastPlayer);
 						lastPlayer = null;
 					}

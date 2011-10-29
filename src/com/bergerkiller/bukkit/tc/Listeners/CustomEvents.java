@@ -221,7 +221,7 @@ public class CustomEvents {
 		if (types.size() == 0) return;
 		
 		BlockFace dir = info.getFacing();
-		Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance.get());
+		Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance);
 		
 		//Check if spot is taken
 		for (int i = 0;i < locs.length;i++) {
@@ -258,7 +258,7 @@ public class CustomEvents {
 		
 		//Let's do this (...)
 		BlockFace direction = info.getFacing().getOppositeFace();
-		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance.get());
+		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
 		double force = info.getGroup().getAverageForce();
 		
 		MinecartGroup gnew = MinecartGroup.create();

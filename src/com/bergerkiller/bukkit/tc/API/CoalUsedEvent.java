@@ -15,7 +15,7 @@ public class CoalUsedEvent extends Event {
 	public CoalUsedEvent(MinecartMember source) {
 		super("CoalUsedEvent");
 		this.member = source;
-		this.useCoal = TrainCarts.useCoalFromStorageCart.get();
+		this.useCoal = TrainCarts.useCoalFromStorageCart;
 		this.refill = false;
 	}
 	

@@ -173,7 +173,7 @@ public class TrainProperties {
 	public boolean canPushAway(Entity entity) {
 		if (entity instanceof Player) {
 			if (this.pushPlayers) {
-				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners.get());
+				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
 			}
 		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {
 			if (this.pushMobs) return true;
@@ -342,7 +342,7 @@ public class TrainProperties {
 				}
 			}
 			//Set owner
-			if (TrainCarts.setOwnerOnPlacement.get()) {
+			if (TrainCarts.setOwnerOnPlacement) {
 				this.owners.add(player.getName());
 			}
 		}

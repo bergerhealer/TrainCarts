@@ -134,7 +134,7 @@ public class Destinations {
 	private void explore(BlockFace dir){
 		Location tmploc = Util.string2loc(destname);
 		if (tmploc == null) return;
-		Block tmp = tmploc.getBlock();
+		Block tmp = tmploc.getBlock().getRelative(dir);
 		TrackMap map = new TrackMap(tmp, dir);
 		while (tmp != null){
 			Sign sign = map.getSign();

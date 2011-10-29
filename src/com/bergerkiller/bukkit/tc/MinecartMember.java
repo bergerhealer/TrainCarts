@@ -526,7 +526,7 @@ public class MinecartMember extends NativeMinecartMember {
 			yaw -= 180;
 		}
 		//push the obstacle awaayyy :d
-		Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce.get());
+		Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
 		entity.setVelocity(vel);
 	}
 }

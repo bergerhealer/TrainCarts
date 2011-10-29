@@ -37,7 +37,7 @@ public class MinecartGroup {
 			//Remove dead carts and lonely groups caused by this
 			if (mg.isValid()) {
 				for (MinecartMember mm : mg.getMembers()) {
-					if (mm.dead || (TrainCarts.removeDerailedCarts.get() && mm.isDerailed())) {
+					if (mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
 						mm.remove();
 					}
 				}
@@ -49,7 +49,7 @@ public class MinecartGroup {
 			//Unloaded chunk handling
 			SimpleChunk[] unloaded = mg.getNearChunks(false, true);
 			if (unloaded.length > 0) {
-				if (TrainCarts.keepChunksLoaded.get()) {
+				if (TrainCarts.keepChunksLoaded) {
 					for (SimpleChunk c : unloaded) c.load();
 				} else {
 					GroupManager.hideGroup(mg);
@@ -432,7 +432,7 @@ public class MinecartGroup {
 		return mc.size();
 	}
 	public double length() {
-		return TrainCarts.cartDistance.get() * (this.size() - 1);
+		return TrainCarts.cartDistance * (this.size() - 1);
 	}
 	public int getCartCount(Material type) {
 		int typeid = 0;
@@ -665,7 +665,7 @@ public class MinecartGroup {
 		for (int i = this.size() - 1;i > 1;i--) {
 			double d1 = head(i).distance(head(i - 1));
 			double d2 = head(i).distance(head(i - 2));
-			if (d1 >= d2 || (d1 > TrainCarts.maxCartDistance.get() && !head(i).isDerailed())) {
+			if (d1 >= d2 || (d1 > TrainCarts.maxCartDistance && !head(i).isDerailed())) {
 				//Ow no! this is bad! :(
 				this.removeCart(i);
 				this.update();
@@ -684,13 +684,13 @@ public class MinecartGroup {
 			double threshold = 0;
 			double forcer = 1;
 			if (mc.get(i).getYawDifference(mc.get(i + 1).getYaw()) > 10 || mc.get(i).getPitchDifference(mc.get(i + 1)) > 10) {
-				threshold = TrainCarts.turnedCartDistance.get();
-				forcer = TrainCarts.turnedCartDistanceForcer.get();
+				threshold = TrainCarts.turnedCartDistance;
+				forcer = TrainCarts.turnedCartDistanceForcer;
 			} else {
-				threshold = TrainCarts.cartDistance.get();
-				forcer = TrainCarts.cartDistanceForcer.get();
+				threshold = TrainCarts.cartDistance;
+				forcer = TrainCarts.cartDistanceForcer;
 			}
-			if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor.get();
+			if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
 			mc.get(i).addForceFactor(forcer, threshold - distance);
 		}
 		
