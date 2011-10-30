@@ -72,7 +72,6 @@ public class Destinations {
 		checked.clear();
 		String thistag = Util.loc2string(currloc);
 		Node r = get(thistag).getDir(destname);
-		if (r.dir == BlockFace.UP) r.dir = BlockFace.NORTH;
 		return r.dir;
 	}
 	
@@ -107,18 +106,18 @@ public class Destinations {
 			if (!this.dests.containsKey(reqname)) askNeighbours(reqname);
 		}
 		//return what we know
-		Node n = this.dests.get(this.destname);
+		Node n = this.dests.get(reqname);
 		if (n != null) return n;
-		return new Node(BlockFace.NORTH, 100000);
+		return new Node(BlockFace.UP, 100000);
 	}
 
 	private void askNeighbours(String reqname) {
 		for (String neigh : this.neighbours){
-			if (neigh == this.destname) continue; //skip self
+			if (neigh.equals(this.destname)) continue; //skip self
 			Node node = this.dests.get(neigh);
 			Destinations n = get(neigh); //get this neighbour
 			n.getDir(reqname); //make sure this node is explored
-			for (Map.Entry<String, Node> dest : dests.entrySet()){ 
+			for (Map.Entry<String, Node> dest : n.dests.entrySet()){ 
 				if (dest.getKey() == this.destname) continue; //skip self
 				updateDest(dest.getKey(), new Node(node.dir, dest.getValue().dist + node.dist + 1));
 			}
@@ -177,7 +176,7 @@ public class Destinations {
 			
 		}
 		//save.
-		dests.put(newdest, new Node(newnode.dir, newnode.dist));
+		dests.put(newdest, newnode);
 	}
 
 	public String getDestName() {
