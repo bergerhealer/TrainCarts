@@ -490,25 +490,28 @@ public class CustomEvents {
 					if (!prop.destination.isEmpty()){
 						//Handle rails based on destination
 						if (info.isAction(ActionType.GROUP_ENTER)){
-							info.setRailsFromCart(info.getDestDir(prop.destination));
+						  BlockFace check = info.getDestDir(prop.destination);
+						  if (check != BlockFace.UP){
+						    info.setRailsFromCart(check);
+						    return; //do not parse further if destination is found
+						  }
 						}
-					}else{
-						//Toggle levers and rails based on tags
-						boolean down = false;
-						if (info.isAction(ActionType.GROUP_ENTER) && info.isFacing()) {
-							//get the tags    
-							boolean left = prop.hasTag(info.getLine(2));         
-							boolean right = prop.hasTag(info.getLine(3));          
-							down = left || right;         
-							if (info.isPowered()) {   
-								BlockFace dir = BlockFace.NORTH;  
-								if (left) dir = BlockFace.WEST;  
-								if (right) dir = BlockFace.EAST; 
-								info.setRailsRelative(dir);
-							}
-						}
-						info.setLevers(down);
 					}
+					//Toggle levers and rails based on tags
+					boolean down = false;
+					if (info.isAction(ActionType.GROUP_ENTER) && info.isFacing()) {
+						//get the tags    
+						boolean left = prop.hasTag(info.getLine(2));         
+						boolean right = prop.hasTag(info.getLine(3));          
+						down = left || right;         
+						if (info.isPowered()) {   
+							BlockFace dir = BlockFace.NORTH;  
+							if (left) dir = BlockFace.WEST;  
+							if (right) dir = BlockFace.EAST; 
+							info.setRailsRelative(dir);
+						}
+					}
+					info.setLevers(down);
 				}
 			}
 		}
