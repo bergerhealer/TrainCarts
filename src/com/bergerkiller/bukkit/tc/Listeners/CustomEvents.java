@@ -10,7 +10,6 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
@@ -230,15 +229,12 @@ public class CustomEvents {
 		
 		//Create the group
 		MinecartGroup g = MinecartGroup.create();
-		
-		//Default properties
-		g.getProperties().setDefault();
-		
+				
 		//Spawn the train
 		for (int i = 0;i < types.size();i++) {
 			g.addMember(MinecartMember.get(locs[i], types.get(i)));
 		}
-		g.tail().setForwardForce(force);
+		g.tail().setForce(force, info.getFacing());
 	}
 	
 	private static HashMap<MinecartGroup, Long> teleportTimes = new HashMap<MinecartGroup, Long>();
@@ -268,7 +264,7 @@ public class CustomEvents {
 		
 		for (int i = 0; i < newLocations.length; i++) {
 			MinecartMember mm = info.getGroup().getMember(i);
-			Location to = newLocations[newLocations.length - i - 1].add(0.5, 0.5, 0.5);
+			Location to = newLocations[newLocations.length - i - 1].add(0.5, 0, 0.5);
 			MinecartMember mnew = MinecartMember.get(to, mm.type);
 			//Set important data over
 			EntityUtil.transferItems(mm, mnew);
@@ -277,23 +273,27 @@ public class CustomEvents {
 			mnew.g = mm.g;
 			
 			gnew.addMember(mnew);
-						
+									
 			//Teleport passenger
 			if (mm.passenger != null) {
 				net.minecraft.server.Entity e = mm.passenger;
-				//e.setPassengerOf(null);
-				Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to, mnew.getBukkitEntity()) {
+				mm.getMinecart().eject();
+				Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to) {
 					public void run() {
 						Entity e = (Entity) getArg(0);
 						Location to = (Location) getArg(1);
-						Minecart mnew = (Minecart) getArg(2);
-						if (e.getLocation().getWorld() != to.getWorld()) {
-							e.teleport(to);
-						}
-						mnew.setPassenger(e);
+						e.teleport(to);
 					}
 				};
 				t.startDelayed(0);
+				t = new Task(TrainCarts.plugin, e, mnew) {
+					public void run() {
+						net.minecraft.server.Entity e = (net.minecraft.server.Entity) getArg(0);
+						MinecartMember mnew = (MinecartMember) getArg(1);
+						e.setPassengerOf(mnew);
+					}
+				};
+				t.startDelayed(1);
 			}
 		}
 		setTPT(gnew);
@@ -304,7 +304,7 @@ public class CustomEvents {
 				((MinecartGroup) getArg(0)).destroy();
 			}
 		};
-		t.startDelayed(2);
+		t.startDelayed(3);
 		
 		//Force
 		t = new Task(TrainCarts.plugin, gnew, gnew.head(), direction, force) {
@@ -456,11 +456,9 @@ public class CustomEvents {
 													Player p = (Player) mm.passenger.getBukkitEntity();
 													//has permission?
 													if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
-														if (Permission.has(p, "portal.use") && 
-																(!MyWorlds.usePortalEnterPermissions || 
-																Permission.has(p, "portal.enter." + destname))) {
+														if (Permission.canEnterPortal(p, destname)) {
 															//Has permission, show message
-															p.sendMessage(Localization.getPortalEnter(destname));
+															p.sendMessage(Localization.getPortalEnter(portal));
 														} else {
 															Localization.message(p, "portal.noaccess");
 															mm.passenger.setPassengerOf(null);
@@ -472,8 +470,8 @@ public class CustomEvents {
 												}
 											}
 										}
+										teleportTrain(info, dblock);
 									}
-									teleportTrain(info, dblock);
 								}
 							}
 						}

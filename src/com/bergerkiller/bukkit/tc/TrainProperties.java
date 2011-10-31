@@ -185,8 +185,9 @@ public class TrainProperties {
 	
 	private TrainProperties() {};
 	private TrainProperties(String trainname) {
-		properties.put(trainname, this);
 		this.trainname = trainname;
+		properties.put(trainname, this);
+		this.setDefault();
 	}
 	
 	public String getTrainName() {
