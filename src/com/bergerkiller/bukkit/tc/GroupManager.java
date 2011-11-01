@@ -183,7 +183,7 @@ public class GroupManager {
 		public WorldGroup(MinecartGroup group) {
 			this.members = new WorldMember[group.size()];
 			for (int i = 0;i < members.length;i++) {
-				this.members[i] = new WorldMember(group.getMember(i));
+				this.members[i] = new WorldMember(group.get(i));
 			}
 			this.name = group.getName();
 		}

@@ -56,7 +56,7 @@ public class MinecartMember extends NativeMinecartMember {
 			if (g.tail() == this) {
 				if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
 					g.updateTarget();
-					for (MinecartMember m : g.getMembers()) {
+					for (MinecartMember m : g) {
 						m.maxSpeed = getGroup().getProperties().speedLimit;
 						motX = Util.fixNaN(motX);
 						motY = Util.fixNaN(motY);
@@ -67,7 +67,7 @@ public class MinecartMember extends NativeMinecartMember {
 					if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
 						g.update();
 						if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
-							for (MinecartMember m : g.getMembers()) {
+							for (MinecartMember m : g) {
 								m.postUpdate(m.forceFactor);
 							}
 							GroupUpdateEvent.call(g, UpdateStage.LAST);
@@ -102,16 +102,20 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	private static HashSet<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	
-	public static MinecartMember get(Entity e) {
-		if (!(e instanceof Minecart)) return null;
-		EntityMinecart em = EntityUtil.getNative((Minecart) e);
-		if (em instanceof MinecartMember) return (MinecartMember) em;
-		return null;
+	public static MinecartMember get(Object o) {
+		if (o instanceof Minecart) {
+			o = EntityUtil.getNative((Minecart) o);
+		}
+		if (o instanceof MinecartMember) {
+			return (MinecartMember) o;
+		} else {
+			return null;
+		}
 	}
-	public static MinecartMember[] getAll(Entity... entities) {
-		MinecartMember[] rval = new MinecartMember[entities.length];
+	public static MinecartMember[] getAll(Object... objects) {
+		MinecartMember[] rval = new MinecartMember[objects.length];
 		for (int i = 0; i < rval.length; i++) {
-			rval[i] = get(entities[i]);
+			rval[i] = get(objects[i]);
 		}
 		return rval;
 	}
@@ -189,7 +193,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.remove();
 	}
 	public boolean remove() {
-		return this.getGroup().removeCart(this);
+		return this.getGroup().remove(this);
 	}
 	public void eject() {
 		this.getMinecart().eject();
@@ -233,13 +237,13 @@ public class MinecartMember extends NativeMinecartMember {
 		if (index > 0) {
 			if (index < this.getGroup().size() - 1) {
 				return new MinecartMember[] {
-						this.getGroup().getMember(index - 1), 
-						this.getGroup().getMember(index + 1)};
+						this.getGroup().get(index - 1), 
+						this.getGroup().get(index + 1)};
 			} else {
-				return new MinecartMember[] {this.getGroup().getMember(index - 1)};
+				return new MinecartMember[] {this.getGroup().get(index - 1)};
 			}
 		} else if (index < this.getGroup().size() - 1) {
-			return new MinecartMember[] {this.getGroup().getMember(index + 1)};
+			return new MinecartMember[] {this.getGroup().get(index + 1)};
 		} else {
 			return new MinecartMember[0];
 		}

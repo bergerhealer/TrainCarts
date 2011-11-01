@@ -65,7 +65,6 @@ public class CustomEvents {
 				mode = 4;
 			}
 			
-			
 			//Get the middle minecart
 			MinecartMember midd = group.middle();
 			//First, get the direction of the tracks above
@@ -232,7 +231,7 @@ public class CustomEvents {
 				
 		//Spawn the train
 		for (int i = 0;i < types.size();i++) {
-			g.addMember(MinecartMember.get(locs[i], types.get(i)));
+			g.add(MinecartMember.get(locs[i], types.get(i)));
 		}
 		g.tail().setForce(force, info.getFacing());
 	}
@@ -263,7 +262,7 @@ public class CustomEvents {
 		info.getGroup().setProperties(null);
 		
 		for (int i = 0; i < newLocations.length; i++) {
-			MinecartMember mm = info.getGroup().getMember(i);
+			MinecartMember mm = info.getGroup().get(i);
 			Location to = newLocations[newLocations.length - i - 1].add(0.5, 0, 0.5);
 			MinecartMember mnew = MinecartMember.get(to, mm.type);
 			//Set important data over
@@ -272,7 +271,7 @@ public class CustomEvents {
 			mnew.f = mm.f;
 			mnew.g = mm.g;
 			
-			gnew.addMember(mnew);
+			gnew.add(mnew);
 									
 			//Teleport passenger
 			if (mm.passenger != null) {
@@ -318,7 +317,7 @@ public class CustomEvents {
 					head.setForce(force, FaceUtil.faceToYaw(direction));
 				} else {
 					group.updateYaw();
-					for (MinecartMember mm : group.getMembers()) {
+					for (MinecartMember mm : group) {
 						mm.setForwardForce(force);
 					}
 				}
@@ -450,7 +449,7 @@ public class CustomEvents {
 								    if (facing == BlockFace.EAST) facing = BlockFace.WEST;
 									if (facing == BlockUtil.getRails(dblock).getDirection()) {
 										//Can the passengers teleport? If not, get them out of the train!
-										for (MinecartMember mm : info.getGroup().getMembers()) {
+										for (MinecartMember mm : info.getGroup()) {
 											if (mm.passenger != null) {
 												if (mm.passenger instanceof EntityPlayer) {
 													Player p = (Player) mm.passenger.getBukkitEntity();
@@ -536,7 +535,7 @@ public class CustomEvents {
 						offset.setY(Util.tryParse(offsettext[0], 0));
 					}
 					if (info.getLine(1).equalsIgnoreCase("eject all") && info.getGroup() != null) {
-						for (MinecartMember mm : info.getGroup().getMembers()) {
+						for (MinecartMember mm : info.getGroup()) {
 							if (offset.equals(new Vector())) {
 								mm.eject();
 							} else {

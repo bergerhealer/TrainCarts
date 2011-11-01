@@ -71,7 +71,9 @@ public class Destinations {
 	public static BlockFace getDir(String destname, Location currloc){
 		checked.clear();
 		String thistag = Util.loc2string(currloc);
-		Node r = get(thistag).getDir(destname);
+		Destinations dest = get(thistag);
+		dest.explore();
+		Node r = dest.getDir(destname);
 		return r.dir;
 	}
 	
@@ -94,17 +96,12 @@ public class Destinations {
 	public Node getDir(String reqname){
 		//is this us? return DOWN;
 		if (reqname.equals(this.destname)) return new Node(BlockFace.DOWN, 0.0);
-		//if we don't know anything, explore first.
+		//explore first if not explored yet
 		if (this.neighbours.isEmpty()){
-			this.explore(BlockFace.NORTH);
-			this.explore(BlockFace.EAST);
-			this.explore(BlockFace.SOUTH);
-			this.explore(BlockFace.WEST);
+			this.explore();
 		}
-		//if unknown, ask neighbours
-		if (checked.add(this.destname)){
-			if (!this.dests.containsKey(reqname)) this.askNeighbours(reqname);
-		}
+		//ask the neighbours what they know
+		if (checked.add(this.destname)) this.askNeighbours(reqname);
 		//return what we know
 		Node n = this.dests.get(reqname);
 		if (n != null) return n;
@@ -157,6 +154,12 @@ public class Destinations {
 			tmp = map.next();
 		}
 	}
+	private void explore() {
+		this.explore(BlockFace.NORTH);
+		this.explore(BlockFace.EAST);
+		this.explore(BlockFace.SOUTH);
+		this.explore(BlockFace.WEST);
+	}
 
 	/**
 	 * Checks if this destination calculation is faster than all
@@ -169,13 +172,8 @@ public class Destinations {
 	private void updateDest(String newdest, Node newnode){
 		if (newnode.dist >= 100000.0) return; //don't store failed calculations
 		//if we already know about this destination, and we are not faster, ignore it.
-		Node n = this.dests.get(newdest);
-		if (n != null){
-			if (n.dist <= newnode.dist) return;
-			if (this.neighbours.contains(newdest)) return; //skip alternatives for direct neighbours
-		}else{
-			
-		}
+    Node n = this.dests.get(newdest);
+		if ((n != null) && (n.dist <= newnode.dist)) return;
 		//save.
 		this.dests.put(newdest, newnode);
 	}
