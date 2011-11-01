@@ -93,17 +93,17 @@ public class Destinations {
 	 */
 	public Node getDir(String reqname){
 		//is this us? return DOWN;
-		if (reqname.equals(destname)) return new Node(BlockFace.DOWN, 0.0);
+		if (reqname.equals(this.destname)) return new Node(BlockFace.DOWN, 0.0);
 		//if we don't know anything, explore first.
-		if (neighbours.isEmpty()){
-			explore(BlockFace.NORTH);
-			explore(BlockFace.EAST);
-			explore(BlockFace.SOUTH);
-			explore(BlockFace.WEST);
+		if (this.neighbours.isEmpty()){
+			this.explore(BlockFace.NORTH);
+			this.explore(BlockFace.EAST);
+			this.explore(BlockFace.SOUTH);
+			this.explore(BlockFace.WEST);
 		}
 		//if unknown, ask neighbours
-		if (checked.add(destname)){
-			if (!this.dests.containsKey(reqname)) askNeighbours(reqname);
+		if (checked.add(this.destname)){
+			if (!this.dests.containsKey(reqname)) this.askNeighbours(reqname);
 		}
 		//return what we know
 		Node n = this.dests.get(reqname);
@@ -117,7 +117,7 @@ public class Destinations {
 			Node node = this.dests.get(neigh);
 			Destinations n = get(neigh); //get this neighbour
 			n.getDir(reqname); //make sure this node is explored
-			for (Map.Entry<String, Node> dest : n.dests.entrySet()){ 
+			for (Map.Entry<String, Node> dest : n.dests.entrySet()) {
 				if (dest.getKey() == this.destname) continue; //skip self
 				updateDest(dest.getKey(), new Node(node.dir, dest.getValue().dist + node.dist + 1));
 			}
@@ -169,14 +169,15 @@ public class Destinations {
 	private void updateDest(String newdest, Node newnode){
 		if (newnode.dist >= 100000.0) return; //don't store failed calculations
 		//if we already know about this destination, and we are not faster, ignore it.
-		if (dests.containsKey(newdest)){
-			if (dests.get(newdest).dist <= newnode.dist) return;
-			if (neighbours.contains(newdest)) return; //skip alternatives for direct neighbours
+		Node n = this.dests.get(newdest);
+		if (n != null){
+			if (n.dist <= newnode.dist) return;
+			if (this.neighbours.contains(newdest)) return; //skip alternatives for direct neighbours
 		}else{
 			
 		}
 		//save.
-		dests.put(newdest, newnode);
+		this.dests.put(newdest, newnode);
 	}
 
 	public String getDestName() {
@@ -197,7 +198,7 @@ public class Destinations {
 
 	@SuppressWarnings("unchecked") //prevent warning for getlist -> stringlist
 	public void load(ConfigurationSection config) {
-		if (config == null){return;}
+		if (config == null) return;
 		this.neighbours = config.getList("neighbours");
 		for (String k : config.getKeys(false)){
 			if (k.equals("neighbours")) continue; //skip neighbours
@@ -215,9 +216,9 @@ public class Destinations {
 	}
 	public void save(FileConfiguration config, String key) {
 		config.set(key + ".neighbours", this.neighbours);
-		for ( String d : dests.keySet()){
-			config.set(key + "." + d + ".dir", dests.get(d).dir.toString());
-			config.set(key + "." + d + ".dist", dests.get(d).dist);
+		for (String d : dests.keySet()){
+			config.set(key + "." + d + ".dir", this.dests.get(d).dir.toString());
+			config.set(key + "." + d + ".dist", this.dests.get(d).dist);
 		}
 	}
 }
