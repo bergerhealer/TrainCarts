@@ -452,22 +452,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public boolean remove(Object o) {
-		int index = -1;
-		if (o instanceof EntityMinecart) {
-			o = ((EntityMinecart) o).getBukkitEntity();
-		}
-		if (o instanceof Minecart) {
-		    o = MinecartMember.get((Minecart) o);
-		}
-		if (o instanceof MinecartMember) {
-			index = indexOf((MinecartMember) o);
-		}
-		if (index == -1) return false;
-		this.remove(index);
-		return true;
-	}
-	public boolean remove(Minecart m) {
-		int index = indexOf(m);
+		int index = this.indexOf(o);
 		if (index == -1) return false;
 		this.remove(index);
 		return true;
