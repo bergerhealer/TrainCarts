@@ -216,9 +216,9 @@ public class Destinations {
 	}
 	public void save(FileConfiguration config, String key) {
 		config.set(key + ".neighbours", this.neighbours);
-		for (String d : dests.keySet()){
-			config.set(key + "." + d + ".dir", this.dests.get(d).dir.toString());
-			config.set(key + "." + d + ".dist", this.dests.get(d).dist);
+		for (Map.Entry<String, Node> entry : this.dests.entrySet()){
+			config.set(key + "." + entry.getKey() + ".dir", entry.getValue().dir.toString());
+			config.set(key + "." + entry.getKey() + ".dist", entry.getValue().dist);
 		}
 	}
 }
