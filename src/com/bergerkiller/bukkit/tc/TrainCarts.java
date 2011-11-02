@@ -43,7 +43,6 @@ public class TrainCarts extends JavaPlugin {
 	public static Vector exitOffset = new Vector(0, 0, 0);
 	public static double pushAwayForce;
 	public static boolean pushAwayIgnoreGlobalOwners;
-	public static boolean keepChunksLoaded;
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
 	
@@ -83,7 +82,6 @@ public class TrainCarts extends JavaPlugin {
 			exitz = config.parse("exitOffset.z", (double) 0);
 			pushAwayForce = config.parse("pushAwayForce", 0.2);
 			pushAwayIgnoreGlobalOwners = config.parse("pushAwayIgnoreGlobalOwners", false);
-			keepChunksLoaded = config.parse("keepChunksLoaded", true);
 			useCoalFromStorageCart = config.parse("useCoalFromStorageCart", false);
 			setOwnerOnPlacement = config.parse("setOwnerOnPlacement", true);
 			config.set("use", true);
@@ -94,7 +92,7 @@ public class TrainCarts extends JavaPlugin {
 	
 	public void onEnable() {		
 		plugin = this;
-				
+		
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
@@ -161,7 +159,7 @@ public class TrainCarts extends JavaPlugin {
 		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
-        Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!" );
+        Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!");
         
 	}
 	public void onDisable() {
@@ -191,10 +189,7 @@ public class TrainCarts extends JavaPlugin {
 				}
 			}
 		}
-		
-		//Save arrival times
-		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
-		
+				
 		//Save properties
 		TrainProperties.save(getDataFolder() + File.separator + "trainflags.yml");
 		
@@ -203,6 +198,9 @@ public class TrainCarts extends JavaPlugin {
 		
 		//Save for next load
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
+		
+		//Save arrival times
+		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
 
 		System.out.println("TrainCarts disabled!");
 	}
@@ -280,6 +278,7 @@ public class TrainCarts extends JavaPlugin {
 					}
 					p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
 					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+					p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
 					if (prop.allowMobsEnter) {
 						if (prop.allowPlayerEnter) {
 							p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
@@ -327,6 +326,15 @@ public class TrainCarts extends JavaPlugin {
 						prop.allowLinking = Util.getBool(args[0]);
 					}
 					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+				} else if (cmd.equals("keepchunksloaded")) {
+					if (args.length == 1) {
+						if (p.hasPermission("train.command.keepchunksloaded")) {
+							prop.keepChunksLoaded = Util.getBool(args[0]);
+						} else {
+							p.sendMessage(ChatColor.RED + "You are not allowed to set this property for trains!");
+						}
+					}
+					p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
 				} else if (cmd.equals("mobenter") || cmd.equals("mobsenter")) {
 					if (args.length == 1) {
 						prop.allowMobsEnter = Util.getBool(args[0]);

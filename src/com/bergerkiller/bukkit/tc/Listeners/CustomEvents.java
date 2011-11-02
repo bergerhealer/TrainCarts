@@ -245,14 +245,13 @@ public class CustomEvents {
 		long time = teleportTimes.get(at);
 		return ((System.currentTimeMillis() - time) > MyWorlds.teleportInterval);
 	}
-	public static void teleportTrain(SignActionEvent info, Block destinationRail) {
+	public static void teleportTrain(SignActionEvent info, Block destinationRail, BlockFace direction) {
 		if (!getTPT(info.getGroup())) {
 			setTPT(info.getGroup());
 			return;
 		}
 		
 		//Let's do this (...)
-		BlockFace direction = info.getFacing().getOppositeFace();
 		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
 		double force = info.getGroup().getAverageForce();
 		
@@ -442,6 +441,7 @@ public class CustomEvents {
 							sign.getChunk(); //load the chunk
 							if (BlockUtil.isSign(sign)) {
 								BlockFace facing = BlockUtil.getFacing(sign);
+								BlockFace direction = facing;
 								Block dblock = sign.getRelative(0, 2, 0);
 								if (BlockUtil.isRails(dblock)) {
 									//rail aligned at sign?
@@ -469,7 +469,7 @@ public class CustomEvents {
 												}
 											}
 										}
-										teleportTrain(info, dblock);
+										teleportTrain(info, dblock, direction);
 									}
 								}
 							}

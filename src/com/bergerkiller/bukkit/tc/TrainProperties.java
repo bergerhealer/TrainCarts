@@ -50,6 +50,7 @@ public class TrainProperties {
 	public double speedLimit = 0.4;
 	public boolean requirePoweredMinecart = false;
 	public String destination = "";
+	public boolean keepChunksLoaded = false;
 	
 	public void showEnterMessage(Entity forEntity) {
 		if (forEntity instanceof Player && enterMessage != null && !enterMessage.equals("")) {
@@ -239,6 +240,7 @@ public class TrainProperties {
 		this.speedLimit = config.getDouble(key + ".speedLimit", this.speedLimit);
 		this.requirePoweredMinecart = config.getBoolean(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
 		this.destination = config.getString(key + ".destination", this.destination);
+		this.keepChunksLoaded = config.getBoolean(key + ".keepChunksLoaded", this.keepChunksLoaded);
 	}
 	public void load(TrainProperties source) {
 		this.owners.addAll(source.owners);
@@ -259,6 +261,7 @@ public class TrainProperties {
 		this.speedLimit = source.speedLimit;
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.destination = source.destination;
+		this.keepChunksLoaded = source.keepChunksLoaded;
 	}
 	public void save(Configuration config, String key) {		
 		config.set(key + ".owners", this.owners);
@@ -270,6 +273,7 @@ public class TrainProperties {
 		config.set(key + ".allowLinking", this.allowLinking);
 		config.set(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
 		config.set(key + ".trainCollision", this.trainCollision);
+		config.set(key + ".keepChunksLoaded", this.keepChunksLoaded);
 		config.set(key + ".tags", this.tags);
 		config.set(key + ".speedLimit", this.speedLimit);
 		config.set(key + ".slowDown", this.slowDown);

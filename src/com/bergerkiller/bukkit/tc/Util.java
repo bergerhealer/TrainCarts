@@ -71,20 +71,29 @@ public class Util {
 		}
 	}
 
-	
-	public static double length(double... values) {
+	public static double lengthSquared(double... values) {
 		double rval = 0;
 		for (double value : values) {
 			rval += value * value;
 		}
-		return Math.sqrt(rval);
+		return rval;
+	}
+	public static double length(double... values) {
+		return Math.sqrt(lengthSquared(values));
 	}
 	public static double distance(double x1, double y1, double x2, double y2) {
 		return length(x1 - x2, y1 - y2);
 	}
+	public static double distanceSquared(double x1, double y1, double x2, double y2) {
+		return lengthSquared(x1 - x2, y1 - y2);
+	}
 	public static double distance(double x1, double y1, double z1, double x2, double y2, double z2) {
 		return length(x1 - x2, y1 - y2, z1 - z2);
 	}
+	public static double distanceSquared(double x1, double y1, double z1, double x2, double y2, double z2) {
+		return lengthSquared(x1 - x2, y1 - y2, z1 - z2);
+	}
+	
 	public static float getAngleDifference(float angle1, float angle2) {
         return Math.abs(normalAngle(angle1 - angle2));
 	}
@@ -247,15 +256,15 @@ public class Util {
 	public static Vector getDirection(float yaw, float pitch) {
 		return new Location(null, 0, 0, 0, yaw, pitch).getDirection();
 	}
-				
+
 	public static boolean isHeadingTo(Location from, Location to, Vector velocity) {
 		//standing still
 		if (velocity.length() < 0.01) return false;
 		if (from.distanceSquared(to) < 0.01) return true;
 		//distance check
-		double dbefore = from.distance(to);
+		double dbefore = from.distanceSquared(to);
 		from = from.add(velocity.getX() * 0.000001, velocity.getY() * 0.000001, velocity.getZ() * 0.000001);
-		double dafter = from.distance(to);
+		double dafter = from.distanceSquared(to);
 		return dafter < dbefore;
 	}
 

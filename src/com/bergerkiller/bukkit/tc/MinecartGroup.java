@@ -7,10 +7,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.logging.Level;
 
-import net.minecraft.server.EntityMinecart;
-
-import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -32,8 +30,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	public static boolean isDisabled = false;
+	private static final int maxLinksPerUpdate = 40; //interval is 10: estimated at max 4 per tick
+	private static int linksPerUpdate = 0;
 		
-	public static void updateGroups() {				
+	public static void updateGroups() {
+		linksPerUpdate = 0;
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
 			if (mg.isValid()) {
@@ -50,10 +51,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Unloaded chunk handling
 			SimpleChunk[] unloaded = mg.getNearChunks(false, true);
 			if (unloaded.length > 0) {
-				if (TrainCarts.keepChunksLoaded) {
-					for (SimpleChunk c : unloaded) c.load();
-				} else {
+				if (mg.canUnload()) {
 					GroupManager.hideGroup(mg);
+				} else {
+					for (SimpleChunk c : unloaded) c.load();
 				}
 			}
 		}
@@ -134,6 +135,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (m1 == null || m2 == null) return false;
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
+		//max links per update
+		if (linksPerUpdate == maxLinksPerUpdate) return false;
+		if (linksPerUpdate++ == maxLinksPerUpdate) {
+			Util.log(Level.SEVERE, "Link overflow: Received way too many link calls!");
+			return false;
+		}
 		if (g1 != g2) {
     		if (EntityUtil.isSharingRails(m1.getMinecart(), m2.getMinecart())) {
     			if (m1.dead || m1.isDerailed()) return false;
@@ -155,7 +162,19 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
     				}
     			}
     			
+				//append group1 before or after group2?
+				int m1index = g1.indexOf(m1);
+				int m2index = g2.indexOf(m2);
+				
+				//Validate
+				if (!g2.canConnect(m1, m2index)) {
+					return false;
+				}
+    			
+				//Validated, prepare for train merge
+				
     			//Share owners and add to g2
+    			ArrayList<String> newOwners = new ArrayList<String>();
     			for (String owner : prop1.owners) {
     				boolean allow = true;
     				for (String owner2 : prop2.owners) {
@@ -164,13 +183,17 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
     						break;
     					}
     				}
-    				if (allow) prop2.owners.add(owner);
+    				if (allow) newOwners.add(owner);
     			}
-    			    			
-				//append group1 before or after group2?
-				int m1index = g1.indexOf(m1);
-				int m2index = g2.indexOf(m2);	
-				if (m1index == 0 && m2index == 0) {
+    			
+    			//Transfer properties
+    			if (g1.size() > g2.size()) {
+    				g2.getProperties().load(g1.getProperties());
+    			}
+    			g2.getProperties().owners = newOwners;
+
+				//Finally link
+				if (m1index == 0 && m2index == 0) {					
 					g1.reverseOrder();
 					g2.addAll(0, g1);
 				} else if (m1index == 0 && m2index == g2.size() - 1) {
@@ -197,21 +220,15 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				}
 				
 				g1.remove();
-
 				g2.update();
-				playLinkEffect(m2.getMinecart());
+				m2.playLinkEffect();
 				return true;
     			
     		}
 		}
 		return false;
 	}
-	public static void playLinkEffect(Minecart at) {
-		Location loc = at.getLocation();
-		loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
-		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
-	}
-		
+
 	public static void rename(String oldtrainname, String newtrainname) {
 		boolean renamed = false;
 		for (MinecartGroup group : groups) {
@@ -357,18 +374,20 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	
 	public boolean connect(MinecartMember contained, MinecartMember toadd) {
 		if (this.size() <= 1) return false;
-		if (head().getMinecart() == contained) {
+		if (head() == contained) {
 			//Validate
 			double d1 = toadd.distance(head(0));
 			double d2 = toadd.distance(head(1));
 			if (d1 >= d2) return false;
 			this.add(0, toadd);
-		} else if (tail().getMinecart() == contained) {
+		} else if (tail() == contained) {
 			//Validate
 			double d1 = toadd.distance(tail(0));
 			double d2 = toadd.distance(tail(1));
 			if (d1 >= d2) return false;
 			this.add(toadd);
+		} else {
+			return false;
 		}
 		return true;
 	}
@@ -463,7 +482,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Simplified
 			this.remove();
 		} else {
-			playLinkEffect(get(index).getMinecart());
+			get(index).playLinkEffect();
 			
 			//remove cart from global info
 			if (removed.getGroup() == this) {
@@ -597,6 +616,20 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	
+	public boolean canConnect(MinecartMember mm, int at) {
+		if (this.size() == 1) return true;
+		if (this.size() == 0) return false;
+		if (at == 0) {
+			//compare the head
+			return this.head(0).isMiddleOf(mm, this.head(1));
+		} else if (at == this.size() - 1) {
+			//compare the tail
+			return this.tail(0).isMiddleOf(mm, this.tail(1));
+		} else {
+			return false;
+		}
+	}
+	
 	public double getAverageForce() {
 		if (size() == 0) return 0;
 		if (size() == 1) return get(0).getForce();
@@ -632,6 +665,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return rval.toArray(new SimpleChunk[0]);
 	}
 	
+	public boolean canUnload() {
+		for (MinecartMember mm : this) {
+			if (mm.isMoving()) {
+				return !this.getProperties().keepChunksLoaded;
+			}
+		}
+		return true;
+	}
 	public void updateTarget() {
 		if (this.hasTarget() && this.getTarget().update()) {
 			this.targets.remove();
@@ -648,16 +689,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			return;
 		}
 		
-		//Validation time :D
+		//Validation time
 		for (int i = this.size() - 1;i > 1;i--) {
-			double d1 = head(i).distance(head(i - 1));
-			double d2 = head(i).distance(head(i - 2));
-			if (d1 >= d2 || (d1 > TrainCarts.maxCartDistance && !head(i).isDerailed())) {
-				//Ow no! this is bad! :(
+			if (!head(i - 1).isMiddleOf(head(i), head(i - 2))) {
+				//Ow no! this is bad!
 				this.remove(i);
-				this.update();
 				return;
-			}
+			}	
 		}
 		
 		//Get the average forwarding force of all carts

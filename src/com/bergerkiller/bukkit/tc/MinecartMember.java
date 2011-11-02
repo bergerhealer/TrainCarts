@@ -6,6 +6,7 @@ import java.util.HashSet;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.World;
 
+import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -67,7 +68,7 @@ public class MinecartMember extends NativeMinecartMember {
 					if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
 						g.update();
 						if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
-							for (MinecartMember m : g) {
+							for (MinecartMember m : g.toArray()) {
 								m.postUpdate(m.forceFactor);
 							}
 							GroupUpdateEvent.call(g, UpdateStage.LAST);
@@ -361,19 +362,52 @@ public class MinecartMember extends NativeMinecartMember {
 		double z = getZ() + 0.5;
 		return z - (int) z;
 	}	
-	public double distanceXZ(MinecartMember m) {
-		return Util.distance(this.getX(), this.getZ(), m.getX(), m.getZ());
-	}
 	public double distance(MinecartMember m) {
 		return Util.distance(this.getX(), this.getY(), this.getZ(), m.getX(), m.getY(), m.getZ());
-	}
-	public double distanceXZ(Location l) {
-		return Util.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
 	}
 	public double distance(Location l) {
 		return Util.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
-		
+	public double distanceXZ(MinecartMember m) {
+		return Util.distance(this.getX(), this.getZ(), m.getX(), m.getZ());
+	}
+	public double distanceXZ(Location l) {
+		return Util.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
+	}
+	public double distanceSquared(MinecartMember m) {
+		return Util.distanceSquared(this.getX(), this.getY(), this.getZ(), m.getX(), m.getY(), m.getZ());
+	}
+	public double distanceSquared(Location l) {
+		return Util.distanceSquared(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
+	}
+	public double distanceXZSquared(MinecartMember m) {
+		return Util.distanceSquared(this.getX(), this.getZ(), m.getX(), m.getZ());
+	}
+	public double distanceXZSquared(Location l) {
+		return Util.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
+	}
+	public boolean isMiddleOf(MinecartMember m1, MinecartMember m2) {
+		double d1 = this.distanceXZSquared(m1);
+		double d2 = m2.distanceXZSquared(m1);
+		if (d1 < d2) {
+			double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
+			//is the XZ height allowed?
+			if (d1 <= max && (d2 <= max)) {
+				if (m1.isDerailed() || m2.isDerailed()) {
+					//is the Y value allowed?
+					if (Math.abs(m1.getY() - this.getY()) <= TrainCarts.maxCartDistance) {
+						if (Math.abs(m2.getY() - this.getY()) <= TrainCarts.maxCartDistance) {
+							return true;
+						}
+					}
+				} else {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
 	/*
 	 * Pitch functions
 	 */
@@ -532,5 +566,10 @@ public class MinecartMember extends NativeMinecartMember {
 		//push the obstacle awaayyy :d
 		Vector vel = Util.getDirection(yaw, 0).multiply(TrainCarts.pushAwayForce);
 		entity.setVelocity(vel);
+	}
+	public void playLinkEffect() {
+		Location loc = this.getLocation();
+		loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
+		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
 	}
 }

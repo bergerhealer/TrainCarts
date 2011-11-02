@@ -19,6 +19,7 @@ public class GroupManager {
 	
 	private static HashMap<UUID, ArrayList<WorldGroup>> hiddengroups = new HashMap<UUID, ArrayList<WorldGroup>>();
 	private static ArrayList<WorldGroup> getGroups(World w) {
+		if (w == null) return new ArrayList<WorldGroup>();
 		ArrayList<WorldGroup> rval = hiddengroups.get(w.getUID());
 		if (rval == null) {
 			rval = new ArrayList<WorldGroup>();

@@ -10,33 +10,26 @@ import com.bergerkiller.bukkit.tc.GroupManager;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.SimpleChunk;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class TCWorldListener extends WorldListener {
 
 	@Override
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
-			if (TrainCarts.keepChunksLoaded) {
-				for (MinecartGroup mg : MinecartGroup.getGroups()) {
-					for (SimpleChunk c :  mg.getNearChunks(true, true)) {
-						if (c.chunkX == event.getChunk().getX() && c.chunkZ == event.getChunk().getZ()) {
-							event.setCancelled(true);
-							return;
-						}
+			for (MinecartGroup mg : MinecartGroup.getGroups()) {
+				if (mg.canUnload()) continue;
+				for (SimpleChunk c :  mg.getNearChunks(true, true)) {
+					if (c.chunkX == event.getChunk().getX() && c.chunkZ == event.getChunk().getZ()) {
+						event.setCancelled(true);
+						return;
 					}
 				}
-			} else {
-				for (Entity e : event.getChunk().getEntities()) {
-					if (e instanceof Minecart) {
-						MinecartMember mm = MinecartMember.get((Minecart) e);
-						if (mm != null) {
-							if (mm.getGroup() != null) {
-								GroupManager.hideGroup(mm.getGroup());
-							} else {
-								MinecartMember.undoReplacement(mm);
-							}
-						}
+			}
+			for (Entity e : event.getChunk().getEntities()) {
+				if (e instanceof Minecart) {
+					MinecartMember mm = MinecartMember.get((Minecart) e);
+					if (mm != null && !mm.dead) {
+						GroupManager.hideGroup(mm.getGroup());
 					}
 				}
 			}
