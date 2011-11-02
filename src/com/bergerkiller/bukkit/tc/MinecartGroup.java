@@ -247,7 +247,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
      */
 	private HashSet<Location> activeSigns = new HashSet<Location>();
 	private Queue<VelocityTarget> targets = new LinkedList<VelocityTarget>();
-	public boolean ignoreForces = false;
 	private String name;
 	private TrainProperties prop = null;
 	

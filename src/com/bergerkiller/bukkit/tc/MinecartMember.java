@@ -311,9 +311,7 @@ public class MinecartMember extends NativeMinecartMember {
 		setForce(force, Util.getLookAtYaw(this.getLocation(), to));
 	}
 	public void setForce(double force, BlockFace direction) {
-		Location loc = this.getLocation();
-		loc = loc.add(direction.getModX(), 0, direction.getModZ());
-		setForce(force, loc);
+		setForce(force, FaceUtil.faceToYaw(direction));
 	}
 	public void setForwardForce(double force) {
 		setForce(force, this.getYaw());
@@ -455,7 +453,12 @@ public class MinecartMember extends NativeMinecartMember {
 		return setYaw(Util.getLookAtYaw(tail, this));
 	}
 	public BlockFace getDirection() {
-		float yaw = Util.getLookAtYaw(this.getVelocity());
+		float yaw;
+		if (this.isMoving()) {
+			yaw = Util.getLookAtYaw(this.getVelocity());
+		} else {
+			yaw = this.getYaw();
+		}
 		return FaceUtil.yawToFace(yaw, false);
 	}
 

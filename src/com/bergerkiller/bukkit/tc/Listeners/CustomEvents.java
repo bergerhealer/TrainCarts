@@ -139,7 +139,6 @@ public class CustomEvents {
 						if (prop.pushAtStation) {
 							prop.pushAway = true;
 						}
-						group.ignoreForces = true;
 						midd.setTarget(l, 0, 0);			
 						BlockFace trainDirection = null;
 						if (mode == 1) {
@@ -177,7 +176,6 @@ public class CustomEvents {
 				if (prop.pushAtStation) {
 					prop.pushAway = true;
 				}
-				group.ignoreForces = true;
 				midd.getGroup().clearTargets();
 				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 				if (midd.isMoving() && !midd.isHeadingTo(next)) {
@@ -191,7 +189,6 @@ public class CustomEvents {
 					public void run() {
 						MinecartGroup group = (MinecartGroup) getArg(0);
 						group.getProperties().pushAway = false;
-						group.ignoreForces = false;
 					}
 				};
 			}
@@ -256,7 +253,6 @@ public class CustomEvents {
 		double force = info.getGroup().getAverageForce();
 		
 		MinecartGroup gnew = MinecartGroup.create();
-		gnew.ignoreForces = info.getGroup().ignoreForces;
 		gnew.setProperties(info.getGroup().getProperties());
 		info.getGroup().setProperties(null);
 		
@@ -324,40 +320,40 @@ public class CustomEvents {
 		};
 		t.startDelayed(1);
 	}
-	private static void handleProperties(SignActionEvent info, TrainProperties prop, String mode) {
+	private static void handleProperties(TrainProperties prop, String mode, String arg) {
 		if (mode.equals("addtag")) {
-			prop.addTags(info.getLine(3));
+			prop.addTags(arg);
 		} else if (mode.equals("settag")) {
-			prop.setTags(info.getLine(3));
-    } else if (mode.equals("destination")) {
-      prop.destination = info.getLine(3);
+			prop.setTags(arg);
+		} else if (mode.equals("destination")) {
+			prop.destination = arg;
 		} else if (mode.equals("remtag")) {
-			prop.tags.remove(info.getLine(3));
+			prop.tags.remove(arg);
 		} else if (mode.equals("collision") || mode.equals("collide")) {
-			prop.trainCollision = Util.getBool(info.getLine(3));
+			prop.trainCollision = Util.getBool(arg);
 		} else if (mode.equals("linking") || mode.equals("link")) {
-			prop.allowLinking = Util.getBool(info.getLine(3));
+			prop.allowLinking = Util.getBool(arg);
 		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-			prop.allowMobsEnter = Util.getBool(info.getLine(3));
+			prop.allowMobsEnter = Util.getBool(arg);
 		} else if (mode.equals("slow") || mode.equals("slowdown")) {
-			prop.slowDown = Util.getBool(info.getLine(3));
+			prop.slowDown = Util.getBool(arg);
 		} else if (mode.equals("setdefault") || mode.equals("default")) {
-			prop.setDefault(info.getLine(3));
+			prop.setDefault(arg);
 		} else if (mode.equals("push") || mode.equals("pushing")) {
-			prop.pushAway = Util.getBool(info.getLine(3));
+			prop.pushAway = Util.getBool(arg);
 		} else if (mode.equals("pushmobs")) {
-			prop.pushMobs = Util.getBool(info.getLine(3));
+			prop.pushMobs = Util.getBool(arg);
 		} else if (mode.equals("pushplayers")) {
-			prop.pushPlayers = Util.getBool(info.getLine(3));
+			prop.pushPlayers = Util.getBool(arg);
 		} else if (mode.equals("pushmisc")) {
-			prop.pushMisc = Util.getBool(info.getLine(3));
+			prop.pushMisc = Util.getBool(arg);
 		} else if (mode.equals("playerenter")) {
-			prop.allowPlayerEnter = Util.getBool(info.getLine(3));
+			prop.allowPlayerEnter = Util.getBool(arg);
 		} else if (mode.equals("playerexit")) {
-			prop.allowPlayerExit = Util.getBool(info.getLine(3));
+			prop.allowPlayerExit = Util.getBool(arg);
 		} else if (mode.equals("speedlimit") || mode.equals("maxspeed")) {
 			 try {
-				 prop.speedLimit = Double.parseDouble(info.getLine(3));
+				 prop.speedLimit = Double.parseDouble(arg);
 			 } catch (NumberFormatException ex) {
 				 prop.speedLimit = 0.4;
 			 }
@@ -408,7 +404,7 @@ public class CustomEvents {
 							//Handle property changes
 							String mode = info.getLine(2).toLowerCase().trim();
 							TrainProperties prop = info.getGroup().getProperties();
-							handleProperties(info, prop, mode);
+							handleProperties(prop, mode, info.getLine(3));
 						}
 					}
 				}

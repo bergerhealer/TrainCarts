@@ -104,12 +104,12 @@ public class EntityUtil {
 		transferItems(toreplace, with);
 		
 		//This is the only 'real' remove method that seems to work...
-		toreplace.dead = true;
 		Packet29DestroyEntity packet = new Packet29DestroyEntity(toreplace.id);
 		for (Player p : toreplace.world.getWorld().getPlayers()) {
 			getNative(p).netServerHandler.sendPacket(packet);
 		}
-				
+		toreplace.dead = true;
+		
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}	
