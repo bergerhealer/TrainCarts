@@ -34,14 +34,14 @@ import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class CustomEvents {
-    
+
 	public static void handleStation(SignActionEvent info) {
 		//Check if not already targeting
 		MinecartGroup group = info.getGroup();
 		if (group != null && info.hasRails()) {		
 			//Not already targeting from this station?
-			
-			
+
+
 			//Get station length
 			if (!info.getLine(0).equalsIgnoreCase("[train]")) return;
 			if (!info.getLine(1).toLowerCase().startsWith("station")) return;
@@ -51,7 +51,7 @@ public class CustomEvents {
 			} catch (Exception ex) {};
 			long delayMS = 0;
 			try {
-				 delayMS = (long) (Double.parseDouble(info.getLine(2)) * 1000);
+				delayMS = (long) (Double.parseDouble(info.getLine(2)) * 1000);
 			} catch (Exception ex) {};
 			//Get the mode used
 			int mode = 0;
@@ -64,7 +64,7 @@ public class CustomEvents {
 			} else if (info.getLine(3).equalsIgnoreCase("right")) {
 				mode = 4;
 			}
-			
+
 			//Get the middle minecart
 			MinecartMember midd = group.middle();
 			//First, get the direction of the tracks above
@@ -81,7 +81,7 @@ public class CustomEvents {
 						checkface = BlockFace.SOUTH;
 					if (checkface == BlockFace.EAST)
 						checkface = BlockFace.WEST;
-					
+
 					Block b = info.getRails();
 					int maxlength = 20;
 					while (true) {
@@ -91,7 +91,7 @@ public class CustomEvents {
 						if (rr == null || rr.getDirection() != checkface)
 							break;
 						tlength++;
-						
+
 						//prevent inf. loop or long processing
 						maxlength--;
 						if (maxlength <= 0) break;
@@ -104,7 +104,7 @@ public class CustomEvents {
 			boolean east = info.isPowered(BlockFace.EAST);
 			boolean north = info.isPowered(BlockFace.NORTH);
 			boolean south = info.isPowered(BlockFace.SOUTH);
-			
+
 			//which directions to move, or brake?
 			BlockFace instruction = BlockFace.UP; //SELF is brake
 			if (dir == BlockFace.WEST) {
@@ -125,10 +125,10 @@ public class CustomEvents {
 				}
 			}
 			if (instruction == BlockFace.UP) return; 
-			
+
 			VelocityTarget lastTarget = null;
 			TrainProperties prop = group.getProperties();
-			
+
 			//What do we do?
 			Location l = info.getRailLocation().add(0.5, 0, 0.5);
 			if (instruction == BlockFace.SELF) {
@@ -136,10 +136,8 @@ public class CustomEvents {
 					//Redstone change and moving?
 					if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
 						//Brake
-						if (prop.pushAtStation) {
-							prop.pushAway = true;
-						}
-						midd.setTarget(l, 0, 0);			
+						midd.setTarget(l, 0, 0);
+						prop.isAtStation = true;
 						BlockFace trainDirection = null;
 						if (mode == 1) {
 							//Continue
@@ -173,9 +171,7 @@ public class CustomEvents {
 				}
 			} else {
 				//Launch
-				if (prop.pushAtStation) {
-					prop.pushAway = true;
-				}
+				prop.isAtStation = true;
 				midd.getGroup().clearTargets();
 				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 				if (midd.isMoving() && !midd.isHeadingTo(next)) {
@@ -183,16 +179,13 @@ public class CustomEvents {
 					midd.setTarget(l, 0, 0);
 				}
 				lastTarget = midd.addTarget(next, midd.maxSpeed, delayMS);
-			}
-			if (prop.pushAtStation && lastTarget != null) {
-				lastTarget.afterTask = new Task(TrainCarts.plugin, group) {
+				lastTarget.afterTask = new Task(TrainCarts.plugin, prop) {
 					public void run() {
-						MinecartGroup group = (MinecartGroup) getArg(0);
-						group.getProperties().pushAway = false;
+						TrainProperties prop = (TrainProperties) getArg(0);
+						prop.isAtStation = false;
 					}
 				};
 			}
-		
 		}
 	}
 	public static void spawnTrain(SignActionEvent info) {
@@ -212,114 +205,138 @@ public class CustomEvents {
 				types.add(2);
 			}
 		}
-		
+
 		if (types.size() == 0) return;
-		
+
 		BlockFace dir = info.getFacing();
 		Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance);
-		
+
 		//Check if spot is taken
 		for (int i = 0;i < locs.length;i++) {
 			if (MinecartMember.getAt(locs[i]) != null) return;
 		}
-		
+
 		//Create the group
 		MinecartGroup g = MinecartGroup.create();
-				
+
 		//Spawn the train
 		for (int i = 0;i < types.size();i++) {
 			g.add(MinecartMember.get(locs[i], types.get(i)));
 		}
 		g.tail().setForce(force, info.getFacing());
 	}
-	
-	private static HashMap<MinecartGroup, Long> teleportTimes = new HashMap<MinecartGroup, Long>();
-	private static void setTPT(MinecartGroup at) {
+
+	private static HashMap<Location, Long> teleportTimes = new HashMap<Location, Long>();
+	private static void setTPT(Location at) {
 		teleportTimes.put(at, System.currentTimeMillis());
 	}
-	private static boolean getTPT(MinecartGroup at) {
-		if (!teleportTimes.containsKey(at)) return true;
-		long time = teleportTimes.get(at);
+	private static boolean getTPT(SignActionEvent info) {
+		if (!teleportTimes.containsKey(info.getLocation())) return true;
+		long time = teleportTimes.get(info.getLocation());
 		return ((System.currentTimeMillis() - time) > MyWorlds.teleportInterval);
 	}
-	public static void teleportTrain(SignActionEvent info, Block destinationRail, BlockFace direction) {
-		if (!getTPT(info.getGroup())) {
-			setTPT(info.getGroup());
-			return;
-		}
-		
-		//Let's do this (...)
-		Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
-		double force = info.getGroup().getAverageForce();
-		
-		MinecartGroup gnew = MinecartGroup.create();
-		gnew.setProperties(info.getGroup().getProperties());
-		info.getGroup().setProperties(null);
-		
-		for (int i = 0; i < newLocations.length; i++) {
-			MinecartMember mm = info.getGroup().get(i);
-			Location to = newLocations[newLocations.length - i - 1].add(0.5, 0, 0.5);
-			MinecartMember mnew = MinecartMember.get(to, mm.type);
-			//Set important data over
-			EntityUtil.transferItems(mm, mnew);
-			mnew.e = mm.e;
-			mnew.f = mm.f;
-			mnew.g = mm.g;
-			
-			gnew.add(mnew);
-									
-			//Teleport passenger
-			if (mm.passenger != null) {
-				net.minecraft.server.Entity e = mm.passenger;
-				mm.getMinecart().eject();
-				Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to) {
-					public void run() {
-						Entity e = (Entity) getArg(0);
-						Location to = (Location) getArg(1);
-						e.teleport(to);
-					}
-				};
-				t.startDelayed(0);
-				t = new Task(TrainCarts.plugin, e, mnew) {
-					public void run() {
-						net.minecraft.server.Entity e = (net.minecraft.server.Entity) getArg(0);
-						MinecartMember mnew = (MinecartMember) getArg(1);
-						e.setPassengerOf(mnew);
-					}
-				};
-				t.startDelayed(1);
-			}
-		}
-		setTPT(gnew);
-		
-		//Remove the old group (with delay or we hear the sizzle)
-		Task t = new Task(TrainCarts.plugin, info.getGroup()) {
-			public void run() {
-				((MinecartGroup) getArg(0)).destroy();
-			}
-		};
-		t.startDelayed(3);
-		
-		//Force
-		t = new Task(TrainCarts.plugin, gnew, gnew.head(), direction, force) {
-			public void run() {
-				MinecartGroup group = (MinecartGroup) getArg(0);
-				MinecartMember head = (MinecartMember) getArg(1);
-				BlockFace direction = (BlockFace) getArg(2);
-				double force = getDoubleArg(3);
-				if (group.size() == 0) return;
-				if (group.size() == 1) {
-					head.setForce(force, FaceUtil.faceToYaw(direction));
-				} else {
-					group.updateYaw();
-					for (MinecartMember mm : group) {
-						mm.setForwardForce(force);
+	public static void teleportTrain(SignActionEvent info) {
+		Portal portal = Portal.get(info.getLocation());
+		if (portal != null) {
+			String destname = portal.getDestinationName();
+			Location dest = Portal.getPortalLocation(destname, info.getGroup().getWorld().getName());
+			if (dest != null) {
+				//Teleport the ENTIRE train to the destination...
+				Block sign = dest.getBlock();
+				sign.getChunk(); //load the chunk
+				if (BlockUtil.isSign(sign)) {
+					BlockFace facing = BlockUtil.getFacing(sign);
+					BlockFace direction = facing;
+					Block destinationRail = sign.getRelative(0, 2, 0);
+					if (BlockUtil.isRails(destinationRail)) {
+						//rail aligned at sign?
+						if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
+						if (facing == BlockFace.EAST) facing = BlockFace.WEST;
+						if (facing == BlockUtil.getRails(destinationRail).getDirection()) {
+							//Allowed?
+							if (getTPT(info)) {
+								//Teleportation is allowed: moving on...
+								Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
+								double force = info.getGroup().getAverageForce();
+
+								MinecartGroup gnew = MinecartGroup.create();
+								gnew.setProperties(info.getGroup().getProperties());
+								info.getGroup().setProperties(null);
+
+								//Create destination members and teleport passengers
+								for (int i = 0; i < newLocations.length; i++) {
+									MinecartMember mm = info.getGroup().get(i);
+									Location to = newLocations[newLocations.length - i - 1].add(0.5, 0, 0.5);
+									MinecartMember mnew = MinecartMember.get(to, mm.type);
+									//Set important data over
+									EntityUtil.transferItems(mm, mnew);
+									mnew.e = mm.e;
+									mnew.f = mm.f;
+									mnew.g = mm.g;
+									mnew.setForce(force, mm.yaw);
+									gnew.add(mnew);
+
+									//Teleport passenger
+
+									if (mm.passenger != null) {
+										net.minecraft.server.Entity e = mm.passenger;
+										mm.getMinecart().eject();
+
+										boolean transfer = true;
+										if (e instanceof EntityPlayer) {
+											Player p = (Player) e.getBukkitEntity();
+											//has permission?
+											if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
+												if (Permission.canEnterPortal(p, destname)) {
+													//Has permission, show message
+													p.sendMessage(Localization.getPortalEnter(portal));
+												} else {
+													Localization.message(p, "portal.noaccess");
+													transfer = false;
+												}
+											} else {
+												Localization.message(p, "world.noaccess");
+												transfer = false;
+											}
+										}
+										if (transfer) {
+											Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to) {
+												public void run() {
+													Entity e = (Entity) getArg(0);
+													Location to = (Location) getArg(1);
+													e.teleport(to);
+												}
+											};
+											t.startDelayed(0);
+											t = new Task(TrainCarts.plugin, e, mnew) {
+												public void run() {
+													net.minecraft.server.Entity e = (net.minecraft.server.Entity) getArg(0);
+													MinecartMember mnew = (MinecartMember) getArg(1);
+													e.setPassengerOf(mnew);
+												}
+											};
+											t.startDelayed(1);
+										}
+									}
+								}
+
+								//Remove the old group (with delay or we hear the sizzle)
+								Task t = new Task(TrainCarts.plugin, info.getGroup()) {
+									public void run() {
+										((MinecartGroup) getArg(0)).destroy();
+									}
+								};
+								t.startDelayed(3);
+
+								setTPT(destinationRail.getLocation().add(0, -2, 0));
+							}
+						}
 					}
 				}
 			}
-		};
-		t.startDelayed(1);
+		}
 	}
+
 	private static void handleProperties(TrainProperties prop, String mode, String arg) {
 		if (mode.equals("addtag")) {
 			prop.addTags(arg);
@@ -339,27 +356,29 @@ public class CustomEvents {
 			prop.slowDown = Util.getBool(arg);
 		} else if (mode.equals("setdefault") || mode.equals("default")) {
 			prop.setDefault(arg);
-		} else if (mode.equals("push") || mode.equals("pushing")) {
-			prop.pushAway = Util.getBool(arg);
 		} else if (mode.equals("pushmobs")) {
 			prop.pushMobs = Util.getBool(arg);
 		} else if (mode.equals("pushplayers")) {
 			prop.pushPlayers = Util.getBool(arg);
 		} else if (mode.equals("pushmisc")) {
 			prop.pushMisc = Util.getBool(arg);
+		} else if (mode.equals("push") || mode.equals("pushing")) {
+			prop.pushMobs = Util.getBool(arg);
+			prop.pushPlayers = prop.pushMobs;
+			prop.pushMisc = prop.pushMobs;
 		} else if (mode.equals("playerenter")) {
 			prop.allowPlayerEnter = Util.getBool(arg);
 		} else if (mode.equals("playerexit")) {
 			prop.allowPlayerExit = Util.getBool(arg);
 		} else if (mode.equals("speedlimit") || mode.equals("maxspeed")) {
-			 try {
-				 prop.speedLimit = Double.parseDouble(arg);
-			 } catch (NumberFormatException ex) {
-				 prop.speedLimit = 0.4;
-			 }
+			try {
+				prop.speedLimit = Double.parseDouble(arg);
+			} catch (NumberFormatException ex) {
+				prop.speedLimit = 0.4;
+			}
 		}
 	}
-	
+
 	public static void onSign(SignActionEvent info, ActionType action) {
 		info.setAction(action);
 		onSign(info);
@@ -370,7 +389,7 @@ public class CustomEvents {
 		info.setCancelled(false);
 		Bukkit.getServer().getPluginManager().callEvent(info);
 		if (info.isCancelled()) return;
-		
+
 		if (info.isAction(ActionType.REDSTONE_ON)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				String secondline = info.getLine(1).toLowerCase();
@@ -379,7 +398,7 @@ public class CustomEvents {
 				}
 			}
 		}
-		
+
 		if (info.isAction(ActionType.REDSTONE_CHANGE, ActionType.GROUP_ENTER, ActionType.GROUP_LEAVE)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("station")) {
@@ -395,7 +414,7 @@ public class CustomEvents {
 				}
 			}
 		}
-				
+
 		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).equalsIgnoreCase("property")) {
@@ -410,8 +429,8 @@ public class CustomEvents {
 				}
 			}
 		}
-		
-		
+
+
 		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER, ActionType.REDSTONE_OFF)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("trigger")) {
@@ -423,59 +442,15 @@ public class CustomEvents {
 				}
 			}
 		}
-		
+
 		if (TrainCarts.MyWorldsEnabled && info.isAction(ActionType.GROUP_ENTER, ActionType.REDSTONE_ON)) {
 			if (info.getGroup() != null) {
-				if (info.isAction(ActionType.REDSTONE_ON) || (info.isFacing() && info.isPowered())) {
-					Portal portal = Portal.get(info.getLocation());
-					if (portal != null) {
-						String destname = portal.getDestinationName();
-						Location dest = Portal.getPortalLocation(destname, info.getGroup().getWorld().getName());
-						if (dest != null) {
-							//Teleport the ENTIRE train to the destination...
-							Block sign = dest.getBlock();
-							sign.getChunk(); //load the chunk
-							if (BlockUtil.isSign(sign)) {
-								BlockFace facing = BlockUtil.getFacing(sign);
-								BlockFace direction = facing;
-								Block dblock = sign.getRelative(0, 2, 0);
-								if (BlockUtil.isRails(dblock)) {
-									//rail aligned at sign?
-								    if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
-								    if (facing == BlockFace.EAST) facing = BlockFace.WEST;
-									if (facing == BlockUtil.getRails(dblock).getDirection()) {
-										//Can the passengers teleport? If not, get them out of the train!
-										for (MinecartMember mm : info.getGroup()) {
-											if (mm.passenger != null) {
-												if (mm.passenger instanceof EntityPlayer) {
-													Player p = (Player) mm.passenger.getBukkitEntity();
-													//has permission?
-													if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
-														if (Permission.canEnterPortal(p, destname)) {
-															//Has permission, show message
-															p.sendMessage(Localization.getPortalEnter(portal));
-														} else {
-															Localization.message(p, "portal.noaccess");
-															mm.passenger.setPassengerOf(null);
-														}
-													} else {
-														Localization.message(p, "world.noaccess");
-														mm.passenger.setPassengerOf(null);
-													}
-												}
-											}
-										}
-										teleportTrain(info, dblock, direction);
-									}
-								}
-							}
-						}
-					}
-					
+				if (info.isAction(ActionType.REDSTONE_ON) || (info.isFacing() && info.getGroup().isMoving() && info.isPowered())) {
+					teleportTrain(info);
 				}
 			}
 		}
-				
+
 		if (info.isAction(ActionType.GROUP_ENTER) || info.isAction(ActionType.GROUP_LEAVE)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).toLowerCase().startsWith("tag")) {
@@ -483,11 +458,11 @@ public class CustomEvents {
 					if (!prop.destination.isEmpty()){
 						//Handle rails based on destination
 						if (info.isAction(ActionType.GROUP_ENTER)){
-						  BlockFace check = info.getDestDir(prop.destination);
-						  if (check != BlockFace.UP){
-						    info.setRailsFromCart(check);
-						    return; //do not parse further if destination is found
-						  }
+							BlockFace check = info.getDestDir(prop.destination);
+							if (check != BlockFace.UP){
+								info.setRailsFromCart(check);
+								return; //do not parse further if destination is found
+							}
 						}
 					}
 					//Toggle levers and rails based on tags
@@ -549,5 +524,5 @@ public class CustomEvents {
 			}
 		}
 	}
-	
+
 }

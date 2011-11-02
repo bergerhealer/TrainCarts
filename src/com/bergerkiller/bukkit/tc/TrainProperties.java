@@ -42,11 +42,15 @@ public class TrainProperties {
 	public List<String> tags = new ArrayList<String>();
 	public boolean trainCollision = true;
 	public boolean slowDown = true;
+	
+	public boolean isAtStation = false;
 	public boolean pushMobs = false;
 	public boolean pushPlayers = false;
 	public boolean pushMisc = true;
-	public boolean pushAtStation = true;
-	public boolean pushAway = false;
+	public boolean pushMobsAtStation = true;
+	public boolean pushPlayersAtStation = true;
+	public boolean pushMiscAtStation = true;
+	
 	public double speedLimit = 0.4;
 	public boolean requirePoweredMinecart = false;
 	public String destination = "";
@@ -58,6 +62,37 @@ public class TrainProperties {
 		}
 	}
 	
+	/*
+	 * Push away settings
+	 */
+	public boolean isPushingPlayers() {
+		if (this.isAtStation) return this.pushPlayersAtStation;
+		return this.pushPlayers;
+	}
+	public boolean isPushingMobs() {
+		if (this.isAtStation) return this.pushMobsAtStation;
+		return this.pushMobs;
+	}
+	public boolean isPushingMisc() {
+		if (this.isAtStation) return this.pushMiscAtStation;
+		return this.pushMisc;
+	}
+	public boolean canPushAway(Entity entity) {
+		if (entity instanceof Player) {
+			if (this.isPushingPlayers()) {
+				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
+			}
+		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {
+			if (this.isPushingMobs()) return true;
+		} else {
+			if (this.isPushingMisc()) return true;
+		}
+		return false;
+	}
+
+	/*
+	 * Collision settings
+	 */
 	public boolean canCollide(MinecartMember with) {
 		return this.canCollide(with.getGroup());
 	}
@@ -78,6 +113,9 @@ public class TrainProperties {
         }
 	}
 	
+	/*
+	 * Tags
+	 */
 	public boolean hasTag(String[] requirements, boolean firstIsAllPossible, boolean lastIsAllPossible) {
 		if (requirements.length == 0) return this.tags.size() > 0;
 		for (String tag : this.tags) {
@@ -103,7 +141,6 @@ public class TrainProperties {
 		}
 		return false;
 	}
-	
 	public boolean hasTag(String tag) {
 		if (tag.startsWith("!")) {
 			return !hasTag(tag.substring(1));
@@ -122,6 +159,9 @@ public class TrainProperties {
 		this.addTags(tags);
 	}
 	
+	/*
+	 * Owners and passengers
+	 */
 	public static boolean canBeOwner(Player player) {
 		return player.hasPermission("train.command.properties") || 
 				player.hasPermission("train.command.globalproperties");
@@ -157,7 +197,6 @@ public class TrainProperties {
 			return this.allowMobsEnter;
 		}
 	}
-	
 	public boolean sharesOwner(TrainProperties properties) {
 		if (this.owners.size() == 0) return true;
 		if (properties.owners.size() == 0) return true;
@@ -170,31 +209,19 @@ public class TrainProperties {
 		}
 		return false;
 	}
-	
-	public boolean canPushAway(Entity entity) {
-		if (entity instanceof Player) {
-			if (this.pushPlayers) {
-				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
-			}
-		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {
-			if (this.pushMobs) return true;
-		} else {
-			if (this.pushMisc) return true;
-		}
-		return false;
-	}
-	
+		
+	/*
+	 * General coding not related to properties themselves
+	 */
 	private TrainProperties() {};
 	private TrainProperties(String trainname) {
 		this.trainname = trainname;
 		properties.put(trainname, this);
 		this.setDefault();
-	}
-	
+	}	
 	public String getTrainName() {
 		return this.trainname;
-	}
-	
+	}	
 	public void setEditing(Player player) {
 		setEditing(player, false);
 	}
@@ -203,7 +230,6 @@ public class TrainProperties {
 			editing.put(player.getName(), this.getTrainName());
 		}
 	}
-	
 	public void remove() {
 		properties.remove(this.trainname);
 	}
@@ -220,7 +246,6 @@ public class TrainProperties {
 		this.trainname = newtrainname;
 		properties.put(newtrainname, this);
 	}
-
 	public void load(Configuration config, String key) {
 		this.owners = config.getListOf(key + ".owners", this.owners);
 		this.passengers = config.getListOf(key + ".passengers", this.passengers);
@@ -232,11 +257,15 @@ public class TrainProperties {
 		this.trainCollision = config.getBoolean(key + ".trainCollision", this.trainCollision);
 		this.tags = config.getListOf(key + ".tags", this.tags);
 		this.slowDown = config.getBoolean(key + ".slowDown", this.slowDown);
-		this.pushAway = config.getBoolean(key + ".pushAway.isPushing", this.pushAway);
+
 		this.pushMobs = config.getBoolean(key + ".pushAway.mobs", this.pushMobs);
 		this.pushPlayers = config.getBoolean(key + ".pushAway.players", this.pushPlayers);
 		this.pushMisc = config.getBoolean(key + ".pushAway.misc", this.pushMisc);
-		this.pushAtStation = config.getBoolean(key + ".pushAway.atStation", this.pushAtStation);
+		
+		this.pushMobsAtStation = config.getBoolean(key + ".pushAway.atStation.mobs", this.pushMobsAtStation);
+		this.pushPlayersAtStation = config.getBoolean(key + ".pushAway.atStation.players", this.pushPlayersAtStation);
+		this.pushMiscAtStation = config.getBoolean(key + ".pushAway.atStation.misc", this.pushMiscAtStation);
+		
 		this.speedLimit = config.getDouble(key + ".speedLimit", this.speedLimit);
 		this.requirePoweredMinecart = config.getBoolean(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
 		this.destination = config.getString(key + ".destination", this.destination);
@@ -253,15 +282,17 @@ public class TrainProperties {
 		this.trainCollision = source.trainCollision;
 		this.tags.addAll(source.tags);
 		this.slowDown = source.slowDown;
-		this.pushAway = source.pushAway;
 		this.pushMobs = source.pushMobs;
 		this.pushPlayers = source.pushPlayers;
 		this.pushMisc = source.pushMisc;
-		this.pushAtStation = source.pushAtStation;
+		this.pushMobsAtStation = source.pushMobsAtStation;
+		this.pushPlayersAtStation = source.pushPlayersAtStation;
+		this.pushMiscAtStation = source.pushMiscAtStation;
 		this.speedLimit = source.speedLimit;
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.destination = source.destination;
 		this.keepChunksLoaded = source.keepChunksLoaded;
+		this.isAtStation = source.isAtStation;
 	}
 	public void save(Configuration config, String key) {		
 		config.set(key + ".owners", this.owners);
@@ -278,11 +309,12 @@ public class TrainProperties {
 		config.set(key + ".speedLimit", this.speedLimit);
 		config.set(key + ".slowDown", this.slowDown);
 		config.set(key + ".destination", this.destination);
-		config.set(key + ".pushAway.isPushing", this.pushAway);
 		config.set(key + ".pushAway.mobs", this.pushMobs);
 		config.set(key + ".pushAway.players", this.pushPlayers);
 		config.set(key + ".pushAway.misc", this.pushMisc);
-		config.set(key + ".pushAway.atStation", this.pushAtStation);
+		config.set(key + ".pushAway.atStation.mobs", this.pushMobsAtStation);
+		config.set(key + ".pushAway.atStation.players", this.pushPlayersAtStation);
+		config.set(key + ".pushAway.atStation.misc", this.pushMiscAtStation);
 	}
 	public static void load(String filename) {
 		Configuration config = new Configuration(new File(filename));

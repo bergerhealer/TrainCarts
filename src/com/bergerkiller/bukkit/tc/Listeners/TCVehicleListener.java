@@ -59,7 +59,7 @@ public class TCVehicleListener extends VehicleListener {
 	public static Player lastPlayer = null;
 	@Override
 	public void onVehicleCreate(VehicleCreateEvent event) {
-		if (event.getVehicle() instanceof Minecart && !MinecartGroup.isDisabled) {
+		if (event.getVehicle() instanceof Minecart) {
 			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
 				MinecartGroup g = MinecartGroup.create(event.getVehicle());
 				if (g.size() != 0) {
@@ -119,10 +119,8 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
 		if (!event.isCancelled()) {
-			if (event.getVehicle() instanceof Minecart) {
-				MinecartMember mm = MinecartMember.get(event.getVehicle());
-				if (mm != null) mm.remove();
-			}
+			MinecartMember mm = MinecartMember.get(event.getVehicle());
+			if (mm != null) mm.remove();
 		}
 	}
 	

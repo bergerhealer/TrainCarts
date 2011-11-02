@@ -163,7 +163,6 @@ public class TrainCarts extends JavaPlugin {
         
 	}
 	public void onDisable() {
-		MinecartGroup.isDisabled = true;
 		//Stop tasks
 		if (ctask != null) ctask.stop();
 		if (signtask != null) signtask.stop();
@@ -293,15 +292,16 @@ public class TrainCarts extends JavaPlugin {
 					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
 					//push away
 					ArrayList<String> pushlist = new ArrayList<String>();
-					if (prop.pushMobs) pushlist.add("Mobs");
-					if (prop.pushPlayers) pushlist.add("Players");
-					if (prop.pushMisc) pushlist.add("Misc");
+					if (prop.isPushingMobs()) pushlist.add("Mobs");
+					if (prop.isPushingPlayers()) pushlist.add("Players");
+					if (prop.isPushingMisc()) pushlist.add("Misc");
 					if (pushlist.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "This train will never push anything.");
 					} else {
-						p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist) + ChatColor.YELLOW + ": " + ChatColor.WHITE + " " + prop.pushAway);
+						p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist));
 					}
-					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + " " + (prop.enterMessage == null ? "None" : prop.enterMessage));
+					p.sendMessage(ChatColor.YELLOW + "Is at station: " + ChatColor.WHITE + prop.isAtStation);
+					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + (prop.enterMessage == null ? "None" : prop.enterMessage));
 					p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
 					if (prop.tags.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + "None");
@@ -344,16 +344,54 @@ public class TrainCarts extends JavaPlugin {
 					prop.owners.clear();
 					prop.owners.add(p.getName());
 					p.sendMessage(ChatColor.YELLOW + "You claimed this train your own!");
-				} else if (cmd.equals("push") || cmd.equals("pushing")) {
-					if (args.length == 1) {
-						prop.pushAway = Util.getBool(args[0]);
+					//==============================Push settings======================
+				} else if (cmd.equals("pushmobs") || cmd.equals("pushplayers") || cmd.equals("pushmisc")) {
+					boolean station = false;
+					String secarg = null;
+					if (args.length >= 1) {
+						station = args[0].toLowerCase().contains("station");
+						if (station) {
+							if (args.length == 2) secarg = args[1];
+						} else if (args.length == 2) {
+							station = args[1].toLowerCase().contains("station");
+							if (station) {
+								secarg = args[0];
+							} else {
+								secarg = args[1];
+							}
+						} else {
+							secarg = args[0];
+						}
 					}
-					p.sendMessage(ChatColor.YELLOW + "Is pushing away: " + ChatColor.WHITE + " " + prop.pushAway);
-				} else if (cmd.equals("pushmobs")) {
-					if (args.length == 1) {
-						prop.pushMobs = Util.getBool(args[0]);
+					String msg = ChatColor.YELLOW + "Pushes away ";
+					if (station) {
+						if (cmd.equals("pushmobs")) { 
+							if (secarg != null) prop.pushMobsAtStation = Util.getBool(secarg);
+							msg += "mobs at stations: " + ChatColor.WHITE + " " + prop.pushMobsAtStation;
+						}
+						if (cmd.equals("pushplayers")) {
+							if (secarg != null) prop.pushPlayersAtStation = Util.getBool(secarg);
+							msg += "players at stations: " + ChatColor.WHITE + " " + prop.pushPlayersAtStation;
+						}
+						if (cmd.equals("pushmisc")) {
+							if (secarg != null) prop.pushMiscAtStation = Util.getBool(secarg);
+							msg += "misc. entities at stations: " + ChatColor.WHITE + " " + prop.pushMiscAtStation;
+						}
+					} else {
+						if (cmd.equals("pushmobs")) {
+							if (secarg != null)  prop.pushMobs = Util.getBool(secarg);
+							msg += "mobs: " + ChatColor.WHITE + " " + prop.pushMobs;
+						}
+						if (cmd.equals("pushplayers")) {
+							if (secarg != null) prop.pushPlayers = Util.getBool(secarg);
+							msg += "players: " + ChatColor.WHITE + " " + prop.pushPlayers;
+						}
+						if (cmd.equals("pushmisc")) {
+							if (secarg != null) prop.pushMisc = Util.getBool(secarg);
+							msg += "misc. entities: " + ChatColor.WHITE + " " + prop.pushMisc;
+						}
 					}
-					p.sendMessage(ChatColor.YELLOW + "Pushes away mobs: " + ChatColor.WHITE + " " + prop.pushMobs);
+					p.sendMessage(msg);
 				} else if (cmd.equals("pushplayers")) {
 					if (args.length == 1) {
 						prop.pushPlayers = Util.getBool(args[0]);
@@ -364,11 +402,7 @@ public class TrainCarts extends JavaPlugin {
 						prop.pushMisc = Util.getBool(args[0]);
 					}
 					p.sendMessage(ChatColor.YELLOW + "Pushes away misc. entities: " + ChatColor.WHITE + " " + prop.pushMisc);
-				} else if (cmd.equals("pushatstation")) {
-					if (args.length == 1) {
-						prop.pushAtStation = Util.getBool(args[0]);
-					}
-					p.sendMessage(ChatColor.YELLOW + "Turns pushing on at stations: " + ChatColor.WHITE + " " + prop.pushAtStation);
+					//==================================================================
 				} else if (cmd.equals("playerenter")) {
 					if (args.length == 1) {
 						prop.allowPlayerEnter = Util.getBool(args[0]);

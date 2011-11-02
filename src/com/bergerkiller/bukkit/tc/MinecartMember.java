@@ -102,6 +102,7 @@ public class MinecartMember extends NativeMinecartMember {
 	 * MinecartMember <> EntityMinecart replacement functions
 	 */
 	private static HashSet<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
+	private static boolean denyConversion = false;
 	
 	public static MinecartMember get(Object o) {
 		if (o instanceof Minecart) {
@@ -124,7 +125,9 @@ public class MinecartMember extends NativeMinecartMember {
 		if (!(e instanceof Minecart)) return null;
 		EntityMinecart em = EntityUtil.getNative((Minecart) e);
 		if (em instanceof MinecartMember) return (MinecartMember) em;
-		//not found, replace
+		//not found, conversion allowed?
+		if (denyConversion) return null;
+		//convert
 		MinecartMember mm = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
 		EntityUtil.replaceMinecarts(em, mm);
 		replacedCarts.add(mm);
@@ -143,6 +146,7 @@ public class MinecartMember extends NativeMinecartMember {
 		mm.yaw = loc.getYaw();
 		mm.pitch = loc.getPitch();
 		mm.world.addEntity(mm);
+		replacedCarts.add(mm);
 		return mm;
 	}
 	
@@ -168,12 +172,13 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return null;
 	}
-	
 	public static EntityMinecart undoReplacement(MinecartMember mm) {
 		replacedCarts.remove(mm);
 		if (!mm.dead) {
+			denyConversion = true;
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
 			EntityUtil.replaceMinecarts(mm, em);
+			denyConversion = false;
 			return em;
 		}
 		return null;

@@ -29,7 +29,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 * STATIC REGION
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
-	public static boolean isDisabled = false;
 	private static final int maxLinksPerUpdate = 40; //interval is 10: estimated at max 4 per tick
 	private static int linksPerUpdate = 0;
 		
@@ -68,6 +67,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	    group.clear();
 		groups.remove(group);
+		System.out.println("UNLOADING GROUP");
 	}
 	public static MinecartGroup create() {
 		return new MinecartGroup();
@@ -78,7 +78,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public static MinecartGroup create(MinecartMember... members) {
 		MinecartGroup g = new MinecartGroup();
 		for (MinecartMember member : members) {
-			if (!member.dead) {
+			if (member != null && !member.dead) {
 				g.add(member);
 				member.preUpdate();
 			}
@@ -125,13 +125,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public static boolean link(Minecart m1, Minecart m2) {
-		if (isDisabled) return false;
 		if (m1.isDead()) return false;
 		if (m2.isDead()) return false;
 		return link(MinecartMember.convert(m1), MinecartMember.convert(m2));
 	}
 	public static boolean link(MinecartMember m1, MinecartMember m2) {
-		if (isDisabled) return false;
 		if (m1 == null || m2 == null) return false;
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
@@ -336,6 +334,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			this.targets.offer(target);
 		}
 	}
+	public void updateTarget() {
+		if (this.hasTarget() && this.getTarget().update()) {
+			this.targets.remove();
+		}
+	}	
 	
 	/*
 	 * Signs underneath this group
@@ -664,6 +667,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return rval.toArray(new SimpleChunk[0]);
 	}
 	
+	public boolean isMoving() {
+		if (this.size() == 0) return false;
+		return this.head().isMoving();
+	}
 	public boolean canUnload() {
 		for (MinecartMember mm : this) {
 			if (mm.isMoving()) {
@@ -672,11 +679,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return true;
 	}
-	public void updateTarget() {
-		if (this.hasTarget() && this.getTarget().update()) {
-			this.targets.remove();
-		}
-	}	
 	public void update() {
 		//Prevent index exceptions: remove if not a train
 		if (this.size() == 1) {
