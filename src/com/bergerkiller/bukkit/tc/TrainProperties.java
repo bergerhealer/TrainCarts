@@ -28,7 +28,28 @@ public class TrainProperties {
 		return properties.containsKey(trainname);
 	}	
 	public static TrainProperties getEditing(Player by) {
-		return properties.get(editing.get(by.getName()));
+		TrainProperties prop = properties.get(editing.get(by.getName()));
+		if (prop == null) {
+			MinecartGroup g = MinecartGroup.get(by.getVehicle());
+			if (g == null) {
+				//not found: match nearby
+				for (Entity e : by.getNearbyEntities(5, 5, 5)) {
+					MinecartGroup gnew = MinecartGroup.get(e);
+					if (gnew != null) {
+						if (g == null) {
+							//set it
+							g = gnew;
+						} else {
+							//found two: cancel operation
+							g = null;
+							break;
+						}
+					}
+				}
+			}
+			if (g != null) prop = g.getProperties();
+		}
+		return prop;
 	}
 	
 	private String trainname;
@@ -236,7 +257,7 @@ public class TrainProperties {
 	public void add() {
 		properties.put(this.trainname, this);
 	}
-	public void rename(String newtrainname) {
+	public TrainProperties rename(String newtrainname) {
 		this.remove();
 		for (Map.Entry<String, String> edit : editing.entrySet()) {
 			if (edit.getValue().equals(this.trainname)){
@@ -245,6 +266,7 @@ public class TrainProperties {
 		}
 		this.trainname = newtrainname;
 		properties.put(newtrainname, this);
+		return this;
 	}
 	public void load(Configuration config, String key) {
 		this.owners = config.getListOf(key + ".owners", this.owners);

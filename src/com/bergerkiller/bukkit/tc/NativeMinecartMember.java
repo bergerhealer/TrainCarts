@@ -75,7 +75,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
     
 	private boolean ignoreForces() {
-    	return group().hasTarget();
+    	return group().hasTarget() || group().getProperties().isAtStation;
 	}
 	
 	private MinecartMember member() {
@@ -465,9 +465,6 @@ public class NativeMinecartMember extends EntityMinecart {
                             this.motY *= 0.0D;
                             this.motZ *= 0.8999999761581421D;
                         }
-                	} else {
-                		this.f = this.motX;
-                		this.g = this.motZ;
                 	}
                 }
                 if (this.group().getProperties().slowDown) {

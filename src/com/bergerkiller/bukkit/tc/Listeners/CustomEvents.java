@@ -214,16 +214,10 @@ public class CustomEvents {
 		//Check if spot is taken
 		for (int i = 0;i < locs.length;i++) {
 			if (MinecartMember.getAt(locs[i]) != null) return;
-		}
-
-		//Create the group
-		MinecartGroup g = MinecartGroup.create();
-
-		//Spawn the train
-		for (int i = 0;i < types.size();i++) {
-			g.add(MinecartMember.get(locs[i], types.get(i)));
-		}
-		g.tail().setForce(force, info.getFacing());
+		}		
+		
+		//Spawn the group
+		MinecartGroup.spawn(info.getRails(), info.getFacing(), types, force);
 	}
 
 	private static HashMap<Location, Long> teleportTimes = new HashMap<Location, Long>();
@@ -255,32 +249,29 @@ public class CustomEvents {
 						if (facing == BlockUtil.getRails(destinationRail).getDirection()) {
 							//Allowed?
 							if (getTPT(info)) {
-								//Teleportation is allowed: moving on...
-								Location[] newLocations = TrackMap.walk(destinationRail, direction, info.getGroup().size(), TrainCarts.cartDistance);
+								//Teleportation is allowed: get info from source
 								double force = info.getGroup().getAverageForce();
 
-								MinecartGroup gnew = MinecartGroup.create();
+								//Spawn a new group and transfer data
+								MinecartGroup gnew = MinecartGroup.spawn(destinationRail, direction, info.getGroup().getTypes(), force);
 								gnew.setProperties(info.getGroup().getProperties());
 								info.getGroup().setProperties(null);
-
-								//Create destination members and teleport passengers
-								for (int i = 0; i < newLocations.length; i++) {
-									MinecartMember mm = info.getGroup().get(i);
-									Location to = newLocations[newLocations.length - i - 1].add(0.5, 0, 0.5);
-									MinecartMember mnew = MinecartMember.get(to, mm.type);
-									//Set important data over
-									EntityUtil.transferItems(mm, mnew);
-									mnew.e = mm.e;
-									mnew.f = mm.f;
-									mnew.g = mm.g;
-									mnew.setForce(force, mm.yaw);
-									gnew.add(mnew);
+								
+								//Transfer individual data and teleport passengers
+								for (int i = 0; i < gnew.size(); i++) {
+									MinecartMember from = info.getGroup().get(i);
+									MinecartMember to = gnew.get(i);
+									//Set important data
+									EntityUtil.transferItems(from, to);
+									to.e = from.e;
+									to.f = from.f;
+									to.g = from.g;
 
 									//Teleport passenger
 
-									if (mm.passenger != null) {
-										net.minecraft.server.Entity e = mm.passenger;
-										mm.getMinecart().eject();
+									if (from.passenger != null) {
+										net.minecraft.server.Entity e = from.passenger;
+										from.getMinecart().eject();
 
 										boolean transfer = true;
 										if (e instanceof EntityPlayer) {
@@ -300,7 +291,7 @@ public class CustomEvents {
 											}
 										}
 										if (transfer) {
-											Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to) {
+											Task t = new Task(TrainCarts.plugin, e.getBukkitEntity(), to.getLocation()) {
 												public void run() {
 													Entity e = (Entity) getArg(0);
 													Location to = (Location) getArg(1);
@@ -308,7 +299,7 @@ public class CustomEvents {
 												}
 											};
 											t.startDelayed(0);
-											t = new Task(TrainCarts.plugin, e, mnew) {
+											t = new Task(TrainCarts.plugin, e, to) {
 												public void run() {
 													net.minecraft.server.Entity e = (net.minecraft.server.Entity) getArg(0);
 													MinecartMember mnew = (MinecartMember) getArg(1);

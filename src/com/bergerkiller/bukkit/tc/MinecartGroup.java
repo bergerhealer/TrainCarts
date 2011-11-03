@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
@@ -13,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
@@ -67,7 +69,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	    group.clear();
 		groups.remove(group);
-		System.out.println("UNLOADING GROUP");
 	}
 	public static MinecartGroup create() {
 		return new MinecartGroup();
@@ -86,6 +87,27 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		//handle events
 		for (MinecartMember mm : g) {
 			mm.updateActiveSign();
+		}
+		return g;
+	}
+	
+	public static MinecartGroup spawn(Location[] at, int[] types, double forwardforce) {
+		MinecartGroup g = MinecartGroup.create();
+		for (int i = 0; i < types.length; i++) {
+			g.add(MinecartMember.spawn(at[i], types[i], forwardforce));
+		}
+		return g;
+	}
+	public static MinecartGroup spawn(Block startblock, BlockFace direction, int[] types, double forwardforce) {
+		ArrayList<Integer> typelist = new ArrayList<Integer>(types.length);
+		for (int i : types) typelist.add(i);
+		return spawn(startblock, direction, typelist, forwardforce);
+	}
+	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Integer> types, double forwardforce) {
+		Location[] destinations = TrackMap.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
+		MinecartGroup g = MinecartGroup.create();
+		for (int i = 0; i < destinations.length; i++) {
+			g.add(MinecartMember.spawn(destinations[destinations.length - i - 1], types.get(i), forwardforce));
 		}
 		return g;
 	}
@@ -165,7 +187,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				int m2index = g2.indexOf(m2);
 				
 				//Validate
-				if (!g2.canConnect(m1, m2index)) {
+				if (!g2.canConnect(m1, m2index) || !g1.canConnect(m2, m1index)) {
 					return false;
 				}
     			
@@ -269,10 +291,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public void setName(String name) {
 		if (name != null) {
 			if (this.name == null) {
-				TrainProperties.get(name);
+				this.prop = TrainProperties.get(name);
 			} else if (!this.name.equals(name)) {
-				TrainProperties.get(this.name).rename(name);
+				this.prop = TrainProperties.get(this.name).rename(name);
 			}
+		} else if (this.prop != null) {
+			this.prop.remove();
+			this.prop = null;
 		}
 		this.name = name;
 	}
@@ -657,6 +682,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			reverseOrder();
 		}
 		return force;
+	}
+	public List<Integer> getTypes() {
+		ArrayList<Integer> types = new ArrayList<Integer>(this.size());
+		for (MinecartMember mm : this) types.add(mm.type);
+		return types;
 	}
 	
 	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {

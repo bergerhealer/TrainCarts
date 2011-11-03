@@ -45,22 +45,21 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean pushAwayIgnoreGlobalOwners;
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
-	
-	
+
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
 	public static boolean MyWorldsEnabled = false;
-		
+
 	public static TrainCarts plugin;
 	private final TCPlayerListener playerListener = new TCPlayerListener();
 	private final TCWorldListener worldListener = new TCWorldListener();
 	private final TCVehicleListener vehicleListener = new TCVehicleListener();	
 	private final TCBlockListener blockListener = new TCBlockListener();	
 	private final TCCustomListener customListener = new TCCustomListener();	
-	
+
 	private Task ctask;
 	private Task signtask;
-		
+
 	public void loadConfig() {
 		Configuration config = new Configuration(this);
 		boolean use = config.getBoolean("use", true);
@@ -89,10 +88,10 @@ public class TrainCarts extends JavaPlugin {
 			config.save();
 		}
 	}
-	
+
 	public void onEnable() {		
 		plugin = this;
-		
+
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
@@ -127,25 +126,25 @@ public class TrainCarts extends JavaPlugin {
 			Util.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
 			MyWorldsEnabled = true;
 		}
-				
+
 		//Load configuration
 		loadConfig();
-		
+
 		//Load groups
 		GroupManager.loadGroups(getDataFolder() + File.separator + "trains.groupdata");
-		
+
 		//Load properties
 		TrainProperties.load(getDataFolder() + File.separator + "trainflags.yml");
-		
+
 		//Load destinations
 		Destinations.load(getDataFolder() + File.separator + "destinations.yml");
-		
+
 		//Load arrival times
 		ArrivalSigns.load(getDataFolder() + File.separator + "arrivaltimes.txt");
-		
+
 		//Restore carts where possible
 		GroupManager.refresh();
-		
+
 		//clean groups from dead and derailed carts and form new groups
 		ctask = new Task(this) {
 			public void run() {
@@ -156,11 +155,11 @@ public class TrainCarts extends JavaPlugin {
 
 		//commands
 		getCommand("train").setExecutor(this);
-		
-        //final msg
-        PluginDescriptionFile pdfFile = this.getDescription();
-        Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!");
-        
+
+		//final msg
+		PluginDescriptionFile pdfFile = this.getDescription();
+		Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!");
+
 	}
 	public void onDisable() {
 		//Stop tasks
@@ -188,22 +187,22 @@ public class TrainCarts extends JavaPlugin {
 				}
 			}
 		}
-				
+
 		//Save properties
 		TrainProperties.save(getDataFolder() + File.separator + "trainflags.yml");
-		
+
 		//Save destinations
 		Destinations.save(getDataFolder() + File.separator + "destinations.yml");
-		
+
 		//Save for next load
 		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
-		
+
 		//Save arrival times
 		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
 
 		System.out.println("TrainCarts disabled!");
 	}
-			
+
 	public boolean onCommand(CommandSender sender, Command c, String cmd, String[] args) {
 		if (args.length == 0) return false;
 		cmd = args[0].toLowerCase();
@@ -266,7 +265,23 @@ public class TrainCarts extends JavaPlugin {
 				p.sendMessage(ChatColor.RED + "You don't own this train!");
 			} else {
 				//let's do stuff with it
-				if (cmd.equals("info") || cmd.equals("i")) {
+				if (cmd.equals("edit")) {
+                    if (args.length == 1) {
+                    	prop = TrainProperties.get(args[0]);
+                    	if (prop != null) {
+                    		if (prop.isOwner(p)) {
+                    			prop.setEditing(p);
+                    			p.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");
+                    		} else {
+                    			p.sendMessage(ChatColor.YELLOW + "You do not own this train!");
+                    		}
+                    	} else {
+                    		p.sendMessage(ChatColor.RED + "No train with name '" + args[0] + "' was found!");
+                    	}
+                    } else {
+                    	p.sendMessage(ChatColor.YELLOW + "Please enter the train name your wish to edit!");
+                    }
+				} else if (cmd.equals("info") || cmd.equals("i")) {
 					//warning message
 					if (!prop.isDirectOwner(p)) {
 						if (prop.owners.size() == 0) {
@@ -417,7 +432,7 @@ public class TrainCarts extends JavaPlugin {
 						}
 					}
 					p.sendMessage(ChatColor.YELLOW + "Players can exit this train: " + ChatColor.WHITE + " " + prop.allowPlayerExit);
-					
+
 				} else if (cmd.equals("addowner") || cmd.equals("addowners")) {
 					if (args.length == 0) {
 						prop.owners.add(p.getName());
@@ -479,11 +494,11 @@ public class TrainCarts extends JavaPlugin {
 					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.trainCollision);
 				} else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
 					if (args.length == 1) {
-						 try {
-							 prop.speedLimit = Double.parseDouble(args[0]);
-						 } catch (NumberFormatException ex) {
-							 prop.speedLimit = 0.4;
-						 }
+						try {
+							prop.speedLimit = Double.parseDouble(args[0]);
+						} catch (NumberFormatException ex) {
+							prop.speedLimit = 0.4;
+						}
 					}
 					p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
 				} else if (cmd.equals("requirepoweredminecart") || cmd.equals("requirepowered")) {

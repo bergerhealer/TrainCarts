@@ -69,6 +69,7 @@ public class MinecartMember extends NativeMinecartMember {
 						g.update();
 						if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
 							for (MinecartMember m : g.toArray()) {
+								//TODO: if stuck in a block: Push upwards (set motY)
 								m.postUpdate(m.forceFactor);
 							}
 							GroupUpdateEvent.call(g, UpdateStage.LAST);
@@ -105,6 +106,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private static boolean denyConversion = false;
 	
 	public static MinecartMember get(Object o) {
+		if (o == null) return null;
 		if (o instanceof Minecart) {
 			o = EntityUtil.getNative((Minecart) o);
 		}
@@ -122,6 +124,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return rval;
 	}
 	public static MinecartMember convert(Entity e) {
+		if (e == null) return null;
 		if (!(e instanceof Minecart)) return null;
 		EntityMinecart em = EntityUtil.getNative((Minecart) e);
 		if (em instanceof MinecartMember) return (MinecartMember) em;
@@ -141,12 +144,12 @@ public class MinecartMember extends NativeMinecartMember {
 		return rval;
 	}
 	
-	public static MinecartMember get(Location loc, int type) {
-		MinecartMember mm = new MinecartMember(EntityUtil.getNative(loc.getWorld()), loc.getX(), loc.getY(), loc.getZ(), type);
-		mm.yaw = loc.getYaw();
-		mm.pitch = loc.getPitch();
+	public static MinecartMember spawn(Location at, int type, double forwardforce) {
+		MinecartMember mm = new MinecartMember(EntityUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
+		mm.yaw = at.getYaw();
+		mm.pitch = at.getPitch();
+		mm.setForce(forwardforce, mm.yaw);
 		mm.world.addEntity(mm);
-		replacedCarts.add(mm);
 		return mm;
 	}
 	
