@@ -84,7 +84,7 @@ public class GroupManager {
 	 * Loads the buffered groups from file
 	 * @param filename - The groupdata file to read from
 	 */
-	public static void loadGroups(String filename) {
+	public static void init(String filename) {
 		hiddengroups.clear();
 		try {
 			DataInputStream stream = new DataInputStream(new FileInputStream(filename));
@@ -133,7 +133,7 @@ public class GroupManager {
 	 * Saves the buffered groups to file
 	 * @param filename - The groupdata file to write to
 	 */
-	public static void saveGroups(String filename) {
+	public static void deinit(String filename) {
 		try {
 			File f = new File(filename);
 			if (f.exists()) f.delete();
@@ -172,6 +172,8 @@ public class GroupManager {
 			Util.log(Level.WARNING, "An exception occured at the end while reading groups!");
 			ex.printStackTrace();
 		}
+		hiddengroups.clear();
+		hiddengroups = null;
 	}
 	
 	/**

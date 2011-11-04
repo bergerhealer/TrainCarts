@@ -11,8 +11,6 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 
 public class Destinations {
 	private static HashSet<String> checked = new HashSet<String>(); //used to prevent infinite loops
@@ -36,7 +34,7 @@ public class Destinations {
 		Configuration config = new Configuration(filename);
 		config.load();
 		for (String destname : config.getKeys(false)) {
-			get(destname).load(config.getConfigurationSection("destname"));
+			get(destname).load(config, destname);
 		}
 	}
 	public static void save(String filename) {
@@ -48,6 +46,16 @@ public class Destinations {
 			prop.save(config, prop.getDestName());
 		}
 		config.save();
+	}
+	public static void init(String filename) {
+		load(filename);
+	}
+	public static void deinit(String filename) {
+		save(filename);
+		checked.clear();
+		checked = null;
+		properties.clear();
+		properties = null;
 	}
 
 	private static class Node {
@@ -195,24 +203,24 @@ public class Destinations {
 	}
 
 	@SuppressWarnings("unchecked") //prevent warning for getlist -> stringlist
-	public void load(ConfigurationSection config) {
+	public void load(Configuration config, String key) {
 		if (config == null) return;
-		this.neighbours = config.getList("neighbours");
-		for (String k : config.getKeys(false)){
+		this.neighbours = config.getList(key + ".neighbours");
+		for (String k : config.getKeys(key)){
 			if (k.equals("neighbours")) continue; //skip neighbours
 			BlockFace bf = BlockFace.UP;
-			String dir = config.getString(k + ".dir");
+			String dir = config.getString(key + "." + k + ".dir");
 			if (dir.equals("NORTH")) bf = BlockFace.NORTH;
 			if (dir.equals("EAST")) bf = BlockFace.EAST;
 			if (dir.equals("SOUTH")) bf = BlockFace.SOUTH;
 			if (dir.equals("WEST")) bf = BlockFace.WEST;
-			this.dests.put(k, new Node(bf, config.getDouble(k + ".dist")));
+			this.dests.put(k, new Node(bf, config.getDouble(key + "." + k + ".dist")));
 		}
 	}
 	public void load(Destinations source) {
 		this.dests.putAll(source.dests);
 	}
-	public void save(FileConfiguration config, String key) {
+	public void save(Configuration config, String key) {
 		config.set(key + ".neighbours", this.neighbours);
 		for (Map.Entry<String, Node> entry : this.dests.entrySet()){
 			config.set(key + "." + entry.getKey() + ".dir", entry.getValue().dir.toString());

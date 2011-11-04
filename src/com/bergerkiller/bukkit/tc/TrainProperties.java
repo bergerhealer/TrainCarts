@@ -357,6 +357,18 @@ public class TrainProperties {
 		}
 		config.save();
 	}
+	public static void init(String filename) {
+		load(filename);
+	}
+	public static void deinit(String filename) {
+		save(filename);
+		deffile = null;
+		defconfig = null;
+		properties.clear();
+		properties = null;
+		editing.clear();
+		editing = null;
+	}
 
 	/*
 	 * Train properties defaults

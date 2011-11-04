@@ -137,7 +137,7 @@ public class ArrivalSigns {
 		return TrainCarts.plugin.getDataFolder() + File.separator + "ArrivalSigns" + File.separator + w.getName() + ".txt";
 	}
 	
-	public static void load(String filename) {
+	public static void init(String filename) {
 		for (String textline : SafeReader.readAll(filename)) {
 			int start = textline.indexOf('\"');
 			int end = textline.indexOf('\"', start + 1);
@@ -149,12 +149,20 @@ public class ArrivalSigns {
 			}
 		}
 	}
-	public static void save(String filename) {
+	public static void deinit(String filename) {
 		SafeWriter writer = new SafeWriter(filename);
 		for (TimeSign sign : timerSigns.values()) {
 			writer.writeLine("\"" + sign.name + "\" " + sign.getDuration());
 		}
 		writer.close();
+		timerSigns.clear();
+		timerSigns = null;
+		timeCalcStart.clear();
+		timeCalcStart = null;
+		if (updateThread != null && updateThread.isRunning()) {
+			updateThread.stop();
+		}
+		updateThread = null;
 	}
 	
 	private static HashMap<Location, TimeCalculation> timeCalcStart = new HashMap<Location, TimeCalculation>();
@@ -232,12 +240,6 @@ public class ArrivalSigns {
 	}
 	
 	
-	public static void deInit() {
-		if (updateThread != null && updateThread.isRunning()) {
-			updateThread.stop();
-		}
-	}
-		
 	public static void timeCalcStop(Location signblock) {
 		TimeCalculation calc = timeCalcStart.get(signblock);
 		if (calc != null && calc.member == null) {

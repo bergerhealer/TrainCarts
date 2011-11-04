@@ -18,6 +18,7 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Listeners.TCBlockListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
@@ -131,16 +132,16 @@ public class TrainCarts extends JavaPlugin {
 		loadConfig();
 
 		//Load groups
-		GroupManager.loadGroups(getDataFolder() + File.separator + "trains.groupdata");
+		GroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
 		//Load properties
-		TrainProperties.load(getDataFolder() + File.separator + "trainflags.yml");
+		TrainProperties.init(getDataFolder() + File.separator + "trainflags.yml");
 
 		//Load destinations
-		Destinations.load(getDataFolder() + File.separator + "destinations.yml");
+		Destinations.init(getDataFolder() + File.separator + "destinations.yml");
 
 		//Load arrival times
-		ArrivalSigns.load(getDataFolder() + File.separator + "arrivaltimes.txt");
+		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
 
 		//Restore carts where possible
 		GroupManager.refresh();
@@ -189,17 +190,21 @@ public class TrainCarts extends JavaPlugin {
 		}
 
 		//Save properties
-		TrainProperties.save(getDataFolder() + File.separator + "trainflags.yml");
+		TrainProperties.deinit(getDataFolder() + File.separator + "trainflags.yml");
 
 		//Save destinations
-		Destinations.save(getDataFolder() + File.separator + "destinations.yml");
+		Destinations.deinit(getDataFolder() + File.separator + "destinations.yml");
 
 		//Save for next load
-		GroupManager.saveGroups(getDataFolder() + File.separator + "trains.groupdata");
+		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
 
 		//Save arrival times
-		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
+		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
+		
+		CustomEvents.deinit();
 
+		plugin = null;
+		
 		System.out.println("TrainCarts disabled!");
 	}
 

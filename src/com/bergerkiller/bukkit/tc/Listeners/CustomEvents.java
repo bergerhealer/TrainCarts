@@ -220,6 +220,11 @@ public class CustomEvents {
 		MinecartGroup.spawn(info.getRails(), info.getFacing(), types, force);
 	}
 
+	public static void deinit() {
+		teleportTimes.clear();
+		teleportTimes = null;
+	}
+	
 	private static HashMap<Location, Long> teleportTimes = new HashMap<Location, Long>();
 	private static void setTPT(Location at) {
 		teleportTimes.put(at, System.currentTimeMillis());
@@ -311,13 +316,9 @@ public class CustomEvents {
 									}
 								}
 
-								//Remove the old group (with delay or we hear the sizzle)
-								Task t = new Task(TrainCarts.plugin, info.getGroup()) {
-									public void run() {
-										((MinecartGroup) getArg(0)).destroy();
-									}
-								};
-								t.startDelayed(3);
+								//Remove the old group
+								for (MinecartMember mm : info.getGroup()) mm.dead = true;
+								info.getGroup().remove();
 
 								setTPT(destinationRail.getLocation().add(0, -2, 0));
 							}
