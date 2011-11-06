@@ -13,7 +13,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
@@ -25,7 +24,6 @@ import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCVehicleListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCWorldListener;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
-
 
 public class TrainCarts extends JavaPlugin {
 	/*
@@ -44,6 +42,7 @@ public class TrainCarts extends JavaPlugin {
 	public static Vector exitOffset = new Vector(0, 0, 0);
 	public static double pushAwayForce;
 	public static boolean pushAwayIgnoreGlobalOwners;
+	public static boolean pushAwayIgnoreOwners;
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
 
@@ -60,6 +59,7 @@ public class TrainCarts extends JavaPlugin {
 
 	private Task ctask;
 	private Task signtask;
+	private String version;
 
 	public void loadConfig() {
 		Configuration config = new Configuration(this);
@@ -82,6 +82,7 @@ public class TrainCarts extends JavaPlugin {
 			exitz = config.parse("exitOffset.z", (double) 0);
 			pushAwayForce = config.parse("pushAwayForce", 0.2);
 			pushAwayIgnoreGlobalOwners = config.parse("pushAwayIgnoreGlobalOwners", false);
+			pushAwayIgnoreOwners = config.parse("pushAwayIgnoreOwners", false);
 			useCoalFromStorageCart = config.parse("useCoalFromStorageCart", false);
 			setOwnerOnPlacement = config.parse("setOwnerOnPlacement", true);
 			config.set("use", true);
@@ -158,8 +159,8 @@ public class TrainCarts extends JavaPlugin {
 		getCommand("train").setExecutor(this);
 
 		//final msg
-		PluginDescriptionFile pdfFile = this.getDescription();
-		Util.log(Level.INFO, "version " + pdfFile.getVersion() + " is enabled!");
+		version = this.getDescription().getVersion();
+		Util.log(Level.INFO, "version " + version + " is enabled!");
 
 	}
 	public void onDisable() {
@@ -209,7 +210,10 @@ public class TrainCarts extends JavaPlugin {
 	}
 
 	public boolean onCommand(CommandSender sender, Command c, String cmd, String[] args) {
-		if (args.length == 0) return false;
+		if (args.length == 0) {
+			sender.sendMessage("TrainCarts " + version + " - See WIKI page for more information");
+			return true;
+		}
 		cmd = args[0].toLowerCase();
 		args = Util.remove(args, 0);
 		if (cmd.equals("removeall") || cmd.equals("destroyall")) {
@@ -235,19 +239,19 @@ public class TrainCarts extends JavaPlugin {
 						}
 					}
 					if (w != null) {
-						GroupManager.removeAll(w, destroy);
+						int count = GroupManager.removeAll(w, destroy);
 						sender.sendMessage(ChatColor.RED + "All train information of '" + w.getName() + "' has been cleared!");
 						if (destroy) {
-							sender.sendMessage(ChatColor.RED + "All (visible) trains have been destroyed!");
+							sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 						}
 					} else {
 						sender.sendMessage(ChatColor.RED + "World not found!");
 					}
 				} else {
-					GroupManager.removeAll(destroy);
+					int count = GroupManager.removeAll(destroy);
 					sender.sendMessage(ChatColor.RED + "All train information of this server has been cleared!");
 					if (destroy) {
-						sender.sendMessage(ChatColor.RED + "All (visible) trains have been destroyed!");				
+						sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");				
 					}
 				}
 			} else {
@@ -265,7 +269,7 @@ public class TrainCarts extends JavaPlugin {
 					p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
 				} else {
 					p.sendMessage(ChatColor.RED + "You don't own a train you can change!");
-				}			
+				}
 			} else if (!prop.isOwner(p)) {
 				p.sendMessage(ChatColor.RED + "You don't own this train!");
 			} else {
@@ -532,7 +536,10 @@ public class TrainCarts extends JavaPlugin {
 					MinecartGroup g = MinecartGroup.get(prop.getTrainName());
 					if (g != null) {
 						g.destroy();
+					} else {
+						prop.remove();
 					}
+					p.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
 				} else {
 					p.sendMessage(ChatColor.RED + "Unknown command: '" + cmd + "'!");
 				}

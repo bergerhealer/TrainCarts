@@ -7,7 +7,7 @@ softdepend: [MinecartManiaCore, SignLink, My Worlds]
 commands:
     train:
         description: Perform TrainCarts commands
-        usage: See development or WIKI page
+        usage: See development or WIKI page of TrainCarts
 permissions:
     train.build.station:
         description: Allows you to build station signs

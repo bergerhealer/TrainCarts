@@ -101,6 +101,7 @@ public class TrainProperties {
 	public boolean canPushAway(Entity entity) {
 		if (entity instanceof Player) {
 			if (this.isPushingPlayers()) {
+				if (!TrainCarts.pushAwayIgnoreOwners) return true;
 				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
 			}
 		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {

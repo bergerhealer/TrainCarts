@@ -31,10 +31,12 @@ public class GroupManager {
 	/*
 	 * Train removal
 	 */
-	public static void removeAll(World world, boolean destroy) {
+	public static int removeAll(World world, boolean destroy) {
 		getGroups(world).clear();
+		int count = 0;
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
 			if (g.getWorld() == world) {
+				count++;
 				if (destroy) {
 					g.destroy();
 				} else {
@@ -43,10 +45,13 @@ public class GroupManager {
 			}
 		}
 		if (destroy) destroyMinecarts(world);
+		return count;
 	}
-	public static void removeAll(boolean destroy) {
+	public static int removeAll(boolean destroy) {
+		int count = 0;
 		hiddengroups.clear();
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
+			count++;
 			if (destroy) {
 				g.destroy();
 			} else {
@@ -58,6 +63,7 @@ public class GroupManager {
 				destroyMinecarts(world);
 			}
 		}
+		return count;
 	}
 	public static void destroyMinecarts(World world) {
 		for (Entity e : world.getEntities()) {
@@ -289,6 +295,13 @@ public class GroupManager {
 	public static void refresh(World w) {
 		for (WorldGroup g : getGroups(w)) {
 			if (g.isInLoadedChunks(w)) {
+				restoreGroup(w, g);
+				refresh(w);
+				break;
+			} else if (TrainProperties.get(g.name).keepChunksLoaded) {
+				for (WorldMember wm : g.members) {
+					w.getChunkAt(wm.cx, wm.cz);
+				}
 				restoreGroup(w, g);
 				refresh(w);
 				break;

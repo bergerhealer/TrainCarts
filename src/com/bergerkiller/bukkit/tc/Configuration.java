@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -42,6 +43,8 @@ public class Configuration extends YamlConfiguration {
 	public void load() {
 		try {
 			this.load(this.source);
+		} catch (FileNotFoundException ex) {
+			System.out.println("[Configuration] File '" + this.source + "' was not found");
 		} catch (Exception ex) {
 			System.out.println("[Configuration] Error while loading file '" + this.source + "':");
 			ex.printStackTrace();
@@ -49,7 +52,9 @@ public class Configuration extends YamlConfiguration {
 	}
 	public void save() {
 		try {
+			boolean regen = !this.exists();
 			this.save(this.source);
+			if (regen) System.out.println("[Configuration] File '" + this.source + "' has been regenerated");
 		} catch (Exception ex) {
 			System.out.println("[Configuration] Error while saving to file '" + this.source + "':");
 			ex.printStackTrace();
