@@ -33,7 +33,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	private static final int maxLinksPerUpdate = 40; //interval is 10: estimated at max 4 per tick
 	private static int linksPerUpdate = 0;
-		
+	
 	public static void updateGroups() {
 		linksPerUpdate = 0;
 		for (MinecartGroup mg : getGroups()) {
@@ -64,7 +64,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			}
 		}
 	}
-		
+	
 	public static void unload(MinecartGroup group) {
 		if (group == null) return;
 		group.stop();
@@ -159,6 +159,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (m1 == null || m2 == null || m1 == m2) return false;
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
+		if (m1.dead || m2.dead) return false;
 		//max links per update
 		if (linksPerUpdate == maxLinksPerUpdate) return false;
 		if (linksPerUpdate++ == maxLinksPerUpdate) {
@@ -167,11 +168,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		if (g1 != g2) {
     		if (EntityUtil.isSharingRails(m1.getMinecart(), m2.getMinecart())) {
-    			if (m1.dead || m1.isDerailed()) return false;
-    			if (m2.dead || m2.isDerailed()) return false;
+    			if (m1.isDerailed() || m2.isDerailed()) return false;
     			if (GroupManager.wasInGroup(m1.getMinecart())) return false;
     			if (GroupManager.wasInGroup(m2.getMinecart())) return false;		
-    		    		
     			//Can the two groups bind?
     			TrainProperties prop1 = g1.getProperties();
     			TrainProperties prop2 = g2.getProperties();

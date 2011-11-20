@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 
 import org.bukkit.Effect;
@@ -118,9 +119,9 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 	private void updateBlock(boolean forced) {
-		int x = (int) this.locX;
-		int y = (int) this.locY;
-		int z = (int) this.locZ;
+		int x = MathHelper.floor(this.locX);
+		int y = MathHelper.floor(this.locY);
+		int z = MathHelper.floor(this.locZ);
 		if (forced || x != this.blockx || z != this.blockz || y != (this.railsloped ? this.blocky : this.blocky + 1)) {
 			this.blockx = x;
 			this.blocky = y;

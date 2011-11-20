@@ -950,6 +950,8 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Returns if this entity is allowed to collide with another entity
 	 */
 	private boolean canCollide(Entity e) {
+		if (e.dead) return false;
+		if (this.dead) return false;
 		if (e instanceof MinecartMember) {
 			//colliding with a member in the group, or not?
 			MinecartMember mm1 = this.member();
