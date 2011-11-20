@@ -53,7 +53,8 @@ public class TCPlayerListener extends PlayerListener {
 		    	    	} else if (!prop.isOwner(p)) {
 		    	    		p.sendMessage(ChatColor.RED + "You don't own this train!");
 		    	    	} else {
-		    	    		prop.destination = sign.getLine(2);
+		    	    		prop.getSaved().destination = sign.getLine(2);
+		    	    		prop.restore();
 		    	    		p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + prop.destination + ChatColor.YELLOW + " as your destination!");
 		    	    	}
 		    		}
