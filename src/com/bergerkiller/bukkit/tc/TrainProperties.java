@@ -214,7 +214,11 @@ public class TrainProperties extends Properties {
 		this.restore();
 	}
 	public void load(Properties properties) {
-		this.saved.load(properties);
+		if (properties instanceof TrainProperties) {
+			this.saved.load(((TrainProperties) properties).saved);
+		} else {
+			this.saved.load(properties);
+		}
 		super.load(properties);
 	}
 	
