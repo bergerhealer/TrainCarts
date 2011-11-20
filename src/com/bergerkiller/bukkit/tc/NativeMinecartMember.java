@@ -401,7 +401,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		double motZ = this.motZ;
 		//Prevent NaN (you never know!)
 		if (Double.isNaN(motX)) motX = 0;
-		if (Double.isNaN(motX)) motZ = 0;
+		if (Double.isNaN(motZ)) motZ = 0;
 		if (Double.isNaN(speedFactor)) speedFactor = 1;
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
         if (motX < -this.maxSpeed) {

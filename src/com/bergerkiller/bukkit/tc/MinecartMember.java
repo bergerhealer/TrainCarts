@@ -19,10 +19,8 @@ import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.API.CoalUsedEvent;
-import com.bergerkiller.bukkit.tc.API.GroupUpdateEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.API.UpdateStage;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
@@ -52,41 +50,41 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	@Override
 	public void s_() {
-		motX = Util.fixNaN(motX);
-		motY = Util.fixNaN(motY);
-		motZ = Util.fixNaN(motZ);
 		MinecartGroup g = this.getGroup();
 		if (g.size() == 0) {
 			this.group = null;
-			g.remove();
 			super.s_();
 		} else {
 			if (g.tail() == this) {
-				if (GroupUpdateEvent.call(g, UpdateStage.FIRST)) {
-					g.updateTarget();
-					for (MinecartMember m : g) {
-						m.maxSpeed = getGroup().getProperties().speedLimit;
-						motX = Util.fixNaN(motX);
-						motY = Util.fixNaN(motY);
-						motZ = Util.fixNaN(motZ);
-						//General velocity update
-						m.preUpdate();
+				double totalforce = g.getAverageForce();
+				double speedlimit = g.getProperties().speedLimit;
+				if (totalforce > 0.4 && speedlimit > 0.4) {
+					int bits = (int) Math.ceil(speedlimit / 0.4);
+					for (MinecartMember mm : g) {
+						mm.motX /= (double) bits;
+						mm.motY /= (double) bits;
+						mm.motZ /= (double) bits;
 					}
-					if (GroupUpdateEvent.call(g, UpdateStage.BEFORE_GROUP)) {
-						g.update();
-						if (GroupUpdateEvent.call(g, UpdateStage.AFTER_GROUP)) {
-							for (MinecartMember m : g.toArray()) {
-								//TODO: if stuck in a block: Push upwards (set motY)
-								m.postUpdate(m.forceFactor);
-								m.updateBlock(false);
-							}
-							GroupUpdateEvent.call(g, UpdateStage.LAST);
-						}
+					for (int i = 0; i < bits; i++) {
+						g.doPhysics(bits);
 					}
+					for (MinecartMember mm : g) {
+						mm.motX *= (double) bits;
+						mm.motY *= (double) bits;
+						mm.motZ *= (double) bits;
+					}
+				} else {
+					g.doPhysics(1);
 				}
 			}
 		}
 	}	
+			
+	public void postUpdate() {
+		super.postUpdate(this.forceFactor);
+		this.updateBlock(false);
+	}
+	
 	@Override
 	public boolean onCoalUsed() {
 		CoalUsedEvent event = CoalUsedEvent.call(this);

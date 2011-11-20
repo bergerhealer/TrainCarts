@@ -243,7 +243,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				}
 				
 				g1.remove();
-				g2.update();
 				m2.playLinkEffect();
 				return true;
     			
@@ -698,7 +697,28 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			return true;
 		}
 	}
-	public void update() {
+	
+	public void doPhysics(int step) {
+		//pre-update
+		this.updateTarget();
+		for (MinecartMember m : this) {
+			m.maxSpeed = this.getProperties().speedLimit / step;
+			m.motX = Util.fixNaN(m.motX);
+			m.motY = Util.fixNaN(m.motY);
+			m.motZ = Util.fixNaN(m.motZ);
+			//General velocity update
+			m.preUpdate();
+		}
+		//update
+		this.update();
+		//post update
+		for (MinecartMember m : this.toArray()) {
+			m.postUpdate();
+			m.maxSpeed = this.getProperties().speedLimit;
+		}
+	}
+	
+	private void update() {				
 		//Prevent index exceptions: remove if not a train
 		if (this.size() == 1) {
 			//Set the yaw (IS important!)
@@ -717,7 +737,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				return;
 			}	
 		}
-		
+
 		//Get the average forwarding force of all carts
 		double force = this.getAverageForce();
 						
