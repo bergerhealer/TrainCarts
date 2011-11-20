@@ -82,7 +82,7 @@ public class TrainCarts extends JavaPlugin {
 			exitz = config.parse("exitOffset.z", (double) 0);
 			pushAwayForce = config.parse("pushAwayForce", 0.2);
 			pushAwayIgnoreGlobalOwners = config.parse("pushAwayIgnoreGlobalOwners", false);
-			pushAwayIgnoreOwners = config.parse("pushAwayIgnoreOwners", false);
+			pushAwayIgnoreOwners = config.parse("pushAwayIgnoreOwners", true);
 			useCoalFromStorageCart = config.parse("useCoalFromStorageCart", false);
 			setOwnerOnPlacement = config.parse("setOwnerOnPlacement", true);
 			config.set("use", true);
@@ -103,7 +103,6 @@ public class TrainCarts extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Highest, this);	
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, Priority.Highest, this);	
-		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this);	
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.Highest, this);	
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
@@ -324,7 +323,7 @@ public class TrainCarts extends JavaPlugin {
 					} else {
 						p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist));
 					}
-					p.sendMessage(ChatColor.YELLOW + "Is at station: " + ChatColor.WHITE + prop.isAtStation);
+					p.sendMessage(ChatColor.YELLOW + "Is at station: " + ChatColor.WHITE + prop.isAtStation());
 					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + (prop.enterMessage == null ? "None" : prop.enterMessage));
 					p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
 					if (prop.tags.size() == 0) {

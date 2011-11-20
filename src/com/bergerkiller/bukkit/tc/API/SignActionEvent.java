@@ -14,40 +14,33 @@ import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
-	private static final long serialVersionUID = -7414386763414357918L;
+	private static final long serialVersionUID = 1L;
 
 	public static enum ActionType {REDSTONE_CHANGE, REDSTONE_ON, REDSTONE_OFF, MEMBER_ENTER, MEMBER_MOVE, MEMBER_LEAVE, GROUP_ENTER, GROUP_LEAVE}
 	
 	public SignActionEvent(Block signblock, MinecartMember member) {
-		super("SignActionEvent");
-		this.signblock = signblock;
+		this(signblock);
 		this.member = member;
 		this.memberchecked = true;
 	}
 	public SignActionEvent(Block signblock, MinecartGroup group) {
-		super("SignActionEvent");
-		this.signblock = signblock;
+		this(signblock);
 		this.group = group;
 		this.memberchecked = true;
 	}
+	public SignActionEvent(ActionType actionType, Block signblock, MinecartMember member) {
+		this(actionType, signblock);
+		this.member = member;
+		this.memberchecked = true;
+	}
+	public SignActionEvent(ActionType actionType, Block signblock, MinecartGroup group) {
+		this(actionType, signblock);
+		this.group = group;
+		this.memberchecked = true;
+	}	
 	public SignActionEvent(Block signblock) {
 		super("SignActionEvent");
 		this.signblock = signblock;
-	}
-
-	public SignActionEvent(ActionType actionType, Block signblock, MinecartMember member) {
-		super("SignActionEvent");
-		this.signblock = signblock;
-		this.member = member;
-		this.memberchecked = true;
-		this.actionType = actionType;
-	}
-	public SignActionEvent(ActionType actionType, Block signblock, MinecartGroup group) {
-		super("SignActionEvent");
-		this.signblock = signblock;
-		this.group = group;
-		this.memberchecked = true;
-		this.actionType = actionType;
 	}
 	public SignActionEvent(ActionType actionType, Block signblock) {
 		super("SignActionEvent");
@@ -194,7 +187,6 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 
 	public void setCancelled(boolean arg0) {
-		this.cancelled = arg0;
-		
+		this.cancelled = arg0;	
 	}
 }

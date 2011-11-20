@@ -51,14 +51,26 @@ public class TrainProperties extends Properties {
 	}
 
 	private String trainname;	
-	public boolean isAtStation = false;
+	private boolean isStation = false;
 	private Properties saved = new Properties();
 
 	public Properties getSaved() {
 		return this.saved;
 	}
 	public void restore() {
-		this.load(this.saved);
+		super.load(this.saved);
+	}
+	public void setStation(boolean value) {
+		if (value == this.isStation) return;
+		this.isStation = value;
+		if (value) {
+			super.load(getDefaults(), "station");
+		} else {
+			this.restore();
+		}
+	}
+	public boolean isAtStation() {
+		return this.isStation;
 	}
 
 	public void showEnterMessage(Entity forEntity) {
@@ -147,6 +159,7 @@ public class TrainProperties extends Properties {
 	public boolean canCollide(Entity with) {
 		MinecartMember mm = MinecartMember.get(with);
 		if (mm == null) {
+			if (this.isStation) return false;
 			if (this.trainCollision) return true;
 			if (with instanceof Player) {
 				return this.isOwner((Player) with);
@@ -196,6 +209,15 @@ public class TrainProperties extends Properties {
 		return this;
 	}
 
+	public void load(Configuration config, String trainname) {
+		this.saved.load(config, trainname);
+		this.restore();
+	}
+	public void load(Properties properties) {
+		this.saved.load(properties);
+		super.load(properties);
+	}
+	
 	public static void load(String filename) {
 		Configuration config = new Configuration(new File(filename));
 		config.load();
@@ -208,7 +230,7 @@ public class TrainProperties extends Properties {
 		for (TrainProperties prop : properties.values()) {
 			//does this train even exist?!
 			if (GroupManager.contains(prop.getTrainName())) {
-				prop.save(config, prop.getTrainName());
+				prop.saved.save(config, prop.getTrainName());
 			} else {
 				config.set(prop.getTrainName(), null);
 			}
@@ -227,7 +249,7 @@ public class TrainProperties extends Properties {
 		editing.clear();
 		editing = null;
 	}
-
+    
 	/*
 	 * Train properties defaults
 	 */
@@ -237,15 +259,18 @@ public class TrainProperties extends Properties {
 	public static Configuration getDefaults() {
 		if (deffile == null) {
 			deffile = new File(TrainCarts.plugin.getDataFolder() + File.separator + "defaultflags.yml");
-			boolean make = !deffile.exists();
 			defconfig = new Configuration(deffile);
-			if (make) {
-				TrainProperties prop = new TrainProperties();
-				//default
-				prop.save(defconfig, "default");
-				prop.save(defconfig, "admin");
-				defconfig.save();
+			if (deffile.exists()) defconfig.load();
+			TrainProperties prop = new TrainProperties();
+			if (!defconfig.contains("default")) prop.save(defconfig, "default");
+			if (!defconfig.contains("admin")) prop.save(defconfig, "admin");
+			if (!defconfig.contains("station")) {
+				prop.pushMisc = true;
+				prop.pushMobs = true;
+				prop.pushPlayers = true;
+				prop.save(defconfig, "station");
 			}
+			defconfig.save();
 		}
 		defconfig.load();
 		return defconfig;
@@ -254,8 +279,7 @@ public class TrainProperties extends Properties {
 		setDefault("default");
 	}
 	public void setDefault(String key) {
-		getDefaults();
-		this.load(defconfig, key);
+		this.load(getDefaults(), key);
 	}
 	public void setDefault(Player player) {
 		if (player == null) {

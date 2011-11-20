@@ -12,7 +12,6 @@ import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.vehicle.VehicleListener;
-import org.bukkit.event.vehicle.VehicleMoveEvent;
 
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
@@ -61,11 +60,11 @@ public class TCVehicleListener extends VehicleListener {
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
 			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
-				MinecartGroup g = MinecartGroup.create(event.getVehicle());
-				if (g.size() != 0) {
+				MinecartMember mm = MinecartMember.convert(event.getVehicle());
+				if (mm != null) {
 					if (lastPlayer != null) {
-						g.getProperties().setDefault(lastPlayer);
-						g.getProperties().setEditing(lastPlayer);
+						mm.getGroup().getProperties().setDefault(lastPlayer);
+						mm.getGroup().getProperties().setEditing(lastPlayer);
 						lastPlayer = null;
 					}
 				}
@@ -109,24 +108,21 @@ public class TCVehicleListener extends VehicleListener {
 			}
 		}
 	}
-		
-	@Override
-	public void onVehicleMove(VehicleMoveEvent event) {
-		MinecartMember mm = MinecartMember.get(event.getVehicle());
-		if (mm != null) mm.updateActiveSign();
-	}
-	
+			
 	@Override
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
 		if (!event.isCancelled()) {
 			MinecartMember mm = MinecartMember.get(event.getVehicle());
-			if (mm != null) mm.remove();
+			if (mm != null) {
+				mm.unlinkSign();
+				mm.remove();
+			}
 		}
 	}
 	
 	@Override
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
-		if (event.getVehicle() instanceof Minecart) {
+		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
 			if (mm1 != null) {
 				TrainProperties prop = mm1.getGroup().getProperties();

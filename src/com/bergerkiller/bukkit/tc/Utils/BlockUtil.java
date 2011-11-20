@@ -85,10 +85,15 @@ public class BlockUtil {
     	}
     }
     
+    public static boolean isRails(Material type) {
+    	 return type == Material.RAILS || type == Material.POWERED_RAIL || type == Material.DETECTOR_RAIL;
+    }
+    public static boolean isRails(int type) {
+    	 return type == Material.RAILS.getId() || type == Material.POWERED_RAIL.getId() || type == Material.DETECTOR_RAIL.getId();
+    }
     public static boolean isRails(Block b) {
     	if (b == null) return false;
-        Material type = b.getType();
-        return type == Material.RAILS || type == Material.POWERED_RAIL || type == Material.DETECTOR_RAIL;
+    	return isRails(b.getTypeId());
     }
 	public static Block getRailsBlock(Minecart m) {
 		return getRailsBlock(m.getLocation());
@@ -124,21 +129,16 @@ public class BlockUtil {
 	}
 	public static float getRailsYaw(Rails rails) {
 		if (rails != null) {
-			switch (rails.getDirection()) {
-			case WEST : return -90;
-			case SOUTH : return 180;
-			case SOUTH_WEST : return 135;
-			case NORTH_WEST : return 45;
-			case NORTH_EAST : return 135;
-			case SOUTH_EAST : return 45;
-			}
+			return FaceUtil.getRailsYaw(rails.getDirection());
 		}
 		return 0;
 	}
+	public static boolean isSign(Material material) {
+		return material == Material.WALL_SIGN || material == Material.SIGN_POST;
+	}
     public static boolean isSign(Block b) {
     	if (b == null) return false;
-    	Material type = b.getType();
-    	return type == Material.WALL_SIGN || type == Material.SIGN_POST;
+    	return isSign(b.getType());
     }
 	public static Sign getSign(Block signblock) {
 		if (isSign(signblock)) {

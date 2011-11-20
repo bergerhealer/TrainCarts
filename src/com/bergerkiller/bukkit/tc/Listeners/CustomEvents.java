@@ -126,18 +126,17 @@ public class CustomEvents {
 			}
 			if (instruction == BlockFace.UP) return; 
 
-			VelocityTarget lastTarget = null;
 			TrainProperties prop = group.getProperties();
 
 			//What do we do?
-			Location l = info.getRailLocation().add(0.5, 0, 0.5);
+			Location l = info.getRailLocation();
 			if (instruction == BlockFace.SELF) {
 				if (north || east || south || west) {
 					//Redstone change and moving?
 					if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
 						//Brake
 						midd.setTarget(l, 0, 0);
-						prop.isAtStation = true;
+						prop.setStation(true);
 						BlockFace trainDirection = null;
 						if (mode == 1) {
 							//Continue
@@ -165,26 +164,20 @@ public class CustomEvents {
 						if (l != null) {
 							//Actual launching here
 							l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
-							lastTarget = midd.addTarget(l, midd.maxSpeed, delayMS);
+							midd.addTarget(l, midd.maxSpeed, delayMS);
 						}
 					}
 				}
 			} else {
 				//Launch
-				prop.isAtStation = true;
+				prop.setStation(true);
 				midd.getGroup().clearTargets();
 				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 				if (midd.isMoving() && !midd.isHeadingTo(next)) {
 					//Reversing, need to center it in the middle first
 					midd.setTarget(l, 0, 0);
 				}
-				lastTarget = midd.addTarget(next, midd.maxSpeed, delayMS);
-				lastTarget.afterTask = new Task(TrainCarts.plugin, prop) {
-					public void run() {
-						TrainProperties prop = (TrainProperties) getArg(0);
-						prop.isAtStation = false;
-					}
-				};
+				midd.addTarget(next, midd.maxSpeed, delayMS);
 			}
 		}
 	}
@@ -396,8 +389,12 @@ public class CustomEvents {
 				if (info.getLine(1).toLowerCase().startsWith("station")) {
 					if (info.hasRails()) {
 						MinecartGroup group = info.getGroup();
-						if (group != null && !info.isAction(ActionType.GROUP_LEAVE)) {
-							handleStation(info);
+						if (group != null) {
+							if (info.isAction(ActionType.GROUP_LEAVE)) {
+								group.getProperties().setStation(false);
+							} else {
+								handleStation(info);
+							}
 						}
 						if (!info.isAction(ActionType.REDSTONE_CHANGE)) {
 							info.setLevers(info.isAction(ActionType.GROUP_ENTER));

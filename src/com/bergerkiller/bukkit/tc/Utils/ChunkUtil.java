@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.Utils;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.World;
 
@@ -12,7 +12,7 @@ public class ChunkUtil {
 	public static int toChunk(double loc) {
 		return ((int) loc) >> 4;
 	}
-	public static boolean addNearChunks(ArrayList<SimpleChunk> rval, World w, int chunkX, int chunkZ, int radius, boolean addloaded, boolean addunloaded) {
+	public static boolean addNearChunks(List<SimpleChunk> rval, World w, int chunkX, int chunkZ, int radius, boolean addloaded, boolean addunloaded) {
 		boolean added = false;
 		for (int dx = -radius; dx <= radius * 2;dx++) {
 			for (int dz = -radius; dz <= radius * 2;dz++) {

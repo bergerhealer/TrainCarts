@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class CoalUsedEvent extends Event {
-	private static final long serialVersionUID = -4536478305019224422L;
+	private static final long serialVersionUID = 1L;
 	private MinecartMember member;
 	private boolean useCoal;
 	private boolean refill;

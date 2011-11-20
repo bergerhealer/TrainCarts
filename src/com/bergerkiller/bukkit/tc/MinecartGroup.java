@@ -39,9 +39,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartGroup mg : getGroups()) {
 			//Remove dead carts and lonely groups caused by this
 			if (mg.isValid()) {
-				for (MinecartMember mm : mg.toArray()) {
-					if (mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
-						mm.remove();
+				int i = 0;
+				while (i < mg.size()) {
+					MinecartMember mm = mg.get(i);
+					if (mm.group != mg || mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
+						mg.remove(i);
+					} else {
+						i++;
 					}
 				}
 			}
@@ -70,9 +74,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	    group.clear();
 		groups.remove(group);
 	}
-	public static MinecartGroup create() {
-		return new MinecartGroup();
-	}
 	public static MinecartGroup create(Entity... members) {
 		return create(MinecartMember.convertAll(members));
 	}
@@ -84,18 +85,18 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				member.preUpdate();
 			}
 		}
-		//handle events
-		for (MinecartMember mm : g) {
-			mm.updateActiveSign();
-		}
+		if (g.size() == 0) return null;
+		groups.add(g);
 		return g;
 	}
 	
 	public static MinecartGroup spawn(Location[] at, int[] types, double forwardforce) {
-		MinecartGroup g = MinecartGroup.create();
+		if (at.length != types.length || at.length == 0) return null;
+		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < types.length; i++) {
 			g.add(MinecartMember.spawn(at[i], types[i], forwardforce));
 		}
+		groups.add(g);
 		return g;
 	}
 	public static MinecartGroup spawn(Block startblock, BlockFace direction, int[] types, double forwardforce) {
@@ -105,10 +106,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Integer> types, double forwardforce) {
 		Location[] destinations = TrackMap.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
-		MinecartGroup g = MinecartGroup.create();
+		if (types.size() != destinations.length || destinations.length == 0) return null;
+		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < destinations.length; i++) {
 			g.add(MinecartMember.spawn(destinations[destinations.length - i - 1], types.get(i), forwardforce));
 		}
+		groups.add(g);
 		return g;
 	}
 	
@@ -147,12 +150,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public static boolean link(Minecart m1, Minecart m2) {
+		if (m1 == m2) return false;
 		if (m1.isDead()) return false;
 		if (m2.isDead()) return false;
 		return link(MinecartMember.convert(m1), MinecartMember.convert(m2));
 	}
 	public static boolean link(MinecartMember m1, MinecartMember m2) {
-		if (m1 == null || m2 == null) return false;
+		if (m1 == null || m2 == null || m1 == m2) return false;
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
 		//max links per update
@@ -177,7 +181,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
     			
     			//Is a powered minecart required?
     			if (prop1.requirePoweredMinecart || prop2.requirePoweredMinecart) {
-    				if (g1.getCartCount(Material.POWERED_MINECART) == 0 && g2.getCartCount(Material.POWERED_MINECART) == 0) {
+    				if (g1.size(Material.POWERED_MINECART) == 0 && g2.size(Material.POWERED_MINECART) == 0) {
     					return false;
     				}
     			}
@@ -228,12 +232,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				g1.activeSigns.clear();
 				g2.activeSigns.clear();
 				g2.clearTargets();
-				
+								
 				//Re-activate the signs underneath the train
 				for (MinecartMember mm : g2) {
-					Block s = mm.getActiveSign();
+					Block s = mm.getSignBlock();
 					if (s != null) {
-						g2.activeSigns.add(s.getLocation());
+						g2.activeSigns.add(s);
 						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, s, g2));
 						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_ENTER, s, g2));
 					}
@@ -250,29 +254,24 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 
 	public static void rename(String oldtrainname, String newtrainname) {
-		boolean renamed = false;
 		for (MinecartGroup group : groups) {
 			if (group.getName().equals(oldtrainname)) {
 				group.setName(newtrainname);
-				renamed = true;
+				return;
 			}
 		}
-		if (!renamed) {
-			TrainProperties.get(oldtrainname).rename(newtrainname);
-		}
+		TrainProperties.get(oldtrainname).rename(newtrainname);
 	}
 	
     /*
      * NON-STATIC REGION
      */
-	private HashSet<Location> activeSigns = new HashSet<Location>();
+	private HashSet<Block> activeSigns = new HashSet<Block>();
 	private Queue<VelocityTarget> targets = new LinkedList<VelocityTarget>();
 	private String name;
 	private TrainProperties prop = null;
 	
-	private MinecartGroup() {
-		groups.add(this);
-	}
+	private MinecartGroup() {}
 		
 	/*
 	 * Name
@@ -368,15 +367,25 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	/*
 	 * Signs underneath this group
 	 */
-	public boolean getSignActive(Block signblock) {
-		return this.activeSigns.contains(signblock.getLocation());
+	public boolean isSignActive(Block signblock) {
+		return this.activeSigns.contains(signblock);
 	}
-	public void setSignActive(Block signblock, boolean active) {
+	public boolean setSignActive(SignActionEvent signblock, boolean active) {
 		if (active) {
-			this.activeSigns.add(signblock.getLocation());
+			if (this.activeSigns.add(signblock.getBlock())) {
+				CustomEvents.onSign(signblock, ActionType.GROUP_ENTER);
+				return true;
+			}
 		} else {
-			this.activeSigns.remove(signblock.getLocation());
+			if (this.activeSigns.remove(signblock.getBlock())) {
+				CustomEvents.onSign(signblock, ActionType.GROUP_LEAVE);
+				return true;
+			}
 		}
+		return false;
+	}
+	public boolean setSignActive(Block signblock, boolean active) {
+		return setSignActive(new SignActionEvent(signblock, this), active);
 	}
 	
 	public MinecartMember head(int index) {
@@ -399,20 +408,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return this.toArray(new MinecartMember[0]);
 	}
 	
-	public boolean connect(MinecartMember contained, MinecartMember toadd) {
+	public boolean connect(MinecartMember contained, MinecartMember with) {
 		if (this.size() <= 1) return false;
-		if (head() == contained) {
-			//Validate
-			double d1 = toadd.distance(head(0));
-			double d2 = toadd.distance(head(1));
-			if (d1 >= d2) return false;
-			this.add(0, toadd);
-		} else if (tail() == contained) {
-			//Validate
-			double d1 = toadd.distance(tail(0));
-			double d2 = toadd.distance(tail(1));
-			if (d1 >= d2) return false;
-			this.add(toadd);
+		if (head() == contained && contained.isMiddleOf(with, head(1))) {
+			this.add(0, with);
+		} else if (tail() == contained && contained.isMiddleOf(with, tail(1))) {
+			this.add(with);
 		} else {
 			return false;
 		}
@@ -435,27 +436,24 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public void add(int index, MinecartMember member) {
+		member.group = this;
 		super.add(index, member);
-		member.setGroup(this);
 	}
 	public boolean add(MinecartMember member) {
-		super.add(member);
-		member.setGroup(this);
-		return true;
+		member.group = this;
+		return super.add(member);
 	}
 	public boolean addAll(int index, Collection<? extends MinecartMember> members) {
-		super.addAll(index, members);
 		for (MinecartMember m : members) {
-			m.setGroup(this);
+			m.group = this;
 		}
-		return true;
+		return super.addAll(index, members);
 	}
 	public boolean addAll(Collection<? extends MinecartMember> members) {
-		super.addAll(members);
 		for (MinecartMember m : members) {
-			m.setGroup(this);
+			m.group = this;
 		}
-		return true;
+		return super.addAll(members);
 	}
 	
 	public boolean contains(Object o) {
@@ -470,19 +468,17 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public double length() {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
-	public int getCartCount(Material type) {
-		int typeid = 0;
-		if (type == Material.STORAGE_MINECART) {
-			typeid = 1;
-		} else if (type == Material.POWERED_MINECART) {
-			typeid = 2;
+	public int size(Material carttype) {
+		switch (carttype) {
+		case STORAGE_MINECART : return this.size(1);
+		case POWERED_MINECART : return this.size(2);
+		default : return this.size(0);
 		}
-		return getCartCount(typeid);
 	}
-	public int getCartCount(int type) {
+	public int size(int carttype) {
 		int rval = 0;
 		for (MinecartMember mm : this) {
-			if (mm.type == type) rval++;
+			if (mm.type == carttype) rval++;
 		}
 		return rval;
 	}
@@ -491,7 +487,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (this.size() == 0) return false;
 		if (this.size() == 1) return true;
 		if (this.getProperties().requirePoweredMinecart) {
-			return this.getCartCount(Material.POWERED_MINECART) > 0;
+			return this.size(Material.POWERED_MINECART) > 0;
 		} else {
 			return true;
 		}
@@ -506,20 +502,22 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public MinecartMember remove(int index) {
 		MinecartMember removed = this.get(index);
 		if (this.size() == 1) {
-			//Simplified
+			//Simplified - remove cart and remove this group
 			this.remove();
 		} else {
 			get(index).playLinkEffect();
-			
-			//remove cart from global info
-			if (removed.getGroup() == this) {
-				removed.setGroup(null);
+							
+			//Set the deactivated signs that need updating
+			HashSet<Block> deactivatedSigns = new HashSet<Block>();
+			for (Block block : this.activeSigns) {
+				deactivatedSigns.add(block);
 			}
 			
-			//Set the deactivated signs that need updating
-			HashSet<Location> deactivatedSigns = new HashSet<Location>();
-			for (Location loc : this.activeSigns) {
-				deactivatedSigns.add(loc);
+			//remove cart from group info
+			if (removed.group == this) {
+				removed.group = null;
+			} else if (removed.group != null && removed.hasSign()) {
+				deactivatedSigns.remove(removed.getSignBlock());
 			}
 			
 			//split the train at the index
@@ -536,10 +534,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				
 				//Set the new active signs
 				for (MinecartMember mm : gnew) {
-					Block b = mm.getActiveSign();
+					Block b = mm.getSignBlock();
 					if (b != null) {
-						gnew.activeSigns.add(b.getLocation());
-						deactivatedSigns.remove(b.getLocation());
+						gnew.activeSigns.add(b);
+						deactivatedSigns.remove(b);
 					}
 				}
 				
@@ -555,10 +553,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Set the new active signs
 			this.activeSigns.clear();
 			for (MinecartMember mm : this) {
-				Block b = mm.getActiveSign();
+				Block b = mm.getSignBlock();
 				if (b != null) {
-					this.activeSigns.add(b.getLocation());
-					deactivatedSigns.remove(b.getLocation());
+					this.activeSigns.add(b);
+					deactivatedSigns.remove(b);
 				}
 			}
 			
@@ -567,50 +565,43 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.remove();
 			}
 			
-			//Remove deactived signs
-			for (Location location : deactivatedSigns) {
-				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, location.getBlock(), this));
+			//Remove deactivated signs
+			for (Block block : deactivatedSigns) {
+				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, block, this));
 			}
 		}
-		
-
 		return removed;
 	}
 	
-	public void remove() {
-		//Trigger all signs currently active
-		if (this.size() > 0) {
-			for (Location location : this.activeSigns) {
-				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, location.getBlock(), this));
-			}
-		}
-		activeSigns.clear();
+	public void clear() {
 		for (MinecartMember mm : this) {
-			if (mm.getGroup() == this) {
-				mm.setGroup(null);
+			if (mm.hasSign() && (mm.group == null || mm.dead)) {
+				this.activeSigns.remove(mm.getSignBlock());
+			}
+			if (mm.group == this) {
+				mm.group = null;
+				if (!mm.dead) {
+					mm.getGroup().getProperties().load(this.getProperties());
+				}
 			}
 		}
-		if (this.size() > 0) {
-			//set props
-			for (MinecartMember mm : this) {
-				mm.getGroup().getProperties().load(this.getProperties());
-			}
+		for (Block block : this.activeSigns) {
+			CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, block, this));
 		}
+		this.activeSigns.clear();
+		super.clear();
+	}
+	
+	public void remove() {
 		this.clear();
-		groups.remove(this);
 		if (this.prop != null) {
 			this.prop.remove();
 		}
+		groups.remove(this);
 	}
 	public void destroy() {
-		for (MinecartMember mm : this.toArray()) {
-			mm.destroy();
-		}
-		this.clear();
-		groups.remove(this);
-		if (this.prop != null) {
-			this.prop.remove();
-		}
+		for (MinecartMember mm : this) mm.destroy(false);
+		this.remove();
 	}	
 	public void stop() {
 		for (MinecartMember m : this) {
@@ -702,12 +693,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return this.head().isMoving();
 	}
 	public boolean canUnload() {
-		for (MinecartMember mm : this) {
-			if (mm.isMoving()) {
-				return !this.getProperties().keepChunksLoaded;
-			}
+		if (this.isMoving() && this.getProperties().keepChunksLoaded) {
+			return false;
+		} else {
+			return true;
 		}
-		return true;
 	}
 	public void update() {
 		//Prevent index exceptions: remove if not a train

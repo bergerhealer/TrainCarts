@@ -71,6 +71,10 @@ public class Properties {
 		this.addTags(tags);
 	}
 	
+	public boolean hasDestination() {
+		return this.destination != null && !this.destination.equals("");
+	}
+	
 	public void load(Configuration config, String key) {
 		this.owners = config.getListOf(key + ".owners", this.owners);
 		this.passengers = config.getListOf(key + ".passengers", this.passengers);
@@ -110,23 +114,23 @@ public class Properties {
 		this.keepChunksLoaded = source.keepChunksLoaded;
 	}
 	public void save(Configuration config, String key) {		
-		config.set(key + ".owners", this.owners);
-		config.set(key + ".passengers", this.passengers);
-		config.set(key + ".allowMobsEnter", this.allowMobsEnter);
-		config.set(key + ".allowPlayerEnter", this.allowPlayerEnter);
-		config.set(key + ".allowPlayerExit", this.allowPlayerExit);
-		config.set(key + ".enterMessage", this.enterMessage);
-		config.set(key + ".allowLinking", this.allowLinking);
-		config.set(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
-		config.set(key + ".trainCollision", this.trainCollision);
-		config.set(key + ".keepChunksLoaded", this.keepChunksLoaded);
-		config.set(key + ".tags", this.tags);
-		config.set(key + ".speedLimit", this.speedLimit);
-		config.set(key + ".slowDown", this.slowDown);
-		config.set(key + ".destination", this.destination);
-		config.set(key + ".pushAway.mobs", this.pushMobs);
-		config.set(key + ".pushAway.players", this.pushPlayers);
-		config.set(key + ".pushAway.misc", this.pushMisc);
+		config.set(key + ".owners", this.owners.size() > 0 ? this.owners : null);
+		config.set(key + ".passengers", this.passengers.size() > 0 ? this.passengers : null);
+		config.set(key + ".allowMobsEnter", !this.allowMobsEnter ? this.allowMobsEnter : null);
+		config.set(key + ".allowPlayerEnter", !this.allowPlayerEnter ? this.allowPlayerEnter : null);
+		config.set(key + ".allowPlayerExit", !this.allowPlayerExit ? this.allowPlayerExit : null);
+		config.set(key + ".enterMessage", this.enterMessage != null ? this.enterMessage : null);
+		config.set(key + ".allowLinking", !this.allowLinking ? this.allowLinking : null);
+		config.set(key + ".requirePoweredMinecart", this.requirePoweredMinecart ? this.requirePoweredMinecart : null);
+		config.set(key + ".trainCollision", !this.trainCollision ? this.trainCollision : null);
+		config.set(key + ".keepChunksLoaded", this.keepChunksLoaded ? this.keepChunksLoaded : null);
+		config.set(key + ".tags", this.tags.size() > 0 ? this.tags : null);
+		config.set(key + ".speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+		config.set(key + ".slowDown", !this.slowDown ? this.slowDown : null);
+		config.set(key + ".destination", this.hasDestination() ? this.destination : null);
+		config.set(key + ".pushAway.mobs", this.pushMobs ? this.pushMobs : null);
+		config.set(key + ".pushAway.players", this.pushPlayers ? this.pushPlayers : null);
+		config.set(key + ".pushAway.misc", !this.pushMisc ? this.pushMisc : null);
 	}
 
 }

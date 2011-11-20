@@ -101,6 +101,18 @@ public class FaceUtil {
 					BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP};
 		}
 	}
+	
+	public static float getRailsYaw(BlockFace direction) {
+		switch (direction) {
+		case WEST : return -90;
+		case SOUTH : return 180;
+		case SOUTH_WEST : return 135;
+		case NORTH_WEST : return 45;
+		case NORTH_EAST : return 135;
+		case SOUTH_EAST : return 45;
+		default : return 0;
+		}
+	}
 		
 	public static float faceToYaw(BlockFace face) {
 		switch (face) {
@@ -114,8 +126,7 @@ public class FaceUtil {
 		case SOUTH_EAST : return 135;
 		}
 		return 0;
-	}
-	
+	}	
 	public static BlockFace yawToFace (float yaw) {
 		return yawToFace(yaw, true);
 	}
