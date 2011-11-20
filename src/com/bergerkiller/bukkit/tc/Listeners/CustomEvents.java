@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Properties;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -321,7 +322,8 @@ public class CustomEvents {
 		}
 	}
 
-	private static void handleProperties(TrainProperties prop, String mode, String arg) {
+	private static void handleProperties(TrainProperties tprop, String mode, String arg) {
+		Properties prop = tprop.getSaved();
 		if (mode.equals("addtag")) {
 			prop.addTags(arg);
 		} else if (mode.equals("settag")) {
@@ -339,7 +341,7 @@ public class CustomEvents {
 		} else if (mode.equals("slow") || mode.equals("slowdown")) {
 			prop.slowDown = Util.getBool(arg);
 		} else if (mode.equals("setdefault") || mode.equals("default")) {
-			prop.setDefault(arg);
+			tprop.setDefault(arg);
 		} else if (mode.equals("pushmobs")) {
 			prop.pushMobs = Util.getBool(arg);
 		} else if (mode.equals("pushplayers")) {
@@ -361,6 +363,7 @@ public class CustomEvents {
 				prop.speedLimit = 0.4;
 			}
 		}
+		tprop.restore();
 	}
 
 	public static void onSign(SignActionEvent info, ActionType action) {

@@ -59,15 +59,14 @@ public class TrainProperties extends Properties {
 	}
 	public void restore() {
 		super.load(this.saved);
+		if (this.isStation) {
+			super.load(getDefaults(), "station");
+		}
 	}
 	public void setStation(boolean value) {
 		if (value == this.isStation) return;
 		this.isStation = value;
-		if (value) {
-			super.load(getDefaults(), "station");
-		} else {
-			this.restore();
-		}
+		this.restore();
 	}
 	public boolean isAtStation() {
 		return this.isStation;

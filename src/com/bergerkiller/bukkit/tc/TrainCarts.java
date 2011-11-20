@@ -261,25 +261,26 @@ public class TrainCarts extends JavaPlugin {
 		if (sender instanceof Player) {
 			Player p = (Player) sender;
 			//get the train this player is editing
-			TrainProperties prop = TrainProperties.getEditing(p);
+			TrainProperties tprop = TrainProperties.getEditing(p);
 			//permissions
-			if (prop == null) {
+			if (tprop == null) {
 				if (TrainProperties.canBeOwner(p)) {
 					p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
 				} else {
 					p.sendMessage(ChatColor.RED + "You don't own a train you can change!");
 				}
-			} else if (!prop.isOwner(p)) {
+			} else if (!tprop.isOwner(p)) {
 				p.sendMessage(ChatColor.RED + "You don't own this train!");
 			} else {
+				Properties prop = tprop.getSaved();
 				//let's do stuff with it
 				if (cmd.equals("edit")) {
                     if (args.length == 1) {
                     	prop = TrainProperties.get(args[0]);
                     	if (prop != null) {
-                    		if (prop.isOwner(p)) {
-                    			prop.setEditing(p);
-                    			p.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");
+                    		if (tprop.isOwner(p)) {
+                    			tprop.setEditing(p);
+                    			p.sendMessage(ChatColor.GREEN + "You are now editing train '" + tprop.getTrainName() + "'!");
                     		} else {
                     			p.sendMessage(ChatColor.YELLOW + "You do not own this train!");
                     		}
@@ -291,14 +292,14 @@ public class TrainCarts extends JavaPlugin {
                     }
 				} else if (cmd.equals("info") || cmd.equals("i")) {
 					//warning message
-					if (!prop.isDirectOwner(p)) {
+					if (!tprop.isDirectOwner(p)) {
 						if (prop.owners.size() == 0) {
 							p.sendMessage(ChatColor.YELLOW + "Note: This train is not owned, claim it using /train claim!");
 						} else {
 							p.sendMessage(ChatColor.RED + "Warning: You do not own this train!");
 						}
 					}
-					p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
+					p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + tprop.getTrainName());
 					p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
 					p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
 					if (prop.allowMobsEnter) {
@@ -315,15 +316,15 @@ public class TrainCarts extends JavaPlugin {
 					p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
 					//push away
 					ArrayList<String> pushlist = new ArrayList<String>();
-					if (prop.getSaved().pushMobs) pushlist.add("Mobs");
-					if (prop.getSaved().pushPlayers) pushlist.add("Players");
-					if (prop.getSaved().pushMisc) pushlist.add("Misc");
+					if (prop.pushMobs) pushlist.add("Mobs");
+					if (prop.pushPlayers) pushlist.add("Players");
+					if (prop.pushMisc) pushlist.add("Misc");
 					if (pushlist.size() == 0) {
 						p.sendMessage(ChatColor.YELLOW + "This train will never push anything.");
 					} else {
 						p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist));
 					}
-					p.sendMessage(ChatColor.YELLOW + "Is at station: " + ChatColor.WHITE + prop.isAtStation());
+					p.sendMessage(ChatColor.YELLOW + "Is at station: " + ChatColor.WHITE + tprop.isAtStation());
 					p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + (prop.enterMessage == null ? "None" : prop.enterMessage));
 					p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
 					if (prop.tags.size() == 0) {
@@ -494,7 +495,7 @@ public class TrainCarts extends JavaPlugin {
 						if (TrainProperties.exists(newname)) {
 							p.sendMessage(ChatColor.RED + "This name is already taken!");
 						} else {
-							GroupManager.rename(prop.getTrainName(), newname);
+							GroupManager.rename(tprop.getTrainName(), newname);
 							p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 						}
 					}
@@ -504,16 +505,17 @@ public class TrainCarts extends JavaPlugin {
 						sender.sendMessage("All train routings will be recalculated.");
 					}
 				} else if (cmd.equals("remove") || cmd.equals("destroy")) {
-					MinecartGroup g = MinecartGroup.get(prop.getTrainName());
+					MinecartGroup g = MinecartGroup.get(tprop.getTrainName());
 					if (g != null) {
 						g.destroy();
 					} else {
-						prop.remove();
+						tprop.remove();
 					}
 					p.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
 				} else {
 					p.sendMessage(ChatColor.RED + "Unknown command: '" + cmd + "'!");
 				}
+				tprop.restore();
 			}
 		}
 		return true;
