@@ -129,7 +129,9 @@ public class MinecartMember extends NativeMinecartMember {
 			if (BlockUtil.isSign(this.activesign)) {
 				SignActionEvent info = new SignActionEvent(this.activesign, this);
 				CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
+				if (this.dead) return; 
 				this.getGroup().setSignActive(info, true);
+				if (this.dead) return; 
 			} else {
 				this.activesign = null;
 			}
