@@ -322,7 +322,19 @@ public class MinecartMember extends NativeMinecartMember {
 		this.getGroup().clearTargets();
 		return this.getGroup().addTarget(this, to, toVelocity, delayMS);
 	}
-	
+	public VelocityTarget addTarget(Vector offset, double toVelocity, long delayMS) {
+		return this.addTarget(this.getLocation().add(offset), toVelocity, delayMS);
+	}
+	public VelocityTarget setTarget(Vector offset, double toVelocity, long delayMS) {
+		return this.setTarget(this.getLocation().add(offset), toVelocity, delayMS);
+	}
+	public VelocityTarget addTarget(BlockFace direction, double distance, double toVelocity, long delayMS) {
+		return this.addTarget(FaceUtil.faceToVector(direction, distance), toVelocity, delayMS);
+	}
+	public VelocityTarget setTarget(BlockFace direction, double distance, double toVelocity, long delayMS) {
+		return this.setTarget(FaceUtil.faceToVector(direction, distance), toVelocity, delayMS);
+	}
+		
 	/*
 	 * Velocity functions
 	 */

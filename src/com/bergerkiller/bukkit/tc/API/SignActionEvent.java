@@ -6,6 +6,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.Destinations;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -80,7 +81,11 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @param to Absolute direction to go to.
 	 */
   public void setRailsFromCart(BlockFace to) {
-    BlockUtil.setRails(this.getRails(), this.getMember().getDirection().getOppositeFace(), to);
+	  BlockUtil.setRails(this.getRails(), this.getMember().getDirection().getOppositeFace(), to);
+	  if (this.getMember().getDirection().getOppositeFace() == to){
+		  this.getGroup().stop();
+		  this.getMember().setTarget(to, 1, this.getMember().maxSpeed, 0);
+	  }
   }
   public void setRailsRelativeFromCart(BlockFace direction) {
     BlockFace main = this.getMember().getDirection();

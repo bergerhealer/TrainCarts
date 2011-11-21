@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.Utils;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.Util;
 
@@ -112,6 +113,13 @@ public class FaceUtil {
 		case SOUTH_EAST : return 45;
 		default : return 0;
 		}
+	}
+	
+	public static Vector faceToVector(BlockFace face, double length) {
+		return faceToVector(face).multiply(length);
+	}
+	public static Vector faceToVector(BlockFace face) {
+		return new Vector(face.getModX(), face.getModY(), face.getModZ());
 	}
 		
 	public static float faceToYaw(BlockFace face) {
