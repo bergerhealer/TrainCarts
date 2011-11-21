@@ -6,7 +6,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.Destinations;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -15,7 +14,7 @@ import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 
 	public static enum ActionType {REDSTONE_CHANGE, REDSTONE_ON, REDSTONE_OFF, MEMBER_ENTER, MEMBER_MOVE, MEMBER_LEAVE, GROUP_ENTER, GROUP_LEAVE}
 	
@@ -185,6 +184,10 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public String getLine(int index) {
 		return this.getSign().getLine(index);
+	}
+	public void setLine(int index, String line) {
+		this.getSign().setLine(index, line);
+		this.getSign().update(true);
 	}
 
 	public boolean isCancelled() {

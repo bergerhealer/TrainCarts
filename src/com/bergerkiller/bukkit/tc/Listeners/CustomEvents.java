@@ -171,11 +171,12 @@ public class CustomEvents {
 			} else {
 				//Launch
 				prop.setStation(true);
-				midd.getGroup().clearTargets();
+				group.clearTargets();
 				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
-				if (midd.isMoving() && !midd.isHeadingTo(next)) {
+				MinecartMember head = group.head();
+				if (head.isMoving() && head.getDirection() != instruction) {
 					//Reversing, need to center it in the middle first
-					midd.setTarget(l, 0, 0);
+					midd.addTarget(l, 0, 0);
 				}
 				midd.addTarget(next, midd.maxSpeed, delayMS);
 			}

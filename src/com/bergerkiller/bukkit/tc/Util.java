@@ -256,15 +256,32 @@ public class Util {
 	public static Vector getDirection(float yaw, float pitch) {
 		return new Location(null, 0, 0, 0, yaw, pitch).getDirection();
 	}
+		
+	public static double limit(double value, double limit) {
+		return limit(value, -limit, limit);
+	}
+	public static double limit(double value, double min, double max) {
+		if (value < min) return min;
+		if (value > max) return max;
+		return value;
+	}
+	
+	public static Vector setVectorLength(Vector vector, double length) {
+		return setVectorLength(vector, length * length);
+	}
+	public static Vector setVectorLengthSquared(Vector vector, double lengthsquared) {
+		vector = vector.clone();
+		double vlength = vector.lengthSquared();
+		if (vlength < 0.001 || vlength > -0.001) return vector;
+		vector.multiply(lengthsquared / vlength);
+		return vector;
+	}
 
 	public static boolean isHeadingTo(Location from, Location to, Vector velocity) {
-		//standing still
-		if (velocity.length() < 0.01) return false;
-		if (from.distanceSquared(to) < 0.01) return true;
-		//distance check
 		double dbefore = from.distanceSquared(to);
-		from = from.add(velocity.getX() * 0.000001, velocity.getY() * 0.000001, velocity.getZ() * 0.000001);
-		double dafter = from.distanceSquared(to);
+		if (dbefore < 0.01) return true;
+		velocity = setVectorLengthSquared(velocity, dbefore);
+		double dafter = from.clone().add(velocity).distanceSquared(to);
 		return dafter < dbefore;
 	}
 

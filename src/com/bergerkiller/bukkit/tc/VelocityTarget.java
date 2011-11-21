@@ -53,6 +53,7 @@ public class VelocityTarget {
 	}
 	
 	public boolean update() {
+		if (from.dead) return true; 
 		//Update time
 		if (this.startTime == 0) {
 			this.startTime = System.currentTimeMillis() + this.delay;
@@ -74,15 +75,17 @@ public class VelocityTarget {
 		from.getGroup().limitSpeed();
 
 		//Increment distance
-		this.distance += Util.distance(from.locX, from.locZ, from.lastX, from.lastZ);
+		double distanceChange = Util.distance(from.locX, from.locZ, from.lastX, from.lastZ);
+		this.distance += distanceChange;
 
 		//Did not pass the goal already?
 		boolean reached = this.distance > this.goalDistance - 0.2;
+		if (distanceChange < 0.01 && this.distance > 0.5) reached = true; //hit an obstacle
 		
 		//Get the velocity to set the cart to
 		double targetvel;
-		if (this.goalVelocity > 0 || (this.goalDistance - this.distance) < 3) {
-			targetvel = Util.stage(this.startVelocity, this.goalVelocity, (this.distance - 0.6) / this.goalDistance);
+		if (this.goalVelocity > 0 || (this.goalDistance - this.distance) < 5) {
+			targetvel = Util.stage(this.startVelocity, this.goalVelocity, (this.distance) / this.goalDistance);
 		} else {
 			targetvel = this.startVelocity;
 		}

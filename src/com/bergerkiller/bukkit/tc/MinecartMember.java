@@ -51,35 +51,18 @@ public class MinecartMember extends NativeMinecartMember {
 	@Override
 	public void s_() {
 		MinecartGroup g = this.getGroup();
-		if (g.size() == 0) {
-			this.group = null;
+		if (g == null) return;
+		if (this.dead) {
+			//remove self
+			g.remove(this);
+		} else if (g.size() == 0) {
+			g.remove();
 			super.s_();
-		} else {
-			if (g.tail() == this) {
-				double totalforce = g.getAverageForce();
-				double speedlimit = g.getProperties().speedLimit;
-				if (totalforce > 0.4 && speedlimit > 0.4) {
-					int bits = (int) Math.ceil(speedlimit / 0.4);
-					for (MinecartMember mm : g) {
-						mm.motX /= (double) bits;
-						mm.motY /= (double) bits;
-						mm.motZ /= (double) bits;
-					}
-					for (int i = 0; i < bits; i++) {
-						g.doPhysics(bits);
-					}
-					for (MinecartMember mm : g) {
-						mm.motX *= (double) bits;
-						mm.motY *= (double) bits;
-						mm.motZ *= (double) bits;
-					}
-				} else {
-					g.doPhysics(1);
-				}
-			}
+		} else if (g.tail() == this) {
+			g.doPhysics();
 		}
 	}	
-			
+	
 	public void postUpdate() {
 		super.postUpdate(this.forceFactor);
 		this.updateBlock(false);
@@ -117,6 +100,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 	private void updateBlock(boolean forced) {
+		if (this.dead) return;
 		int x = MathHelper.floor(this.locX);
 		int y = MathHelper.floor(this.locY);
 		int z = MathHelper.floor(this.locZ);

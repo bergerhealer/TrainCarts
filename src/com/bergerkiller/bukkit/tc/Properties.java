@@ -89,7 +89,7 @@ public class Properties {
 		this.pushMobs = config.getBoolean(key + ".pushAway.mobs", this.pushMobs);
 		this.pushPlayers = config.getBoolean(key + ".pushAway.players", this.pushPlayers);
 		this.pushMisc = config.getBoolean(key + ".pushAway.misc", this.pushMisc);
-		this.speedLimit = config.getDouble(key + ".speedLimit", this.speedLimit);
+		this.speedLimit = Util.limit(config.getDouble(key + ".speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = config.getBoolean(key + ".requirePoweredMinecart", this.requirePoweredMinecart);
 		this.destination = config.getString(key + ".destination", this.destination);
 		this.keepChunksLoaded = config.getBoolean(key + ".keepChunksLoaded", this.keepChunksLoaded);
@@ -108,7 +108,7 @@ public class Properties {
 		this.pushMobs = source.pushMobs;
 		this.pushPlayers = source.pushPlayers;
 		this.pushMisc = source.pushMisc;
-		this.speedLimit = source.speedLimit;
+		this.speedLimit = Util.limit(source.speedLimit, 0, 20);
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.destination = source.destination;
 		this.keepChunksLoaded = source.keepChunksLoaded;

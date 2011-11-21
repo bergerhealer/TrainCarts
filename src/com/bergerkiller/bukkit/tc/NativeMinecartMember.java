@@ -404,21 +404,8 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (Double.isNaN(motZ)) motZ = 0;
 		if (Double.isNaN(speedFactor)) speedFactor = 1;
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
-        if (motX < -this.maxSpeed) {
-            motX = -this.maxSpeed;
-        }
-
-        if (motX > this.maxSpeed) {
-            motX = this.maxSpeed;
-        }
-
-        if (motZ < -this.maxSpeed) {
-            motZ = -this.maxSpeed;
-        }
-
-        if (motZ > this.maxSpeed) {
-            motZ = this.maxSpeed;
-        }
+		motX = Util.limit(motX, this.maxSpeed);
+		motZ = Util.limit(motZ, this.maxSpeed);
         motX *= speedFactor;
         motZ *= speedFactor;
 		if (moveinfo.isRailed) {

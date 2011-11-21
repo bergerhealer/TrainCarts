@@ -698,14 +698,37 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	
-	public void doPhysics(int step) {
+	public void doPhysics() {
+		double totalforce = this.getAverageForce();
+		double speedlimit = this.getProperties().speedLimit;
+		if (totalforce > 0.4 && speedlimit > 0.4) {
+			int bits = (int) Math.ceil(speedlimit / 0.4);
+			for (MinecartMember mm : this) {
+				mm.motX /= (double) bits;
+				mm.motY /= (double) bits;
+				mm.motZ /= (double) bits;
+			}
+			for (int i = 0; i < bits; i++) {
+				this.doPhysics(bits);
+			}
+			for (MinecartMember mm : this) {
+				mm.motX *= (double) bits;
+				mm.motY *= (double) bits;
+				mm.motZ *= (double) bits;
+			}
+		} else {
+			this.doPhysics(1);
+		}
+	}
+	public void doPhysics(int stepcount) {
 		//pre-update
 		this.updateTarget();
 		for (MinecartMember m : this) {
-			m.maxSpeed = this.getProperties().speedLimit / step;
+			m.maxSpeed = this.getProperties().speedLimit / stepcount;
 			m.motX = Util.fixNaN(m.motX);
 			m.motY = Util.fixNaN(m.motY);
 			m.motZ = Util.fixNaN(m.motZ);
+			if (m.dead) continue;
 			//General velocity update
 			m.preUpdate();
 		}
@@ -713,7 +736,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		this.update();
 		//post update
 		for (MinecartMember m : this.toArray()) {
-			m.postUpdate();
+			if (!m.dead) m.postUpdate();
 			m.maxSpeed = this.getProperties().speedLimit;
 		}
 	}
