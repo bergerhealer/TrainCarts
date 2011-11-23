@@ -214,6 +214,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
 	 */
 	public boolean preUpdate() {
+		if (this.dead) return false;
 		moveinfo = new MoveInfo();
 		
         // CraftBukkit start
@@ -397,6 +398,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Executes the post-velocity and positioning updates
 	 */
 	public void postUpdate(double speedFactor) {
+		if (this.dead) return;
 		double motX = this.motX;
 		double motZ = this.motZ;
 		//Prevent NaN (you never know!)

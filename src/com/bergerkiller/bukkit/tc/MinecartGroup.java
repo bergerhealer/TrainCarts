@@ -721,23 +721,28 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	public void doPhysics(int stepcount) {
-		//pre-update
-		this.updateTarget();
-		for (MinecartMember m : this) {
-			m.maxSpeed = this.getProperties().speedLimit / stepcount;
-			m.motX = Util.fixNaN(m.motX);
-			m.motY = Util.fixNaN(m.motY);
-			m.motZ = Util.fixNaN(m.motZ);
-			if (m.dead) continue;
-			//General velocity update
-			m.preUpdate();
-		}
-		//update
-		this.update();
-		//post update
-		for (MinecartMember m : this.toArray()) {
-			if (!m.dead) m.postUpdate();
-			m.maxSpeed = this.getProperties().speedLimit;
+		try {
+			//pre-update
+			this.updateTarget();
+			for (MinecartMember m : this) {
+				m.maxSpeed = this.getProperties().speedLimit / stepcount;
+				m.motX = Util.fixNaN(m.motX);
+				m.motY = Util.fixNaN(m.motY);
+				m.motZ = Util.fixNaN(m.motZ);
+				if (m.dead) continue;
+				//General velocity update
+				m.preUpdate();
+			}
+			//update
+			this.update();
+			//post update
+			for (MinecartMember m : this.toArray()) {
+				if (!m.dead) m.postUpdate();
+				m.maxSpeed = this.getProperties().speedLimit;
+			}
+		} catch (Exception ex) {
+			Util.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
+			ex.printStackTrace();
 		}
 	}
 	
