@@ -30,7 +30,6 @@ import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class MinecartMember extends NativeMinecartMember {
 	
-	private double forceFactor = 1;
 	private float customYaw = 0;
 	MinecartGroup group;
 	private Block activesign = null;
@@ -63,8 +62,8 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}	
 	
-	public void postUpdate() {
-		super.postUpdate(this.forceFactor);
+	public void postUpdate(double speedFactor) {
+		super.postUpdate(speedFactor);
 		this.updateBlock(false);
 	}
 	
@@ -88,17 +87,6 @@ public class MinecartMember extends NativeMinecartMember {
 		return event.refill();
 	}
 	
-	public void unlinkSign() {
-		//update active sign
-		if (this.activesign != null) {
-			SignActionEvent info = new SignActionEvent(this.activesign, this);
-			CustomEvents.onSign(info, ActionType.MEMBER_LEAVE);
-			if (this == this.getGroup().tail()) {
-				this.getGroup().setSignActive(info, false);
-			}
-			this.activesign = null;
-		}
-	}
 	private void updateBlock(boolean forced) {
 		if (this.dead) return;
 		int x = MathHelper.floor(this.locX);
@@ -124,17 +112,7 @@ public class MinecartMember extends NativeMinecartMember {
 				}
 			}
 			//update active sign
-			unlinkSign();
-			this.activesign = this.getBlock(0, -2, 0);
-			if (BlockUtil.isSign(this.activesign)) {
-				SignActionEvent info = new SignActionEvent(this.activesign, this);
-				CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
-				if (this.dead) return; 
-				this.getGroup().setSignActive(info, true);
-				if (this.dead) return; 
-			} else {
-				this.activesign = null;
-			}
+			this.setActiveSign(this.getBlock(0, -2, 0));
 			//event
 			MemberBlockChangeEvent.call(this);
 		} else if (this.activesign != null) {
@@ -291,6 +269,34 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.getBlock(0, -1, 0);
 	}
 	
+	public void setActiveSign(Block activesign) {
+		//update active sign
+		if (this.activesign == activesign) return;
+		//set inactive
+		if (this.activesign != null) {
+			SignActionEvent info = new SignActionEvent(this.activesign, this);
+			CustomEvents.onSign(info, ActionType.MEMBER_LEAVE);
+			if (this.dead) return; 
+			if (this.isTail()) {
+				this.getGroup().setActiveSign(info, false);
+			}
+			this.activesign = null;
+		}
+		//set active
+		this.activesign = activesign;
+		if (BlockUtil.isSign(this.activesign)) {
+			if (this.dead) return;
+			SignActionEvent info = new SignActionEvent(this.activesign, this);
+			CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
+			if (this.dead) return;
+			if (!this.isTail()) {
+				this.getGroup().setActiveSign(info, true);
+			}
+			if (this.dead) return; 
+		} else {
+			this.activesign = null;
+		}
+	}
 	public Block getSignBlock() {
 		return this.activesign;
 	}
@@ -324,11 +330,6 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * Velocity functions
 	 */
-	public void stop() {
-		this.motX = 0;
-		this.motY = 0;
-		this.motZ = 0;
-	}
 	public double getForce() {
 		return Util.length(motX, motZ);
 	}
@@ -362,9 +363,6 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public void setForwardForce(double force) {
 		setForce(force, this.getYaw());
-	}
-	public void addForceFactor(double forcer, double factor) {
-		this.forceFactor = 1 + (forcer * factor);
 	}
 	public void limitSpeed() {
 		//Limits the velocity to the maximum
@@ -484,7 +482,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public float getYawDifference(float yawcomparer) {
 		return Util.getAngleDifference(customYaw, yawcomparer);
 	}	
-	public float setYaw(float yawcomparer) {
+	public float updateYaw(float yawcomparer) {
 		double x = this.getSubX();
 		double z = this.getSubZ();
 		if (x == 0 && z != 0 && Math.abs(motX) < 0.001) {
@@ -502,11 +500,14 @@ public class MinecartMember extends NativeMinecartMember {
 		
 		return customYaw;
 	}
-	public float setYawTo(MinecartMember head) {
-		return setYaw(Util.getLookAtYaw(this, head));
+	public float updateYaw(BlockFace yawdirection) {
+		return this.updateYaw(FaceUtil.faceToYaw(yawdirection));
 	}
-	public float setYawFrom(MinecartMember tail) {
-		return setYaw(Util.getLookAtYaw(tail, this));
+	public float updateYawTo(MinecartMember head) {
+		return this.updateYaw(Util.getLookAtYaw(this, head));
+	}
+	public float updateYawFrom(MinecartMember tail) {
+		return this.updateYaw(Util.getLookAtYaw(tail, this));
 	}
 	
 	/*
@@ -537,6 +538,23 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean isOnSlope() {
 		return this.railsloped;
+	}
+	public boolean isHead() {
+		return this.isHead(0);
+	}
+	public boolean isHead(int index) {
+		if (this.dead) return false;
+		return this == this.getGroup().head(index);
+	}
+	public boolean isTail() {
+		return this.isTail(0);
+	}
+	public boolean isTail(int index) {
+		if (this.dead) return false;
+		return this == this.getGroup().tail(index);
+	}
+	public boolean isValidMember() {
+		return !this.dead || !TrainCarts.removeDerailedCarts || !this.isDerailed;
 	}
 		
 	/*
@@ -591,6 +609,17 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
+	}
+	public void stop() {
+		this.motX = 0;
+		this.motY = 0;
+		this.motZ = 0;
+	}
+	public void reverse() {
+		this.motX *= -1;
+		this.motY *= -1;
+		this.motZ *= -1;
+		this.customYaw = Util.normalAngle(this.customYaw + 180);
 	}
 
 }

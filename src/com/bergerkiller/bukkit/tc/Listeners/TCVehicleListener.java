@@ -114,7 +114,7 @@ public class TCVehicleListener extends VehicleListener {
 		if (!event.isCancelled()) {
 			MinecartMember mm = MinecartMember.get(event.getVehicle());
 			if (mm != null) {
-				mm.unlinkSign();
+				mm.setActiveSign(null);
 				mm.remove();
 			}
 		}

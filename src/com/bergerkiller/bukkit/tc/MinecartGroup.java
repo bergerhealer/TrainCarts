@@ -18,12 +18,10 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
-import com.bergerkiller.bukkit.tc.API.ForceUpdateEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
-import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
 	private static final long serialVersionUID = -1843478291169071830L;
@@ -80,7 +78,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public static MinecartGroup create(MinecartMember... members) {
 		MinecartGroup g = new MinecartGroup();
 		for (MinecartMember member : members) {
-			if (member != null && !member.dead) {
+			if (member != null && member.isValidMember()) {
 				g.add(member);
 				member.preUpdate();
 			}
@@ -116,13 +114,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public static MinecartGroup[] getGroups() {
-		MinecartGroup[] rval = new MinecartGroup[groups.size()];
-		int i = 0;
-		for (MinecartGroup group : groups) {
-			rval[i] = group;
-			i++;
-		}
-		return rval;
+		return groups.toArray(new MinecartGroup[0]);
 	}
 	public static MinecartGroup get(Entity e) {
 		MinecartMember mm = MinecartMember.get(e);
@@ -228,24 +220,18 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				}
 				
 				//Clear targets and active signs
-				g1.activeSigns.clear();
-				g2.activeSigns.clear();
+				g1.clearActiveSigns();
+				g2.clearActiveSigns();
 				g2.clearTargets();
-								
+				
 				//Re-activate the signs underneath the train
 				for (MinecartMember mm : g2) {
-					Block s = mm.getSignBlock();
-					if (s != null) {
-						g2.activeSigns.add(s);
-						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, s, g2));
-						CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_ENTER, s, g2));
-					}
+					g2.setActiveSign(mm.getSignBlock(), true);
 				}
 				
 				g1.remove();
 				m2.playLinkEffect();
 				return true;
-    			
     		}
 		}
 		return false;
@@ -365,25 +351,35 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	/*
 	 * Signs underneath this group
 	 */
-	public boolean isSignActive(Block signblock) {
+	public boolean isActiveSign(Block signblock) {
+		if (signblock == null) return false;
 		return this.activeSigns.contains(signblock);
 	}
-	public boolean setSignActive(SignActionEvent signblock, boolean active) {
+	public boolean setActiveSign(SignActionEvent signblock, boolean active) {
+		Block b = signblock.getBlock();
+		if (b == null) return false;
 		if (active) {
-			if (this.activeSigns.add(signblock.getBlock())) {
+			if (this.activeSigns.add(b)) {
 				CustomEvents.onSign(signblock, ActionType.GROUP_ENTER);
 				return true;
 			}
 		} else {
-			if (this.activeSigns.remove(signblock.getBlock())) {
+			if (this.activeSigns.remove(b)) {
 				CustomEvents.onSign(signblock, ActionType.GROUP_LEAVE);
 				return true;
 			}
 		}
 		return false;
 	}
-	public boolean setSignActive(Block signblock, boolean active) {
-		return setSignActive(new SignActionEvent(signblock, this), active);
+	public boolean setActiveSign(Block signblock, boolean active) {
+		if (signblock == null) return false;
+		return setActiveSign(new SignActionEvent(signblock, this), active);
+	}
+	public void clearActiveSigns() {
+		for (Block signblock : this.activeSigns) {
+			CustomEvents.onSign(new SignActionEvent(signblock, this), ActionType.GROUP_LEAVE);
+		}
+		this.activeSigns.clear();
 	}
 	
 	public MinecartMember head(int index) {
@@ -403,12 +399,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public MinecartMember[] toArray() {
-		return this.toArray(new MinecartMember[0]);
+		return super.toArray(new MinecartMember[0]);
 	}
 	
 	public boolean connect(MinecartMember contained, MinecartMember with) {
-		if (this.size() <= 1) return false;
-		if (head() == contained && contained.isMiddleOf(with, head(1))) {
+		if (this.size() <= 1) {
+			this.add(with);
+		} else if (head() == contained && contained.isMiddleOf(with, head(1))) {
 			this.add(0, with);
 		} else if (tail() == contained && contained.isMiddleOf(with, tail(1))) {
 			this.add(with);
@@ -460,7 +457,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	
 	public World getWorld() {
 		if (this.size() == 0) return null;
-		return get(0).getWorld();
+		return this.get(0).getWorld();
 	}
 	
 	public double length() {
@@ -494,8 +491,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public boolean remove(Object o) {
 		int index = this.indexOf(o);
 		if (index == -1) return false;
-		this.remove(index);
-		return true;
+		return this.remove(index) != null;
 	}
 	public MinecartMember remove(int index) {
 		MinecartMember removed = this.get(index);
@@ -503,79 +499,49 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Simplified - remove cart and remove this group
 			this.remove();
 		} else {
-			get(index).playLinkEffect();
-							
-			//Set the deactivated signs that need updating
-			HashSet<Block> deactivatedSigns = new HashSet<Block>();
-			for (Block block : this.activeSigns) {
-				deactivatedSigns.add(block);
-			}
-			
+			removed.playLinkEffect();
+										
 			//remove cart from group info
-			if (removed.group == this) {
-				removed.group = null;
-			} else if (removed.group != null && removed.hasSign()) {
-				deactivatedSigns.remove(removed.getSignBlock());
-			}
+			this.setActiveSign(removed.getSignBlock(), false);
+			removed.group = null;
 			
-			//split the train at the index
+			//transfer the new removed carts
 			MinecartGroup gnew = new MinecartGroup();
 			for (int i = 0;i < index;i++) {
-				MinecartMember mm = get(i);
+				MinecartMember mm = super.remove(0);
+				this.setActiveSign(mm.getSignBlock(), false);
 				gnew.add(mm);
 			}
+			super.remove(0);
 				
 			//Remove if empty or not allowed, else add
 			if (gnew.isValid()) {
 				//Add the group
 				groups.add(gnew);
-				
+								
 				//Set the new active signs
 				for (MinecartMember mm : gnew) {
-					Block b = mm.getSignBlock();
-					if (b != null) {
-						gnew.activeSigns.add(b);
-						deactivatedSigns.remove(b);
-					}
+					this.setActiveSign(mm.getSignBlock(), false);
+					gnew.setActiveSign(mm.getSignBlock(), true);
 				}
 				
 				//Set the new group properties
 				gnew.getProperties().load(this.getProperties());
+			} else {
+				gnew.remove();
 			}
-
-			//remove transferred carts
-			for (int i = 0;i <= index;i++) {
-				super.remove(0);
-			}
-			
-			//Set the new active signs
-			this.activeSigns.clear();
-			for (MinecartMember mm : this) {
-				Block b = mm.getSignBlock();
-				if (b != null) {
-					this.activeSigns.add(b);
-					deactivatedSigns.remove(b);
-				}
-			}
-			
+						
 			//Remove if empty
 			if (!this.isValid()) {
 				this.remove();
-			}
-			
-			//Remove deactivated signs
-			for (Block block : deactivatedSigns) {
-				CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, block, this));
 			}
 		}
 		return removed;
 	}
 	
 	public void clear() {
+		this.clearActiveSigns();
 		for (MinecartMember mm : this) {
-			if (mm.hasSign() && (mm.group == null || mm.dead)) {
-				this.activeSigns.remove(mm.getSignBlock());
-			}
 			if (mm.group == this) {
 				mm.group = null;
 				if (!mm.dead) {
@@ -583,10 +549,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				}
 			}
 		}
-		for (Block block : this.activeSigns) {
-			CustomEvents.onSign(new SignActionEvent(ActionType.GROUP_LEAVE, block, this));
-		}
-		this.activeSigns.clear();
 		super.clear();
 	}
 	
@@ -594,6 +556,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		this.clear();
 		if (this.prop != null) {
 			this.prop.remove();
+			this.prop = null;
 		}
 		groups.remove(this);
 	}
@@ -625,10 +588,20 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public void reverseOrder() {
 		Collections.reverse(this);
 	}
+	public void reverse() {
+		for (MinecartMember mm : this) {
+			mm.reverse();
+		}
+		this.reverseOrder();
+	}
 	public void updateYaw() {
-		tail().setYawTo(tail(1));
-		for (int i = size() - 2;i >= 0;i--) {
-			get(i).setYawFrom(get(i + 1));
+		if (this.size() == 1) {
+			head().updateYaw(head().getDirection());
+		} else if (this.size() > 1) {
+			tail().updateYawTo(tail(1));
+			for (int i = size() - 2;i >= 0;i--) {
+				get(i).updateYawFrom(get(i + 1));
+			}
 		}
 	}
 	
@@ -699,79 +672,87 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	
 	public void doPhysics() {
-		double totalforce = this.getAverageForce();
-		double speedlimit = this.getProperties().speedLimit;
-		if (totalforce > 0.4 && speedlimit > 0.4) {
-			int bits = (int) Math.ceil(speedlimit / 0.4);
-			for (MinecartMember mm : this) {
-				mm.motX /= (double) bits;
-				mm.motY /= (double) bits;
-				mm.motZ /= (double) bits;
-			}
-			for (int i = 0; i < bits; i++) {
-				this.doPhysics(bits);
-			}
-			for (MinecartMember mm : this) {
-				mm.motX *= (double) bits;
-				mm.motY *= (double) bits;
-				mm.motZ *= (double) bits;
-			}
-		} else {
-			this.doPhysics(1);
-		}
-	}
-	public void doPhysics(int stepcount) {
 		try {
-			//pre-update
-			this.updateTarget();
-			for (MinecartMember m : this) {
-				m.maxSpeed = this.getProperties().speedLimit / stepcount;
-				m.motX = Util.fixNaN(m.motX);
-				m.motY = Util.fixNaN(m.motY);
-				m.motZ = Util.fixNaN(m.motZ);
-				if (m.dead) continue;
-				//General velocity update
-				m.preUpdate();
-			}
-			//update
-			this.update();
-			//post update
-			for (MinecartMember m : this.toArray()) {
-				if (!m.dead) m.postUpdate();
-				m.maxSpeed = this.getProperties().speedLimit;
+
+			double totalforce = this.getAverageForce();
+			double speedlimit = this.getProperties().speedLimit;
+			if (totalforce > 0.4 && speedlimit > 0.4) {
+				int bits = (int) Math.ceil(speedlimit / 0.4);
+				for (MinecartMember mm : this) {
+					mm.motX /= (double) bits;
+					mm.motY /= (double) bits;
+					mm.motZ /= (double) bits;
+					mm.maxSpeed = this.getProperties().speedLimit / (double) bits;
+				}
+				for (int i = 0; i < bits; i++) {
+					this.doPhysics(bits);
+				}
+				for (MinecartMember mm : this) {
+					mm.motX *= (double) bits;
+					mm.motY *= (double) bits;
+					mm.motZ *= (double) bits;
+					mm.maxSpeed = this.getProperties().speedLimit;
+				}
+			} else {
+				this.doPhysics(1);
 			}
 		} catch (Exception ex) {
 			Util.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
 			ex.printStackTrace();
 		}
 	}
-	
-	private void update() {				
+	private void doPhysics(int stepcount) {
 		//Prevent index exceptions: remove if not a train
 		if (this.size() == 1) {
-			//Set the yaw (IS important!)
-			head().setYaw(FaceUtil.faceToYaw(head().getDirection()));
+			MinecartMember mm = this.head();
+			//Validate this single member
+			if (mm.isValidMember()) {
+				mm.preUpdate();
+				mm.updateYaw(mm.getDirection()); //Update the yaw (IS important!)
+				mm.postUpdate(1);
+			} else {
+				this.remove();
+			}
 			return;
-		} else if (size() == 0) {
+		} else if (this.size() == 0) {
 			this.remove();
 			return;
 		}
-		
-		//Validation time
+
+		//Validate members
+		for (MinecartMember mm : this) {
+			if (!mm.isValidMember()) {
+				if (this.remove(mm)) {
+					this.doPhysics(stepcount);
+				}
+				return;
+			}
+		}	
+		//Positions in the group
 		for (int i = this.size() - 1;i > 1;i--) {
 			if (!head(i - 1).isMiddleOf(head(i), head(i - 2))) {
 				//Ow no! this is bad!
 				this.remove(i);
+				this.doPhysics(stepcount);
 				return;
-			}	
+			}
 		}
 
+		//pre-update
+		this.updateTarget();
+		for (MinecartMember m : this) {
+			m.preUpdate();
+		}
 		//Get the average forwarding force of all carts
 		double force = this.getAverageForce();
-						
-		tail().addForceFactor(0, 0); //last cart max speed
 
-		//Apply force factors to carts from last cart
+		//update force
+		for (MinecartMember m : this) {
+			m.setForwardForce(force);
+		}
+
+		//Apply force factors to carts from last cart and perform post positional updates
+		this.tail().postUpdate(1);
 		for (int i = size() - 2;i >= 0;i--) {
 			double distance = get(i).distanceXZ(get(i + 1));
 			double threshold = 0;
@@ -784,16 +765,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				forcer = TrainCarts.cartDistanceForcer;
 			}
 			if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
-			get(i).addForceFactor(forcer, threshold - distance);
+			this.get(i).postUpdate(1 + (forcer * (threshold - distance)));
 		}
-		
-		//Bring the force through the listener
-		force = ForceUpdateEvent.call(this, force);
 
-		//update all carts
-		for (MinecartMember m : this) {
-			m.setForwardForce(force);
-		}
 	}
-	
+		
 }

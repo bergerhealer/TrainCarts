@@ -8,7 +8,6 @@ public class TrainCartsListener extends CustomEventListener
 implements Listener {
 	
 	public void onGroupUpdate(GroupUpdateEvent event) {};
-	public void onForceUpdate(ForceUpdateEvent event) {};
 	public void onCoalUsed(CoalUsedEvent event) {};
 	public void onMemberBlockChange(MemberBlockChangeEvent event) {};
 	public void onSignActionEvent(SignActionEvent event) {};
@@ -17,8 +16,6 @@ implements Listener {
 	public void onCustomEvent(Event event) {
 		if (event instanceof GroupUpdateEvent) {
 			this.onGroupUpdate((GroupUpdateEvent) event);
-		} else if (event instanceof ForceUpdateEvent) {
-			this.onForceUpdate((ForceUpdateEvent) event);
 		} else if (event instanceof CoalUsedEvent) {
 			this.onCoalUsed((CoalUsedEvent) event);
 		} else if (event instanceof MemberBlockChangeEvent) {
