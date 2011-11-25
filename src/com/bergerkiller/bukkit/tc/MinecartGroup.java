@@ -40,7 +40,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				int i = 0;
 				while (i < mg.size()) {
 					MinecartMember mm = mg.get(i);
-					if (mm.group != mg || mm.dead || (TrainCarts.removeDerailedCarts && mm.isDerailed())) {
+					if (mm.group != mg || !mm.isValidMember()) {
 						mg.remove(i);
 					} else {
 						i++;
@@ -707,6 +707,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			MinecartMember mm = this.head();
 			//Validate this single member
 			if (mm.isValidMember()) {
+				this.updateTarget();
 				mm.preUpdate();
 				mm.updateYaw(mm.getDirection()); //Update the yaw (IS important!)
 				mm.postUpdate(1);

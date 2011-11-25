@@ -277,7 +277,8 @@ public class MinecartMember extends NativeMinecartMember {
 			SignActionEvent info = new SignActionEvent(this.activesign, this);
 			CustomEvents.onSign(info, ActionType.MEMBER_LEAVE);
 			if (this.dead) return; 
-			if (this.isTail()) {
+			MinecartGroup g = this.getGroup();
+			if (g.size() == 1 || g.tail() == this) {
 				this.getGroup().setActiveSign(info, false);
 			}
 			this.activesign = null;
@@ -289,7 +290,8 @@ public class MinecartMember extends NativeMinecartMember {
 			SignActionEvent info = new SignActionEvent(this.activesign, this);
 			CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
 			if (this.dead) return;
-			if (!this.isTail()) {
+			MinecartGroup g = this.getGroup();
+			if (g.size() == 1 || g.tail() != this) {
 				this.getGroup().setActiveSign(info, true);
 			}
 			if (this.dead) return; 
@@ -539,20 +541,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isOnSlope() {
 		return this.railsloped;
 	}
-	public boolean isHead() {
-		return this.isHead(0);
-	}
-	public boolean isHead(int index) {
-		if (this.dead) return false;
-		return this == this.getGroup().head(index);
-	}
-	public boolean isTail() {
-		return this.isTail(0);
-	}
-	public boolean isTail(int index) {
-		if (this.dead) return false;
-		return this == this.getGroup().tail(index);
-	}
 	public boolean isValidMember() {
 		return !this.dead || !TrainCarts.removeDerailedCarts || !this.isDerailed;
 	}
@@ -562,8 +550,6 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	public void push(Entity entity) {
 		float yaw = this.getYaw();
-		while (yaw < 0) yaw += 360;
-		while (yaw >= 360) yaw -= 360;
 		float lookat = Util.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
 		lookat = Util.normalAngle(lookat);
 		if (lookat > 0) {
