@@ -59,7 +59,7 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
-			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
+			if (MinecartMember.canConvert(event.getVehicle())) {
 				new Task(TrainCarts.plugin, event.getVehicle(), lastPlayer) {
 					public void run() {
 						MinecartMember mm = MinecartMember.convert(getArg(0));

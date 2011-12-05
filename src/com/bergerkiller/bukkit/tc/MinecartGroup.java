@@ -50,9 +50,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				//member.preUpdate();
 			}
 		}
-		if (g.size() == 0) return null;
+		if (!g.isValid()) return null;
 		groups.add(g);
-		System.out.println("train created");
 		return g;
 	}
 	
@@ -163,13 +162,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
     				}
     				if (allow) newOwners.add(owner);
     			}
-    			
+    		    			
     			//Transfer properties
     			if (g1.size() > g2.size()) {
     				g2.getProperties().load(g1.getProperties());
     			}
     			g2.getProperties().owners = newOwners;
-
+    			
 				//Finally link
 				if (m1index == 0 && m2index == 0) {					
 					g1.reverseOrder();

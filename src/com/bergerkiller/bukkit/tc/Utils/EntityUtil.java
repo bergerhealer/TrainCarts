@@ -102,12 +102,9 @@ public class EntityUtil {
 		//with.e = toreplace.e;
 		
 		//swap
+		toreplace.world.removeEntity(toreplace);
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
-		if (toreplace instanceof MinecartMember) {
-			if (!((MinecartMember) toreplace).hasDonePhysics()) return;
-		}
-		toreplace.world.removeEntity(toreplace);
 	}
 		
 	/* 

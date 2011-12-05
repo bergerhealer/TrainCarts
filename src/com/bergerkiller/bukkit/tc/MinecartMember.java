@@ -89,7 +89,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	
 	private void updateBlock(boolean forced) throws GroupUnloadedException {
-		if (this.dead) return;
+		if (!this.isValidMember()) return;
 		int x = this.getBlockX();
 		int y = this.getBlockY();
 		int z = this.getBlockZ();
@@ -146,6 +146,9 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	private static HashSet<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static boolean denyConversion = false;
+	public static boolean canConvert(Entity entity) {
+		return get(entity) == null && !denyConversion;
+	}
 	
 	public static MinecartMember get(Object o) {
 		if (o == null) return null;

@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -75,20 +76,6 @@ public class GroupManager {
 		}
 	}
 	
-	/**
-	 * Re-groups the minecarts in the buffered group in the real-time world
-	 * @param w - The world to look into
-	 * @param wg - The world group to read from
-	 */
-	private static void restoreGroup(World w, WorldGroup wg) {
-		for (WorldMember wm : wg.members) hiddenMinecarts.remove(wm.entityUID);
-		Minecart[] minecarts = wg.getMinecarts(w);
-	    MinecartGroup g = MinecartGroup.create(minecarts);
-		if (g != null) {
-			g.setName(wg.name);
-		}
-		getGroups(w).remove(wg);
-	}
 	
 	/**
 	 * Loads the buffered groups from file
@@ -305,18 +292,39 @@ public class GroupManager {
 		}
 	}
 	public static void refresh(World w) {
-		for (WorldGroup g : getGroups(w)) {
+		Iterator<WorldGroup> iter = getGroups(w).iterator();
+		while (iter.hasNext()) {
+			WorldGroup g = iter.next();
 			if (g.isInLoadedChunks(w)) {
 			} else if (TrainProperties.get(g.name).keepChunksLoaded) {
+				if (TrainCarts.keepChunksLoadedOnlyWhenMoving) {
+					boolean ismoving = false;
+					for (WorldMember wm : g.members) {
+						if (Math.abs(wm.motX) > 0.001) {
+							ismoving = true;
+							break;
+						}
+						if (Math.abs(wm.motZ) > 0.001) {
+							ismoving = true;
+							break;
+						}
+					}
+					if (!ismoving) continue;
+				}
 				for (WorldMember wm : g.members) {
 					w.getChunkAt(wm.cx, wm.cz);
 				}
 			} else {
 				continue;
 			}
-			restoreGroup(w, g);
-			refresh(w);
-			break;
+			//restore
+			for (WorldMember wm : g.members) hiddenMinecarts.remove(wm.entityUID);
+			Minecart[] minecarts = g.getMinecarts(w);    
+			MinecartGroup group = MinecartGroup.create(minecarts);
+			if (group != null) {
+				group.setName(g.name);
+			}
+			iter.remove();
 		}
 	}
 	
@@ -332,7 +340,7 @@ public class GroupManager {
 	}
 	public static void hideGroup(Object member) {
 		MinecartMember mm = MinecartMember.get(member);
-		if (mm != null) hideGroup(mm.getGroup());
+		if (mm != null && mm.isValidMember()) hideGroup(mm.getGroup());
 	}
 
 	/**
