@@ -33,7 +33,7 @@ public class TrainProperties extends Properties {
 				//not found: match nearby
 				for (Entity e : by.getNearbyEntities(5, 5, 5)) {
 					MinecartGroup gnew = MinecartGroup.get(e);
-					if (gnew != null) {
+					if (gnew != null && gnew != g) {
 						if (g == null) {
 							//set it
 							g = gnew;
@@ -186,7 +186,7 @@ public class TrainProperties extends Properties {
 		setEditing(player, false);
 	}
 	public void setEditing(Player player, boolean force) {
-		if (force || isOwner(player)) {
+		if (force || this.isOwner(player)) {
 			editing.put(player.getName(), this.getTrainName());
 		}
 	}

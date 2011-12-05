@@ -1,12 +1,11 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.HashSet;
-import java.util.List;
 
 import net.minecraft.server.EntityMinecart;
-import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 
+import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -24,7 +23,6 @@ import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Utils.ChunkUtil;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
@@ -38,17 +36,19 @@ public class MinecartMember extends NativeMinecartMember {
 	private boolean isDerailed = false;
 	private boolean isFlying = false;
 	
-	private MinecartMember(World world, double d0, double d1, double d2, int i) {
-		super(world, d0, d1, d2, i);
+	private MinecartMember(World world, double x, double y, double z, int type) {
+		super(world, x, y, z, type);
 		this.customYaw = this.yaw + 90;
-		this.updateBlock(true);
+		try {
+			this.updateBlock(true);
+		} catch (GroupUnloadedException ex) {}
 	}
 	
 	/*
 	 * Overridden Minecart functions
 	 */
 	@Override
-	public void s_() {
+	public void w_() {
 		MinecartGroup g = this.getGroup();
 		if (g == null) return;
 		if (this.dead) {
@@ -56,13 +56,13 @@ public class MinecartMember extends NativeMinecartMember {
 			g.remove(this);
 		} else if (g.size() == 0) {
 			g.remove();
-			super.s_();
+			super.w_();
 		} else if (g.tail() == this) {
 			g.doPhysics();
 		}
 	}	
 	
-	public void postUpdate(double speedFactor) {
+	public void postUpdate(double speedFactor) throws GroupUnloadedException {
 		super.postUpdate(speedFactor);
 		this.updateBlock(false);
 	}
@@ -87,15 +87,33 @@ public class MinecartMember extends NativeMinecartMember {
 		return event.refill();
 	}
 	
-	private void updateBlock(boolean forced) {
+	private void updateBlock(boolean forced) throws GroupUnloadedException {
 		if (this.dead) return;
-		int x = MathHelper.floor(this.locX);
-		int y = MathHelper.floor(this.locY);
-		int z = MathHelper.floor(this.locZ);
+		int x = this.getBlockX();
+		int y = this.getBlockY();
+		int z = this.getBlockZ();
 		if (forced || x != this.blockx || z != this.blockz || y != (this.railsloped ? this.blocky : this.blocky + 1)) {
 			this.blockx = x;
 			this.blocky = y;
 			this.blockz = z;
+			//is it in loaded chunks?
+			if (!this.world.areChunksLoaded(this.blockx, this.blocky, this.blockz, 32)) {
+			    if (this.getGroup().canUnload()) {
+			    	//this train has to be unloaded
+			    	GroupManager.hideGroup(this.getGroup());
+			    	throw new GroupUnloadedException();
+			    } else {
+			    	//load nearby chunks
+					int xmid = this.blockx >> 4;
+					int zmid = this.blockz >> 4;
+					for (int cx = xmid - 2; cx <= xmid + 2; cx++) {
+						for (int cz = zmid - 2; cz <= zmid + 2; cz++) {
+							this.getWorld().getChunkAt(cx, cz);
+						}
+					}
+			    }
+			}
+			
 			this.railsloped = false;
 			this.isDerailed = false;
 			this.isFlying = false;
@@ -146,10 +164,16 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return rval;
 	}
-	public static MinecartMember convert(Entity e) {
-		if (e == null) return null;
-		if (!(e instanceof Minecart)) return null;
-		EntityMinecart em = EntityUtil.getNative((Minecart) e);
+	public static MinecartMember convert(Object o) {
+		if (o == null) return null;
+		EntityMinecart em;
+		if (o instanceof EntityMinecart) {
+			em = (EntityMinecart) o;
+		} else if (o instanceof Minecart) {
+			em = EntityUtil.getNative((Minecart) o);
+		} else {
+			return null;
+		}
 		if (em instanceof MinecartMember) return (MinecartMember) em;
 		if (em.dead) return null; //prevent conversion of dead entities 
 		//not found, conversion allowed?
@@ -396,11 +420,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public TrackMap makeTrackMap(int size) {
 		return new TrackMap(BlockUtil.getRailsBlock(this.getLocation()), this.getDirection(), size);
 	}
-	public void addNearChunks(List<SimpleChunk> rval, boolean addloaded, boolean addunloaded) {
-		int chunkX = ChunkUtil.toChunk(this.getX());
-		int chunkZ = ChunkUtil.toChunk(this.getZ());
-		ChunkUtil.addNearChunks(rval, this.getWorld(), chunkX, chunkZ, 2, addloaded, addunloaded);
-	}
 	
 	/*
 	 * Location functions
@@ -543,6 +562,15 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean isValidMember() {
 		return !this.dead || !TrainCarts.removeDerailedCarts || !this.isDerailed;
+	}
+	public boolean isInChunk(Chunk chunk) {
+		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
+	}
+	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
+		if (world != this.getWorld()) return false;
+		if (Math.abs(cx - this.getChunkX()) > 2) return false;
+		if (Math.abs(cz - this.getChunkZ()) > 2) return false;
+	    return true;
 	}
 		
 	/*

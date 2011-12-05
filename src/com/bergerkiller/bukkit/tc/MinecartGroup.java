@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -24,44 +25,11 @@ import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
-	private static final long serialVersionUID = -1843478291169071830L;
+	private static final long serialVersionUID = 2;
 	/*
 	 * STATIC REGION
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
-	private static final int maxLinksPerUpdate = 40; //interval is 10: estimated at max 4 per tick
-	private static int linksPerUpdate = 0;
-	
-	public static void updateGroups() {
-		linksPerUpdate = 0;
-		for (MinecartGroup mg : getGroups()) {
-			//Remove dead carts and lonely groups caused by this
-			if (mg.isValid()) {
-				int i = 0;
-				while (i < mg.size()) {
-					MinecartMember mm = mg.get(i);
-					if (mm.group != mg || !mm.isValidMember()) {
-						mg.remove(i);
-					} else {
-						i++;
-					}
-				}
-			}
-			if (!mg.isValid()) {
-				mg.remove();
-				continue;
-			}
-			//Unloaded chunk handling
-			SimpleChunk[] unloaded = mg.getNearChunks(false, true);
-			if (unloaded.length > 0) {
-				if (mg.canUnload()) {
-					GroupManager.hideGroup(mg);
-				} else {
-					for (SimpleChunk c : unloaded) c.load();
-				}
-			}
-		}
-	}
 	
 	public static void unload(MinecartGroup group) {
 		if (group == null) return;
@@ -69,8 +37,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : group) {
 			MinecartMember.undoReplacement(mm);
 		}
-	    group.clear();
-		groups.remove(group);
+		group.remove();
 	}
 	public static MinecartGroup create(Entity... members) {
 		return create(MinecartMember.convertAll(members));
@@ -153,16 +120,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		MinecartGroup g2 = m2.getGroup();
 		if (m1.dead || m2.dead) return false;
 		//max links per update
-		if (linksPerUpdate == maxLinksPerUpdate) return false;
-		if (linksPerUpdate++ == maxLinksPerUpdate) {
-			Util.log(Level.SEVERE, "Link overflow: Received way too many link calls!");
-			return false;
-		}
 		if (g1 != g2) {
     		if (EntityUtil.isSharingRails(m1.getMinecart(), m2.getMinecart())) {
     			if (m1.isDerailed() || m2.isDerailed()) return false;
-    			if (GroupManager.wasInGroup(m1.getMinecart())) return false;
-    			if (GroupManager.wasInGroup(m2.getMinecart())) return false;		
+    			if (GroupManager.wasInGroup(m1.uniqueId)) return false;
+    			if (GroupManager.wasInGroup(m2.uniqueId)) return false;
     			//Can the two groups bind?
     			TrainProperties prop1 = g1.getProperties();
     			TrainProperties prop2 = g2.getProperties();
@@ -651,29 +613,29 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return types;
 	}
 	
-	public SimpleChunk[] getNearChunks(boolean addloaded, boolean addunloaded) {
-		ArrayList<SimpleChunk> rval = new ArrayList<SimpleChunk>();
-		for (MinecartMember mm : this) {
-			mm.addNearChunks(rval, addloaded, addunloaded);
-		}
-		return rval.toArray(new SimpleChunk[0]);
-	}
-	
 	public boolean isMoving() {
 		if (this.size() == 0) return false;
 		return this.head().isMoving();
 	}
 	public boolean canUnload() {
-		if (this.isMoving() && this.getProperties().keepChunksLoaded) {
-			return false;
-		} else {
+		if (TrainCarts.keepChunksLoadedOnlyWhenMoving && !this.isMoving()) {
 			return true;
 		}
+		return !this.getProperties().keepChunksLoaded;
+	}
+	
+	public boolean isInChunk(Chunk chunk) {
+		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
+	}
+	public boolean isInChunk(World world, int cx, int cz) {
+		for (MinecartMember mm : this) {
+			if (mm.isInChunk(world, cx, cz)) return true;
+		}
+		return false;
 	}
 	
 	public void doPhysics() {
 		try {
-
 			double totalforce = this.getAverageForce();
 			double speedlimit = this.getProperties().speedLimit;
 			if (totalforce > 0.4 && speedlimit > 0.4) {
@@ -696,12 +658,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			} else {
 				this.doPhysics(1);
 			}
+		} catch (GroupUnloadedException ex) {
+			//this group is gone
 		} catch (Exception ex) {
 			Util.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
 			ex.printStackTrace();
 		}
 	}
-	private void doPhysics(int stepcount) {
+	private void doPhysics(int stepcount) throws GroupUnloadedException {
 		//Prevent index exceptions: remove if not a train
 		if (this.size() == 1) {
 			MinecartMember mm = this.head();
@@ -711,13 +675,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				mm.preUpdate();
 				mm.updateYaw(mm.getDirection()); //Update the yaw (IS important!)
 				mm.postUpdate(1);
+				return;
 			} else {
 				this.remove();
+				throw new GroupUnloadedException();
 			}
-			return;
 		} else if (this.size() == 0) {
 			this.remove();
-			return;
+			throw new GroupUnloadedException();
 		}
 
 		//Validate members
@@ -768,7 +733,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
 			this.get(i).postUpdate(1 + (forcer * (threshold - distance)));
 		}
-
 	}
 		
 }

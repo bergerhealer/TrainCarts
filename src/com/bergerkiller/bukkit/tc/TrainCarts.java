@@ -45,6 +45,7 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean pushAwayIgnoreOwners;
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
+	public static boolean keepChunksLoadedOnlyWhenMoving = false;
 
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -57,7 +58,6 @@ public class TrainCarts extends JavaPlugin {
 	private final TCBlockListener blockListener = new TCBlockListener();	
 	private final TCCustomListener customListener = new TCCustomListener();	
 
-	private Task ctask;
 	private Task signtask;
 	private String version;
 
@@ -85,6 +85,7 @@ public class TrainCarts extends JavaPlugin {
 			pushAwayIgnoreOwners = config.parse("pushAwayIgnoreOwners", true);
 			useCoalFromStorageCart = config.parse("useCoalFromStorageCart", false);
 			setOwnerOnPlacement = config.parse("setOwnerOnPlacement", true);
+			keepChunksLoadedOnlyWhenMoving = config.parse("keepChunksLoadedOnlyWhenMoving", false);
 			config.set("use", true);
 			exitOffset = new Vector(exitx, exity, exitz);
 			config.save();
@@ -146,14 +147,6 @@ public class TrainCarts extends JavaPlugin {
 		//Restore carts where possible
 		GroupManager.refresh();
 
-		//clean groups from dead and derailed carts and form new groups
-		ctask = new Task(this) {
-			public void run() {
-				MinecartGroup.updateGroups();
-			}
-		};
-		ctask.startRepeating(10L);
-
 		//commands
 		getCommand("train").setExecutor(this);
 
@@ -164,7 +157,6 @@ public class TrainCarts extends JavaPlugin {
 	}
 	public void onDisable() {
 		//Stop tasks
-		if (ctask != null) ctask.stop();
 		if (signtask != null) signtask.stop();
 
 		//undo replacements for correct saving

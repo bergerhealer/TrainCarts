@@ -262,9 +262,9 @@ public class CustomEvents {
 									MinecartMember to = gnew.get(i);
 									//Set important data
 									EntityUtil.transferItems(from, to);
+									to.b = from.b;
+									to.c = from.c;
 									to.e = from.e;
-									to.f = from.f;
-									to.g = from.g;
 
 									//Teleport passenger
 

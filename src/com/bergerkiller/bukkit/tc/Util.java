@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.minecraft.server.MathHelper;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -162,6 +164,9 @@ public class Util {
     	if (Double.isNaN(value)) return 0;
     	return value;
     }
+	public static int locToChunk(double loc) {
+		return MathHelper.floor(loc / 16.0D);
+	}
     
     public static String[] remove(String[] input, int index) {
     	String[] rval = new String[input.length - 1];

@@ -5,7 +5,6 @@ import java.util.UUID;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
-import net.minecraft.server.Packet29DestroyEntity;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -86,32 +85,26 @@ public class EntityUtil {
 		with.motX = toreplace.motX;
 		with.motY = toreplace.motY;
 		with.motZ = toreplace.motZ;
-		with.e = toreplace.e;
-		with.f = toreplace.f;
-		with.g = toreplace.g;
-		with.derailedX = toreplace.derailedX;
-		with.derailedY = toreplace.derailedY;
-		with.derailedZ = toreplace.derailedZ;
-		with.flyingX = toreplace.flyingX;
-		with.flyingY = toreplace.flyingY;
-		with.flyingZ = toreplace.flyingZ;
-		with.damage = toreplace.damage;
+		with.b = toreplace.b;
+		with.c = toreplace.c;
 		with.fallDistance = toreplace.fallDistance;
 		with.ticksLived = toreplace.ticksLived;
 		with.uniqueId = toreplace.uniqueId;
-		with.dead = toreplace.dead;
-		toreplace.uniqueId = new UUID(0, 0);
+		with.setDamage(toreplace.getDamage());
 		transferItems(toreplace, with);
-		
-		//This is the only 'real' remove method that seems to work...
-		Packet29DestroyEntity packet = new Packet29DestroyEntity(toreplace.id);
-		for (Player p : toreplace.world.getWorld().getPlayers()) {
-			getNative(p).netServerHandler.sendPacket(packet);
-		}
+		with.dead = false;
 		toreplace.dead = true;
 		
+		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
+		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());
+		
+		//longer public in 1.0.0... :-(
+		//with.e = toreplace.e;
+		
+		//swap
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
+		toreplace.world.removeEntity(toreplace);
 	}	
 		
 	/* 
@@ -125,4 +118,5 @@ public class EntityUtil {
 		}
 		return false;
 	}
+	
 }

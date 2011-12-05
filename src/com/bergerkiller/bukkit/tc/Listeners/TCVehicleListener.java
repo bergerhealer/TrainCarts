@@ -60,14 +60,19 @@ public class TCVehicleListener extends VehicleListener {
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
 			if (!(EntityUtil.getNative(event.getVehicle()) instanceof MinecartMember)) {
-				MinecartMember mm = MinecartMember.convert(event.getVehicle());
-				if (mm != null) {
-					if (lastPlayer != null) {
-						mm.getGroup().getProperties().setDefault(lastPlayer);
-						mm.getGroup().getProperties().setEditing(lastPlayer);
-						lastPlayer = null;
+				new Task(TrainCarts.plugin, event.getVehicle(), lastPlayer) {
+					public void run() {
+						MinecartMember mm = MinecartMember.convert(getArg(0));
+						Player lp = (Player) getArg(1);
+						if (mm != null) {
+							if (lp != null) {
+								mm.getGroup().getProperties().setDefault(lp);
+								mm.getGroup().getProperties().setEditing(lp);
+							}
+						}
 					}
-				}
+				}.startDelayed(0);
+				lastPlayer = null;
 			}
 		}
 	}

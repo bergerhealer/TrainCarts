@@ -33,7 +33,7 @@ public class BlockUtil {
     public static int getBlockSteps(Block b1, Block b2, boolean checkY) {
     	return getBlockSteps(b1.getLocation(), b2.getLocation(), checkY);
     }
-    
+        
     public static Block[] getRelative(Block main, BlockFace... faces) {
     	if (main == null) return new Block[0];
     	Block[] rval = new Block[faces.length];

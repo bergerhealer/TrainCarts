@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -12,13 +13,14 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Utils.ChunkUtil;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 public class GroupManager {
 	
+	private static HashSet<UUID> hiddenMinecarts = new HashSet<UUID>();
 	private static HashMap<UUID, ArrayList<WorldGroup>> hiddengroups = new HashMap<UUID, ArrayList<WorldGroup>>();
 	private static ArrayList<WorldGroup> getGroups(World w) {
+		if (hiddengroups == null) return new ArrayList<WorldGroup>(0);
 		if (w == null) return new ArrayList<WorldGroup>();
 		ArrayList<WorldGroup> rval = hiddengroups.get(w.getUID());
 		if (rval == null) {
@@ -79,13 +81,15 @@ public class GroupManager {
 	 * @param wg - The world group to read from
 	 */
 	private static void restoreGroup(World w, WorldGroup wg) {
+		for (WorldMember wm : wg.members) hiddenMinecarts.remove(wm.entityUID);
 		Minecart[] minecarts = wg.getMinecarts(w);
-		if (minecarts.length != 0) {
-			MinecartGroup.create(minecarts).setName(wg.name);
+	    MinecartGroup g = MinecartGroup.create(minecarts);
+		if (g != null) {
+			g.setName(wg.name);
 		}
 		getGroups(w).remove(wg);
 	}
-		
+	
 	/**
 	 * Loads the buffered groups from file
 	 * @param filename - The groupdata file to read from
@@ -104,6 +108,7 @@ public class GroupManager {
 					ArrayList<WorldGroup> groups = new ArrayList<WorldGroup>(groupcount);
 					for (int j = 0; j < groupcount; j++) {
 						WorldGroup wg = WorldGroup.readFrom(stream);
+						for (WorldMember wm : wg.members) hiddenMinecarts.add(wm.entityUID);
 						groups.add(wg);
 						totalmembers += wg.members.length;
 					}
@@ -180,6 +185,8 @@ public class GroupManager {
 		}
 		hiddengroups.clear();
 		hiddengroups = null;
+		hiddenMinecarts.clear();
+		hiddenMinecarts = null;
 	}
 	
 	/**
@@ -223,7 +230,7 @@ public class GroupManager {
 		 */
 		public boolean isInLoadedChunks(World w) {
 			for (WorldMember wm : members) {
-				if (!wm.isInLoadedChunk(w)) return false;
+				if (!wm.isInLoadedChunks(w)) return false;
 			}
 			return true;
 		}
@@ -255,14 +262,19 @@ public class GroupManager {
 			this.motX = instance.motX;
 			this.motZ = instance.motZ;
 			this.entityUID = instance.uniqueId;
-			this.cx = ((int) Math.floor(instance.lastX)) >> 4;
-			this.cz = ((int) Math.floor(instance.lastZ)) >> 4;
+			this.cx = instance.getChunkX();
+			this.cz = instance.getChunkZ();
 		}
 		public double motX, motZ;
 		public UUID entityUID;
 		private int cx, cz;
-		public boolean isInLoadedChunk(World w) {
-			return !ChunkUtil.addNearChunks(null, w, cx, cz, 2, false, true);
+		public boolean isInLoadedChunks(World w) {
+			for (int x = this.cx - 2; x <= this.cx + 2; x++) {
+				for (int z = this.cz - 2; z <= this.cz + 2; z++) {
+					if (!w.isChunkLoaded(x, z)) return false;
+				}
+			}
+			return true;
 		}
 		public void writeTo(DataOutputStream stream) throws IOException {
 			stream.writeLong(entityUID.getMostSignificantBits());
@@ -295,17 +307,16 @@ public class GroupManager {
 	public static void refresh(World w) {
 		for (WorldGroup g : getGroups(w)) {
 			if (g.isInLoadedChunks(w)) {
-				restoreGroup(w, g);
-				refresh(w);
-				break;
 			} else if (TrainProperties.get(g.name).keepChunksLoaded) {
 				for (WorldMember wm : g.members) {
 					w.getChunkAt(wm.cx, wm.cz);
 				}
-				restoreGroup(w, g);
-				refresh(w);
-				break;
+			} else {
+				continue;
 			}
+			restoreGroup(w, g);
+			refresh(w);
+			break;
 		}
 	}
 	
@@ -314,8 +325,14 @@ public class GroupManager {
 	 * @param group - The group to buffer
 	 */
 	public static void hideGroup(MinecartGroup group) {
+		if (group == null) return;
+		for (MinecartMember mm : group) hiddenMinecarts.add(mm.uniqueId);
 		getGroups(group.getWorld()).add(new WorldGroup(group));
 		MinecartGroup.unload(group);
+	}
+	public static void hideGroup(Object member) {
+		MinecartMember mm = MinecartMember.get(member);
+		if (mm != null) hideGroup(mm.getGroup());
 	}
 
 	/**
@@ -323,13 +340,12 @@ public class GroupManager {
 	 * Used to check if a minecart can be linked
 	 * @param m - The minecart to check
 	 */
-	public static boolean wasInGroup(Minecart m) {
-		for (WorldGroup wg : getGroups(m.getWorld())) {
-			for (WorldMember wm : wg.members) {
-				if (wm.entityUID.equals(m.getUniqueId())) return true;
-			}
-		}
-		return false;
+	public static boolean wasInGroup(Entity minecartentity) {
+		return wasInGroup(minecartentity.getUniqueId());
+	}
+	public static boolean wasInGroup(UUID minecartUniqueID) {
+		if (hiddenMinecarts == null) return false;
+		return hiddenMinecarts.contains(minecartUniqueID);
 	}
 
 	public static boolean contains(String trainname) {
