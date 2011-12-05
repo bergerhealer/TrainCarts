@@ -1,0 +1,62 @@
+name: Train Carts
+main: com.bergerkiller.bukkit.tc.TrainCarts
+version: 1.50
+author: bergerkiller
+description: Plugin that allows the use of minecart trains with adjustable settings
+softdepend: [MinecartManiaCore, SignLink, My Worlds]
+commands:
+    train:
+        description: Perform TrainCarts commands
+        usage: See development or WIKI page of TrainCarts
+permissions:
+    train.build.station:
+        description: Allows you to build station signs
+        default: op
+    train.build.spawner:
+        description: Allows you to build the train spawner signs
+        default: op
+    train.build.trigger:
+        description: Allows you to build trigger signs (arrival times)
+        default: op
+    train.build.destination:
+        description: Allows you to build the train destination signs
+        default: op
+    train.build.tagswitcher:
+        description: Allows you to build the tag track switcher
+        default: op
+    train.build.destructor:
+        description: Allows you to build destructor signs
+        default: op
+    train.build.ejector:
+        description: Allows you to build ejector signs
+        default: op
+    train.build.pushHandler:
+        description: Allows you to build push handler signs to stop or allow a train to be pushed
+        default: op
+    train.build.propertychanger:
+        description: Allows you to build a sign which changes properties of trains
+        default: op
+    train.place.minecart:
+        description: Allows you to place a minecart
+        default: true
+    train.command.globalproperties:
+        description: Allows you to view and change properties of all trains
+        default: op
+    train.command.properties:
+        description: Allows you to view and change properties of trains you own
+        default: true
+    train.command.remove:
+        description: Allows you to remove trains globally
+        default: op
+    train.command.keepchunksloaded:
+        description: Allows you to set if the train keeps nearby chunks loaded
+        default: op
+    train.command.playerexit:
+        description: Allows you to set if a train can be exited by players
+        default: op
+    train.properties.default:
+        description: Sets the players that use the default train properties
+        default: not_op
+    train.properties.admin:
+        description: Sets the players that use the admin train properties
+        default: op
