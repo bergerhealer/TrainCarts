@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import java.util.HashSet;
 
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 
 import org.bukkit.Chunk;
@@ -360,11 +361,12 @@ public class MinecartMember extends NativeMinecartMember {
 		return Util.length(motX, motZ);
 	}
 	public double getForwardForce() {
-		double ryaw = this.getYaw() / 180 * Math.PI;
-        return -Math.sin(ryaw) * this.motZ - Math.cos(ryaw) * this.motX;
+		float yaw = this.getYaw() * Util.DEGTORAD;
+        return -MathHelper.sin(yaw) * this.motZ - MathHelper.cos(yaw) * this.motX;
 	}
-	public void setForceFactor(double factor) {
+	public void setForceFactor(final double factor) {
 		this.motX *= factor;
+		this.motY *= factor;
 		this.motZ *= factor;
 	}
 	public void setForce(double force, float yaw) {
@@ -377,9 +379,20 @@ public class MinecartMember extends NativeMinecartMember {
 		 	 	   return;
 		     }
 		 }
-		double ryaw = yaw / 180 * Math.PI;
-		this.motX = -Math.cos(ryaw) * force;
-		this.motZ = -Math.sin(ryaw) * force;
+		yaw *= Util.DEGTORAD;
+		this.motX = -MathHelper.cos(yaw) * force;
+		this.motZ = -MathHelper.sin(yaw) * force;
+		if (this.railsloped) {
+			//calculate upwards or downwards force
+			BlockFace raildir = this.getRailDirection();
+			BlockFace dir = this.getDirection();
+			final float factor = 0.7071F;
+			if (dir == raildir) {
+				this.motY = factor * force;
+			} else if (dir == raildir.getOppositeFace()) {
+				this.motY = -factor * force;
+			}
+		}
 	}
 	public void setForce(double force, Location to) {
 		setForce(force, Util.getLookAtYaw(this.getLocation(), to));
@@ -459,26 +472,13 @@ public class MinecartMember extends NativeMinecartMember {
 	public double distanceXZSquared(Location l) {
 		return Util.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
 	}
-	public boolean isMiddleOf(MinecartMember m1, MinecartMember m2) {
-		double d1 = this.distanceXZSquared(m1);
-		double d2 = m2.distanceXZSquared(m1);
-		if (d1 < d2) {
-			double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
-			//is the XZ height allowed?
-			if (d1 <= max && (d2 <= max)) {
-				if (m1.isDerailed() || m2.isDerailed()) {
-					//is the Y value allowed?
-					if (Math.abs(m1.getY() - this.getY()) <= TrainCarts.maxCartDistance) {
-						if (Math.abs(m2.getY() - this.getY()) <= TrainCarts.maxCartDistance) {
-							return true;
-						}
-					}
-				} else {
-					return true;
-				}
-			}
+	public boolean isNearOf(MinecartMember member) {
+		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
+		if (this.distanceXZSquared(member) > max) return false;
+		if (this.isDerailed() || member.isDerailed()) {
+			return Math.abs(this.getY() - member.getY()) <= max;
 		}
-		return false;
+		return true;
 	}
 	
 	/*

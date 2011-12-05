@@ -104,8 +104,11 @@ public class EntityUtil {
 		//swap
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
+		if (toreplace instanceof MinecartMember) {
+			if (!((MinecartMember) toreplace).hasDonePhysics()) return;
+		}
 		toreplace.world.removeEntity(toreplace);
-	}	
+	}
 		
 	/* 
 	 * States

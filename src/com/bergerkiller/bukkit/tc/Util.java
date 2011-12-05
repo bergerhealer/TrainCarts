@@ -14,6 +14,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 public class Util {
+	public static final float DEGTORAD = 0.017453293F;
+	
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
 		logger.log(level, "[TrainCarts] " + message);
@@ -160,9 +162,12 @@ public class Util {
   	  double p = Math.pow(10, Rpl);
   	  return Math.round(Rval * p) / p;
     }
-    public static double fixNaN(double value) {
-    	if (Double.isNaN(value)) return 0;
+    public static double fixNaN(double value, double def) {
+    	if (Double.isNaN(value)) return def;
     	return value;
+    }
+    public static double fixNaN(double value) {
+    	return fixNaN(value, 0);
     }
 	public static int locToChunk(double loc) {
 		return MathHelper.floor(loc / 16.0D);

@@ -224,7 +224,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		public boolean flag;
 		public boolean flag1;
 	}
-
+	public boolean hasDonePhysics() {
+		return this.moveinfo != null;
+	}
+	
 	/*
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
@@ -299,7 +302,10 @@ public class NativeMinecartMember extends EntityMinecart {
 			// CraftBukkit
 			moveinfo.flag = false;
 			//double d4 = this.maxSpeed; //traincarts - removed because of usage in other function
-			double d5 = this.ignoreForces() ? 0 : 0.0078125D; //TrainCarts - prevent sloped movement
+			
+			//TrainCarts - prevent sloped movement if forces are ignored
+			double d5 = this.ignoreForces() ? 0 : 0.0078125D; //forward movement on slopes
+			
 			int l = this.world.getTypeId(moveinfo.i, moveinfo.j, moveinfo.k);
 
 			moveinfo.isRailed = BlockMinecartTrack.d(l);
@@ -318,7 +324,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 
 				if (((BlockMinecartTrack) Block.byId[l]).h()) {
-					moveinfo.i1 &= 7;
+					moveinfo.i1 &= 7; //sloped?
 				}
 				if (moveinfo.i1 >= 2 && moveinfo.i1 <= 5) {
 					this.locY = (double) (moveinfo.j + 1);
@@ -424,9 +430,9 @@ public class NativeMinecartMember extends EntityMinecart {
 		double motX = this.motX;
 		double motZ = this.motZ;
 		//Prevent NaN (you never know!)
-		if (Double.isNaN(motX)) motX = 0;
-		if (Double.isNaN(motZ)) motZ = 0;
-		if (Double.isNaN(speedFactor)) speedFactor = 1;
+		motX = Util.fixNaN(motX);
+		motZ = Util.fixNaN(motZ);
+		speedFactor = Util.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
 		motX = Util.limit(motX, this.maxSpeed);
 		motZ = Util.limit(motZ, this.maxSpeed);
@@ -449,7 +455,7 @@ public class NativeMinecartMember extends EntityMinecart {
 					this.motZ *= 0.9599999785423279D;
 				}
 			} else {
-				//Is in a group that is targeting?
+				//Ignore force applied by powered minecarts
 				if (this.type == 2 && !ignoreForces()) {
 					double d17 = (double) MathHelper.a(this.b * this.b + this.c * this.c);
 					if (d17 > 0.01D) {

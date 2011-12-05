@@ -38,7 +38,7 @@ public class GroupManager {
 		int count = 0;
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
 			if (g.getWorld() == world) {
-				count++;
+				if (!g.isEmpty()) count++;
 				if (destroy) {
 					g.destroy();
 				} else {
@@ -53,7 +53,7 @@ public class GroupManager {
 		int count = 0;
 		hiddengroups.clear();
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
-			count++;
+			if (!g.isEmpty()) count++;
 			if (destroy) {
 				g.destroy();
 			} else {
@@ -325,7 +325,7 @@ public class GroupManager {
 	 * @param group - The group to buffer
 	 */
 	public static void hideGroup(MinecartGroup group) {
-		if (group == null) return;
+		if (group == null || !group.isValid()) return;
 		for (MinecartMember mm : group) hiddenMinecarts.add(mm.uniqueId);
 		getGroups(group.getWorld()).add(new WorldGroup(group));
 		MinecartGroup.unload(group);

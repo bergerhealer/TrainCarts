@@ -47,11 +47,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember member : members) {
 			if (member != null && member.isValidMember()) {
 				g.add(member);
-				member.preUpdate();
+				//member.preUpdate();
 			}
 		}
 		if (g.size() == 0) return null;
 		groups.add(g);
+		System.out.println("train created");
 		return g;
 	}
 	
@@ -367,9 +368,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public boolean connect(MinecartMember contained, MinecartMember with) {
 		if (this.size() <= 1) {
 			this.add(with);
-		} else if (head() == contained && contained.isMiddleOf(with, head(1))) {
+		} else if (this.head() == contained && this.canConnect(with, 0)) {
 			this.add(0, with);
-		} else if (tail() == contained && contained.isMiddleOf(with, tail(1))) {
+		} else if (this.tail() == contained && this.canConnect(with, this.size() - 1)) {
 			this.add(with);
 		} else {
 			return false;
@@ -572,10 +573,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (this.size() == 0) return false;
 		if (at == 0) {
 			//compare the head
-			return this.head(0).isMiddleOf(mm, this.head(1));
+			return this.head().isNearOf(mm);
 		} else if (at == this.size() - 1) {
 			//compare the tail
-			return this.tail(0).isMiddleOf(mm, this.tail(1));
+			return this.tail().isNearOf(mm);
 		} else {
 			return false;
 		}
@@ -695,8 +696,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			}
 		}	
 		//Positions in the group
-		for (int i = this.size() - 1;i > 1;i--) {
-			if (!head(i - 1).isMiddleOf(head(i), head(i - 2))) {
+		for (int i = 0; i < this.size() - 1; i++) {
+			if (!head(i).isNearOf(head(i + 1))) {
 				//Ow no! this is bad!
 				this.remove(i);
 				this.doPhysics(stepcount);

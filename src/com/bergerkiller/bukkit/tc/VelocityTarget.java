@@ -97,9 +97,7 @@ public class VelocityTarget {
 			if (currvel < minVelocity) {
 				currvel = minVelocity;
 			}
-			double factor = targetvel / currvel;
-			from.motX *= factor;
-			from.motZ *= factor;
+			from.setForceFactor(targetvel / currvel);
 		} else {
 			if (TrainCarts.MinecartManiaEnabled) {
 				//Stop to stop MM from ruining it all...
