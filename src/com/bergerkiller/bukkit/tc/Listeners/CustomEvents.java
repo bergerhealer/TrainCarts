@@ -395,6 +395,9 @@ public class CustomEvents {
 						if (group != null) {
 							if (info.isAction(ActionType.GROUP_LEAVE)) {
 								group.getProperties().setStation(false);
+							} else if (!info.isPowered()) {
+								group.clearTargets();
+								group.getProperties().setStation(false);
 							} else {
 								handleStation(info);
 							}

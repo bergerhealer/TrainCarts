@@ -292,39 +292,49 @@ public class GroupManager {
 		}
 	}
 	public static void refresh(World w) {
-		Iterator<WorldGroup> iter = getGroups(w).iterator();
-		while (iter.hasNext()) {
-			WorldGroup g = iter.next();
-			if (g.isInLoadedChunks(w)) {
-			} else if (TrainProperties.get(g.name).keepChunksLoaded) {
-				if (TrainCarts.keepChunksLoadedOnlyWhenMoving) {
-					boolean ismoving = false;
-					for (WorldMember wm : g.members) {
-						if (Math.abs(wm.motX) > 0.001) {
-							ismoving = true;
-							break;
+		synchronized (hiddengroups) {
+			boolean loadedchunk = false;
+			Iterator<WorldGroup> iter = getGroups(w).iterator();
+			while (iter.hasNext()) {
+				loadedchunk = false;
+				WorldGroup g = iter.next();
+				if (g.isInLoadedChunks(w)) {
+				} else if (TrainProperties.get(g.name).keepChunksLoaded) {
+					if (TrainCarts.keepChunksLoadedOnlyWhenMoving) {
+						boolean ismoving = false;
+						for (WorldMember wm : g.members) {
+							if (Math.abs(wm.motX) > 0.001) {
+								ismoving = true;
+								break;
+							}
+							if (Math.abs(wm.motZ) > 0.001) {
+								ismoving = true;
+								break;
+							}
 						}
-						if (Math.abs(wm.motZ) > 0.001) {
-							ismoving = true;
-							break;
-						}
+						if (!ismoving) continue;
 					}
-					if (!ismoving) continue;
+					loadedchunk = true;
+					for (WorldMember wm : g.members) {
+						w.getChunkAt(wm.cx, wm.cz);
+					}
+				} else {
+					continue;
 				}
-				for (WorldMember wm : g.members) {
-					w.getChunkAt(wm.cx, wm.cz);
+				//restore
+				for (WorldMember wm : g.members) hiddenMinecarts.remove(wm.entityUID);
+				Minecart[] minecarts = g.getMinecarts(w);    
+				MinecartGroup group = MinecartGroup.create(minecarts);
+				if (group != null) {
+					group.setName(g.name);
 				}
-			} else {
-				continue;
+				iter.remove();
+				if (loadedchunk) {
+					//prevent concurrency issues
+					refresh(w);
+					return;
+				}
 			}
-			//restore
-			for (WorldMember wm : g.members) hiddenMinecarts.remove(wm.entityUID);
-			Minecart[] minecarts = g.getMinecarts(w);    
-			MinecartGroup group = MinecartGroup.create(minecarts);
-			if (group != null) {
-				group.setName(g.name);
-			}
-			iter.remove();
 		}
 	}
 	
@@ -333,10 +343,12 @@ public class GroupManager {
 	 * @param group - The group to buffer
 	 */
 	public static void hideGroup(MinecartGroup group) {
-		if (group == null || !group.isValid()) return;
-		for (MinecartMember mm : group) hiddenMinecarts.add(mm.uniqueId);
-		getGroups(group.getWorld()).add(new WorldGroup(group));
-		MinecartGroup.unload(group);
+		synchronized (hiddengroups) {
+			if (group == null || !group.isValid()) return;
+			for (MinecartMember mm : group) hiddenMinecarts.add(mm.uniqueId);
+			getGroups(group.getWorld()).add(new WorldGroup(group));
+			MinecartGroup.unload(group);
+		}
 	}
 	public static void hideGroup(Object member) {
 		MinecartMember mm = MinecartMember.get(member);

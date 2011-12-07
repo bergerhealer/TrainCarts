@@ -37,7 +37,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : group) {
 			MinecartMember.undoReplacement(mm);
 		}
-		group.remove();
+		group.clear();
+		groups.remove(group);
 	}
 	public static MinecartGroup create(Entity... members) {
 		return create(MinecartMember.convertAll(members));
@@ -644,7 +645,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					mm.motX /= (double) bits;
 					mm.motY /= (double) bits;
 					mm.motZ /= (double) bits;
-					mm.maxSpeed = this.getProperties().speedLimit / (double) bits;
 				}
 				for (int i = 0; i < bits; i++) {
 					this.doPhysics(bits);
@@ -666,6 +666,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	private void doPhysics(int stepcount) throws GroupUnloadedException {
+		//set max speed
+		for (MinecartMember mm : this) mm.maxSpeed = this.getProperties().speedLimit / (double) stepcount;
+		
 		//Prevent index exceptions: remove if not a train
 		if (this.size() == 1) {
 			MinecartMember mm = this.head();

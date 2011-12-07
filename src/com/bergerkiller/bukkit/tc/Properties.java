@@ -126,7 +126,7 @@ public class Properties {
 		config.set(key + ".keepChunksLoaded", this.keepChunksLoaded ? this.keepChunksLoaded : null);
 		config.set(key + ".tags", this.tags.size() > 0 ? this.tags : null);
 		config.set(key + ".speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
-		config.set(key + ".slowDown", !this.slowDown ? this.slowDown : null);
+		config.set(key + ".slowDown", !this.slowDown ? false : null);
 		config.set(key + ".destination", this.hasDestination() ? this.destination : null);
 		config.set(key + ".pushAway.mobs", this.pushMobs ? this.pushMobs : null);
 		config.set(key + ".pushAway.players", this.pushPlayers ? this.pushPlayers : null);

@@ -331,22 +331,29 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 
 				if (moveinfo.i1 == 2) {
-					this.motX -= d5;
+					if (this.motX <= 0 || this.group().getProperties().slowDown) {
+						this.motX -= d5;
+					}
 				}
 
 				if (moveinfo.i1 == 3) {
-					this.motX += d5;
+					if (this.motX >= 0 || this.group().getProperties().slowDown) {
+						this.motX += d5;
+					}
 				}
 
 				if (moveinfo.i1 == 4) {
-					this.motZ += d5;
+					if (this.motZ >= 0 || this.group().getProperties().slowDown) {
+						this.motZ += d5;
+					}
 				}
 
 				if (moveinfo.i1 == 5) {
-					this.motZ -= d5;
+					if (this.motZ <= 0 || this.group().getProperties().slowDown) {
+						this.motZ -= d5;
+					}
 				}
 				//TrainNote end
-
 				moveinfo.aint = matrix[moveinfo.i1];
 				double d6 = (double) (moveinfo.aint[1][0] - moveinfo.aint[0][0]);
 				double d7 = (double) (moveinfo.aint[1][2] - moveinfo.aint[0][2]);
@@ -363,7 +370,6 @@ public class NativeMinecartMember extends EntityMinecart {
 				this.motX = d10 * d6 / d8;
 				this.motZ = d10 * d7 / d8;
 				double d11;
-
 				// TrainNote: Used to slow down a Minecart
 				if (moveinfo.flag1) {
 					d11 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
@@ -378,7 +384,7 @@ public class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 				// TrainNote end
-
+				
 				d11 = 0.0D;
 				double d12 = (double) moveinfo.i + 0.5D + (double) moveinfo.aint[0][0] * 0.5D;
 				double d13 = (double) moveinfo.k + 0.5D + (double) moveinfo.aint[0][2] * 0.5D;
@@ -390,7 +396,6 @@ public class NativeMinecartMember extends EntityMinecart {
 				double d16;
 				double d17;
 				double d18;
-
 				if (d6 == 0.0D) {
 					this.locX = (double) moveinfo.i + 0.5D;
 					d11 = this.locZ - (double) moveinfo.k;
@@ -403,7 +408,7 @@ public class NativeMinecartMember extends EntityMinecart {
 					d17 = (d16 * d6 + d18 * d7) * 2.0D;
 					d11 = d17;
 				}
-
+				
 				this.locX = d12 + d6 * d11;
 				this.locZ = d13 + d7 * d11;
 				this.setPosition(this.locX, this.locY + (double) this.height, this.locZ);
@@ -469,9 +474,11 @@ public class NativeMinecartMember extends EntityMinecart {
 						this.motX += this.b * d19;
 						this.motZ += this.c * d19;
 					} else {
-						this.motX *= 0.8999999761581421D;
-						this.motY *= 0.0D;
-						this.motZ *= 0.8999999761581421D;
+						if (this.group().getProperties().slowDown) {
+							this.motX *= 0.8999999761581421D;
+							this.motY *= 0.0D;
+							this.motZ *= 0.8999999761581421D;
+						}
 					}
 				}
 				if (this.group().getProperties().slowDown) {
@@ -486,17 +493,17 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			double d10;
 			if (vec3d1 != null && moveinfo.vec3d != null) {
-				double d20 = (moveinfo.vec3d.b - vec3d1.b) * 0.05D;
+				if (this.group().getProperties().slowDown) {
+					double d20 = (moveinfo.vec3d.b - vec3d1.b) * 0.05D;
 
-				d10 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
-				if (d10 > 0.0D) {
-					this.motX = this.motX / d10 * (d10 + d20);
-					this.motZ = this.motZ / d10 * (d10 + d20);
+					d10 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
+					if (d10 > 0.0D) {
+						this.motX = this.motX / d10 * (d10 + d20);
+						this.motZ = this.motZ / d10 * (d10 + d20);
+					}
 				}
-
 				this.setPosition(this.locX, vec3d1.b, this.locZ);
 			}
-
 			int j1 = MathHelper.floor(this.locX);
 			int k1 = MathHelper.floor(this.locZ);
 

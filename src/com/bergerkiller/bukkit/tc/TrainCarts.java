@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCVehicleListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCWorldListener;
-import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 public class TrainCarts extends JavaPlugin {
 	/*
@@ -162,22 +161,11 @@ public class TrainCarts extends JavaPlugin {
 		//undo replacements for correct saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
-			mg.reinitProperties();
-			mg.stop();
 		}
 		//entities left behind?
 		for (World w : Bukkit.getServer().getWorlds()) {
 			for (Entity e : w.getEntities()) {
-				net.minecraft.server.Entity ee = EntityUtil.getNative(e);
-				if (ee instanceof MinecartMember) {
-					MinecartMember mm = (MinecartMember) ee;
-					if (!mm.dead) {
-						MinecartGroup g = mm.getGroup();
-						GroupManager.hideGroup(g);
-						g.reinitProperties();
-						g.stop();
-					}
-				}
+				GroupManager.hideGroup(e);
 			}
 		}
 
