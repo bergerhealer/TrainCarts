@@ -92,7 +92,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	private boolean ignoreForces() {
-		return group().hasTarget() || group().getProperties().isAtStation();
+		return group().hasAction() || group().getProperties().isAtStation();
 	}
 
 	private MinecartMember member() {

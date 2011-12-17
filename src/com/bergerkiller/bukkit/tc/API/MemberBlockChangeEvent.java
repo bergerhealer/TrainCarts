@@ -1,10 +1,10 @@
 package com.bergerkiller.bukkit.tc.API;
 
-import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Util;
 
 public class MemberBlockChangeEvent extends Event {
 	private static final long serialVersionUID = 1L;
@@ -23,7 +23,7 @@ public class MemberBlockChangeEvent extends Event {
 	}
 	
 	public static void call(MinecartMember member) {
-		Bukkit.getPluginManager().callEvent(new MemberBlockChangeEvent(member));
+		Util.call(new MemberBlockChangeEvent(member));
 	}
 
 }

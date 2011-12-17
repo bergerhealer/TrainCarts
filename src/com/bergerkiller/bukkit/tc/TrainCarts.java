@@ -40,6 +40,7 @@ public class TrainCarts extends JavaPlugin {
 	public static double poweredCartBoost;
 	public static Vector exitOffset = new Vector(0, 0, 0);
 	public static double pushAwayForce;
+	public static double launchForce;
 	public static boolean pushAwayIgnoreGlobalOwners;
 	public static boolean pushAwayIgnoreOwners;
 	public static boolean useCoalFromStorageCart;
@@ -79,6 +80,7 @@ public class TrainCarts extends JavaPlugin {
 			exitx = config.parse("exitOffset.x", (double) 0);
 			exity = config.parse("exitOffset.y", (double) 0);
 			exitz = config.parse("exitOffset.z", (double) 0);
+			launchForce = config.parse("launchForce", 10);
 			pushAwayForce = config.parse("pushAwayForce", 0.2);
 			pushAwayIgnoreGlobalOwners = config.parse("pushAwayIgnoreGlobalOwners", false);
 			pushAwayIgnoreOwners = config.parse("pushAwayIgnoreOwners", true);

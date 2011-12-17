@@ -5,6 +5,7 @@ import java.util.UUID;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,6 +19,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrackMap;
+import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
 
 public class EntityUtil {
 	
@@ -102,7 +104,9 @@ public class EntityUtil {
 		//with.e = toreplace.e;
 		
 		//swap
+		MinecartSwapEvent.call(toreplace, with);
 		toreplace.world.removeEntity(toreplace);
+		((WorldServer) toreplace.world).tracker.untrackEntity(toreplace);
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}

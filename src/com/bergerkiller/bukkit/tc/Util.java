@@ -11,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.util.Vector;
 
 public class Util {
@@ -293,6 +294,11 @@ public class Util {
 		velocity = setVectorLengthSquared(velocity, dbefore);
 		double dafter = from.clone().add(velocity).distanceSquared(to);
 		return dafter < dbefore;
+	}
+	
+	public static <T extends Event> T call(T event) {
+		Bukkit.getPluginManager().callEvent(event);
+		return event;
 	}
 
 }

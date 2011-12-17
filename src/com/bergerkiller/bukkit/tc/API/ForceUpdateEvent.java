@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.tc.API;
 
-import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.Util;
 
 public class ForceUpdateEvent extends Event {
 	private static final long serialVersionUID = 1L;
@@ -27,9 +27,7 @@ public class ForceUpdateEvent extends Event {
 	}
 	
 	public static double call(MinecartGroup group, double force) {
-		ForceUpdateEvent f = new ForceUpdateEvent(group, force);
-		Bukkit.getServer().getPluginManager().callEvent(f);
-		return f.getForce();
+		return Util.call(new ForceUpdateEvent(group, force)).getForce();
 	}
 
 }

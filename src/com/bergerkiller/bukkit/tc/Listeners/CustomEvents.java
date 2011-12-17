@@ -135,7 +135,9 @@ public class CustomEvents {
 					//Redstone change and moving?
 					if (!info.isAction(ActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
 						//Brake
-						midd.setTarget(l, 0, 0);
+						//TODO: ADD CHECK?!
+						group.clearActions();
+						midd.addActionLaunch(l, 0);
 						prop.setStation(true);
 						BlockFace trainDirection = null;
 						if (mode == 1) {
@@ -164,21 +166,25 @@ public class CustomEvents {
 						if (l != null) {
 							//Actual launching here
 							l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
-							midd.addTarget(l, midd.maxSpeed, delayMS);
+							group.addActionWait(delayMS);
+							midd.addActionLaunch(l, TrainCarts.launchForce);
+						} else {
+							group.addActionWaitForever();
 						}
 					}
 				}
 			} else {
 				//Launch
 				prop.setStation(true);
-				group.clearTargets();
+				group.clearActions();
 				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 				MinecartMember head = group.head();
-				if (head.isMoving() && head.getDirection() != instruction) {
-					//Reversing, need to center it in the middle first
-					midd.addTarget(l, 0, 0);
+				if (delayMS > 0 || (head.isMoving() && head.getDirection() != instruction)) {
+					//Reversing or has delay, need to center it in the middle first
+					midd.addActionLaunch(l, 0);
 				}
-				midd.addTarget(next, midd.maxSpeed, delayMS);
+				group.addActionWait(delayMS);
+				midd.addActionLaunch(next, TrainCarts.launchForce);
 			}
 		}
 	}
@@ -396,7 +402,8 @@ public class CustomEvents {
 							if (info.isAction(ActionType.GROUP_LEAVE)) {
 								group.getProperties().setStation(false);
 							} else if (!info.isPowered()) {
-								group.clearTargets();
+								//TODO: Correctly handle this! (zomg)
+								group.clearActions();
 								group.getProperties().setStation(false);
 							} else {
 								handleStation(info);

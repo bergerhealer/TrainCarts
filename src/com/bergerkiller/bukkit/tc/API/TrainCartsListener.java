@@ -7,16 +7,13 @@ import org.bukkit.event.Listener;
 public class TrainCartsListener extends CustomEventListener 
 implements Listener {
 	
-	public void onGroupUpdate(GroupUpdateEvent event) {};
 	public void onCoalUsed(CoalUsedEvent event) {};
 	public void onMemberBlockChange(MemberBlockChangeEvent event) {};
 	public void onSignActionEvent(SignActionEvent event) {};
 	
 	@Override
 	public void onCustomEvent(Event event) {
-		if (event instanceof GroupUpdateEvent) {
-			this.onGroupUpdate((GroupUpdateEvent) event);
-		} else if (event instanceof CoalUsedEvent) {
+		if (event instanceof CoalUsedEvent) {
 			this.onCoalUsed((CoalUsedEvent) event);
 		} else if (event instanceof MemberBlockChangeEvent) {
 			this.onMemberBlockChange((MemberBlockChangeEvent) event);

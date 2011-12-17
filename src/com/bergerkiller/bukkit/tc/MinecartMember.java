@@ -18,6 +18,11 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.actions.Action;
+import com.bergerkiller.bukkit.actions.MemberActionLaunch;
+import com.bergerkiller.bukkit.actions.MemberActionLaunchLocation;
+import com.bergerkiller.bukkit.actions.MemberActionWaitDistance;
+import com.bergerkiller.bukkit.actions.MemberActionWaitLocation;
 import com.bergerkiller.bukkit.tc.API.CoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
@@ -39,7 +44,7 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.customYaw = this.yaw + 90;
+		this.customYaw = this.yaw;
 		try {
 			this.updateBlock(true);
 		} catch (GroupUnloadedException ex) {}
@@ -253,9 +258,23 @@ public class MinecartMember extends NativeMinecartMember {
  		}
  		return this.group;
  	}
+ 	public int getIndex() {
+ 	    if (this.group == null) {
+ 	    	return this.isValidMember() ? 0 : -1;
+ 	    } else {
+ 	    	return this.group.indexOf(this);
+ 	    }
+ 	}
+ 	public MinecartMember getNeighbour(int offset) {
+ 		int index = this.getIndex();
+ 		if (index == -1) return null;
+ 		index += offset;
+ 		if (this.getGroup().containsIndex(index)) return this.getGroup().get(index);
+ 		return null;
+ 	}
  	public MinecartMember[] getNeightbours() {
 		if (this.getGroup() == null) return new MinecartMember[0];
-		int index = this.getGroup().indexOf(this);
+		int index = this.getIndex();
 		if (index == -1) return new MinecartMember[0];
 		if (index > 0) {
 			if (index < this.getGroup().size() - 1) {
@@ -337,26 +356,34 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.activesign != null;
 	}
 	
-	public VelocityTarget addTarget(Location to, double toVelocity, long delayMS) {
-		return this.getGroup().addTarget(this, to, toVelocity, delayMS);
+	/*
+	 * Actions
+	 */
+	public <T extends Action> T addAction(T action) {
+		return this.getGroup().addAction(action);
 	}
-	public VelocityTarget setTarget(Location to, double toVelocity, long delayMS) {
-		this.getGroup().clearTargets();
-		return this.getGroup().addTarget(this, to, toVelocity, delayMS);
+	public MemberActionWaitDistance addActionWaitDistance(double distance) {
+		return this.addAction(new MemberActionWaitDistance(this, distance));
 	}
-	public VelocityTarget addTarget(Vector offset, double toVelocity, long delayMS) {
-		return this.addTarget(this.getLocation().add(offset), toVelocity, delayMS);
+	public MemberActionWaitLocation addActionWaitLocation(Location location) {
+		return this.addAction(new MemberActionWaitLocation(this, location));
 	}
-	public VelocityTarget setTarget(Vector offset, double toVelocity, long delayMS) {
-		return this.setTarget(this.getLocation().add(offset), toVelocity, delayMS);
+	public MemberActionWaitLocation addActionWaitLocation(Location location, double radius) {
+		return this.addAction(new MemberActionWaitLocation(this, location, radius));
 	}
-	public VelocityTarget addTarget(BlockFace direction, double distance, double toVelocity, long delayMS) {
-		return this.addTarget(FaceUtil.faceToVector(direction, distance), toVelocity, delayMS);
+	public MemberActionLaunch addActionLaunch(double distance, double targetvelocity) {
+		return this.addAction(new MemberActionLaunch(this, distance, targetvelocity));
 	}
-	public VelocityTarget setTarget(BlockFace direction, double distance, double toVelocity, long delayMS) {
-		return this.setTarget(FaceUtil.faceToVector(direction, distance), toVelocity, delayMS);
+	public MemberActionLaunchLocation addActionLaunch(Location destination, double targetvelocity) {
+		return this.addAction(new MemberActionLaunchLocation(this, destination, targetvelocity));
 	}
-		
+	public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
+		return this.addActionLaunch(this.getLocation().add(offset), targetvelocity);
+	}
+	public MemberActionLaunchLocation addActionLaunch(BlockFace direction, double distance, double targetvelocity) {
+		return this.addActionLaunch(FaceUtil.faceToVector(direction, distance), targetvelocity);
+	}
+	
 	/*
 	 * Velocity functions
 	 */
@@ -373,18 +400,6 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motZ *= factor;
 	}
 	public void setForce(double force, float yaw) {
-		 if (isTurned()) {
-		     double l = this.getForce();
-		 	   if (l > 0.001) {
-		 	       double factor = force / l;
-		 	 	   this.motX *= factor;
-		 	 	   this.motZ *= factor;
-		 	 	   return;
-		     }
-		 }
-		yaw *= Util.DEGTORAD;
-		this.motX = -MathHelper.cos(yaw) * force;
-		this.motZ = -MathHelper.sin(yaw) * force;
 		if (this.railsloped) {
 			//calculate upwards or downwards force
 			BlockFace raildir = this.getRailDirection();
@@ -396,6 +411,18 @@ public class MinecartMember extends NativeMinecartMember {
 				this.motY = -factor * force;
 			}
 		}
+		if (isTurned()) {
+			double l = this.getForce();
+			if (l > 0.001) {
+				double factor = force / l;
+				this.motX *= factor;
+				this.motZ *= factor;
+				return;
+			}
+		}
+		yaw *= Util.DEGTORAD;
+		this.motX = -MathHelper.cos(yaw) * force;
+		this.motZ = -MathHelper.sin(yaw) * force;
 	}
 	public void setForce(double force, Location to) {
 		setForce(force, Util.getLookAtYaw(this.getLocation(), to));
@@ -450,7 +477,22 @@ public class MinecartMember extends NativeMinecartMember {
 	public double getSubZ() {
 		double z = getZ() + 0.5;
 		return z - (int) z;
-	}	
+	}
+	public double getMovedX() {
+		return this.locX - this.lastX;
+	}
+	public double getMovedY() {
+		return this.locY - this.lastY;
+	}
+	public double getMovedZ() {
+		return this.locZ - this.lastZ;
+	}
+	public double getMovedDistanceXZ() {
+		return Util.length(this.getMovedX(), this.getMovedZ());
+	}
+	public double getMovedDistance() {
+		return Util.length(this.getMovedX(), this.getMovedY(), this.getMovedZ());
+	}
 	public double distance(MinecartMember m) {
 		return Util.distance(this.getX(), this.getY(), this.getZ(), m.getX(), m.getY(), m.getZ());
 	}
@@ -506,32 +548,33 @@ public class MinecartMember extends NativeMinecartMember {
 	public float getYawDifference(float yawcomparer) {
 		return Util.getAngleDifference(customYaw, yawcomparer);
 	}	
-	public float updateYaw(float yawcomparer) {
+	public void updateYaw(float yawcomparer) {
 		double x = this.getSubX();
 		double z = this.getSubZ();
 		if (x == 0 && z != 0 && Math.abs(motX) < 0.001) {
 			//cart is driving along the x-axis
-			customYaw = -90;
+			this.customYaw = -90;
 		} else if (z == 0 && x != 0 && Math.abs(motZ) < 0.001) {
 			//cart is driving along the z-axis
-			customYaw = -180;
+			this.customYaw = -180;
 		} else {
 			//try to get the yaw from the rails
-			customYaw = FaceUtil.getRailsYaw(this.getRailDirection());
+			this.customYaw = FaceUtil.getRailsYaw(this.getRailDirection());
 		}
 		//Fine tuning
-		if (getYawDifference(yawcomparer) > 90) customYaw += 180;
-		
-		return customYaw;
+		if (getYawDifference(yawcomparer) > 90) this.customYaw += 180;
 	}
-	public float updateYaw(BlockFace yawdirection) {
-		return this.updateYaw(FaceUtil.faceToYaw(yawdirection));
+	public void updateYaw(BlockFace yawdirection) {
+		this.updateYaw(FaceUtil.faceToYaw(yawdirection));
 	}
-	public float updateYawTo(MinecartMember head) {
-		return this.updateYaw(Util.getLookAtYaw(this, head));
+	public void updateYaw() {
+		this.updateYaw(this.yaw);
 	}
-	public float updateYawFrom(MinecartMember tail) {
-		return this.updateYaw(Util.getLookAtYaw(tail, this));
+	public void updateYawTo(MinecartMember head) {
+		this.updateYaw(Util.getLookAtYaw(this, head));
+	}
+	public void updateYawFrom(MinecartMember tail) {
+		this.updateYaw(Util.getLookAtYaw(tail, this));
 	}
 	
 	/*

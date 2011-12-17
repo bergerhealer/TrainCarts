@@ -1,0 +1,29 @@
+package com.bergerkiller.bukkit.actions;
+
+import org.bukkit.World;
+
+import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.MinecartMember;
+
+public class MemberAction extends Action {
+	
+	public boolean doTick() {
+		if (!this.member.isValidMember()) return true;
+		return super.doTick();
+	}
+	
+	private final MinecartMember member;
+	public MemberAction(final MinecartMember member) {
+		this.member = member;
+	}
+	public MinecartGroup getGroup() {
+		return this.member.getGroup();
+	}
+	public MinecartMember getMember() {
+		return this.member;
+	}
+	public World getWorld() {
+		return this.member.getWorld();
+	}
+
+}
