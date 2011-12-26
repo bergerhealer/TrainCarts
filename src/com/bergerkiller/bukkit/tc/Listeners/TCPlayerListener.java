@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.Listeners;
+package com.bergerkiller.bukkit.tc.listeners;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -14,7 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainProperties;
-import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 
 public class TCPlayerListener extends PlayerListener {
 

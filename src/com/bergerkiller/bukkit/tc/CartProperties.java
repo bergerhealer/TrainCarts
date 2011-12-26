@@ -39,6 +39,9 @@ public class CartProperties {
 	public String enterMessage = null;
 	public String destination = "";
 	
+	public void remove() {
+		properties.remove(this.uuid);
+	}
 	public MinecartMember getMember() {
 		return MinecartMember.get(this.uuid);
 	}

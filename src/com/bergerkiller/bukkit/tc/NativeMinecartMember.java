@@ -15,8 +15,8 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
@@ -232,7 +232,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
 	 */
-	public boolean preUpdate() {
+	public boolean preUpdate() throws GroupUnloadedException {
 		//Some fixed
 		if (this.dead) return false;
 		this.motX = Util.fixNaN(this.motX);
@@ -975,6 +975,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (this.member().isCollisionIgnored(e)) return false;
 		if (e.dead) return false;
 		if (this.dead) return false;
+		if (this.group().isActionWait()) return false;
 		if (e instanceof MinecartMember) {
 			//colliding with a member in the group, or not?
 			MinecartMember mm1 = this.member();
@@ -989,6 +990,9 @@ public class NativeMinecartMember extends EntityMinecart {
 				return false;
 			} else if (!mm2.getGroup().getProperties().trainCollision) {
 				//Other train allows train collisions?
+				return false;
+			} else if (mm2.getGroup().isActionWait()) {
+				//Is this train targeting?
 				return false;
 			}
 		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {

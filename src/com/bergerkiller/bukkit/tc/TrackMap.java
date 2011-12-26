@@ -8,8 +8,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.material.Rails;
 
-import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
 public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;

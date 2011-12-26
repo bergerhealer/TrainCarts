@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.Utils;
+package com.bergerkiller.bukkit.tc.utils;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;

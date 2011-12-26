@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.GroupManager;
+import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 
@@ -114,6 +115,40 @@ public class TrainCommands {
 					p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 				}
 			}
+		} else if (cmd.equals("addtags") || cmd.equals("addtag")) {
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.RED + "You need to give at least one tag to add!");
+			} else {
+				prop.addTags(args);
+				p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as tags for all minecarts in this train!");
+			}
+		} else if (cmd.equals("settags") || cmd.equals("settag") || cmd.equals("tags") || cmd.equals("tag")) {
+			prop.clearTags();
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.YELLOW + "All tags of all minecarts in this train have been cleared!");
+			} else {
+				prop.addTags(args);
+				p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + Util.combineNames(args) + ChatColor.YELLOW + " as tags for all minecarts in this train!");
+			}
+		} else if (cmd.equals("dest") || cmd.equals("destination")) {
+			if (args.length == 0) {
+				prop.clearDestination();
+				p.sendMessage(ChatColor.YELLOW + "The destination for all minecarts in this train has been cleared!");
+			} else {
+				String dest = Util.combine(" ", args);
+				prop.setDestination(dest);
+				p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as destination for all the minecarts in this train!");
+			}
+		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
+			MinecartGroup group = prop.getGroup();
+			if (group == null) {
+				prop.remove();
+			} else {
+				group.destroy();
+			}
+			p.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
+		} else {
+			p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
 		}
 		return true;
 	}

@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
 public class Util {
 	public static final float DEGTORAD = 0.017453293F;

@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.Listeners;
+package com.bergerkiller.bukkit.tc.listeners;
 
 import java.util.HashSet;
 
@@ -9,8 +9,9 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
-import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 
 public class TCBlockListener extends BlockListener {
 	
@@ -20,14 +21,14 @@ public class TCBlockListener extends BlockListener {
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
 		if (BlockUtil.isSign(event.getBlock())) {
 			SignActionEvent info = new SignActionEvent(event.getBlock());
-			CustomEvents.onSign(info, ActionType.REDSTONE_CHANGE);
+			SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 			boolean powered = poweredBlocks.contains(event.getBlock());
 			if (event.getNewCurrent() > 0 && !powered) {
 				poweredBlocks.add(event.getBlock());
-				CustomEvents.onSign(info, ActionType.REDSTONE_ON);
+				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
 			} else if (powered && event.getNewCurrent() == 0) {
 				poweredBlocks.remove(event.getBlock());
-				CustomEvents.onSign(info, ActionType.REDSTONE_OFF);
+				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
 			}
 		}
 	}

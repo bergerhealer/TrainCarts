@@ -15,13 +15,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.config.FileConfiguration;
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
-import com.bergerkiller.bukkit.tc.Listeners.TCBlockListener;
-import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
-import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
-import com.bergerkiller.bukkit.tc.Listeners.TCVehicleListener;
-import com.bergerkiller.bukkit.tc.Listeners.TCWorldListener;
 import com.bergerkiller.bukkit.tc.commands.Commands;
+import com.bergerkiller.bukkit.tc.listeners.TCBlockListener;
+import com.bergerkiller.bukkit.tc.listeners.TCCustomListener;
+import com.bergerkiller.bukkit.tc.listeners.TCPlayerListener;
+import com.bergerkiller.bukkit.tc.listeners.TCVehicleListener;
+import com.bergerkiller.bukkit.tc.listeners.TCWorldListener;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
 
 public class TrainCarts extends JavaPlugin {
 	/*
@@ -133,6 +133,9 @@ public class TrainCarts extends JavaPlugin {
 		//Load configuration
 		loadConfig();
 
+		//Init signs
+		SignAction.init();
+		
 		//Load groups
 		GroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
@@ -184,8 +187,8 @@ public class TrainCarts extends JavaPlugin {
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
 		
-		CustomEvents.deinit();
-
+		SignAction.deinit();
+		
 		plugin = null;
 		
 		System.out.println("TrainCarts disabled!");

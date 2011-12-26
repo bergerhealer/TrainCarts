@@ -79,7 +79,11 @@ public class CartCommands {
 			}
 		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
 			MinecartMember mm = prop.getMember();
-			if (mm != null) mm.destroy();
+			if (mm == null) {
+				prop.remove();
+			} else {
+				mm.destroy();
+			}
 			p.sendMessage(ChatColor.YELLOW + "The selected minecart has been destroyed!");
 		} else {
 			p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");

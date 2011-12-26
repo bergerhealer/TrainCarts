@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.Listeners;
+package com.bergerkiller.bukkit.tc.listeners;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -20,7 +20,7 @@ import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 
 public class TCVehicleListener extends VehicleListener {
 	
@@ -135,13 +135,17 @@ public class TCVehicleListener extends VehicleListener {
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
 			if (mm1 != null) {
-				if (mm1.isCollisionIgnored(event.getEntity())) {
+				if (mm1.getGroup().isActionWait()) {
+					event.setCancelled(true);
+				} else if (mm1.isCollisionIgnored(event.getEntity())) {
 					event.setCancelled(true);
 				} else {
 					TrainProperties prop = mm1.getGroup().getProperties();
 					if (event.getEntity() instanceof Minecart) {
 						MinecartMember mm2 = MinecartMember.convert(event.getEntity());
 						if (mm2 == null || mm1.getGroup() == mm2.getGroup() || MinecartGroup.link(mm1, mm2)) {
+							event.setCancelled(true);
+						} else if (mm2.getGroup().isActionWait()) {
 							event.setCancelled(true);
 						}
 					} else if (prop.canPushAway(event.getEntity())) {

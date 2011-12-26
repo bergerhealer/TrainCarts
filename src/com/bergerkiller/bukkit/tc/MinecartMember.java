@@ -28,16 +28,16 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.tc.API.CoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
-import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
-import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
 public class MinecartMember extends NativeMinecartMember {
 	
@@ -48,21 +48,25 @@ public class MinecartMember extends NativeMinecartMember {
 		return get(entity) == null && !denyConversion;
 	}
 	
-	public static MinecartMember get(Object o) {
-		if (o == null) return null;
-		if (o instanceof UUID) {
-			MinecartMember mm;
-			for (World world : Util.getWorlds()) {
-				for (Object e : world.entityList) {
-					if (e instanceof MinecartMember) {
-						mm = (MinecartMember) e;
-						if (mm.uniqueId.equals(o)) {
-							return mm;
-						}
+	private static EntityMinecart findByID(UUID uuid) {
+		EntityMinecart e;
+		for (World world : Util.getWorlds()) {
+			for (Object o : world.entityList) {
+				if (o instanceof EntityMinecart) {
+					e = (EntityMinecart) o;
+					if (e.uniqueId.equals(uuid)) {
+						return e;
 					}
 				}
 			}
-			return null;
+		}
+		return null;
+	}
+	public static MinecartMember get(Object o) {
+		if (o == null) return null;
+		if (o instanceof UUID) {
+			o = findByID((UUID) o);
+			if (o == null) return null;
 		}
 		if (o instanceof Minecart) {
 			o = EntityUtil.getNative((Minecart) o);
@@ -82,6 +86,10 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public static MinecartMember convert(Object o) {
 		if (o == null) return null;
+		if (o instanceof UUID) {
+			o = findByID((UUID) o);
+			if (o == null) return null;
+		}
 		EntityMinecart em;
 		if (o instanceof EntityMinecart) {
 			em = (EntityMinecart) o;
@@ -211,13 +219,20 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}	
 	
-	public boolean preUpdate() {
+	public boolean preUpdate() throws GroupUnloadedException {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
 		while (times.hasNext()) {			
 			if (times.next().decrementAndGet() <= 0) times.remove();
 		}
-		return super.preUpdate();
+		if (this instanceof MinecartMember) {
+			return super.preUpdate();
+		} else {
+			//prevent members to exist that are not actual members (caused by reloads)
+			undoReplacement(this);
+			convert(this);
+			throw new GroupUnloadedException();
+		}
 	}
 	
 	public void postUpdate(double speedFactor) throws GroupUnloadedException {
@@ -294,7 +309,7 @@ public class MinecartMember extends NativeMinecartMember {
 		} else if (this.activesign != null) {
 			//move
 			SignActionEvent info = new SignActionEvent(this.activesign, this);
-			CustomEvents.onSign(info, ActionType.MEMBER_MOVE);
+			SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
 		}
 	}
 		
@@ -380,7 +395,7 @@ public class MinecartMember extends NativeMinecartMember {
 		//set inactive
 		if (this.activesign != null) {
 			SignActionEvent info = new SignActionEvent(this.activesign, this);
-			CustomEvents.onSign(info, ActionType.MEMBER_LEAVE);
+			SignAction.executeAll(info, SignActionType.MEMBER_LEAVE);
 			if (this.dead) return; 
 			MinecartGroup g = this.getGroup();
 			if (g.size() == 1 || g.tail() == this) {
@@ -393,7 +408,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (BlockUtil.isSign(this.activesign)) {
 			if (this.dead) return;
 			SignActionEvent info = new SignActionEvent(this.activesign, this);
-			CustomEvents.onSign(info, ActionType.MEMBER_ENTER);
+			SignAction.executeAll(info, SignActionType.MEMBER_ENTER);
 			if (this.dead) return;
 			MinecartGroup g = this.getGroup();
 			if (g.size() == 1 || g.tail() != this) {
@@ -639,11 +654,7 @@ public class MinecartMember extends NativeMinecartMember {
 	 * States
 	 */
  	public boolean isMoving() {
-		if (motX > 0.001) return true;
-		if (motX < -0.001) return true;
-		if (motZ > 0.001) return true;
-		if (motZ < -0.001) return true;
-		return false;
+ 		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
 	}
 	public boolean isTurned() {
 		float yaw = Math.abs(this.getYaw());
@@ -688,7 +699,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.isDerailed || member.isDerailed) return true; //if derailed keep train alive
 		if (!this.isNearOf(member)) return false;
 		if (this.isMoving()) {
-			return this.isHeadingTo(member) && this.isHeadingToTrack(member.getRailsBlock());
+			return this.isHeadingToTrack(member.getRailsBlock());
 		} else {
 			return TrackMap.isConnected(this.getRailsBlock(), member.getRailsBlock());
 		}

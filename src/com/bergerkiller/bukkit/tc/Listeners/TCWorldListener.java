@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.Listeners;
+package com.bergerkiller.bukkit.tc.listeners;
 
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;

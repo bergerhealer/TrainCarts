@@ -43,6 +43,9 @@ public class TrainProperties {
 	public Set<CartProperties> getCarts() {
 		return this.cartproperties;
 	}
+	public MinecartGroup getGroup() {
+		return MinecartGroup.get(this.trainname);
+	}
 	
 	protected void addCart(MinecartMember member) {
 		this.cartproperties.add(member.getProperties());
@@ -91,6 +94,45 @@ public class TrainProperties {
 		}
 		return false;
 	}
+	public void clearTags() {
+		for (CartProperties prop : this.cartproperties) {
+			prop.clearTags();
+		}
+	}
+	public void setTags(String... tags) {
+		for (CartProperties prop : this.cartproperties) {
+			prop.setTags(tags);
+		}
+	}
+	public void addTags(String... tags) {
+		for (CartProperties prop : this.cartproperties) {
+			prop.addTags(tags);
+		}
+	}
+	
+	/*
+	 * Destination
+	 */
+	public boolean hasDestination() {
+		for (CartProperties prop : this.cartproperties) {
+			if (prop.hasDestination()) return true;
+		}
+		return false;
+	}
+	public String getDestination() {
+		for (CartProperties prop : this.cartproperties) {
+			if (prop.hasDestination()) return prop.destination;
+		}
+		return "";
+	}
+	public void setDestination(String destination) {
+		for (CartProperties prop : this.cartproperties) {
+			prop.destination = destination;
+		}
+	}
+	public void clearDestination() {
+		this.setDestination("");
+	}
 
 	/*
 	 * Push away settings
@@ -132,15 +174,6 @@ public class TrainProperties {
 			}
 		} else {
 			return this.canCollide(mm);
-		}
-	}
-
-	/*
-	 * Destinations
-	 */
-	public void setDestination(String destination) {
-		for (CartProperties prop : this.cartproperties) {
-			prop.destination = destination;
 		}
 	}
 		

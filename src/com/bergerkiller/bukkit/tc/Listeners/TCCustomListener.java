@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.Listeners;
+package com.bergerkiller.bukkit.tc.listeners;
 
 import org.bukkit.event.CustomEventListener;
 import org.bukkit.event.Event;

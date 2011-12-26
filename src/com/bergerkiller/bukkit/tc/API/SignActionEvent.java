@@ -10,14 +10,13 @@ import org.bukkit.event.Event;
 import com.bergerkiller.bukkit.tc.Destinations;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = 2L;
 
-	public static enum ActionType {REDSTONE_CHANGE, REDSTONE_ON, REDSTONE_OFF, MEMBER_ENTER, MEMBER_MOVE, MEMBER_LEAVE, GROUP_ENTER, GROUP_LEAVE}
-	
 	public SignActionEvent(Block signblock, MinecartMember member) {
 		this(signblock);
 		this.member = member;
@@ -28,12 +27,12 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.group = group;
 		this.memberchecked = true;
 	}
-	public SignActionEvent(ActionType actionType, Block signblock, MinecartMember member) {
+	public SignActionEvent(SignActionType actionType, Block signblock, MinecartMember member) {
 		this(actionType, signblock);
 		this.member = member;
 		this.memberchecked = true;
 	}
-	public SignActionEvent(ActionType actionType, Block signblock, MinecartGroup group) {
+	public SignActionEvent(SignActionType actionType, Block signblock, MinecartGroup group) {
 		this(actionType, signblock);
 		this.group = group;
 		this.memberchecked = true;
@@ -42,7 +41,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		super("SignActionEvent");
 		this.signblock = signblock;
 	}
-	public SignActionEvent(ActionType actionType, Block signblock) {
+	public SignActionEvent(SignActionType actionType, Block signblock) {
 		super("SignActionEvent");
 		this.signblock = signblock;
 		this.actionType = actionType;
@@ -56,7 +55,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private MinecartGroup group = null;
 	private boolean memberchecked = false;
 	private boolean cancelled = false;
-	private ActionType actionType;
+	private SignActionType actionType;
 	
 	public void setLevers(boolean down) {
 		//Toggle the lever if present
@@ -104,16 +103,16 @@ public class SignActionEvent extends Event implements Cancellable {
 	  return Destinations.getDir(destination, this.getLocation().add(0, 2, 0));
 	}
 	
-	public ActionType getAction() {
+	public SignActionType getAction() {
 		return this.actionType;
 	}
-	public boolean isAction(ActionType... types) {
-		for (ActionType type : types) {
+	public boolean isAction(SignActionType... types) {
+		for (SignActionType type : types) {
 			if (this.actionType == type) return true;
 		}
 		return false;
 	}
-	public void setAction(ActionType type) {
+	public void setAction(SignActionType type) {
 		this.actionType = type;
 	}
 	
@@ -170,7 +169,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.memberchecked = true;
 		}
 		if (this.member == null && this.group != null && this.group.size() > 0) {
-			if (this.actionType == ActionType.GROUP_LEAVE) {
+			if (this.actionType == SignActionType.GROUP_LEAVE) {
 				this.member = this.group.tail();
 			} else {
 				this.member = this.group.head();
@@ -196,6 +195,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean isCartSign() {
 		return this.getLine(0).equalsIgnoreCase("[cart]");
+	}
+	public boolean isType(String signtype) {
+		return this.getLine(1).toLowerCase().startsWith(signtype);
 	}
 
 	public boolean isCancelled() {

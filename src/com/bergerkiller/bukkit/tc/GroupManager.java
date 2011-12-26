@@ -14,7 +14,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 
 public class GroupManager {
 	

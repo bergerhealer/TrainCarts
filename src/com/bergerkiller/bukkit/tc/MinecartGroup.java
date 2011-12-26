@@ -18,16 +18,17 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
-import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.ActionWait;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWait;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitForever;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitTill;
 import com.bergerkiller.bukkit.tc.actions.MemberAction;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
 	private static final long serialVersionUID = 2;
@@ -321,12 +322,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (b == null) return false;
 		if (active) {
 			if (this.activeSigns.add(b)) {
-				CustomEvents.onSign(signblock, ActionType.GROUP_ENTER);
+				SignAction.executeAll(signblock, SignActionType.GROUP_ENTER);
 				return true;
 			}
 		} else {
 			if (this.activeSigns.remove(b)) {
-				CustomEvents.onSign(signblock, ActionType.GROUP_LEAVE);
+				SignAction.executeAll(signblock, SignActionType.GROUP_LEAVE);
 				return true;
 			}
 		}
@@ -338,7 +339,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public void clearActiveSigns() {
 		for (Block signblock : this.activeSigns) {
-			CustomEvents.onSign(new SignActionEvent(signblock, this), ActionType.GROUP_LEAVE);
+			SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.GROUP_LEAVE);
 		}
 		this.activeSigns.clear();
 	}
@@ -515,6 +516,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : this) {
 			mm.limitSpeed();
 		}
+	}
+	public void eject() {
+		for (MinecartMember mm : this) mm.eject();
+	}
+	public void eject(Vector offset) {
+		for (MinecartMember mm : this) mm.eject(offset);
 	}
 
 	public void shareForce() {
