@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.actions;
+package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.World;
 

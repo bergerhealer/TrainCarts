@@ -25,11 +25,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.actions.Action;
-import com.bergerkiller.bukkit.actions.MemberActionLaunch;
-import com.bergerkiller.bukkit.actions.MemberActionLaunchLocation;
-import com.bergerkiller.bukkit.actions.MemberActionWaitDistance;
-import com.bergerkiller.bukkit.actions.MemberActionWaitLocation;
 import com.bergerkiller.bukkit.tc.API.CoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
@@ -38,6 +33,11 @@ import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
+import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
+import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
 
 public class MinecartMember extends NativeMinecartMember {
 	

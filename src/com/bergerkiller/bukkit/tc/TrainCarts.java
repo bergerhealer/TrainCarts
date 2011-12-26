@@ -14,7 +14,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.commands.Commands;
 import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
 import com.bergerkiller.bukkit.tc.Listeners.TCBlockListener;
@@ -22,6 +21,7 @@ import com.bergerkiller.bukkit.tc.Listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCPlayerListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCVehicleListener;
 import com.bergerkiller.bukkit.tc.Listeners.TCWorldListener;
+import com.bergerkiller.bukkit.tc.commands.Commands;
 
 public class TrainCarts extends JavaPlugin {
 	/*

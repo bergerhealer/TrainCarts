@@ -19,15 +19,15 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
-import com.bergerkiller.bukkit.actions.Action;
-import com.bergerkiller.bukkit.actions.ActionWait;
-import com.bergerkiller.bukkit.actions.GroupActionWait;
-import com.bergerkiller.bukkit.actions.GroupActionWaitForever;
-import com.bergerkiller.bukkit.actions.GroupActionWaitTill;
-import com.bergerkiller.bukkit.actions.MemberAction;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent.ActionType;
 import com.bergerkiller.bukkit.tc.Listeners.CustomEvents;
+import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.ActionWait;
+import com.bergerkiller.bukkit.tc.actions.GroupActionWait;
+import com.bergerkiller.bukkit.tc.actions.GroupActionWaitForever;
+import com.bergerkiller.bukkit.tc.actions.GroupActionWaitTill;
+import com.bergerkiller.bukkit.tc.actions.MemberAction;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
 	private static final long serialVersionUID = 2;

@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.commands;
+package com.bergerkiller.bukkit.tc.commands;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
