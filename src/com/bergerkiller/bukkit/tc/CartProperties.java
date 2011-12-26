@@ -45,6 +45,9 @@ public class CartProperties {
 	public MinecartMember getMember() {
 		return MinecartMember.get(this.uuid);
 	}
+	public UUID getUUID() {
+		return this.uuid;
+	}
 	
 	/*
 	 * Owners
@@ -177,10 +180,7 @@ public class CartProperties {
 	public boolean hasDestination() {
 		return this.destination != null && this.destination.length() != 0;
 	}
-	
-	/*
-	 * Loading and saving
-	 */
+		
 	public void load(CartProperties from) {
 		this.owners.clear();
 		this.owners.addAll(from.owners);

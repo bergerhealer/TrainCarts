@@ -34,7 +34,7 @@ public class TCBlockListener extends BlockListener {
 	}
 	
 	public void onSignChange(SignChangeEvent event) {
-		if (event.getLine(0).equalsIgnoreCase("[train]")) {
+		if (event.getLine(0).equalsIgnoreCase("[train]") || event.getLine(0).equalsIgnoreCase("[train]")) {
 			String line = event.getLine(1).toLowerCase();
 			if (line.toLowerCase().startsWith("station")) {
 				if (!event.getPlayer().hasPermission("train.build.station")) {

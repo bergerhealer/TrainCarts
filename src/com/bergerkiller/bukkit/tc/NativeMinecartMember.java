@@ -232,7 +232,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
 	 */
-	public boolean preUpdate() throws GroupUnloadedException {
+	public boolean preUpdate() {
 		//Some fixed
 		if (this.dead) return false;
 		this.motX = Util.fixNaN(this.motX);

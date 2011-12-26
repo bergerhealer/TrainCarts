@@ -62,9 +62,19 @@ public class SignActionTeleport extends SignAction {
 										double force = info.getGroup().getAverageForce();
 
 										//Spawn a new group and transfer data
-										MinecartGroup gnew = MinecartGroup.spawn(destinationRail, direction, info.getGroup().getTypes(), force);
+										MinecartGroup gnew = MinecartGroup.spawn(destinationRail, direction, info.getGroup().getTypes());
 										gnew.setProperties(info.getGroup().getProperties());
 										info.getGroup().setProperties(null);
+										info.setCancelled(true);
+										
+										//Force
+										gnew.addActionWaitTicks(5);
+										gnew.head().addActionLaunch(direction, 5, force);
+										
+										//Prevent collisions for a while
+										for (int i = 0; i < gnew.size() - 1; i++) {
+											gnew.get(i).ignoreCollision(gnew.get(i + 1), 10);
+										}
 										
 										//Transfer individual data and teleport passengers
 										for (int i = 0; i < gnew.size(); i++) {

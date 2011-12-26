@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.ItemStack;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.World;
@@ -58,15 +57,15 @@ public class EntityUtil {
 		if (minecart instanceof MinecartMember) return ((MinecartMember) minecart).getYaw();
 		return minecart.yaw;
 	}
-		
+			
 	/*
 	 * Entity miscellaneous
 	 */
 	public static void transferItems(EntityMinecart from, EntityMinecart to) {
-		ItemStack[] items = from.getContents();
+		net.minecraft.server.ItemStack[] items = from.getContents();
 		for (int i = 0;i < items.length;i++) {
 			if (items[i] != null) {
-				to.setItem(i, new ItemStack(items[i].id, items[i].count, items[i].b));
+				to.setItem(i, new net.minecraft.server.ItemStack(items[i].id, items[i].count, items[i].b));
 			}
 		}
 		for (int i = 0;i < items.length;i++) from.setItem(i, null);

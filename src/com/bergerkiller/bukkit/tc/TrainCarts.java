@@ -140,7 +140,7 @@ public class TrainCarts extends JavaPlugin {
 		GroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
 		//Load properties
-		TrainProperties.init(getDataFolder() + File.separator + "trainflags.yml");
+		TrainProperties.init(getDataFolder() + File.separator + "TrainProperties.yml");
 
 		//Load destinations
 		Destinations.init(getDataFolder() + File.separator + "destinations.yml");
@@ -164,7 +164,19 @@ public class TrainCarts extends JavaPlugin {
 		//Stop tasks
 		if (signtask != null) signtask.stop();
 
-		//undo replacements for correct saving
+		//Save properties
+		TrainProperties.deinit(getDataFolder() + File.separator + "TrainProperties.yml");
+		
+		//Save destinations
+		Destinations.deinit(getDataFolder() + File.separator + "destinations.yml");
+
+		//Save for next load
+		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
+
+		//Save arrival times
+		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
+		
+		//undo replacements for correct native saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
 		}
@@ -174,18 +186,6 @@ public class TrainCarts extends JavaPlugin {
 				GroupManager.hideGroup(e);
 			}
 		}
-
-		//Save properties
-		TrainProperties.deinit(getDataFolder() + File.separator + "trainflags.yml");
-
-		//Save destinations
-		Destinations.deinit(getDataFolder() + File.separator + "destinations.yml");
-
-		//Save for next load
-		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
-
-		//Save arrival times
-		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
 		
 		SignAction.deinit();
 		

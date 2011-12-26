@@ -18,6 +18,7 @@ public abstract class SignAction {
 		register(new SignActionTeleport());
 		register(new SignActionCart());
 		register(new SignActionTrain());
+		register(new SignActionChest());
 	}
 	public static void deinit() {
 		actions = null;

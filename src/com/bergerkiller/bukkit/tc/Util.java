@@ -9,13 +9,20 @@ import net.minecraft.server.MathHelper;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.TreeSpecies;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.material.MaterialData;
+import org.bukkit.material.TexturedMaterial;
+import org.bukkit.material.Tree;
+import org.bukkit.material.Wool;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
@@ -317,6 +324,84 @@ public class Util {
 	
 	public static List<WorldServer> getWorlds() {
 		return ((CraftServer) Bukkit.getServer()).getHandle().server.worlds;
+	}
+		
+	public static Byte getData(Material type, String name) {
+		try {
+			return Byte.parseByte(name);
+		} catch (NumberFormatException ex) {
+			MaterialData dat = type.getNewData((byte) 0);
+			if (dat instanceof TexturedMaterial) {
+				TexturedMaterial tdat = (TexturedMaterial) dat;
+				tdat.setMaterial(getMaterial(name));
+			} else if (dat instanceof Wool) {
+				Wool wdat = (Wool) dat;
+				wdat.setColor(getDyeColor(name));
+			} else if (dat instanceof Tree) {
+				Tree tdat = (Tree) dat;
+				tdat.setSpecies(getTreeSpecies(name));
+			} else {
+				return null;
+			}
+			return dat.getData();
+		}
+	}
+	public static TreeSpecies getTreeSpecies(String name) {
+		name = name.toUpperCase();
+		for (TreeSpecies specie : TreeSpecies.values()) {
+			if (specie.toString().contains(name)) return specie;
+		}
+		return null;
+	}
+	public static DyeColor getDyeColor(String name) {
+		name = name.toUpperCase();
+		for (DyeColor color : DyeColor.values()) {
+			if (color.toString().contains(name)) return color;
+		}
+		return null;
+	}
+	
+    public static Material getMaterial(String name) {
+    	Material m = Material.matchMaterial(name);
+    	name = name.trim().replace(" ", "_").toUpperCase().replace("SHOVEL", "SPADE").replace("SLAB", "STEP").replace("GOLDEN", "GOLD");       	
+    	if (m == null) m = Material.getMaterial(name);
+    	if (name.equalsIgnoreCase("WOODEN_DOOR")) m = Material.WOOD_DOOR;
+    	if (name.equalsIgnoreCase("IRON_DOOR_BLOCK")) m = Material.IRON_DOOR;
+    	if (name.equalsIgnoreCase("REPEATER")) m = Material.DIODE;
+    	if (name.equalsIgnoreCase("REDSTONE_REPEATER")) m = Material.DIODE;
+    	if (name.equalsIgnoreCase("REDSTONE_DUST")) m = Material.REDSTONE;
+    	if (name.equalsIgnoreCase("REDSTONE_TORCH")) m = Material.REDSTONE_TORCH_ON;
+    	if (name.equalsIgnoreCase("STONE_PRESSURE_PLATE")) m = Material.STONE_PLATE;
+    	if (name.equalsIgnoreCase("BUTTON")) m = Material.STONE_BUTTON;
+    	if (name.equalsIgnoreCase("WOOD_PRESSURE_PLATE")) m = Material.WOOD_PLATE;
+    	if (name.equalsIgnoreCase("WOODEN_PRESSURE_PLATE")) m = Material.WOOD_PLATE;
+    	if (name.equalsIgnoreCase("PISTON")) m = Material.PISTON_BASE;	
+       	if (name.equalsIgnoreCase("STICKY_PISTON")) m = Material.PISTON_STICKY_BASE;
+       	if (name.equalsIgnoreCase("MOSS_STONE")) m = Material.MOSSY_COBBLESTONE;
+       	if (name.equalsIgnoreCase("STONE_STAIRS")) m = Material.COBBLESTONE_STAIRS;
+       	if (name.equalsIgnoreCase("WOODEN_STAIRS")) m = Material.WOOD_STAIRS;  	
+       	if (name.equalsIgnoreCase("DIAM_CHESTPLATE")) m = Material.DIAMOND_CHESTPLATE; 
+       	if (name.equalsIgnoreCase("DIAM_LEGGINGS")) m = Material.DIAMOND_LEGGINGS; 
+       	if (name.equalsIgnoreCase("LEAT_CHESTPLATE")) m = Material.LEATHER_CHESTPLATE; 
+       	if (name.equalsIgnoreCase("LEAT_LEGGINGS")) m = Material.LEATHER_LEGGINGS;     	
+       	if (name.equalsIgnoreCase("LEATHER_PANTS")) m = Material.LEATHER_LEGGINGS;  
+    	if (name.equalsIgnoreCase("LIGHTER")) m = Material.FLINT_AND_STEEL;  
+    	if (name.equalsIgnoreCase("DOUBLE_SLAB")) m = Material.DOUBLE_STEP;
+    	if (name.equalsIgnoreCase("DOUBLESLAB")) m = Material.DOUBLE_STEP;
+    	if (name.equalsIgnoreCase("SLAB")) m = Material.STEP;
+    	if (name.equalsIgnoreCase("BOOK_SHELF")) m = Material.BOOKSHELF;
+    	if (name.equalsIgnoreCase("LIT_PUMPKIN")) m = Material.JACK_O_LANTERN;
+    	if (m != null) {
+    		return m;
+    	} else if (name.endsWith("S")) {  	
+    		return getMaterial(name.substring(0, name.length() - 1));
+    	} else {
+    	    try {
+    	    	return Material.getMaterial(Integer.parseInt(name));
+    	    } catch (Exception ex) {
+    	    	return null;
+    	    }
+    	}
 	}
 
 }

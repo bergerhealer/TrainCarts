@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
@@ -17,7 +18,7 @@ import com.bergerkiller.bukkit.config.FileConfiguration;
 public class TrainProperties {
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
 	public static TrainProperties get(String trainname) {
-		if (trainname == null) return null;
+		if (trainname == null || properties == null) return null;
 		TrainProperties prop = properties.get(trainname);
 		if (prop == null) {
 			return new TrainProperties(trainname);
@@ -25,6 +26,7 @@ public class TrainProperties {
 		return prop;
 	}
 	public static boolean exists(String trainname) {
+		if (properties == null) return false;
 		return properties.containsKey(trainname);
 	}	
 	
@@ -202,6 +204,55 @@ public class TrainProperties {
 		return this;
 	}
 	
+	public static void init(String filename) {
+		load(filename);
+	}
+	public static void deinit(String filename) {
+		save(filename);
+		defconfig = null;
+		properties.clear();
+		properties = null;
+	}
+    
+	/*
+	 * Train properties defaults
+	 */
+	private static FileConfiguration defconfig = null;
+	public static void reloadDefaults() {
+		defconfig = new FileConfiguration(TrainCarts.plugin, "DefaultTrainProperties.yml");
+		defconfig.load();
+		defconfig.getNode("default");
+		defconfig.getNode("admin");
+		defconfig.save();
+	}
+	public static FileConfiguration getDefaults() {
+		if (defconfig == null) reloadDefaults();
+		return defconfig;
+	}
+	public void setDefault() {
+		setDefault("default");
+	}
+	public void setDefault(String key) {
+		this.load(getDefaults().getNode(key));
+	}
+	public void setDefault(Player player) {
+		if (player == null) {
+			//Set default
+			this.setDefault();
+		} else {
+			//Load it
+			for (ConfigurationNode node : getDefaults().getNodes()) {
+				if (player.hasPermission("train.properties." + node.getName())) {
+					this.load(node);
+					break;
+				}
+			}
+		}
+	}
+	
+	/*
+	 * Loading and saving
+	 */
 	public static void load(String filename) {
 		FileConfiguration config = new FileConfiguration(new File(filename));
 		config.load();
@@ -214,72 +265,17 @@ public class TrainProperties {
 		for (TrainProperties prop : properties.values()) {
 			//does this train even exist?!
 			if (GroupManager.contains(prop.getTrainName())) {
-				prop.save(config.getNode(prop.getTrainName()));
+				ConfigurationNode train = config.getNode(prop.getTrainName());
+				prop.save(train);
+				if (train.getKeys().isEmpty()) {
+					config.set(prop.getTrainName(), null);
+				}
 			} else {
 				config.set(prop.getTrainName(), null);
 			}
 		}
 		config.save();
 	}
-	public static void init(String filename) {
-		load(filename);
-	}
-	public static void deinit(String filename) {
-		save(filename);
-		deffile = null;
-		defconfig = null;
-		properties.clear();
-		properties = null;
-	}
-    
-	/*
-	 * Train properties defaults
-	 */
-	private static File deffile = null;
-	private static FileConfiguration defconfig = null;
-
-	public static FileConfiguration getDefaults() {
-		if (deffile == null) {
-			deffile = new File(TrainCarts.plugin.getDataFolder() + File.separator + "defaultflags.yml");
-			defconfig = new FileConfiguration(deffile);
-			if (deffile.exists()) defconfig.load();
-			TrainProperties prop = new TrainProperties();
-			if (!defconfig.contains("default")) prop.save(defconfig.getNode("default"));
-			if (!defconfig.contains("admin")) prop.save(defconfig.getNode("admin"));
-			if (!defconfig.contains("station")) {
-				prop.pushMisc = true;
-				prop.pushMobs = true;
-				prop.pushPlayers = true;
-				prop.save(defconfig.getNode("station"));
-			}
-			defconfig.save();
-		}
-		defconfig.load();
-		return defconfig;
-	}
-	public void setDefault() {
-		setDefault("default");
-	}
-	public void setDefault(String key) {
-		this.load(getDefaults().getNode(key));
-	}
-	public void setDefault(Player player) {
-		if (player == null) {
-			//Set default
-			setDefault();
-		} else {
-			getDefaults();
-			//Load it
-			for (ConfigurationNode node : defconfig.getNodes()) {
-				if (player.hasPermission("train.properties." + node.getName())) {
-					this.load(node);
-					break;
-				}
-			}
-		}
-	}
-	
-	
 	public void load(ConfigurationNode node) {
 		this.allowLinking = node.get("allowLinking", this.allowLinking);
 		this.trainCollision = node.get("trainCollision", this.trainCollision);
@@ -290,6 +286,15 @@ public class TrainProperties {
 		this.speedLimit = Util.limit(node.get("speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
+		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
+			try {
+				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()));
+				this.cartproperties.add(prop);
+				prop.load(cart);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
 	public void load(TrainProperties source) {
 		this.allowLinking = source.allowLinking;
@@ -301,6 +306,8 @@ public class TrainProperties {
 		this.speedLimit = Util.limit(source.speedLimit, 0, 20);
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.keepChunksLoaded = source.keepChunksLoaded;
+		this.cartproperties.clear();
+		this.cartproperties.addAll(source.cartproperties);
 	}
 	public void save(ConfigurationNode node) {		
 		node.set("allowLinking", this.allowLinking ? null : false);
@@ -309,8 +316,18 @@ public class TrainProperties {
 		node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
 		node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
 		node.set("slowDown", this.slowDown ? null : false);
-		node.set("pushAway.mobs", this.pushMobs ? true : null);
-		node.set("pushAway.players", this.pushPlayers ? true : null);
-		node.set("pushAway.misc", this.pushMisc ? null : false);
+		if (this.pushMobs || this.pushPlayers || !this.pushMisc) {
+			node.set("pushAway.mobs", this.pushMobs ? true : null);
+			node.set("pushAway.players", this.pushPlayers ? true : null);
+			node.set("pushAway.misc", this.pushMisc ? null : false);
+		} else {
+			node.remove("pushAway");
+		}
+		ConfigurationNode carts = node.getNode("carts");
+		for (CartProperties prop : this.cartproperties) {
+			ConfigurationNode cart = carts.getNode(prop.getUUID().toString());
+			prop.save(cart);
+			if (cart.getKeys().isEmpty()) carts.remove(cart.getName());
+		}
 	}
 }

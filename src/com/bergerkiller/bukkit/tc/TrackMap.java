@@ -74,7 +74,7 @@ public class TrackMap extends ArrayList<Block> {
 		BlockFace direction = FaceUtil.yawToFace(yaw, false);
 		TrackMap map1 = new TrackMap(rail1, direction);
 		TrackMap map2 = new TrackMap(rail2, direction.getOppositeFace());
-		return map1.find(rail2, stepcount) && map2.find(rail1, stepcount);
+		return map1.find(rail2, stepcount) || map2.find(rail1, stepcount);
 	}
 	
 	public Block last() {

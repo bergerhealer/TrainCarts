@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 
@@ -19,20 +20,18 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.API.CoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.actions.Action;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
-import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
-import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
+import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
@@ -116,11 +115,10 @@ public class MinecartMember extends NativeMinecartMember {
 		return rval;
 	}
 	
-	public static MinecartMember spawn(Location at, int type, double forwardforce) {
+	public static MinecartMember spawn(Location at, int type) {
 		MinecartMember mm = new MinecartMember(EntityUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
-		mm.setForce(forwardforce, mm.yaw);
 		mm.world.addEntity(mm);
 		return mm;
 	}
@@ -206,33 +204,31 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	@Override
 	public void w_() {
-		MinecartGroup g = this.getGroup();
-		if (g == null) return;
-		if (this.dead) {
-			//remove self
-			g.remove(this);
-		} else if (g.size() == 0) {
-			g.remove();
-			super.w_();
-		} else if (g.tail() == this) {
-			g.doPhysics();
+		if (this instanceof MinecartMember) {
+			MinecartGroup g = this.getGroup();
+			if (g == null) return;
+			if (this.dead) {
+				//remove self
+				g.remove(this);
+			} else if (g.size() == 0) {
+				g.remove();
+				super.w_();
+			} else if (g.tail() == this) {
+				g.doPhysics();
+			}
+		} else {
+			//prevent members to exist that are not actual members (caused by reloads)
+			convert(undoReplacement(this));
 		}
-	}	
+	}
 	
-	public boolean preUpdate() throws GroupUnloadedException {
+	public boolean preUpdate() {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
 		while (times.hasNext()) {			
 			if (times.next().decrementAndGet() <= 0) times.remove();
 		}
-		if (this instanceof MinecartMember) {
-			return super.preUpdate();
-		} else {
-			//prevent members to exist that are not actual members (caused by reloads)
-			undoReplacement(this);
-			convert(this);
-			throw new GroupUnloadedException();
-		}
+		return super.preUpdate();
 	}
 	
 	public void postUpdate(double speedFactor) throws GroupUnloadedException {
@@ -364,6 +360,9 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 	
+ 	/*
+ 	 * Block functions
+ 	 */
  	public Block getBlock(int dx, int dy, int dz) {
  		return this.world.getWorld().getBlockAt(this.blockx + dx, this.blocky + dy, this.blockz + dz);
  	}
@@ -373,7 +372,7 @@ public class MinecartMember extends NativeMinecartMember {
  	public Block getRailsBlock() {
 		if (this.isDerailed) return null;
 		Block b = this.getBlock();
-		if (BlockUtil.isRails(b.getTypeId())) {
+		if (BlockUtil.isRails(b)) {
 			return b;
 		} else {
 			this.isDerailed = true;
@@ -388,7 +387,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public Block getGroundBlock() {
 		return this.getBlock(0, -1, 0);
 	}
-	
 	public void setActiveSign(Block activesign) {
 		//update active sign
 		if (this.activesign == activesign) return;
@@ -684,7 +682,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isHeadingToTrack(Block track, int maxstepcount) {
 		Block from = this.getRailsBlock();
 		if (BlockUtil.equals(from, track)) return true;
-		if (maxstepcount == 0) maxstepcount = 1 + BlockUtil.getBlockSteps(from, track, false);
+		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getBlockSteps(from, track, false);
 		TrackMap map = new TrackMap(from, this.getDirection());
 		Block next;
 		for (;maxstepcount > 0; --maxstepcount) {
@@ -735,6 +733,71 @@ public class MinecartMember extends NativeMinecartMember {
 		if (Math.abs(cx - this.getChunkX()) > 2) return false;
 		if (Math.abs(cz - this.getChunkZ()) > 2) return false;
 	    return true;
+	}
+	public boolean isPoweredMinecart() {
+		return this.type == 2;
+	}
+	public boolean isStorageMinecart() {
+		return this.type == 1;
+	}
+	public boolean isRegularMinecart() {
+		return this.type == 0;
+	}
+	public boolean hasPassenger() {
+		return this.passenger != null;
+	}
+	public Entity getPassenger() {
+		return this.passenger == null ? null : this.passenger.getBukkitEntity();
+	}
+	public boolean hasFuel() {
+		return this.e > 0;
+	}
+	
+	public Inventory getInventory() {
+		return new CraftInventory(this);
+	}
+	public boolean hasItem(ItemParser item) {
+		if (item == null) return false;
+		if (item.hasData()) {
+			return this.hasItem(item.getTypeId(), item.getData());
+		} else {
+			return this.hasItem(item.getTypeId());
+		}
+	}
+	public boolean hasItem(Material type, int data) {
+		return this.hasItem(type.getId(), data);
+	}
+	public boolean hasItem(Material type) {
+		return this.hasItem(type.getId());
+	}
+	public boolean hasItem(int typeid) {
+		if (!this.isStorageMinecart()) return false;
+		for (ItemStack stack : this.getContents()) {
+			if (stack != null) {
+				if (stack.id == typeid) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	public boolean hasItem(int typeid, int data) {
+		if (!this.isStorageMinecart()) return false;
+		for (ItemStack stack : this.getContents()) {
+			if (stack != null) {
+				if (stack.id == typeid && stack.getData() == data) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	public boolean hasItems() {
+		if (!this.isStorageMinecart()) return false;
+		for (ItemStack stack : this.getContents()) {
+			if (stack != null) return true;
+		}
+		return false;
 	}
 		
 	/*

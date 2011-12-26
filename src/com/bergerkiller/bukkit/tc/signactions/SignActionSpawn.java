@@ -46,7 +46,9 @@ public class SignActionSpawn extends SignAction {
 					}		
 					
 					//Spawn the group
-					MinecartGroup.spawn(info.getRails(), info.getFacing(), types, force);
+					BlockFace direction = info.getFacing();
+					MinecartGroup group = MinecartGroup.spawn(info.getRails(), info.getFacing(), types);
+					group.head().addActionLaunch(direction, 2, force);
 				}
 			}
 		}

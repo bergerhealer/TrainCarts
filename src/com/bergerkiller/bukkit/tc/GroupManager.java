@@ -340,6 +340,7 @@ public class GroupManager {
 	 * @param group - The group to buffer
 	 */
 	public static void hideGroup(MinecartGroup group) {
+		if (hiddengroups == null) return;
 		synchronized (hiddengroups) {
 			if (group == null || !group.isValid()) return;
 			for (MinecartMember mm : group) hiddenMinecarts.add(mm.uniqueId);
