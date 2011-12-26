@@ -27,17 +27,29 @@ public class MemberActionLaunch extends MemberAction {
 	}
 	
 	private static final double minVelocity = 0.02;
+	private static final double minVelocitySquared = minVelocity * minVelocity;
+	
+	public double getTargetDistance() {
+		return this.targetdistance;
+	}
+	public double getDistance() {
+		return this.distance;
+	}
 	
 	public boolean update() {	
+		//Did any of the carts in the group stop?
+		if (this.distance != 0) {
+			for (MinecartMember mm : this.getGroup()) {
+				if (mm.getForce() < minVelocitySquared) return true; //stopped
+			}
+		}
+		
 		//Increment distance
 		final double distanceChange = this.getMember().getMovedDistanceXZ();
 		this.distance += distanceChange;
-
-		//Did not pass the goal already?
-		boolean reached = this.distance > this.targetdistance - 0.2;
-		if (distanceChange < 0.01 && this.distance > 0.5) reached = true; //stopped
-
-		if (reached) {
+		
+		//Reached the target distance?
+		if (this.distance > this.targetdistance - 0.2) {
 			if (this.targetvelocity == 0) {
 				//Stop if target velocity was 0
 				this.getGroup().stop();
@@ -45,6 +57,7 @@ public class MemberActionLaunch extends MemberAction {
 				//Launch at full speed
 				this.getGroup().setForwardForce(this.targetvelocity);
 			}
+			return true;
 		} else {
 			//Get the velocity to set the carts to
 			double targetvel = Util.limit(this.targetvelocity, this.getMember().maxSpeed);
@@ -55,8 +68,8 @@ public class MemberActionLaunch extends MemberAction {
 			}
 			if (targetvel < minVelocity) targetvel = minVelocity;
 			this.getGroup().setForwardForce(targetvel);
+			return false;
 		}
-		return reached;
 	}
 
 }

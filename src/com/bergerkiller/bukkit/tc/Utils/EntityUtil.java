@@ -8,7 +8,6 @@ import net.minecraft.server.ItemStack;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Entity;
@@ -18,7 +17,6 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
 
 public class EntityUtil {
@@ -64,11 +62,6 @@ public class EntityUtil {
 	/*
 	 * Entity miscellaneous
 	 */
-	public static boolean isSharingRails(Minecart m1, Minecart m2) {
-		Block bm1 = BlockUtil.getRailsBlock(m1);
-		Block bm2 = BlockUtil.getRailsBlock(m2);
-		return TrackMap.connected(bm1, bm2);
-	}
 	public static void transferItems(EntityMinecart from, EntityMinecart to) {
 		ItemStack[] items = from.getContents();
 		for (int i = 0;i < items.length;i++) {
@@ -105,8 +98,8 @@ public class EntityUtil {
 		
 		//swap
 		MinecartSwapEvent.call(toreplace, with);
-		toreplace.world.removeEntity(toreplace);
 		((WorldServer) toreplace.world).tracker.untrackEntity(toreplace);
+		toreplace.world.removeEntity(toreplace);
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}

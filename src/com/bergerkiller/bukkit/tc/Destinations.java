@@ -5,12 +5,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+
+import com.bergerkiller.bukkit.config.ConfigurationNode;
+import com.bergerkiller.bukkit.config.FileConfiguration;
 
 public class Destinations {
 	private static HashSet<String> checked = new HashSet<String>(); //used to prevent infinite loops
@@ -31,19 +33,16 @@ public class Destinations {
 		properties.clear();
 	}
 	public static void load(String filename) {
-		Configuration config = new Configuration(filename);
+		FileConfiguration config = new FileConfiguration(filename);
 		config.load();
-		for (String destname : config.getKeys(false)) {
-			get(destname).load(config, destname);
+		for (ConfigurationNode node : config.getNodes()) {
+			get(node.getName()).load(node);
 		}
 	}
 	public static void save(String filename) {
-		Configuration config = new Configuration(filename);
-		config.load();
-		Set<String> keys = config.getKeys(false);
-		for (String key : keys){config.set(key, null);}
+		FileConfiguration config = new FileConfiguration(filename);
 		for (Destinations prop : properties.values()) {
-			prop.save(config, prop.getDestName());
+			prop.save(config.getNode(prop.getDestName()));
 		}
 		config.save();
 	}
@@ -202,29 +201,27 @@ public class Destinations {
 		properties.put(newdestname, this);
 	}
 
-	@SuppressWarnings("unchecked") //prevent warning for getlist -> stringlist
-	public void load(Configuration config, String key) {
-		if (config == null) return;
-		this.neighbours = config.getList(key + ".neighbours");
-		for (String k : config.getKeys(key)){
+	public void load(ConfigurationNode node) {
+		this.neighbours = node.getList("neighbours", String.class);
+		for (String k : node.getKeys()) {
 			if (k.equals("neighbours")) continue; //skip neighbours
 			BlockFace bf = BlockFace.UP;
-			String dir = config.getString(key + "." + k + ".dir");
+			String dir = node.get(k + ".dir", "NORTH");
 			if (dir.equals("NORTH")) bf = BlockFace.NORTH;
 			if (dir.equals("EAST")) bf = BlockFace.EAST;
 			if (dir.equals("SOUTH")) bf = BlockFace.SOUTH;
 			if (dir.equals("WEST")) bf = BlockFace.WEST;
-			this.dests.put(k, new Node(bf, config.getDouble(key + "." + k + ".dist")));
+			this.dests.put(k, new Node(bf, node.get(k + ".dist", 100000.0)));
 		}
 	}
 	public void load(Destinations source) {
 		this.dests.putAll(source.dests);
 	}
-	public void save(Configuration config, String key) {
-		config.set(key + ".neighbours", this.neighbours);
+	public void save(ConfigurationNode node) {
+		node.set("neighbours", this.neighbours);
 		for (Map.Entry<String, Node> entry : this.dests.entrySet()){
-			config.set(key + "." + entry.getKey() + ".dir", entry.getValue().dir.toString());
-			config.set(key + "." + entry.getKey() + ".dist", entry.getValue().dist);
+			node.set(entry.getKey() + ".dir", entry.getValue().dir.toString());
+			node.set(entry.getKey() + ".dist", entry.getValue().dist);
 		}
 	}
 }

@@ -19,9 +19,9 @@ import com.bergerkiller.bukkit.mw.MyWorlds;
 import com.bergerkiller.bukkit.mw.Permission;
 import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
+import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Properties;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -126,8 +126,6 @@ public class CustomEvents {
 			}
 			if (instruction == BlockFace.UP) return; 
 
-			TrainProperties prop = group.getProperties();
-
 			//What do we do?
 			Location l = info.getRailLocation();
 			if (instruction == BlockFace.SELF) {
@@ -138,7 +136,6 @@ public class CustomEvents {
 						//TODO: ADD CHECK?!
 						group.clearActions();
 						midd.addActionLaunch(l, 0);
-						prop.setStation(true);
 						BlockFace trainDirection = null;
 						if (mode == 1) {
 							//Continue
@@ -175,7 +172,6 @@ public class CustomEvents {
 				}
 			} else {
 				//Launch
-				prop.setStation(true);
 				group.clearActions();
 				Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 				MinecartMember head = group.head();
@@ -329,26 +325,15 @@ public class CustomEvents {
 		}
 	}
 
-	private static void handleProperties(TrainProperties tprop, String mode, String arg) {
-		Properties prop = tprop.getSaved();
-		if (mode.equals("addtag")) {
-			prop.addTags(arg);
-		} else if (mode.equals("settag")) {
-			prop.setTags(arg);
-		} else if (mode.equals("destination")) {
-			prop.destination = arg;
-		} else if (mode.equals("remtag")) {
-			prop.tags.remove(arg);
-		} else if (mode.equals("collision") || mode.equals("collide")) {
+	private static void handleProperties(TrainProperties prop, String mode, String arg) {
+		if (mode.equals("collision") || mode.equals("collide")) {
 			prop.trainCollision = Util.getBool(arg);
 		} else if (mode.equals("linking") || mode.equals("link")) {
 			prop.allowLinking = Util.getBool(arg);
-		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-			prop.allowMobsEnter = Util.getBool(arg);
 		} else if (mode.equals("slow") || mode.equals("slowdown")) {
 			prop.slowDown = Util.getBool(arg);
 		} else if (mode.equals("setdefault") || mode.equals("default")) {
-			tprop.setDefault(arg);
+			prop.setDefault(arg);
 		} else if (mode.equals("pushmobs")) {
 			prop.pushMobs = Util.getBool(arg);
 		} else if (mode.equals("pushplayers")) {
@@ -359,10 +344,6 @@ public class CustomEvents {
 			prop.pushMobs = Util.getBool(arg);
 			prop.pushPlayers = prop.pushMobs;
 			prop.pushMisc = prop.pushMobs;
-		} else if (mode.equals("playerenter")) {
-			prop.allowPlayerEnter = Util.getBool(arg);
-		} else if (mode.equals("playerexit")) {
-			prop.allowPlayerExit = Util.getBool(arg);
 		} else if (mode.equals("speedlimit") || mode.equals("maxspeed")) {
 			try {
 				prop.speedLimit = Double.parseDouble(arg);
@@ -370,13 +351,30 @@ public class CustomEvents {
 				prop.speedLimit = 0.4;
 			}
 		}
-		tprop.restore();
+	}
+	private static void handleProperties(CartProperties prop, String mode, String arg) {
+		if (mode.equals("addtag")) {
+			prop.addTags(arg);
+		} else if (mode.equals("settag")) {
+			prop.setTags(arg);
+		} else if (mode.equals("destination")) {
+			prop.destination = arg;
+		} else if (mode.equals("remtag")) {
+			prop.removeTags(arg);
+		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
+			prop.allowMobsEnter = Util.getBool(arg);
+		} else if (mode.equals("playerenter")) {
+			prop.allowPlayerEnter = Util.getBool(arg);
+		} else if (mode.equals("playerexit")) {
+			prop.allowPlayerExit = Util.getBool(arg);
+		}
 	}
 
 	public static void onSign(SignActionEvent info, ActionType action) {
 		info.setAction(action);
 		onSign(info);
 	}
+	
 	public static void onSign(SignActionEvent info) {
 		if (info.getSign() == null) return;
 		//Event
@@ -400,11 +398,9 @@ public class CustomEvents {
 						MinecartGroup group = info.getGroup();
 						if (group != null) {
 							if (info.isAction(ActionType.GROUP_LEAVE)) {
-								group.getProperties().setStation(false);
 							} else if (!info.isPowered()) {
 								//TODO: Correctly handle this! (zomg)
 								group.clearActions();
-								group.getProperties().setStation(false);
 							} else {
 								handleStation(info);
 							}
@@ -417,21 +413,25 @@ public class CustomEvents {
 			}
 		}
 
-		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER)) {
-			if (info.getLine(0).equalsIgnoreCase("[train]")) {
+		if (info.isAction(ActionType.REDSTONE_ON, ActionType.MEMBER_ENTER)) {
+			boolean isTrain = info.isTrainSign();
+			boolean isCart = info.isCartSign();
+			if (isTrain || isCart) {
 				if (info.getLine(1).equalsIgnoreCase("property")) {
 					if (info.isAction(ActionType.REDSTONE_ON) || (info.isPowered() && info.isFacing())) {
-						if (info.getGroup() != null) {
-							//Handle property changes
+						if (isCart && info.getMember() != null) {
+							//Handle cart property changes
 							String mode = info.getLine(2).toLowerCase().trim();
-							TrainProperties prop = info.getGroup().getProperties();
-							handleProperties(prop, mode, info.getLine(3));
+							handleProperties(info.getMember().getProperties(), mode, info.getLine(3));
+						} else if (isTrain && info.getGroup() != null) {
+							//Handle train property changes
+							String mode = info.getLine(2).toLowerCase().trim();
+							handleProperties(info.getGroup().getProperties(), mode, info.getLine(3));
 						}
 					}
 				}
 			}
 		}
-
 
 		if (info.isAction(ActionType.REDSTONE_ON, ActionType.GROUP_ENTER, ActionType.REDSTONE_OFF)) {
 			if (info.getLine(0).equalsIgnoreCase("[train]")) {
@@ -453,14 +453,17 @@ public class CustomEvents {
 			}
 		}
 
-		if (info.isAction(ActionType.GROUP_ENTER) || info.isAction(ActionType.GROUP_LEAVE)) {
-			if (info.getLine(0).equalsIgnoreCase("[train]")) {
+		if (info.isAction(ActionType.MEMBER_ENTER) || info.isAction(ActionType.MEMBER_LEAVE)) {
+			boolean isTrain = info.isTrainSign();
+			boolean isCart = info.isCartSign();
+			if (isTrain || isCart) {
 				if (info.getLine(1).toLowerCase().startsWith("tag")) {
-					TrainProperties prop = info.getGroup().getProperties();
-					if (!prop.destination.isEmpty()){
+					CartProperties cprop = info.getMember().getProperties();
+					TrainProperties tprop = info.getGroup().getProperties();
+					if (cprop.hasDestination()){
 						//Handle rails based on destination
-						if (info.isAction(ActionType.GROUP_ENTER)){
-							BlockFace check = info.getDestDir(prop.destination);
+						if (info.isAction(ActionType.MEMBER_ENTER)){
+							BlockFace check = info.getDestDir(cprop.destination);
 							if (check != BlockFace.UP){
 								info.setRailsFromCart(check);
 								return; //do not parse further if destination is found
@@ -469,10 +472,17 @@ public class CustomEvents {
 					}
 					//Toggle levers and rails based on tags
 					boolean down = false;
-					if (info.isAction(ActionType.GROUP_ENTER) && info.isFacing()) {
-						//get the tags    
-						boolean left = prop.hasTag(info.getLine(2));         
-						boolean right = prop.hasTag(info.getLine(3));          
+					if (info.isAction(ActionType.MEMBER_ENTER) && info.isFacing()) {
+						//get the tags
+						boolean left;         
+						boolean right; 
+						if (isTrain) {
+							left = tprop.hasTag(info.getLine(2));
+							right = tprop.hasTag(info.getLine(3));
+						} else {
+							left = cprop.hasTag(info.getLine(2));
+							right = cprop.hasTag(info.getLine(3));
+						}
 						down = left || right;         
 						if (info.isPowered()) {   
 							BlockFace dir = BlockFace.NORTH;  
@@ -485,7 +495,7 @@ public class CustomEvents {
 				}
 			}
 		}
-
+		
 		if (info.isAction(ActionType.REDSTONE_ON, ActionType.MEMBER_ENTER)) {
 			if (info.isFacing() && info.getLine(0).equalsIgnoreCase("[train]")) {
 				if (info.getLine(1).equalsIgnoreCase("destroy") && info.isPowered()) {

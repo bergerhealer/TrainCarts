@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.Listeners;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
@@ -10,7 +11,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.CartProperties;
+import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 
@@ -27,10 +29,14 @@ public class TCPlayerListener extends PlayerListener {
 							item.getType() == Material.STORAGE_MINECART) {
 						//Placing a minecart on the tracks
 						if (event.getPlayer().hasPermission("train.place.minecart")) {
-							TCVehicleListener.lastPlayer = event.getPlayer();
-						} else {
-							event.setCancelled(true);
+							//Not already a minecart at this spot?
+							Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
+							if (MinecartMember.getAt(at, null, 0.5) == null) {
+								TCVehicleListener.lastPlayer = event.getPlayer();
+								return;
+							}
 						}
+						event.setCancelled(true);
 					}
 				}
 			}
@@ -42,21 +48,23 @@ public class TCPlayerListener extends PlayerListener {
 		    		if (sign.getLine(1).equalsIgnoreCase("destination")) {
 		    	    	//get the train this player is editing
 		    			Player p = event.getPlayer();
-		    	        TrainProperties prop = TrainProperties.getEditing(p);
-		    	        //permissions
-		    	    	if (prop == null) {
-		    		    	if (TrainProperties.canBeOwner(p)) {
-		    		    		p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
-		    		    	} else {
-		    		    		p.sendMessage(ChatColor.RED + "You don't own a train you can change!");
-		    		    	}
-		    	    	} else if (!prop.isOwner(p)) {
-		    	    		p.sendMessage(ChatColor.RED + "You don't own this train!");
-		    	    	} else {
-		    	    		prop.getSaved().destination = sign.getLine(2);
-		    	    		prop.restore();
-		    	    		p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + prop.destination + ChatColor.YELLOW + " as your destination!");
-		    	    	}
+		    			MinecartMember mm = MinecartMember.getEditing(p);
+		    			if (mm != null) {
+		    				TrainProperties prop = mm.getGroup().getProperties();
+			    	    	if (prop == null) {
+			    		    	if (CartProperties.canHaveOwnership(p)) {
+			    		    		p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+			    		    	} else {
+			    		    		p.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
+			    		    	}
+			    	    	} else if (!prop.isOwner(p)) {
+			    	    		p.sendMessage(ChatColor.RED + "You don't own this train!");
+			    	    	} else {
+			    	    		String dest = sign.getLine(2);
+			    	    		prop.setDestination(dest);
+			    	    		p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
+			    	    	}
+		    			}
 		    		}
 	    		}
 	    	}
@@ -65,10 +73,10 @@ public class TCPlayerListener extends PlayerListener {
 	
 	@Override
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-		MinecartGroup g = MinecartGroup.get(event.getRightClicked());
-		if (g != null) {
-			g.getProperties().setEditing(event.getPlayer());
-			MinecartGroup entered = MinecartGroup.get(event.getPlayer().getVehicle());
+		MinecartMember mm = MinecartMember.get(event.getRightClicked());
+		if (mm != null) {
+			mm.setEditing(event.getPlayer());
+			MinecartMember entered = MinecartMember.get(event.getPlayer().getVehicle());
 			if (entered != null && !entered.getProperties().allowPlayerExit) {
 				event.setCancelled(true);
 			}

@@ -1,18 +1,24 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraft.server.MathHelper;
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.util.Vector;
+
+import com.bergerkiller.bukkit.tc.Utils.FaceUtil;
 
 public class Util {
 	public static final float DEGTORAD = 0.017453293F;
@@ -185,23 +191,25 @@ public class Util {
     	}
     	return rval;
     }
-	public static String combineNames(List<String> items) {
+	public static String combineNames(Collection<String> items) {
 		if (items.size() == 0) return "";
 		String[] sitems = new String[items.size()];
-		for (int i = 0;i < sitems.length;i++) {
-			sitems[i] = items.get(i);
+		int i = 0;
+		for (String item : items) {
+			sitems[i] = item;
+			i++;
 		}
 		return combineNames(sitems);
 	}
     public static String combine(String separator, String... lines) {
-    	String rval = "";
+    	StringBuilder builder = new StringBuilder();
     	for (String line : lines) {
-    		if (line != null && line.equals("") == false) {
-        		if (rval.equals("") == false) rval += separator;
-        		rval += line;
+    		if (line != null && !line.equals("")) {
+        		if (builder.length() != 0) builder.append(separator);
+        		builder.append(line);
     		}
     	}
-    	return rval;
+    	return builder.toString();
     }
 	public static String combineNames(String[] items) {	
 		if (items.length == 0) return "";
@@ -288,7 +296,13 @@ public class Util {
 		return vector;
 	}
 
+	public static boolean isHeadingTo(BlockFace direction, Vector velocity) {
+		return isHeadingTo(new Vector(), FaceUtil.faceToVector(direction), velocity);
+	}
 	public static boolean isHeadingTo(Location from, Location to, Vector velocity) {
+		return isHeadingTo(from.toVector(), to.toVector(), velocity);
+	}
+	public static boolean isHeadingTo(Vector from, Vector to, Vector velocity) {
 		double dbefore = from.distanceSquared(to);
 		if (dbefore < 0.01) return true;
 		velocity = setVectorLengthSquared(velocity, dbefore);
@@ -299,6 +313,10 @@ public class Util {
 	public static <T extends Event> T call(T event) {
 		Bukkit.getPluginManager().callEvent(event);
 		return event;
+	}
+	
+	public static List<WorldServer> getWorlds() {
+		return ((CraftServer) Bukkit.getServer()).getHandle().server.worlds;
 	}
 
 }

@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.actions;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 
-public class GroupActionWaitForever extends GroupAction {
+public class GroupActionWaitForever extends GroupAction implements ActionWait {
 	
 	public GroupActionWaitForever(final MinecartGroup group) {
 		super(group);

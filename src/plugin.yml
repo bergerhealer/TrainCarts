@@ -6,7 +6,10 @@ description: Plugin that allows the use of minecart trains with adjustable setti
 softdepend: [MinecartManiaCore, SignLink, My Worlds]
 commands:
     train:
-        description: Perform TrainCarts commands
+        description: Perform TrainCarts commands for complete trains
+        usage: See development or WIKI page of TrainCarts
+    cart:
+        description: Perform TrainCarts commands for single minecarts
         usage: See development or WIKI page of TrainCarts
 permissions:
     train.build.station:

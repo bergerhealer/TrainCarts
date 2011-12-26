@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.Utils.BlockUtil;
 
@@ -138,23 +139,23 @@ public class ArrivalSigns {
 	}
 	
 	public static void init(String filename) {
-		for (String textline : SafeReader.readAll(filename)) {
-			int start = textline.indexOf('\"');
-			int end = textline.indexOf('\"', start + 1);
-			if (start >= 0 && end > start) {
-				TimeSign t = getTimer(textline.substring(start + 1, end));
-				String dur = textline.substring(end + 1).trim();
-				t.duration = getTime(dur);
-				t.startTime = System.currentTimeMillis();
-			}
-		}
+	    FileConfiguration config = new FileConfiguration(filename);
+	    config.load();
+	    for (String key : config.getKeys()) {
+	    	String dur = config.get(key, String.class, null);
+	    	if (dur != null) {
+	    		TimeSign t = getTimer(key);
+	    		t.duration = getTime(dur);
+	    		t.startTime = System.currentTimeMillis();
+	    	} 	
+	    }
 	}
 	public static void deinit(String filename) {
-		SafeWriter writer = new SafeWriter(filename);
+		FileConfiguration config = new FileConfiguration(filename);
 		for (TimeSign sign : timerSigns.values()) {
-			writer.writeLine("\"" + sign.name + "\" " + sign.getDuration());
+			config.set(sign.name, sign.getDuration());
 		}
-		writer.close();
+		config.save();
 		timerSigns.clear();
 		timerSigns = null;
 		timeCalcStart.clear();

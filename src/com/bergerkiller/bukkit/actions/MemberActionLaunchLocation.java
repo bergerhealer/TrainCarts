@@ -7,26 +7,32 @@ import com.bergerkiller.bukkit.tc.MinecartMember;
 public class MemberActionLaunchLocation extends MemberActionLaunch {
 
 	private final Location target;
+	private boolean corrected = false;
 	public MemberActionLaunchLocation(final MinecartMember member, Location target, double targetvelocity) {
 		super(member, 0, targetvelocity);
 		this.target = target.clone();
 	}
-	
+		
 	public void start() {
 		super.setTargetDistance(this.getMember().distanceXZ(this.target));
 		super.start();
+		if (!this.getMember().isHeadingTo(target)) {
+			//correct this behavior!
+			this.getGroup().reverse();
+		}
 	}
 	
 	public boolean update() {
 		if (super.update()) {
 			return true;
-		} else {
+		} else if (!this.corrected) {
 			if (!this.getMember().isHeadingTo(target)) {
 				//correct this behavior!
 				this.getGroup().reverse();
 			}
-			return false;
+			this.corrected = true;
 		}
+		return false;
 	}
 	
 }

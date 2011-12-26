@@ -191,6 +191,12 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.getSign().setLine(index, line);
 		this.getSign().update(true);
 	}
+	public boolean isTrainSign() {
+		return this.getLine(0).equalsIgnoreCase("[train]");
+	}
+	public boolean isCartSign() {
+		return this.getLine(0).equalsIgnoreCase("[cart]");
+	}
 
 	public boolean isCancelled() {
 		return this.cancelled;

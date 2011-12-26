@@ -21,17 +21,21 @@ public class BlockUtil {
     	return b.getType().getNewData(b.getData());
     }
     public static int getBlockSteps(Location b1, Location b2, boolean checkY) {
-    	int dx = b2.getBlockX() - b1.getBlockX();
-    	int dz = b2.getBlockX() - b1.getBlockX();
-    	if (checkY) {
-    		int dy = b2.getBlockX() - b1.getBlockX();
-    		return Math.abs(dx) + Math.abs(dz) +  Math.abs(dy);
-    	} else {
-        	return Math.abs(dx) + Math.abs(dz);
-    	}
+    	int d = Math.abs(b1.getBlockX() - b2.getBlockX());
+    	d += Math.abs(b1.getBlockZ() - b2.getBlockZ());
+    	if (checkY) d +=  Math.abs(b1.getBlockY() - b2.getBlockY());
+    	return d;
     }
     public static int getBlockSteps(Block b1, Block b2, boolean checkY) {
-    	return getBlockSteps(b1.getLocation(), b2.getLocation(), checkY);
+    	int d = Math.abs(b1.getX() - b2.getX());
+    	d += Math.abs(b1.getZ() - b2.getZ());
+    	if (checkY) d +=  Math.abs(b1.getY() - b2.getY());
+    	return d;
+    }
+    
+    public static boolean equals(Block block1, Block block2) {
+    	return block1.getX() == block2.getX() && block1.getZ() == block2.getZ()
+    			&& block1.getY() == block2.getY() && block1.getWorld() == block2.getWorld();    	
     }
         
     public static Block[] getRelative(Block main, BlockFace... faces) {

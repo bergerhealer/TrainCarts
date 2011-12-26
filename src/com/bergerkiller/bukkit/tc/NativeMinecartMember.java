@@ -92,7 +92,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	private boolean ignoreForces() {
-		return group().hasAction() || group().getProperties().isAtStation();
+		return group().isActionWait();
 	}
 
 	private MinecartMember member() {
@@ -432,6 +432,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	public void postUpdate(double speedFactor) throws GroupUnloadedException {
 		if (this.dead) return;
+		if (this.moveinfo == null) return; //pre-update is needed
 		double motX = this.motX;
 		double motZ = this.motZ;
 		//Prevent NaN (you never know!)
@@ -453,39 +454,30 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			// CraftBukkit
 			//==================TrainCarts edited==============
-			if (this.passenger != null) {
-				if (this.group().getProperties().slowDown) {
-					this.motX *= 0.9599999785423279D;
-					this.motY *= 0.0D;
-					this.motZ *= 0.9599999785423279D;
-				}
-			} else {
-				//Ignore force applied by powered minecarts
-				if (this.type == 2 && !ignoreForces()) {
-					double d17 = (double) MathHelper.a(this.b * this.b + this.c * this.c);
-					if (d17 > 0.01D) {
-						this.b /= d17;
-						this.c /= d17;
-						double d19 = 0.04D;
+			if (this.type == 2 && !ignoreForces()) {
+				double d17 = (double) MathHelper.a(this.b * this.b + this.c * this.c);
+				if (d17 > 0.01D) {
+					this.b /= d17;
+					this.c /= d17;
+					double d19 = 0.04D;
 
-						this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
+					this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost;
+					this.motY *= 0.0D;
+					this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost;
+					this.motX += this.b * d19;
+					this.motZ += this.c * d19;
+				} else {
+					if (this.group().getProperties().slowDown) {
+						this.motX *= 0.8999999761581421D;
 						this.motY *= 0.0D;
-						this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost; //Traincarts edited
-						this.motX += this.b * d19;
-						this.motZ += this.c * d19;
-					} else {
-						if (this.group().getProperties().slowDown) {
-							this.motX *= 0.8999999761581421D;
-							this.motY *= 0.0D;
-							this.motZ *= 0.8999999761581421D;
-						}
+						this.motZ *= 0.8999999761581421D;
 					}
 				}
-				if (this.group().getProperties().slowDown) {
-					this.motX *= 0.996999979019165D;
-					this.motY *= 0.0D;
-					this.motZ *= 0.996999979019165D;
-				}
+			}
+			if (this.group().getProperties().slowDown) {
+				this.motX *= 0.996999979019165D;
+				this.motY *= 0.0D;
+				this.motZ *= 0.996999979019165D;
 			}
 			//==================================================
 
@@ -980,6 +972,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Returns if this entity is allowed to collide with another entity
 	 */
 	private boolean canCollide(Entity e) {
+		if (this.member().isCollisionIgnored(e)) return false;
 		if (e.dead) return false;
 		if (this.dead) return false;
 		if (e instanceof MinecartMember) {
@@ -1018,7 +1011,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				} else {
 					return false;
 				}
-			} else if (EntityUtil.isMob(e.getBukkitEntity()) && prop.allowMobsEnter && this.passenger == null) {
+			} else if (EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().allowMobsEnter && this.passenger == null) {
 				e.setPassengerOf(this);
 				return false;
 			}

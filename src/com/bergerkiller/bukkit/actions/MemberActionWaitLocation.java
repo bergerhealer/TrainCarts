@@ -4,7 +4,7 @@ import org.bukkit.Location;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
-public class MemberActionWaitLocation extends MemberAction {
+public class MemberActionWaitLocation extends MemberAction implements ActionWait {
 	
 	private final Location dest;
 	private final double radiussquared;

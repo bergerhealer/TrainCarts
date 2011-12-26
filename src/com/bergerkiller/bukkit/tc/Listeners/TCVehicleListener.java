@@ -13,6 +13,7 @@ import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.vehicle.VehicleListener;
 
+import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -67,7 +68,10 @@ public class TCVehicleListener extends VehicleListener {
 						if (mm != null) {
 							if (lp != null) {
 								mm.getGroup().getProperties().setDefault(lp);
-								mm.getGroup().getProperties().setEditing(lp);
+								if (TrainCarts.setOwnerOnPlacement) {
+									mm.getProperties().setOwner(lp);
+								}
+								mm.setEditing(lp);
 							}
 						}
 					}
@@ -80,15 +84,17 @@ public class TCVehicleListener extends VehicleListener {
 	@Override
 	public void onVehicleEnter(VehicleEnterEvent event) {
 		if (!event.isCancelled()) {
-			MinecartGroup g = MinecartGroup.get(event.getVehicle());
-			if (g != null) {
-				TrainProperties prop = g.getProperties();
+			MinecartMember member = MinecartMember.get(event.getVehicle());
+			if (member != null) {
+				CartProperties prop = member.getProperties();
 				if (event.getEntered() instanceof Player) {
-					if (prop.isPassenger(event.getEntered()) && prop.allowPlayerEnter) {
-						prop.showEnterMessage(event.getEntered());
-					} else {
-						event.setCancelled(true);
-					}
+//					if (prop.isPassenger(event.getEntered()) && prop.allowPlayerEnter) {
+//						prop.showEnterMessage(event.getEntered());
+//					} else {
+//						event.setCancelled(true);
+//					}
+					prop.showEnterMessage(event.getEntered());
+					//TODO: PASSENGERS!
 				} else if (!prop.allowMobsEnter) {
 					event.setCancelled(true);
 				}
@@ -100,12 +106,11 @@ public class TCVehicleListener extends VehicleListener {
 	public void onVehicleDamage(VehicleDamageEvent event) {
 		if (event.getAttacker() != null && event.getAttacker() instanceof Player) {
 			if (!event.isCancelled()) {
-				MinecartGroup g = MinecartGroup.get(event.getVehicle());
-				if (g != null) {
+				MinecartMember mm = MinecartMember.get(event.getVehicle());
+				if (mm != null) {
 					Player p = (Player) event.getAttacker();
-					TrainProperties prop = g.getProperties();
-					if (prop.isOwner(p)) {
-						prop.setEditing(p);
+					if (mm.getProperties().hasOwnership(p)) {
+						mm.setEditing(p);
 					} else {
 						event.setCancelled(true);
 					}
@@ -130,17 +135,21 @@ public class TCVehicleListener extends VehicleListener {
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
 			if (mm1 != null) {
-				TrainProperties prop = mm1.getGroup().getProperties();
-				if (event.getEntity() instanceof Minecart) {
-					MinecartMember mm2 = MinecartMember.convert(event.getEntity());
-					if (MinecartGroup.isInSameGroup(mm1, mm2) || MinecartGroup.link(mm1, mm2)) {
+				if (mm1.isCollisionIgnored(event.getEntity())) {
+					event.setCancelled(true);
+				} else {
+					TrainProperties prop = mm1.getGroup().getProperties();
+					if (event.getEntity() instanceof Minecart) {
+						MinecartMember mm2 = MinecartMember.convert(event.getEntity());
+						if (mm2 == null || mm1.getGroup() == mm2.getGroup() || MinecartGroup.link(mm1, mm2)) {
+							event.setCancelled(true);
+						}
+					} else if (prop.canPushAway(event.getEntity())) {
+						mm1.push(event.getEntity());
+						event.setCancelled(true);
+					} else if (!prop.canCollide(event.getEntity())) {
 						event.setCancelled(true);
 					}
-				} else if (prop.canPushAway(event.getEntity())) {
-					mm1.push(event.getEntity());
-					event.setCancelled(true);
-				} else if (!prop.canCollide(event.getEntity())) {
-					event.setCancelled(true);
 				}
 			}
 		}

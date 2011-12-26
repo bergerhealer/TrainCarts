@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.Utils.EntityUtil;
 
 public class GroupManager {
 	
+	private static boolean ignoreRefresh = false;
 	private static HashSet<UUID> hiddenMinecarts = new HashSet<UUID>();
 	private static HashMap<UUID, ArrayList<WorldGroup>> hiddengroups = new HashMap<UUID, ArrayList<WorldGroup>>();
 	private static ArrayList<WorldGroup> getGroups(World w) {
@@ -287,16 +288,17 @@ public class GroupManager {
 	 * This means restoring groups in loaded chunks
 	 */
 	public static void refresh() {
+		if (ignoreRefresh) return;
 		for (World w : Bukkit.getServer().getWorlds()) {
 			refresh(w);
 		}
 	}
 	public static void refresh(World w) {
+		if (ignoreRefresh) return;
+		ignoreRefresh = true;
 		synchronized (hiddengroups) {
-			boolean loadedchunk = false;
 			Iterator<WorldGroup> iter = getGroups(w).iterator();
 			while (iter.hasNext()) {
-				loadedchunk = false;
 				WorldGroup g = iter.next();
 				if (g.isInLoadedChunks(w)) {
 				} else if (TrainProperties.get(g.name).keepChunksLoaded) {
@@ -314,7 +316,6 @@ public class GroupManager {
 						}
 						if (!ismoving) continue;
 					}
-					loadedchunk = true;
 					for (WorldMember wm : g.members) {
 						w.getChunkAt(wm.cx, wm.cz);
 					}
@@ -329,13 +330,9 @@ public class GroupManager {
 					group.setName(g.name);
 				}
 				iter.remove();
-				if (loadedchunk) {
-					//prevent concurrency issues
-					refresh(w);
-					return;
-				}
 			}
 		}
+		ignoreRefresh = false;
 	}
 	
 	/**

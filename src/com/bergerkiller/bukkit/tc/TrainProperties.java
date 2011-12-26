@@ -2,17 +2,19 @@ package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Ghast;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 
-public class TrainProperties extends Properties {
-	private static HashMap<String, String> editing = new HashMap<String, String>();
+import com.bergerkiller.bukkit.config.ConfigurationNode;
+import com.bergerkiller.bukkit.config.FileConfiguration;
+
+public class TrainProperties {
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
 	public static TrainProperties get(String trainname) {
 		if (trainname == null) return null;
@@ -25,108 +27,69 @@ public class TrainProperties extends Properties {
 	public static boolean exists(String trainname) {
 		return properties.containsKey(trainname);
 	}	
-	public static TrainProperties getEditing(Player by) {
-		TrainProperties prop = properties.get(editing.get(by.getName()));
-		if (prop == null) {
-			MinecartGroup g = MinecartGroup.get(by.getVehicle());
-			if (g == null) {
-				//not found: match nearby
-				for (Entity e : by.getNearbyEntities(5, 5, 5)) {
-					MinecartGroup gnew = MinecartGroup.get(e);
-					if (gnew != null && gnew != g) {
-						if (g == null) {
-							//set it
-							g = gnew;
-						} else {
-							//found two: cancel operation
-							g = null;
-							break;
-						}
-					}
-				}
-			}
-			if (g != null) prop = g.getProperties();
-		}
-		return prop;
-	}
-
+	
 	private String trainname;	
-	private boolean isStation = false;
-	private Properties saved = new Properties();
-
-	public Properties getSaved() {
-		return this.saved;
+	public boolean allowLinking = true;
+	public boolean trainCollision = true;
+	public boolean slowDown = true;
+	public boolean pushMobs = false;
+	public boolean pushPlayers = false;
+	public boolean pushMisc = true;
+	public double speedLimit = 0.4;
+	public boolean requirePoweredMinecart = false;
+	public boolean keepChunksLoaded = false;
+	
+	private final Set<CartProperties> cartproperties = new HashSet<CartProperties>();
+	public Set<CartProperties> getCarts() {
+		return this.cartproperties;
 	}
-	public void restore() {
-		super.load(this.saved);
-		if (this.isStation) {
-			super.load(getDefaults(), "station");
-		}
+	
+	protected void addCart(MinecartMember member) {
+		this.cartproperties.add(member.getProperties());
 	}
-	public void setStation(boolean value) {
-		if (value == this.isStation) return;
-		this.isStation = value;
-		this.restore();
+	protected void removeCart(MinecartMember member) {
+		this.cartproperties.remove(member.getProperties());
 	}
-	public boolean isAtStation() {
-		return this.isStation;
-	}
-
-	public void showEnterMessage(Entity forEntity) {
-		if (forEntity instanceof Player && enterMessage != null && !enterMessage.equals("")) {
-			((Player) forEntity).sendMessage(ChatColor.YELLOW + enterMessage);
-		}
-	}
-
+	
 	/*
-	 * Owners and passengers
+	 * Owners
 	 */
-	public static boolean canBeOwner(Player player) {
-		return player.hasPermission("train.command.properties") || 
-				player.hasPermission("train.command.globalproperties");
-	}
-	public boolean isDirectOwner(Player player) {
-		for (String owner : owners) {
-			if (owner.equalsIgnoreCase(player.getName())) return true;
+	public boolean hasOwners() {
+		for (CartProperties prop : this.cartproperties) {
+			if (prop.hasOwners()) return true;
 		}
 		return false;
+	}
+	public boolean hasOwnership(Player player) {
+        if (!CartProperties.canHaveOwnership(player)) return false;
+        if (CartProperties.hasGlobalOwnership(player)) return true;
+        if (!this.hasOwners()) return true;
+        return this.isOwner(player);
 	}
 	public boolean isOwner(Player player) {
-		return this.isOwner(player, true);
-	}
-	public boolean isOwner(Player player, boolean checkGlobal) {
-		if (owners.size() == 0) {
-			return canBeOwner(player);
-		} else if (checkGlobal && player.hasPermission("train.command.globalproperties")) {
-			return true;
-		} else {
-			return this.isDirectOwner(player);
+		for (CartProperties prop : this.cartproperties) {
+			if (prop.isOwner(player)) return true;
 		}
+		return false;
+	}	
+	public boolean isDirectOwner(Player player) {
+		return this.isDirectOwner(player.getName().toLowerCase());
 	}
-	public boolean sharesOwner(TrainProperties properties) {
-		if (this.owners.size() == 0) return true;
-		if (properties.owners.size() == 0) return true;
-		for (String owner1 : this.owners) {
-			for (String owner2 : properties.owners) {
-				if (owner1.equalsIgnoreCase(owner2)) {
-					return true;
-				}
-			}
+	public boolean isDirectOwner(String player) {
+		for (CartProperties prop : this.cartproperties) {
+			if (prop.isOwner(player)) return true;
 		}
 		return false;
 	}
-	public boolean isPassenger(Entity entered) {
-		if (entered instanceof Player) {
-			if (this.passengers.size() == 0) return true;
-			Player player = (Player) entered;
-			if (isOwner(player)) return true;
-			for (String passenger : passengers) {
-				if (passenger.equalsIgnoreCase(player.getName())) return true;
-			}
-			return false;
-		} else {
-			return this.allowMobsEnter;
+	
+	/*
+	 * Tags
+	 */
+	public boolean hasTag(String tag) {
+		for (CartProperties prop : this.cartproperties) {
+			if (prop.hasTag(tag)) return true;
 		}
+		return false;
 	}
 
 	/*
@@ -136,7 +99,10 @@ public class TrainProperties extends Properties {
 		if (entity instanceof Player) {
 			if (this.pushPlayers) {
 				if (!TrainCarts.pushAwayIgnoreOwners) return true;
-				return !this.isOwner((Player) entity, TrainCarts.pushAwayIgnoreGlobalOwners);
+				if (TrainCarts.pushAwayIgnoreGlobalOwners) {
+					if (CartProperties.hasGlobalOwnership((Player) entity)) return false;
+				}
+				return !this.isOwner((Player) entity);
 			}
 		} else if (entity instanceof Creature || entity instanceof Slime || entity instanceof Ghast) {
 			if (this.pushMobs) return true;
@@ -158,7 +124,6 @@ public class TrainProperties extends Properties {
 	public boolean canCollide(Entity with) {
 		MinecartMember mm = MinecartMember.get(with);
 		if (mm == null) {
-			if (this.isStation) return false;
 			if (this.trainCollision) return true;
 			if (with instanceof Player) {
 				return this.isOwner((Player) with);
@@ -171,6 +136,15 @@ public class TrainProperties extends Properties {
 	}
 
 	/*
+	 * Destinations
+	 */
+	public void setDestination(String destination) {
+		for (CartProperties prop : this.cartproperties) {
+			prop.destination = destination;
+		}
+	}
+		
+	/*
 	 * General coding not related to properties themselves
 	 */
 	private TrainProperties() {};
@@ -182,14 +156,6 @@ public class TrainProperties extends Properties {
 	public String getTrainName() {
 		return this.trainname;
 	}	
-	public void setEditing(Player player) {
-		setEditing(player, false);
-	}
-	public void setEditing(Player player, boolean force) {
-		if (force || this.isOwner(player)) {
-			editing.put(player.getName(), this.getTrainName());
-		}
-	}
 	public void remove() {
 		properties.remove(this.trainname);
 	}
@@ -198,42 +164,24 @@ public class TrainProperties extends Properties {
 	}
 	public TrainProperties rename(String newtrainname) {
 		this.remove();
-		for (Map.Entry<String, String> edit : editing.entrySet()) {
-			if (edit.getValue().equals(this.trainname)){
-				edit.setValue(newtrainname);
-			}
-		}
 		this.trainname = newtrainname;
 		properties.put(newtrainname, this);
 		return this;
 	}
-
-	public void load(Configuration config, String trainname) {
-		this.saved.load(config, trainname);
-		this.restore();
-	}
-	public void load(Properties properties) {
-		if (properties instanceof TrainProperties) {
-			this.saved.load(((TrainProperties) properties).saved);
-		} else {
-			this.saved.load(properties);
-		}
-		super.load(properties);
-	}
 	
 	public static void load(String filename) {
-		Configuration config = new Configuration(new File(filename));
+		FileConfiguration config = new FileConfiguration(new File(filename));
 		config.load();
-		for (String trainname : config.getKeys(false)) {
-			get(trainname).load(config, trainname);
+		for (ConfigurationNode node : config.getNodes()) {
+			get(node.getName()).load(node);
 		}
 	}
 	public static void save(String filename) {
-		Configuration config = new Configuration(new File(filename));
+		FileConfiguration config = new FileConfiguration(new File(filename));
 		for (TrainProperties prop : properties.values()) {
 			//does this train even exist?!
 			if (GroupManager.contains(prop.getTrainName())) {
-				prop.saved.save(config, prop.getTrainName());
+				prop.save(config.getNode(prop.getTrainName()));
 			} else {
 				config.set(prop.getTrainName(), null);
 			}
@@ -249,29 +197,27 @@ public class TrainProperties extends Properties {
 		defconfig = null;
 		properties.clear();
 		properties = null;
-		editing.clear();
-		editing = null;
 	}
     
 	/*
 	 * Train properties defaults
 	 */
 	private static File deffile = null;
-	private static Configuration defconfig = null;
+	private static FileConfiguration defconfig = null;
 
-	public static Configuration getDefaults() {
+	public static FileConfiguration getDefaults() {
 		if (deffile == null) {
 			deffile = new File(TrainCarts.plugin.getDataFolder() + File.separator + "defaultflags.yml");
-			defconfig = new Configuration(deffile);
+			defconfig = new FileConfiguration(deffile);
 			if (deffile.exists()) defconfig.load();
 			TrainProperties prop = new TrainProperties();
-			if (!defconfig.contains("default")) prop.save(defconfig, "default");
-			if (!defconfig.contains("admin")) prop.save(defconfig, "admin");
+			if (!defconfig.contains("default")) prop.save(defconfig.getNode("default"));
+			if (!defconfig.contains("admin")) prop.save(defconfig.getNode("admin"));
 			if (!defconfig.contains("station")) {
 				prop.pushMisc = true;
 				prop.pushMobs = true;
 				prop.pushPlayers = true;
-				prop.save(defconfig, "station");
+				prop.save(defconfig.getNode("station"));
 			}
 			defconfig.save();
 		}
@@ -282,7 +228,7 @@ public class TrainProperties extends Properties {
 		setDefault("default");
 	}
 	public void setDefault(String key) {
-		this.load(getDefaults(), key);
+		this.load(getDefaults().getNode(key));
 	}
 	public void setDefault(Player player) {
 		if (player == null) {
@@ -291,16 +237,47 @@ public class TrainProperties extends Properties {
 		} else {
 			getDefaults();
 			//Load it
-			for (String key : defconfig.getKeys(false)) {
-				if (player.hasPermission("train.properties." + key)) {
-					this.load(defconfig, key);
+			for (ConfigurationNode node : defconfig.getNodes()) {
+				if (player.hasPermission("train.properties." + node.getName())) {
+					this.load(node);
 					break;
 				}
 			}
-			//Set owner
-			if (TrainCarts.setOwnerOnPlacement) {
-				this.owners.add(player.getName());
-			}
 		}
+	}
+	
+	
+	public void load(ConfigurationNode node) {
+		this.allowLinking = node.get("allowLinking", this.allowLinking);
+		this.trainCollision = node.get("trainCollision", this.trainCollision);
+		this.slowDown = node.get("slowDown", this.slowDown);
+		this.pushMobs = node.get("pushAway.mobs", this.pushMobs);
+		this.pushPlayers = node.get("pushAway.players", this.pushPlayers);
+		this.pushMisc = node.get("pushAway.misc", this.pushMisc);
+		this.speedLimit = Util.limit(node.get("speedLimit", this.speedLimit), 0, 20);
+		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
+		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
+	}
+	public void load(TrainProperties source) {
+		this.allowLinking = source.allowLinking;
+		this.trainCollision = source.trainCollision;
+		this.slowDown = source.slowDown;
+		this.pushMobs = source.pushMobs;
+		this.pushPlayers = source.pushPlayers;
+		this.pushMisc = source.pushMisc;
+		this.speedLimit = Util.limit(source.speedLimit, 0, 20);
+		this.requirePoweredMinecart = source.requirePoweredMinecart;
+		this.keepChunksLoaded = source.keepChunksLoaded;
+	}
+	public void save(ConfigurationNode node) {		
+		node.set("allowLinking", this.allowLinking ? null : false);
+		node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
+		node.set("trainCollision", this.trainCollision ? null : false);
+		node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
+		node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+		node.set("slowDown", this.slowDown ? null : false);
+		node.set("pushAway.mobs", this.pushMobs ? true : null);
+		node.set("pushAway.players", this.pushPlayers ? true : null);
+		node.set("pushAway.misc", this.pushMisc ? null : false);
 	}
 }
