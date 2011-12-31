@@ -4,12 +4,14 @@ import java.util.ArrayList;
 
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionSpawn extends SignAction {
 
@@ -50,6 +52,15 @@ public class SignActionSpawn extends SignAction {
 					MinecartGroup group = MinecartGroup.spawn(info.getRails(), info.getFacing(), types);
 					group.head().addActionLaunch(direction, 2, force);
 				}
+			}
+		}
+	}
+
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (mode != SignActionMode.NONE) {
+			if (type.startsWith("spawn")) {
+				handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone");
 			}
 		}
 	}

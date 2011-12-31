@@ -9,16 +9,17 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.mw.Localization;
 import com.bergerkiller.bukkit.mw.MyWorlds;
-import com.bergerkiller.bukkit.mw.Permission;
 import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 
@@ -38,7 +39,7 @@ public class SignActionTeleport extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (!TrainCarts.MyWorldsEnabled) return;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.getGroup() != null) {
-			if (info.isAction(SignActionType.REDSTONE_ON) || (info.isFacing() && info.getGroup().isMoving() && info.isPowered())) {
+			if (info.isPoweredFacing()) {
 				Portal portal = Portal.get(info.getLocation());
 				if (portal != null) {
 					String destname = portal.getDestinationName();
@@ -96,8 +97,8 @@ public class SignActionTeleport extends SignAction {
 												if (e instanceof EntityPlayer) {
 													Player p = (Player) e.getBukkitEntity();
 													//has permission?
-													if (Permission.canEnterWorld(p, dest.getWorld().getName())) {
-														if (Permission.canEnterPortal(p, destname)) {
+													if (com.bergerkiller.bukkit.mw.Permission.canEnterWorld(p, dest.getWorld().getName())) {
+														if (com.bergerkiller.bukkit.mw.Permission.canEnterPortal(p, destname)) {
 															//Has permission, show message
 															p.sendMessage(Localization.getPortalEnter(portal));
 														} else {
@@ -143,6 +144,14 @@ public class SignActionTeleport extends SignAction {
 				}
 			}
 		}	
+	}
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (event.getLine(0).equalsIgnoreCase("[portal]")) {
+			if (BlockUtil.isRails(event.getBlock().getRelative(0, 2, 0))) {
+				handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+			}
+		}
 	}
 
 }

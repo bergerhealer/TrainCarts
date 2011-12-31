@@ -89,8 +89,9 @@ public class TCVehicleListener extends VehicleListener {
 				CartProperties prop = member.getProperties();
 				if (event.getEntered() instanceof Player) {
 					//TODO: PASSENGERS!
-					if (prop.allowPlayerEnter) {
-						prop.showEnterMessage(event.getEntered());
+					Player player = (Player) event.getEntered();
+					if (prop.allowPlayerEnter && (prop.isPublic || prop.isOwner(player))) {
+						prop.showEnterMessage(player);
 					} else {
 						event.setCancelled(true);
 					}
@@ -123,7 +124,8 @@ public class TCVehicleListener extends VehicleListener {
 		if (!event.isCancelled()) {
 			MinecartMember mm = MinecartMember.get(event.getVehicle());
 			if (mm != null) {
-				mm.setActiveSign(null);
+				Util.broadcast("REMOVED");
+				mm.clearActiveSigns();
 				mm.remove();
 			}
 		}
@@ -148,7 +150,7 @@ public class TCVehicleListener extends VehicleListener {
 							event.setCancelled(true);
 						}
 					} else if (prop.canPushAway(event.getEntity())) {
-						mm1.push(event.getEntity());
+						mm1.pushSideways(event.getEntity());
 						event.setCancelled(true);
 					} else if (!prop.canCollide(event.getEntity())) {
 						event.setCancelled(true);

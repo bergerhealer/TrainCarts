@@ -3,16 +3,22 @@ package com.bergerkiller.bukkit.tc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Entity;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
+import com.bergerkiller.bukkit.tc.utils.ItemUtil;;
 
 public class CartProperties {
+	public static final CartProperties EMPTY = new CartProperties(null);
+	
 	private static HashMap<UUID, CartProperties> properties = new HashMap<UUID, CartProperties>();
 	public static CartProperties get(UUID uuid) {
 		CartProperties prop = properties.get(uuid);
@@ -33,11 +39,14 @@ public class CartProperties {
 	private final UUID uuid;
 	private final Set<String> owners = new HashSet<String>();
 	private final Set<String> tags = new HashSet<String>();
+	public final Set<Material> blockBreakTypes = new HashSet<Material>();
 	public boolean allowMobsEnter = true;
 	public boolean allowPlayerExit = true;
 	public boolean allowPlayerEnter = true;
 	public String enterMessage = null;
 	public String destination = "";
+	public boolean isPublic = true;
+	public boolean pickUp = false;
 	
 	public void remove() {
 		properties.remove(this.uuid);
@@ -50,6 +59,14 @@ public class CartProperties {
 	}
 	
 	/*
+	 * Block obtaining
+	 */
+	public boolean canBreak(Block block) {
+		if (this.blockBreakTypes.isEmpty()) return false;
+		return this.blockBreakTypes.contains(block.getType());
+	}
+	
+	/*
 	 * Owners
 	 */
 	public boolean hasOwnership(Player player) {
@@ -59,10 +76,10 @@ public class CartProperties {
 		return this.isOwner(player);
 	}
 	public static boolean hasGlobalOwnership(Player player) {
-		return player.hasPermission("train.command.globalproperties");
+		return Permission.COMMAND_GLOBALPROPERTIES.has(player);
 	}
 	public static boolean canHaveOwnership(Player player) {
-		return player.hasPermission("train.command.properties") || hasGlobalOwnership(player);
+		return Permission.COMMAND_PROPERTIES.has(player) || hasGlobalOwnership(player);
 	}
 	public boolean isOwner(Player player) {
 		return this.isOwner(player.getName().toLowerCase());
@@ -168,9 +185,12 @@ public class CartProperties {
 	/*
 	 * Enter message
 	 */
-	public void showEnterMessage(Entity forEntity) {
-		if (forEntity instanceof Player && enterMessage != null && !enterMessage.equals("")) {
-			((Player) forEntity).sendMessage(ChatColor.YELLOW + enterMessage);
+	public boolean hasEnterMessage() {
+		return this.enterMessage != null && !this.enterMessage.equals("");
+	}
+	public void showEnterMessage(Player player) {
+		if (this.hasEnterMessage()) {
+			player.sendMessage(ChatColor.YELLOW + enterMessage);
 		}
 	}
 	
@@ -200,13 +220,44 @@ public class CartProperties {
 		this.allowMobsEnter = node.get("allowMobsEnter", this.allowMobsEnter);
 		this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
+		this.isPublic = node.get("isPublic", this.isPublic);
+		this.pickUp = node.get("pickUp", this.pickUp);
+		for (String blocktype : node.getList("blockBreakTypes", String.class)) {
+			Material mat = ItemUtil.getMaterial(blocktype);
+			if (mat != null) this.blockBreakTypes.add(mat);
+		}
 	}
 	public void save(ConfigurationNode node) {
-		node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
-		node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
-		node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
-		node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
-		node.set("allowMobsEnter", this.allowMobsEnter ? null : false);
+		this.save(node, true);
+	}
+	public void save(ConfigurationNode node, boolean minimal) {
+		if (minimal) {
+			node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
+			node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
+			node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
+			node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
+			node.set("allowMobsEnter", this.allowMobsEnter ? null : false);
+			node.set("isPublic", this.isPublic ? null : false);
+			node.set("pickUp", this.pickUp ? true : null);
+		} else {
+            node.set("owners", new ArrayList<String>(this.owners));
+            node.set("tags", new ArrayList<String>(this.tags));
+            node.set("allowPlayerEnter", this.allowPlayerEnter);
+            node.set("allowPlayerExit", this.allowPlayerExit);
+            node.set("allowMobsEnter", this.allowMobsEnter);
+            node.set("isPublic", this.isPublic);
+            node.set("pickUp", this.pickUp);
+		}
+		if (!minimal || !this.blockBreakTypes.isEmpty()) {
+			List<String> items = node.getList("blockBreakTypes", String.class);
+			for (Material mat : this.blockBreakTypes) {
+				items.add(mat.toString());
+			}
+		} else {
+			node.remove("blockBreakTypes");
+		}
+		node.set("destination", this.hasDestination() ? this.destination : null);
+		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
 	}
 
 }

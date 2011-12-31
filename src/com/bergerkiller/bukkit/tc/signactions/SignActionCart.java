@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionCart extends SignAction {
 
@@ -12,7 +14,7 @@ public class SignActionCart extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
 			if (!info.isCartSign()) return;
 			if (info.getMember() == null) return;
-			if (info.isAction(SignActionType.REDSTONE_ON) || (info.isFacing() && info.isPowered())) {
+			if (info.isPoweredFacing()) {
 				if (info.isType("destroy")) {
 					info.getMember().destroy();
 				} else if (info.isType("eject")) {
@@ -31,6 +33,17 @@ public class SignActionCart extends SignAction {
 						info.getMember().eject(offset);
 					}
 				}
+			}
+		}
+	}
+
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (mode == SignActionMode.CART) {
+			if (type.startsWith("destroy")) {
+				handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
+			} else if (type.startsWith("eject")) {
+				handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passenger of a minecart");
 			}
 		}
 	}

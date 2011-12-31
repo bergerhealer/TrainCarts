@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.Util;
 
 
 public class FaceUtil {
+	public static final BlockFace[] axis = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.EAST};
 	
 	public static BlockFace combine(BlockFace from, BlockFace to) {
 		if (from == BlockFace.NORTH) {

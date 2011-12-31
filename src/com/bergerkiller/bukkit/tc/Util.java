@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -9,26 +10,21 @@ import net.minecraft.server.MathHelper;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
-import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.TreeSpecies;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
-import org.bukkit.material.MaterialData;
-import org.bukkit.material.TexturedMaterial;
-import org.bukkit.material.Tree;
-import org.bukkit.material.Wool;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
 public class Util {
 	public static final float DEGTORAD = 0.017453293F;
+	public static final float RADTODEG = 57.29577951F;
 	
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
@@ -138,20 +134,26 @@ public class Util {
 	public static float getLookAtYaw(Vector motion) {
 		double dx = motion.getX();
 		double dz = motion.getZ();
-        double yaw = 0;
+        float yaw = 0;
         // Set yaw
         if (dx != 0) {
             // Set yaw start value based on dx
             if (dx < 0) {
-            	yaw = 1.5 * Math.PI;
+            	yaw = 270;
             } else {
-                yaw = 0.5 * Math.PI;
+                yaw = 90;
             }
-            yaw -= Math.atan(dz / dx);
+            yaw -= atan(dz / dx);
         } else if (dz < 0) {
-        	yaw = Math.PI;
+        	yaw = 180;
         }
-        return (float) (-yaw * 180 / Math.PI - 90);
+        return -yaw - 90;
+	}
+	public static float getLookAtPitch(Vector motion) {
+		return -atan(motion.getY() / length(motion.getX(), motion.getZ()));
+	}
+	public static float atan(double value) {
+		return RADTODEG * (float) Math.atan(value);
 	}
 	public static Location move(Location loc, Vector offset) {
         // Convert rotation to radians
@@ -197,6 +199,16 @@ public class Util {
     		}
     	}
     	return rval;
+    }
+    public static String combineNames(Set<Material> items) {
+		if (items.size() == 0) return "";
+		String[] sitems = new String[items.size()];
+		int i = 0;
+		for (Material item : items) {
+			sitems[i] = item.toString();
+			i++;
+		}
+		return combineNames(sitems);
     }
 	public static String combineNames(Collection<String> items) {
 		if (items.size() == 0) return "";
@@ -248,6 +260,28 @@ public class Util {
 		if (name.equals("enable")) return true;
 		return false;
 	}
+	public static boolean isBool(String name) {
+		name = name.toLowerCase().trim();
+		if (name.equals("yes")) return true;
+		if (name.equals("allow")) return true;
+		if (name.equals("true")) return true;
+		if (name.equals("ye")) return true;
+		if (name.equals("y")) return true;
+		if (name.equals("t")) return true;
+		if (name.equals("on")) return true;
+		if (name.equals("enabled")) return true;
+		if (name.equals("enable")) return true;
+		if (name.equals("no")) return true;
+		if (name.equals("none")) return true;
+		if (name.equals("deny")) return true;
+		if (name.equals("false")) return true;
+		if (name.equals("n")) return true;
+		if (name.equals("f")) return true;
+		if (name.equals("off")) return true;
+		if (name.equals("disabled")) return true;
+		if (name.equals("disable")) return true;
+		return false;
+	}
 
     /*
      * Stages the value between the two points using a stage from 0 to 1
@@ -292,15 +326,18 @@ public class Util {
 		return value;
 	}
 	
-	public static Vector setVectorLength(Vector vector, double length) {
-		return setVectorLength(vector, length * length);
+	public static void setVectorLength(Vector vector, double length) {
+		if (length >= 0) {
+			setVectorLengthSquared(vector, length * length);
+		} else {
+			setVectorLengthSquared(vector, -length * length);
+		}
 	}
-	public static Vector setVectorLengthSquared(Vector vector, double lengthsquared) {
-		vector = vector.clone();
+	public static void setVectorLengthSquared(Vector vector, double lengthsquared) {
 		double vlength = vector.lengthSquared();
-		if (vlength < 0.001 || vlength > -0.001) return vector;
-		vector.multiply(lengthsquared / vlength);
-		return vector;
+		if (Math.abs(vlength) > 0.01) {
+			vector.multiply(lengthsquared / vlength);
+		}
 	}
 
 	public static boolean isHeadingTo(BlockFace direction, Vector velocity) {
@@ -312,7 +349,8 @@ public class Util {
 	public static boolean isHeadingTo(Vector from, Vector to, Vector velocity) {
 		double dbefore = from.distanceSquared(to);
 		if (dbefore < 0.01) return true;
-		velocity = setVectorLengthSquared(velocity, dbefore);
+		velocity = velocity.clone();
+		setVectorLengthSquared(velocity, dbefore);
 		double dafter = from.clone().add(velocity).distanceSquared(to);
 		return dafter < dbefore;
 	}
@@ -326,82 +364,5 @@ public class Util {
 		return ((CraftServer) Bukkit.getServer()).getHandle().server.worlds;
 	}
 		
-	public static Byte getData(Material type, String name) {
-		try {
-			return Byte.parseByte(name);
-		} catch (NumberFormatException ex) {
-			MaterialData dat = type.getNewData((byte) 0);
-			if (dat instanceof TexturedMaterial) {
-				TexturedMaterial tdat = (TexturedMaterial) dat;
-				tdat.setMaterial(getMaterial(name));
-			} else if (dat instanceof Wool) {
-				Wool wdat = (Wool) dat;
-				wdat.setColor(getDyeColor(name));
-			} else if (dat instanceof Tree) {
-				Tree tdat = (Tree) dat;
-				tdat.setSpecies(getTreeSpecies(name));
-			} else {
-				return null;
-			}
-			return dat.getData();
-		}
-	}
-	public static TreeSpecies getTreeSpecies(String name) {
-		name = name.toUpperCase();
-		for (TreeSpecies specie : TreeSpecies.values()) {
-			if (specie.toString().contains(name)) return specie;
-		}
-		return null;
-	}
-	public static DyeColor getDyeColor(String name) {
-		name = name.toUpperCase();
-		for (DyeColor color : DyeColor.values()) {
-			if (color.toString().contains(name)) return color;
-		}
-		return null;
-	}
-	
-    public static Material getMaterial(String name) {
-    	Material m = Material.matchMaterial(name);
-    	name = name.trim().replace(" ", "_").toUpperCase().replace("SHOVEL", "SPADE").replace("SLAB", "STEP").replace("GOLDEN", "GOLD");       	
-    	if (m == null) m = Material.getMaterial(name);
-    	if (name.equalsIgnoreCase("WOODEN_DOOR")) m = Material.WOOD_DOOR;
-    	if (name.equalsIgnoreCase("IRON_DOOR_BLOCK")) m = Material.IRON_DOOR;
-    	if (name.equalsIgnoreCase("REPEATER")) m = Material.DIODE;
-    	if (name.equalsIgnoreCase("REDSTONE_REPEATER")) m = Material.DIODE;
-    	if (name.equalsIgnoreCase("REDSTONE_DUST")) m = Material.REDSTONE;
-    	if (name.equalsIgnoreCase("REDSTONE_TORCH")) m = Material.REDSTONE_TORCH_ON;
-    	if (name.equalsIgnoreCase("STONE_PRESSURE_PLATE")) m = Material.STONE_PLATE;
-    	if (name.equalsIgnoreCase("BUTTON")) m = Material.STONE_BUTTON;
-    	if (name.equalsIgnoreCase("WOOD_PRESSURE_PLATE")) m = Material.WOOD_PLATE;
-    	if (name.equalsIgnoreCase("WOODEN_PRESSURE_PLATE")) m = Material.WOOD_PLATE;
-    	if (name.equalsIgnoreCase("PISTON")) m = Material.PISTON_BASE;	
-       	if (name.equalsIgnoreCase("STICKY_PISTON")) m = Material.PISTON_STICKY_BASE;
-       	if (name.equalsIgnoreCase("MOSS_STONE")) m = Material.MOSSY_COBBLESTONE;
-       	if (name.equalsIgnoreCase("STONE_STAIRS")) m = Material.COBBLESTONE_STAIRS;
-       	if (name.equalsIgnoreCase("WOODEN_STAIRS")) m = Material.WOOD_STAIRS;  	
-       	if (name.equalsIgnoreCase("DIAM_CHESTPLATE")) m = Material.DIAMOND_CHESTPLATE; 
-       	if (name.equalsIgnoreCase("DIAM_LEGGINGS")) m = Material.DIAMOND_LEGGINGS; 
-       	if (name.equalsIgnoreCase("LEAT_CHESTPLATE")) m = Material.LEATHER_CHESTPLATE; 
-       	if (name.equalsIgnoreCase("LEAT_LEGGINGS")) m = Material.LEATHER_LEGGINGS;     	
-       	if (name.equalsIgnoreCase("LEATHER_PANTS")) m = Material.LEATHER_LEGGINGS;  
-    	if (name.equalsIgnoreCase("LIGHTER")) m = Material.FLINT_AND_STEEL;  
-    	if (name.equalsIgnoreCase("DOUBLE_SLAB")) m = Material.DOUBLE_STEP;
-    	if (name.equalsIgnoreCase("DOUBLESLAB")) m = Material.DOUBLE_STEP;
-    	if (name.equalsIgnoreCase("SLAB")) m = Material.STEP;
-    	if (name.equalsIgnoreCase("BOOK_SHELF")) m = Material.BOOKSHELF;
-    	if (name.equalsIgnoreCase("LIT_PUMPKIN")) m = Material.JACK_O_LANTERN;
-    	if (m != null) {
-    		return m;
-    	} else if (name.endsWith("S")) {  	
-    		return getMaterial(name.substring(0, name.length() - 1));
-    	} else {
-    	    try {
-    	    	return Material.getMaterial(Integer.parseInt(name));
-    	    } catch (Exception ex) {
-    	    	return null;
-    	    }
-    	}
-	}
 
 }

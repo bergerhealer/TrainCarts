@@ -16,6 +16,8 @@ import com.bergerkiller.bukkit.config.ConfigurationNode;
 import com.bergerkiller.bukkit.config.FileConfiguration;
 
 public class TrainProperties {
+	public static final TrainProperties EMPTY = new TrainProperties();
+	
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
 	public static TrainProperties get(String trainname) {
 		if (trainname == null || properties == null) return null;
@@ -40,6 +42,7 @@ public class TrainProperties {
 	public double speedLimit = 0.4;
 	public boolean requirePoweredMinecart = false;
 	public boolean keepChunksLoaded = false;
+	public boolean ignoreStations = false;
 	
 	private final Set<CartProperties> cartproperties = new HashSet<CartProperties>();
 	public Set<CartProperties> getCarts() {
@@ -54,6 +57,13 @@ public class TrainProperties {
 	}
 	protected void removeCart(MinecartMember member) {
 		this.cartproperties.remove(member.getProperties());
+	}
+	
+	/*
+	 * Pick up items
+	 */
+	public void setPickup(boolean pickup) {
+		for (CartProperties prop : this.cartproperties) prop.pickUp = pickup;
 	}
 	
 	/*
@@ -221,8 +231,16 @@ public class TrainProperties {
 	public static void reloadDefaults() {
 		defconfig = new FileConfiguration(TrainCarts.plugin, "DefaultTrainProperties.yml");
 		defconfig.load();
-		defconfig.getNode("default");
-		defconfig.getNode("admin");
+		if (!defconfig.contains("default")) {
+			ConfigurationNode node = defconfig.getNode("default");
+			TrainProperties.EMPTY.save(node, false, false);
+			CartProperties.EMPTY.save(node, false);
+		}
+		if (!defconfig.contains("admin")) {
+			ConfigurationNode node = defconfig.getNode("admin");
+			TrainProperties.EMPTY.save(node, false, false);
+			CartProperties.EMPTY.save(node, false);
+		}
 		defconfig.save();
 	}
 	public static FileConfiguration getDefaults() {
@@ -233,7 +251,13 @@ public class TrainProperties {
 		setDefault("default");
 	}
 	public void setDefault(String key) {
-		this.load(getDefaults().getNode(key));
+		this.setDefault(getDefaults().getNode(key));
+	}
+	public void setDefault(ConfigurationNode node) {
+		this.load(node);
+		for (CartProperties prop : this.cartproperties) {
+			prop.load(node);
+		}
 	}
 	public void setDefault(Player player) {
 		if (player == null) {
@@ -243,7 +267,7 @@ public class TrainProperties {
 			//Load it
 			for (ConfigurationNode node : getDefaults().getNodes()) {
 				if (player.hasPermission("train.properties." + node.getName())) {
-					this.load(node);
+					this.setDefault(node);
 					break;
 				}
 			}
@@ -286,6 +310,7 @@ public class TrainProperties {
 		this.speedLimit = Util.limit(node.get("speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
+		this.ignoreStations = node.get("ignoreStations", this.ignoreStations);
 		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
 			try {
 				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()));
@@ -309,25 +334,47 @@ public class TrainProperties {
 		this.cartproperties.clear();
 		this.cartproperties.addAll(source.cartproperties);
 	}
-	public void save(ConfigurationNode node) {		
-		node.set("allowLinking", this.allowLinking ? null : false);
-		node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
-		node.set("trainCollision", this.trainCollision ? null : false);
-		node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
-		node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
-		node.set("slowDown", this.slowDown ? null : false);
-		if (this.pushMobs || this.pushPlayers || !this.pushMisc) {
-			node.set("pushAway.mobs", this.pushMobs ? true : null);
-			node.set("pushAway.players", this.pushPlayers ? true : null);
-			node.set("pushAway.misc", this.pushMisc ? null : false);
+	public void save(ConfigurationNode node) {
+		this.save(node, true);
+	}
+	public void save(ConfigurationNode node, boolean savecarts) {	
+		this.save(node, savecarts, true);
+	}
+	public void save(ConfigurationNode node, boolean savecarts, boolean minimal) {		
+		if (minimal) {
+			node.set("allowLinking", this.allowLinking ? null : false);
+			node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
+			node.set("trainCollision", this.trainCollision ? null : false);
+			node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
+			node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+			node.set("slowDown", this.slowDown ? null : false);
+			if (this.pushMobs || this.pushPlayers || !this.pushMisc) {
+				node.set("pushAway.mobs", this.pushMobs ? true : null);
+				node.set("pushAway.players", this.pushPlayers ? true : null);
+				node.set("pushAway.misc", this.pushMisc ? null : false);
+			} else {
+				node.remove("pushAway");
+			}
+			node.set("ignoreStations", this.ignoreStations ? true : null);
 		} else {
-			node.remove("pushAway");
+			node.set("allowLinking", this.allowLinking);
+			node.set("requirePoweredMinecart", this.requirePoweredMinecart);
+			node.set("trainCollision", this.trainCollision);
+			node.set("keepChunksLoaded", this.keepChunksLoaded);
+			node.set("speedLimit", this.speedLimit);
+			node.set("slowDown", this.slowDown);
+			node.set("pushAway.mobs", this.pushMobs);
+			node.set("pushAway.players", this.pushPlayers);
+			node.set("pushAway.misc", this.pushMisc);
+			node.set("ignoreStations", this.ignoreStations);
 		}
-		ConfigurationNode carts = node.getNode("carts");
-		for (CartProperties prop : this.cartproperties) {
-			ConfigurationNode cart = carts.getNode(prop.getUUID().toString());
-			prop.save(cart);
-			if (cart.getKeys().isEmpty()) carts.remove(cart.getName());
+		if (savecarts) {
+			ConfigurationNode carts = node.getNode("carts");
+			for (CartProperties prop : this.cartproperties) {
+				ConfigurationNode cart = carts.getNode(prop.getUUID().toString());
+				prop.save(cart, minimal);
+				if (cart.getKeys().isEmpty()) carts.remove(cart.getName());
+			}
 		}
 	}
 }

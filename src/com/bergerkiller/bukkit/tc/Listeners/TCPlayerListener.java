@@ -80,6 +80,9 @@ public class TCPlayerListener extends PlayerListener {
 			if (entered != null && !entered.getProperties().allowPlayerExit) {
 				event.setCancelled(true);
 			}
+			if (!mm.getProperties().isPublic && !mm.getProperties().isOwner(event.getPlayer())) {
+				event.setCancelled(true);
+			}
 		}
 	}
 	

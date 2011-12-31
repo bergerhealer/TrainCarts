@@ -55,12 +55,6 @@ public class NativeMinecartMember extends EntityMinecart {
 	private double l;
 	private double m;
 
-	public int getChunkX() {
-		return Util.locToChunk(this.locX);
-	}
-	public int getChunkZ() {
-		return Util.locToChunk(this.locZ);
-	}
 	public double getX() {
 		return this.locX;
 	}
@@ -960,7 +954,7 @@ public class NativeMinecartMember extends EntityMinecart {
             } else if (this.fireTicks <= 0) {
                 this.fireTicks = -this.maxFireTicks;
             }
-
+            
             if (flag2 && this.fireTicks > 0) {
                 this.world.makeSound(this, "random.fizz", 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                 this.fireTicks = -this.maxFireTicks;
@@ -1001,8 +995,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		} else {
 			//Use push-away?
 			TrainProperties prop = this.group().getProperties();
-			if (prop.canPushAway(e.getBukkitEntity())) {
-				this.member().push(e.getBukkitEntity());
+			if (e instanceof EntityItem && this.member().getProperties().pickUp) {
+				return false;
+			} else if (prop.canPushAway(e.getBukkitEntity())) {
+				this.member().pushSideways(e.getBukkitEntity());
 				return false;
 			}
 			if (!prop.trainCollision) {

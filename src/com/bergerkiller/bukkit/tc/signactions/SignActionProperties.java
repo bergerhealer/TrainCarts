@@ -1,9 +1,12 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.event.block.SignChangeEvent;
+
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionProperties extends SignAction {
 
@@ -57,7 +60,7 @@ public class SignActionProperties extends SignAction {
 		// TODO Auto-generated method stub
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.isCartSign()) {
 			if (info.isType("property")) {
-				if (info.isAction(SignActionType.REDSTONE_ON) || (info.isPowered() && info.isFacing())) {
+				if (info.isPoweredFacing()) {
 					if (info.getMember() != null) {
 						String mode = info.getLine(2).toLowerCase().trim();
 						handleProperties(info.getMember().getProperties(), mode, info.getLine(3));
@@ -66,12 +69,24 @@ public class SignActionProperties extends SignAction {
 			}
 		} else if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.isTrainSign()) {
 			if (info.isType("property")) {
-				if (info.isAction(SignActionType.REDSTONE_ON) || (info.isPowered() && info.isFacing())) {
+				if (info.isPoweredFacing()) {
 					if (info.getGroup() != null) {
 						String mode = info.getLine(2).toLowerCase().trim();
 						handleProperties(info.getGroup().getProperties(), mode, info.getLine(3));
 					}
 				}
+			}
+		}
+	}
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (mode == SignActionMode.CART) {
+			if (type.startsWith("property")) {
+				handleBuild(event, Permission.BUILD_PROPERTY, "cart property setter", "set properties on the cart above");
+			}
+		} else if (mode == SignActionMode.TRAIN) {
+			if (type.startsWith("property")) {
+				handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "set properties on the train above");
 			}
 		}
 	}

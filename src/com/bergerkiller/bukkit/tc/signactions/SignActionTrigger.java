@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.event.block.SignChangeEvent;
+
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionTrigger extends SignAction {
 
@@ -16,6 +19,15 @@ public class SignActionTrigger extends SignAction {
 						ArrivalSigns.timeCalcStop(info.getLocation());
 					}
 				}
+			}
+		}
+	}
+
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (mode != SignActionMode.NONE) {
+			if (type.startsWith("trigger")) {
+				handleBuild(event, Permission.BUILD_TRIGGER, "train trigger", "reset the arrival time, train name and destination, which can be displayed using SignLink");
 			}
 		}
 	}

@@ -59,10 +59,10 @@ public class TrackMap extends ArrayList<Block> {
 		TrackMap map = new TrackMap(from, direction);
 		return map.find(to, stepcount);
 	}	
-	public static boolean isConnected(Block rail1, Block rail2) {
-		return isConnected(rail1, rail2, 0);
+	public static boolean isConnected(Block rail1, Block rail2, boolean bothways) {
+		return isConnected(rail1, rail2, 0, bothways);
 	}
-	public static boolean isConnected(Block rail1, Block rail2, int stepcount) {
+	public static boolean isConnected(Block rail1, Block rail2, int stepcount, boolean bothways) {
 		if (!BlockUtil.isRails(rail1)) return false;
 		if (!BlockUtil.isRails(rail2)) return false;
 		if (BlockUtil.equals(rail1, rail2)) return true;
@@ -74,7 +74,11 @@ public class TrackMap extends ArrayList<Block> {
 		BlockFace direction = FaceUtil.yawToFace(yaw, false);
 		TrackMap map1 = new TrackMap(rail1, direction);
 		TrackMap map2 = new TrackMap(rail2, direction.getOppositeFace());
-		return map1.find(rail2, stepcount) || map2.find(rail1, stepcount);
+		if (bothways) {
+			return map1.find(rail2, stepcount) && map2.find(rail1, stepcount);
+		} else {
+			return map1.find(rail2, stepcount) || map2.find(rail1, stepcount);
+		}
 	}
 	
 	public Block last() {

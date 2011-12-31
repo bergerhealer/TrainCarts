@@ -4,17 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public abstract class SignAction {
 	
 	public static void init() {
 		actions = new ArrayList<SignAction>();
 		register(new SignActionStation());
-		register(new SignActionTag());
+		register(new SignActionSwitcher());
 		register(new SignActionSpawn());
 		register(new SignActionProperties());
+		register(new SignActionTrigger());
 		register(new SignActionTeleport());
 		register(new SignActionCart());
 		register(new SignActionTrain());
@@ -25,7 +29,8 @@ public abstract class SignAction {
 	}
 		
 	public abstract void execute(SignActionEvent info);
-
+	public abstract void build(SignChangeEvent event, String type, SignActionMode mode);
+	
 	private static List<SignAction> actions;
 	public static <T extends SignAction> T register(T action) {
 		if (actions == null) return action;
@@ -40,6 +45,37 @@ public abstract class SignAction {
 		actions.remove(action);
 	}
 	
+	public static boolean handleBuild(SignChangeEvent event, Permission permission, String signname) {
+		return handleBuild(event, permission, signname, null);
+	}
+	public static boolean handleBuild(SignChangeEvent event, Permission permission, String signname, String signdescription) {
+		return handleBuild(event, permission.toString(), signname, signdescription);
+	}
+	public static boolean handleBuild(SignChangeEvent event, String permission, String signname) {
+		return handleBuild(event, permission, signname, null);
+	}
+	public static boolean handleBuild(SignChangeEvent event, String permission, String signname, String signdescription) {
+		if (event.getPlayer().hasPermission(permission)) {
+			event.getPlayer().sendMessage(ChatColor.YELLOW + "You built a " + ChatColor.WHITE + signname + ChatColor.YELLOW + "!");
+			if (signdescription != null) {
+				event.getPlayer().sendMessage(ChatColor.GREEN + "This sign can " + signdescription + ".");
+			}
+			return true;
+		} else {
+			event.getPlayer().sendMessage(ChatColor.RED + "You do not have permission to use this sign");
+			event.setCancelled(true);
+			return false;
+		}
+	}
+	
+	public static void handleBuild(SignChangeEvent event) {
+		SignActionMode mode = SignActionMode.fromEvent(event);
+		String type = event.getLine(1).toLowerCase();
+		for (SignAction action : actions) {
+			action.build(event, type, mode);
+			if (event.isCancelled()) return;
+		}
+	}
 	public static void executeAll(SignActionEvent info, SignActionType actiontype) {
 		info.setAction(actiontype);
 		executeAll(info);

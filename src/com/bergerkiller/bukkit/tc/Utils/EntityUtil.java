@@ -2,8 +2,10 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.UUID;
 
+import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
+import net.minecraft.server.Packet22Collect;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.World;
@@ -11,6 +13,7 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -23,6 +26,9 @@ public class EntityUtil {
 	/*
 	 * Entity getters
 	 */
+	public static EntityItem getNative(Item item) {
+		return (EntityItem) getNative((Entity) item);
+	}
 	public static EntityMinecart getNative(Minecart m) {
 		return (EntityMinecart) getNative((Entity) m);
 	}
@@ -61,6 +67,12 @@ public class EntityUtil {
 	/*
 	 * Entity miscellaneous
 	 */
+	public static void pickUpAnimation(Item item, Entity by) {
+		pickUpAnimation(getNative(item), getNative(by));
+	}
+	public static void pickUpAnimation(EntityItem item, net.minecraft.server.Entity by) {
+		((WorldServer) item.world).tracker.a(by, new Packet22Collect(item.id, by.id));
+	}
 	public static void transferItems(EntityMinecart from, EntityMinecart to) {
 		net.minecraft.server.ItemStack[] items = from.getContents();
 		for (int i = 0;i < items.length;i++) {

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -139,22 +140,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				return false;
 			}
 
-			//Validated, prepare for train merge
-
-			//    			//Share owners and add to g2
-			//    			ArrayList<String> newOwners = new ArrayList<String>();
-			//    			for (String owner : prop1.owners) {
-			//    				boolean allow = true;
-			//    				for (String owner2 : prop2.owners) {
-			//    					if (owner2.equalsIgnoreCase(owner)) {
-			//    						allow = false;
-			//    						break;
-			//    					}
-			//    				}
-			//    				if (allow) newOwners.add(owner);
-			//    			}
-			//    		    			
-			
 			//Transfer properties
 			if (g1.size() > g2.size()) {
 				g2.getProperties().load(g1.getProperties());
@@ -178,11 +163,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 
 			//Re-activate the signs underneath the train
 			for (MinecartMember mm : g2) {
-				g2.setActiveSign(mm.getSignBlock(), true);
+				for (Block sign : mm.getActiveSigns()) {
+					g2.setActiveSign(sign, true);
+				}
 			}
 			
 			//Correct the yaw and order
-			g2.updateYawOrder();
+			g2.getAverageForce();
+			g2.updateYaw();;
 			
 			g1.remove();
 			m2.playLinkEffect();
@@ -305,6 +293,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public GroupActionWaitForever addActionWaitForever() {
 		return this.addAction(new GroupActionWaitForever(this));
+	}
+	public GroupActionSizzle addActionSizzle() {
+		return this.addAction(new GroupActionSizzle(this));
 	}
 	public boolean isActionWait() {
 		Action a = this.actions.peek();
@@ -455,11 +446,26 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return this.remove(index) != null;
 	}
 	private MinecartMember removeMember(int index) {
-		MinecartMember member = super.remove(index);
-		this.setActiveSign(member.getSignBlock(), false);
+		MinecartMember member = super.get(index);
+		//Delete the member if dead, otherwise remove active signs from this group only
+		if (member.dead) {
+			//added Bukkit vehicle destroy event
+			member.clearActiveSigns();
+		} else {
+			Set<Block> toRemove = new HashSet<Block>();
+			toRemove.addAll(member.getActiveSigns());
+			for (MinecartMember mm : this) {
+				if (mm != member) toRemove.removeAll(mm.getActiveSigns());
+			}
+			for (Block sign : toRemove) {
+				this.setActiveSign(sign, false);
+			}
+		}
+		super.remove(index);
 		this.getProperties().removeCart(member);
+		Action a;
 		for (Iterator<Action> actionit = this.actions.iterator(); actionit.hasNext();) {
-			Action a = actionit.next();
+			a = actionit.next();
 			if (a instanceof MemberAction) {
 				if (((MemberAction) a).getMember() == member) {
 					actionit.remove();
@@ -568,11 +574,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			return false;
 		}
 	}
-	public void updateYawOrder() {
+	public void updateYaw() {
 		if (this.size() == 1) {
 			this.get(0).updateYaw();
 		} else if (this.size() > 1) {
-			this.getAverageForce(); //Update order
 			//Update yaw from other cart
 			tail().updateYawTo(tail(1));
 			for (int i = size() - 2;i >= 0;i--) {
@@ -674,7 +679,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 							
 			//Set the new active signs
 			for (MinecartMember mm : gnew) {
-				gnew.setActiveSign(mm.getSignBlock(), true);
+				for (Block sign : mm.getActiveSigns()) {
+					gnew.setActiveSign(sign, true);
+				}
 			}
 			
 			//Set the new group properties
@@ -682,9 +689,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			
 			//what time do we want to prevent them from colliding too soon?
 			//needs to travel 2 blocks in the meantime
+			int time = (int) Util.limit(20 / gnew.head().getForce(), 20, 40);
 			for (MinecartMember mm1 : gnew) {
 				for (MinecartMember mm2: this) {
-					mm1.ignoreCollision(mm2, Math.min((int) (20 / mm1.getForce()), 40));
+					mm1.ignoreCollision(mm2, time);
 				}
 			}
 			return gnew;
@@ -737,7 +745,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				mm.preUpdate();
 				mm.postUpdate(1);
 				if (this.isEmpty()) return false;
-				this.updateYawOrder();
+				this.updateYaw();
 				return true;
 			} else {
 				this.remove();
@@ -747,7 +755,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			this.remove();
 			throw new GroupUnloadedException();
 		}
-				
+						
 		//Validate members
 		for (MinecartMember mm : this) {
 			if (!mm.isValidMember()) {
@@ -755,7 +763,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				return false;
 			}
 		}
-		
+					
 		//pre-update
 		this.updateAction();
 		for (MinecartMember m : this) {
@@ -764,12 +772,24 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		
 		//Get the average forwarding force of all carts
 		double force = this.getAverageForce();
-				
-		//update force
-		for (MinecartMember m : this) {
-			m.setForwardForce(force);
+		this.updateYaw();		
+		
+		//Perform forward force or not? First check if we are not messing up...
+		boolean performUpdate = true;
+		for (int i = 0; i < this.size() - 1; i++) {
+			if (!head(i + 1).isFollowingOnTrack(head(i))) {
+				performUpdate = false;
+				break;
+			}
 		}
-						
+		
+		if (performUpdate) {
+			//update force
+			for (MinecartMember m : this) {
+				m.setForwardForce(force);
+			}							
+		}
+		
 		//Apply force factors to carts from last cart and perform post positional updates
 		final int size = this.size();
 		if (size < 2) return false;
@@ -792,7 +812,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		
 		//Update order after position change
-		this.updateYawOrder();
+		this.getAverageForce();
+		
+		//update yaw and then the positions
+		this.updateYaw();
 		
 		//Validate positions in the group
 		for (int i = 0; i < this.size() - 1; i++) {
@@ -804,6 +827,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				return false;
 			}
 		}
+		
 		return true;
 	}
 		

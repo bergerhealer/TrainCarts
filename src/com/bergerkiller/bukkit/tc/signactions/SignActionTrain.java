@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionTrain extends SignAction {
 
@@ -12,7 +14,7 @@ public class SignActionTrain extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			if (!info.isTrainSign()) return;
 			if (info.getGroup() == null) return;
-			if (info.isAction(SignActionType.REDSTONE_ON) || (info.isFacing() && info.isPowered())) {
+			if (info.isPoweredFacing()) {
 				if (info.isType("destroy")) {
 					info.getGroup().destroy();
 				} else if (info.isType("eject")) {
@@ -31,6 +33,17 @@ public class SignActionTrain extends SignAction {
 						info.getGroup().eject(offset);
 					}
 				}
+			}
+		}
+	}
+	
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (mode == SignActionMode.TRAIN) {
+			if (type.startsWith("destroy")) {
+				handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train");
+			} else if (type.startsWith("eject")) {
+				handleBuild(event, Permission.BUILD_EJECTOR, "train ejector", "eject all passengers of a train");
 			}
 		}
 	}

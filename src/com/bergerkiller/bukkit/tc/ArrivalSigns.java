@@ -39,9 +39,18 @@ public class ArrivalSigns {
 	}
 	
 	public static void trigger(Sign sign, MinecartMember mm) {
+		if (!TrainCarts.SignLinkEnabled) return;
 		String name = sign.getLine(2);
 		String duration = sign.getLine(3);
 		if (name == null || name.equals("")) return;
+		if (mm != null) {
+			Variables.get(name + 'N').set(mm.getGroup().getName());
+			if (mm.getProperties().hasDestination()) {
+				Variables.get(name + 'D').set(mm.getProperties().destination);
+			} else {
+				Variables.get(name + 'D').set("Unknown");
+			}
+		}
 		TimeSign t = getTimer(name);
 		t.duration = getTime(duration);
 		if (t.duration == 0) {
@@ -124,7 +133,7 @@ public class ArrivalSigns {
 			if (!TrainCarts.SignLinkEnabled) return false;
 			//Calculate the time to display
 			String dur = getDuration();
-			Variables.get(this.name).set(dur);
+			Variables.get(this.name + 'T').set(dur);
 			if (dur.equals("00:00:00")) {
 				timerSigns.remove(this.name);
 				return false;

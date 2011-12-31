@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.Minecart;
 import org.bukkit.material.Attachable;
 import org.bukkit.material.MaterialData;
@@ -34,6 +35,7 @@ public class BlockUtil {
     }
     
     public static boolean equals(Block block1, Block block2) {
+    	if (block1 == block2) return true;
     	return block1.getX() == block2.getX() && block1.getZ() == block2.getZ()
     			&& block1.getY() == block2.getY() && block1.getWorld() == block2.getWorld();    	
     }
@@ -46,13 +48,20 @@ public class BlockUtil {
     	}
     	return rval;
     }
-    public static Block getAttachedBlock(Block b) {
-    	MaterialData m = getData(b);
-    	BlockFace face = BlockFace.DOWN;
+    public static BlockFace getAttachedFace(Block attachable) {
+    	MaterialData m = getData(attachable);
     	if (m instanceof Attachable) {
-    		face = ((Attachable) m).getAttachedFace();
+    		return ((Attachable) m).getAttachedFace();
     	}
-    	return b.getRelative(face);
+    	return BlockFace.DOWN;
+    }
+    public static Block getAttachedBlock(Block b) {
+    	return b.getRelative(getAttachedFace(b));
+    }
+    public static void setLeversAroundBlock(Block block, boolean down) {
+		for (Block b : BlockUtil.getRelative(block, FaceUtil.getAttached())) {
+			BlockUtil.setLever(b, down);
+		}
     }
     public static void setLever(Block lever, boolean down) {
     	if (lever.getType() == Material.LEVER) {
@@ -159,4 +168,19 @@ public class BlockUtil {
 		}
 	}
 		
+	public static void breakBlock(Block block) {
+		int x = block.getX();
+		int y = block.getY();
+		int z = block.getZ();
+		net.minecraft.server.World world = ((CraftWorld) block.getWorld()).getHandle();
+		net.minecraft.server.Block bb = net.minecraft.server.Block.byId[block.getTypeId()];
+		if (bb != null) {
+			try {
+				bb.dropNaturally(world, x, y, z, block.getData(), 20, 0);
+			} catch (Throwable t) {
+			    t.printStackTrace();
+			}
+		}
+        world.setTypeId(x, y, z, 0);
+	}
 }

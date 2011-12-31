@@ -3,12 +3,15 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
@@ -148,10 +151,15 @@ public class SignActionStation extends SignAction {
 												if (l != null) {
 													//Actual launching here
 													l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
+													if (delayMS > 0) {
+														if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+														info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+													}
 													group.addActionWait(delayMS);
 													midd.addActionLaunch(l, TrainCarts.launchForce);
 												} else {
 													group.addActionWaitForever();
+													group.addActionSizzle();
 												}
 											}
 										}
@@ -160,9 +168,14 @@ public class SignActionStation extends SignAction {
 										group.clearActions();
 										Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 										MinecartMember head = group.head();
+
 										if (delayMS > 0 || (head.isMoving() && head.getDirection() != instruction)) {
 											//Reversing or has delay, need to center it in the middle first
 											midd.addActionLaunch(l, 0);
+										}
+										if (delayMS > 0) {
+											if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+											info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 										}
 										group.addActionWait(delayMS);
 										midd.addActionLaunch(next, TrainCarts.launchForce);
@@ -170,12 +183,21 @@ public class SignActionStation extends SignAction {
 								}
 							}
 						}
-						if (!info.isAction(SignActionType.REDSTONE_CHANGE)) {
-							info.setLevers(info.isAction(SignActionType.GROUP_ENTER));
+						if (info.isAction(SignActionType.GROUP_LEAVE)) {
+							info.setLevers(false);
 						}
 					}
 				}
 			}
 		}
+	}
+
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	    if (mode != SignActionMode.NONE) {
+	    	if (type.startsWith("station")) {
+	    		handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
+	    	}
+	    }
 	}
 }

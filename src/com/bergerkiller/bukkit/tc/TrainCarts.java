@@ -1,15 +1,21 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
@@ -21,7 +27,9 @@ import com.bergerkiller.bukkit.tc.listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.listeners.TCPlayerListener;
 import com.bergerkiller.bukkit.tc.listeners.TCVehicleListener;
 import com.bergerkiller.bukkit.tc.listeners.TCWorldListener;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.utils.ItemUtil;
 
 public class TrainCarts extends JavaPlugin {
 	/*
@@ -45,11 +53,16 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
 	public static boolean keepChunksLoadedOnlyWhenMoving = false;
+	public static boolean playSoundAtStation = true;
+	private Set<Material> allowedBlockBreakTypes = new HashSet<Material>();
 
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
 	public static boolean MyWorldsEnabled = false;
-
+	public static boolean isShowcaseEnabled = false;
+	public static boolean isSCSEnabled = false;
+	public static Plugin bleedingMobsInstance = null;
+	
 	public static String version;
 	
 	public static TrainCarts plugin;
@@ -61,10 +74,13 @@ public class TrainCarts extends JavaPlugin {
 
 	private Task signtask;
 
+	public static boolean canBreak(Material type) {
+		return plugin.allowedBlockBreakTypes.contains(type);
+	}
+	
 	public void loadConfig() {
 		FileConfiguration config = new FileConfiguration(this);
-		boolean use = config.get("use", true);
-		if (use) {
+		if (config.get("use", true)) {
 			double exitx, exity, exitz;
 			config.load();
 			cartDistance = config.get("normal.cartDistance", 1.5);
@@ -86,34 +102,39 @@ public class TrainCarts extends JavaPlugin {
 			pushAwayIgnoreOwners = config.get("pushAwayIgnoreOwners", true);
 			useCoalFromStorageCart = config.get("useCoalFromStorageCart", false);
 			setOwnerOnPlacement = config.get("setOwnerOnPlacement", true);
+			playSoundAtStation = config.get("playSoundAtStation", true);
 			keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
+			if (config.contains("allowedBlockBreakTypes")) {
+				for (String value : config.getList("allowedBlockBreakTypes", String.class)) {
+					Material type = ItemUtil.getMaterial(value);
+					if (type != null) allowedBlockBreakTypes.add(type);
+				}
+			} else {
+				allowedBlockBreakTypes.add(Material.CROPS);
+				allowedBlockBreakTypes.add(Material.LOG);
+			}
+			//set it again
+			List<String> types = config.getList("allowedBlockBreakTypes", String.class);
+			types.clear();
+			for (Material mat : allowedBlockBreakTypes) {
+				types.add(mat.toString());
+			}
+			
 			config.set("use", true);
 			exitOffset = new Vector(exitx, exity, exitz);
 			config.save();
 		}
 	}
 
-	public void onEnable() {
-		plugin = this;
-
-		PluginManager pm = getServer().getPluginManager();
-		pm.registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.VEHICLE_CREATE, vehicleListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Highest, this);	
-		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, Priority.Highest, this);	
-		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.Highest, this);	
-		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest, this);
+	private void registerEvent(Event.Type type, Listener listener, Priority priority) {
+		this.getServer().getPluginManager().registerEvent(type, listener, priority, this);
+	}
+	
+	private void initDependencies() {
 		if (this.getServer().getPluginManager().isPluginEnabled("MinecartManiaCore")) {
 			Util.log(Level.INFO, "Minecart Mania detected, support added!");
 			MinecartManiaEnabled = true;
-			pm.registerEvent(Event.Type.CUSTOM_EVENT, customListener, Priority.Lowest, this);
+			registerEvent(Event.Type.CUSTOM_EVENT, customListener, Priority.Lowest);
 		}
 		if (this.getServer().getPluginManager().isPluginEnabled("SignLink")) {
 			Util.log(Level.INFO, "SignLink detected, support for arrival signs added!");
@@ -129,7 +150,34 @@ public class TrainCarts extends JavaPlugin {
 			Util.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
 			MyWorldsEnabled = true;
 		}
-
+		getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
+			public void run() {
+				PluginManager pm = getServer().getPluginManager();
+				isShowcaseEnabled = pm.isPluginEnabled("Showcase");
+				isSCSEnabled = pm.isPluginEnabled("ShowCaseStandalone");
+				bleedingMobsInstance = pm.getPlugin("BleedingMobs");
+			}
+		}, 1);
+	}
+	
+	public void onEnable() {
+		plugin = this;
+		Permission.registerAll();
+		registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest);
+		registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest);
+		registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Monitor);
+		registerEvent(Event.Type.VEHICLE_CREATE, vehicleListener, Priority.Highest);
+		registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest);
+		registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest);
+		registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Highest);	
+		registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, Priority.Highest);	
+		registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.Highest);	
+		registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor);
+		registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor);
+		registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest);
+		registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest);
+		initDependencies();
+		
 		//Load configuration
 		loadConfig();
 
