@@ -96,7 +96,7 @@ public class CartCommands {
 			if (mm == null) {
 				prop.remove();
 			} else {
-				mm.destroy();
+				mm.die();
 			}
 			p.sendMessage(ChatColor.YELLOW + "The selected minecart has been destroyed!");
 		} else if (cmd.equals("public")) {
@@ -165,7 +165,7 @@ public class CartCommands {
 		}
 		return true;
 	}
-	
+		
 	public static void info(Player player, CartProperties prop) {
 		//warning message not taken
 		if (!prop.hasOwners()) {

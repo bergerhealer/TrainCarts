@@ -22,7 +22,7 @@ public class TCBlockListener extends BlockListener {
 			SignActionEvent info = new SignActionEvent(event.getBlock());
 			SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 			boolean powered = poweredBlocks.contains(event.getBlock());
-			if (event.getNewCurrent() > 0 && !powered) {
+			if (!powered && event.getNewCurrent() > 0) {
 				poweredBlocks.add(event.getBlock());
 				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
 			} else if (powered && event.getNewCurrent() == 0) {

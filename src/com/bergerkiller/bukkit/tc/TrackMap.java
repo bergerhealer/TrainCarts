@@ -1,6 +1,10 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+
+import net.minecraft.server.ChunkCoordinates;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -14,6 +18,7 @@ import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;
 	private BlockFace direction;
+	private Set<ChunkCoordinates> coordinates = new HashSet<ChunkCoordinates>();
 	private double totaldistance = 0;
 	public TrackMap(Block start, BlockFace direction) {
 		this.direction = direction;
@@ -72,15 +77,35 @@ public class TrackMap extends ArrayList<Block> {
 		}
 		float yaw = Util.getLookAtYaw(rail1, rail2);
 		BlockFace direction = FaceUtil.yawToFace(yaw, false);
-		TrackMap map1 = new TrackMap(rail1, direction);
-		TrackMap map2 = new TrackMap(rail2, direction.getOppositeFace());
 		if (bothways) {
-			return map1.find(rail2, stepcount) && map2.find(rail1, stepcount);
+			return tryFind(rail1, rail2, direction, stepcount) && tryFind(rail1, rail2, direction.getOppositeFace(), stepcount);
 		} else {
-			return map1.find(rail2, stepcount) || map2.find(rail1, stepcount);
+			return tryFind(rail1, rail2, direction, stepcount) || tryFind(rail1, rail2, direction.getOppositeFace(), stepcount);
 		}
 	}
+	public static boolean tryFind(Block rail, Block destination, BlockFace preferredFace, int stepcount) {
+		BlockFace[] faces = FaceUtil.getFaces(BlockUtil.getRails(rail).getDirection());
+		if (faces[0] == preferredFace) {
+			if (find(rail, faces[0], destination, stepcount)) return true;
+			if (find(rail, faces[1], destination, stepcount)) return true;
+		} else {
+			if (find(rail, faces[1], destination, stepcount)) return true;
+			if (find(rail, faces[0], destination, stepcount)) return true;
+		}
+		return false;
+	}
+	public static boolean find(Block rail, BlockFace direction, Block destination, int stepcount) {
+		return new TrackMap(rail, direction).find(destination, stepcount);
+	}
 	
+	public boolean add(Block block) {
+		if (this.coordinates.add(BlockUtil.getCoordinates(block))) {
+			super.add(block);
+			return true;
+		} else {
+			return false;
+		}
+	}
 	public Block last() {
 		return last(0);
 	}
@@ -89,7 +114,9 @@ public class TrackMap extends ArrayList<Block> {
 		if (index < 0) return null;
 		return get(index);
 	}
-		
+	public Set<ChunkCoordinates> getCoordinates() {
+		return this.coordinates;
+	}
 	public double getTotalDistance() {
 		return totaldistance;
 	}
@@ -205,14 +232,25 @@ public class TrackMap extends ArrayList<Block> {
 	}
 	
 	public Block next() {
+		return this.next(false);
+	}
+	public Block next(boolean onlyIfLoaded) {
 		//Get the direction for the next piece of track
 		BlockFace dir = getNextDirection();
 		if (dir == null) return null; 
 		direction = dir;
 		
 		//Get the Rails block at this direction (up/down?)
+		if (onlyIfLoaded) {
+			//is the next block loaded?
+			int newx = last().getX() + direction.getModX();
+			int newz = last().getZ() + direction.getModZ();
+			if (!last().getWorld().isChunkLoaded(newx >> 4, newz >> 4)) {
+				return null;
+			}
+		}
 		Block next = last().getRelative(direction);
-		if (next != null && !BlockUtil.isRails(next)) {
+		if (!BlockUtil.isRails(next)) {
 			Block tmp = next.getRelative(BlockFace.UP);
 			if (!BlockUtil.isRails(tmp)) {
 				tmp = next.getRelative(BlockFace.DOWN);
@@ -224,14 +262,12 @@ public class TrackMap extends ArrayList<Block> {
 			next = tmp;
 		}
 		//prevent loops by checking for double every 20 tiles
-    if (this.size() % 20 == 0){
-      if (this.contains(next)){
-        return null;
-      }
-    }
-		totaldistance += last().getLocation().distance(next.getLocation());
-		this.add(next);
-		return next;
+		if (this.add(next)) {
+			totaldistance += last().getLocation().distance(next.getLocation());
+			return next;
+		} else {
+			return null;
+		}
 	}
 	
 	public Block getSignBlock() {

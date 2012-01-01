@@ -1,7 +1,12 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import java.util.ArrayList;
+
+import net.minecraft.server.ChunkCoordinates;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -47,6 +52,12 @@ public class BlockUtil {
     		rval[i] = main.getRelative(faces[i]);
     	}
     	return rval;
+    }
+    public static ChunkCoordinates getCoordinates(final Block block) {
+    	return new ChunkCoordinates(block.getX(), block.getY(), block.getZ());
+    }
+    public static Block getBlock(World world, ChunkCoordinates at) {
+    	return world.getBlockAt(at.x, at.y, at.z);
     }
     public static BlockFace getAttachedFace(Block attachable) {
     	MaterialData m = getData(attachable);
@@ -166,6 +177,20 @@ public class BlockUtil {
 		} else {
 			return BlockFace.NORTH;
 		}
+	}
+	
+	public static Block[] getSignsAttached(Block rails) {
+		ArrayList<Block> rval = new ArrayList<Block>(3);
+		Block under = rails.getRelative(0, -2, 0);
+		if (BlockUtil.isSign(under)) rval.add(under);
+		for (BlockFace face : FaceUtil.axis) {
+			Block side = rails.getRelative(face.getModX(), -1, face.getModZ());
+			if (!BlockUtil.isSign(side)) continue;
+			if (BlockUtil.getAttachedFace(side) == face.getOppositeFace()) {
+				rval.add(side);
+			}
+		}
+		return rval.toArray(new Block[0]);
 	}
 		
 	public static void breakBlock(Block block) {

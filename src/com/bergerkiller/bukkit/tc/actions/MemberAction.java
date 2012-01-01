@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.tc.MinecartMember;
 public class MemberAction extends Action {
 	
 	public boolean doTick() {
-		if (!this.member.isValidMember()) return true;
+		if (this.member.dead) return true;
 		return super.doTick();
 	}
 	

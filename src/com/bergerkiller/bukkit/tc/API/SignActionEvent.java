@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -179,10 +180,21 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	
 	public boolean isPowered(BlockFace from) {
-		return this.getBlock().getRelative(from).isBlockIndirectlyPowered();
+		Block block = this.getBlock().getRelative(from);
+		Material type = block.getType();
+		if (type == Material.REDSTONE_TORCH_ON) return true;
+		if (type == Material.REDSTONE_TORCH_OFF) return false;
+		if (type == Material.REDSTONE_WIRE) {
+			return block.getData() != 0;
+		}
+		if (from != BlockFace.DOWN && type == Material.DIODE_BLOCK_ON) {
+			return BlockUtil.getFacing(block) != from;
+		}
+		return this.getBlock().isBlockFacePowered(from);
 	}
 	public boolean isPowered() {
 		return this.getBlock().isBlockIndirectlyPowered() ||
+				isPowered(BlockFace.DOWN) || 
 				isPowered(BlockFace.NORTH) ||
 				isPowered(BlockFace.EAST) ||
 				isPowered(BlockFace.SOUTH) ||

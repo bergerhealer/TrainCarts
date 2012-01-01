@@ -20,7 +20,7 @@ public class TrainProperties {
 	
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
 	public static TrainProperties get(String trainname) {
-		if (trainname == null || properties == null) return null;
+		if (trainname == null) return null;
 		TrainProperties prop = properties.get(trainname);
 		if (prop == null) {
 			return new TrainProperties(trainname);
@@ -220,8 +220,6 @@ public class TrainProperties {
 	public static void deinit(String filename) {
 		save(filename);
 		defconfig = null;
-		properties.clear();
-		properties = null;
 	}
     
 	/*

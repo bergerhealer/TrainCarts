@@ -424,7 +424,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Executes the post-velocity and positioning updates
 	 */
-	public void postUpdate(double speedFactor) throws GroupUnloadedException {
+	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		if (this.dead) return;
 		if (this.moveinfo == null) return; //pre-update is needed
 		double motX = this.motX;

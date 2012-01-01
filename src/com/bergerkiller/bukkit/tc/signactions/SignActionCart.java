@@ -16,7 +16,7 @@ public class SignActionCart extends SignAction {
 			if (info.getMember() == null) return;
 			if (info.isPoweredFacing()) {
 				if (info.isType("destroy")) {
-					info.getMember().destroy();
+					info.getMember().die();
 				} else if (info.isType("eject")) {
 					String[] offsettext = info.getLine(2).split("/");
 					Vector offset = new Vector();

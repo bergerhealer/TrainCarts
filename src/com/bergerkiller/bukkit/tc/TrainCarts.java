@@ -37,7 +37,6 @@ public class TrainCarts extends JavaPlugin {
 	 */	
 	public static double cartDistance;
 	public static double turnedCartDistance;
-	public static boolean removeDerailedCarts;
 	public static double cartDistanceForcer;
 	public static double turnedCartDistanceForcer;
 	public static double nearCartDistanceFactor;
@@ -45,16 +44,17 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean breakCombinedCarts;
 	public static boolean spawnItemDrops;
 	public static double poweredCartBoost;
-	public static Vector exitOffset = new Vector(0, 0, 0);
+	public static Vector exitOffset;
 	public static double pushAwayForce;
 	public static double launchForce;
 	public static boolean pushAwayIgnoreGlobalOwners;
 	public static boolean pushAwayIgnoreOwners;
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
-	public static boolean keepChunksLoadedOnlyWhenMoving = false;
-	public static boolean playSoundAtStation = true;
+	public static boolean keepChunksLoadedOnlyWhenMoving;
+	public static boolean playSoundAtStation;
 	private Set<Material> allowedBlockBreakTypes = new HashSet<Material>();
+	public static int maxDetectorLength;
 
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -88,7 +88,6 @@ public class TrainCarts extends JavaPlugin {
 			turnedCartDistance = config.get("turned.cartDistance", 1.6);
 			turnedCartDistanceForcer = config.get("turned.cartDistanceForcer", 0.2);	
 			nearCartDistanceFactor = config.get("nearCartDistanceFactor", 1.2);	
-			removeDerailedCarts = config.get("removeDerailedCarts", false);
 			maxCartDistance = config.get("maxCartDistance", (double) 4);
 			breakCombinedCarts = config.get("breakCombinedCarts", false);
 			spawnItemDrops = config.get("spawnItemDrops", true);
@@ -104,6 +103,8 @@ public class TrainCarts extends JavaPlugin {
 			setOwnerOnPlacement = config.get("setOwnerOnPlacement", true);
 			playSoundAtStation = config.get("playSoundAtStation", true);
 			keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
+			maxDetectorLength = config.get("maxDetectorLength", 2000);
+			allowedBlockBreakTypes.clear();
 			if (config.contains("allowedBlockBreakTypes")) {
 				for (String value : config.getList("allowedBlockBreakTypes", String.class)) {
 					Material type = ItemUtil.getMaterial(value);
@@ -160,6 +161,7 @@ public class TrainCarts extends JavaPlugin {
 		}, 1);
 	}
 	
+	private Task cleanupTask;
 	public void onEnable() {
 		plugin = this;
 		Permission.registerAll();
@@ -198,6 +200,14 @@ public class TrainCarts extends JavaPlugin {
 
 		//Restore carts where possible
 		GroupManager.refresh();
+		
+		//Start member removal task
+		cleanupTask = new Task(this) {
+			public void run() {
+				MinecartMember.cleanUpDeadCarts();
+			}
+		};
+		cleanupTask.startRepeating(10);
 
 		//commands
 		getCommand("train").setExecutor(this);
@@ -211,6 +221,7 @@ public class TrainCarts extends JavaPlugin {
 	public void onDisable() {
 		//Stop tasks
 		if (signtask != null) signtask.stop();
+		if (cleanupTask != null) cleanupTask.stop();
 
 		//Save properties
 		TrainProperties.deinit(getDataFolder() + File.separator + "TrainProperties.yml");

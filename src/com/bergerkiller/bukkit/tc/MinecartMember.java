@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
@@ -42,12 +43,11 @@ import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.utils.ItemUtil;
 
 public class MinecartMember extends NativeMinecartMember {
-	
 	private static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static Map<String, MinecartMember> editing = new HashMap<String, MinecartMember>();
 	private static boolean denyConversion = false;
 	public static boolean canConvert(Entity entity) {
-		return get(entity) == null && !denyConversion;
+		return !denyConversion && get(entity) == null;
 	}
 	
 	private static EntityMinecart findByID(UUID uuid) {
@@ -126,6 +126,28 @@ public class MinecartMember extends NativeMinecartMember {
 		return mm;
 	}
 	
+	public static MinecartMember getAt(Block railblock) {
+		return getAt(railblock.getWorld(), BlockUtil.getCoordinates(railblock));
+	}
+	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
+		int cx = coord.x >> 4;
+		int cz = coord.z >> 4;
+		if (world.isChunkLoaded(cx, cz)) {
+			MinecartMember mm;
+			MinecartMember result = null;
+			for (Entity e : world.getChunkAt(cx, cz).getEntities()) {
+				mm = get(e);
+				if (mm == null) continue;
+				if (mm.blockx != coord.x) continue;
+				if (mm.blocky != coord.y) continue;
+				if (mm.blockz != coord.z) continue;
+				result = mm;
+				if (result.isHeadingTo(coord)) return result;
+			}
+			return result;
+		}
+		return null;
+	}
 	public static MinecartMember getAt(Location at) {
 		return getAt(at, null);
 	}
@@ -161,6 +183,18 @@ public class MinecartMember extends NativeMinecartMember {
 	public static void undoReplacement() {
 		for (MinecartMember m : replacedCarts.toArray(new MinecartMember[0])) {
 			undoReplacement(m);
+		}
+	}
+	public static void cleanUpDeadCarts() {
+		Iterator<MinecartMember> iter = replacedCarts.iterator();
+		MinecartMember mm;
+		while (iter.hasNext()) {
+			mm = iter.next();
+			if (mm.dead) {
+				iter.remove();
+				mm.die();
+				Util.broadcast("AUTO REMO");
+			}
 		}
 	}
 	
@@ -201,6 +235,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.customYaw = this.yaw;
 		try {
 			this.updateBlock(true);
+		} catch (MemberDeadException ex) {
 		} catch (GroupUnloadedException ex) {}
 	}
 	
@@ -209,21 +244,16 @@ public class MinecartMember extends NativeMinecartMember {
 	 */
 	@Override
 	public void w_() {
-		if (this instanceof MinecartMember) {
-			MinecartGroup g = this.getGroup();
-			if (g == null) return;
-			if (this.dead) {
-				//remove self
-				g.remove(this);
-			} else if (g.size() == 0) {
-				g.remove();
-				super.w_();
-			} else if (g.tail() == this) {
-				g.doPhysics();
-			}
-		} else {
-			//prevent members to exist that are not actual members (caused by reloads)
-			convert(undoReplacement(this));
+		MinecartGroup g = this.getGroup();
+		if (g == null) return;
+		if (this.dead) {
+			//remove self
+			g.remove(this);
+		} else if (g.size() == 0) {
+			g.remove();
+			super.w_();
+		} else if (g.tail() == this) {
+			g.doPhysics();
 		}
 	}
 	
@@ -236,9 +266,9 @@ public class MinecartMember extends NativeMinecartMember {
 		return super.preUpdate();
 	}
 	
-	public void postUpdate(double speedFactor) throws GroupUnloadedException {
+	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
-		if (this.dead) return; 
+		this.validate();
 		if (this.getProperties().pickUp && this.isStorageMinecart()) {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
@@ -298,8 +328,9 @@ public class MinecartMember extends NativeMinecartMember {
 		return event.refill();
 	}
 	
-	private void updateBlock(boolean forced) throws GroupUnloadedException {
-		if (!this.isValidMember()) return;
+	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
+		this.validate();
+		Block from = forced ? null : this.getBlock();
 		int x = this.getBlockX();
 		int y = this.getBlockY();
 		int z = this.getBlockZ();
@@ -324,7 +355,7 @@ public class MinecartMember extends NativeMinecartMember {
 					}
 			    }
 			}
-			
+			//find the correct Y-value
 			this.railsloped = false;
 			this.isDerailed = false;
 			this.isFlying = false;
@@ -340,18 +371,15 @@ public class MinecartMember extends NativeMinecartMember {
 					if (r == 0) this.isFlying = true;
 				}
 			}
+			//Update from value if it was not set
+			if (from == null) from = this.getBlock();
+			
 			//update active signs
 			this.clearActiveSigns();
-			Block under = this.getBlock(0, -2, 0);
-			if (BlockUtil.isSign(under)) this.addActiveSign(under);
-			for (BlockFace face : FaceUtil.axis) {
-				Block side = this.getBlock(face.getModX(), -1, face.getModZ());
-				if (!BlockUtil.isSign(side)) continue;
-				if (BlockUtil.getAttachedFace(side) == face.getOppositeFace()) {
-					this.addActiveSign(side);
-				}
+			for (Block sign : BlockUtil.getSignsAttached(this.getBlock())) {
+				this.addActiveSign(sign);
 			}
-						
+			
 			//destroy blocks
 			Block left = this.getBlockRelative(BlockFace.WEST);
 			Block right = this.getBlockRelative(BlockFace.EAST);
@@ -359,7 +387,7 @@ public class MinecartMember extends NativeMinecartMember {
 			if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
 			
 			//event
-			MemberBlockChangeEvent.call(this);
+			MemberBlockChangeEvent.call(this, from, this.getBlock());
 		} else if (!this.activeSigns.isEmpty()) {
 			//move
 			SignActionEvent info;
@@ -370,6 +398,13 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 		
+	public void validate() throws MemberDeadException {
+		if (this.dead) {
+			this.die();
+			throw new MemberDeadException();
+		}
+	}
+	
 	/*
 	 * General getters and setters
 	 */
@@ -390,7 +425,7 @@ public class MinecartMember extends NativeMinecartMember {
  	}
  	public int getIndex() {
  	    if (this.group == null) {
- 	    	return this.isValidMember() ? 0 : -1;
+ 	    	return this.dead ? -1 : 0;
  	    } else {
  	    	return this.group.indexOf(this);
  	    }
@@ -428,12 +463,12 @@ public class MinecartMember extends NativeMinecartMember {
 		if (signblock == null) return false;
 		return this.activeSigns.contains(signblock);
 	}
-	public boolean addActiveSign(Block signblock) {
+	public boolean addActiveSign(Block signblock) throws MemberDeadException {
 		if (this.activeSigns.add(signblock)) {
-			if (this.dead) return true;
+			this.validate();
 			SignActionEvent info = new SignActionEvent(signblock, this);
 			SignAction.executeAll(info, SignActionType.MEMBER_ENTER);
-			if (this.dead) return true;
+			this.validate();
 			MinecartGroup g = this.getGroup();
 			if (g.size() == 1 || g.tail() != this) {
 				this.getGroup().setActiveSign(info, true);
@@ -685,6 +720,9 @@ public class MinecartMember extends NativeMinecartMember {
 	public List<net.minecraft.server.Entity> getNearbyEntities(double x, double y, double z) {
 		return this.world.b(this, this.boundingBox.b(x, y, z));
 	}
+	public Vector getOffset(ChunkCoordinates to) {
+		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());
+	}
 	public Vector getOffset(Entity to) {
 		return getOffset(to.getLocation());
 	}
@@ -768,6 +806,10 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isHeadingTo(Entity entity) {
 		return this.isHeadingTo(entity.getLocation());
 	}
+	public boolean isHeadingTo(ChunkCoordinates location) {
+		return Util.isHeadingTo(this.getOffset(location), this.getVelocity());
+		
+	}
 	public boolean isHeadingTo(Location target) {
 		return Util.isHeadingTo(this.getLocation(), target, this.getVelocity());
 	}
@@ -822,9 +864,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isOnSlope() {
 		return this.railsloped;
 	}
-	public boolean isValidMember() {
-		return !this.dead || !TrainCarts.removeDerailedCarts || !this.isDerailed;
-	}
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
 	}
@@ -851,8 +890,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean hasFuel() {
 		return this.e > 0;
-	}
-	
+	}	
 	public Inventory getInventory() {
 		return new CraftInventory(this);
 	}
@@ -929,15 +967,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (showSmoke) loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
 		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
 	}
-	public void destroy() {
-		this.destroy(true);
-	}
-	public void destroy(boolean remove) {
-		if (this.passenger != null) this.passenger.setPassengerOf(null);
-		replacedCarts.remove(this);
-		this.die();
-		if (remove) this.remove();
-	}
+
 	public boolean isCollisionIgnored(Entity entity) {
 		return isCollisionIgnored(EntityUtil.getNative(entity));
 	}
@@ -956,9 +986,6 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public void ignoreCollision(net.minecraft.server.Entity entity, int ticktime) {
 		collisionIgnoreTimes.put(entity.uniqueId, new AtomicInteger(ticktime));
-	}
-	public boolean remove() {
-		return this.getGroup().remove(this);
 	}
 	public void eject() {
 		this.getMinecart().eject();
@@ -992,6 +1019,14 @@ public class MinecartMember extends NativeMinecartMember {
 		this.b *= -1;
 		this.c *= -1;
 		this.customYaw = Util.normalAngle(this.customYaw + 180);
+	}
+	public void die() {
+		super.die();
+		replacedCarts.remove(this);
+		this.clearActiveSigns();
+		if (this.passenger != null) this.passenger.setPassengerOf(null);
+		if (this.group != null) this.group.remove(this);
+		if (this.properties != null) this.properties.remove();
 	}
 
 }

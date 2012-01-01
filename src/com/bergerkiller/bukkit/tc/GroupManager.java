@@ -345,12 +345,12 @@ public class GroupManager {
 			if (group == null || !group.isValid()) return;
 			for (MinecartMember mm : group) hiddenMinecarts.add(mm.uniqueId);
 			getGroups(group.getWorld()).add(new WorldGroup(group));
-			MinecartGroup.unload(group);
+			group.unload();
 		}
 	}
 	public static void hideGroup(Object member) {
 		MinecartMember mm = MinecartMember.get(member);
-		if (mm != null && mm.isValidMember()) hideGroup(mm.getGroup());
+		if (mm != null && !mm.dead) hideGroup(mm.getGroup());
 	}
 
 	/**

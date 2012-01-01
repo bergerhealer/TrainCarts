@@ -23,6 +23,7 @@ public abstract class SignAction {
 		register(new SignActionCart());
 		register(new SignActionTrain());
 		register(new SignActionChest());
+		register(new SignActionDetector());
 	}
 	public static void deinit() {
 		actions = null;
@@ -32,15 +33,15 @@ public abstract class SignAction {
 	public abstract void build(SignChangeEvent event, String type, SignActionMode mode);
 	
 	private static List<SignAction> actions;
-	public static <T extends SignAction> T register(T action) {
+	public static final <T extends SignAction> T register(T action) {
 		if (actions == null) return action;
 		actions.add(action);
 		return action;
 	}
-	public void register() {
+	public final void register() {
 		register(this);
 	}
-	public static void unregister(SignAction action) {
+	public static final void unregister(SignAction action) {
 		if (actions == null) return;
 		actions.remove(action);
 	}
@@ -76,11 +77,11 @@ public abstract class SignAction {
 			if (event.isCancelled()) return;
 		}
 	}
-	public static void executeAll(SignActionEvent info, SignActionType actiontype) {
+	public static final void executeAll(SignActionEvent info, SignActionType actiontype) {
 		info.setAction(actiontype);
 		executeAll(info);
 	}
-	public static void executeAll(SignActionEvent info) {
+	public static final void executeAll(SignActionEvent info) {
 		if (info.getSign() == null) return;
 		//Event
 		info.setCancelled(false);

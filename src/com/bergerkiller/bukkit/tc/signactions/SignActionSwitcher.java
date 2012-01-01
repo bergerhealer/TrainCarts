@@ -76,7 +76,7 @@ public class SignActionSwitcher extends SignAction {
 		}
 	}
 
-	public boolean hasOther(SignActionEvent info, String line, boolean forTrain) {
+	public static boolean hasOther(SignActionEvent info, String line, boolean forTrain) {
 	    boolean inv = false;
 	    while (line.startsWith("!")) {
 	    	line = line.substring(1);

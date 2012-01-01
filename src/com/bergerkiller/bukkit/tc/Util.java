@@ -347,11 +347,20 @@ public class Util {
 		return isHeadingTo(from.toVector(), to.toVector(), velocity);
 	}
 	public static boolean isHeadingTo(Vector from, Vector to, Vector velocity) {
-		double dbefore = from.distanceSquared(to);
+		return isHeadingTo(to.clone().subtract(from), velocity);
+//		double dbefore = from.distanceSquared(to);
+//		if (dbefore < 0.01) return true;
+//		velocity = velocity.clone();
+//		setVectorLengthSquared(velocity, dbefore);
+//		double dafter = from.clone().add(velocity).distanceSquared(to);
+//		return dafter < dbefore;
+	}
+	public static boolean isHeadingTo(Vector offset, Vector velocity) {
+		double dbefore = offset.lengthSquared();
 		if (dbefore < 0.01) return true;
 		velocity = velocity.clone();
 		setVectorLengthSquared(velocity, dbefore);
-		double dafter = from.clone().add(velocity).distanceSquared(to);
+		double dafter = offset.clone().subtract(velocity).lengthSquared();
 		return dafter < dbefore;
 	}
 	
