@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.listeners;
 import java.util.HashSet;
 
 import org.bukkit.block.Block;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
@@ -30,6 +31,21 @@ public class TCBlockListener extends BlockListener {
 				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
 			}
 		}
+	}
+	
+	@Override
+	public void onBlockBreak(BlockBreakEvent event) {
+		//TODO: DETECTOR SIGN
+//		if (!event.isCancelled()) {
+//			if (BlockUtil.isSign(event.getBlock())) {
+//				Sign sign = BlockUtil.getSign(event.getBlock());
+//				if (DetectorSign.validate(sign.getLines())) {
+//					Block rails = BlockUtil.getRailsBlockFromSign(event.getBlock());
+//					DetectorSign dsign = DetectorSign.getSign(rails);
+//					if (dsign != null) dsign.remove();
+//				}
+//			}
+//		}
 	}
 	
 	public void onSignChange(SignChangeEvent event) {

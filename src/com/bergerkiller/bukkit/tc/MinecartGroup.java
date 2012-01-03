@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -497,7 +498,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public MinecartMember remove(int index) {
 		MinecartMember removed = this.removeMember(index);
-		if (this.size() == 0) {
+		if (this.isEmpty()) {
 			//Remove empty group as a result
 			this.remove();
 		} else {
@@ -604,12 +605,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public void updateYaw() {
 		if (this.size() == 1) {
-			this.get(0).updateYaw();
+			this.get(0).updateDirection();
 		} else if (this.size() > 1) {
 			//Update yaw from other cart
-			tail().updateYawTo(tail(1));
+			tail().updateDirectionTo(tail(1));
 			for (int i = size() - 2;i >= 0;i--) {
-				get(i).updateYawFrom(get(i + 1));
+				get(i).updateDirectionFrom(get(i + 1));
 			}
 		}
 	}
@@ -619,10 +620,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		//Get the average forwarding force of all carts
 		double force = 0;
 		double fforce = 0;
+		double f;
 		for (MinecartMember m : this) {
-			double f = m.getForwardForce();
+			f = m.getForwardForce();
 			fforce += f;
-			if (f < 0) {
+			if (!m.isMovingUpSlope()  && f < 0) {
 				force -= m.getForce();
 			} else {
 				force += m.getForce();
@@ -675,6 +677,43 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return !this.getProperties().keepChunksLoaded;
 	}
+	public boolean hasTag(String tag) {
+	    boolean inv = false;
+	    while (tag.startsWith("!")) {
+	    	tag = tag.substring(1);
+	    	inv = !inv;
+	    }
+	    boolean state = false; 
+	    //parse line here
+	    if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
+	    	state = this.hasPassenger();
+	    } else if (tag.equalsIgnoreCase("items")) {
+	    	state =  this.hasItems();
+	    } else if (tag.toLowerCase().startsWith("item")) {
+	    	ItemParser parser = ItemParser.parse(tag.substring(4));
+	    	if (parser != null) {
+	    		state =  this.hasItem(parser);
+	    	} else {
+	    		state =  this.hasItems();
+	    	}
+	    } else if (tag.equalsIgnoreCase("empty")) {
+	    	state = ! this.hasItems() && ! this.hasPassenger();
+	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
+	    	state =  this.hasFuel();
+	    } else if (tag.equalsIgnoreCase("powered")) {
+	    	state =  this.size(Material.POWERED_MINECART) > 0;
+	    } else if (tag.equalsIgnoreCase("storage")) {
+	    	state =  this.size(Material.STORAGE_MINECART) > 0;
+	    } else if (tag.equalsIgnoreCase("minecart")) {
+	    	state =  this.size(Material.MINECART) > 0;
+	    } else {
+	    	state = this.getProperties().hasTag(tag);
+	    }
+	    return state != inv;
+	}
+	public boolean isRemoved() {
+		return this.isEmpty() || !groups.contains(this);
+	}
 	
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
@@ -716,14 +755,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Set the new group properties
 			gnew.getProperties().load(this.getProperties());
 			
-			//what time do we want to prevent them from colliding too soon?
-			//needs to travel 2 blocks in the meantime
-			int time = (int) Util.limit(20 / gnew.head().getForce(), 20, 40);
-			for (MinecartMember mm1 : gnew) {
-				for (MinecartMember mm2: this) {
-					mm1.ignoreCollision(mm2, time);
-				}
-			}
 			return gnew;
 		} else {
 			gnew.clear();
@@ -773,7 +804,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			if (this.size() == 1) {
 				MinecartMember mm = this.head();
 				this.updateAction();
-				mm.preUpdate();
+				mm.preUpdate(stepcount);
 				mm.postUpdate(1);
 				this.updateYaw();
 				return true;
@@ -785,13 +816,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//pre-update
 			this.updateAction();
 			for (MinecartMember m : this) {
-				m.preUpdate();
+				m.preUpdate(stepcount);
 			}
 			
 			//Get the average forwarding force of all carts
 			double force = this.getAverageForce();
-			this.updateYaw();		
-			
+			this.updateYaw();
+
 			//Perform forward force or not? First check if we are not messing up...
 			boolean performUpdate = true;
 			for (int i = 0; i < this.size() - 1; i++) {
@@ -807,28 +838,37 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					m.setForwardForce(force);
 				}							
 			}
-			
+
 			//Apply force factors to carts from last cart and perform post positional updates
 			final int size = this.size();
 			if (size < 2) return false;
-			this.tail().postUpdate(1);
-			if (size != this.size()) return false;
-			for (int i = size - 2; i >= 0; i--) {
-				double distance = get(i).distanceXZ(get(i + 1));
-				double threshold = 0;
-				double forcer = 1;
-				if (get(i).getYawDifference(get(i + 1).getYaw()) > 10 || get(i).getPitchDifference(get(i + 1)) > 10) {
-					threshold = TrainCarts.turnedCartDistance;
-					forcer = TrainCarts.turnedCartDistanceForcer;
-				} else {
-					threshold = TrainCarts.cartDistance;
-					forcer = TrainCarts.cartDistanceForcer;
-				}
-				if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
-				this.get(i).postUpdate(1 + (forcer * (threshold - distance)));
-				if (size != this.size()) return false;
-			}
 			
+			//Post updating
+			try {
+				int i = 1;
+				double distance, threshold, forcer;
+				MinecartMember after;
+				for (MinecartMember member : this) {
+					after = this.get(i);
+					distance = member.distanceXZ(after);
+					if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
+						threshold = TrainCarts.turnedCartDistance;
+						forcer = TrainCarts.turnedCartDistanceForcer;
+					} else {
+						threshold = TrainCarts.cartDistance;
+						forcer = TrainCarts.cartDistanceForcer;
+					}
+					if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
+					member.postUpdate(1 + (forcer * (threshold - distance)));
+					if (i++ == this.size() - 1) {
+						this.tail().postUpdate(1);
+						break;
+					}
+				}
+			} catch (ConcurrentModificationException ex) {
+				return true;
+			}
+						
 			//Update order after position change
 			this.getAverageForce();
 			
@@ -841,7 +881,17 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					for (int j = i + 1; j < this.size(); j++) {
 						this.get(j).setForceFactor(stepcount);
 					}
-					this.split(i + 1);
+					MinecartGroup gnew = this.split(i + 1);
+					if (gnew != null) { 
+						//what time do we want to prevent them from colliding too soon?
+						//needs to travel 2 blocks in the meantime
+						int time = (int) Util.limit(20 / gnew.head().getForce(), 20, 40);
+						for (MinecartMember mm1 : gnew) {
+							for (MinecartMember mm2: this) {
+								mm1.ignoreCollision(mm2, time);
+							}
+						}
+					}
 					return false;
 				}
 			}

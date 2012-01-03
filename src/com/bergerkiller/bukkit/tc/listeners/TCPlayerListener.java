@@ -9,15 +9,32 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
+import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.TrainProperties;
+import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.utils.ItemUtil;
 
 public class TCPlayerListener extends PlayerListener {
 
+	@Override
+	public void onPlayerPickupItem(PlayerPickupItemEvent event) {
+		if (event.isCancelled()) return;
+		if (TrainCarts.stackMinecarts && ItemUtil.isMinecartItem(event.getItem())) {
+			ItemStack stack = event.getItem().getItemStack();
+			ItemUtil.transfer(stack, event.getPlayer().getInventory(), Integer.MAX_VALUE);
+			EntityUtil.getNative(event.getPlayer()).receive(EntityUtil.getNative(event.getItem()), 1);
+			event.getItem().remove();
+			event.setCancelled(true);
+		}
+	}
+	
 	@Override
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -28,7 +45,7 @@ public class TCPlayerListener extends PlayerListener {
 							item.getType() == Material.POWERED_MINECART || 
 							item.getType() == Material.STORAGE_MINECART) {
 						//Placing a minecart on the tracks
-						if (event.getPlayer().hasPermission("train.place.minecart")) {
+						if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
 							//Not already a minecart at this spot?
 							Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
 							if (MinecartMember.getAt(at, null, 0.5) == null) {

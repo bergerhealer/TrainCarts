@@ -15,7 +15,6 @@ public class GlobalCommands {
 	public static boolean execute(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args[0].equals("removeall") || args[0].equals("destroyall")) {
 			Permission.COMMAND_DESTROYALL.handle(sender);
-			boolean destroy = args[0].equals("destroyall");
 			if (args.length == 2) {
 				String cname = args[1].toLowerCase();
 				World w = null;
@@ -36,25 +35,21 @@ public class GlobalCommands {
 					}
 				}
 				if (w != null) {
-					int count = GroupManager.removeAll(w, destroy);
-					sender.sendMessage(ChatColor.RED + "All train information of '" + w.getName() + "' has been cleared!");
-					if (destroy) {
-						sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
-					}
+					int count = GroupManager.destroyAll(w);
+					sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 				} else {
 					sender.sendMessage(ChatColor.RED + "World not found!");
 				}
 			} else {
-				int count = GroupManager.removeAll(destroy);
-				sender.sendMessage(ChatColor.RED + "All train information of this server has been cleared!");
-				if (destroy) {
-					sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");				
-				}
+				int count = GroupManager.destroyAll();
+				sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 			}
+			return true;
 		} else if (args[0].equals("reroute")) {
 			Permission.COMMAND_REROUTE.handle(sender);
 			Destinations.clear();
 			sender.sendMessage("All train routings will be recalculated.");
+			return true;
 		}
 		return false;
 	}

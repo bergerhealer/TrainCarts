@@ -22,7 +22,9 @@ import com.bergerkiller.bukkit.tc.utils.ItemUtil;
 public class TrainCommands {
 
 	public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
-		if (cmd.equals("linking") || cmd.equals("link")) {
+		if (cmd.equals("info") || cmd.equals("i")) {
+			info(p, prop);
+		} else if (cmd.equals("linking") || cmd.equals("link")) {
 			if (args.length == 1) {
 				Permission.COMMAND_SETLINKING.handle(p);
 				prop.allowLinking = Util.getBool(args[0]);
@@ -257,5 +259,33 @@ public class TrainCommands {
 		}
 		return true;
 	}
-
+	
+	public static void info(Player p, TrainProperties prop) {
+		if (!prop.isDirectOwner(p)) {
+			if (!prop.hasOwners()) {
+				p.sendMessage(ChatColor.YELLOW + "Note: This train is not owned, claim it using /train claim!");
+			}
+		}
+		p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
+		p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
+		p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
+		//push away
+		ArrayList<String> pushlist = new ArrayList<String>();
+		if (prop.pushMobs) pushlist.add("Mobs");
+		if (prop.pushPlayers) pushlist.add("Players");
+		if (prop.pushMisc) pushlist.add("Misc");
+		if (pushlist.size() == 0) {
+			p.sendMessage(ChatColor.YELLOW + "This train will never push anything.");
+		} else {
+			p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + Util.combineNames(pushlist));
+		}
+		p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
+		if (prop.hasOwners()) {
+			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + " " + Util.combineNames(prop.getOwners()));
+		} else {
+			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + "Everyone");
+		}
+	}
+	
 }

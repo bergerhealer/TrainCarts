@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -43,6 +44,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		this(signblock);
 		this.actionType = actionType;
 	}
+	public SignActionEvent(final Block signblock) {
+		this(signblock, BlockUtil.getRailsBlockFromSign(signblock));
+	}
 	public SignActionEvent(final Block signblock, final Block railsblock) {
 		super("SignActionEvent");
 		this.signblock = signblock;
@@ -50,27 +54,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.mode = SignActionMode.fromSign(this.sign);
 		this.railsblock = railsblock;
 	}
-	public SignActionEvent(final Block signblock) {
-		super("SignActionEvent");
-		this.signblock = signblock;
-		this.sign = BlockUtil.getSign(signblock);
-		this.mode = SignActionMode.fromSign(this.sign);
-		//try to find out where the rails block is located
-		Block above = this.signblock.getRelative(0, 2, 0);
-		if (BlockUtil.isRails(above)) {
-			this.railsblock = above;
-		} else {
-			//rail located above the attached face?
-			BlockFace face = BlockUtil.getAttachedFace(this.signblock);
-			above = this.signblock.getRelative(face.getModX(), 1, face.getModZ());
-			if (BlockUtil.isRails(above)) {
-				this.railsblock = above;
-			} else {
-				this.railsblock = null;
-			}
-		}
-	}
-
+	
 	private final Block signblock;
 	private final Block railsblock;
 	private final SignActionMode mode;
@@ -90,7 +74,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		BlockUtil.setRails(this.getRails(), this.getFacing(), to);
 	}
 	public void setRailsRelative(BlockFace direction) {
-	  BlockFace main = this.getFacing().getOppositeFace();
+		BlockFace main = this.getFacing().getOppositeFace();
 		setRails(FaceUtil.offset(main, direction));
 	}
 	
@@ -101,18 +85,19 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @param to Absolute direction to go to.
 	 */
 	public void setRailsFromCart(BlockFace to) {
-		BlockUtil.setRails(this.getRails(), this.getMember().getDirection().getOppositeFace(), to);
-		if (this.getMember().getDirection().getOppositeFace() == to){
+		if (this.getMember() == null) return;
+		BlockUtil.setRails(this.getRails(), this.member.getDirection().getOppositeFace(), to);
+		if (this.member.getDirection().getOppositeFace() == to){
 			this.getGroup().stop();
-			//TODO: Safe force factor removal
 			this.getGroup().clearActions();
-			this.getMember().addActionLaunch(to, 1, this.getMember().getForce());
+			this.member.addActionLaunch(to, 1, this.member.getForce());
 		}
 	}
 	public void setRailsRelativeFromCart(BlockFace direction) {
 		setRailsFromCart(getRelativeFromCart(direction));
 	}
 	public BlockFace getRelativeFromCart(BlockFace to) {
+		if (this.getMember() == null) return to;
 		return FaceUtil.offset(this.getMember().getDirection(), to);
 	}
 	public void setRails(boolean left, boolean right) {
@@ -154,17 +139,6 @@ public class SignActionEvent extends Event implements Cancellable {
 		//Set it
 		this.setRailsFromCart(main);
 	}
-
-	/**
-	 * Finds the direction to go in to reach destination from here.
-	 * Designed to be used by self-routing tag signs.
-	 * If the destination is not known or reachable, goes NORTH.
-	 * @param destination The wanted destination to reach.
-	 * @return The direction to go in to reach the wanted destination.
-	 */
-	public BlockFace getDestDir(String destination){
-	  return Destinations.getDir(destination, this.getLocation().add(0, 2, 0));
-	}
 	
 	public SignActionType getAction() {
 		return this.actionType;
@@ -175,8 +149,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		}
 		return false;
 	}
-	public void setAction(SignActionType type) {
+	public SignActionEvent setAction(SignActionType type) {
 		this.actionType = type;
+		return this;
 	}
 	
 	public boolean isPowered(BlockFace from) {
@@ -212,6 +187,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Block getRails() {
 		return this.railsblock;
 	}
+	public World getWorld() {
+		return this.signblock.getWorld();
+	}
 	public boolean hasRails() {
 		return this.railsblock != null;
 	}
@@ -222,7 +200,8 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.raildirection;
 	}
 	public Location getRailLocation() {
-		return this.getRails().getLocation().add(0.5, 0, 0.5);
+		if (this.railsblock == null) return null;
+		return this.railsblock.getLocation().add(0.5, 0, 0.5);
 	}
 	public Location getLocation() {
 		return this.signblock.getLocation();
@@ -242,17 +221,20 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.sign;
 	}
 	public MinecartMember getMember() {
-		if (!this.memberchecked) {
-			this.member = MinecartMember.getAt(getRailLocation(), this.group);
-			this.memberchecked = true;
-		}
-		if (this.member == null && this.group != null && this.group.size() > 0) {
-			if (this.actionType == SignActionType.GROUP_LEAVE) {
-				this.member = this.group.tail();
-			} else {
-				this.member = this.group.head();
+		if (this.member == null) {
+			if (!this.memberchecked) {
+				this.member = MinecartMember.getAt(this.railsblock);
+				this.memberchecked = true;
+			}
+			if (this.group != null && !this.group.isEmpty()) {
+				if (this.actionType == SignActionType.GROUP_LEAVE) {
+					this.member = this.group.tail();
+				} else {
+					this.member = this.group.head();
+				}
 			}
 		}
+		if (this.member == null || this.member.dead) return null; 
 		return this.member;
 	}
 	public boolean hasMember() {

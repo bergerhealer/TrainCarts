@@ -126,6 +126,7 @@ public class ItemUtil {
 	
 	public static int getMaxSize(ItemStack stack) {
 		if (stack == null) return 0;
+		if (TrainCarts.stackMinecarts && isMinecartItem(stack.getType())) return 64;
 		int max = stack.getMaxStackSize();
 		if (max == -1) max = 64;
 		return max;
@@ -151,6 +152,18 @@ public class ItemUtil {
 		if (from.getAmount() >= maxstacksize) return false;
 		if (to.getAmount() >= maxstacksize) return false;
 		return true;
+	}
+	
+	public static boolean isMinecartItem(Item item) {
+		return isMinecartItem(item.getItemStack().getType());
+	}
+	public static boolean isMinecartItem(Material type) {
+		switch (type) {
+		case MINECART :
+		case POWERED_MINECART :
+		case STORAGE_MINECART : return true;
+		default : return false;
+		}
 	}
 		
 	public static Byte getData(Material type, String name) {

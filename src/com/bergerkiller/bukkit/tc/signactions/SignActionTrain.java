@@ -11,6 +11,7 @@ public class SignActionTrain extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
+		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			if (!info.isTrainSign()) return;
 			if (info.getGroup() == null) return;

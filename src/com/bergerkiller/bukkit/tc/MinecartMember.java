@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.ItemStack;
-import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
 
@@ -127,6 +126,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	
 	public static MinecartMember getAt(Block railblock) {
+		if (railblock == null) return null;
 		return getAt(railblock.getWorld(), BlockUtil.getCoordinates(railblock));
 	}
 	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
@@ -155,6 +155,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return getAt(at, in, 1);
 	}
 	public static MinecartMember getAt(Location at, MinecartGroup in, double searchRadius) {
+		if (at == null) return null;
 		searchRadius *= searchRadius;
 		MinecartMember result = null;
 		for (Entity e : at.getBlock().getChunk().getEntities()) {
@@ -220,7 +221,7 @@ public class MinecartMember extends NativeMinecartMember {
 		editing.put(playername.toLowerCase(), this);
 	}
 
-	private float customYaw = 0;
+	private BlockFace direction;
 	MinecartGroup group;
 	private int blockx, blocky, blockz;
 	private boolean railsloped = false;
@@ -232,7 +233,7 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.customYaw = this.yaw;
+		this.direction = FaceUtil.yawToFace(this.yaw);
 		try {
 			this.updateBlock(true);
 		} catch (MemberDeadException ex) {
@@ -257,13 +258,13 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 	
-	public boolean preUpdate() {
+	public boolean preUpdate(int stepcount) {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
 		while (times.hasNext()) {			
 			if (times.next().decrementAndGet() <= 0) times.remove();
 		}
-		return super.preUpdate();
+		return super.preUpdate(stepcount);
 	}
 	
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
@@ -331,9 +332,9 @@ public class MinecartMember extends NativeMinecartMember {
 	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
 		Block from = forced ? null : this.getBlock();
-		int x = this.getBlockX();
-		int y = this.getBlockY();
-		int z = this.getBlockZ();
+		int x = super.getBlockX();
+		int y = super.getBlockY();
+		int z = super.getBlockZ();
 		if (forced || x != this.blockx || z != this.blockz || y != (this.railsloped ? this.blocky : this.blocky + 1)) {
 			this.blockx = x;
 			this.blocky = y;
@@ -372,22 +373,32 @@ public class MinecartMember extends NativeMinecartMember {
 				}
 			}
 			//Update from value if it was not set
-			if (from == null) from = this.getBlock();
+			Block to = this.getBlock();
+			if (from == null) from = to;
 			
 			//update active signs
 			this.clearActiveSigns();
-			for (Block sign : BlockUtil.getSignsAttached(this.getBlock())) {
-				this.addActiveSign(sign);
+			if (!this.isDerailed) {
+				for (Block sign : BlockUtil.getSignsAttached(this.getBlock())) {
+					this.addActiveSign(sign);
+				}
+				
+				//destroy blocks
+				Block left = this.getBlockRelative(BlockFace.WEST);
+				Block right = this.getBlockRelative(BlockFace.EAST);
+				if (this.getProperties().canBreak(left)) BlockUtil.breakBlock(left);
+				if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
 			}
 			
-			//destroy blocks
-			Block left = this.getBlockRelative(BlockFace.WEST);
-			Block right = this.getBlockRelative(BlockFace.EAST);
-			if (this.getProperties().canBreak(left)) BlockUtil.breakBlock(left);
-			if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
-			
+			//TODO: META DATA
+//			//Update block meta data
+//			List<RailMetaData> newdata = RailMeta.getData(to);
+//			for (RailMetaData dat : newdata) dat.enter(this);
+//			for (RailMetaData dat : this.railmeta) dat.leave(this);
+//			this.railmeta = newdata;
+								
 			//event
-			MemberBlockChangeEvent.call(this, from, this.getBlock());
+			MemberBlockChangeEvent.call(this, from, to);
 		} else if (!this.activeSigns.isEmpty()) {
 			//move
 			SignActionEvent info;
@@ -397,14 +408,7 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 		}
 	}
-		
-	public void validate() throws MemberDeadException {
-		if (this.dead) {
-			this.die();
-			throw new MemberDeadException();
-		}
-	}
-	
+			
 	/*
 	 * General getters and setters
 	 */
@@ -574,47 +578,28 @@ public class MinecartMember extends NativeMinecartMember {
 		return Util.length(motX, motZ);
 	}
 	public double getForwardForce() {
-		float yaw = this.getYaw() * Util.DEGTORAD;
-        return -MathHelper.sin(yaw) * this.motZ - MathHelper.cos(yaw) * this.motX;
+		return -FaceUtil.sin(this.direction) * this.motZ - FaceUtil.cos(this.direction) * this.motX; 
 	}
 	public void setForceFactor(final double factor) {
 		this.motX *= factor;
 		this.motY *= factor;
 		this.motZ *= factor;
 	}
-	public void setForce(double force, float yaw) {
+	public void setForce(double force, BlockFace direction) {
+		this.motX = -FaceUtil.cos(this.direction) * force;
+		this.motZ = -FaceUtil.sin(this.direction) * force;
 		if (this.railsloped) {
 			//calculate upwards or downwards force
 			BlockFace raildir = this.getRailDirection();
-			BlockFace dir = this.getDirection();
-			final float factor = 0.7071F;
-			if (dir == raildir) {
-				this.motY = factor * force;
-			} else if (dir == raildir.getOppositeFace()) {
-				this.motY = -factor * force;
+			if (direction == raildir) {
+				this.motY = Util.halfRootOfTwo * force;
+			} else if (direction == raildir.getOppositeFace()) {
+				this.motY = -Util.halfRootOfTwo * force;
 			}
 		}
-		if (isTurned()) {
-			double l = this.getForce();
-			if (l > 0.001) {
-				double factor = force / l;
-				this.motX *= factor;
-				this.motZ *= factor;
-				return;
-			}
-		}
-		yaw *= Util.DEGTORAD;
-		this.motX = -MathHelper.cos(yaw) * force;
-		this.motZ = -MathHelper.sin(yaw) * force;
-	}
-	public void setForce(double force, Location to) {
-		setForce(force, Util.getLookAtYaw(this.getLocation(), to));
-	}
-	public void setForce(double force, BlockFace direction) {
-		setForce(force, FaceUtil.faceToYaw(direction));
 	}
 	public void setForwardForce(double force) {
-		setForce(force, this.getYaw());
+		setForce(force, this.direction);
 	}
 	public void limitSpeed() {
 		//Limits the velocity to the maximum
@@ -633,17 +618,8 @@ public class MinecartMember extends NativeMinecartMember {
 	public Vector getVelocity() {
 		return new Vector(this.motX, this.motY, this.motZ);
 	}
-	public BlockFace getDirection() {
-		float yaw;
-		if (this.isMoving()) {
-			yaw = Util.getLookAtYaw(this.getVelocity());
-		} else {
-			yaw = this.getYaw();
-		}
-		return FaceUtil.yawToFace(yaw, false);
-	}
 	public TrackMap makeTrackMap(int size) {
-		return new TrackMap(BlockUtil.getRailsBlock(this.getLocation()), this.getDirection(), size);
+		return new TrackMap(BlockUtil.getRailsBlock(this.getLocation()), this.direction, size);
 	}
 	
 	/*
@@ -659,6 +635,15 @@ public class MinecartMember extends NativeMinecartMember {
 	public double getSubZ() {
 		double z = getZ() + 0.5;
 		return z - (int) z;
+	}
+	public int getBlockX() {
+		return this.blockx;
+	}
+	public int getBlockY() {
+		return this.blocky;
+	}
+	public int getBlockZ() {
+		return this.blockz;
 	}
 	public int getChunkX() {
 		return this.blockx >> 4;
@@ -726,9 +711,51 @@ public class MinecartMember extends NativeMinecartMember {
 	public Vector getOffset(Entity to) {
 		return getOffset(to.getLocation());
 	}
+	public Vector getOffset(MinecartMember to) {
+		return new Vector(to.getX() - this.getX(), to.getY() - this.getY(), to.getZ() - this.getZ());
+	}
 	public Vector getOffset(Location to) {
 		return new Vector(to.getX() - this.getX(), to.getY() - this.getY(), to.getZ() - this.getZ());
 	}
+
+	/*
+	 * Directional functions
+	 */
+	public BlockFace getDirection() {
+		return this.direction;
+	}
+	public int getDirectionDifference(BlockFace dircomparer) {
+		return FaceUtil.getFaceYawDifference(this.direction, dircomparer);
+	}
+	public int getDirectionDifference(MinecartMember comparer) {
+		return this.getDirectionDifference(comparer.direction);
+	}
+	public void updateDirection() {
+		this.direction = FaceUtil.getDirection(this.motX, this.motZ, true);
+	}
+	public void updateDirection(Vector movement) {
+		if (this.isDerailed) {
+			this.direction = FaceUtil.getDirection(movement);
+		} else {
+			this.direction = FaceUtil.getRailsCartDirection(this.getRailDirection());
+			if (movement.getX() == 0 || movement.getZ() == 0) {
+				if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
+					this.direction = this.direction.getOppositeFace();
+				}
+			} else {
+				if (Util.getAngleDifference(Util.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
+					this.direction = this.direction.getOppositeFace();
+				}
+			}
+		}
+	}
+	public void updateDirectionTo(MinecartMember member) {
+		this.updateDirection(this.getOffset(member));
+	}
+	public void updateDirectionFrom(MinecartMember member) {
+		this.updateDirection(member.getOffset(this));
+	}
+	
 	
 	/*
 	 * Pitch functions
@@ -740,47 +767,19 @@ public class MinecartMember extends NativeMinecartMember {
 		return getPitchDifference(comparer.getPitch());
 	}
 	public float getPitchDifference(float pitchcomparer) {
-		return Util.getAngleDifference(getPitch(), pitchcomparer);
+		return Util.getAngleDifference(this.getPitch(), pitchcomparer);
 	}
 		
 	/*
 	 * Yaw functions
 	 */
 	public float getYaw() {
-		return this.customYaw;
+		return this.yaw;
 	}
 	public float getYawDifference(float yawcomparer) {
-		return Util.getAngleDifference(customYaw, yawcomparer);
-	}	
-	public void updateYaw(float yawcomparer) {
-		double x = this.getSubX();
-		double z = this.getSubZ();
-		if (x == 0 && z != 0 && Math.abs(motX) < 0.001) {
-			//cart is driving along the x-axis
-			this.customYaw = -90;
-		} else if (z == 0 && x != 0 && Math.abs(motZ) < 0.001) {
-			//cart is driving along the z-axis
-			this.customYaw = -180;
-		} else {
-			//try to get the yaw from the rails
-			this.customYaw = FaceUtil.getRailsYaw(this.getRailDirection());
-		}
-		//Fine tuning
-		if (getYawDifference(yawcomparer) > 90) this.customYaw += 180;
+		return Util.getAngleDifference(this.getYaw(), yawcomparer);
 	}
-	public void updateYaw(BlockFace yawdirection) {
-		this.updateYaw(FaceUtil.faceToYaw(yawdirection));
-	}
-	public void updateYaw() {
-		this.updateYaw(this.yaw);
-	}
-	public void updateYawTo(MinecartMember head) {
-		this.updateYaw(Util.getLookAtYaw(this, head));
-	}
-	public void updateYawFrom(MinecartMember tail) {
-		this.updateYaw(Util.getLookAtYaw(tail, this));
-	}
-	
+
 	/*
 	 * States
 	 */
@@ -791,8 +790,7 @@ public class MinecartMember extends NativeMinecartMember {
  		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
 	}
 	public boolean isTurned() {
-		float yaw = Math.abs(this.getYaw());
-		return yaw == 45 || yaw == 135 || yaw == 225 || yaw == 315;
+		return FaceUtil.isSubCardinal(this.direction);
 	}
 	public boolean isDerailed() {
 		return this.isDerailed;
@@ -861,6 +859,9 @@ public class MinecartMember extends NativeMinecartMember {
 		return true;
 	}
 
+	public boolean isMovingUpSlope() {
+		return this.railsloped && this.direction == this.getRailDirection();
+	}
 	public boolean isOnSlope() {
 		return this.railsloped;
 	}
@@ -937,6 +938,40 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return false;
 	}
+	public boolean hasTag(String tag) {
+	    boolean inv = false;
+	    while (tag.startsWith("!")) {
+	    	tag = tag.substring(1);
+	    	inv = !inv;
+	    }
+	    boolean state = false; 
+	    //parse line here
+	    if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
+	    	state = this.hasPassenger();
+	    } else if (tag.equalsIgnoreCase("items")) {
+	    	state = this.hasItems();
+	    } else if (tag.toLowerCase().startsWith("item")) {
+	    	ItemParser parser = ItemParser.parse(tag.substring(4));
+	    	if (parser != null) {
+	    		state = this.hasItem(parser);
+	    	} else {
+	    		state = this.hasItems();
+	    	}
+	    } else if (tag.equalsIgnoreCase("empty")) {
+	    	state = !this.hasItems() && !this.hasPassenger();
+	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
+	    	state = this.hasFuel();
+	    } else if (tag.equalsIgnoreCase("powered")) {
+	    	state = this.isPoweredMinecart();
+	    } else if (tag.equalsIgnoreCase("storage")) {
+	    	state = this.isStorageMinecart();
+	    } else if (tag.equalsIgnoreCase("minecart")) {
+	    	state = this.isRegularMinecart();
+	    } else {
+	    	state = this.getProperties().hasTag(tag);
+	    }
+	    return inv != state;
+	}
 		
 	/*
 	 * Actions
@@ -945,7 +980,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.pushSideways(entity, TrainCarts.pushAwayForce);
 	}
 	public void pushSideways(Entity entity, double force) {
-		float yaw = this.getYaw();
+		float yaw = FaceUtil.faceToYaw(this.direction);
 		float lookat = Util.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
 		lookat = Util.normalAngle(lookat);
 		if (lookat > 0) {
@@ -1018,15 +1053,22 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motZ *= -1;
 		this.b *= -1;
 		this.c *= -1;
-		this.customYaw = Util.normalAngle(this.customYaw + 180);
+		this.direction = this.direction.getOppositeFace();
 	}
+	
+	private boolean died = false;
 	public void die() {
 		super.die();
-		replacedCarts.remove(this);
-		this.clearActiveSigns();
-		if (this.passenger != null) this.passenger.setPassengerOf(null);
-		if (this.group != null) this.group.remove(this);
-		if (this.properties != null) this.properties.remove();
+		if (!died) {
+			died = true;
+			replacedCarts.remove(this);
+			this.clearActiveSigns();
+			if (this.passenger != null) this.passenger.setPassengerOf(null);
+			if (this.group != null) this.group.remove(this);
+			if (this.properties != null) this.properties.remove();
+			//TODO: META DATA
+			//for (RailMetaData dat : this.railmeta) dat.leave(this); 
+		}
 	}
 
 }

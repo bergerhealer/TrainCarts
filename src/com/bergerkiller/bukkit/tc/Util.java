@@ -1,17 +1,23 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.MathHelper;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.CraftServer;
@@ -25,6 +31,7 @@ import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 public class Util {
 	public static final float DEGTORAD = 0.017453293F;
 	public static final float RADTODEG = 57.29577951F;
+	public static final double halfRootOfTwo = 0.707106781;
 	
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
@@ -56,30 +63,30 @@ public class Util {
 	 * @param loc The Location to convert
 	 * @return A string representing the destination name.
 	 */
-	public static String loc2string(Location loc){
-		return loc.getWorld().getName() + "_" + loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ();
+	public static String blockToString(Block block){
+		return block.getWorld().getName() + "_" + block.getX() + "_" + block.getY() + "_" + block.getZ();
 	}
 	/**
 	 * Converts a destination name to a String.
 	 * @param str The String to convert
 	 * @return A Location representing the String.
 	 */
-	public static Location string2loc(String str){
+	public static Block stringToBlock(String str){
 		try{
 			String s[] = str.split("_");
 			String w = "";
-			Double X = 0.0, Y = 0.0, Z = 0.0;
+			int x = 0, y = 0, z = 0;
 			for (int i = 0; i < s.length; i++){
 				switch (s.length - i){
-				case 1: Z = Double.parseDouble(s[i]); break;
-				case 2: Y = Double.parseDouble(s[i]); break;
-				case 3: X = Double.parseDouble(s[i]); break;
+				case 1: z = Integer.parseInt(s[i]); break;
+				case 2: y = Integer.parseInt(s[i]); break;
+				case 3: x = Integer.parseInt(s[i]); break;
 				default: if (!w.isEmpty()){w += "_";} w += s[i]; break;
 				}
 			}
-			Location r = new Location(Bukkit.getServer().getWorld(w), X, Y, Z);
-			if (r.getWorld() == null) return null;
-			return r;
+			World world = Bukkit.getServer().getWorld(w);
+			if (world == null) return null;
+			return world.getBlockAt(x, y, z);
 		} catch (Exception e){
 			return null;
 		}
@@ -335,33 +342,27 @@ public class Util {
 	}
 	public static void setVectorLengthSquared(Vector vector, double lengthsquared) {
 		double vlength = vector.lengthSquared();
-		if (Math.abs(vlength) > 0.01) {
-			vector.multiply(lengthsquared / vlength);
+		if (Math.abs(vlength) > 0.0001) {
+			if (lengthsquared < 0) {
+				vector.multiply(-Math.sqrt(-lengthsquared / vlength));
+			} else {
+				vector.multiply(Math.sqrt(lengthsquared / vlength));
+			}
 		}
 	}
 
 	public static boolean isHeadingTo(BlockFace direction, Vector velocity) {
-		return isHeadingTo(new Vector(), FaceUtil.faceToVector(direction), velocity);
+		return isHeadingTo(FaceUtil.faceToVector(direction), velocity);
 	}
 	public static boolean isHeadingTo(Location from, Location to, Vector velocity) {
-		return isHeadingTo(from.toVector(), to.toVector(), velocity);
-	}
-	public static boolean isHeadingTo(Vector from, Vector to, Vector velocity) {
-		return isHeadingTo(to.clone().subtract(from), velocity);
-//		double dbefore = from.distanceSquared(to);
-//		if (dbefore < 0.01) return true;
-//		velocity = velocity.clone();
-//		setVectorLengthSquared(velocity, dbefore);
-//		double dafter = from.clone().add(velocity).distanceSquared(to);
-//		return dafter < dbefore;
+		return isHeadingTo(new Vector(to.getX() - from.getX(), to.getY() - from.getY(), to.getZ() - from.getZ()), velocity);
 	}
 	public static boolean isHeadingTo(Vector offset, Vector velocity) {
 		double dbefore = offset.lengthSquared();
-		if (dbefore < 0.01) return true;
+		if (dbefore < 0.0001) return true;
 		velocity = velocity.clone();
 		setVectorLengthSquared(velocity, dbefore);
-		double dafter = offset.clone().subtract(velocity).lengthSquared();
-		return dafter < dbefore;
+		return dbefore > velocity.subtract(offset).lengthSquared();
 	}
 	
 	public static <T extends Event> T call(T event) {
@@ -371,6 +372,22 @@ public class Util {
 	
 	public static List<WorldServer> getWorlds() {
 		return ((CraftServer) Bukkit.getServer()).getHandle().server.worlds;
+	}
+	
+	public static UUID readUUID(DataInputStream stream) throws IOException {
+		return new UUID(stream.readLong(), stream.readLong());
+	}
+	public static void writeUUID(DataOutputStream stream, UUID uuid) throws IOException {
+		stream.writeLong(uuid.getMostSignificantBits());
+		stream.writeLong(uuid.getLeastSignificantBits());
+	}
+	public static ChunkCoordinates readCoordinates(DataInputStream stream) throws IOException {
+		return new ChunkCoordinates(stream.readInt(), stream.readInt(), stream.readInt());
+	}
+	public static void writeCoordinates(DataOutputStream stream, ChunkCoordinates coordinates) throws IOException {
+		stream.writeInt(coordinates.x);
+		stream.writeInt(coordinates.y);
+		stream.writeInt(coordinates.z);
 	}
 		
 

@@ -38,6 +38,7 @@ public class SignActionTeleport extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!TrainCarts.MyWorldsEnabled) return;
+		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.getGroup() != null) {
 			if (info.isPoweredFacing()) {
 				Portal portal = Portal.get(info.getLocation());

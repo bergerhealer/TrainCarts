@@ -30,6 +30,7 @@ public class SignActionChest extends SignAction {
 		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
 		if (!docart && !dotrain) return;
 		if (!info.isPoweredFacing()) return;
+		if (!info.hasRails()) return;
 		boolean in = info.isType("chest in");
 		boolean out = info.isType("chest out");
 		if (!in && !out) return;

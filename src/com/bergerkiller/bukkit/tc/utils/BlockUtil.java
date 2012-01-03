@@ -40,6 +40,7 @@ public class BlockUtil {
     }
     
     public static boolean equals(Block block1, Block block2) {
+    	if (block1 == null || block2 == null) return false;
     	if (block1 == block2) return true;
     	return block1.getX() == block2.getX() && block1.getZ() == block2.getZ()
     			&& block1.getY() == block2.getY() && block1.getWorld() == block2.getWorld();    	
@@ -59,6 +60,22 @@ public class BlockUtil {
     public static Block getBlock(World world, ChunkCoordinates at) {
     	return world.getBlockAt(at.x, at.y, at.z);
     }
+    public static Block getRailsBlockFromSign(final Block signblock) {
+		//try to find out where the rails block is located
+		Block above = signblock.getRelative(0, 2, 0);
+		if (BlockUtil.isRails(above)) {
+			return above;
+		} else {
+			//rail located above the attached face?
+			BlockFace face = BlockUtil.getAttachedFace(signblock);
+			above = signblock.getRelative(face.getModX(), 1, face.getModZ());
+			if (BlockUtil.isRails(above)) {
+				return above;
+			} else {
+				return null;
+			}
+		}
+    }
     public static BlockFace getAttachedFace(Block attachable) {
     	MaterialData m = getData(attachable);
     	if (m instanceof Attachable) {
@@ -70,7 +87,7 @@ public class BlockUtil {
     	return b.getRelative(getAttachedFace(b));
     }
     public static void setLeversAroundBlock(Block block, boolean down) {
-		for (Block b : BlockUtil.getRelative(block, FaceUtil.getAttached())) {
+		for (Block b : BlockUtil.getRelative(block, FaceUtil.attachedFaces)) {
 			BlockUtil.setLever(b, down);
 		}
     }
@@ -110,10 +127,15 @@ public class BlockUtil {
     }
     
     public static boolean isRails(Material type) {
-    	 return type == Material.RAILS || type == Material.POWERED_RAIL || type == Material.DETECTOR_RAIL;
+    	switch (type) {
+    	case RAILS :
+    	case POWERED_RAIL :
+    	case DETECTOR_RAIL : return true;
+    	default : return false;
+    	}
     }
     public static boolean isRails(int type) {
-    	 return type == Material.RAILS.getId() || type == Material.POWERED_RAIL.getId() || type == Material.DETECTOR_RAIL.getId();
+    	return type == Material.RAILS.getId() || type == Material.POWERED_RAIL.getId() || type == Material.DETECTOR_RAIL.getId();
     }
     public static boolean isRails(Block b) {
     	if (b == null) return false;
@@ -150,12 +172,6 @@ public class BlockUtil {
 	}
 	public static Rails getRails(Location loc) {
 		return getRails(getRailsBlock(loc));
-	}
-	public static float getRailsYaw(Rails rails) {
-		if (rails != null) {
-			return FaceUtil.getRailsYaw(rails.getDirection());
-		}
-		return 0;
 	}
 	public static boolean isSign(Material material) {
 		return material == Material.WALL_SIGN || material == Material.SIGN_POST;

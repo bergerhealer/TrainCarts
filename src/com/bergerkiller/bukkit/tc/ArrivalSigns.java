@@ -182,7 +182,6 @@ public class ArrivalSigns {
 		calc.startTime = System.currentTimeMillis();
 		calc.signblock = signblock;
 		calc.member = member;
-		if (member != null) calc.prevyaw = member.getYaw();
 		for (Player player : calc.signblock.getWorld().getPlayers()) {
 			if (player.hasPermission("train.build.trigger")) {
 				if (member == null) {
@@ -208,13 +207,6 @@ public class ArrivalSigns {
 								calc.setTime();
 								timeCalcStart.remove(calc.signblock);
 								return;
-							} else {
-								if (calc.member.getYawDifference(calc.prevyaw) > 90) {
-									calc.setTime();
-									timeCalcStart.remove(calc.signblock);
-									return;
-								}
-								calc.prevyaw = calc.member.getYaw();
 							}
 						}
 					}
@@ -230,7 +222,6 @@ public class ArrivalSigns {
 		public long startTime;
 		public Location signblock;
 		public MinecartMember member = null;
-		public float prevyaw = 0;
 		public void setTime() {
 			long duration = System.currentTimeMillis() - startTime;
 			Block block = signblock.getBlock();

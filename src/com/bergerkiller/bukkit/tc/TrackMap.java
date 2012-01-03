@@ -9,7 +9,6 @@ import net.minecraft.server.ChunkCoordinates;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
@@ -75,8 +74,7 @@ public class TrackMap extends ArrayList<Block> {
 			stepcount = BlockUtil.getBlockSteps(rail1, rail2, false);
 			if (stepcount < 2) stepcount = 2;
 		}
-		float yaw = Util.getLookAtYaw(rail1, rail2);
-		BlockFace direction = FaceUtil.yawToFace(yaw, false);
+		BlockFace direction = FaceUtil.getDirection(rail1, rail2, false);
 		if (bothways) {
 			return tryFind(rail1, rail2, direction, stepcount) && tryFind(rail1, rail2, direction.getOppositeFace(), stepcount);
 		} else {
@@ -84,7 +82,7 @@ public class TrackMap extends ArrayList<Block> {
 		}
 	}
 	public static boolean tryFind(Block rail, Block destination, BlockFace preferredFace, int stepcount) {
-		BlockFace[] faces = FaceUtil.getFaces(BlockUtil.getRails(rail).getDirection());
+		BlockFace[] faces = FaceUtil.getFaces(BlockUtil.getRails(rail).getDirection().getOppositeFace());
 		if (faces[0] == preferredFace) {
 			if (find(rail, faces[0], destination, stepcount)) return true;
 			if (find(rail, faces[1], destination, stepcount)) return true;
@@ -125,7 +123,7 @@ public class TrackMap extends ArrayList<Block> {
 		if (rails == null) return null;
 		
 		//Get a set of possible directions to go
-		BlockFace[] possible = FaceUtil.getFaces(rails.getDirection());
+		BlockFace[] possible = FaceUtil.getFaces(rails.getDirection().getOppositeFace());
 		
 		//simple forward - always true
 		for (BlockFace newdir : possible) {
@@ -270,15 +268,8 @@ public class TrackMap extends ArrayList<Block> {
 		}
 	}
 	
-	public Block getSignBlock() {
-		Block b = last();
-		if (b == null) return null;
-		b = b.getRelative(0, -2, 0);
-		if (BlockUtil.isSign(b)) return b;
-		return null;
+	public Block[] getAttachedSignBlocks() {
+		return BlockUtil.getSignsAttached(this.last());
 	}
-	public Sign getSign() {
-		return BlockUtil.getSign(getSignBlock());
-    }
 		
 }

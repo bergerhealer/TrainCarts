@@ -96,6 +96,13 @@ public class TrainProperties {
 		}
 		return false;
 	}
+	public Set<String> getOwners() {
+		Set<String> rval = new HashSet<String>();
+		for (CartProperties cprop : this.cartproperties) {
+			rval.addAll(cprop.getOwners());
+		}
+		return rval;
+	}
 	
 	/*
 	 * Tags
@@ -290,10 +297,10 @@ public class TrainProperties {
 				ConfigurationNode train = config.getNode(prop.getTrainName());
 				prop.save(train);
 				if (train.getKeys().isEmpty()) {
-					config.set(prop.getTrainName(), null);
+					config.remove(prop.getTrainName());
 				}
 			} else {
-				config.set(prop.getTrainName(), null);
+				config.remove(prop.getTrainName());
 			}
 		}
 		config.save();

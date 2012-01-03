@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -7,6 +8,10 @@ import com.bergerkiller.bukkit.tc.Util;
 
 public class FaceUtil {
 	public static final BlockFace[] axis = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.EAST};
+	public static final BlockFace[] attachedFaces = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, 
+		BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP};
+	public static final BlockFace[] attachedFacesDown = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, 
+		BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 	
 	public static BlockFace combine(BlockFace from, BlockFace to) {
 		if (from == BlockFace.NORTH) {
@@ -58,62 +63,68 @@ public class FaceUtil {
 	}
 	
 	public static BlockFace[] getFaces(BlockFace main) {
-		BlockFace[] possible = new BlockFace[2];
-		if (main == BlockFace.NORTH || main == BlockFace.SOUTH) {
-			possible[0] = BlockFace.NORTH;
-			possible[1] = BlockFace.SOUTH;
-		} else if (main == BlockFace.EAST || main == BlockFace.WEST) {
-			possible[0] = BlockFace.EAST;
-			possible[1] = BlockFace.WEST;
-		} else if (main == BlockFace.SOUTH_EAST) {
-			possible[0] = BlockFace.NORTH;
-			possible[1] = BlockFace.WEST;
-		} else if (main == BlockFace.SOUTH_WEST) {
-			possible[0] = BlockFace.NORTH;
-			possible[1] = BlockFace.EAST;
-		} else if (main == BlockFace.NORTH_EAST) {
-			possible[0] = BlockFace.SOUTH;
-			possible[1] = BlockFace.WEST;
-		} else if (main == BlockFace.NORTH_WEST) {
-			possible[0] = BlockFace.SOUTH;
-			possible[1] = BlockFace.EAST;
-		} else if (main == BlockFace.UP || main == BlockFace.DOWN) {
-			possible[0] = BlockFace.UP;
-			possible[1] = BlockFace.DOWN;
-		} else {
-			possible[0] = BlockFace.SELF;
-			possible[1] = BlockFace.SELF;
+		switch (main) {
+		case NORTH :
+		case SOUTH : return new BlockFace[] {BlockFace.NORTH, BlockFace.SOUTH};
+		case EAST :
+		case WEST : return new BlockFace[] {BlockFace.EAST, BlockFace.WEST};
+		case SOUTH_EAST : return new BlockFace[] {BlockFace.SOUTH, BlockFace.EAST};
+		case SOUTH_WEST : return new BlockFace[] {BlockFace.SOUTH, BlockFace.WEST};	
+		case NORTH_EAST : return new BlockFace[] {BlockFace.NORTH, BlockFace.EAST};
+		case NORTH_WEST : return new BlockFace[] {BlockFace.NORTH, BlockFace.WEST};
+		case UP :
+		case DOWN : return new BlockFace[] {BlockFace.DOWN, BlockFace.UP};
+		default : return new BlockFace[] {BlockFace.SELF, BlockFace.SELF};
 		}
-		return possible;
 	}
 	public static BlockFace rotate(BlockFace from, int notchCount) {
 		return yawToFace(faceToYaw(from) + notchCount * 45);
 	}
 	
-	public static BlockFace[] getAttached() {
-		return getAttached(false);
-	}
-	public static BlockFace[] getAttached(boolean addDown) {
-		if (addDown) {
-			return new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, 
-					BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
-		} else {
-			return new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, 
-					BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP};
+	public static BlockFace getRailsCartDirection(final BlockFace raildirection) {
+		switch (raildirection) {
+		case NORTH_EAST :
+		case SOUTH_WEST : return BlockFace.NORTH_WEST;
+		case NORTH_WEST :
+		case SOUTH_EAST : return BlockFace.SOUTH_WEST;
+		default : return raildirection;
 		}
 	}
 	
-	public static float getRailsYaw(BlockFace direction) {
-		switch (direction) {
-		case NORTH : return 0;
-		case EAST : return 90;
-		case WEST : return -90;
-		case SOUTH : return 180;
-		case SOUTH_WEST : return 135;
-		case NORTH_WEST : return 45;
-		case NORTH_EAST : return 135;
-		case SOUTH_EAST : return 45;
-		default : return 0;
+//	public static float getRailsYaw(final BlockFace direction) {
+//		switch (direction) {
+//		case NORTH : return 0;
+//		case EAST : return 90;
+//		case WEST : return -90;
+//		case SOUTH : return 180;
+//		case SOUTH_WEST : return 135;
+//		case NORTH_WEST : return 45;
+//		case NORTH_EAST : return 135;
+//		case SOUTH_EAST : return 45;
+//		default : return 0;
+//		}
+//	}
+	public static boolean isSubCardinal(final BlockFace face) {
+		switch (face) {
+		case NORTH_EAST : return true;
+		case SOUTH_EAST : return true;
+		case SOUTH_WEST : return true;
+		case NORTH_WEST : return true;
+		default : return false;
+		}
+	}
+	public static boolean hasSubDifference(final BlockFace face1, final BlockFace face2) {
+		if (face1 == face2) return true;
+		switch (face1) {
+		case NORTH : return face2 == BlockFace.NORTH_EAST || face2 == BlockFace.NORTH_WEST;
+		case NORTH_EAST : return face2 == BlockFace.NORTH || face2 == BlockFace.EAST;
+		case EAST : return face2 == BlockFace.NORTH_EAST || face2 == BlockFace.SOUTH_EAST;
+		case SOUTH_EAST : return face2 == BlockFace.EAST || face2 == BlockFace.SOUTH;
+		case SOUTH : return face2 == BlockFace.SOUTH_EAST || face2 == BlockFace.SOUTH_WEST;
+		case SOUTH_WEST : return face2 == BlockFace.SOUTH || face2 == BlockFace.WEST;
+		case WEST : return face2 == BlockFace.SOUTH_WEST || face2 == BlockFace.NORTH_WEST;
+		case NORTH_WEST : return face2 == BlockFace.WEST || face2 == BlockFace.NORTH;
+		default : return false;
 		}
 	}
 	
@@ -123,8 +134,95 @@ public class FaceUtil {
 	public static Vector faceToVector(BlockFace face) {
 		return new Vector(face.getModX(), face.getModY(), face.getModZ());
 	}
-		
-	public static float faceToYaw(BlockFace face) {
+	
+	public static BlockFace getDirection(Block from, Block to, boolean useSubCardinalDirections) {
+		return getDirection(to.getX() - from.getX(), to.getZ() - from.getZ(), useSubCardinalDirections);
+	}
+	public static BlockFace getDirection(Vector movement) {
+		return getDirection(movement, true);
+	}
+	public static BlockFace getDirection(Vector movement, boolean useSubCardinalDirections) {
+		return getDirection(movement.getX(), movement.getZ(), useSubCardinalDirections);
+	}
+	public static BlockFace getDirection(final double dx, final double dz, boolean useSubCardinalDirections) {
+		if (useSubCardinalDirections) {
+			if (dz < 0) {
+				if (dx < 0) {
+					if (dx * 2 < dz) {
+						return 2 * dz < dx ? BlockFace.NORTH_EAST : BlockFace.NORTH;
+					} else {
+						return BlockFace.EAST;
+					}
+				} else {
+					if (dz * -2 > dx) {
+						return -2 * dx < dz ? BlockFace.SOUTH_EAST : BlockFace.EAST;
+					} else {
+						return BlockFace.SOUTH;
+					}
+				}
+			} else {
+				if (dx < 0) {
+					if (-2 * dz < dx) {
+						return -2 * dx > dz ? BlockFace.NORTH_WEST : BlockFace.WEST;
+					} else {
+						return BlockFace.NORTH;
+					}
+				} else {
+					if (2 * dx > dz) {
+						return 2 * dz > dx ? BlockFace.SOUTH_WEST : BlockFace.SOUTH;
+					} else {
+						return BlockFace.WEST;
+					}
+				}
+			}
+		} else {
+			if (dz < 0) {
+				if (dx < 0) {
+					return dx < dz ? BlockFace.NORTH : BlockFace.EAST;
+				} else {
+					return dx < -dz ? BlockFace.EAST : BlockFace.SOUTH;
+				}
+			} else {
+				if (dx < 0) {
+					return dx < -dz ? BlockFace.NORTH : BlockFace.WEST;
+				} else {
+					return dx < dz ? BlockFace.WEST : BlockFace.SOUTH;
+				}
+			}
+		}
+	}
+	
+	public static int getFaceYawDifference(BlockFace face1, BlockFace face2) {
+		int angle = faceToYaw(face1) - faceToYaw(face2);
+        while (angle <= -180) angle += 360;
+        while (angle > 180) angle -= 360;
+        return Math.abs(angle);
+	}
+	
+	public static double cos(final BlockFace face) {
+		switch (face) {
+		case NORTH_WEST :
+		case NORTH_EAST : return Util.halfRootOfTwo;
+		case SOUTH_WEST :
+		case SOUTH_EAST : return -Util.halfRootOfTwo;
+		case SOUTH : return -1;
+		case NORTH : return 1;
+		default : return 0;
+		}
+	}
+	public static double sin(final BlockFace face) {
+		switch (face) {
+		case SOUTH_EAST :
+		case NORTH_EAST : return Util.halfRootOfTwo;
+		case NORTH_WEST :
+		case SOUTH_WEST : return -Util.halfRootOfTwo;
+		case EAST : return 1;
+		case WEST : return -1;
+		default : return 0;
+		}
+	}
+	
+	public static int faceToYaw(final BlockFace face) {
 		switch (face) {
 		case NORTH : return 0;
 		case EAST : return 90;
@@ -134,8 +232,8 @@ public class FaceUtil {
 		case NORTH_WEST : return -45;
 		case NORTH_EAST : return 45;
 		case SOUTH_EAST : return 135;
+		default : return 0;
 		}
-		return 0;
 	}	
 	public static BlockFace yawToFace (float yaw) {
 		return yawToFace(yaw, true);

@@ -6,13 +6,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.config.ConfigurationNode;
 import com.bergerkiller.bukkit.config.FileConfiguration;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 
 public class Destinations {
 	private static HashSet<String> checked = new HashSet<String>(); //used to prevent infinite loops
@@ -75,10 +75,11 @@ public class Destinations {
 	 * @param currloc The current (rail block) location.
 	 * @return The direction to go in from currloc to reach destname, or NORTH if unknown.
 	 */
-	public static BlockFace getDir(String destname, Location currloc){
+	public static BlockFace getDir(String destname, Block curr){
 		checked.clear();
-		String thistag = Util.loc2string(currloc);
+		String thistag = Util.blockToString(curr);
 		Destinations dest = get(thistag);
+		if (dest == null) return BlockFace.NORTH;
 		dest.explore();
 		Node r = dest.getDir(destname);
 		return r.dir;
@@ -135,23 +136,24 @@ public class Destinations {
 	 * @param dir Direction to explore in. Only works for NORTH/EAST/SOUTH/WEST.
 	 */
 	private void explore(BlockFace dir){
-		Location tmploc = Util.string2loc(destname);
-		if (tmploc == null) return;
-		Block tmp = tmploc.getBlock().getRelative(dir);
+		Block tmpblock = Util.stringToBlock(destname);
+		if (tmpblock == null) return;
+		Block tmp = tmpblock.getRelative(dir);
 		TrackMap map = new TrackMap(tmp, dir);
+		String newdest;
 		while (tmp != null){
-			Sign sign = map.getSign();
-			if (sign != null){
-				if (sign.getLine(0).equalsIgnoreCase("[train]")){
-					String newdest = "";
-					if (sign.getLine(1).toLowerCase().startsWith("tag")){
-						newdest = Util.loc2string(tmp.getLocation());
+			for (Block signblock : map.getAttachedSignBlocks()) {
+				SignActionEvent event = new SignActionEvent(signblock);
+				if (event.getMode() != SignActionMode.NONE) {
+					newdest = "";
+					if (event.isType("tag") || event.isType("switcher")){
+						newdest = Util.blockToString(tmp);
 					}
-					if (sign.getLine(1).toLowerCase().startsWith("destination")){
-						newdest = sign.getLine(2);
+					if (event.isType("destination")){
+						newdest = event.getLine(2);
 					}
-					if (newdest.equals(destname)) newdest = "";
-					if (!newdest.isEmpty()){
+					if (newdest.equals(this.destname)) continue;
+					if (!newdest.isEmpty()) {
 						this.neighbours.add(newdest);
 						this.updateDest(newdest, new Node(dir, map.getTotalDistance() + 1));
 						return;
@@ -179,7 +181,7 @@ public class Destinations {
 	private void updateDest(String newdest, Node newnode){
 		if (newnode.dist >= 100000.0) return; //don't store failed calculations
 		//if we already know about this destination, and we are not faster, ignore it.
-    Node n = this.dests.get(newdest);
+        Node n = this.dests.get(newdest);
 		if ((n != null) && (n.dist <= newnode.dist)) return;
 		//save.
 		this.dests.put(newdest, newnode);

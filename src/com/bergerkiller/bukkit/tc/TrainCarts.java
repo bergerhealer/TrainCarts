@@ -55,6 +55,7 @@ public class TrainCarts extends JavaPlugin {
 	public static boolean playSoundAtStation;
 	private Set<Material> allowedBlockBreakTypes = new HashSet<Material>();
 	public static int maxDetectorLength;
+	public static boolean stackMinecarts;
 
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -104,6 +105,7 @@ public class TrainCarts extends JavaPlugin {
 			playSoundAtStation = config.get("playSoundAtStation", true);
 			keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
 			maxDetectorLength = config.get("maxDetectorLength", 2000);
+			stackMinecarts = config.get("stackMinecarts", true);
 			allowedBlockBreakTypes.clear();
 			if (config.contains("allowedBlockBreakTypes")) {
 				for (String value : config.getList("allowedBlockBreakTypes", String.class)) {
@@ -167,6 +169,7 @@ public class TrainCarts extends JavaPlugin {
 		Permission.registerAll();
 		registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest);
 		registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest);
+		registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.High);
 		registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Monitor);
 		registerEvent(Event.Type.VEHICLE_CREATE, vehicleListener, Priority.Highest);
 		registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest);
@@ -178,6 +181,7 @@ public class TrainCarts extends JavaPlugin {
 		registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor);
 		registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest);
 		registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest);
+		registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor);
 		initDependencies();
 		
 		//Load configuration
@@ -197,7 +201,7 @@ public class TrainCarts extends JavaPlugin {
 
 		//Load arrival times
 		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
-
+		
 		//Restore carts where possible
 		GroupManager.refresh();
 		
@@ -234,7 +238,7 @@ public class TrainCarts extends JavaPlugin {
 
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
-		
+				
 		//undo replacements for correct native saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);

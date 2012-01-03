@@ -35,37 +35,27 @@ public class GroupManager {
 	/*
 	 * Train removal
 	 */
-	public static int removeAll(World world, boolean destroy) {
+	public static int destroyAll(World world) {
 		getGroups(world).clear();
 		int count = 0;
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
 			if (g.getWorld() == world) {
 				if (!g.isEmpty()) count++;
-				if (destroy) {
-					g.destroy();
-				} else {
-					g.remove();
-				}
+				g.destroy();
 			}
 		}
-		if (destroy) destroyMinecarts(world);
+		destroyMinecarts(world);
 		return count;
 	}
-	public static int removeAll(boolean destroy) {
+	public static int destroyAll() {
 		int count = 0;
 		hiddengroups.clear();
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
 			if (!g.isEmpty()) count++;
-			if (destroy) {
-				g.destroy();
-			} else {
-				g.remove();
-			}
+			g.destroy();
 		}
-		if (destroy) {
-			for (World world : Bukkit.getServer().getWorlds()) {
-				destroyMinecarts(world);
-			}
+		for (World world : Bukkit.getServer().getWorlds()) {
+			destroyMinecarts(world);
 		}
 		return count;
 	}
@@ -91,7 +81,7 @@ public class GroupManager {
 				int totalmembers = 0;
 				int worldcount = stream.readInt();
 				for (int i = 0; i < worldcount; i++) {
-					UUID worldUID = new UUID(stream.readLong(), stream.readLong());
+					UUID worldUID = Util.readUUID(stream);
 					int groupcount = stream.readInt();
 					ArrayList<WorldGroup> groups = new ArrayList<WorldGroup>(groupcount);
 					for (int j = 0; j < groupcount; j++) {
@@ -150,8 +140,7 @@ public class GroupManager {
 				stream.writeInt(hiddengroups.size());
 				for (UUID worldUID : hiddengroups.keySet()) {
 					ArrayList<WorldGroup> groups = hiddengroups.get(worldUID);
-					stream.writeLong(worldUID.getMostSignificantBits());
-					stream.writeLong(worldUID.getLeastSignificantBits());
+					Util.writeUUID(stream, worldUID);
 					stream.writeInt(groups.size());
 					for (WorldGroup wg : groups) wg.writeTo(stream);
 				}

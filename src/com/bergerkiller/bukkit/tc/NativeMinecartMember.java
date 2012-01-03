@@ -15,7 +15,6 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 
 import net.minecraft.server.AxisAlignedBB;
@@ -55,6 +54,13 @@ public class NativeMinecartMember extends EntityMinecart {
 	private double l;
 	private double m;
 
+	public void validate() throws MemberDeadException {
+		if (this.dead) {
+			this.die();
+			throw new MemberDeadException();
+		}
+	}
+	
 	public double getX() {
 		return this.locX;
 	}
@@ -101,8 +107,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.locX = this.lastX;
 		this.locY = this.lastY;
 		this.locZ = this.lastZ;
-		Location loc = new Location(this.world.getWorld(), this.locX, this.locY, this.locZ);
-		this.yaw = BlockUtil.getRailsYaw(BlockUtil.getRails(loc));
 	}
 
 	/*
@@ -226,7 +230,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
 	 */
-	public boolean preUpdate() {
+	public boolean preUpdate(int stepcount) {
 		//Some fixed
 		if (this.dead) return false;
 		this.motX = Util.fixNaN(this.motX);
@@ -284,7 +288,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.lastX = this.locX;
 			this.lastY = this.locY;
 			this.lastZ = this.locZ;
-			this.motY -= 0.03999999910593033D;
+			this.motY -= 0.03999999910593033D * (1 / stepcount);
 			moveinfo.i = MathHelper.floor(this.locX);
 			moveinfo.j = MathHelper.floor(this.locY);
 			moveinfo.k = MathHelper.floor(this.locZ);
@@ -425,7 +429,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Executes the post-velocity and positioning updates
 	 */
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
-		if (this.dead) return;
+		this.validate();
 		if (this.moveinfo == null) return; //pre-update is needed
 		double motX = this.motX;
 		double motZ = this.motZ;
@@ -1011,7 +1015,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				} else {
 					return false;
 				}
-			} else if (EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().allowMobsEnter && this.passenger == null) {
+			} else if (this.type == 1 && EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().allowMobsEnter && this.passenger == null) {
 				e.setPassengerOf(this);
 				return false;
 			}

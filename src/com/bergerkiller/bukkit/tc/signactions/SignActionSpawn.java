@@ -17,6 +17,7 @@ public class SignActionSpawn extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
+		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.REDSTONE_ON)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("spawn")) {
