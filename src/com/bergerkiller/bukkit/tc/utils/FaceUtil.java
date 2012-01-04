@@ -7,7 +7,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.tc.Util;
 
 public class FaceUtil {
-	public static final BlockFace[] axis = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.EAST};
+	public static final BlockFace[] axis = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
 	public static final BlockFace[] attachedFaces = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, 
 		BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP};
 	public static final BlockFace[] attachedFacesDown = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, 

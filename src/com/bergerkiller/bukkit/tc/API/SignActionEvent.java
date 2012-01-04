@@ -9,7 +9,6 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 
-import com.bergerkiller.bukkit.tc.Destinations;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;

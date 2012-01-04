@@ -211,6 +211,14 @@ public class TrainCommands {
 			if (args.length > 0) mode = Util.getBool(args[0]);
 			prop.setPickup(mode);
 			p.sendMessage(ChatColor.YELLOW + "The selected train picks up nearby items: " + ChatColor.WHITE + mode);
+		} else if (cmd.equals("default") || cmd.equals("def")) {
+			Permission.COMMAND_DEFAULT.handle(p);
+			if (args.length == 0) {
+				
+			} else {
+				prop.setDefault(args[0]);
+				p.sendMessage(ChatColor.GREEN + "Train properties has been re-set to the defaults named '" + args[0] + "'!");
+			}
 		} else if (cmd.equals("break")) {
 			Permission.COMMAND_BREAKBLOCK.handle(p);
 			if (args.length == 0) {

@@ -3,36 +3,21 @@ package com.bergerkiller.bukkit.tc.actions;
 import org.bukkit.Location;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
-public class MemberActionLaunchLocation extends MemberActionLaunch {
+public class MemberActionLaunchLocation extends MemberActionLaunchDirection {
 
 	private final Location target;
-	private boolean corrected = false;
 	public MemberActionLaunchLocation(final MinecartMember member, Location target, double targetvelocity) {
-		super(member, 0, targetvelocity);
+		super(member, 0, targetvelocity, member.getDirection());
 		this.target = target.clone();
 	}
 		
 	public void start() {
-		super.setTargetDistance(this.getMember().distanceXZ(this.target));
+		double dx = this.getMember().getX() - target.getX();
+		double dz = this.getMember().getZ() - target.getZ();
+		super.setDirection(FaceUtil.getDirection(dx, dz, false));
 		super.start();
-		if (!this.getMember().isHeadingTo(target)) {
-			//correct this behavior!
-			this.getGroup().reverse();
-		}
-	}
-	
-	public boolean update() {
-		if (super.update()) {
-			return true;
-		} else if (!this.corrected) {
-			if (!this.getMember().isHeadingTo(target)) {
-				//correct this behavior!
-				this.getGroup().reverse();
-			}
-			this.corrected = true;
-		}
-		return false;
 	}
 	
 }

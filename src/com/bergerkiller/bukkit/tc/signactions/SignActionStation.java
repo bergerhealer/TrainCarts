@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
@@ -8,6 +7,7 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.StationMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
@@ -42,17 +42,8 @@ public class SignActionStation extends SignAction {
 										delayMS = (long) (Double.parseDouble(info.getLine(2)) * 1000);
 									} catch (Exception ex) {};
 									//Get the mode used
-									int mode = 0;
-									if (info.getLine(3).equalsIgnoreCase("continue")) {
-										mode = 1;
-									} else if (info.getLine(3).equalsIgnoreCase("reverse")) {
-										mode = 2;
-									} else if (info.getLine(3).equalsIgnoreCase("left")) {
-										mode = 3;
-									} else if (info.getLine(3).equalsIgnoreCase("right")) {
-										mode = 4;
-									}
-
+                                    StationMode mode = StationMode.fromString(info.getLine(3));
+	
 									//Get the middle minecart
 									MinecartMember midd = group.middle();
 									//First, get the direction of the tracks above
@@ -115,70 +106,59 @@ public class SignActionStation extends SignAction {
 									if (instruction == BlockFace.UP) return; 
 
 									//What do we do?
-									Location l = info.getRailLocation();
+									//Location l = info.getRailLocation();
 									if (instruction == BlockFace.SELF) {
 										if (north || east || south || west) {
 											//Redstone change and moving?
 											if (!info.isAction(SignActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
 												//Brake
 												//TODO: ADD CHECK?!
-												group.clearActions();
-												midd.addActionLaunch(l, 0);
+												group.clearActions();		
+												midd.addActionLaunch(info.getRailLocation(), 0);
 												BlockFace trainDirection = null;
-												if (mode == 1) {
-													//Continue
+												if (mode == StationMode.CONTINUE) {
 													trainDirection = midd.getDirection();
-												} else if (mode == 2) {
-													//Reverse
+												} else if (mode == StationMode.REVERSE) {
 													trainDirection = midd.getDirection().getOppositeFace();
-												} else if (mode == 3 || mode == 4) {
-													//Relative left/right
-													BlockFace signdir = info.getFacing();
-													//Convert :)
-													float yaw = FaceUtil.faceToYaw(signdir);
-													if (mode == 3) {
-														//Left
-														yaw += 90;
+												} else if (mode == StationMode.LEFT || mode == StationMode.RIGHT) {
+													trainDirection = info.getFacing();
+													//Convert
+													if (mode == StationMode.LEFT) {
+														trainDirection = FaceUtil.rotate(trainDirection, 2);
 													} else {
-														//Right
-														yaw -= 90;
-													}
-													//Apply
-													trainDirection = FaceUtil.yawToFace(yaw);					
-												} else {
-													l = null; //Nothing
+														trainDirection = FaceUtil.rotate(trainDirection, -2);
+													}	
 												}
-												if (l != null) {
+												if (trainDirection != null) {
 													//Actual launching here
-													l = l.add(trainDirection.getModX() * length, 0, trainDirection.getModZ() * length);
 													if (delayMS > 0) {
 														if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 														info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 													}
 													group.addActionWait(delayMS);
-													midd.addActionLaunch(l, TrainCarts.launchForce);
+													midd.addActionLaunch(trainDirection, length, TrainCarts.launchForce);
 												} else {
 													group.addActionWaitForever();
-													group.addActionSizzle();
+													if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+													info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 												}
 											}
 										}
 									} else {
 										//Launch
 										group.clearActions();
-										Location next = l.clone().add(instruction.getModX() * length, 0, instruction.getModZ() * length);
 										MinecartMember head = group.head();
 
 										if (delayMS > 0 || (head.isMoving() && head.getDirection() != instruction)) {
 											//Reversing or has delay, need to center it in the middle first
-											midd.addActionLaunch(l, 0);
+											midd.addActionLaunch(info.getRailLocation(), 0);
 										}
 										if (delayMS > 0) {
 											if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 											info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 										}
 										group.addActionWait(delayMS);
-										midd.addActionLaunch(next, TrainCarts.launchForce);
+										midd.addActionLaunch(instruction, length, TrainCarts.launchForce);
 									}
 								}
 							}

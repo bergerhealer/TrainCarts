@@ -233,9 +233,6 @@ public class TrainCarts extends JavaPlugin {
 		//Save destinations
 		Destinations.deinit(getDataFolder() + File.separator + "destinations.yml");
 
-		//Save for next load
-		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
-
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
 				
@@ -249,6 +246,9 @@ public class TrainCarts extends JavaPlugin {
 				GroupManager.hideGroup(e);
 			}
 		}
+		
+		//Save for next load
+		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
 		
 		SignAction.deinit();
 		

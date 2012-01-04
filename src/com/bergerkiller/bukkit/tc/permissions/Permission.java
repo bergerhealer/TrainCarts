@@ -28,6 +28,7 @@ public enum Permission {
 	COMMAND_SETCOLLIDE("train.command.setcollide", PermissionDefault.TRUE),
 	COMMAND_SETSPEEDLIMIT("train.command.setspeedlimit", PermissionDefault.TRUE),
 	COMMAND_SETPOWERCARTREQ("train.command.setpoweredcartrequirement", PermissionDefault.TRUE),
+	COMMAND_DEFAULT("train.command.default", PermissionDefault.OP),
 	COMMAND_RENAME("train.command.rename", PermissionDefault.TRUE),
 	BUILD_STATION("train.build.station", PermissionDefault.OP),
 	BUILD_SPAWNER("train.build.spawner", PermissionDefault.OP),

@@ -567,8 +567,8 @@ public class MinecartMember extends NativeMinecartMember {
 	public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
 		return this.addActionLaunch(this.getLocation().add(offset), targetvelocity);
 	}
-	public MemberActionLaunchLocation addActionLaunch(BlockFace direction, double distance, double targetvelocity) {
-		return this.addActionLaunch(FaceUtil.faceToVector(direction, distance), targetvelocity);
+	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double distance, double targetvelocity) {
+		return this.addAction(new MemberActionLaunchDirection(this, targetvelocity, distance, direction));
 	}
 	
 	/*
