@@ -37,17 +37,29 @@ public class BlockMap <T> {
 		}
 	}
 	
-	public boolean containsKey(Block block) {
+	public boolean containsBlock(final UUID world, final int x, final int y, final int z) {
+		return this.map.containsKey(new BlockLocation(world, x, y, z));
+	}
+	public boolean containsBlock(Block block) {
 		return this.map.containsKey(new BlockLocation(block));
 	}
 	public boolean containsValue(T value) {
 		return this.map.containsValue(value);
+	}
+	public T get(final UUID world, final int x, final int y, final int z) {
+		return this.map.get(new BlockLocation(world, x, y, z));
 	}
 	public T get(Block block) {
 		return this.map.get(new BlockLocation(block));
 	}
 	public T put(Block block, T value) {
 		return this.map.put(new BlockLocation(block), value);
+	}
+	public T put(final UUID world, final int x, final int y, final int z, T value) {
+		return this.map.put(new BlockLocation(world, x, y, z), value);
+	}
+	public T remove(final UUID world, final int x, final int y, final int z) {
+		return this.map.remove(new BlockLocation(world, x, y, z));
 	}
 	public T remove(Block block) {
 		return this.map.remove(new BlockLocation(block));

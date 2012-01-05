@@ -97,6 +97,7 @@ public class TrackMap extends ArrayList<Block> {
 	}
 	
 	public boolean add(Block block) {
+		if (block == null) return false;
 		if (this.coordinates.add(BlockUtil.getCoordinates(block))) {
 			super.add(block);
 			return true;
@@ -229,6 +230,21 @@ public class TrackMap extends ArrayList<Block> {
 		return rval;
 	}
 	
+	public static Block getNext(final Block from, final BlockFace direction) {
+		Block next = from.getRelative(direction);
+		if (!BlockUtil.isRails(next)) {
+			Block tmp = next.getRelative(BlockFace.UP);
+			if (!BlockUtil.isRails(tmp)) {
+				tmp = next.getRelative(BlockFace.DOWN);
+				if (!BlockUtil.isRails(tmp)) {
+					//Failed rails validation, no next track is possible
+					return null;
+				}
+			}
+			next = tmp;
+		}
+		return next;
+	}
 	public Block next() {
 		return this.next(false);
 	}
@@ -247,18 +263,7 @@ public class TrackMap extends ArrayList<Block> {
 				return null;
 			}
 		}
-		Block next = last().getRelative(direction);
-		if (!BlockUtil.isRails(next)) {
-			Block tmp = next.getRelative(BlockFace.UP);
-			if (!BlockUtil.isRails(tmp)) {
-				tmp = next.getRelative(BlockFace.DOWN);
-				if (!BlockUtil.isRails(tmp)) {
-					//Failed rails validation, no next track is possible
-					return null;
-				}
-			}
-			next = tmp;
-		}
+		Block next = getNext(this.last(), direction);
 		//prevent loops by checking for double every 20 tiles
 		if (this.add(next)) {
 			totaldistance += last().getLocation().distance(next.getLocation());

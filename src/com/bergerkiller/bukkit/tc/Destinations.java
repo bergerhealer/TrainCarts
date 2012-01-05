@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 
 import org.bukkit.block.Block;
@@ -51,9 +50,7 @@ public class Destinations {
 	}
 	public static void deinit(String filename) {
 		save(filename);
-		checked.clear();
 		checked = null;
-		properties.clear();
 		properties = null;
 	}
 
@@ -76,18 +73,18 @@ public class Destinations {
 	 * @return The direction to go in from currloc to reach destname, or NORTH if unknown.
 	 */
 	public static BlockFace getDir(String destname, Block curr){
-		checked.clear();
 		String thistag = Util.blockToString(curr);
 		Destinations dest = get(thistag);
 		if (dest == null) return BlockFace.NORTH;
 		dest.explore();
 		Node r = dest.getDir(destname);
+		checked.clear();
 		return r.dir;
 	}
 	
 	private String destname;
-	public HashMap<String, Node> dests = new HashMap<String, Node>();
-	public List<String> neighbours = new ArrayList<String>();
+	public HashMap<String, Node> dests = new HashMap<String, Node>(); //all possible connected nodes
+	public HashSet<String> neighbours = new HashSet<String>(); 
 
 	private Destinations(String destname) {
 		this.destname = destname;
@@ -138,29 +135,28 @@ public class Destinations {
 	private void explore(BlockFace dir){
 		Block tmpblock = Util.stringToBlock(destname);
 		if (tmpblock == null) return;
-		Block tmp = tmpblock.getRelative(dir);
-		TrackMap map = new TrackMap(tmp, dir);
+		tmpblock = TrackMap.getNext(tmpblock, dir);
+		TrackMap map = new TrackMap(tmpblock, dir);
 		String newdest;
-		while (tmp != null){
+		while (tmpblock != null){
 			for (Block signblock : map.getAttachedSignBlocks()) {
 				SignActionEvent event = new SignActionEvent(signblock);
 				if (event.getMode() != SignActionMode.NONE) {
 					newdest = "";
-					if (event.isType("tag") || event.isType("switcher")){
-						newdest = Util.blockToString(tmp);
-					}
-					if (event.isType("destination")){
+					if (event.isType("tag", "switcher")){
+						newdest = Util.blockToString(tmpblock);
+					} else if (event.isType("destination")){
 						newdest = event.getLine(2);
 					}
 					if (newdest.equals(this.destname)) continue;
-					if (!newdest.isEmpty()) {
-						this.neighbours.add(newdest);
-						this.updateDest(newdest, new Node(dir, map.getTotalDistance() + 1));
-						return;
-					}
+					if (newdest.isEmpty()) continue;
+					//finished, we found our first target
+					this.neighbours.add(newdest);
+					this.updateDest(newdest, new Node(dir, map.getTotalDistance() + 1));
+					return;
 				}
 			}
-			tmp = map.next();
+			tmpblock = map.next();
 		}
 	}
 	private void explore() {
@@ -204,7 +200,7 @@ public class Destinations {
 	}
 
 	public void load(ConfigurationNode node) {
-		this.neighbours = node.getList("neighbours", String.class);
+		this.neighbours = new HashSet<String>(node.getList("neighbours", String.class));
 		for (String k : node.getKeys()) {
 			if (k.equals("neighbours")) continue; //skip neighbours
 			BlockFace bf = BlockFace.UP;
@@ -220,7 +216,7 @@ public class Destinations {
 		this.dests.putAll(source.dests);
 	}
 	public void save(ConfigurationNode node) {
-		node.set("neighbours", this.neighbours);
+		node.set("neighbours", new ArrayList<String>(this.neighbours));
 		for (Map.Entry<String, Node> entry : this.dests.entrySet()){
 			node.set(entry.getKey() + ".dir", entry.getValue().dir.toString());
 			node.set(entry.getKey() + ".dist", entry.getValue().dist);
