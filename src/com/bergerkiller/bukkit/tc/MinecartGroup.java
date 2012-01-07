@@ -805,6 +805,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				MinecartMember mm = this.head();
 				this.updateAction();
 				mm.preUpdate(stepcount);
+				this.updateYaw();
 				mm.postUpdate(1);
 				this.updateYaw();
 				return true;
