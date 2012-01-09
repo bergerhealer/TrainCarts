@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
@@ -14,10 +15,12 @@ public class SignActionTrain extends SignAction {
 		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			if (!info.isTrainSign()) return;
-			if (info.getGroup() == null) return;
+			MinecartGroup group = info.getGroup();
+			if (group == null) return;
 			if (info.isPoweredFacing()) {
 				if (info.isType("destroy")) {
-					info.getGroup().destroy();
+					group.playLinkEffect();
+					group.destroy();
 				} else if (info.isType("eject")) {
 					String[] offsettext = info.getLine(2).split("/");
 					Vector offset = new Vector();

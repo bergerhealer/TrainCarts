@@ -10,6 +10,7 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 
@@ -35,17 +36,11 @@ public class TCBlockListener extends BlockListener {
 	
 	@Override
 	public void onBlockBreak(BlockBreakEvent event) {
-		//TODO: DETECTOR SIGN
-//		if (!event.isCancelled()) {
-//			if (BlockUtil.isSign(event.getBlock())) {
-//				Sign sign = BlockUtil.getSign(event.getBlock());
-//				if (DetectorSign.validate(sign.getLines())) {
-//					Block rails = BlockUtil.getRailsBlockFromSign(event.getBlock());
-//					DetectorSign dsign = DetectorSign.getSign(rails);
-//					if (dsign != null) dsign.remove();
-//				}
-//			}
-//		}
+		if (!event.isCancelled()) {
+			if (BlockUtil.isSign(event.getBlock())) {
+				SignActionDetector.removeDetector(event.getBlock());
+			}
+		}
 	}
 	
 	public void onSignChange(SignChangeEvent event) {

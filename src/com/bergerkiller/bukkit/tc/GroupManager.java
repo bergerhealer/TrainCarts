@@ -305,8 +305,13 @@ public class GroupManager {
 						}
 						if (!ismoving) continue;
 					}
+			    	//load nearby chunks
 					for (WorldMember wm : g.members) {
-						w.getChunkAt(wm.cx, wm.cz);
+						for (int cx = wm.cx - 2; cx <= wm.cx + 2; cx++) {
+							for (int cz = wm.cz - 2; cz <= wm.cz + 2; cz++) {
+								w.getChunkAt(cx, cz);
+							}
+						}
 					}
 				} else {
 					continue;

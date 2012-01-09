@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -135,6 +136,9 @@ public class FaceUtil {
 		return new Vector(face.getModX(), face.getModY(), face.getModZ());
 	}
 	
+	public static BlockFace getDirection(Location from, Location to, boolean useSubCardinalDirections) {
+		return getDirection(to.getX() - from.getX(), to.getZ() - from.getZ(), useSubCardinalDirections);
+	}
 	public static BlockFace getDirection(Block from, Block to, boolean useSubCardinalDirections) {
 		return getDirection(to.getX() - from.getX(), to.getZ() - from.getZ(), useSubCardinalDirections);
 	}

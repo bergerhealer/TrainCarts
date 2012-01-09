@@ -195,6 +195,19 @@ public class BlockUtil {
 		}
 	}
 	
+	public static Block getRailsAttached(Block signblock) {
+		Material type = signblock.getType();
+		Block rail = null;
+		if (type == Material.WALL_SIGN) {
+			rail = getAttachedBlock(signblock).getRelative(BlockFace.UP);
+			if (isRails(rail)) return rail;
+		}
+		if (isSign(type)) {
+			rail = signblock.getRelative(0, 2, 0);
+			if (isRails(rail)) return rail;
+		}
+		return null;
+	}
 	public static Block[] getSignsAttached(Block rails) {
 		ArrayList<Block> rval = new ArrayList<Block>(3);
 		Block under = rails.getRelative(0, -2, 0);

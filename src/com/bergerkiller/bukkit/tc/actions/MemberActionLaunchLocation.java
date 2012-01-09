@@ -14,9 +14,9 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection {
 	}
 		
 	public void start() {
-		double dx = this.getMember().getX() - target.getX();
-		double dz = this.getMember().getZ() - target.getZ();
-		super.setDirection(FaceUtil.getDirection(dx, dz, false));
+		//update direction to launch at
+		super.setDirection(FaceUtil.getDirection(this.getMember().getLocation(), this.target, false));
+		super.setTargetDistance(this.getMember().distance(this.target));
 		super.start();
 	}
 	

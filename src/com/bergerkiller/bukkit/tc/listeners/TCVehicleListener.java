@@ -88,7 +88,6 @@ public class TCVehicleListener extends VehicleListener {
 			if (member != null) {
 				CartProperties prop = member.getProperties();
 				if (event.getEntered() instanceof Player) {
-					//TODO: PASSENGERS!
 					Player player = (Player) event.getEntered();
 					if (prop.allowPlayerEnter && (prop.isPublic || prop.isOwner(player))) {
 						prop.showEnterMessage(player);

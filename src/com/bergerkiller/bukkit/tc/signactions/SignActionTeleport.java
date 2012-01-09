@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import java.util.HashMap;
-
 import net.minecraft.server.EntityPlayer;
 
 import org.bukkit.Location;
@@ -20,19 +18,20 @@ import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
+import com.bergerkiller.bukkit.tc.utils.BlockMap;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 
 public class SignActionTeleport extends SignAction {
 
-	private HashMap<Location, Long> teleportTimes = new HashMap<Location, Long>();
-	private void setTPT(Location at) {
-		teleportTimes.put(at, System.currentTimeMillis());
+	private BlockMap<Long> teleportTimes = new BlockMap<Long>();
+	private void setTPT(SignActionEvent info) {
+		teleportTimes.put(info.getBlock(), System.currentTimeMillis());
 	}
 	private boolean getTPT(SignActionEvent info) {
-		if (!teleportTimes.containsKey(info.getLocation())) return true;
-		long time = teleportTimes.get(info.getLocation());
-		return ((System.currentTimeMillis() - time) > MyWorlds.teleportInterval);
+		Long time = teleportTimes.get(info.getBlock());
+		if (time == null) return true;
+		return (System.currentTimeMillis() - time) > MyWorlds.teleportInterval;
 	}
 		
 	@Override
@@ -70,8 +69,8 @@ public class SignActionTeleport extends SignAction {
 										info.setCancelled(true);
 										
 										//Force
-										gnew.addActionWaitTicks(5);
-										gnew.head().addActionLaunch(direction, 5, force);
+										gnew.addActionWaitTicks(3);
+										gnew.head().addActionLaunch(direction, 1, force);
 										
 										//Prevent collisions for a while
 										for (int i = 0; i < gnew.size() - 1; i++) {
@@ -89,7 +88,6 @@ public class SignActionTeleport extends SignAction {
 											to.e = from.e;
 
 											//Teleport passenger
-
 											if (from.passenger != null) {
 												net.minecraft.server.Entity e = from.passenger;
 												from.getMinecart().eject();
@@ -133,10 +131,9 @@ public class SignActionTeleport extends SignAction {
 										}
 
 										//Remove the old group
-										for (MinecartMember mm : info.getGroup()) mm.dead = true;
-										info.getGroup().remove();
+										info.getGroup().destroy();
 
-										setTPT(destinationRail.getLocation().add(0, -2, 0));
+										setTPT(info);
 									}
 								}
 							}
@@ -149,7 +146,8 @@ public class SignActionTeleport extends SignAction {
 	@Override
 	public void build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (event.getLine(0).equalsIgnoreCase("[portal]")) {
-			if (BlockUtil.isRails(event.getBlock().getRelative(0, 2, 0))) {
+			
+			if (BlockUtil.getRailsAttached(event.getBlock()) != null) {
 				handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
 			}
 		}

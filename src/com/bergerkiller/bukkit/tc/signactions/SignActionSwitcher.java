@@ -81,7 +81,7 @@ public class SignActionSwitcher extends SignAction {
 		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
 			if (info.isType("switcher", "tag")) {
-				if (!handleDestination(info, info.getGroup().head().getProperties())) {
+				if (!info.getGroup().isValid() || !handleDestination(info, info.getGroup().head().getProperties())) {
 					if (!handleCounter(info, l, r)) {
 						boolean left = !l.equals("") && info.getGroup().hasTag(l);
 						boolean right = !r.equals("") && info.getGroup().hasTag(r);

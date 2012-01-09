@@ -1,0 +1,15 @@
+package com.bergerkiller.bukkit.tc.detector;
+
+import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.MinecartMember;
+
+public interface DetectorListener {
+	
+	public void onRegister(DetectorRegion region);
+	public void onUnregister(DetectorRegion region);
+	public void onLeave(final MinecartMember member);
+	public void onEnter(final MinecartMember member);
+	public void onLeave(final MinecartGroup group);
+	public void onEnter(final MinecartGroup group);
+
+}

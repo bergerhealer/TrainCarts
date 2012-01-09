@@ -22,6 +22,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.listeners.TCBlockListener;
 import com.bergerkiller.bukkit.tc.listeners.TCCustomListener;
 import com.bergerkiller.bukkit.tc.listeners.TCPlayerListener;
@@ -29,6 +30,7 @@ import com.bergerkiller.bukkit.tc.listeners.TCVehicleListener;
 import com.bergerkiller.bukkit.tc.listeners.TCWorldListener;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.utils.ItemUtil;
 
 public class TrainCarts extends JavaPlugin {
@@ -194,13 +196,19 @@ public class TrainCarts extends JavaPlugin {
 		GroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
 		//Load properties
-		TrainProperties.init(getDataFolder() + File.separator + "TrainProperties.yml");
+		TrainProperties.init();
 
 		//Load destinations
-		Destinations.init(getDataFolder() + File.separator + "destinations.yml");
+		Destinations.init();
 
 		//Load arrival times
 		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
+		
+		//Load detector regions
+		DetectorRegion.init(getDataFolder() + File.separator + "detectorregions.dat");	
+		
+		//Load detector sign locations
+		SignActionDetector.init(getDataFolder() + File.separator + "detectorsigns.dat");
 		
 		//Restore carts where possible
 		GroupManager.refresh();
@@ -228,14 +236,20 @@ public class TrainCarts extends JavaPlugin {
 		if (cleanupTask != null) cleanupTask.stop();
 
 		//Save properties
-		TrainProperties.deinit(getDataFolder() + File.separator + "TrainProperties.yml");
+		TrainProperties.deinit();
 		
 		//Save destinations
-		Destinations.deinit(getDataFolder() + File.separator + "destinations.yml");
+		Destinations.deinit();
 
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
-				
+		
+		//Save detector sign locations
+		SignActionDetector.deinit(getDataFolder() + File.separator + "detectorsigns.dat");
+		
+		//Save detector regions
+		DetectorRegion.deinit(getDataFolder() + File.separator + "detectorregions.dat");	
+		
 		//undo replacements for correct native saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);

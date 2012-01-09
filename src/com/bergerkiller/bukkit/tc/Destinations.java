@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 
 public class Destinations {
+	private static final String destinationsFile = "destinations.yml";
 	private static HashSet<String> checked = new HashSet<String>(); //used to prevent infinite loops
 	private static HashMap<String, Destinations> properties = new HashMap<String, Destinations>();
 	public static Destinations get(String destname) {
@@ -31,25 +32,25 @@ public class Destinations {
 	public static void clear(){
 		properties.clear();
 	}
-	public static void load(String filename) {
-		FileConfiguration config = new FileConfiguration(filename);
+	public static void load() {
+		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, destinationsFile);
 		config.load();
 		for (ConfigurationNode node : config.getNodes()) {
 			get(node.getName()).load(node);
 		}
 	}
-	public static void save(String filename) {
-		FileConfiguration config = new FileConfiguration(filename);
+	public static void save() {
+		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, destinationsFile);
 		for (Destinations prop : properties.values()) {
 			prop.save(config.getNode(prop.getDestName()));
 		}
 		config.save();
 	}
-	public static void init(String filename) {
-		load(filename);
+	public static void init() {
+		load();
 	}
-	public static void deinit(String filename) {
-		save(filename);
+	public static void deinit() {
+		save();
 		checked = null;
 		properties = null;
 	}

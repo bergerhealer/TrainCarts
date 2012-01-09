@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,6 +16,8 @@ import com.bergerkiller.bukkit.config.FileConfiguration;
 
 public class TrainProperties {
 	public static final TrainProperties EMPTY = new TrainProperties();
+	private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
+	private static final String propertiesFile = "TrainProperties.yml";
 	
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
 	public static TrainProperties get(String trainname) {
@@ -221,11 +222,11 @@ public class TrainProperties {
 		return this;
 	}
 	
-	public static void init(String filename) {
-		load(filename);
+	public static void init() {
+		load();
 	}
-	public static void deinit(String filename) {
-		save(filename);
+	public static void deinit() {
+		save();
 		defconfig = null;
 	}
     
@@ -234,19 +235,22 @@ public class TrainProperties {
 	 */
 	private static FileConfiguration defconfig = null;
 	public static void reloadDefaults() {
-		defconfig = new FileConfiguration(TrainCarts.plugin, "DefaultTrainProperties.yml");
+		defconfig = new FileConfiguration(TrainCarts.plugin, defaultPropertiesFile);
 		defconfig.load();
+		boolean changed = false;
 		if (!defconfig.contains("default")) {
 			ConfigurationNode node = defconfig.getNode("default");
 			TrainProperties.EMPTY.save(node, false, false);
 			CartProperties.EMPTY.save(node, false);
+			changed = true;
 		}
 		if (!defconfig.contains("admin")) {
 			ConfigurationNode node = defconfig.getNode("admin");
 			TrainProperties.EMPTY.save(node, false, false);
 			CartProperties.EMPTY.save(node, false);
+			changed = true;
 		}
-		defconfig.save();
+		if (changed) defconfig.save();
 	}
 	public static FileConfiguration getDefaults() {
 		if (defconfig == null) reloadDefaults();
@@ -282,15 +286,15 @@ public class TrainProperties {
 	/*
 	 * Loading and saving
 	 */
-	public static void load(String filename) {
-		FileConfiguration config = new FileConfiguration(new File(filename));
+	public static void load() {
+		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		config.load();
 		for (ConfigurationNode node : config.getNodes()) {
 			get(node.getName()).load(node);
 		}
 	}
-	public static void save(String filename) {
-		FileConfiguration config = new FileConfiguration(new File(filename));
+	public static void save() {
+		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		for (TrainProperties prop : properties.values()) {
 			//does this train even exist?!
 			if (GroupManager.contains(prop.getTrainName())) {

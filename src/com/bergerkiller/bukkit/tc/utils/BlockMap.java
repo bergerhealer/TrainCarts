@@ -1,77 +1,62 @@
 package com.bergerkiller.bukkit.tc.utils;
 
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
+import net.minecraft.server.ChunkCoordinates;
+
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
-public class BlockMap <T> {
-	private final Map<BlockLocation, T> map = new HashMap<BlockLocation, T>();
+public class BlockMap <T> extends HashMap<BlockLocation, T> {
+	private static final long serialVersionUID = 1L;
 	
-	@SuppressWarnings({"unused", "unchecked"})
-	private class BlockLocation {
-		public BlockLocation(Block block) {
-			this(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
-		}
-		public BlockLocation(final UUID world, final int x, final int y, final int z) {
-			this.world = world;
-			this.x = x;
-			this.y = y;
-			this.z = z;
-		}
-		public final int x, y, z;
-		public final UUID world;
-		public boolean equals(Object object) {
-			BlockLocation bloc = (BlockLocation) object;
-			return bloc.x == this.x && bloc.y == this.y && bloc.z == this.z && bloc.world.equals(this.world);
-		}
-		public int hashcode() {
-	        int hash = 3;
-	        hash = 53 * hash + this.world.hashCode();
-	        hash = 53 * hash + (this.x ^ (this.x >> 16));
-	        hash = 53 * hash + (this.y ^ (this.y >> 16));
-	        hash = 53 * hash + (this.z ^ (this.z >> 16));
-	        return hash;
-		}
+	public boolean containsKey(final String world, ChunkCoordinates coord) {
+		return this.containsKey(world, coord.x, coord.y, coord.z);
 	}
-	
-	public boolean containsBlock(final UUID world, final int x, final int y, final int z) {
-		return this.map.containsKey(new BlockLocation(world, x, y, z));
+	public boolean containsKey(final String world, final int x, final int y, final int z) {
+		return super.containsKey(new BlockLocation(world, x, y, z));
 	}
-	public boolean containsBlock(Block block) {
-		return this.map.containsKey(new BlockLocation(block));
+	public boolean containsKey(Block block) {
+		return super.containsKey(new BlockLocation(block));
 	}
-	public boolean containsValue(T value) {
-		return this.map.containsValue(value);
+
+	public T get(final String world, ChunkCoordinates coord) {
+		return this.get(world, coord.x, coord.y, coord.z);
 	}
-	public T get(final UUID world, final int x, final int y, final int z) {
-		return this.map.get(new BlockLocation(world, x, y, z));
+	public T get(World world, final int x, final int y, final int z) {
+		return this.get(world.getName(), x, y, z);
+	}
+	public T get(final String world, final int x, final int y, final int z) {
+		return super.get(new BlockLocation(world, x, y, z));
 	}
 	public T get(Block block) {
-		return this.map.get(new BlockLocation(block));
+		return super.get(new BlockLocation(block));
+	}
+	
+	public T put(final String world, ChunkCoordinates coord, T value) {
+		return this.put(world, coord.x, coord.y, coord.z, value);
 	}
 	public T put(Block block, T value) {
-		return this.map.put(new BlockLocation(block), value);
+		return super.put(new BlockLocation(block), value);
 	}
-	public T put(final UUID world, final int x, final int y, final int z, T value) {
-		return this.map.put(new BlockLocation(world, x, y, z), value);
+	public T put(World world, final int x, final int y, final int z, T value) {
+		return this.put(world.getName(), x, y, z, value);
 	}
-	public T remove(final UUID world, final int x, final int y, final int z) {
-		return this.map.remove(new BlockLocation(world, x, y, z));
+	public T put(final String world, final int x, final int y, final int z, T value) {
+		return super.put(new BlockLocation(world, x, y, z), value);
+	}
+	
+	public T remove(final String world, ChunkCoordinates coord) {
+		return this.remove(world, coord.x, coord.y, coord.z);
+	}
+	public T remove(World world, final int x, final int y, final int z) {
+		return this.remove(world.getName(), x, y, z);
+	}
+	public T remove(final String world, final int x, final int y, final int z) {
+		return super.remove(new BlockLocation(world, x, y, z));
 	}
 	public T remove(Block block) {
-		return this.map.remove(new BlockLocation(block));
-	}
-	public boolean isEmpty() {
-		return this.map.isEmpty();
-	}
-	public int size() {
-		return this.map.size();
-	}
-	public Collection<T> values() {
-		return this.map.values();
+		return super.remove(new BlockLocation(block));
 	}
 
 }

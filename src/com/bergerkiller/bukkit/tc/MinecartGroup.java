@@ -63,6 +63,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			g.add(MinecartMember.spawn(at[i], types[i]));
 		}
 		groups.add(g);
+		g.initInWorld();
 		GroupCreateEvent.call(g);
 		return g;
 	}
@@ -79,6 +80,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			g.add(MinecartMember.spawn(destinations[destinations.length - i - 1], types.get(i)));
 		}
 		groups.add(g);
+		g.initInWorld();
 		GroupCreateEvent.call(g);
 		return g;
 	}
@@ -532,7 +534,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		groups.remove(this);
 	}
 	public void destroy() {
-		for (MinecartMember mm : this.toArray()) mm.die();
+		for (MinecartMember mm : this) mm.dead = true;
+	    this.remove();
 	}
 	public void unload() {
 		GroupUnloadEvent.call(this);
@@ -542,7 +545,15 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		groups.remove(this);
 	}
+	public void initInWorld() {
+		for (MinecartMember mm : this) mm.initInWorld();
+	}
 	
+	public void playLinkEffect() {
+		for (MinecartMember mm : this) {
+			mm.playLinkEffect();
+		}
+	}
 	public void stop() {
 		for (MinecartMember m : this) {
 			m.stop();

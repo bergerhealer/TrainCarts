@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.tc.API.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.*;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
@@ -106,7 +107,6 @@ public class MinecartMember extends NativeMinecartMember {
 		//convert
 		MinecartMember mm = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
 		EntityUtil.replaceMinecarts(em, mm);
-		replacedCarts.add(mm);
 		return mm;
 	}
 	public static MinecartMember[] convertAll(Entity... entities) {
@@ -194,7 +194,6 @@ public class MinecartMember extends NativeMinecartMember {
 			if (mm.dead) {
 				iter.remove();
 				mm.die();
-				Util.broadcast("AUTO REMO");
 			}
 		}
 	}
@@ -227,6 +226,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private boolean railsloped = false;
 	private boolean isDerailed = false;
 	private boolean isFlying = false;
+	private boolean isInitWorld = false;
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private HashSet<Block> activeSigns = new HashSet<Block>();
@@ -234,6 +234,11 @@ public class MinecartMember extends NativeMinecartMember {
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.direction = FaceUtil.yawToFace(this.yaw);
+		replacedCarts.add(this);
+	}
+	public void initInWorld() {
+		if (this.isInitWorld) return;
+		this.isInitWorld = true;
 		try {
 			this.updateBlock(true);
 		} catch (MemberDeadException ex) {
@@ -390,12 +395,8 @@ public class MinecartMember extends NativeMinecartMember {
 				if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
 			}
 			
-			//TODO: META DATA
-//			//Update block meta data
-//			List<RailMetaData> newdata = RailMeta.getData(to);
-//			for (RailMetaData dat : newdata) dat.enter(this);
-//			for (RailMetaData dat : this.railmeta) dat.leave(this);
-//			this.railmeta = newdata;
+			//Detector regions
+			DetectorRegion.handleMove(this, from, to);
 								
 			//event
 			MemberBlockChangeEvent.call(this, from, to);
@@ -408,7 +409,7 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 		}
 	}
-			
+				
 	/*
 	 * General getters and setters
 	 */
@@ -460,6 +461,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 	
+ 	
  	/*
  	 * Active signs
  	 */
@@ -567,8 +569,8 @@ public class MinecartMember extends NativeMinecartMember {
 	public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
 		return this.addActionLaunch(this.getLocation().add(offset), targetvelocity);
 	}
-	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double distance, double targetvelocity) {
-		return this.addAction(new MemberActionLaunchDirection(this, targetvelocity, distance, direction));
+	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
+		return this.addAction(new MemberActionLaunchDirection(this, targetdistance, targetvelocity, direction));
 	}
 	
 	/*
@@ -1063,11 +1065,10 @@ public class MinecartMember extends NativeMinecartMember {
 			died = true;
 			replacedCarts.remove(this);
 			this.clearActiveSigns();
+			DetectorRegion.handleLeave(this, this.getBlock());
 			if (this.passenger != null) this.passenger.setPassengerOf(null);
 			if (this.group != null) this.group.remove(this);
 			if (this.properties != null) this.properties.remove();
-			//TODO: META DATA
-			//for (RailMetaData dat : this.railmeta) dat.leave(this); 
 		}
 	}
 

@@ -213,7 +213,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean isFacing() {
 		if (getMember() == null) return false;
-		if (!getMember().isMoving()) return false;
+		if (!getMember().isMoving()) return true;
 		return getMember().getDirection() != getFacing();
 	}
 	public Sign getSign() {
