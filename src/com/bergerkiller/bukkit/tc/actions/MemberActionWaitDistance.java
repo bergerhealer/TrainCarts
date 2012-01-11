@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
-public class MemberActionWaitDistance extends MemberAction implements ActionWait {
+public class MemberActionWaitDistance extends MemberAction implements WaitAction {
 
 	private double distance;
 	public MemberActionWaitDistance(final MinecartMember member, double distance) {

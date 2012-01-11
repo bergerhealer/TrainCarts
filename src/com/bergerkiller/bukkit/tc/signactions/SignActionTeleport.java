@@ -85,7 +85,7 @@ public class SignActionTeleport extends SignAction {
 											EntityUtil.transferItems(from, to);
 											to.b = from.b;
 											to.c = from.c;
-											to.e = from.e;
+											to.fuel = from.fuel;
 
 											//Teleport passenger
 											if (from.passenger != null) {

@@ -5,11 +5,11 @@ import org.bukkit.Location;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
-public class MemberActionLaunchLocation extends MemberActionLaunchDirection {
+public class MemberActionLaunchLocation extends MemberActionLaunchDirection implements VelocityAction {
 
 	private final Location target;
-	public MemberActionLaunchLocation(final MinecartMember member, Location target, double targetvelocity) {
-		super(member, 0, targetvelocity, member.getDirection());
+	public MemberActionLaunchLocation(final MinecartMember member, double targetvelocity, Location target) {
+		super(member, member.distance(target), targetvelocity, member.getDirection());
 		this.target = target.clone();
 	}
 		

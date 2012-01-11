@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.actions;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
 
-public class MemberActionLaunch extends MemberAction {
+public class MemberActionLaunch extends MemberAction implements VelocityAction {
 
 	private double distance;
 	private double targetdistance;
@@ -27,7 +27,7 @@ public class MemberActionLaunch extends MemberAction {
 	}
 	
 	private static final double minVelocity = 0.02;
-	private static final double minVelocitySquared = minVelocity * minVelocity;
+	private static final double minVelocityForLaunch = 0.004;
 	
 	public double getTargetDistance() {
 		return this.targetdistance;
@@ -40,13 +40,12 @@ public class MemberActionLaunch extends MemberAction {
 		//Did any of the carts in the group stop?
 		if (this.distance != 0) {
 			for (MinecartMember mm : this.getGroup()) {
-				if (mm.getForce() < minVelocitySquared) return true; //stopped
+				if (mm.getForceSquared() < minVelocityForLaunch * minVelocityForLaunch) return true; //stopped
 			}
 		}
 		
 		//Increment distance
-		final double distanceChange = this.getMember().getMovedDistanceXZ();
-		this.distance += distanceChange;
+		this.distance += this.getMember().getMovedDistanceXZ();
 		
 		//Reached the target distance?
 		if (this.distance > this.targetdistance - 0.2) {

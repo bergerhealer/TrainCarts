@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -38,8 +41,8 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
-	public int e; //warning! NOT OVERRIDEN FROM BASE CLASS!
-	private boolean f;
+	public int fuel;
+	private boolean backwards;
 	private static final int[][][] matrix = new int[][][] { 
 		{ { 0, 0, -1 }, { 0, 0, 1 } }, { { -1, 0, 0 }, { 1, 0, 0 } },
 		{ { -1, -1, 0 }, { 1, 0, 0 } }, { { -1, 0, 0 }, { 1, -1, 0 } },
@@ -47,12 +50,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		{ { 0, 0, 1 }, { 1, 0, 0 } }, { { 0, 0, 1 }, { -1, 0, 0 } },
 		{ { 0, 0, -1 }, { -1, 0, 0 } }, { { 0, 0, -1 }, { 1, 0, 0 } } };
 
-	private int h;
-	private double i;
-	private double j;
-	private double k;
-	private double l;
-	private double m;
+	private int rotationIncrement;
 
 	public void validate() throws MemberDeadException {
 		if (this.dead) {
@@ -60,7 +58,13 @@ public class NativeMinecartMember extends EntityMinecart {
 			throw new MemberDeadException();
 		}
 	}
-	
+
+	public double getForceSquared() {
+		return Util.lengthSquared(this.motX, this.motZ);
+	}
+	public double getForce() {
+		return Util.length(this.motX, this.motZ);
+	}
 	public double getX() {
 		return this.locX;
 	}
@@ -92,7 +96,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	private boolean ignoreForces() {
-		return group().isActionWait();
+		return group().isVelocityAction();
 	}
 
 	private MinecartMember member() {
@@ -205,7 +209,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Stores m_ information (since functions are now pretty much scattered around)
 	 */
-	private MoveInfo moveinfo;
+	private MoveInfo moveinfo = new MoveInfo();
 	private class MoveInfo {
 		public boolean isRailed; //sets what post-velocity update to run
 		public double prevX;
@@ -214,18 +218,20 @@ public class NativeMinecartMember extends EntityMinecart {
 		public float prevYaw;
 		public float prevPitch;
 		public int[][] aint;
-		public int i;
-		public int j;
-		public int k;
-		public int i1;
+		public int blockX;
+		public int blockY;
+		public int blockZ;
+		public int raildata;
 		public Vec3D vec3d;
-		public boolean flag;
-		public boolean flag1;
+		public boolean isLaunching;
+		public Location getPrevLoc(World world) {
+			return new Location(world.getWorld(), prevX, prevY, prevZ, prevYaw, prevPitch);
+		}
 	}
 	public boolean hasDonePhysics() {
 		return this.moveinfo != null;
 	}
-	
+
 	/*
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
@@ -236,8 +242,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.motX = Util.fixNaN(this.motX);
 		this.motY = Util.fixNaN(this.motY);
 		this.motZ = Util.fixNaN(this.motZ);
-
-		moveinfo = new MoveInfo();
 
 		// CraftBukkit start
 		moveinfo.prevX = this.locX;
@@ -260,25 +264,23 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 
 		if (this.world.isStatic) {
-			if (this.h > 0) {
-				double d0 = this.locX + (this.i - this.locX) / (double) this.h;
-				double d1 = this.locY + (this.j - this.locY) / (double) this.h;
-				double d2 = this.locZ + (this.k - this.locZ) / (double) this.h;
+			if (this.rotationIncrement > 0) {
+				double x = this.locX - this.locX / (double) this.rotationIncrement;
+				double y = this.locY - this.locY / (double) this.rotationIncrement;
+				double z = this.locZ - this.locZ / (double) this.rotationIncrement;
 
-				double d3;
-
-				for (d3 = this.l - (double) this.yaw; d3 < -180.0D; d3 += 360.0D) {
-					;
+				double newYaw = -this.yaw;
+				while (newYaw < -180.0D) {
+					newYaw += 360.0D;
+				}
+				while (newYaw >= 180.0D) {
+					newYaw -= 360.0D;
 				}
 
-				while (d3 >= 180.0D) {
-					d3 -= 360.0D;
-				}
-
-				this.yaw = (float) ((double) this.yaw + d3 / (double) this.h);
-				this.pitch = (float) ((double) this.pitch + (this.m - (double) this.pitch) / (double) this.h);
-				--this.h;
-				this.setPosition(d0, d1, d2);
+				this.yaw += newYaw / (double) this.rotationIncrement;
+				this.pitch -= this.pitch / (double) this.rotationIncrement;
+				--this.rotationIncrement;
+				this.setPosition(x, y, z);
 				this.c(this.yaw, this.pitch);
 			} else {
 				this.setPosition(this.locX, this.locY, this.locZ);
@@ -289,126 +291,121 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.lastY = this.locY;
 			this.lastZ = this.locZ;
 			this.motY -= 0.03999999910593033D * (1 / stepcount);
-			moveinfo.i = MathHelper.floor(this.locX);
-			moveinfo.j = MathHelper.floor(this.locY);
-			moveinfo.k = MathHelper.floor(this.locZ);
+			moveinfo.blockX = MathHelper.floor(this.locX);
+			moveinfo.blockY = MathHelper.floor(this.locY);
+			moveinfo.blockZ = MathHelper.floor(this.locZ);
 
-			if (BlockMinecartTrack.g(this.world, moveinfo.i, moveinfo.j - 1, moveinfo.k)) {
-				--moveinfo.j;
+			if (BlockMinecartTrack.g(this.world, moveinfo.blockX, moveinfo.blockY - 1, moveinfo.blockZ)) {
+				--moveinfo.blockY;
 			}
 
 			// CraftBukkit
-			moveinfo.flag = false;
+			moveinfo.isLaunching = false;
 			//double d4 = this.maxSpeed; //traincarts - removed because of usage in other function
-			
-			//TrainCarts - prevent sloped movement if forces are ignored
-			double d5 = this.ignoreForces() ? 0 : 0.0078125D; //forward movement on slopes
-			
-			int l = this.world.getTypeId(moveinfo.i, moveinfo.j, moveinfo.k);
 
-			moveinfo.isRailed = BlockMinecartTrack.d(l);
+			//TrainCarts - prevent sloped movement if forces are ignored
+			double slopedMotion = this.ignoreForces() ? 0 : 0.0078125D; //forward movement on slopes
+
+			int railtype = this.world.getTypeId(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
+
+			moveinfo.isRailed = BlockMinecartTrack.d(railtype);
 			if (moveinfo.isRailed) {
 				moveinfo.vec3d = this.h(this.locX, this.locY, this.locZ);
-				moveinfo.i1 = this.world.getData(moveinfo.i, moveinfo.j, moveinfo.k);
+				moveinfo.raildata = this.world.getData(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
 
-				this.locY = (double) moveinfo.j;
-				moveinfo.flag = false;
-				moveinfo.flag1 = false;
+				this.locY = (double) moveinfo.blockY;
+				moveinfo.isLaunching = false;
+				boolean isBraking = false;
 
 				// TrainNote: Used to boost a Minecart on powered tracks
-				if (l == Block.GOLDEN_RAIL.id && !ignoreForces()) {
-					moveinfo.flag = (moveinfo.i1 & 8) != 0;
-					moveinfo.flag1 = !moveinfo.flag;
+				if (railtype == Block.GOLDEN_RAIL.id && !ignoreForces()) {
+					moveinfo.isLaunching = (moveinfo.raildata & 8) != 0;
+					isBraking = !moveinfo.isLaunching;
 				}
 
-				if (((BlockMinecartTrack) Block.byId[l]).h()) {
-					moveinfo.i1 &= 7; //sloped?
+				if (((BlockMinecartTrack) Block.byId[railtype]).h()) {
+					moveinfo.raildata &= 7; //sloped?
 				}
-				if (moveinfo.i1 >= 2 && moveinfo.i1 <= 5) {
-					this.locY = (double) (moveinfo.j + 1);
+				if (moveinfo.raildata >= 2 && moveinfo.raildata <= 5) {
+					this.locY = (double) (moveinfo.blockY + 1);
 				}
 
-				if (moveinfo.i1 == 2) {
+				if (moveinfo.raildata == 2) {
 					if (this.motX <= 0 || this.group().getProperties().slowDown) {
-						this.motX -= d5;
+						this.motX -= slopedMotion;
 					}
 				}
 
-				if (moveinfo.i1 == 3) {
+				if (moveinfo.raildata == 3) {
 					if (this.motX >= 0 || this.group().getProperties().slowDown) {
-						this.motX += d5;
+						this.motX += slopedMotion;
 					}
 				}
 
-				if (moveinfo.i1 == 4) {
+				if (moveinfo.raildata == 4) {
 					if (this.motZ >= 0 || this.group().getProperties().slowDown) {
-						this.motZ += d5;
+						this.motZ += slopedMotion;
 					}
 				}
 
-				if (moveinfo.i1 == 5) {
+				if (moveinfo.raildata == 5) {
 					if (this.motZ <= 0 || this.group().getProperties().slowDown) {
-						this.motZ -= d5;
+						this.motZ -= slopedMotion;
 					}
 				}
 				//TrainNote end
-				moveinfo.aint = matrix[moveinfo.i1];
-				double d6 = (double) (moveinfo.aint[1][0] - moveinfo.aint[0][0]);
-				double d7 = (double) (moveinfo.aint[1][2] - moveinfo.aint[0][2]);
-				double d8 = Math.sqrt(d6 * d6 + d7 * d7);
-				double d9 = this.motX * d6 + this.motZ * d7;
 
-				if (d9 < 0.0D) {
-					d6 = -d6;
-					d7 = -d7;
+				moveinfo.aint = matrix[moveinfo.raildata];
+
+				//rail motion is calculated from the rails
+				double railMotionX = (double) (moveinfo.aint[1][0] - moveinfo.aint[0][0]);
+				double railMotionZ = (double) (moveinfo.aint[1][2] - moveinfo.aint[0][2]);		
+				//reverse motion if needed
+				if (this.motX * railMotionX + this.motZ * railMotionZ < 0) {
+					railMotionX = -railMotionX;
+					railMotionZ = -railMotionZ;
 				}
 
-				double d10 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
+				//rail motion is applied (railFactor is used to normalize the rail motion to current motion)
+				double railFactor = Util.normalize(railMotionX, railMotionZ, this.motX, this.motZ);
+				this.motX = railFactor * railMotionX;
+				this.motZ = railFactor * railMotionZ;
 
-				this.motX = d10 * d6 / d8;
-				this.motZ = d10 * d7 / d8;
-				double d11;
-				// TrainNote: Used to slow down a Minecart
-				if (moveinfo.flag1) {
-					d11 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
-					if (d11 < 0.03D) {
-						this.motX *= 0.0D;
-						this.motY *= 0.0D;
-						this.motZ *= 0.0D;
+				//slows down minecarts on unpowered powered rails
+				if (isBraking) {
+					if (this.getForceSquared() < 0.0009D) {
+						this.motX = 0;
+						this.motY = 0;
+						this.motZ = 0;
 					} else {
-						this.motX *= 0.5D;
-						this.motY *= 0.0D;
-						this.motZ *= 0.5D;
+						this.motX /= 2;
+						this.motY = 0;
+						this.motZ /= 2;
 					}
 				}
-				// TrainNote end
-				
-				d11 = 0.0D;
-				double d12 = (double) moveinfo.i + 0.5D + (double) moveinfo.aint[0][0] * 0.5D;
-				double d13 = (double) moveinfo.k + 0.5D + (double) moveinfo.aint[0][2] * 0.5D;
-				double d14 = (double) moveinfo.i + 0.5D + (double) moveinfo.aint[1][0] * 0.5D;
-				double d15 = (double) moveinfo.k + 0.5D + (double) moveinfo.aint[1][2] * 0.5D;
 
-				d6 = d14 - d12;
-				d7 = d15 - d13;
-				double d16;
-				double d17;
-				double d18;
-				if (d6 == 0.0D) {
-					this.locX = (double) moveinfo.i + 0.5D;
-					d11 = this.locZ - (double) moveinfo.k;
-				} else if (d7 == 0.0D) {
-					this.locZ = (double) moveinfo.k + 0.5D;
-					d11 = this.locX - (double) moveinfo.i;
+				//location is updated to follow the tracks
+				double oldRailX = (double) moveinfo.blockX + 0.5D + (double) moveinfo.aint[0][0] * 0.5D;
+				double oldRailZ = (double) moveinfo.blockZ + 0.5D + (double) moveinfo.aint[0][2] * 0.5D;
+				double newRailX = (double) moveinfo.blockX + 0.5D + (double) moveinfo.aint[1][0] * 0.5D;
+				double newRailZ = (double) moveinfo.blockZ + 0.5D + (double) moveinfo.aint[1][2] * 0.5D;
+
+				railMotionX = newRailX - oldRailX;
+				railMotionZ = newRailZ - oldRailZ;
+				if (railMotionX == 0) {
+					railMotionZ *= this.locZ - moveinfo.blockZ;
+				} else if (railMotionZ == 0) {
+					railMotionX *= this.locX - moveinfo.blockX;
 				} else {
-					d16 = this.locX - d12;
-					d18 = this.locZ - d13;
-					d17 = (d16 * d6 + d18 * d7) * 2.0D;
-					d11 = d17;
+					double factor = railMotionX * (this.locX - oldRailX) + railMotionZ * (this.locZ - oldRailZ);
+					factor *= 2;
+					railMotionX *= factor;
+					railMotionZ *= factor;
 				}
-				
-				this.locX = d12 + d6 * d11;
-				this.locZ = d13 + d7 * d11;
+				this.locX = oldRailX + railMotionX;
+				this.locZ = oldRailZ + railMotionZ;
+
+				//finally update the position
 				this.setPosition(this.locX, this.locY + (double) this.height, this.locZ);
 			} else {
 				if (this.onGround) {
@@ -428,6 +425,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Executes the post-velocity and positioning updates
 	 */
+	@SuppressWarnings("unchecked")
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
 		if (this.moveinfo == null) return; //pre-update is needed
@@ -444,101 +442,106 @@ public class NativeMinecartMember extends EntityMinecart {
 		motZ *= speedFactor;
 		if (moveinfo.isRailed) {
 			this.move(motX, 0.0D, motZ);
-			if (moveinfo.aint[0][1] != 0 && MathHelper.floor(this.locX) - moveinfo.i == moveinfo.aint[0][0] && MathHelper.floor(this.locZ) - moveinfo.k == moveinfo.aint[0][2]) {
+			if (moveinfo.aint[0][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.aint[0][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.aint[0][2]) {
 				this.setPosition(this.locX, this.locY + (double) moveinfo.aint[0][1], this.locZ);
-			} else if (moveinfo.aint[1][1] != 0 && MathHelper.floor(this.locX) - moveinfo.i == moveinfo.aint[1][0] && MathHelper.floor(this.locZ) - moveinfo.k == moveinfo.aint[1][2]) {
+			} else if (moveinfo.aint[1][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.aint[1][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.aint[1][2]) {
 				this.setPosition(this.locX, this.locY + (double) moveinfo.aint[1][1], this.locZ);
 			}
 
 			// CraftBukkit
 			//==================TrainCarts edited==============
 			if (this.type == 2 && !ignoreForces()) {
-				double d17 = (double) MathHelper.a(this.b * this.b + this.c * this.c);
-				if (d17 > 0.01D) {
-					this.b /= d17;
-					this.c /= d17;
-					double d19 = 0.04D;
+				double fuelPower = Util.length(this.b, this.c);
+				if (fuelPower > 0.01) {
+					this.b /= fuelPower;
+					this.c /= fuelPower;
+					double boost = 0.04 + TrainCarts.poweredCartBoost;
 
-					this.motX *= 0.800000011920929D + TrainCarts.poweredCartBoost;
-					this.motY *= 0.0D;
-					this.motZ *= 0.800000011920929D + TrainCarts.poweredCartBoost;
-					this.motX += this.b * d19;
-					this.motZ += this.c * d19;
+					this.motX *= 0.8;
+					this.motY *= 0.0;
+					this.motZ *= 0.8;
+					this.motX += this.b * boost;
+					this.motZ += this.c * boost;
 				} else {
 					if (this.group().getProperties().slowDown) {
-						this.motX *= 0.8999999761581421D;
-						this.motY *= 0.0D;
-						this.motZ *= 0.8999999761581421D;
+						this.motX *= 0.9;
+						this.motY *= 0.0;
+						this.motZ *= 0.9;
 					}
 				}
 			}
 			if (this.group().getProperties().slowDown) {
-				this.motX *= 0.996999979019165D;
-				this.motY *= 0.0D;
-				this.motZ *= 0.996999979019165D;
+				this.motX *= 0.997;
+				this.motY *= 0.0;
+				this.motZ *= 0.997;
 			}
 			//==================================================
 
 			Vec3D vec3d1 = this.h(this.locX, this.locY, this.locZ);
 
-			double d10;
+			double motLength;
+
+			//x and z motion slowed down on slopes
 			if (vec3d1 != null && moveinfo.vec3d != null) {
 				if (this.group().getProperties().slowDown) {
-					double d20 = (moveinfo.vec3d.b - vec3d1.b) * 0.05D;
-
-					d10 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
-					if (d10 > 0.0D) {
-						this.motX = this.motX / d10 * (d10 + d20);
-						this.motZ = this.motZ / d10 * (d10 + d20);
+					motLength = this.getForce();
+					if (motLength > 0) {
+						double slopeSlowDown = (moveinfo.vec3d.b - vec3d1.b) * 0.05;
+						slopeSlowDown /= motLength;
+						slopeSlowDown += 1;
+						this.motX *= slopeSlowDown;
+						this.motZ *= slopeSlowDown;
 					}
 				}
 				this.setPosition(this.locX, vec3d1.b, this.locZ);
 			}
-			int j1 = MathHelper.floor(this.locX);
-			int k1 = MathHelper.floor(this.locZ);
 
-			if (j1 != moveinfo.i || k1 != moveinfo.k) {
-				d10 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
-				this.motX = d10 * (double) (j1 - moveinfo.i);
-				this.motZ = d10 * (double) (k1 - moveinfo.k);
+			//update motion based on changed location
+			int newBlockX = MathHelper.floor(this.locX);
+			int newBlockZ = MathHelper.floor(this.locZ);
+			if (newBlockX != moveinfo.blockX || newBlockZ != moveinfo.blockZ) {
+				motLength = this.getForce();
+				this.motX = motLength * (double) (newBlockX - moveinfo.blockX);
+				this.motZ = motLength * (double) (newBlockZ - moveinfo.blockZ);
 			}
 
-			double d21;
-
-			//TrainNote: PushX and PushZ updated for Powered Minecarts
+			//PushX and PushZ updated for Powered Minecarts
 			if (this.type == 2) {
-				d21 = (double) MathHelper.a(this.b * this.b + this.c * this.c);
-				if (d21 > 0.01D && this.motX * this.motX + this.motZ * this.motZ > 0.0010D) {
-					this.b /= d21;
-					this.c /= d21;
-					if (this.b * this.motX + this.c * this.motZ < 0.0D) {
-						this.b = 0.0D;
-						this.c = 0.0D;
+				motLength = Util.length(this.b, this.c);
+				if (motLength > 0.01 && this.motX * this.motX + this.motZ * this.motZ > 0.001) {
+					this.b /= motLength;
+					this.c /= motLength;
+					if (this.b * this.motX + this.c * this.motZ < 0) {
+						this.b = 0;
+						this.c = 0;
 					} else {
 						this.b = this.motX;
 						this.c = this.motZ;
 					}
 				}
 			}
-			//TrainNote end
 
-			if (moveinfo.flag) {
-				d21 = Math.sqrt(this.motX * this.motX + this.motZ * this.motZ);
-				if (d21 > 0.01D) {
-					double d22 = 0.06D;
-					this.motX += this.motX / d21 * d22;
-					this.motZ += this.motZ / d21 * d22;
-				} else if (moveinfo.i1 == 1) {
-					if (this.world.e(moveinfo.i - 1, moveinfo.j, moveinfo.k)) {
-						this.motX = 0.02D;
-					} else if (this.world.e(moveinfo.i + 1, moveinfo.j, moveinfo.k)) {
-						this.motX = -0.02D;
+			//Launch on powered rails
+			if (moveinfo.isLaunching) {
+				motLength = this.getForce();
+				if (motLength > 0.01) {
+					//simple motion boosting when already moving
+					double launchFactor = 0.06D / motLength;
+					this.motX += this.motX * launchFactor;
+					this.motZ += this.motZ * launchFactor;
+				} else if (moveinfo.raildata == 1) {
+					//launch at x-axis
+					if (this.world.e(moveinfo.blockX - 1, moveinfo.blockY, moveinfo.blockZ)) {
+						this.motX = 0.02;
+					} else if (this.world.e(moveinfo.blockX + 1, moveinfo.blockY, moveinfo.blockZ)) {
+						this.motX = -0.02;
 					}
-				} else if (moveinfo.i1 == 0) {
-					if (this.world.e(moveinfo.i, moveinfo.j, moveinfo.k - 1)) {
-						this.motZ = 0.02D;
-					} else if (this.world.e(moveinfo.i, moveinfo.j, moveinfo.k + 1)) {
-						this.motZ = -0.02D;
+				} else if (moveinfo.raildata == 0) {
+					//launch at z-axis
+					if (this.world.e(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ - 1)) {
+						this.motZ = 0.02;
+					} else if (this.world.e(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ + 1)) {
+						this.motZ = -0.02;
 					}
 				}
 			}
@@ -564,61 +567,45 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 
-
-
-		this.pitch = 0.0F;
-		double d23 = this.lastX - this.locX;
-		double d24 = this.lastZ - this.locZ;
-
-		if (d23 * d23 + d24 * d24 > 0.0010D) {
-			this.yaw = (float) (Math.atan2(d24, d23) * 180.0D / 3.141592653589793D);
-			if (this.f) {
-				this.yaw += 180.0F;
+		//Update yaw and backwards state
+		this.pitch = 0;
+		double locChangeX = this.lastX - this.locX;
+		double locChangeZ = this.lastZ - this.locZ;
+		if (Util.lengthSquared(locChangeX, locChangeZ) > 0.001) {
+			this.yaw = (float) Math.atan2(locChangeX, locChangeZ) * Util.RADTODEG;
+			if (this.backwards) {
+				this.yaw += 180;
 			}
 		}
-
-		double d25;
-
-		for (d25 = (double) (this.yaw - this.lastYaw); d25 >= 180.0D; d25 -= 360.0D) {
-			;
+		float yawChange = this.yaw - this.lastYaw;
+		while (yawChange >= 180) {
+			yawChange -= 360;
 		}
-
-		while (d25 < -180.0D) {
-			d25 += 360.0D;
+		while (yawChange < -180) {
+			yawChange += 360;
+		}	
+		if (yawChange < -170 || yawChange >= 170) {
+			this.yaw += 180;
+			this.backwards = !this.backwards;
 		}
-
-		if (d25 < -170.0D || d25 >= 170.0D) {
-			this.yaw += 180.0F;
-			this.f = !this.f;
-		}
-
 		this.c(this.yaw, this.pitch);
 
 		// CraftBukkit start
-		org.bukkit.World bworld = this.world.getWorld();
-		Location from = new Location(bworld, moveinfo.prevX, moveinfo.prevY,
-				moveinfo.prevZ, moveinfo.prevYaw, moveinfo.prevPitch);
-		Location to = new Location(bworld, this.locX, this.locY, this.locZ,
-				this.yaw, this.pitch);
+		Location from = moveinfo.getPrevLoc(this.world);
+		Location to = this.getLocation();
 		Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 
-		this.world.getServer().getPluginManager()
-		.callEvent(new VehicleUpdateEvent(vehicle));
+		Util.call(new VehicleUpdateEvent(vehicle));
 
 		if (!from.equals(to)) {
-			this.world.getServer().getPluginManager()
-			.callEvent(new VehicleMoveEvent(vehicle, from, to));
+			Util.call(new VehicleMoveEvent(vehicle, from, to));
 		}
 		// CraftBukkit end
 
-		List list = this.world.b((Entity) this, this.boundingBox.b(
-				0.20000000298023224D, 0.0D, 0.20000000298023224D));
-
-		if (list != null && list.size() > 0) {
-			for (int l1 = 0; l1 < list.size(); ++l1) {
-				Entity entity = (Entity) list.get(l1);
-				if (entity != this.passenger && entity.f_()
-						&& entity instanceof EntityMinecart) {
+		List<Entity> list = this.world.b(this, this.boundingBox.b(0.2, 0, 0.2));
+		if (list != null && !list.isEmpty()) {
+			for (Entity entity : list) {
+				if (entity != this.passenger && entity.f_() && entity instanceof EntityMinecart) {
 					entity.collide(this);
 				}
 			}
@@ -629,18 +616,17 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.passenger = null;
 		}
 
-		if (this.e > 0) {
-			--this.e;
-		}
-		if (this.e <= 0) {
-			//TrainCarts - Actions to be done when empty
-			if (this.type == 2 && this.onCoalUsed()) {
-				this.e = 3600; //Refill
-			} else {
-				this.b = this.c = 0.0D;
+		if (this.fuel > 0 && this.type == 2) {
+			if (--this.fuel == 0) {
+				//TrainCarts - Actions to be done when empty
+				if (this.onCoalUsed()) {
+					this.fuel += 3600; //Refill
+				} else {
+					this.b = this.c = 0.0D;
+				}
 			}
 		}
-		this.a(this.e > 0);
+		this.a(this.fuel > 0);
 	}
 
 	/*
@@ -649,15 +635,15 @@ public class NativeMinecartMember extends EntityMinecart {
 	@Override
 	public boolean b(EntityHuman entityhuman) {
 		if (this.type == 2) {
-            ItemStack itemstack = entityhuman.inventory.getItemInHand();
-            if (itemstack != null && itemstack.id == Item.COAL.id) {
-                if (--itemstack.count == 0) {
-                    entityhuman.inventory.setItem(entityhuman.inventory.itemInHandIndex, (ItemStack) null);
-                }
-                this.e += 3600;
-            }
-            this.b = this.locX - entityhuman.locX;
-            this.c = this.locZ - entityhuman.locZ;		
+			ItemStack itemstack = entityhuman.inventory.getItemInHand();
+			if (itemstack != null && itemstack.id == Item.COAL.id) {
+				if (--itemstack.count == 0) {
+					entityhuman.inventory.setItem(entityhuman.inventory.itemInHandIndex, (ItemStack) null);
+				}
+				this.fuel += 3600;
+			}
+			this.b = this.locX - entityhuman.locX;
+			this.c = this.locZ - entityhuman.locZ;		
 			return true;
 		} else {
 			return super.b(entityhuman);
@@ -676,6 +662,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/Entity.java
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public void move(double d0, double d1, double d2) {
 		if (this.bN) {
 			this.boundingBox.d(d0, d1, d2);
@@ -730,12 +717,12 @@ public class NativeMinecartMember extends EntityMinecart {
 			List list = this.world.getEntities(this, this.boundingBox.a(d0, d1, d2));
 
 			//=========================TrainCarts Changes Start==============================
-					filterCollisionList(list);
+			filterCollisionList(list);
 			//=========================TrainCarts Changes End==============================
 
-					for (int i = 0; i < list.size(); ++i) {
-						d1 = ((AxisAlignedBB) list.get(i)).b(this.boundingBox, d1);
-					}
+			for (int i = 0; i < list.size(); ++i) {
+				d1 = ((AxisAlignedBB) list.get(i)).b(this.boundingBox, d1);
+			}
 
 			this.boundingBox.d(0.0D, d1, 0.0D);
 			if (!this.bA && d6 != d1) {
@@ -788,68 +775,68 @@ public class NativeMinecartMember extends EntityMinecart {
 				list = this.world.getEntities(this, this.boundingBox.a(d5, d1, d7));
 
 				//=========================TrainCarts Changes Start==============================
-						filterCollisionList(list);
+				filterCollisionList(list);
 				//=========================TrainCarts Changes End==============================
 
-						for (k = 0; k < list.size(); ++k) {
-							d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
-						}
+				for (k = 0; k < list.size(); ++k) {
+					d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
+				}
 
-						this.boundingBox.d(0.0D, d1, 0.0D);
-						if (!this.bA && d6 != d1) {
-							d2 = 0.0D;
-							d1 = 0.0D;
-							d0 = 0.0D;
-						}
+				this.boundingBox.d(0.0D, d1, 0.0D);
+				if (!this.bA && d6 != d1) {
+					d2 = 0.0D;
+					d1 = 0.0D;
+					d0 = 0.0D;
+				}
 
-						for (k = 0; k < list.size(); ++k) {
-							d0 = ((AxisAlignedBB) list.get(k)).a(this.boundingBox, d0);
-						}
+				for (k = 0; k < list.size(); ++k) {
+					d0 = ((AxisAlignedBB) list.get(k)).a(this.boundingBox, d0);
+				}
 
-						this.boundingBox.d(d0, 0.0D, 0.0D);
-						if (!this.bA && d5 != d0) {
-							d2 = 0.0D;
-							d1 = 0.0D;
-							d0 = 0.0D;
-						}
+				this.boundingBox.d(d0, 0.0D, 0.0D);
+				if (!this.bA && d5 != d0) {
+					d2 = 0.0D;
+					d1 = 0.0D;
+					d0 = 0.0D;
+				}
 
-						for (k = 0; k < list.size(); ++k) {
-							d2 = ((AxisAlignedBB) list.get(k)).c(this.boundingBox, d2);
-						}
+				for (k = 0; k < list.size(); ++k) {
+					d2 = ((AxisAlignedBB) list.get(k)).c(this.boundingBox, d2);
+				}
 
-						this.boundingBox.d(0.0D, 0.0D, d2);
-						if (!this.bA && d7 != d2) {
-							d2 = 0.0D;
-							d1 = 0.0D;
-							d0 = 0.0D;
-						}
+				this.boundingBox.d(0.0D, 0.0D, d2);
+				if (!this.bA && d7 != d2) {
+					d2 = 0.0D;
+					d1 = 0.0D;
+					d0 = 0.0D;
+				}
 
-						if (!this.bA && d6 != d1) {
-							d2 = 0.0D;
-							d1 = 0.0D;
-							d0 = 0.0D;
-						} else {
-							d1 = (double) (-this.bM);
+				if (!this.bA && d6 != d1) {
+					d2 = 0.0D;
+					d1 = 0.0D;
+					d0 = 0.0D;
+				} else {
+					d1 = (double) (-this.bM);
 
-							for (k = 0; k < list.size(); ++k) {
-								d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
-							}
+					for (k = 0; k < list.size(); ++k) {
+						d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
+					}
 
-							this.boundingBox.d(0.0D, d1, 0.0D);
-						}
+					this.boundingBox.d(0.0D, d1, 0.0D);
+				}
 
-						if (d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2) {
-							d0 = d9;
-							d1 = d10;
-							d2 = d11;
-							this.boundingBox.b(axisalignedbb1);
-						} else {
-							double d12 = this.boundingBox.b - (double) ((int) this.boundingBox.b);
+				if (d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2) {
+					d0 = d9;
+					d1 = d10;
+					d2 = d11;
+					this.boundingBox.b(axisalignedbb1);
+				} else {
+					double d12 = this.boundingBox.b - (double) ((int) this.boundingBox.b);
 
-							if (d12 > 0.0D) {
-								this.bL = (float) ((double) this.bL + d12 + 0.01D);
-							}
-						}
+					if (d12 > 0.0D) {
+						this.bL = (float) ((double) this.bL + d12 + 0.01D);
+					}
+				}
 			}
 
 			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
@@ -938,31 +925,31 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			boolean flag2 = this.ay();
 
-            if (this.world.d(this.boundingBox.shrink(0.0010D, 0.0010D, 0.0010D))) {
-                this.burn(1);
-                if (!flag2) {
-                    ++this.fireTicks;
-                    // CraftBukkit start - not on fire yet
-                    if (this.fireTicks <= 0) { // only throw events on the first combust, otherwise it spams
-                        EntityCombustEvent event = new EntityCombustEvent(this.getBukkitEntity(), 8);
-                        this.world.getServer().getPluginManager().callEvent(event);
+			if (this.world.d(this.boundingBox.shrink(0.0010D, 0.0010D, 0.0010D))) {
+				this.burn(1);
+				if (!flag2) {
+					++this.fireTicks;
+					// CraftBukkit start - not on fire yet
+					if (this.fireTicks <= 0) { // only throw events on the first combust, otherwise it spams
+						EntityCombustEvent event = new EntityCombustEvent(this.getBukkitEntity(), 8);
+						this.world.getServer().getPluginManager().callEvent(event);
 
-                        if (!event.isCancelled()) {
-                            this.setOnFire(event.getDuration());
-                        }
-                    } else {
-                        // CraftBukkit end
-                        this.setOnFire(8);
-                    }
-                }
-            } else if (this.fireTicks <= 0) {
-                this.fireTicks = -this.maxFireTicks;
-            }
-            
-            if (flag2 && this.fireTicks > 0) {
-                this.world.makeSound(this, "random.fizz", 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
-                this.fireTicks = -this.maxFireTicks;
-            }
+						if (!event.isCancelled()) {
+							this.setOnFire(event.getDuration());
+						}
+					} else {
+						// CraftBukkit end
+						this.setOnFire(8);
+					}
+				}
+			} else if (this.fireTicks <= 0) {
+				this.fireTicks = -this.maxFireTicks;
+			}
+
+			if (flag2 && this.fireTicks > 0) {
+				this.world.makeSound(this, "random.fizz", 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+				this.fireTicks = -this.maxFireTicks;
+			}
 		}
 	}
 
@@ -973,7 +960,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (this.member().isCollisionIgnored(e)) return false;
 		if (e.dead) return false;
 		if (this.dead) return false;
-		if (this.group().isActionWait()) return false;
+		if (this.group().isVelocityAction()) return false;
 		if (e instanceof MinecartMember) {
 			//colliding with a member in the group, or not?
 			MinecartMember mm1 = this.member();
@@ -989,7 +976,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			} else if (!mm2.getGroup().getProperties().trainCollision) {
 				//Other train allows train collisions?
 				return false;
-			} else if (mm2.getGroup().isActionWait()) {
+			} else if (mm2.getGroup().isVelocityAction()) {
 				//Is this train targeting?
 				return false;
 			}
@@ -1027,26 +1014,25 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Prevents passengers and Minecarts from colliding with Minecarts
 	 */
 	@SuppressWarnings("unchecked")
-	private void filterCollisionList(List list) {		
-		int ri = 0;
+	private void filterCollisionList(List<AxisAlignedBB> list) {		
+		try {
+			List<Entity> entityList = this.world.entityList;
 
-		Entity[] entityList = (Entity[]) this.world.entityList.toArray(new Entity[0]);
-
-		while (ri < list.size()) {
-			AxisAlignedBB a = (AxisAlignedBB) list.get(ri);
-			boolean remove = false;
-			for (Entity e : entityList) {
-				if (e.boundingBox == a) {
-					remove = !canCollide(e);
+			Iterator<AxisAlignedBB> iter = list.iterator();
+			AxisAlignedBB a;
+			while (iter.hasNext()) {
+				a = iter.next();
+				for (Entity e : entityList) {
+					if (e.boundingBox == a) {
+						if (!canCollide(e)) iter.remove();
+						break;
+					}
 				}
-				if (remove) break;
 			}
-			if (remove) {
-				list.remove(ri);
-			} else {
-				ri++;
-			}
+		} catch (ConcurrentModificationException ex) {
+		    Util.log(Level.WARNING, "Another plugin is interacting with the world entity list from another thread, please check your plugins!");
 		}
+
 	}
 
 }

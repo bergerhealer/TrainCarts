@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 
 public class Destinations {
+	private static final int maxPathLength = 100000;
 	private static final String destinationsFile = "destinations.yml";
 	private static HashSet<String> checked = new HashSet<String>(); //used to prevent infinite loops
 	private static HashMap<String, Destinations> properties = new HashMap<String, Destinations>();
@@ -56,12 +57,12 @@ public class Destinations {
 	}
 
 	private static class Node {
-		public Node(BlockFace dir, double dist) {
+		public Node(BlockFace dir, int dist) {
 			this.dir = dir;
 			this.dist = dist;
 		}
 		public BlockFace dir;
-		public double dist;
+		public int dist;
 	}
 	
 	/**
@@ -101,7 +102,7 @@ public class Destinations {
 	 */
 	public Node getDir(String reqname){
 		//is this us? return DOWN;
-		if (reqname.equals(this.destname)) return new Node(BlockFace.DOWN, 0.0);
+		if (reqname.equals(this.destname)) return new Node(BlockFace.DOWN, 0);
 		//explore first if not explored yet
 		if (this.neighbours.isEmpty()){
 			this.explore();
@@ -210,7 +211,7 @@ public class Destinations {
 			if (dir.equals("EAST")) bf = BlockFace.EAST;
 			if (dir.equals("SOUTH")) bf = BlockFace.SOUTH;
 			if (dir.equals("WEST")) bf = BlockFace.WEST;
-			this.dests.put(k, new Node(bf, node.get(k + ".dist", 100000.0)));
+			this.dests.put(k, new Node(bf, node.get(k + ".dist", maxPathLength)));
 		}
 	}
 	public void load(Destinations source) {

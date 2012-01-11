@@ -303,9 +303,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public GroupActionSizzle addActionSizzle() {
 		return this.addAction(new GroupActionSizzle(this));
 	}
-	public boolean isActionWait() {
+	public boolean isWaitAction() {
 		Action a = this.actions.peek();
-		return a == null ? false : a instanceof ActionWait;
+		return a == null ? false : a instanceof WaitAction;
+	}
+	public boolean isVelocityAction() {
+		Action a = this.actions.peek();
+		return a == null ? false : a instanceof VelocityAction;
 	}
 		
 	/*

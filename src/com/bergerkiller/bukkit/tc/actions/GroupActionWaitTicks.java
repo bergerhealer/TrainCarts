@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 
-public class GroupActionWaitTicks extends GroupAction implements ActionWait {
+public class GroupActionWaitTicks extends GroupAction implements WaitAction {
 
 	private int ticks;
 	public GroupActionWaitTicks(MinecartGroup group, int ticks) {

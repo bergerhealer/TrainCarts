@@ -564,7 +564,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.addAction(new MemberActionLaunch(this, distance, targetvelocity));
 	}
 	public MemberActionLaunchLocation addActionLaunch(Location destination, double targetvelocity) {
-		return this.addAction(new MemberActionLaunchLocation(this, destination, targetvelocity));
+		return this.addAction(new MemberActionLaunchLocation(this, targetvelocity, destination));
 	}
 	public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
 		return this.addActionLaunch(this.getLocation().add(offset), targetvelocity);
@@ -576,9 +576,6 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * Velocity functions
 	 */
-	public double getForce() {
-		return Util.length(motX, motZ);
-	}
 	public double getForwardForce() {
 		return -FaceUtil.sin(this.direction) * this.motZ - FaceUtil.cos(this.direction) * this.motX; 
 	}
@@ -587,9 +584,8 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motY *= factor;
 		this.motZ *= factor;
 	}
-	public void setForce(double force, BlockFace direction) {
-		this.motX = -FaceUtil.cos(this.direction) * force;
-		this.motZ = -FaceUtil.sin(this.direction) * force;
+	
+	private void setYForce(double force) {
 		if (this.railsloped) {
 			//calculate upwards or downwards force
 			BlockFace raildir = this.getRailDirection();
@@ -600,8 +596,20 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 		}
 	}
+	public void setForce(double force, BlockFace direction) {
+		this.setYForce(force);
+		this.motX = -FaceUtil.cos(this.direction) * force;
+		this.motZ = -FaceUtil.sin(this.direction) * force;
+	}
 	public void setForwardForce(double force) {
-		setForce(force, this.direction);
+		if (this.isMoving() && force > 0.01) {
+			this.setYForce(force);
+			force /= this.getForce();
+			this.motX *= force;
+			this.motZ *= force;
+		} else {
+			this.setForce(force, this.direction);
+		}
 	}
 	public void limitSpeed() {
 		//Limits the velocity to the maximum
@@ -892,7 +900,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.passenger == null ? null : this.passenger.getBukkitEntity();
 	}
 	public boolean hasFuel() {
-		return this.e > 0;
+		return this.fuel > 0;
 	}	
 	public Inventory getInventory() {
 		return new CraftInventory(this);

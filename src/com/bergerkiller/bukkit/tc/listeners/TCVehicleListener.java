@@ -133,7 +133,7 @@ public class TCVehicleListener extends VehicleListener {
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
 			if (mm1 != null) {
-				if (mm1.getGroup().isActionWait()) {
+				if (mm1.getGroup().isVelocityAction()) {
 					event.setCancelled(true);
 				} else if (mm1.isCollisionIgnored(event.getEntity())) {
 					event.setCancelled(true);
@@ -143,7 +143,7 @@ public class TCVehicleListener extends VehicleListener {
 						MinecartMember mm2 = MinecartMember.convert(event.getEntity());
 						if (mm2 == null || mm1.getGroup() == mm2.getGroup() || MinecartGroup.link(mm1, mm2)) {
 							event.setCancelled(true);
-						} else if (mm2.getGroup().isActionWait()) {
+						} else if (mm2.getGroup().isVelocityAction()) {
 							event.setCancelled(true);
 						}
 					} else if (prop.canPushAway(event.getEntity())) {

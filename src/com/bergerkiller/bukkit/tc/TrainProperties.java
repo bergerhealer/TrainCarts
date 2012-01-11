@@ -129,6 +129,30 @@ public class TrainProperties {
 			prop.addTags(tags);
 		}
 	}
+	public void removeTags(String... tags) {
+		for (CartProperties prop : this.cartproperties) {
+			prop.removeTags(tags);
+		}
+	}
+	
+	/*
+	 * Other batch cart property changing
+	 */
+	public void setAllowPlayerEnter(boolean state) {
+		for (CartProperties prop : this.cartproperties) {
+		    prop.allowPlayerEnter = state;
+		}
+	}
+	public void setAllowPlayerExit(boolean state) {
+		for (CartProperties prop : this.cartproperties) {
+		    prop.allowPlayerExit = state;
+		}
+	}
+	public void setAllowMobsEnter(boolean state) {
+		for (CartProperties prop : this.cartproperties) {
+		    prop.allowMobsEnter = state;
+		}
+	}
 	
 	/*
 	 * Destination

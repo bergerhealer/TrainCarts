@@ -35,6 +35,20 @@ public class SignActionProperties extends SignAction {
 			} catch (NumberFormatException ex) {
 				prop.speedLimit = 0.4;
 			}
+		} else if (mode.equals("addtag")) {
+			prop.addTags(arg);
+		} else if (mode.equals("settag")) {
+			prop.setTags(arg);
+		} else if (mode.equals("destination")) {
+			prop.setDestination(arg);
+		} else if (mode.equals("remtag")) {
+			prop.removeTags(arg);
+		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
+			prop.setAllowMobsEnter(Util.getBool(arg));
+		} else if (mode.equals("playerenter")) {
+			prop.setAllowPlayerEnter(Util.getBool(arg));
+		} else if (mode.equals("playerexit")) {
+			prop.setAllowPlayerExit(Util.getBool(arg));
 		}
 	}
 	public void handleProperties(CartProperties prop, String mode, String arg) {

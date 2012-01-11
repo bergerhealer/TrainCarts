@@ -27,7 +27,6 @@ public class SignActionStation extends SignAction {
 						if (group != null) {
 							if (info.isAction(SignActionType.GROUP_LEAVE)) {
 							} else if (!info.isPowered()) {
-								//TODO: Correctly handle this! (zomg)
 								group.clearActions();
 							} else {
 								//Check if not already targeting
@@ -106,7 +105,6 @@ public class SignActionStation extends SignAction {
 									if (instruction == BlockFace.UP) return; 
 
 									//What do we do?
-									//Location l = info.getRailLocation();
 									if (instruction == BlockFace.SELF) {
 										if (north || east || south || west) {
 											//Redstone change and moving?

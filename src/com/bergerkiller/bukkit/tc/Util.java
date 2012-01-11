@@ -123,6 +123,9 @@ public class Util {
         while (angle > 180) angle -= 360;
         return angle;
 	}
+	public static double normalize(double x, double z, double reqx, double reqz) {
+		return Math.sqrt(lengthSquared(reqx, reqz) / lengthSquared(x, z));
+	}
 	public static float getLookAtYaw(MinecartMember loc, MinecartMember lookat) {
 		return getLookAtYaw(loc.getMinecart(), lookat.getMinecart());
 	}

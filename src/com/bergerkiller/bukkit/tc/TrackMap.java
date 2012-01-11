@@ -18,7 +18,7 @@ public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;
 	private BlockFace direction;
 	private Set<ChunkCoordinates> coordinates = new HashSet<ChunkCoordinates>();
-	private double totaldistance = 0;
+	private int totaldistance = 0;
 	public TrackMap(Block start, BlockFace direction) {
 		this.direction = direction;
 		this.add(start);
@@ -116,7 +116,7 @@ public class TrackMap extends ArrayList<Block> {
 	public Set<ChunkCoordinates> getCoordinates() {
 		return this.coordinates;
 	}
-	public double getTotalDistance() {
+	public int getTotalDistance() {
 		return totaldistance;
 	}
 	public BlockFace getNextDirection() {
@@ -266,7 +266,7 @@ public class TrackMap extends ArrayList<Block> {
 		Block next = getNext(this.last(), direction);
 		//prevent loops by checking for double every 20 tiles
 		if (this.add(next)) {
-			totaldistance += last().getLocation().distance(next.getLocation());
+			totaldistance++;
 			return next;
 		} else {
 			return null;
