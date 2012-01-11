@@ -56,8 +56,8 @@ public class Destinations {
 		properties = null;
 	}
 
-	private static class Node {
-		public Node(BlockFace dir, int dist) {
+	private static class Connection {
+		public Connection(BlockFace dir, int dist) {
 			this.dir = dir;
 			this.dist = dist;
 		}
@@ -79,14 +79,14 @@ public class Destinations {
 		Destinations dest = get(thistag);
 		if (dest == null) return BlockFace.NORTH;
 		dest.explore();
-		Node r = dest.getDir(destname);
+		Connection r = dest.getDir(destname);
 		checked.clear();
 		return r.dir;
 	}
 	
 	private String destname;
-	public HashMap<String, Node> dests = new HashMap<String, Node>(); //all possible connected nodes
-	public HashSet<String> neighbours = new HashSet<String>(); 
+	public HashMap<String, Connection> dests = new HashMap<String, Connection>(); //all possible connections
+	public HashSet<String> neighbours = new HashSet<String>(); //directly connected
 
 	private Destinations(String destname) {
 		this.destname = destname;
@@ -100,9 +100,9 @@ public class Destinations {
 	 * @param reqname The wanted destination.
 	 * @return The direction to go in from currloc to reach destname, or BlockFace.UP if unknown.
 	 */
-	public Node getDir(String reqname){
+	public Connection getDir(String reqname){
 		//is this us? return DOWN;
-		if (reqname.equals(this.destname)) return new Node(BlockFace.DOWN, 0);
+		if (reqname.equals(this.destname)) return new Connection(BlockFace.DOWN, 0);
 		//explore first if not explored yet
 		if (this.neighbours.isEmpty()){
 			this.explore();
@@ -110,20 +110,20 @@ public class Destinations {
 		//ask the neighbours what they know
 		if (checked.add(this.destname)) this.askNeighbours(reqname);
 		//return what we know
-		Node n = this.dests.get(reqname);
+		Connection n = this.dests.get(reqname);
 		if (n != null) return n;
-		return new Node(BlockFace.UP, 100000);
+		return new Connection(BlockFace.UP, maxPathLength);
 	}
 
 	private void askNeighbours(String reqname) {
 		for (String neigh : this.neighbours){
 			if (neigh.equals(this.destname)) continue; //skip self
-			Node node = this.dests.get(neigh);
-			Destinations n = get(neigh); //get this neighbour
-			n.getDir(reqname); //make sure this node is explored
-			for (Map.Entry<String, Node> dest : n.dests.entrySet()) {
-				if (dest.getKey() == this.destname) continue; //skip self
-				updateDest(dest.getKey(), new Node(node.dir, dest.getValue().dist + node.dist + 1));
+			Connection connection = this.dests.get(neigh);
+			Destinations destination = get(neigh); //get this neighbour
+			destination.getDir(reqname); //make sure this node is explored
+			for (Map.Entry<String, Connection> dest : destination.dests.entrySet()) {
+				if (dest.getKey().equals(this.destname)) continue; //skip self
+				this.updateDestinationDistance(dest.getKey(), connection.dir, dest.getValue().dist + connection.dist + 1);
 			}
 		}
 	}
@@ -154,7 +154,7 @@ public class Destinations {
 					if (newdest.isEmpty()) continue;
 					//finished, we found our first target
 					this.neighbours.add(newdest);
-					this.updateDest(newdest, new Node(dir, map.getTotalDistance() + 1));
+					this.updateDestinationDistance(newdest, dir, map.getTotalDistance() + 1);
 					return;
 				}
 			}
@@ -176,29 +176,22 @@ public class Destinations {
 	 * @param newdir Direction the destination is in, with this distance.
 	 * @param newdist Distance the destination is in, with this direction.
 	 */
-	private void updateDest(String newdest, Node newnode){
-		if (newnode.dist >= 100000.0) return; //don't store failed calculations
-		//if we already know about this destination, and we are not faster, ignore it.
-        Node n = this.dests.get(newdest);
-		if ((n != null) && (n.dist <= newnode.dist)) return;
-		//save.
-		this.dests.put(newdest, newnode);
+	private boolean updateDestinationDistance(final String name, final BlockFace direction, final int distance) {
+		Connection n = this.dests.get(name);
+		if (n == null) {
+			this.dests.put(name, new Connection(direction, distance));
+			return true;
+		} else if (n.dist < distance) {
+			return false;
+		} else {
+			n.dist = distance;
+			n.dir = direction;
+			return true;
+		}
 	}
 
 	public String getDestName() {
 		return this.destname;
-	}
-
-	public void remove() {
-		properties.remove(this.destname);
-	}
-	public void add() {
-		properties.put(this.destname, this);
-	}
-	public void rename(String newdestname) {
-		this.remove();
-		this.destname = newdestname;
-		properties.put(newdestname, this);
 	}
 
 	public void load(ConfigurationNode node) {
@@ -211,15 +204,12 @@ public class Destinations {
 			if (dir.equals("EAST")) bf = BlockFace.EAST;
 			if (dir.equals("SOUTH")) bf = BlockFace.SOUTH;
 			if (dir.equals("WEST")) bf = BlockFace.WEST;
-			this.dests.put(k, new Node(bf, node.get(k + ".dist", maxPathLength)));
+			this.dests.put(k, new Connection(bf, node.get(k + ".dist", maxPathLength)));
 		}
-	}
-	public void load(Destinations source) {
-		this.dests.putAll(source.dests);
 	}
 	public void save(ConfigurationNode node) {
 		node.set("neighbours", new ArrayList<String>(this.neighbours));
-		for (Map.Entry<String, Node> entry : this.dests.entrySet()){
+		for (Map.Entry<String, Connection> entry : this.dests.entrySet()){
 			node.set(entry.getKey() + ".dir", entry.getValue().dir.toString());
 			node.set(entry.getKey() + ".dist", entry.getValue().dist);
 		}
