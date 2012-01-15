@@ -136,7 +136,7 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			this.d(-this.m());
 			this.c(10);
-			this.aB();
+			this.aM();
 			this.setDamage(this.getDamage() + i * 10);
 			if (this.getDamage() > 40) {
 				if (this.passenger != null) {
@@ -602,7 +602,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 		// CraftBukkit end
 
-		List<Entity> list = this.world.b(this, this.boundingBox.b(0.2, 0, 0.2));
+		List<Entity> list = this.world.getEntities(this, this.boundingBox.grow(0.2, 0, 0.2));
 		if (list != null && !list.isEmpty()) {
 			for (Entity entity : list) {
 				if (entity != this.passenger && entity.f_() && entity instanceof EntityMinecart) {
@@ -664,18 +664,18 @@ public class NativeMinecartMember extends EntityMinecart {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void move(double d0, double d1, double d2) {
-		if (this.bN) {
+		if (this.bQ) {
 			this.boundingBox.d(d0, d1, d2);
 			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-			this.locY = this.boundingBox.b + (double) this.height - (double) this.bL;
+			this.locY = this.boundingBox.b + (double) this.height - (double) this.bO;
 			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
 		} else {
-			this.bL *= 0.4F;
+			this.bO *= 0.4F;
 			double d3 = this.locX;
 			double d4 = this.locZ;
 
-			if (this.bz) {
-				this.bz = false;
+			if (this.bC) {
+				this.bC = false;
 				d0 *= 0.25D;
 				d1 *= 0.05000000074505806D;
 				d2 *= 0.25D;
@@ -693,7 +693,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			if (flag) {
 				double d8;
 
-				for (d8 = 0.05D; d0 != 0.0D && this.world.getEntities(this, this.boundingBox.c(d0, -1.0D, 0.0D)).size() == 0; d5 = d0) {
+				for (d8 = 0.05D; d0 != 0.0D && this.world.a(this, this.boundingBox.c(d0, -1.0D, 0.0D)).size() == 0; d5 = d0) {
 					if (d0 < d8 && d0 >= -d8) {
 						d0 = 0.0D;
 					} else if (d0 > 0.0D) {
@@ -703,7 +703,7 @@ public class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 
-				for (; d2 != 0.0D && this.world.getEntities(this, this.boundingBox.c(0.0D, -1.0D, d2)).size() == 0; d7 = d2) {
+				for (; d2 != 0.0D && this.world.a(this, this.boundingBox.c(0.0D, -1.0D, d2)).size() == 0; d7 = d2) {
 					if (d2 < d8 && d2 >= -d8) {
 						d2 = 0.0D;
 					} else if (d2 > 0.0D) {
@@ -714,7 +714,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 
-			List list = this.world.getEntities(this, this.boundingBox.a(d0, d1, d2));
+			List list = this.world.a(this, this.boundingBox.a(d0, d1, d2));
 
 			//=========================TrainCarts Changes Start==============================
 			filterCollisionList(list);
@@ -725,7 +725,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			this.boundingBox.d(0.0D, d1, 0.0D);
-			if (!this.bA && d6 != d1) {
+			if (!this.bD && d6 != d1) {
 				d2 = 0.0D;
 				d1 = 0.0D;
 				d0 = 0.0D;
@@ -740,7 +740,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			this.boundingBox.d(d0, 0.0D, 0.0D);
-			if (!this.bA && d5 != d0) {
+			if (!this.bD && d5 != d0) {
 				d2 = 0.0D;
 				d1 = 0.0D;
 				d0 = 0.0D;
@@ -751,7 +751,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			this.boundingBox.d(0.0D, 0.0D, d2);
-			if (!this.bA && d7 != d2) {
+			if (!this.bD && d7 != d2) {
 				d2 = 0.0D;
 				d1 = 0.0D;
 				d0 = 0.0D;
@@ -761,18 +761,18 @@ public class NativeMinecartMember extends EntityMinecart {
 			double d10;
 			int k;
 
-			if (this.bM > 0.0F && flag1 && (flag || this.bL < 0.05F) && (d5 != d0 || d7 != d2)) {
+			if (this.bP > 0.0F && flag1 && (flag || this.bO < 0.05F) && (d5 != d0 || d7 != d2)) {
 				d9 = d0;
 				d10 = d1;
 				double d11 = d2;
 
 				d0 = d5;
-				d1 = (double) this.bM;
+				d1 = (double) this.bP;
 				d2 = d7;
 				AxisAlignedBB axisalignedbb1 = this.boundingBox.clone();
 
 				this.boundingBox.b(axisalignedbb);
-				list = this.world.getEntities(this, this.boundingBox.a(d5, d1, d7));
+				list = this.world.a(this, this.boundingBox.a(d5, d1, d7));
 
 				//=========================TrainCarts Changes Start==============================
 				filterCollisionList(list);
@@ -782,41 +782,41 @@ public class NativeMinecartMember extends EntityMinecart {
 					d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
 				}
 
-				this.boundingBox.d(0.0D, d1, 0.0D);
-				if (!this.bA && d6 != d1) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
+						this.boundingBox.d(0.0D, d1, 0.0D);
+						if (!this.bD && d6 != d1) {
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						}
 
 				for (k = 0; k < list.size(); ++k) {
 					d0 = ((AxisAlignedBB) list.get(k)).a(this.boundingBox, d0);
 				}
 
-				this.boundingBox.d(d0, 0.0D, 0.0D);
-				if (!this.bA && d5 != d0) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
+						this.boundingBox.d(d0, 0.0D, 0.0D);
+						if (!this.bD && d5 != d0) {
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						}
 
 				for (k = 0; k < list.size(); ++k) {
 					d2 = ((AxisAlignedBB) list.get(k)).c(this.boundingBox, d2);
 				}
 
-				this.boundingBox.d(0.0D, 0.0D, d2);
-				if (!this.bA && d7 != d2) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
+						this.boundingBox.d(0.0D, 0.0D, d2);
+						if (!this.bD && d7 != d2) {
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						}
 
-				if (!this.bA && d6 != d1) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				} else {
-					d1 = (double) (-this.bM);
+						if (!this.bD && d6 != d1) {
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						} else {
+							d1 = (double) (-this.bP);
 
 					for (k = 0; k < list.size(); ++k) {
 						d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
@@ -833,19 +833,19 @@ public class NativeMinecartMember extends EntityMinecart {
 				} else {
 					double d12 = this.boundingBox.b - (double) ((int) this.boundingBox.b);
 
-					if (d12 > 0.0D) {
-						this.bL = (float) ((double) this.bL + d12 + 0.01D);
-					}
-				}
+							if (d12 > 0.0D) {
+								this.bO = (float) ((double) this.bO + d12 + 0.01D);
+							}
+						}
 			}
 
 			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-			this.locY = this.boundingBox.b + (double) this.height - (double) this.bL;
+			this.locY = this.boundingBox.b + (double) this.height - (double) this.bO;
 			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
 			this.positionChanged = d5 != d0 || d7 != d2;
-			this.bw = d6 != d1;
+			this.bz = d6 != d1;
 			this.onGround = d6 != d1 && d6 < 0.0D;
-			this.bx = this.positionChanged || this.bw;
+			this.bA = this.positionChanged || this.bz;
 			this.a(d1, this.onGround);
 			if (d5 != d0) {
 				this.motX = 0.0D;
@@ -886,7 +886,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			// CraftBukkit end
 
 			if (this.g_() && !flag && this.vehicle == null) {
-				this.bG = (float) ((double) this.bG + (double) MathHelper.a(d9 * d9 + d10 * d10) * 0.6D);
+				this.bJ = (float) ((double) this.bJ + (double) MathHelper.sqrt(d9 * d9 + d10 * d10) * 0.6D);
 				l = MathHelper.floor(this.locX);
 				i1 = MathHelper.floor(this.locY - 0.20000000298023224D - (double) this.height);
 				j1 = MathHelper.floor(this.locZ);
@@ -895,8 +895,8 @@ public class NativeMinecartMember extends EntityMinecart {
 					k = this.world.getTypeId(l, i1 - 1, j1);
 				}
 
-				if (this.bG > (float) this.b && k > 0) {
-					this.b = (int) this.bG + 1;
+				if (this.bJ > (float) this.b && k > 0) {
+					this.b = (int) this.bJ + 1;
 					this.a(l, i1, j1, k);
 					Block.byId[k].b(this.world, l, i1, j1, this);
 				}
@@ -923,7 +923,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 
-			boolean flag2 = this.ay();
+			boolean flag2 = this.aJ();
 
 			if (this.world.d(this.boundingBox.shrink(0.0010D, 0.0010D, 0.0010D))) {
 				this.burn(1);

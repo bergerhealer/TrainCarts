@@ -249,7 +249,7 @@ public class MinecartMember extends NativeMinecartMember {
 	 * Overridden Minecart functions
 	 */
 	@Override
-	public void w_() {
+	public void y_() {
 		MinecartGroup g = this.getGroup();
 		if (g == null) return;
 		if (this.dead) {
@@ -257,7 +257,7 @@ public class MinecartMember extends NativeMinecartMember {
 			g.remove(this);
 		} else if (g.size() == 0) {
 			g.remove();
-			super.w_();
+			super.y_();
 		} else if (g.tail() == this) {
 			g.doPhysics();
 		}
@@ -713,7 +713,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	@SuppressWarnings("unchecked")
 	public List<net.minecraft.server.Entity> getNearbyEntities(double x, double y, double z) {
-		return this.world.b(this, this.boundingBox.b(x, y, z));
+		return this.world.getEntities(this, this.boundingBox.grow(x, y, z));
 	}
 	public Vector getOffset(ChunkCoordinates to) {
 		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());

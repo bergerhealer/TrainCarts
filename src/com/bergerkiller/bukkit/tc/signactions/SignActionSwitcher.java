@@ -7,8 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
-import com.bergerkiller.bukkit.tc.CartProperties;
-import com.bergerkiller.bukkit.tc.Destinations;
+import com.bergerkiller.bukkit.tc.Destination;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 
@@ -24,15 +23,12 @@ public class SignActionSwitcher extends SignAction {
 		return i;
 	}
 	
-	public boolean handleDestination(SignActionEvent info, CartProperties prop) {
-		if (prop.hasDestination()) {
-			//Handle rails based on destination
-			if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)){
-				BlockFace check = Destinations.getDir(prop.destination, info.getRails());
-				if (check != BlockFace.UP) {
-					info.setRailsFromCart(check);
-					return true;
-				}
+	public boolean handleDestination(SignActionEvent info) {
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)){
+			BlockFace check = Destination.getDir(info);
+			if (check != BlockFace.UP) {
+				info.setRailsFromCart(check);
+				return true;
 			}
 		}
 		return false;
@@ -79,27 +75,24 @@ public class SignActionSwitcher extends SignAction {
 		String l = info.getLine(2);
 		String r = info.getLine(3);
 		if (!info.hasRails()) return;
+		if (!info.hasMember()) return;
+		if (!info.isType("switcher", "tag")) return;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
-			if (info.isType("switcher", "tag")) {
-				if (!info.getGroup().isValid() || !handleDestination(info, info.getGroup().head().getProperties())) {
-					if (!handleCounter(info, l, r)) {
-						boolean left = !l.equals("") && info.getGroup().hasTag(l);
-						boolean right = !r.equals("") && info.getGroup().hasTag(r);
-						handleRails(info, left, right);
-					}
+			if (!handleDestination(info)) {
+				if (!handleCounter(info, l, r)) {
+					boolean left = !l.equals("") && info.getGroup().hasTag(l);
+					boolean right = !r.equals("") && info.getGroup().hasTag(r);
+					handleRails(info, left, right);
 				}
 			}
 		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
-			if (info.isType("switcher", "tag")) {
-				CartProperties prop = info.getMember().getProperties();
-				if (!handleDestination(info, prop)) {
-					if (!handleCounter(info, l, r)) {
-						boolean left = !l.equals("") && info.getMember().hasTag(l);
-						boolean right = !r.equals("") && info.getMember().hasTag(r);
-						handleRails(info, left, right);
-					}
-				}				
-			}
+			if (!handleDestination(info)) {
+				if (!handleCounter(info, l, r)) {
+					boolean left = !l.equals("") && info.getMember().hasTag(l);
+					boolean right = !r.equals("") && info.getMember().hasTag(r);
+					handleRails(info, left, right);
+				}
+			}	
 		}
 	}
 

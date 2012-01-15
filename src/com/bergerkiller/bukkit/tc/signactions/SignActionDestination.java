@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.tc.Destination;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 
@@ -10,15 +11,15 @@ public class SignActionDestination extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("destination")) return;
-		if (info.getLine(3).isEmpty()) return;
+		if (!info.hasMember()) return;
 		if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
-			if (info.hasMember()) {
-				info.getMember().getProperties().destination = info.getLine(3);
-			}
+			Destination.getDir(info.getMember().getProperties().destination, info.getLine(2));
+			if (info.getLine(3).isEmpty()) return;
+			info.getMember().getProperties().destination = info.getLine(3);
 		} else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {
-			if (info.hasGroup()) {
-				info.getGroup().getProperties().setDestination(info.getLine(3));
-			}
+			Destination.getDir(info.getMember().getProperties().destination, info.getLine(2));
+			if (info.getLine(3).isEmpty()) return;
+			info.getGroup().getProperties().setDestination(info.getLine(3));
 		}
 	}
 

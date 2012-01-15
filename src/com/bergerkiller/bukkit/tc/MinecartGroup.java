@@ -63,7 +63,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			g.add(MinecartMember.spawn(at[i], types[i]));
 		}
 		groups.add(g);
-		g.initInWorld();
 		GroupCreateEvent.call(g);
 		return g;
 	}
@@ -80,7 +79,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			g.add(MinecartMember.spawn(destinations[destinations.length - i - 1], types.get(i)));
 		}
 		groups.add(g);
-		g.initInWorld();
 		GroupCreateEvent.call(g);
 		return g;
 	}
@@ -176,7 +174,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			
 			//Correct the yaw and order
 			g2.getAverageForce();
-			g2.updateYaw();;
+			g2.updateDirection();
 			
 			g1.remove();
 			m2.playLinkEffect();
@@ -549,9 +547,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		groups.remove(this);
 	}
-	public void initInWorld() {
-		for (MinecartMember mm : this) mm.initInWorld();
-	}
 	
 	public void playLinkEffect() {
 		for (MinecartMember mm : this) {
@@ -618,7 +613,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			return false;
 		}
 	}
-	public void updateYaw() {
+	public void updateDirection() {
 		if (this.size() == 1) {
 			this.get(0).updateDirection();
 		} else if (this.size() > 1) {
@@ -815,20 +810,22 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				mm.maxSpeed = this.getProperties().speedLimit / (double) stepcount;
 			}
 
+			this.updateDirection();
+			
 			//Prevent index exceptions: remove if not a train
 			if (this.size() == 1) {
 				MinecartMember mm = this.head();
 				this.updateAction();
 				mm.preUpdate(stepcount);
-				this.updateYaw();
+				this.updateDirection();
 				mm.postUpdate(1);
-				this.updateYaw();
+				this.updateDirection();
 				return true;
 			} else if (this.isEmpty()) {
 				this.remove();
 				throw new GroupUnloadedException();
 			}
-						
+							
 			//pre-update
 			this.updateAction();
 			for (MinecartMember m : this) {
@@ -837,7 +834,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			
 			//Get the average forwarding force of all carts
 			double force = this.getAverageForce();
-			this.updateYaw();
+			this.updateDirection();
 
 			//Perform forward force or not? First check if we are not messing up...
 			boolean performUpdate = true;
@@ -889,7 +886,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			this.getAverageForce();
 			
 			//update yaw and then the positions
-			this.updateYaw();
+			this.updateDirection();
 			
 			//Validate positions in the group
 			for (int i = 0; i < this.size() - 1; i++) {

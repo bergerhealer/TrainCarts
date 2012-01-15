@@ -83,10 +83,12 @@ public class TrainProperties {
         return this.isOwner(player);
 	}
 	public boolean isOwner(Player player) {
+		boolean hasowner = false;
 		for (CartProperties prop : this.cartproperties) {
 			if (prop.isOwner(player)) return true;
+			if (prop.hasOwners()) hasowner = true;
 		}
-		return false;
+		return !hasowner;
 	}	
 	public boolean isDirectOwner(Player player) {
 		return this.isDirectOwner(player.getName().toLowerCase());

@@ -199,7 +199,7 @@ public class TrainCarts extends JavaPlugin {
 		TrainProperties.init();
 
 		//Load destinations
-		Destinations.init();
+		Destination.init();
 
 		//Load arrival times
 		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
@@ -239,7 +239,7 @@ public class TrainCarts extends JavaPlugin {
 		TrainProperties.deinit();
 		
 		//Save destinations
-		Destinations.deinit();
+		Destination.deinit();
 
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
