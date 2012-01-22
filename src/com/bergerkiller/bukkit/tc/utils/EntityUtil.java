@@ -6,7 +6,6 @@ import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Packet22Collect;
-import net.minecraft.server.Packet39AttachEntity;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Location;

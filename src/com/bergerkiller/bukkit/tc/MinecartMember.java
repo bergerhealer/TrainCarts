@@ -841,6 +841,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.isDerailed || member.isDerailed) return true; //if derailed keep train alive
 		if (this.isMoving()) {
 			Block memberrail = member.getRailsBlock();
+			if (memberrail == null) return true; //derailed
 			if (TrackMap.isConnected(this.getRailsBlock(), memberrail, true)) return true;
 			return this.isHeadingToTrack(memberrail);
 		} else {

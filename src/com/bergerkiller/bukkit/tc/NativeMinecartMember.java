@@ -630,7 +630,8 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/*
-	 * Overridden to use my own fuel value
+	 * Overridden function used to let players interact with this minecart
+	 * Changes: use my own fuel and changes direction of all attached carts
 	 */
 	@Override
 	public boolean b(EntityHuman entityhuman) {
@@ -642,8 +643,19 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				this.fuel += 3600;
 			}
+		    float yaw = Util.getLookAtYaw(new Vector(this.locX - entityhuman.locX, 0, this.locZ - entityhuman.locZ)); 
 			this.b = this.locX - entityhuman.locX;
-			this.c = this.locZ - entityhuman.locZ;		
+			this.c = this.locZ - entityhuman.locZ;	
+			float myaw;
+			for (MinecartMember mm : this.group()) {
+				if (mm.isPoweredMinecart()) {
+					myaw = Util.getAngleDifference(Util.getLookAtYaw(new Vector(mm.b, 0, mm.c)), yaw);
+					if (myaw > 90) {
+						mm.b = -mm.b;
+						mm.c = -mm.c;
+					}
+				}
+			}
 			return true;
 		} else {
 			return super.b(entityhuman);

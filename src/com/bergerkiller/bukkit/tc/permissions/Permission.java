@@ -36,6 +36,7 @@ public enum Permission {
 	BUILD_DESTINATION("train.build.destination", PermissionDefault.OP),
 	BUILD_SWITCHER("train.build.switcher", PermissionDefault.OP),
 	BUILD_DESTRUCTOR("train.build.destructor", PermissionDefault.OP),
+	BUILD_DETECTOR("train.build.detector", PermissionDefault.OP),
 	BUILD_EJECTOR("train.build.ejector", PermissionDefault.OP),
 	BUILD_PROPERTY("train.build.property", PermissionDefault.OP),
 	BUILD_CHEST("train.build.chest", PermissionDefault.OP),

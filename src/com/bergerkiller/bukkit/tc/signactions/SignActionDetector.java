@@ -36,7 +36,7 @@ public class SignActionDetector extends SignAction {
 	public static void removeDetector(Block at) {
 		Detector dec = detectors.get(at);
 		if (dec != null) {
-			detectors.remove(dec.getSign1(at.getWorld()));
+			detectors.remove(at.getWorld(), dec.sign1);
 			detectors.remove(dec.getSign2(at.getWorld()));
 			dec.region.remove();
 		}
@@ -226,10 +226,10 @@ public class SignActionDetector extends SignAction {
 				return group.hasTag(line1) || group.hasTag(line2);
 			}
 		}
-
 	}
 	
 	public static boolean isValid(Sign sign) {
+		if (sign == null) return false;
 		return isValid(sign.getLines());
 	}
 	public static boolean isValid(String[] lines) {
@@ -247,7 +247,7 @@ public class SignActionDetector extends SignAction {
 		if (!isValid(event.getLines())) {
 			return;
 		}
-		if (handleBuild(event, Permission.BUILD_PROPERTY, "train detector", "detects the presence of trains between this detector sign and another")) {
+		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detects the presence of trains between this detector sign and another")) {
 			//try to create the other sign
 			Block startsign = event.getBlock();
 			Block startrails = BlockUtil.getRailsBlockFromSign(startsign);

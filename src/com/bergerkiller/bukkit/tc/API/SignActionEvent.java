@@ -87,9 +87,10 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (this.getMember() == null) return;
 		BlockUtil.setRails(this.getRails(), this.member.getDirection().getOppositeFace(), to);
 		if (this.member.getDirection().getOppositeFace() == to){
+			double force = this.member.getForce();
 			this.getGroup().stop();
 			this.getGroup().clearActions();
-			this.member.addActionLaunch(to, 1, this.member.getForce());
+			this.member.addActionLaunch(to, 1, force);
 		}
 	}
 	public void setRailsRelativeFromCart(BlockFace direction) {
