@@ -26,6 +26,7 @@ public class SignActionStation extends SignAction {
 						MinecartGroup group = info.getGroup();
 						if (group != null) {
 							if (info.isAction(SignActionType.GROUP_LEAVE)) {
+								info.setLevers(false);
 							} else if (!info.isPowered()) {
 								group.clearActions();
 							} else {
@@ -136,9 +137,9 @@ public class SignActionStation extends SignAction {
 													group.addActionWait(delayMS);
 													midd.addActionLaunch(trainDirection, length, TrainCarts.launchForce);
 												} else {
-													group.addActionWaitForever();
-													if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 													info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+													if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+													group.addActionWaitForever();
 												}
 											}
 										}
@@ -160,9 +161,6 @@ public class SignActionStation extends SignAction {
 									}
 								}
 							}
-						}
-						if (info.isAction(SignActionType.GROUP_LEAVE)) {
-							info.setLevers(false);
 						}
 					}
 				}

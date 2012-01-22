@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 
 import me.Perdog.BleedingMobs.BleedingMobs;
+import net.minecraft.server.IInventory;
 
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
@@ -28,6 +29,16 @@ import com.miykeal.showCaseStandalone.ShowCaseStandalone;
 import com.narrowtux.showcase.Showcase;
 
 public class ItemUtil {
+	
+	public static void transfer(IInventory from, IInventory to) {
+		net.minecraft.server.ItemStack[] items = from.getContents();
+		for (int i = 0;i < items.length;i++) {
+			if (items[i] != null) {
+				to.setItem(i, new net.minecraft.server.ItemStack(items[i].id, items[i].count, items[i].b));
+			}
+		}
+		for (int i = 0;i < items.length;i++) from.setItem(i, null);
+	}
 	
 	public static int transfer(Inventory from, Inventory to, ItemParser parser, int limit) {
 		return transfer(from, new Inventory[] {to}, parser, limit);

@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.MathHelper;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
@@ -374,7 +375,26 @@ public class Util {
 	}
 	
 	public static List<WorldServer> getWorlds() {
-		return ((CraftServer) Bukkit.getServer()).getHandle().server.worlds;
+		return getMCServer().worlds;
+	}
+	public static MinecraftServer getMCServer() {
+		return getCraftServer().getServer();
+	}
+	public static CraftServer getCraftServer() {
+		return (CraftServer) Bukkit.getServer();
+	}
+	
+	public static void loadChunks(Location location) {
+		int x = MathHelper.floor(location.getX()) >> 4;
+		int z = MathHelper.floor(location.getX()) >> 4;	
+	    loadChunks(location.getWorld(), x, z);
+	}
+	public static void loadChunks(World world, final int xmid, final int zmid) {
+		for (int cx = xmid - 2; cx <= xmid + 2; cx++) {
+			for (int cz = zmid - 2; cz <= zmid + 2; cz++) {
+				world.getChunkAt(cx, cz);
+			}
+		}
 	}
 	
 	public static UUID readUUID(DataInputStream stream) throws IOException {

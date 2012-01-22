@@ -53,7 +53,6 @@ public class TCPlayerListener extends PlayerListener {
 								return;
 							}
 						}
-						event.setCancelled(true);
 					}
 				}
 			}
@@ -87,7 +86,7 @@ public class TCPlayerListener extends PlayerListener {
 	    	}
 	    }
 	}
-	
+		
 	@Override
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		MinecartMember mm = MinecartMember.get(event.getRightClicked());

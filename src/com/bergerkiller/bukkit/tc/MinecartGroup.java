@@ -200,6 +200,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private Queue<Action> actions = new LinkedList<Action>();
 	private String name;
 	private TrainProperties prop = null;
+	private boolean breakPhysics = false;
 	
 	private MinecartGroup() {}
 		
@@ -342,6 +343,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.GROUP_LEAVE);
 		}
 		this.activeSigns.clear();
+		for (MinecartMember mm : this) {
+			mm.clearActiveSigns();
+		}
 	}
 	
 	public MinecartMember head(int index) {
@@ -570,6 +574,28 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : this) mm.eject(offset);
 	}
 
+	public void teleport(Block start, BlockFace direction) {
+		this.teleport(start, direction, TrainCarts.cartDistance);
+	}
+	public void teleport(Block start, BlockFace direction, double stepsize) {
+		this.teleport(TrackMap.walk(start, direction, this.size(), stepsize), true);
+	}
+	public void teleport(Location[] locations) {
+		this.teleport(locations, false);
+	}
+	public void teleport(Location[] locations, boolean reversed) {
+		this.clearActiveSigns();
+		if (reversed) {
+			for (int i = 0; i < locations.length; i++) {
+				this.get(i).teleport(locations[locations.length - i - 1]);
+			}
+		} else {
+			for (int i = 0; i < locations.length; i++) {
+				this.get(i).teleport(locations[i]);
+			}
+		}
+	}
+	
 	public void shareForce() {
 		double f = this.getAverageForce();
 		for (MinecartMember m : this) {
@@ -725,6 +751,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return this.isEmpty() || !groups.contains(this);
 	}
 	
+	public void loadChunks() {
+		for (MinecartMember mm : this) mm.loadChunks();
+	}
+	
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
 	}
@@ -772,6 +802,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	
+	public void breakPhysics() {
+		this.breakPhysics = true;
+	}
+	
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -803,6 +837,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {
+		this.breakPhysics = false;
 		try {
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
@@ -855,7 +890,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Apply force factors to carts from last cart and perform post positional updates
 			final int size = this.size();
 			if (size < 2) return false;
-			
+						
 			//Post updating
 			try {
 				int i = 1;
@@ -873,15 +908,17 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					}
 					if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
 					member.postUpdate(1 + (forcer * (threshold - distance)));
+					if (this.breakPhysics) return true;
 					if (i++ == this.size() - 1) {
 						this.tail().postUpdate(1);
+						if (this.breakPhysics) return true;
 						break;
 					}
 				}
 			} catch (ConcurrentModificationException ex) {
 				return true;
 			}
-						
+			
 			//Update order after position change
 			this.getAverageForce();
 			
@@ -898,7 +935,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					if (gnew != null) { 
 						//what time do we want to prevent them from colliding too soon?
 						//needs to travel 2 blocks in the meantime
-						int time = (int) Util.limit(20 / gnew.head().getForce(), 20, 40);
+						int time = (int) Util.limit(2 / gnew.head().getForce(), 20, 40);
 						for (MinecartMember mm1 : gnew) {
 							for (MinecartMember mm2: this) {
 								mm1.ignoreCollision(mm2, time);

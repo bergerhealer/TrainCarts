@@ -6,8 +6,10 @@ import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Packet22Collect;
+import net.minecraft.server.Packet39AttachEntity;
 import net.minecraft.server.WorldServer;
 
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftEntity;
@@ -19,6 +21,9 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Task;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
 
 public class EntityUtil {
@@ -73,15 +78,6 @@ public class EntityUtil {
 	public static void pickUpAnimation(EntityItem item, net.minecraft.server.Entity by) {
 		((WorldServer) item.world).tracker.a(by, new Packet22Collect(item.id, by.id));
 	}
-	public static void transferItems(EntityMinecart from, EntityMinecart to) {
-		net.minecraft.server.ItemStack[] items = from.getContents();
-		for (int i = 0;i < items.length;i++) {
-			if (items[i] != null) {
-				to.setItem(i, new net.minecraft.server.ItemStack(items[i].id, items[i].count, items[i].b));
-			}
-		}
-		for (int i = 0;i < items.length;i++) from.setItem(i, null);
-	}
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
 		with.yaw = toreplace.yaw;
 		with.pitch = toreplace.pitch;
@@ -97,7 +93,7 @@ public class EntityUtil {
 		with.ticksLived = toreplace.ticksLived;
 		with.uniqueId = toreplace.uniqueId;
 		with.setDamage(toreplace.getDamage());
-		transferItems(toreplace, with);
+		ItemUtil.transfer(toreplace, with);
 		with.dead = false;
 		toreplace.dead = true;
 		
@@ -125,6 +121,46 @@ public class EntityUtil {
 			}
 		}
 		return false;
+	}
+	
+	public static void teleport(net.minecraft.server.Entity entity, Location to) {
+		WorldServer newworld = ((CraftWorld) to.getWorld()).getHandle();
+		Util.loadChunks(to);
+		if (entity.world != newworld) {			
+			//transfer entity cross-worlds
+			if (entity.passenger != null) {
+				//set out of vehicle?
+				net.minecraft.server.Entity passenger = entity.passenger;
+				if (passenger instanceof EntityPlayer) {
+					new Task(TrainCarts.plugin, passenger, entity) {
+						public void run() {
+							EntityPlayer entity = (EntityPlayer) getArg(0);
+							net.minecraft.server.Entity vehicle = (net.minecraft.server.Entity) getArg(1);
+							entity.setPassengerOf(vehicle);
+						}
+					}.startDelayed(0);
+				}
+				
+				entity.passenger = null;
+				passenger.vehicle = null;
+				teleport(passenger, to);
+			}
+			
+			//teleport this entity
+			entity.world.removeEntity(entity);
+			entity.dead = false;
+			entity.world = newworld;
+			entity.setLocation(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
+			entity.world.addEntity(entity);
+			((WorldServer) entity.world).tracker.track(entity);
+			
+			if (entity instanceof EntityPlayer) {
+				Util.getCraftServer().getHandle().moveToWorld((EntityPlayer) entity, newworld.dimension, true, to);
+			}
+			
+		} else {
+			entity.getBukkitEntity().teleport(to);			
+		}
 	}
 	
 }

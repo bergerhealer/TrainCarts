@@ -11,9 +11,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
@@ -21,6 +23,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -127,7 +130,7 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	public static MinecartMember getAt(Block railblock) {
 		if (railblock == null) return null;
-		return getAt(railblock.getWorld(), BlockUtil.getCoordinates(railblock));
+		return getAt(railblock.getLocation());
 	}
 	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
 		int cx = coord.x >> 4;
@@ -352,13 +355,7 @@ public class MinecartMember extends NativeMinecartMember {
 			    	throw new GroupUnloadedException();
 			    } else {
 			    	//load nearby chunks
-					int xmid = this.getChunkX();
-					int zmid = this.getChunkZ();
-					for (int cx = xmid - 2; cx <= xmid + 2; cx++) {
-						for (int cz = zmid - 2; cz <= zmid + 2; cz++) {
-							this.getWorld().getChunkAt(cx, cz);
-						}
-					}
+			    	this.loadChunks();
 			    }
 			}
 			//find the correct Y-value
@@ -469,12 +466,12 @@ public class MinecartMember extends NativeMinecartMember {
 		if (signblock == null) return false;
 		return this.activeSigns.contains(signblock);
 	}
-	public boolean addActiveSign(Block signblock) throws MemberDeadException {
+	public boolean addActiveSign(Block signblock) {
 		if (this.activeSigns.add(signblock)) {
-			this.validate();
+			if (this.dead) return true;
 			SignActionEvent info = new SignActionEvent(signblock, this);
 			SignAction.executeAll(info, SignActionType.MEMBER_ENTER);
-			this.validate();
+			if (this.dead) return true;
 			MinecartGroup g = this.getGroup();
 			if (g.size() == 1 || g.tail() != this) {
 				this.getGroup().setActiveSign(info, true);
@@ -602,7 +599,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motZ = -FaceUtil.sin(this.direction) * force;
 	}
 	public void setForwardForce(double force) {
-		if (this.isMoving() && force > 0.01) {
+		if (this.isMoving() && force > 0.01 && FaceUtil.getDirection(this.motX, this.motZ, false) == this.direction) {
 			this.setYForce(force);
 			force /= this.getForce();
 			this.motX *= force;
@@ -635,9 +632,6 @@ public class MinecartMember extends NativeMinecartMember {
 	/*
 	 * Location functions
 	 */
-	public void teleport(Location to) {
-		getMinecart().teleport(to);
-	}
 	public double getSubX() {
 		double x = getX() + 0.5;
 		return x - (int) x;
@@ -828,6 +822,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.isHeadingToTrack(track, 0);
 	}
 	public boolean isHeadingToTrack(Block track, int maxstepcount) {
+		if (this.isDerailed) return false;
 		Block from = this.getRailsBlock();
 		if (BlockUtil.equals(from, track)) return true;
 		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getBlockSteps(from, track, false);
@@ -842,8 +837,8 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean isFollowingOnTrack(MinecartMember member) {
 		//checks if this member is able to follow the specified member on the tracks
-		if (this.isDerailed || member.isDerailed) return true; //if derailed keep train alive
 		if (!this.isNearOf(member)) return false;
+		if (this.isDerailed || member.isDerailed) return true; //if derailed keep train alive
 		if (this.isMoving()) {
 			Block memberrail = member.getRailsBlock();
 			if (TrackMap.isConnected(this.getRailsBlock(), memberrail, true)) return true;
@@ -1013,6 +1008,21 @@ public class MinecartMember extends NativeMinecartMember {
 		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
 	}
 
+	/*
+	 * Teleportation
+	 */
+	public void loadChunks() {
+		Util.loadChunks(this.getWorld(), super.getBlockX() >> 4, super.getBlockZ() >> 4);
+	}
+	public void teleport(Block railsblock) {
+		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
+	}
+	public void teleport(Location to) {
+		this.died = true;
+		EntityUtil.teleport(this, to);
+		this.died = false;
+	}
+		
 	public boolean isCollisionIgnored(Entity entity) {
 		return isCollisionIgnored(EntityUtil.getNative(entity));
 	}
