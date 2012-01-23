@@ -11,11 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
-import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
-import net.minecraft.server.WorldServer;
 
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
@@ -23,7 +21,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -40,6 +37,8 @@ import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.tracker.GroupedEntityTrackerEntry;
+import com.bergerkiller.bukkit.tc.tracker.TrackerUtil;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
@@ -130,7 +129,7 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	public static MinecartMember getAt(Block railblock) {
 		if (railblock == null) return null;
-		return getAt(railblock.getLocation());
+		return getAt(railblock.getLocation().add(0.5, 0.5, 0.5));
 	}
 	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
 		int cx = coord.x >> 4;
@@ -233,11 +232,13 @@ public class MinecartMember extends NativeMinecartMember {
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private HashSet<Block> activeSigns = new HashSet<Block>();
+	private GroupedEntityTrackerEntry tracker;
 	
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.direction = FaceUtil.yawToFace(this.yaw);
 		replacedCarts.add(this);
+		this.sync();
 	}
 	public void initInWorld() {
 		if (this.isInitWorld) return;
@@ -628,7 +629,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public TrackMap makeTrackMap(int size) {
 		return new TrackMap(BlockUtil.getRailsBlock(this.getLocation()), this.direction, size);
 	}
-	
+		
 	/*
 	 * Location functions
 	 */
@@ -1075,6 +1076,25 @@ public class MinecartMember extends NativeMinecartMember {
 		this.b *= -1;
 		this.c *= -1;
 		this.direction = this.direction.getOppositeFace();
+	}
+		
+	public GroupedEntityTrackerEntry getTracker() {
+		if (this.world == null) return null;
+		if (this.tracker == null) {
+			this.tracker = new GroupedEntityTrackerEntry(this);
+			TrackerUtil.setTracker(this, this.tracker);
+		}
+		return this.tracker;
+	}
+	protected void untrack() {
+		//called by the entity tracker of this member
+		this.tracker = null;
+	}
+	public void sync() {
+		this.getTracker().sync(true);
+	}
+	public boolean needsSync() {
+		return this.getTracker().needsSync();
 	}
 	
 	private boolean died = false;

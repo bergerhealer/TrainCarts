@@ -806,6 +806,15 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		this.breakPhysics = true;
 	}
 	
+	/*
+	 * Synchronizes all members' entity trackers
+	 * Makes them move nicely in-sync
+	 */
+	public void sync() {
+		for (MinecartMember mm : this) mm.sync();
+	}
+	
+	private int synccounter = 0;
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -944,6 +953,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					}
 					return false;
 				}
+			}
+			
+			if (this.isEmpty()) return true;
+			if (this.head().needsSync()) {
+				this.sync();
 			}
 			
 			return true;

@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import java.lang.reflect.Field;
 import java.util.UUID;
 
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
+import net.minecraft.server.EntityTracker;
+import net.minecraft.server.IntHashMap;
 import net.minecraft.server.Packet22Collect;
 import net.minecraft.server.WorldServer;
 
@@ -19,6 +22,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import net.minecraft.server.EntityTrackerEntry;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -120,6 +124,29 @@ public class EntityUtil {
 			}
 		}
 		return false;
+	}
+	
+	private static boolean trackerfieldinit = false;
+	private static Field trackerfield = null;
+	public static EntityTrackerEntry getTracker(net.minecraft.server.Entity entity) {
+		EntityTracker tracker = ((WorldServer) entity.world).tracker;
+		if (!trackerfieldinit) {
+			trackerfieldinit = true;
+			try {
+				trackerfield = EntityTracker.class.getDeclaredField("trackedEntities");
+				trackerfield.setAccessible(true);
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}
+		if (trackerfield != null) {
+			try {
+				return (EntityTrackerEntry) ((IntHashMap) trackerfield.get(tracker)).a(entity.id);
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}
+		return null;
 	}
 	
 	public static void teleport(net.minecraft.server.Entity entity, Location to) {

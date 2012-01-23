@@ -33,7 +33,7 @@ public class Util {
 	public static final float DEGTORAD = 0.017453293F;
 	public static final float RADTODEG = 57.29577951F;
 	public static final double halfRootOfTwo = 0.707106781;
-	
+		
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
 		logger.log(level, "[TrainCarts] " + message);
