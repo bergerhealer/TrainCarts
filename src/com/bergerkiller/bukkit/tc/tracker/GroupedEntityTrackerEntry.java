@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.tracker;
 
 import java.util.List;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
 
@@ -116,10 +115,9 @@ public class GroupedEntityTrackerEntry extends EntityTrackerEntry {
             this.q = this.tracker.locZ;
             this.scanPlayers(list);
         }
-        MinecartGroup group = this.getMember().getGroup();
         ++this.t;
         ++this.l;
-        if (group == null || group.size() == 1) {
+        if (this.getMember().isSingle()) {
         	this.sync(false);
         }
         this.tracker.ce = false;

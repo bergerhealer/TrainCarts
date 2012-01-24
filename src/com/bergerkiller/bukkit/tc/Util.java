@@ -58,7 +58,7 @@ public class Util {
 			return def;
 		}
 	}
-
+	
 	/**
 	 * Converts a Location to a destination name.
 	 * @param loc The Location to convert
@@ -138,13 +138,12 @@ public class Util {
 	}
 	public static float getLookAtYaw(Location loc, Location lookat) {
         // Values of change in distance (make it relative)
-        double dx = lookat.getX() - loc.getX();
-        double dz = lookat.getZ() - loc.getZ();
-        return getLookAtYaw(new Vector(dx, 0, dz));
+        return getLookAtYaw(lookat.getX() - loc.getX(), lookat.getZ() - loc.getZ());
 	}
 	public static float getLookAtYaw(Vector motion) {
-		double dx = motion.getX();
-		double dz = motion.getZ();
+		return getLookAtYaw(motion.getX(), motion.getZ());
+	}
+	public static float getLookAtYaw(double dx, double dz) {
         float yaw = 0;
         // Set yaw
         if (dx != 0) {
@@ -160,8 +159,11 @@ public class Util {
         }
         return -yaw - 90;
 	}
-	public static float getLookAtPitch(Vector motion) {
-		return -atan(motion.getY() / length(motion.getX(), motion.getZ()));
+	public static float getLookAtPitch(double motX, double motY, double motZ) {
+		return getLookAtPitch(motY, length(motX, motZ));
+	}
+	public static float getLookAtPitch(double motY, double motXZ) {
+		return -atan(motY / motXZ);
 	}
 	public static float atan(double value) {
 		return RADTODEG * (float) Math.atan(value);

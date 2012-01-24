@@ -316,7 +316,10 @@ public class TrainProperties {
 		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		config.load();
 		for (ConfigurationNode node : config.getNodes()) {
-			get(node.getName()).load(node);
+			TrainProperties prop = new TrainProperties();
+			prop.trainname = node.getName();
+			prop.load(node);
+			properties.put(prop.trainname, prop);
 		}
 	}
 	public static void save() {

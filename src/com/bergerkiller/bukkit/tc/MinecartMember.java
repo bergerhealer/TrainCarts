@@ -890,6 +890,9 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isRegularMinecart() {
 		return this.type == 0;
 	}
+	public boolean isSingle() {
+		return this.group == null || this.group.size() == 1;
+	}
 	public boolean hasPassenger() {
 		return this.passenger != null;
 	}

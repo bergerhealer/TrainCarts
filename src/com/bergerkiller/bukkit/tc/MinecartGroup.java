@@ -41,10 +41,17 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	
 	public static MinecartGroup create(Entity... members) {
-		return create(MinecartMember.convertAll(members));
+		return create(null, MinecartMember.convertAll(members));
 	}
 	public static MinecartGroup create(MinecartMember... members) {
+		return create(null, members);
+	}
+	public static MinecartGroup create(String name, Entity... members) {
+		return create(name, MinecartMember.convertAll(members));
+	}
+	public static MinecartGroup create(String name, MinecartMember... members) {
 		MinecartGroup g = new MinecartGroup();
+		g.name = name;
 		for (MinecartMember member : members) {
 			if (member != null && !member.dead) {
 				g.add(member);
@@ -814,7 +821,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : this) mm.sync();
 	}
 	
-	private int synccounter = 0;
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -908,15 +914,19 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				for (MinecartMember member : this) {
 					after = this.get(i);
 					distance = member.distanceXZ(after);
-					if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
-						threshold = TrainCarts.turnedCartDistance;
-						forcer = TrainCarts.turnedCartDistanceForcer;
+					if (member.isFlying()) {
+						member.postUpdate(1);
 					} else {
-						threshold = TrainCarts.cartDistance;
-						forcer = TrainCarts.cartDistanceForcer;
+						if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
+							threshold = TrainCarts.turnedCartDistance;
+							forcer = TrainCarts.turnedCartDistanceForcer;
+						} else {
+							threshold = TrainCarts.cartDistance;
+							forcer = TrainCarts.cartDistanceForcer;
+						}
+						if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
+						member.postUpdate(1 + (forcer * (threshold - distance)));
 					}
-					if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
-					member.postUpdate(1 + (forcer * (threshold - distance)));
 					if (this.breakPhysics) return true;
 					if (i++ == this.size() - 1) {
 						this.tail().postUpdate(1);

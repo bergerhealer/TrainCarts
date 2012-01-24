@@ -19,6 +19,7 @@ import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
@@ -42,7 +43,6 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
 	public int fuel;
-	private boolean backwards;
 	private static final int[][][] matrix = new int[][][] { 
 		{ { 0, 0, -1 }, { 0, 0, 1 } }, { { -1, 0, 0 }, { 1, 0, 0 } },
 		{ { -1, -1, 0 }, { 1, 0, 0 } }, { { -1, 0, 0 }, { 1, -1, 0 } },
@@ -567,26 +567,17 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 
-		//Update yaw and backwards state
-		this.pitch = 0;
-		double locChangeX = this.lastX - this.locX;
-		double locChangeZ = this.lastZ - this.locZ;
-		if (Util.lengthSquared(locChangeX, locChangeZ) > 0.001) {
-			this.yaw = (float) Math.atan2(locChangeX, locChangeZ) * Util.RADTODEG;
-			if (this.backwards) {
-				this.yaw += 180;
+		//Update yaw and pitch
+		double movedX = this.lastX - this.locX;
+		double movedY = this.lastY - this.locY;
+		double movedZ = this.lastZ - this.locZ;
+		if (Util.lengthSquared(movedX, movedZ) > 0.001) {
+			if (this.moveinfo.isRailed) {
+				this.pitch = -0.8F * Util.getLookAtPitch(movedX, movedY, movedZ);
+			} else {
+				this.pitch = 0.5F * Util.getLookAtPitch(movedX, movedY, movedZ);
 			}
-		}
-		float yawChange = this.yaw - this.lastYaw;
-		while (yawChange >= 180) {
-			yawChange -= 360;
-		}
-		while (yawChange < -180) {
-			yawChange += 360;
-		}	
-		if (yawChange < -170 || yawChange >= 170) {
-			this.yaw += 180;
-			this.backwards = !this.backwards;
+			this.yaw = Util.getLookAtYaw(movedX, movedZ);
 		}
 		this.c(this.yaw, this.pitch);
 
@@ -643,18 +634,11 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				this.fuel += 3600;
 			}
-		    float yaw = Util.getLookAtYaw(new Vector(this.locX - entityhuman.locX, 0, this.locZ - entityhuman.locZ)); 
 			this.b = this.locX - entityhuman.locX;
 			this.c = this.locZ - entityhuman.locZ;	
-			float myaw;
-			for (MinecartMember mm : this.group()) {
-				if (mm.isPoweredMinecart()) {
-					myaw = Util.getAngleDifference(Util.getLookAtYaw(new Vector(mm.b, 0, mm.c)), yaw);
-					if (myaw > 90) {
-						mm.b = -mm.b;
-						mm.c = -mm.c;
-					}
-				}
+			BlockFace dir = FaceUtil.getDirection(this.b, this.c, false);
+			if (dir == this.member().getDirection().getOppositeFace()) {
+				this.group().reverse();
 			}
 			return true;
 		} else {

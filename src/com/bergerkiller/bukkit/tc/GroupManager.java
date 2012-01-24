@@ -318,11 +318,7 @@ public class GroupManager {
 				}
 				//restore
 				for (WorldMember wm : g.members) hiddenMinecarts.remove(wm.entityUID);
-				Minecart[] minecarts = g.getMinecarts(w);    
-				MinecartGroup group = MinecartGroup.create(minecarts);
-				if (group != null) {
-					group.setName(g.name);
-				}
+				MinecartGroup.create(g.name, g.getMinecarts(w));
 				iter.remove();
 			}
 		}
