@@ -12,9 +12,6 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
-import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
-import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,11 +20,9 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.listeners.TCBlockListener;
-import com.bergerkiller.bukkit.tc.listeners.TCCustomListener;
-import com.bergerkiller.bukkit.tc.listeners.TCPlayerListener;
-import com.bergerkiller.bukkit.tc.listeners.TCVehicleListener;
-import com.bergerkiller.bukkit.tc.listeners.TCWorldListener;
+import com.bergerkiller.bukkit.tc.listeners.TCListener;
+import com.bergerkiller.bukkit.tc.listeners.TCMMListener;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -69,11 +64,8 @@ public class TrainCarts extends JavaPlugin {
 	public static String version;
 	
 	public static TrainCarts plugin;
-	private final TCPlayerListener playerListener = new TCPlayerListener();
-	private final TCWorldListener worldListener = new TCWorldListener();
-	private final TCVehicleListener vehicleListener = new TCVehicleListener();	
-	private final TCBlockListener blockListener = new TCBlockListener();	
-	private final TCCustomListener customListener = new TCCustomListener();	
+	private final TCListener listener = new TCListener();	
+	private final TCMMListener minecartManiaListener = new TCMMListener();	
 
 	private Task signtask;
 
@@ -130,16 +122,12 @@ public class TrainCarts extends JavaPlugin {
 			config.save();
 		}
 	}
-
-	private void registerEvent(Event.Type type, Listener listener, Priority priority) {
-		this.getServer().getPluginManager().registerEvent(type, listener, priority, this);
-	}
 	
 	private void initDependencies() {
 		if (this.getServer().getPluginManager().isPluginEnabled("MinecartManiaCore")) {
 			Util.log(Level.INFO, "Minecart Mania detected, support added!");
 			MinecartManiaEnabled = true;
-			registerEvent(Event.Type.CUSTOM_EVENT, customListener, Priority.Lowest);
+			this.getServer().getPluginManager().registerEvents(minecartManiaListener, this);
 		}
 		if (this.getServer().getPluginManager().isPluginEnabled("SignLink")) {
 			Util.log(Level.INFO, "SignLink detected, support for arrival signs added!");
@@ -169,21 +157,8 @@ public class TrainCarts extends JavaPlugin {
 	public void onEnable() {
 		plugin = this;
 		Permission.registerAll();
-		registerEvent(Event.Type.PLAYER_INTERACT_ENTITY, playerListener, Priority.Highest);
-		registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest);
-		registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.High);
-		registerEvent(Event.Type.VEHICLE_DESTROY, vehicleListener, Priority.Monitor);
-		registerEvent(Event.Type.VEHICLE_CREATE, vehicleListener, Priority.Highest);
-		registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, Priority.Lowest);
-		registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, vehicleListener, Priority.Lowest);
-		registerEvent(Event.Type.VEHICLE_EXIT, vehicleListener, Priority.Highest);	
-		registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, Priority.Highest);	
-		registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.Highest);	
-		registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Monitor);
-		registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Monitor);
-		registerEvent(Event.Type.REDSTONE_CHANGE, blockListener, Priority.Highest);
-		registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest);
-		registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor);
+		this.getServer().getPluginManager().registerEvents(this.listener, this);
+		
 		initDependencies();
 		
 		//Load configuration
@@ -202,7 +177,7 @@ public class TrainCarts extends JavaPlugin {
 		TrainProperties.init();
 
 		//Load destinations
-		Destination.init();
+		PathNode.init();
 
 		//Load arrival times
 		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
@@ -242,7 +217,7 @@ public class TrainCarts extends JavaPlugin {
 		TrainProperties.deinit();
 		
 		//Save destinations
-		Destination.deinit();
+		PathNode.deinit();
 
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");

@@ -1,13 +1,10 @@
 package com.bergerkiller.bukkit.tc.utils;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.EntityTracker;
-import net.minecraft.server.IntHashMap;
 import net.minecraft.server.Packet22Collect;
 import net.minecraft.server.WorldServer;
 

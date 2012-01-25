@@ -4,10 +4,8 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Location;
-import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
-import com.bergerkiller.bukkit.tc.Destination;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;

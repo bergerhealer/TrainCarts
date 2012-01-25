@@ -5,8 +5,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
-import com.bergerkiller.bukkit.tc.Destination;
 import com.bergerkiller.bukkit.tc.GroupManager;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 
@@ -47,7 +47,7 @@ public class GlobalCommands {
 			return true;
 		} else if (args[0].equals("reroute")) {
 			Permission.COMMAND_REROUTE.handle(sender);
-			Destination.clear();
+			PathNode.clearAll();
 			sender.sendMessage("All train routings will be recalculated.");
 			return true;
 		}
