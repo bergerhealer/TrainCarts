@@ -41,6 +41,8 @@ import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
 public class MinecartMember extends NativeMinecartMember {
 	private static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
@@ -624,7 +626,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return new Vector(this.motX, this.motY, this.motZ);
 	}
 	public TrackMap makeTrackMap(int size) {
-		return new TrackMap(BlockUtil.getRailsBlock(this.getLocation()), this.direction, size);
+		return new TrackMap(this.getRailsBlock(), this.direction, size);
 	}
 		
 	/*
@@ -840,10 +842,10 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.isMoving()) {
 			Block memberrail = member.getRailsBlock();
 			if (memberrail == null) return true; //derailed
-			if (TrackMap.isConnected(this.getRailsBlock(), memberrail, true)) return true;
+			if (TrackIterator.isConnected(this.getRailsBlock(), memberrail, true)) return true;
 			return this.isHeadingToTrack(memberrail);
 		} else {
-			return TrackMap.isConnected(this.getRailsBlock(), member.getRailsBlock(), false);
+			return TrackIterator.isConnected(this.getRailsBlock(), member.getRailsBlock(), false);
 		}
 	}	
 	public static boolean isTrackConnected(MinecartMember m1, MinecartMember m2) {
@@ -858,7 +860,7 @@ public class MinecartMember extends NativeMinecartMember {
 			if (!m2.isFollowingOnTrack(m1)) return false;
 		} else {
 			if (!m1.isNearOf(m2)) return false;
-			if (!TrackMap.isConnected(m1.getRailsBlock(), m2.getRailsBlock(), false)) return false;
+			if (!TrackIterator.isConnected(m1.getRailsBlock(), m2.getRailsBlock(), false)) return false;
 		}
 		return true;
 	}

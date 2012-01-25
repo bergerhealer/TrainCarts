@@ -3,13 +3,20 @@ package com.bergerkiller.bukkit.tc.API;
 import net.minecraft.server.EntityMinecart;
 
 import org.bukkit.entity.Minecart;
+import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
 
 public class MinecartSwapEvent extends MemberEvent {
-
 	private static final long serialVersionUID = 1L;
+    private static final HandlerList handlers = new HandlerList();
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
 	
 	private final EntityMinecart from;
 	private final EntityMinecart to;

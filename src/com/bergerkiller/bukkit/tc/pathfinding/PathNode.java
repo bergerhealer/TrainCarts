@@ -10,17 +10,21 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.config.ConfigurationNode;
 import com.bergerkiller.bukkit.config.FileConfiguration;
-import com.bergerkiller.bukkit.tc.TrackMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.utils.BlockLocation;
+import com.bergerkiller.bukkit.tc.utils.BlockMap;
+import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathNode {
 	private static Set<PathNode> findTraversed = new HashSet<PathNode>();
+	private static BlockMap<PathNode> blockNodes = new BlockMap<PathNode>();
 	private static Map<String, PathNode> nodes = new HashMap<String, PathNode>();
 	public static void clearAll() {
 		nodes.clear();
+		blockNodes.clear();
 	}
 	public static PathNode find(PathNode from, final String name) {
 		PathNode node = get(name);
@@ -32,12 +36,25 @@ public class PathNode {
 			return node;
 		}
 	}
+	public static PathNode get(Block block) {
+		return blockNodes.get(block);
+	}
 	public static PathNode get(final String name) {
 		return nodes.get(name);
 	}
 	public static PathNode remove(final String name) {
 		PathNode node = nodes.remove(name);
 		if (node != null) node.remove();
+		return node;
+	}
+	public static PathNode remove(Block railsblock) {
+		PathNode node = blockNodes.remove(railsblock);
+		if (node != null) node.remove();
+		return node;
+	}
+	public static PathNode clear(Block railsblock) {
+		PathNode node = blockNodes.get(railsblock);
+		if (node != null) node.clear();
 		return node;
 	}
 	public static PathNode getOrCreate(SignActionEvent event) {
@@ -63,6 +80,7 @@ public class PathNode {
 		if (node == null) {
 			node = new PathNode(name, location);
 			nodes.put(node.name, node);
+			blockNodes.put(location, node);
 		}
 		return node;
 	}
@@ -89,6 +107,10 @@ public class PathNode {
 	public final Map<PathNode, PathConnection> neighboursFrom = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> neighboursTo = new HashMap<PathNode, PathConnection>(2);
 	private final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
+		
+	public boolean containsConnection(PathNode node) {
+		return this.connections.containsKey(node);
+	}
 	
 	public PathConnection getConnection(PathNode node) {
 		return node == null ? null : connections.get(node);
@@ -139,26 +161,21 @@ public class PathNode {
 		return null;
 	}
 	
-	private void remove(PathNode node) {
-		this.neighboursFrom.remove(node);
-		this.neighboursTo.remove(node);
-		this.connections.remove(node);
-	}
-	public void remove() {
-		for (PathNode node : this.neighboursFrom.keySet()) {
-			node.remove(this);
+	public void clear() {
+		for (PathNode node : nodes.values()) {
+			if (node.containsConnection(this)) {
+				node.clear();
+			}
 		}
 		this.neighboursFrom.clear();
-		for (PathNode node : this.neighboursTo.keySet()) {
-			node.remove(this);
-		}
 		this.neighboursTo.clear();
-		for (PathNode node : this.connections.keySet()) {
-			node.remove(this);
-		}
 		this.connections.clear();
+	}
+	public void remove() {
+		this.clear();
 		//remove globally
 		nodes.remove(this.name);
+		blockNodes.remove(this.location);
 	}
 
 	public String toString() {
@@ -175,12 +192,15 @@ public class PathNode {
 		if (this.location == null) return;
 		Block tmpblock = this.location.getBlock();
 		if (tmpblock == null) return;
-		tmpblock = TrackMap.getNext(tmpblock, dir);
-		TrackMap map = new TrackMap(tmpblock, dir);
+		tmpblock = TrackIterator.getNextTrack(tmpblock, dir);
+		
+		TrackIterator iter = new TrackIterator(tmpblock, dir);
+
 		String newdest;
 		BlockLocation location;
-		while (tmpblock != null){
-			for (Block signblock : map.getAttachedSignBlocks()) {
+		while (iter.hasNext()) {
+			tmpblock = iter.next();
+			for (Block signblock : BlockUtil.getSignsAttached(tmpblock)) {
 				SignActionEvent event = new SignActionEvent(signblock);
 				if (event.getMode() != SignActionMode.NONE) {
 					if (event.isType("tag", "switcher")){
@@ -202,11 +222,10 @@ public class PathNode {
 					if (newdest.equals(this.name)) continue;
 					//finished, we found our first target - create connection
 					PathNode to = getOrCreate(newdest, location);
-					this.createNeighbourConnection(to, map.getTotalDistance() + 1, dir);
+					this.createNeighbourConnection(to, iter.getDistance() + 1, dir);
 					return;
 				}
 			}
-			tmpblock = map.next();
 		}
 	}
 
@@ -220,13 +239,14 @@ public class PathNode {
 		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, destinationsFile);
 		save(config);
 		config.save();
-		nodes.clear();
+		clearAll();
 	}
 	public static void load(FileConfiguration config) {
 		for (ConfigurationNode node : config.getNodes()) {
 			PathNode pn = new PathNode(node);
 			if (pn.location != null && pn.name != null) {
 				nodes.put(pn.name, pn);
+				blockNodes.put(pn.location, pn);
 			}
 		}
 		for (PathNode pnode : nodes.values()) {
@@ -235,7 +255,7 @@ public class PathNode {
 	}
 	public static void save(FileConfiguration config) {
 		for (PathNode pnode : nodes.values()) {
-			pnode.save(config.getNode(pnode.name));
+			pnode.save(config.getNode(pnode.location.toString()));
 		}
 	}
 	public void load(ConfigurationNode node) {
@@ -260,12 +280,14 @@ public class PathNode {
 		}
 	}
 	public void save(ConfigurationNode node) {
-		node.set("name", this.hasName ? this.name : null);
-		node = node.getNode("neighbours");
-		for (Map.Entry<PathNode, PathConnection> entry : this.neighboursTo.entrySet()) {
-			ConfigurationNode neigh = node.getNode(entry.getKey().name);
-			neigh.set("dir", entry.getValue().direction.toString());
-			neigh.set("dist", entry.getValue().distance);
+		if (this.hasName) node.set("name", this.name);
+		if (!this.neighboursTo.isEmpty()) {
+			node = node.getNode("neighbours");
+			for (Map.Entry<PathNode, PathConnection> entry : this.neighboursTo.entrySet()) {
+				ConfigurationNode neigh = node.getNode(entry.getKey().name);
+				neigh.set("dir", entry.getValue().direction.toString());
+				neigh.set("dist", entry.getValue().distance);
+			}
 		}
 	}
 }

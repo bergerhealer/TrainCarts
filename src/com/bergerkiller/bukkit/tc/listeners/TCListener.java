@@ -40,6 +40,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -315,6 +316,10 @@ public class TCListener implements Listener {
 		if (!event.isCancelled()) {
 			if (BlockUtil.isSign(event.getBlock())) {
 				SignActionDetector.removeDetector(event.getBlock());
+				//invalidate this piece of track
+				PathNode.clear(BlockUtil.getRailsBlockFromSign(event.getBlock()));
+			} else if (BlockUtil.isRails(event.getBlock())) {
+				PathNode.remove(event.getBlock());
 			}
 		}
 	}

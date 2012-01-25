@@ -2,12 +2,20 @@ package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Util;
 
 public class GroupLinkEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = 1L;
+    private static final HandlerList handlers = new HandlerList();
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
 	
 	private final MinecartGroup group1;
 	private final MinecartGroup group2;
