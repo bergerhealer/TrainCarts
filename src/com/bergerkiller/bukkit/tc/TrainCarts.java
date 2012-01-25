@@ -31,7 +31,6 @@ import com.bergerkiller.bukkit.tc.listeners.TCWorldListener;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
-import com.bergerkiller.bukkit.tc.tracker.TrackerUtil;
 import com.bergerkiller.bukkit.tc.utils.ItemUtil;
 
 public class TrainCarts extends JavaPlugin {
@@ -191,7 +190,7 @@ public class TrainCarts extends JavaPlugin {
 		loadConfig();
 		
 		//init reflection-made fields
-		TrackerUtil.initFields();
+		MinecartMemberTrackerEntry.initFields();
 
 		//Init signs
 		SignAction.init();

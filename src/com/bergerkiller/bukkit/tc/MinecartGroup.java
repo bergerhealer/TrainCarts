@@ -12,6 +12,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -812,13 +813,36 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public void breakPhysics() {
 		this.breakPhysics = true;
 	}
-	
+		
 	/*
 	 * Synchronizes all members' entity trackers
 	 * Makes them move nicely in-sync
 	 */
-	public void sync() {
-		for (MinecartMember mm : this) mm.sync();
+	private void sync() {
+		if (this.isEmpty()) return;
+		boolean location = this.head().getTracker().needsLocationSync();
+		boolean teleport = this.head().getTracker().needsTeleport();
+		boolean velocity = false;
+		for (MinecartMember mm : this) {
+			MinecartMemberTrackerEntry tracker = mm.getTracker();
+			if (!location && tracker.tracker.ce) {
+				location = true;
+			}
+			if (!velocity && tracker.tracker.velocityChanged) {
+				velocity = true;
+			}
+		}
+		
+		for (MinecartMember mm : this) {
+			MinecartMemberTrackerEntry tracker = mm.getTracker();
+			if (location) {
+				tracker.syncLocation(teleport);
+			}
+			if (velocity) {
+				tracker.syncVelocity();
+			}
+			tracker.syncMeta();
+		}
 	}
 	
 	public void doPhysics() {
@@ -870,6 +894,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.updateDirection();
 				mm.postUpdate(1);
 				this.updateDirection();
+				mm.getTracker().sync();
 				return true;
 			} else if (this.isEmpty()) {
 				this.remove();
@@ -965,10 +990,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				}
 			}
 			
-			if (this.isEmpty()) return true;
-			if (this.head().needsSync()) {
-				this.sync();
-			}
+			//Synchronize to clients
+			this.sync();
 			
 			return true;
 		} catch (MemberDeadException ex) {

@@ -9,6 +9,8 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.Destination;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionSwitcher extends SignAction {
@@ -24,11 +26,18 @@ public class SignActionSwitcher extends SignAction {
 	}
 	
 	public boolean handleDestination(SignActionEvent info) {
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)){
-			BlockFace check = Destination.getDir(info);
-			if (check != BlockFace.UP) {
-				info.setRailsFromCart(check);
-				return true;
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
+			PathNode node = PathNode.getOrCreate(info);
+			if (node != null) {
+				PathConnection conn = null;
+				if (info.isCartSign()) {
+					conn = node.findConnection(info.getMember().getProperties().destination);
+				} else if (info.isTrainSign()) {
+					conn = node.findConnection(info.getGroup().getProperties().getDestination());
+				}
+				if (conn != null) {
+					info.setRailsFromCart(conn.direction);
+				}
 			}
 		}
 		return false;

@@ -53,6 +53,7 @@ public class TCPlayerListener extends PlayerListener {
 								return;
 							}
 						}
+						event.setCancelled(true);
 					}
 				}
 			}

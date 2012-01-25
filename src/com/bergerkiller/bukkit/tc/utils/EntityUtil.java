@@ -22,7 +22,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
-import net.minecraft.server.EntityTrackerEntry;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -125,30 +124,7 @@ public class EntityUtil {
 		}
 		return false;
 	}
-	
-	private static boolean trackerfieldinit = false;
-	private static Field trackerfield = null;
-	public static EntityTrackerEntry getTracker(net.minecraft.server.Entity entity) {
-		EntityTracker tracker = ((WorldServer) entity.world).tracker;
-		if (!trackerfieldinit) {
-			trackerfieldinit = true;
-			try {
-				trackerfield = EntityTracker.class.getDeclaredField("trackedEntities");
-				trackerfield.setAccessible(true);
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
-		}
-		if (trackerfield != null) {
-			try {
-				return (EntityTrackerEntry) ((IntHashMap) trackerfield.get(tracker)).a(entity.id);
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
-		}
-		return null;
-	}
-	
+		
 	public static void teleport(net.minecraft.server.Entity entity, Location to) {
 		WorldServer newworld = ((CraftWorld) to.getWorld()).getHandle();
 		Util.loadChunks(to);

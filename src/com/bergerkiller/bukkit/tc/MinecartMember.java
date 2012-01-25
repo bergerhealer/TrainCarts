@@ -37,8 +37,6 @@ import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.tracker.GroupedEntityTrackerEntry;
-import com.bergerkiller.bukkit.tc.tracker.TrackerUtil;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.utils.FaceUtil;
@@ -232,13 +230,12 @@ public class MinecartMember extends NativeMinecartMember {
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private HashSet<Block> activeSigns = new HashSet<Block>();
-	private GroupedEntityTrackerEntry tracker;
+	private MinecartMemberTrackerEntry tracker;
 	
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.direction = FaceUtil.yawToFace(this.yaw);
 		replacedCarts.add(this);
-		this.sync();
 	}
 	public void initInWorld() {
 		if (this.isInitWorld) return;
@@ -1081,23 +1078,12 @@ public class MinecartMember extends NativeMinecartMember {
 		this.direction = this.direction.getOppositeFace();
 	}
 		
-	public GroupedEntityTrackerEntry getTracker() {
+	public MinecartMemberTrackerEntry getTracker() {
 		if (this.world == null) return null;
-		if (this.tracker == null) {
-			this.tracker = new GroupedEntityTrackerEntry(this);
-			TrackerUtil.setTracker(this, this.tracker);
+		if (this.tracker == null || this.tracker.isRemoved) {
+			this.tracker = MinecartMemberTrackerEntry.get(this);
 		}
 		return this.tracker;
-	}
-	protected void untrack() {
-		//called by the entity tracker of this member
-		this.tracker = null;
-	}
-	public void sync() {
-		this.getTracker().sync(true);
-	}
-	public boolean needsSync() {
-		return this.getTracker().needsSync();
 	}
 	
 	private boolean died = false;
