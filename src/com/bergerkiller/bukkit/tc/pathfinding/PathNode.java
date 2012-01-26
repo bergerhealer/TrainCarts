@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.utils.BlockLocation;
 import com.bergerkiller.bukkit.tc.utils.BlockMap;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathNode {
@@ -211,10 +212,29 @@ public class PathNode {
 						newdest = event.getLine(2);
 					} else if (event.isType("oneway")) {
 						//allow us to continue or not?
+						//get the direction this sign is pointing
+						BlockFace direction = event.getFacing();
+						if (event.isLine(2, "n")) {
+							direction = BlockFace.NORTH;
+						} else if (event.isLine(2, "e")) {
+							direction = BlockFace.EAST;
+						} else if (event.isLine(2, "s")) {
+							direction = BlockFace.SOUTH;
+						} else if (event.isLine(2, "w")) {
+							direction = BlockFace.WEST;
+						} else if (event.isLine(2, "l")) {
+							direction = FaceUtil.rotate(direction, -2);
+						} else if (event.isLine(2, "r")) {
+							direction = FaceUtil.rotate(direction, 2);
+						} else if (event.isLine(2, "b")) {
+							direction = direction.getOppositeFace();
+						}
 						
-						
-						
-						continue;
+						if (iter.currentDirection() == direction) {
+							continue;
+						} else {
+							return;
+						}
 					} else {
 						continue;
 					}

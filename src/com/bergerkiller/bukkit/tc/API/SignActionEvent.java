@@ -276,12 +276,15 @@ public class SignActionEvent extends Event implements Cancellable {
 	public boolean isTrainSign() {
 		return this.mode == SignActionMode.TRAIN;
 	}
-	public boolean isType(String... signtypes) {
-		String line = this.getLine(1).toLowerCase();
-		for (String signtype : signtypes) {
-			if (line.startsWith(signtype)) return true;
+	public boolean isLine(int line, String... texttypes) {
+		String linetext = this.getLine(line).toLowerCase();
+		for (String type : texttypes) {
+			if (linetext.startsWith(type)) return true;
 		}
 		return false;
+	}
+	public boolean isType(String... signtypes) {
+		return isLine(1, signtypes);
 	}
 
 	public boolean isCancelled() {
