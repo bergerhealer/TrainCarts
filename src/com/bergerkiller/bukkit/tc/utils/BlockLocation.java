@@ -14,7 +14,13 @@ public class BlockLocation {
 		this.z = node.get("z", 0);
 	}
 	public BlockLocation(Block block) {
-		this(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
+		this(block.getWorld(), block.getX(), block.getY(), block.getZ());
+	}
+	public BlockLocation(World world, final int x, final int y, final int z) {
+		this.world = world == null ? null : world.getName();
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 	public BlockLocation(final String world, final int x, final int y, final int z) {
 		this.world = world;

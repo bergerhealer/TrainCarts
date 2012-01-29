@@ -338,6 +338,14 @@ public class Util {
 		if (value > max) return max;
 		return value;
 	}
+	public static float limit(float value, float limit) {
+		return limit(value, -limit, limit);
+	}
+	public static float limit(float value, float min, float max) {
+		if (value < min) return min;
+		if (value > max) return max;
+		return value;
+	}
 	
 	public static void setVectorLength(Vector vector, double length) {
 		if (length >= 0) {

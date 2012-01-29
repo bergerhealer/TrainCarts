@@ -25,6 +25,7 @@ public abstract class SignAction {
 		register(new SignActionChest());
 		register(new SignActionDetector());
 		register(new SignActionDestination());
+		register(new SignActionBlock());
 	}
 	public static void deinit() {
 		actions = null;

@@ -41,6 +41,7 @@ public enum Permission {
 	BUILD_PROPERTY("train.build.property", PermissionDefault.OP),
 	BUILD_CHEST("train.build.chest", PermissionDefault.OP),
 	BUILD_TELEPORTER("train.build.teleporter", PermissionDefault.OP),
+	BUILD_BLOCKER("train.build.blocker", PermissionDefault.OP),
 	GENERAL_PLACE_MINECART("train.place.minecart", PermissionDefault.TRUE),
 	GENERAL_PROPERTIES_DEFAULT("train.properties.default", PermissionDefault.NOT_OP),
 	GENERAL_PROPERTIES_ADMIN("train.properties.admin", PermissionDefault.OP);

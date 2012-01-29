@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
@@ -214,7 +215,7 @@ public class ArrivalSigns {
 			};
 		}
 		if (!updateThread.isRunning()) {
-			updateThread.startRepeating(1);
+			updateThread.start(0, 1);
 		}
 	}
 	

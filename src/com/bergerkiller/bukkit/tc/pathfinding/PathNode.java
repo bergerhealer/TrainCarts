@@ -13,10 +13,10 @@ import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
+import com.bergerkiller.bukkit.tc.signactions.SignActionBlock;
 import com.bergerkiller.bukkit.tc.utils.BlockLocation;
 import com.bergerkiller.bukkit.tc.utils.BlockMap;
 import com.bergerkiller.bukkit.tc.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathNode {
@@ -38,6 +38,7 @@ public class PathNode {
 		}
 	}
 	public static PathNode get(Block block) {
+		if (block == null) return null;
 		return blockNodes.get(block);
 	}
 	public static PathNode get(final String name) {
@@ -49,11 +50,13 @@ public class PathNode {
 		return node;
 	}
 	public static PathNode remove(Block railsblock) {
+		if (railsblock == null) return null;
 		PathNode node = blockNodes.remove(railsblock);
 		if (node != null) node.remove();
 		return node;
 	}
 	public static PathNode clear(Block railsblock) {
+		if (railsblock == null) return null;
 		PathNode node = blockNodes.get(railsblock);
 		if (node != null) node.clear();
 		return node;
@@ -77,6 +80,7 @@ public class PathNode {
 		return getOrCreate(name, new BlockLocation(location));
 	}
 	public static PathNode getOrCreate(final String name, final BlockLocation location) {
+		if (name == null || name.isEmpty()) return null;
 		PathNode node = get(name);
 		if (node == null) {
 			node = new PathNode(name, location);
@@ -107,7 +111,7 @@ public class PathNode {
 	private final boolean hasName;
 	public final Map<PathNode, PathConnection> neighboursFrom = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> neighboursTo = new HashMap<PathNode, PathConnection>(2);
-	private final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
+	public final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
 		
 	public boolean containsConnection(PathNode node) {
 		return this.connections.containsKey(node);
@@ -120,6 +124,12 @@ public class PathNode {
 		return this.getConnection(get(name));
 	}
 	
+	public PathConnection removeNeightbourConnection(final PathNode to) {
+		PathConnection conn = this.neighboursTo.remove(to);
+		to.neighboursFrom.remove(this);
+		return conn;
+	}
+	
 	public PathConnection createNeighbourConnection(final PathNode to, final int distance, final BlockFace direction) {
 		PathConnection conn = this.createConnection(to, distance, direction);
 		if (conn == null) return null;
@@ -128,15 +138,22 @@ public class PathNode {
 		return conn;
 	}
 	public PathConnection createConnection(final PathNode to, final int distance, final BlockFace direction) {
-		if (to == null) return null;
+		if (to == null || to == this) return null;
 		PathConnection conn = this.getConnection(to);
 		if (conn == null || conn.distance > distance) {
 			conn = new PathConnection(distance, direction, to);
 			this.connections.put(to, conn);
+
 			//make sure all neighbours get informed of this connection
 			for (Map.Entry<PathNode, PathConnection> entry : this.neighboursFrom.entrySet()) {
 				int newdistance = entry.getValue().distance + distance + 1;
 				entry.getKey().createConnection(to, newdistance, entry.getValue().direction);
+			}
+			
+			//any connections to make to other nodes contained in to?
+			for (Map.Entry<PathNode, PathConnection> entry : to.connections.entrySet()) {
+				int newdistance = entry.getValue().distance + distance + 1;
+				this.createConnection(entry.getKey(), newdistance, direction);
 			}
 		}
 		return conn;
@@ -157,21 +174,27 @@ public class PathNode {
 		PathNode found;
 		for (PathNode node : this.neighboursTo.keySet()) {
 			found = node.findNode(name);
-			if (found != null) return found;
+			if (found != null) {
+				return found;
+			}
 		}
 		return null;
 	}
 	
 	public void clear() {
+		this.clearMapping();
 		for (PathNode node : nodes.values()) {
 			if (node.containsConnection(this)) {
-				node.clear();
+				node.clearMapping();
 			}
 		}
+	}
+	private void clearMapping() {
 		this.neighboursFrom.clear();
 		this.neighboursTo.clear();
 		this.connections.clear();
 	}
+	
 	public void remove() {
 		this.clear();
 		//remove globally
@@ -180,7 +203,7 @@ public class PathNode {
 	}
 
 	public String toString() {
-		return "[" + (this.hasName ? "" : this.name + "/") + this.location.toString() + "]";
+		return "[" + (this.hasName ? this.name + "/" : "") + this.location.toString() + "]";
 	}
 	
 	public void explore() {
@@ -210,27 +233,8 @@ public class PathNode {
 					} else if (event.isType("destination")) {
 						location = new BlockLocation(tmpblock);
 						newdest = event.getLine(2);
-					} else if (event.isType("oneway")) {
-						//allow us to continue or not?
-						//get the direction this sign is pointing
-						BlockFace direction = event.getFacing();
-						if (event.isLine(2, "n")) {
-							direction = BlockFace.NORTH;
-						} else if (event.isLine(2, "e")) {
-							direction = BlockFace.EAST;
-						} else if (event.isLine(2, "s")) {
-							direction = BlockFace.SOUTH;
-						} else if (event.isLine(2, "w")) {
-							direction = BlockFace.WEST;
-						} else if (event.isLine(2, "l")) {
-							direction = FaceUtil.rotate(direction, -2);
-						} else if (event.isLine(2, "r")) {
-							direction = FaceUtil.rotate(direction, 2);
-						} else if (event.isLine(2, "b")) {
-							direction = direction.getOppositeFace();
-						}
-						
-						if (iter.currentDirection() == direction) {
+					} else if (event.isType("blocker")) {
+						if (SignActionBlock.canPass(event, iter.currentDirection())) {
 							continue;
 						} else {
 							return;

@@ -14,11 +14,11 @@ public class SignActionDestination extends SignAction {
 		if (!info.hasMember()) return;
 		if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
 		    PathNode.getOrCreate(info);
-			if (info.getLine(3).isEmpty()) return;
+			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
 			info.getMember().getProperties().destination = info.getLine(3);
 		} else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {
 			PathNode.getOrCreate(info);
-			if (info.getLine(3).isEmpty()) return;
+			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
 			info.getGroup().getProperties().setDestination(info.getLine(3));
 		}
 	}

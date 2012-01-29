@@ -61,17 +61,16 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
     private double prevX, prevY, prevZ;
     
     public MinecartMemberTrackerEntry(EntityTrackerEntry source) {
-    	super(source.tracker, source.b, source.c, true);
+    	super(source.tracker, 80, 3, true);
+    	//copy important information over
     	this.d = source.d;
     	this.e = source.e;
     	this.f = source.f;
     	this.g = source.g;
-        this.h = source.h;
-        this.i = source.i;
-        this.j = source.j;
-        this.k = source.k;
-        this.l = source.l;
-        this.m = source.m;
+    	this.h = source.h;
+    	this.m = source.m;
+    	this.trackedPlayers.addAll(source.trackedPlayers);
+    	this.isRemoved = false;
     }
     public MinecartMemberTrackerEntry(MinecartMember member) {
     	super(member, 80, 3, true);
@@ -114,7 +113,6 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
     }
     
     public void syncLocation(boolean teleport) {
-    	if (this.tracker.dead) return;
     	int i = MathHelper.floor(this.tracker.locX * 32);
     	int j = MathHelper.floor(this.tracker.locY * 32);
     	int k = MathHelper.floor(this.tracker.locZ * 32);
@@ -126,7 +124,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
     	
     	boolean moved = Math.abs(j1) >= 4 || Math.abs(k1) >= 4 || Math.abs(l1) >= 4; 
     	boolean looked = Math.abs(l - this.g) >= 4 || Math.abs(i1 - this.h) >= 4;
-
+    	
     	//movement and looked packets
     	if (!teleport && Math.abs(j1) < 128 && Math.abs(k1) < 128 && Math.abs(l1) < 128) {
     		if (moved && looked) {

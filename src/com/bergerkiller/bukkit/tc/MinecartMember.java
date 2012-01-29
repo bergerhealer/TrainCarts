@@ -30,6 +30,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.API.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
@@ -339,6 +340,13 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
+		if (!this.activeSigns.isEmpty()) {
+			SignActionEvent info;
+			for (Block sign : this.activeSigns) {
+				info = new SignActionEvent(sign, this);
+				SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
+			}
+		}
 		Block from = forced ? null : this.getBlock();
 		int x = super.getBlockX();
 		int y = super.getBlockY();
@@ -397,13 +405,6 @@ public class MinecartMember extends NativeMinecartMember {
 								
 			//event
 			MemberBlockChangeEvent.call(this, from, to);
-		} else if (!this.activeSigns.isEmpty()) {
-			//move
-			SignActionEvent info;
-			for (Block sign : this.activeSigns) {
-				info = new SignActionEvent(sign, this);
-				SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
-			}
 		}
 	}
 				
@@ -1053,14 +1054,13 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.passenger != null) {
 			Entity passenger = this.passenger.getBukkitEntity();
 			this.passenger.setPassengerOf(null);
-			Task t = new Task(TrainCarts.plugin, passenger, offset) {
+			new Task(TrainCarts.plugin, passenger, offset) {
 				public void run() {
-					Entity e = (Entity) getArg(0);
-					Vector offset = (Vector) getArg(1);
+					Entity e = arg(0, Entity.class);
+					Vector offset = arg(1, Vector.class);
 					e.teleport(e.getLocation().add(offset.getX(), offset.getY(), offset.getZ()));
 				}
-			};
-			t.startDelayed(0);
+			}.start(0);
 		}
 	}
 	public boolean connect(MinecartMember with) {
@@ -1070,6 +1070,9 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motX = 0;
 		this.motY = 0;
 		this.motZ = 0;
+		this.locX = this.lastX;
+		this.locY = this.lastY;
+		this.locZ = this.lastZ;
 	}
 	public void reverse() {
 		this.motX *= -1;

@@ -821,11 +821,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 */
 	private void sync() {
 		if (this.isEmpty()) return;
-		boolean location = this.head().getTracker().needsLocationSync();
-		boolean teleport = this.head().getTracker().needsTeleport();
+		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
+		if (headtracker == null) return;
+		boolean location = headtracker.needsLocationSync();
+		boolean teleport = headtracker.needsTeleport();
 		boolean velocity = false;
 		for (MinecartMember mm : this) {
 			MinecartMemberTrackerEntry tracker = mm.getTracker();
+			if (tracker == null) continue;
 			if (!location && tracker.tracker.ce) {
 				location = true;
 			}
@@ -836,6 +839,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		
 		for (MinecartMember mm : this) {
 			MinecartMemberTrackerEntry tracker = mm.getTracker();
+			if (tracker == null) continue;
 			if (location) {
 				tracker.syncLocation(teleport);
 			}
@@ -895,7 +899,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.updateDirection();
 				mm.postUpdate(1);
 				this.updateDirection();
-				mm.getTracker().sync();
+				MinecartMemberTrackerEntry tracker = mm.getTracker();
+				if (tracker != null) tracker.sync();
 				return true;
 			} else if (this.isEmpty()) {
 				this.remove();

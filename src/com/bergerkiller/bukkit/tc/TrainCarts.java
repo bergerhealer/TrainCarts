@@ -17,11 +17,10 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.listeners.TCListener;
-import com.bergerkiller.bukkit.tc.listeners.TCMMListener;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -65,7 +64,6 @@ public class TrainCarts extends JavaPlugin {
 	
 	public static TrainCarts plugin;
 	private final TCListener listener = new TCListener();	
-	private final TCMMListener minecartManiaListener = new TCMMListener();	
 
 	private Task signtask;
 
@@ -124,11 +122,6 @@ public class TrainCarts extends JavaPlugin {
 	}
 	
 	private void initDependencies() {
-		if (this.getServer().getPluginManager().isPluginEnabled("MinecartManiaCore")) {
-			Util.log(Level.INFO, "Minecart Mania detected, support added!");
-			MinecartManiaEnabled = true;
-			this.getServer().getPluginManager().registerEvents(minecartManiaListener, this);
-		}
 		if (this.getServer().getPluginManager().isPluginEnabled("SignLink")) {
 			Util.log(Level.INFO, "SignLink detected, support for arrival signs added!");
 			SignLinkEnabled = true;
@@ -137,7 +130,7 @@ public class TrainCarts extends JavaPlugin {
 					ArrivalSigns.updateAll();
 				}
 			};
-			signtask.startRepeating(10);
+			signtask.start(0, 10);
 		}
 		if (this.getServer().getPluginManager().isPluginEnabled("My Worlds")) {
 			Util.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
@@ -197,7 +190,7 @@ public class TrainCarts extends JavaPlugin {
 				MinecartMember.cleanUpDeadCarts();
 			}
 		};
-		cleanupTask.startRepeating(10);
+		cleanupTask.start(0, 10);
 
 		//commands
 		getCommand("train").setExecutor(this);

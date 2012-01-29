@@ -19,8 +19,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
@@ -125,7 +125,7 @@ public class EntityUtil {
 	public static void teleport(net.minecraft.server.Entity entity, Location to) {
 		WorldServer newworld = ((CraftWorld) to.getWorld()).getHandle();
 		Util.loadChunks(to);
-		if (entity.world != newworld) {			
+		if (entity.world != newworld) {					
 			//transfer entity cross-worlds
 			if (entity.passenger != null) {
 				//set out of vehicle?
@@ -133,18 +133,18 @@ public class EntityUtil {
 				if (passenger instanceof EntityPlayer) {
 					new Task(TrainCarts.plugin, passenger, entity) {
 						public void run() {
-							EntityPlayer entity = (EntityPlayer) getArg(0);
-							net.minecraft.server.Entity vehicle = (net.minecraft.server.Entity) getArg(1);
+							EntityPlayer entity = arg(0, EntityPlayer.class);
+							net.minecraft.server.Entity vehicle = arg(0, net.minecraft.server.Entity.class);
 							entity.setPassengerOf(vehicle);
 						}
-					}.startDelayed(0);
+					}.start(20);
 				}
 				
 				entity.passenger = null;
 				passenger.vehicle = null;
 				teleport(passenger, to);
 			}
-			
+					
 			//teleport this entity
 			entity.world.removeEntity(entity);
 			entity.dead = false;
@@ -152,7 +152,6 @@ public class EntityUtil {
 			entity.setLocation(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
 			entity.world.addEntity(entity);
 			((WorldServer) entity.world).tracker.track(entity);
-			
 			if (entity instanceof EntityPlayer) {
 				Util.getCraftServer().getHandle().moveToWorld((EntityPlayer) entity, newworld.dimension, true, to);
 			}
