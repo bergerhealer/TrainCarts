@@ -23,6 +23,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.API.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.API.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.API.GroupRemoveEvent;
@@ -820,34 +822,34 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 * Makes them move nicely in-sync
 	 */
 	private void sync() {
-		if (this.isEmpty()) return;
-		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
-		if (headtracker == null) return;
-		boolean location = headtracker.needsLocationSync();
-		boolean teleport = headtracker.needsTeleport();
-		boolean velocity = false;
-		for (MinecartMember mm : this) {
-			MinecartMemberTrackerEntry tracker = mm.getTracker();
-			if (tracker == null) continue;
-			if (!location && tracker.tracker.ce) {
-				location = true;
-			}
-			if (!velocity && tracker.tracker.velocityChanged) {
-				velocity = true;
-			}
-		}
-		
-		for (MinecartMember mm : this) {
-			MinecartMemberTrackerEntry tracker = mm.getTracker();
-			if (tracker == null) continue;
-			if (location) {
-				tracker.syncLocation(teleport);
-			}
-			if (velocity) {
-				tracker.syncVelocity();
-			}
-			tracker.syncMeta();
-		}
+//		if (this.isEmpty()) return;
+//		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
+//		if (headtracker == null) return;
+//		boolean location = headtracker.needsLocationSync();
+//		boolean teleport = headtracker.needsTeleport();
+//		boolean velocity = false;
+//		for (MinecartMember mm : this) {
+//			MinecartMemberTrackerEntry tracker = mm.getTracker();
+//			if (tracker == null) continue;
+//			if (!location && tracker.tracker.ce) {
+//				location = true;
+//			}
+//			if (!velocity && tracker.tracker.velocityChanged) {
+//				velocity = true;
+//			}
+//		}
+//		
+//		for (MinecartMember mm : this) {
+//			MinecartMemberTrackerEntry tracker = mm.getTracker();
+//			if (tracker == null) continue;
+//			if (location) {
+//				tracker.syncLocation(teleport);
+//			}
+//			if (velocity) {
+//				tracker.syncVelocity();
+//			}
+//			tracker.syncMeta();
+//		}
 	}
 	
 	public void doPhysics() {
@@ -876,7 +878,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		} catch (GroupUnloadedException ex) {
 			//this group is gone
 		} catch (Exception ex) {
-			Util.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
+			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
 			ex.printStackTrace();
 		}
 	}
@@ -899,8 +901,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.updateDirection();
 				mm.postUpdate(1);
 				this.updateDirection();
-				MinecartMemberTrackerEntry tracker = mm.getTracker();
-				if (tracker != null) tracker.sync();
+				//MinecartMemberTrackerEntry tracker = mm.getTracker();
+				//if (tracker != null) tracker.sync();
 				return true;
 			} else if (this.isEmpty()) {
 				this.remove();
@@ -985,7 +987,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					if (gnew != null) { 
 						//what time do we want to prevent them from colliding too soon?
 						//needs to travel 2 blocks in the meantime
-						int time = (int) Util.limit(2 / gnew.head().getForce(), 20, 40);
+						int time = (int) MathUtil.limit(2 / gnew.head().getForce(), 20, 40);
 						for (MinecartMember mm1 : gnew) {
 							for (MinecartMember mm2: this) {
 								mm1.ignoreCollision(mm2, time);

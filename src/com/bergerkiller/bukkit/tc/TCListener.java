@@ -33,6 +33,7 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -40,9 +41,7 @@ import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.utils.EntityUtil;
-import com.bergerkiller.bukkit.tc.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
 	
@@ -94,8 +93,8 @@ public class TCListener implements Listener {
 		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {			
 			Minecart m = (Minecart) event.getVehicle();
 			Location loc = m.getLocation();
-			loc.setYaw(EntityUtil.getMinecartYaw(m) + 180);
-			loc = Util.move(loc, TrainCarts.exitOffset);
+			loc.setYaw(m.getLocation().getYaw() + 180);
+			loc = MathUtil.move(loc, TrainCarts.exitOffset);
 			//teleport
 			new Task(TrainCarts.plugin, event.getExited(), loc) {
 				public void run() {
@@ -212,13 +211,13 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.HIGH)
 	public void onPlayerPickupItem(PlayerPickupItemEvent event) {
 		if (event.isCancelled()) return;
-		if (TrainCarts.stackMinecarts && ItemUtil.isMinecartItem(event.getItem())) {
-			ItemStack stack = event.getItem().getItemStack();
-			ItemUtil.transfer(stack, event.getPlayer().getInventory(), Integer.MAX_VALUE);
-			EntityUtil.getNative(event.getPlayer()).receive(EntityUtil.getNative(event.getItem()), 1);
-			event.getItem().remove();
-			event.setCancelled(true);
-		}
+//		if (TrainCarts.stackMinecarts && ItemUtil.isMinecartItem(event.getItem())) {
+//			ItemStack stack = event.getItem().getItemStack();
+//			ItemUtil.transfer(stack, event.getPlayer().getInventory(), Integer.MAX_VALUE);
+//			EntityUtil.getNative(event.getPlayer()).receive(EntityUtil.getNative(event.getItem()), 1);
+//			event.getItem().remove();
+//			event.setCancelled(true);
+//		}
 	}
 	
 	@EventHandler(priority = EventPriority.HIGHEST)

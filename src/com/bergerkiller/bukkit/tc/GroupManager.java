@@ -14,7 +14,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 
 public class GroupManager {
 	
@@ -81,7 +82,7 @@ public class GroupManager {
 				int totalmembers = 0;
 				int worldcount = stream.readInt();
 				for (int i = 0; i < worldcount; i++) {
-					UUID worldUID = Util.readUUID(stream);
+					UUID worldUID = StreamUtil.readUUID(stream);
 					int groupcount = stream.readInt();
 					ArrayList<WorldGroup> groups = new ArrayList<WorldGroup>(groupcount);
 					for (int j = 0; j < groupcount; j++) {
@@ -100,12 +101,12 @@ public class GroupManager {
 				msg += ". (" + totalmembers + " Minecart";
 				if (totalmembers != 1) msg += "s";
 				msg += ")";
-				Util.log(Level.INFO, msg);
+				TrainCarts.plugin.log(Level.INFO, msg);
 			} catch (IOException ex) {
-				Util.log(Level.WARNING, "An IO exception occured while reading groups!");
+				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading groups!");
 				ex.printStackTrace();
 			} catch (Exception ex) {
-				Util.log(Level.WARNING, "A general exception occured while reading groups!");
+				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading groups!");
 				ex.printStackTrace();
 			} finally {
 				stream.close();
@@ -113,7 +114,7 @@ public class GroupManager {
 		} catch (FileNotFoundException ex) {
 			//nothing, we allow non-existence of groups
 		} catch (Exception ex) {
-			Util.log(Level.WARNING, "An exception occured at the end while reading groups!");
+			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading groups!");
 			ex.printStackTrace();
 		}
 	}
@@ -140,24 +141,24 @@ public class GroupManager {
 				stream.writeInt(hiddengroups.size());
 				for (UUID worldUID : hiddengroups.keySet()) {
 					ArrayList<WorldGroup> groups = hiddengroups.get(worldUID);
-					Util.writeUUID(stream, worldUID);
+					StreamUtil.writeUUID(stream, worldUID);
 					stream.writeInt(groups.size());
 					for (WorldGroup wg : groups) wg.writeTo(stream);
 				}
 			} catch (IOException ex) {
-				Util.log(Level.WARNING, "An IO exception occured while reading groups!");
+				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading groups!");
 				ex.printStackTrace();
 			} catch (Exception ex) {
-				Util.log(Level.WARNING, "A general exception occured while reading groups!");
+				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading groups!");
 				ex.printStackTrace();
 			} finally {
 				stream.close();
 			}
 		} catch (FileNotFoundException ex) {
-			Util.log(Level.WARNING, "Failed to write to the groups save file!");
+			TrainCarts.plugin.log(Level.WARNING, "Failed to write to the groups save file!");
 			ex.printStackTrace();
 		} catch (Exception ex) {
-			Util.log(Level.WARNING, "An exception occured at the end while reading groups!");
+			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading groups!");
 			ex.printStackTrace();
 		}
 		hiddengroups.clear();
@@ -191,7 +192,7 @@ public class GroupManager {
 		public Minecart[] getMinecarts(World w) {
 			ArrayList<Minecart> rval = new ArrayList<Minecart>();
 			for (WorldMember member : members) {
-				Minecart m = EntityUtil.getMinecart(w, member.entityUID);
+				Minecart m = EntityUtil.getEntity(w, member.entityUID, Minecart.class);
 				if (m != null) {
 					m.setVelocity(new Vector(member.motX, 0, member.motZ));
 					rval.add(m);

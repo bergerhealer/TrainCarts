@@ -12,9 +12,9 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
-import com.bergerkiller.bukkit.tc.utils.ItemUtil;;
+import com.bergerkiller.bukkit.common.utils.EnumUtil;
 
 public class CartProperties {
 	public static final CartProperties EMPTY = new CartProperties(null);
@@ -223,7 +223,7 @@ public class CartProperties {
 		this.isPublic = node.get("isPublic", this.isPublic);
 		this.pickUp = node.get("pickUp", this.pickUp);
 		for (String blocktype : node.getList("blockBreakTypes", String.class)) {
-			Material mat = ItemUtil.getMaterial(blocktype);
+			Material mat = EnumUtil.parseMaterial(blocktype, null);
 			if (mat != null) this.blockBreakTypes.add(mat);
 		}
 	}

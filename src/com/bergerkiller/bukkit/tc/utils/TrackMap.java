@@ -6,7 +6,9 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;
@@ -130,7 +132,7 @@ public class TrackMap extends ArrayList<Block> {
 						guideindex++;
 					} else {
 						//Use a staged point to add the remaining distance
-						prev = Util.stage(prev, guide[guideindex], towalk / tmpnext);
+						prev = MathUtil.stage(prev, guide[guideindex], towalk / tmpnext);
 						break;
 					}
 				}

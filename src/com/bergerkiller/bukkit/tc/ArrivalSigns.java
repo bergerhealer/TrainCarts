@@ -11,9 +11,9 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.sl.API.Variables;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class ArrivalSigns {
 	private static HashMap<String, TimeSign> timerSigns = new HashMap<String, TimeSign>();

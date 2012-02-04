@@ -3,8 +3,8 @@ package com.bergerkiller.bukkit.tc.API;
 import org.bukkit.block.Block;
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class MemberBlockChangeEvent extends MemberEvent {
 	private static final long serialVersionUID = 1L;
@@ -32,7 +32,7 @@ public class MemberBlockChangeEvent extends MemberEvent {
 	}
 		
 	public static void call(final MinecartMember member, final Block from, final Block to) {
-		Util.call(new MemberBlockChangeEvent(member, from, to));
+		CommonUtil.callEvent(new MemberBlockChangeEvent(member, from, to));
 	}
 
 }

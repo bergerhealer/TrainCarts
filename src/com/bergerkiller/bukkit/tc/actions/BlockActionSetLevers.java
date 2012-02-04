@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class BlockActionSetLevers extends BlockAction {
 

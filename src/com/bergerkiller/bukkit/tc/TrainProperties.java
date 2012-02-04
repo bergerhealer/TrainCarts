@@ -11,8 +11,9 @@ import org.bukkit.entity.Ghast;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 
-import com.bergerkiller.bukkit.config.ConfigurationNode;
-import com.bergerkiller.bukkit.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class TrainProperties {
 	public static final TrainProperties EMPTY = new TrainProperties();
@@ -345,7 +346,7 @@ public class TrainProperties {
 		this.pushMobs = node.get("pushAway.mobs", this.pushMobs);
 		this.pushPlayers = node.get("pushAway.players", this.pushPlayers);
 		this.pushMisc = node.get("pushAway.misc", this.pushMisc);
-		this.speedLimit = Util.limit(node.get("speedLimit", this.speedLimit), 0, 20);
+		this.speedLimit = MathUtil.limit(node.get("speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
 		this.ignoreStations = node.get("ignoreStations", this.ignoreStations);
@@ -366,7 +367,7 @@ public class TrainProperties {
 		this.pushMobs = source.pushMobs;
 		this.pushPlayers = source.pushPlayers;
 		this.pushMisc = source.pushMisc;
-		this.speedLimit = Util.limit(source.speedLimit, 0, 20);
+		this.speedLimit = MathUtil.limit(source.speedLimit, 0, 20);
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.keepChunksLoaded = source.keepChunksLoaded;
 		this.cartproperties.clear();

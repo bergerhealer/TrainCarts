@@ -4,11 +4,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.TrainProperties;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.permissions.NoPermissionException;
 
 public class Commands {
@@ -39,7 +39,7 @@ public class Commands {
 				return true;
 			}
 			String cmd = args[0];
-			args = Util.remove(args, 0);
+			args = StringUtil.remove(args, 0);
 			if (command.equalsIgnoreCase("train")) {
 				TrainProperties prop = mm.getGroup().getProperties();
 				if (prop.isOwner(player)) {

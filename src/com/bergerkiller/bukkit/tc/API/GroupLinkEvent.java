@@ -4,8 +4,8 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class GroupLinkEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = 1L;
@@ -44,7 +44,7 @@ public class GroupLinkEvent extends Event implements Cancellable {
 	}
 	
 	public static GroupLinkEvent call(final MinecartGroup group1, final MinecartGroup group2) {
-		return Util.call(new GroupLinkEvent(group1, group2));
+		return CommonUtil.callEvent(new GroupLinkEvent(group1, group2));
 	}
 	
 }

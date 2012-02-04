@@ -2,8 +2,8 @@ package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class MemberRemoveEvent extends MemberEvent {
 	private static final long serialVersionUID = 1L;
@@ -20,7 +20,7 @@ public class MemberRemoveEvent extends MemberEvent {
 	}
 	
 	public static void call(final MinecartMember member) {
-		Util.call(new MemberRemoveEvent(member));
+		CommonUtil.callEvent(new MemberRemoveEvent(member));
 	}
 
 }

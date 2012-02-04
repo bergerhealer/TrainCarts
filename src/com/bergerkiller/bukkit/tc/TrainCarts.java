@@ -9,25 +9,28 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
-import com.bergerkiller.bukkit.tc.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.EnumUtil;
 
-public class TrainCarts extends JavaPlugin {
+public class TrainCarts extends PluginBase {
+	
+	public TrainCarts() {
+		super(1818, 1846);
+	}
+
 	/*
 	 * Settings
 	 */	
@@ -63,7 +66,6 @@ public class TrainCarts extends JavaPlugin {
 	public static String version;
 	
 	public static TrainCarts plugin;
-	private final TCListener listener = new TCListener();	
 
 	private Task signtask;
 
@@ -101,7 +103,7 @@ public class TrainCarts extends JavaPlugin {
 			allowedBlockBreakTypes.clear();
 			if (config.contains("allowedBlockBreakTypes")) {
 				for (String value : config.getList("allowedBlockBreakTypes", String.class)) {
-					Material type = ItemUtil.getMaterial(value);
+					Material type = EnumUtil.parseMaterial(value, null);
 					if (type != null) allowedBlockBreakTypes.add(type);
 				}
 			} else {
@@ -121,39 +123,44 @@ public class TrainCarts extends JavaPlugin {
 		}
 	}
 	
-	private void initDependencies() {
-		if (this.getServer().getPluginManager().isPluginEnabled("SignLink")) {
-			Util.log(Level.INFO, "SignLink detected, support for arrival signs added!");
-			SignLinkEnabled = true;
-			signtask = new Task(this) {
-				public void run() {
-					ArrivalSigns.updateAll();
-				}
-			};
-			signtask.start(0, 10);
-		}
-		if (this.getServer().getPluginManager().isPluginEnabled("My Worlds")) {
-			Util.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
-			MyWorldsEnabled = true;
-		}
-		getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
-			public void run() {
-				PluginManager pm = getServer().getPluginManager();
-				isShowcaseEnabled = pm.isPluginEnabled("Showcase");
-				isSCSEnabled = pm.isPluginEnabled("ShowCaseStandalone");
-				bleedingMobsInstance = pm.getPlugin("BleedingMobs");
+	@Override
+	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
+		if (pluginName.equals("SignLink")) {
+			Task.stop(signtask);
+			if (SignLinkEnabled = enabled) {
+				log(Level.INFO, "SignLink detected, support for arrival signs added!");
+				signtask = new Task(this) {
+					public void run() {
+						ArrivalSigns.updateAll();
+					}
+				};
+				signtask.start(0, 10);
+			} else {
+				signtask = null;
 			}
-		}, 1);
+		} else if (pluginName.equals("My Worlds")) {
+			if (MyWorldsEnabled = enabled) {
+				log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
+			}
+		} else if (pluginName.equals("Showcase")) {
+			isShowcaseEnabled = enabled;
+		} else if (pluginName.equals("ShowCaseStandalone")) {
+			isSCSEnabled = enabled;
+		} else if (pluginName.equals("BleedingMobs")) {
+			bleedingMobsInstance = plugin;
+		}
 	}
-	
+		
 	private Task cleanupTask;
-	public void onEnable() {
+		
+	public void enable() {
 		plugin = this;
+		
+		//registering
+		this.register(TCListener.class);
+		this.register("train", "cart");
 		Permission.registerAll();
-		this.getServer().getPluginManager().registerEvents(this.listener, this);
-		
-		initDependencies();
-		
+				
 		//Load configuration
 		loadConfig();
 		
@@ -191,17 +198,8 @@ public class TrainCarts extends JavaPlugin {
 			}
 		};
 		cleanupTask.start(0, 10);
-
-		//commands
-		getCommand("train").setExecutor(this);
-		getCommand("cart").setExecutor(this);
-
-		//final msg
-		version = this.getDescription().getVersion();
-		Util.log(Level.INFO, "version " + version + " is enabled!");
-
 	}
-	public void onDisable() {
+	public void disable() {
 		//Stop tasks
 		if (signtask != null) signtask.stop();
 		if (cleanupTask != null) cleanupTask.stop();
@@ -238,11 +236,15 @@ public class TrainCarts extends JavaPlugin {
 		SignAction.deinit();
 		
 		plugin = null;
-		
-		System.out.println("TrainCarts disabled!");
 	}
 
-	public boolean onCommand(CommandSender sender, Command c, String cmd, String[] args) {
+	public boolean command(CommandSender sender, String cmd, String[] args) {
 		return Commands.execute(sender, cmd, args);
 	}
+
+	@Override
+	public void permissions() {
+		//TODO: Add permission defaults here
+	}
+
 }

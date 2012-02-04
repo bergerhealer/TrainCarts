@@ -2,8 +2,8 @@ package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class GroupForceUpdateEvent extends GroupEvent {
 	private static final long serialVersionUID = 1L;
@@ -30,7 +30,7 @@ public class GroupForceUpdateEvent extends GroupEvent {
 	}
 	
 	public static double call(MinecartGroup group, double force) {
-		return Util.call(new GroupForceUpdateEvent(group, force)).getForce();
+		return CommonUtil.callEvent(new GroupForceUpdateEvent(group, force)).getForce();
 	}
 
 }

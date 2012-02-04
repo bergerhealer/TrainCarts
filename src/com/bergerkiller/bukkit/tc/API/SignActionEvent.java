@@ -14,8 +14,8 @@ import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = 1L;

@@ -12,8 +12,8 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionStation extends SignAction {
 	

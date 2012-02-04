@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
 
@@ -21,11 +21,11 @@ public class SignActionCart extends SignAction {
 					String[] offsettext = info.getLine(2).split("/");
 					Vector offset = new Vector();
 					if (offsettext.length == 3) {
-						offset.setX(Util.tryParse(offsettext[0], 0));
-						offset.setY(Util.tryParse(offsettext[1], 0));
-						offset.setZ(Util.tryParse(offsettext[2], 0));
+						offset.setX(StringUtil.tryParse(offsettext[0], 0));
+						offset.setY(StringUtil.tryParse(offsettext[1], 0));
+						offset.setZ(StringUtil.tryParse(offsettext[2], 0));
 					} else if (offsettext.length == 1) {
-						offset.setY(Util.tryParse(offsettext[0], 0));
+						offset.setY(StringUtil.tryParse(offsettext[0], 0));
 					}
 					if (offset.equals(new Vector())) {
 						info.getMember().eject();

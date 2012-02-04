@@ -10,6 +10,10 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.Util;
+
 public class TrackIterator implements Iterator<Block> {
 	
 	public static boolean canReach(Block rail, BlockFace direction, Block destination) {
@@ -67,11 +71,11 @@ public class TrackIterator implements Iterator<Block> {
 	
 	public static Block getNextTrack(Block from, BlockFace direction) {
 		Block next = from.getRelative(direction);
-		if (!BlockUtil.isRails(next)) {
+		if (!Util.isRails(next)) {
 			next = next.getRelative(BlockFace.UP);
-			if (!BlockUtil.isRails(next)) {
+			if (!Util.isRails(next)) {
 				next = next.getRelative(0, -2, 0);
-				if (!BlockUtil.isRails(next)) {
+				if (!Util.isRails(next)) {
 					return null;
 				}
 			}
@@ -129,9 +133,13 @@ public class TrackIterator implements Iterator<Block> {
 		if (this.next == null) return false;
 		if (!this.coordinates.add(BlockUtil.getCoordinates(this.next))) return false;
 		
-		//what is the next direction?
+		//Next direction?
 		Rails rails = BlockUtil.getRails(this.next);
-		if (rails == null) return false;
+		if (rails == null) {
+			//handle non-rails blocks
+			this.nextdirection = this.currentdirection;
+			return true;
+		}
 		
 		//Get a set of possible directions to go
 		BlockFace[] possible = FaceUtil.getFaces(rails.getDirection().getOppositeFace());

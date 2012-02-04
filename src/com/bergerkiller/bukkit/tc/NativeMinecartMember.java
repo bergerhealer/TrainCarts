@@ -18,8 +18,11 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.tc.utils.EntityUtil;
-import com.bergerkiller.bukkit.tc.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
@@ -58,10 +61,10 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public double getForceSquared() {
-		return Util.lengthSquared(this.motX, this.motZ);
+		return MathUtil.lengthSquared(this.motX, this.motZ);
 	}
 	public double getForce() {
-		return Util.length(this.motX, this.motZ);
+		return MathUtil.length(this.motX, this.motZ);
 	}
 	public double getX() {
 		return this.locX;
@@ -205,7 +208,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/*
-	 * Stores m_ information (since functions are now pretty much scattered around)
+	 * Stores physics information (since functions are now pretty much scattered around)
 	 */
 	private MoveInfo moveinfo = new MoveInfo();
 	private class MoveInfo {
@@ -237,9 +240,9 @@ public class NativeMinecartMember extends EntityMinecart {
 	public boolean preUpdate(int stepcount) {
 		//Some fixed
 		if (this.dead) return false;
-		this.motX = Util.fixNaN(this.motX);
-		this.motY = Util.fixNaN(this.motY);
-		this.motZ = Util.fixNaN(this.motZ);
+		this.motX = MathUtil.fixNaN(this.motX);
+		this.motY = MathUtil.fixNaN(this.motY);
+		this.motZ = MathUtil.fixNaN(this.motZ);
 
 		// CraftBukkit start
 		moveinfo.prevX = this.locX;
@@ -269,20 +272,21 @@ public class NativeMinecartMember extends EntityMinecart {
 		moveinfo.blockY = MathHelper.floor(this.locY);
 		moveinfo.blockZ = MathHelper.floor(this.locZ);
 
-		if (BlockMinecartTrack.g(this.world, moveinfo.blockX, moveinfo.blockY - 1, moveinfo.blockZ)) {
+		//get the type of rails below
+		int railtype = this.world.getTypeId(moveinfo.blockX, moveinfo.blockY - 1, moveinfo.blockZ);
+		if (Util.isRails(railtype)) {
+			moveinfo.isRailed = true;
 			--moveinfo.blockY;
+		} else {
+			railtype = this.world.getTypeId(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
+			moveinfo.isRailed = Util.isRails(railtype);
 		}
 
-		// CraftBukkit
 		moveinfo.isLaunching = false;
-		//double d4 = this.maxSpeed; //traincarts - removed because of usage in other function
 
 		//TrainCarts - prevent sloped movement if forces are ignored
 		double slopedMotion = this.ignoreForces() ? 0 : 0.0078125D; //forward movement on slopes
 
-		int railtype = this.world.getTypeId(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
-
-		moveinfo.isRailed = BlockMinecartTrack.d(railtype);
 		if (moveinfo.isRailed) {
 			moveinfo.vec3d = this.h(this.locX, this.locY, this.locZ);
 			moveinfo.raildata = this.world.getData(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
@@ -296,14 +300,25 @@ public class NativeMinecartMember extends EntityMinecart {
 				moveinfo.isLaunching = (moveinfo.raildata & 8) != 0;
 				isBraking = !moveinfo.isLaunching;
 			}
+			//TrainNote end
 
-			if (((BlockMinecartTrack) Block.byId[railtype]).h()) {
-				moveinfo.raildata &= 7; //sloped?
-			}
-			if (moveinfo.raildata >= 2 && moveinfo.raildata <= 5) {
-				this.locY = (double) (moveinfo.blockY + 1);
+			if (BlockUtil.isType(railtype, Material.STONE_PLATE.getId(), Material.WOOD_PLATE.getId())) {
+				//set track direction based on direction of this cart (0 or 1)
+				if (Math.abs(this.motX) > Math.abs(this.motZ)) {
+					moveinfo.raildata = 1;
+				} else {
+					moveinfo.raildata = 0;
+				}
+			} else {
+				if (((BlockMinecartTrack) Block.byId[railtype]).h()) {
+					moveinfo.raildata &= 7; //clear sloped state for non-slopable rails
+				}
+				if (moveinfo.raildata >= 2 && moveinfo.raildata <= 5) {
+					this.locY = (double) (moveinfo.blockY + 1);
+				}
 			}
 
+			//TrainNote: Used to move a minecart up or down sloped tracks
 			if (moveinfo.raildata == 2) {
 				if (this.motX <= 0 || this.group().getProperties().slowDown) {
 					this.motX -= slopedMotion;
@@ -341,7 +356,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			//rail motion is applied (railFactor is used to normalize the rail motion to current motion)
-			double railFactor = Util.normalize(railMotionX, railMotionZ, this.motX, this.motZ);
+			double railFactor = MathUtil.normalize(railMotionX, railMotionZ, this.motX, this.motZ);
 			this.motX = railFactor * railMotionX;
 			this.motZ = railFactor * railMotionZ;
 
@@ -404,12 +419,12 @@ public class NativeMinecartMember extends EntityMinecart {
 		double motX = this.motX;
 		double motZ = this.motZ;
 		//Prevent NaN (you never know!)
-		motX = Util.fixNaN(motX);
-		motZ = Util.fixNaN(motZ);
-		speedFactor = Util.fixNaN(speedFactor, 1);
+		motX = MathUtil.fixNaN(motX);
+		motZ = MathUtil.fixNaN(motZ);
+		speedFactor = MathUtil.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
-		motX = Util.limit(motX, this.maxSpeed);
-		motZ = Util.limit(motZ, this.maxSpeed);
+		motX = MathUtil.limit(motX, this.maxSpeed);
+		motZ = MathUtil.limit(motZ, this.maxSpeed);
 		motX *= speedFactor;
 		motZ *= speedFactor;
 		if (moveinfo.isRailed) {
@@ -423,7 +438,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			// CraftBukkit
 			//==================TrainCarts edited==============
 			if (this.type == 2 && !ignoreForces()) {
-				double fuelPower = Util.length(this.b, this.c);
+				double fuelPower = MathUtil.length(this.b, this.c);
 				if (fuelPower > 0.01) {
 					this.b /= fuelPower;
 					this.c /= fuelPower;
@@ -479,7 +494,7 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			//PushX and PushZ updated for Powered Minecarts
 			if (this.type == 2) {
-				motLength = Util.length(this.b, this.c);
+				motLength = MathUtil.length(this.b, this.c);
 				if (motLength > 0.01 && this.motX * this.motX + this.motZ * this.motZ > 0.001) {
 					this.b /= motLength;
 					this.c /= motLength;
@@ -543,18 +558,20 @@ public class NativeMinecartMember extends EntityMinecart {
 		double movedX = this.lastX - this.locX;
 		double movedY = this.lastY - this.locY;
 		double movedZ = this.lastZ - this.locZ;
-		if (Util.lengthSquared(movedX, movedZ) > 0.001) {
+		if (MathUtil.lengthSquared(movedX, movedZ) > 0.001) {
 			if (this.moveinfo.isRailed) {
-				this.pitch = -0.8F * Util.getLookAtPitch(movedX, movedY, movedZ);
+				this.pitch = -0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 			} else {
-				this.pitch = 0.7F * Util.getLookAtPitch(movedX, movedY, movedZ);
+				this.pitch = 0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 			}
-			this.pitch = Util.limit(this.pitch, 60F);
-			this.yaw = Util.getLookAtYaw(movedX, movedZ);
-		} else if (Math.abs(this.pitch) > 0.1) {
-			this.pitch *= 0.1;
+			this.pitch = MathUtil.limit(this.pitch, 60F);
+			this.yaw = MathUtil.getLookAtYaw(movedX, movedZ);
 		} else {
-			this.pitch = 0;
+			if (Math.abs(this.pitch) > 0.1) {
+				this.pitch *= 0.1;
+			} else {
+				this.pitch = 0;
+			}
 		}
 		this.c(this.yaw, this.pitch);
 
@@ -563,10 +580,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		Location to = this.getLocation();
 		Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 
-		Util.call(new VehicleUpdateEvent(vehicle));
+		CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
 
 		if (!from.equals(to)) {
-			Util.call(new VehicleMoveEvent(vehicle, from, to));
+			CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
 		}
 		// CraftBukkit end
 
@@ -1003,7 +1020,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 		} catch (ConcurrentModificationException ex) {
-			Util.log(Level.WARNING, "Another plugin is interacting with the world entity list from another thread, please check your plugins!");
+			TrainCarts.plugin.log(Level.WARNING, "Another plugin is interacting with the world entity list from another thread, please check your plugins!");
 		}
 
 	}

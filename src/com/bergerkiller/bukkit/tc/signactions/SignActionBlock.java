@@ -5,7 +5,7 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
-import com.bergerkiller.bukkit.tc.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionBlock extends SignAction {
 

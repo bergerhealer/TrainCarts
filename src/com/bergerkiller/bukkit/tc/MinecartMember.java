@@ -30,6 +30,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.API.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
@@ -38,10 +39,12 @@ import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.utils.EntityUtil;
-import com.bergerkiller.bukkit.tc.utils.FaceUtil;
-import com.bergerkiller.bukkit.tc.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
@@ -55,7 +58,7 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	private static EntityMinecart findByID(UUID uuid) {
 		EntityMinecart e;
-		for (World world : Util.getWorlds()) {
+		for (World world : WorldUtil.getWorlds()) {
 			for (Object o : world.entityList) {
 				if (o instanceof EntityMinecart) {
 					e = (EntityMinecart) o;
@@ -109,7 +112,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (denyConversion) return null;
 		//convert
 		MinecartMember mm = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
-		EntityUtil.replaceMinecarts(em, mm);
+		Util.replaceMinecarts(em, mm);
 		return mm;
 	}
 	public static MinecartMember[] convertAll(Entity... entities) {
@@ -121,7 +124,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	
 	public static MinecartMember spawn(Location at, int type) {
-		MinecartMember mm = new MinecartMember(EntityUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
+		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
 		mm.world.addEntity(mm);
@@ -178,7 +181,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (!mm.dead) {
 			denyConversion = true;
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
-			EntityUtil.replaceMinecarts(mm, em);
+			Util.replaceMinecarts(mm, em);
 			denyConversion = false;
 			return em;
 		}
@@ -286,7 +289,7 @@ public class MinecartMember extends NativeMinecartMember {
 			for (net.minecraft.server.Entity e : this.getNearbyEntities(2)) {
 				if (e instanceof EntityItem) {
 					item = (Item) e.getBukkitEntity();
-					if (ItemUtil.isIgnoredItem(item)) continue;
+					if (ItemUtil.isIgnored(item)) continue;
 					stack = item.getItemStack();
 					double distance = this.distance(e);
 					if (ItemUtil.canTransfer(stack, inv)) {
@@ -371,11 +374,11 @@ public class MinecartMember extends NativeMinecartMember {
 			this.isDerailed = false;
 			this.isFlying = false;
 			int r = this.world.getTypeId(this.blockx, this.blocky - 1, this.blockz);
-			if (BlockUtil.isRails(r)) {
+			if (Util.isRails(r)) {
 				--this.blocky;
 			} else {		
 				r = this.world.getTypeId(this.blockx, this.blocky, this.blockz);
-				if (BlockUtil.isRails(r)) {
+				if (Util.isRails(r)) {
 					this.railsloped = true;
 				} else {
 					this.isDerailed = true;
@@ -527,7 +530,7 @@ public class MinecartMember extends NativeMinecartMember {
  	public Block getRailsBlock() {
 		if (this.isDerailed) return null;
 		Block b = this.getBlock();
-		if (BlockUtil.isRails(b)) {
+		if (Util.isRails(b)) {
 			return b;
 		} else {
 			this.isDerailed = true;
@@ -536,7 +539,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public BlockFace getRailDirection() {
 		Rails r = BlockUtil.getRails(this.getRailsBlock());
-		if (r == null) return BlockFace.NORTH;
+		if (r == null) return this.getDirection();
 		return r.getDirection();
 	}
 	public Block getGroundBlock() {
@@ -588,9 +591,9 @@ public class MinecartMember extends NativeMinecartMember {
 			//calculate upwards or downwards force
 			BlockFace raildir = this.getRailDirection();
 			if (direction == raildir) {
-				this.motY = Util.halfRootOfTwo * force;
+				this.motY = MathUtil.halfRootOfTwo * force;
 			} else if (direction == raildir.getOppositeFace()) {
-				this.motY = -Util.halfRootOfTwo * force;
+				this.motY = -MathUtil.halfRootOfTwo * force;
 			}
 		}
 	}
@@ -666,34 +669,34 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.locZ - this.lastZ;
 	}
 	public double getMovedDistanceXZ() {
-		return Util.length(this.getMovedX(), this.getMovedZ());
+		return MathUtil.length(this.getMovedX(), this.getMovedZ());
 	}
 	public double getMovedDistance() {
-		return Util.length(this.getMovedX(), this.getMovedY(), this.getMovedZ());
+		return MathUtil.length(this.getMovedX(), this.getMovedY(), this.getMovedZ());
 	}
 	public double distance(net.minecraft.server.Entity e) {
-		return Util.distance(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
+		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
 	}
 	public double distance(Location l) {
-		return Util.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
+		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
 	public double distanceXZ(net.minecraft.server.Entity e) {
-		return Util.distance(this.getX(), this.getZ(), e.locX, e.locZ);
+		return MathUtil.distance(this.getX(), this.getZ(), e.locX, e.locZ);
 	}
 	public double distanceXZ(Location l) {
-		return Util.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
+		return MathUtil.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
 	}
 	public double distanceSquared(net.minecraft.server.Entity e) {
-		return Util.distanceSquared(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
+		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
 	}
 	public double distanceSquared(Location l) {
-		return Util.distanceSquared(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
+		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
 	public double distanceXZSquared(net.minecraft.server.Entity e) {
-		return Util.distanceSquared(this.getX(), this.getZ(), e.locX, e.locZ);
+		return MathUtil.distanceSquared(this.getX(), this.getZ(), e.locX, e.locZ);
 	}
 	public double distanceXZSquared(Location l) {
-		return Util.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
+		return MathUtil.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
 	}
 	public boolean isNearOf(MinecartMember member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
@@ -748,7 +751,7 @@ public class MinecartMember extends NativeMinecartMember {
 					this.direction = this.direction.getOppositeFace();
 				}
 			} else {
-				if (Util.getAngleDifference(Util.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
+				if (MathUtil.getAngleDifference(MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
 					this.direction = this.direction.getOppositeFace();
 				}
 			}
@@ -772,7 +775,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return getPitchDifference(comparer.getPitch());
 	}
 	public float getPitchDifference(float pitchcomparer) {
-		return Util.getAngleDifference(this.getPitch(), pitchcomparer);
+		return MathUtil.getAngleDifference(this.getPitch(), pitchcomparer);
 	}
 		
 	/*
@@ -782,7 +785,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.yaw;
 	}
 	public float getYawDifference(float yawcomparer) {
-		return Util.getAngleDifference(this.getYaw(), yawcomparer);
+		return MathUtil.getAngleDifference(this.getYaw(), yawcomparer);
 	}
 
 	/*
@@ -810,14 +813,14 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.isHeadingTo(entity.getLocation());
 	}
 	public boolean isHeadingTo(ChunkCoordinates location) {
-		return Util.isHeadingTo(this.getOffset(location), this.getVelocity());
+		return MathUtil.isHeadingTo(this.getOffset(location), this.getVelocity());
 		
 	}
 	public boolean isHeadingTo(Location target) {
-		return Util.isHeadingTo(this.getLocation(), target, this.getVelocity());
+		return MathUtil.isHeadingTo(this.getLocation(), target, this.getVelocity());
 	}
 	public boolean isHeadingTo(BlockFace direction) {
-		return Util.isHeadingTo(direction, this.getVelocity());
+		return MathUtil.isHeadingTo(direction, this.getVelocity());
 	}
 	public boolean isHeadingToTrack(Block track) {
 		return this.isHeadingToTrack(track, 0);
@@ -991,17 +994,17 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public void pushSideways(Entity entity, double force) {
 		float yaw = FaceUtil.faceToYaw(this.direction);
-		float lookat = Util.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
-		lookat = Util.normalAngle(lookat);
+		float lookat = MathUtil.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
+		lookat = MathUtil.normalAngle(lookat);
 		if (lookat > 0) {
 			yaw -= 180;
 		}
-		Vector vel = Util.getDirection(yaw, 0).multiply(force);
+		Vector vel = MathUtil.getDirection(yaw, 0).multiply(force);
 		entity.setVelocity(vel);
 	}
 	public void push(Entity entity, double force) {
 		Vector offset = this.getOffset(entity);
-		Util.setVectorLength(offset, force);
+		MathUtil.setVectorLength(offset, force);
 		entity.setVelocity(entity.getVelocity().add(offset));
 	}
 	public void playLinkEffect() {
@@ -1017,14 +1020,14 @@ public class MinecartMember extends NativeMinecartMember {
 	 * Teleportation
 	 */
 	public void loadChunks() {
-		Util.loadChunks(this.getWorld(), super.getBlockX() >> 4, super.getBlockZ() >> 4);
+		WorldUtil.loadChunks(this.getWorld(), super.getBlockX() >> 4, super.getBlockZ() >> 4, 2);
 	}
 	public void teleport(Block railsblock) {
 		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
 	}
 	public void teleport(Location to) {
 		this.died = true;
-		EntityUtil.teleport(this, to);
+		EntityUtil.teleport(TrainCarts.plugin, this, to);
 		this.died = false;
 	}
 		
@@ -1083,7 +1086,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.direction = this.direction.getOppositeFace();
 	}
 		
-	public MinecartMemberTrackerEntry getTracker() {
+	public MinecartMemberTrackerEntry getTracker2() {
 		if (this.world == null) return null;
 		if (this.tracker == null || this.tracker.isRemoved) {
 			this.tracker = MinecartMemberTrackerEntry.get(this);

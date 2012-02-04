@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class MemberAddEvent extends MemberEvent {
 	private static final long serialVersionUID = 1L;
@@ -27,7 +27,7 @@ public class MemberAddEvent extends MemberEvent {
 	}
 	
 	public static void call(final MinecartMember member, final MinecartGroup toGroup) {
-		Util.call(new MemberAddEvent(member, toGroup));
+		CommonUtil.callEvent(new MemberAddEvent(member, toGroup));
 	}
 
 }

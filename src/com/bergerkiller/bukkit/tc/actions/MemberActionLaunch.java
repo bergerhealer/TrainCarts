@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class MemberActionLaunch extends MemberAction implements VelocityAction {
 
@@ -22,7 +22,7 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 	}
 	
 	public void start() {
-		this.startvelocity = Util.limit(this.getMember().getForce(), this.getMember().maxSpeed);
+		this.startvelocity = MathUtil.limit(this.getMember().getForce(), this.getMember().maxSpeed);
 		if (this.startvelocity < minVelocity) this.startvelocity = minVelocity;
 	}
 	
@@ -59,9 +59,9 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 			return true;
 		} else {
 			//Get the velocity to set the carts to
-			double targetvel = Util.limit(this.targetvelocity, this.getMember().maxSpeed);
+			double targetvel = MathUtil.limit(this.targetvelocity, this.getMember().maxSpeed);
 			if (this.targetvelocity > 0 || (this.targetdistance - this.distance) < 5) {
-				targetvel = Util.stage(this.startvelocity, targetvel, this.distance / this.targetdistance);
+				targetvel = MathUtil.stage(this.startvelocity, targetvel, this.distance / this.targetdistance);
 			} else {
 				targetvel = this.startvelocity;
 			}

@@ -5,8 +5,8 @@ import net.minecraft.server.EntityMinecart;
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class MinecartSwapEvent extends MemberEvent {
 	private static final long serialVersionUID = 1L;
@@ -46,7 +46,7 @@ public class MinecartSwapEvent extends MemberEvent {
 	}
 
 	public static void call(final EntityMinecart from, final EntityMinecart to) {
-		Util.call(new MinecartSwapEvent(from, to));
+		CommonUtil.callEvent(new MinecartSwapEvent(from, to));
 	}
 	
 }

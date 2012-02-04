@@ -5,13 +5,13 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.mw.MyWorlds;
 import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
-import com.bergerkiller.bukkit.tc.utils.BlockMap;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class SignActionTeleport extends SignAction {
 

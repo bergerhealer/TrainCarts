@@ -20,14 +20,14 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.permissions.Permission;
-import com.bergerkiller.bukkit.tc.utils.BlockMap;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.detector.DetectorListener;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -297,11 +297,11 @@ public class SignActionDetector extends SignAction {
 				int count = stream.readInt();
 				for (;count > 0; --count) {
 					//get required info
-					UUID id = Util.readUUID(stream);
+					UUID id = StreamUtil.readUUID(stream);
 					//init a new detector
 					Detector det = new Detector();
-					det.sign1 = Util.readCoordinates(stream);
-					det.sign2 = Util.readCoordinates(stream);
+					det.sign1 = StreamUtil.readCoordinates(stream);
+					det.sign2 = StreamUtil.readCoordinates(stream);
 					det.sign1down = stream.readBoolean();
 					det.sign2down = stream.readBoolean();
 					//register
@@ -312,10 +312,10 @@ public class SignActionDetector extends SignAction {
 					detectors.put(det.region.getWorldName(), det.sign2, det);
 				}
 			} catch (IOException ex) {
-				Util.log(Level.WARNING, "An IO exception occured while reading detector sign locations!");
+				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector sign locations!");
 				ex.printStackTrace();
 			} catch (Exception ex) {
-				Util.log(Level.WARNING, "A general exception occured while reading detector sign locations!");
+				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector sign locations!");
 				ex.printStackTrace();
 			} finally {
 				stream.close();
@@ -323,7 +323,7 @@ public class SignActionDetector extends SignAction {
 		} catch (FileNotFoundException ex) {
 			//nothing, we allow non-existence of this file
 		} catch (Exception ex) {
-			Util.log(Level.WARNING, "An exception occured at the end while reading detector sign locations!");
+			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector sign locations!");
 			ex.printStackTrace();
 		}
 	}
@@ -339,26 +339,26 @@ public class SignActionDetector extends SignAction {
 				}
 				stream.writeInt(detectorset.size());
 				for (Detector det : detectorset) {
-					Util.writeUUID(stream, det.region.getUniqueId());
-					Util.writeCoordinates(stream, det.sign1);
-					Util.writeCoordinates(stream, det.sign2);
+					StreamUtil.writeUUID(stream, det.region.getUniqueId());
+					StreamUtil.writeCoordinates(stream, det.sign1);
+					StreamUtil.writeCoordinates(stream, det.sign2);
 					stream.writeBoolean(det.sign1down);
 					stream.writeBoolean(det.sign2down);
 				}
 			} catch (IOException ex) {
-				Util.log(Level.WARNING, "An IO exception occured while reading detector sign locations!");
+				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector sign locations!");
 				ex.printStackTrace();
 			} catch (Exception ex) {
-				Util.log(Level.WARNING, "A general exception occured while reading detector sign locations!");
+				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector sign locations!");
 				ex.printStackTrace();
 			} finally {
 				stream.close();
 			}
 		} catch (FileNotFoundException ex) {
-			Util.log(Level.WARNING, "Failed to write to the detector  sign locations save file!");
+			TrainCarts.plugin.log(Level.WARNING, "Failed to write to the detector  sign locations save file!");
 			ex.printStackTrace();
 		} catch (Exception ex) {
-			Util.log(Level.WARNING, "An exception occured at the end while reading detector sign locations!");
+			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector sign locations!");
 			ex.printStackTrace();
 		}
 	}

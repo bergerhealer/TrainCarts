@@ -21,11 +21,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.utils.BlockMap;
-import com.bergerkiller.bukkit.tc.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 
 import net.minecraft.server.ChunkCoordinates;
 
@@ -233,26 +234,26 @@ public final class DetectorRegion {
 				int coordcount;
 				for (;count > 0; --count) {
 					//get required info
-					UUID id = Util.readUUID(stream);
+					UUID id = StreamUtil.readUUID(stream);
 					String world = stream.readUTF();
 					coordcount = stream.readInt();
 					Set<ChunkCoordinates> coords = new HashSet<ChunkCoordinates>(coordcount);
 					for (;coordcount > 0; --coordcount) {
-						coords.add(Util.readCoordinates(stream));
+						coords.add(StreamUtil.readCoordinates(stream));
 					}
 					//create
 					new DetectorRegion(id, world, coords);
 				}
 				if (regionsById.size() == 1) {
-					Util.log(Level.INFO, regionsById.size() + " detector rail region loaded covering " + regions.size() + " blocks");
+					TrainCarts.plugin.log(Level.INFO, regionsById.size() + " detector rail region loaded covering " + regions.size() + " blocks");
 				} else {
-					Util.log(Level.INFO, regionsById.size() + " detector rail regions loaded covering " + regions.size() + " blocks");
+					TrainCarts.plugin.log(Level.INFO, regionsById.size() + " detector rail regions loaded covering " + regions.size() + " blocks");
 				}
 			} catch (IOException ex) {
-				Util.log(Level.WARNING, "An IO exception occured while reading detector regions!");
+				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector regions!");
 				ex.printStackTrace();
 			} catch (Exception ex) {
-				Util.log(Level.WARNING, "A general exception occured while reading detector regions!");
+				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector regions!");
 				ex.printStackTrace();
 			} finally {
 				stream.close();
@@ -260,7 +261,7 @@ public final class DetectorRegion {
 		} catch (FileNotFoundException ex) {
 			//nothing, we allow non-existence of this file
 		} catch (Exception ex) {
-			Util.log(Level.WARNING, "An exception occured at the end while reading detector regions!");
+			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector regions!");
 			ex.printStackTrace();
 		}
 	}
@@ -272,27 +273,27 @@ public final class DetectorRegion {
 			try {
 				stream.writeInt(regionsById.size());
 				for (DetectorRegion region : regionsById.values()) {
-					Util.writeUUID(stream, region.id);
+					StreamUtil.writeUUID(stream, region.id);
 					stream.writeUTF(region.world);
 					stream.writeInt(region.coordinates.size());
 					for (ChunkCoordinates coord : region.coordinates) {
-						Util.writeCoordinates(stream, coord);
+						StreamUtil.writeCoordinates(stream, coord);
 					}
 				}
 			} catch (IOException ex) {
-				Util.log(Level.WARNING, "An IO exception occured while reading detector regions!");
+				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector regions!");
 				ex.printStackTrace();
 			} catch (Exception ex) {
-				Util.log(Level.WARNING, "A general exception occured while reading detector regions!");
+				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector regions!");
 				ex.printStackTrace();
 			} finally {
 				stream.close();
 			}
 		} catch (FileNotFoundException ex) {
-			Util.log(Level.WARNING, "Failed to write to the detector regions save file!");
+			TrainCarts.plugin.log(Level.WARNING, "Failed to write to the detector regions save file!");
 			ex.printStackTrace();
 		} catch (Exception ex) {
-			Util.log(Level.WARNING, "An exception occured at the end while reading detector regions!");
+			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector regions!");
 			ex.printStackTrace();
 		}
 	}

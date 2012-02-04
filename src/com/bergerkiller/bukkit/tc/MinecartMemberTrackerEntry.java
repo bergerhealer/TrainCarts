@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+
 import net.minecraft.server.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -15,9 +17,9 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public static void failFields(Throwable t) {
 		trackerMap = null;
 		trackerSet = null;
-		Util.log(Level.SEVERE, "Failed to initialize the entity tracker replacement:");
+		TrainCarts.plugin.log(Level.SEVERE, "Failed to initialize the entity tracker replacement:");
 		t.printStackTrace();
-		Util.log(Level.INFO, "Train movement will not be smoothed!");
+		TrainCarts.plugin.log(Level.INFO, "Train movement will not be smoothed!");
 	}
 	public static void initFields() {
 		try {
@@ -153,7 +155,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
     	this.tracker.ce = false;
     	
     	//motion packets
-    	double motDiff = Util.distanceSquared(this.tracker.motX, this.tracker.motY, this.tracker.motZ, this.i, this.k, this.k);
+    	double motDiff = MathUtil.distanceSquared(this.tracker.motX, this.tracker.motY, this.tracker.motZ, this.i, this.k, this.k);
     	if (motDiff > 0.0004 || (motDiff > 0 && this.tracker.motX == 0 && this.tracker.motY == 0 && this.tracker.motZ == 0)) {
     		this.i = this.tracker.motX;
     		this.j = this.tracker.motY;
