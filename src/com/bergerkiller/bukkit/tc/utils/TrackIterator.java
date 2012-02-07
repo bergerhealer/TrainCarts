@@ -26,14 +26,14 @@ public class TrackIterator implements Iterator<Block> {
 		return isConnected(rail1, rail2, bothways, 0);
 	}
 	public static boolean isConnected(Block rail1, Block rail2, boolean bothways, int stepcount) {
-		if (!BlockUtil.isRails(rail1)) return false;
-		if (!BlockUtil.isRails(rail2)) return false;
+		if (!Util.isRails(rail1)) return false;
+		if (!Util.isRails(rail2)) return false;
 		if (BlockUtil.equals(rail1, rail2)) return true;
 		BlockFace direction = FaceUtil.getDirection(rail1, rail2, false);
 		if (bothways) {
-			return canReach(rail1, rail2, direction, stepcount) && canReach(rail1, rail2, direction.getOppositeFace(), stepcount);
+			return canReach(rail1, rail2, direction, stepcount) && canReach(rail2, rail1, direction.getOppositeFace(), stepcount);
 		} else {
-			return canReach(rail1, rail2, direction, stepcount) || canReach(rail1, rail2, direction.getOppositeFace(), stepcount);
+			return canReach(rail1, rail2, direction, stepcount) || canReach(rail2, rail1, direction.getOppositeFace(), stepcount);
 		}
 	}
 	public static boolean canReach(Block rail, Block destination, int stepcount) {
@@ -44,7 +44,16 @@ public class TrackIterator implements Iterator<Block> {
 			stepcount = BlockUtil.getBlockSteps(rail, destination, false);
 			if (stepcount < 2) stepcount = 2;
 		}
-		BlockFace[] faces = FaceUtil.getFaces(BlockUtil.getRails(rail).getDirection().getOppositeFace());
+		BlockFace dir;
+		if (BlockUtil.isRails(rail)) {
+			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
+		} else if (Util.isPressurePlate(rail.getTypeId())) {
+			dir = Util.getPlateDirection(rail).getOppositeFace();
+			if (dir == BlockFace.SELF) dir = preferredFace; 
+		} else {
+			return false;
+		}
+		BlockFace[] faces = FaceUtil.getFaces(dir);
 		if (faces[0] == preferredFace) {
 			if (canReach(rail, faces[0], destination, stepcount)) return true;
 			if (canReach(rail, faces[1], destination, stepcount)) return true;
@@ -56,8 +65,8 @@ public class TrackIterator implements Iterator<Block> {
 	}
 	public static boolean canReach(Block rail, BlockFace direction, Block destination, int stepcount) {
 		if (BlockUtil.equals(rail, destination)) return true;
-		if (!BlockUtil.isRails(rail)) return false;
-		if (!BlockUtil.isRails(destination)) return false;
+		if (!Util.isRails(rail)) return false;
+		if (!Util.isRails(destination)) return false;
 		if (stepcount == 0) {
 			stepcount = BlockUtil.getBlockSteps(rail, destination, false);
 			if (stepcount < 2) stepcount = 2;

@@ -9,6 +9,7 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Util;
 
 public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;
@@ -94,7 +95,7 @@ public class TrackMap extends ArrayList<Block> {
 		Location loc = this.get(index).getLocation();
 		BlockFace dir = getDirection(index);
 		loc.setYaw(FaceUtil.faceToYaw(dir) + 90);
-		return loc;
+		return loc.add(0.5, 0, 0.5);
 	}
 	public Location[] getPoints() {
 		Location[] rval = new Location[this.size()];
@@ -155,7 +156,7 @@ public class TrackMap extends ArrayList<Block> {
 	}
 		
 	public Block[] getAttachedSignBlocks() {
-		return BlockUtil.getSignsAttached(this.getBlock());
+		return Util.getSignsAttached(this.getBlock());
 	}
 		
 }

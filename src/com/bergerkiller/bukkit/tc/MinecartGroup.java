@@ -44,6 +44,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 	
+	public static MinecartGroup create() {
+		MinecartGroup g = new MinecartGroup();
+		groups.add(g);
+		return g;
+	}
 	public static MinecartGroup create(Entity... members) {
 		return create(null, MinecartMember.convertAll(members));
 	}
@@ -142,7 +147,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			
 			//Can the minecarts reach the other?
 			if (!MinecartMember.isTrackConnected(m1, m2)) return true;
-			
+
 			//append group1 before or after group2?
 			int m1index = g1.indexOf(m1);
 			int m2index = g2.indexOf(m2);
@@ -822,34 +827,34 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 * Makes them move nicely in-sync
 	 */
 	private void sync() {
-//		if (this.isEmpty()) return;
-//		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
-//		if (headtracker == null) return;
-//		boolean location = headtracker.needsLocationSync();
-//		boolean teleport = headtracker.needsTeleport();
-//		boolean velocity = false;
-//		for (MinecartMember mm : this) {
-//			MinecartMemberTrackerEntry tracker = mm.getTracker();
-//			if (tracker == null) continue;
-//			if (!location && tracker.tracker.ce) {
-//				location = true;
-//			}
-//			if (!velocity && tracker.tracker.velocityChanged) {
-//				velocity = true;
-//			}
-//		}
-//		
-//		for (MinecartMember mm : this) {
-//			MinecartMemberTrackerEntry tracker = mm.getTracker();
-//			if (tracker == null) continue;
-//			if (location) {
-//				tracker.syncLocation(teleport);
-//			}
-//			if (velocity) {
-//				tracker.syncVelocity();
-//			}
-//			tracker.syncMeta();
-//		}
+		if (this.isEmpty()) return;
+		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
+		if (headtracker == null) return;
+		boolean location = headtracker.needsLocationSync();
+		boolean teleport = headtracker.needsTeleport();
+		boolean velocity = false;
+		for (MinecartMember mm : this) {
+			MinecartMemberTrackerEntry tracker = mm.getTracker();
+			if (tracker == null) continue;
+			if (!location && tracker.tracker.ce) {
+				location = true;
+			}
+			if (!velocity && tracker.tracker.velocityChanged) {
+				velocity = true;
+			}
+		}
+		
+		for (MinecartMember mm : this) {
+			MinecartMemberTrackerEntry tracker = mm.getTracker();
+			if (tracker == null) continue;
+			if (location) {
+				tracker.syncLocation(teleport);
+			}
+			if (velocity) {
+				tracker.syncVelocity();
+			}
+			tracker.syncMeta();
+		}
 	}
 	
 	public void doPhysics() {
@@ -901,8 +906,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.updateDirection();
 				mm.postUpdate(1);
 				this.updateDirection();
-				//MinecartMemberTrackerEntry tracker = mm.getTracker();
-				//if (tracker != null) tracker.sync();
+				MinecartMemberTrackerEntry tracker = mm.getTracker();
+				if (tracker != null) tracker.sync();
 				return true;
 			} else if (this.isEmpty()) {
 				this.remove();

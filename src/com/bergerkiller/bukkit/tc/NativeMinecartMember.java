@@ -46,6 +46,8 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
 	public int fuel;
+	public boolean isOnMinecartTrack = true;
+	public boolean wasOnMinecartTrack = true;
 	private static final int[][][] matrix = new int[][][] { 
 		{ { 0, 0, -1 }, { 0, 0, 1 } }, { { -1, 0, 0 }, { 1, 0, 0 } },
 		{ { -1, -1, 0 }, { 1, 0, 0 } }, { { -1, 0, 0 }, { 1, -1, 0 } },
@@ -96,6 +98,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
+	public boolean isMoving() {
+ 		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
+	}
+	
 	private boolean ignoreForces() {
 		return group().isVelocityAction();
 	}
@@ -267,6 +273,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.lastX = this.locX;
 		this.lastY = this.locY;
 		this.lastZ = this.locZ;
+		this.wasOnMinecartTrack = this.isOnMinecartTrack;
 		this.motY -= 0.03999999910593033D * (1 / stepcount);
 		moveinfo.blockX = MathHelper.floor(this.locX);
 		moveinfo.blockY = MathHelper.floor(this.locY);
@@ -281,7 +288,8 @@ public class NativeMinecartMember extends EntityMinecart {
 			railtype = this.world.getTypeId(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
 			moveinfo.isRailed = Util.isRails(railtype);
 		}
-
+		this.isOnMinecartTrack = moveinfo.isRailed ? BlockUtil.isRails(railtype) : false;
+		
 		moveinfo.isLaunching = false;
 
 		//TrainCarts - prevent sloped movement if forces are ignored
@@ -302,11 +310,20 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 			//TrainNote end
 
-			if (BlockUtil.isType(railtype, Material.STONE_PLATE.getId(), Material.WOOD_PLATE.getId())) {
-				//set track direction based on direction of this cart (0 or 1)
-				if (Math.abs(this.motX) > Math.abs(this.motZ)) {
+			if (!this.isOnMinecartTrack) {
+				//driving on top of powered plate: extra calculation needed
+				org.bukkit.block.Block curr = this.getWorld().getBlockAt(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
+				BlockFace dir = Util.getPlateDirection(curr);
+				if (dir == BlockFace.SELF) {
+					//set track direction based on direction of this cart (0 or 1)
+					if (Math.abs(this.motX) > Math.abs(this.motZ)) {
+						moveinfo.raildata = 1;
+					} else {
+						moveinfo.raildata = 0;
+					}
+				} else if (dir == BlockFace.SOUTH) {
 					moveinfo.raildata = 1;
-				} else {
+				} else if (dir == BlockFace.WEST) {
 					moveinfo.raildata = 0;
 				}
 			} else {
@@ -558,14 +575,23 @@ public class NativeMinecartMember extends EntityMinecart {
 		double movedX = this.lastX - this.locX;
 		double movedY = this.lastY - this.locY;
 		double movedZ = this.lastZ - this.locZ;
-		if (MathUtil.lengthSquared(movedX, movedZ) > 0.001) {
-			if (this.moveinfo.isRailed) {
+		if (moveinfo.isRailed && (this.wasOnMinecartTrack != this.isOnMinecartTrack)) {
+			this.pitch = 0.0F; //prevent weird pitch angles on pressure plates
+		} else if (MathUtil.lengthSquared(movedX, movedZ) > 0.001) {
+			if (this.moveinfo.isRailed && this.isOnMinecartTrack) {
 				this.pitch = -0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
-			} else {
+			} else if (this.member().isFlying()) {
 				this.pitch = 0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
+			} else {
+				this.pitch = 0;
 			}
 			this.pitch = MathUtil.limit(this.pitch, 60F);
-			this.yaw = MathUtil.getLookAtYaw(movedX, movedZ);
+			float newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
+			if (MathUtil.getAngleDifference(this.yaw, newyaw) > 170) {
+				this.yaw = MathUtil.normalAngle(newyaw + 180);
+			} else {
+				this.yaw = newyaw;
+			}
 		} else {
 			if (Math.abs(this.pitch) > 0.1) {
 				this.pitch *= 0.1;

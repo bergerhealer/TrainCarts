@@ -1,12 +1,12 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.HashSet;
-import java.util.Map;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -20,7 +20,6 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
@@ -33,18 +32,18 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
-	
+
 	private HashSet<Block> poweredBlocks = new HashSet<Block>();
 	public static Player lastPlayer = null;
 
@@ -71,12 +70,12 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkLoad(ChunkLoadEvent event) {
 		GroupManager.refresh(event.getWorld());
 	}
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onVehicleBlockCollision(VehicleBlockCollisionEvent event) {
 		MinecartMember mm = MinecartMember.get(event.getVehicle());
@@ -87,7 +86,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
 		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {			
@@ -107,7 +106,7 @@ public class TCListener implements Listener {
 			}.start(0);
 		}
 	}
-		
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (event.getVehicle() instanceof Minecart) {
@@ -131,7 +130,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-		
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleEnter(VehicleEnterEvent event) {
 		if (!event.isCancelled()) {
@@ -151,7 +150,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleDamage(VehicleDamageEvent event) {
 		if (event.getAttacker() != null && event.getAttacker() instanceof Player) {
@@ -168,7 +167,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-			
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onVehicleDestroy(VehicleDestroyEvent event) {
 		if (!event.isCancelled()) {
@@ -178,7 +177,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
@@ -207,79 +206,85 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
-	@EventHandler(priority = EventPriority.HIGH)
-	public void onPlayerPickupItem(PlayerPickupItemEvent event) {
-		if (event.isCancelled()) return;
-//		if (TrainCarts.stackMinecarts && ItemUtil.isMinecartItem(event.getItem())) {
-//			ItemStack stack = event.getItem().getItemStack();
-//			ItemUtil.transfer(stack, event.getPlayer().getInventory(), Integer.MAX_VALUE);
-//			EntityUtil.getNative(event.getPlayer()).receive(EntityUtil.getNative(event.getItem()), 1);
-//			event.getItem().remove();
-//			event.setCancelled(true);
-//		}
-	}
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-			if (BlockUtil.isRails(event.getClickedBlock())) {
+			int id = event.getClickedBlock().getTypeId();
+			boolean isplate = Util.isPressurePlate(id);
+			if (isplate || BlockUtil.isRails(id)) {
 				ItemStack item = event.getPlayer().getItemInHand();
-				if (item != null) {
-					if (item.getType() == Material.MINECART || 
-							item.getType() == Material.POWERED_MINECART || 
-							item.getType() == Material.STORAGE_MINECART) {
-						//Placing a minecart on the tracks
-						if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
-							//Not already a minecart at this spot?
-							Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
-							if (MinecartMember.getAt(at, null, 0.5) == null) {
-								lastPlayer = event.getPlayer();
-								return;
+				Material itemmat = item == null ? null : item.getType();
+				
+				if (CommonUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
+					//Placing a minecart on the tracks
+					if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
+						//Not already a minecart at this spot?
+						Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
+						if (MinecartMember.getAt(at, null, 0.5) == null) {
+							lastPlayer = event.getPlayer();
+							if (isplate) {
+								//perform a manual Minecart spawn
+								BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
+								if (dir == BlockFace.SELF) {
+									dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
+								}
+								//get spawn location
+								Location loc = event.getClickedBlock().getLocation().add(0.5, 0.0, 0.5);
+								if (dir == BlockFace.SOUTH || dir == BlockFace.NORTH) {
+									loc.setYaw(0.0F);
+								} else {
+									loc.setYaw(90.0F);
+								}
+
+								//get type of minecart
+								int type;
+								switch (itemmat) {
+								case STORAGE_MINECART : type = 1; break;
+								case POWERED_MINECART : type = 2; break;
+								default : type = 0; break;
+								}
+								
+								MinecartMember member = MinecartMember.spawn(loc, type);
+								CommonUtil.callEvent(new VehicleCreateEvent(member.getMinecart()));
+							}
+							return;
+						}
+					}
+					event.setCancelled(true);
+				}
+			}
+		}
+		if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
+			Sign sign = BlockUtil.getSign(event.getClickedBlock());
+			if (sign != null) {
+				if (sign.getLine(0).equalsIgnoreCase("[train]")) {
+					if (sign.getLine(1).equalsIgnoreCase("destination")) {
+						//get the train this player is editing
+						Player p = event.getPlayer();
+						MinecartMember mm = MinecartMember.getEditing(p);
+						if (mm != null) {
+							TrainProperties prop = mm.getGroup().getProperties();
+							if (prop == null) {
+								if (CartProperties.canHaveOwnership(p)) {
+									p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+								} else {
+									p.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
+								}
+							} else if (!prop.isOwner(p)) {
+								p.sendMessage(ChatColor.RED + "You don't own this train!");
+							} else {
+								String dest = sign.getLine(2);
+								prop.setDestination(dest);
+								p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
 							}
 						}
-						event.setCancelled(true);
-					}
-				}
-				PathNode n = PathNode.get(event.getClickedBlock());
-				if (n != null) {
-					System.out.println(n.toString() + "Knows of: ");
-					for (Map.Entry<PathNode, PathConnection> entry : n.connections.entrySet()) {
-						System.out.println(" - " + entry.getKey().toString());
 					}
 				}
 			}
 		}
-	    if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
-	    	Sign sign = BlockUtil.getSign(event.getClickedBlock());
-	    	if (sign != null) {
-	    		if (sign.getLine(0).equalsIgnoreCase("[train]")) {
-		    		if (sign.getLine(1).equalsIgnoreCase("destination")) {
-		    	    	//get the train this player is editing
-		    			Player p = event.getPlayer();
-		    			MinecartMember mm = MinecartMember.getEditing(p);
-		    			if (mm != null) {
-		    				TrainProperties prop = mm.getGroup().getProperties();
-			    	    	if (prop == null) {
-			    		    	if (CartProperties.canHaveOwnership(p)) {
-			    		    		p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
-			    		    	} else {
-			    		    		p.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
-			    		    	}
-			    	    	} else if (!prop.isOwner(p)) {
-			    	    		p.sendMessage(ChatColor.RED + "You don't own this train!");
-			    	    	} else {
-			    	    		String dest = sign.getLine(2);
-			    	    		prop.setDestination(dest);
-			    	    		p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
-			    	    	}
-		    			}
-		    		}
-	    		}
-	    	}
-	    }
 	}
-		
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		MinecartMember mm = MinecartMember.get(event.getRightClicked());
@@ -294,7 +299,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
 		if (BlockUtil.isSign(event.getBlock())) {
@@ -310,20 +315,20 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (!event.isCancelled()) {
 			if (BlockUtil.isSign(event.getBlock())) {
 				SignActionDetector.removeDetector(event.getBlock());
 				//invalidate this piece of track
-				PathNode.clear(BlockUtil.getRailsBlockFromSign(event.getBlock()));
+				PathNode.clear(Util.getRailsBlockFromSign(event.getBlock()));
 			} else if (BlockUtil.isRails(event.getBlock())) {
 				PathNode.remove(event.getBlock());
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onSignChange(SignChangeEvent event) {
 		SignAction.handleBuild(event);

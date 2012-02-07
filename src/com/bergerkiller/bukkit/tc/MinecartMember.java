@@ -373,6 +373,7 @@ public class MinecartMember extends NativeMinecartMember {
 			this.railsloped = false;
 			this.isDerailed = false;
 			this.isFlying = false;
+						
 			int r = this.world.getTypeId(this.blockx, this.blocky - 1, this.blockz);
 			if (Util.isRails(r)) {
 				--this.blocky;
@@ -385,6 +386,10 @@ public class MinecartMember extends NativeMinecartMember {
 					if (r == 0) this.isFlying = true;
 				}
 			}
+			if (!this.isDerailed && Util.isPressurePlate(r)) {
+				this.c(this.yaw, this.pitch = 0.0F);
+			}
+			
 			//Update from value if it was not set
 			Block to = this.getBlock();
 			if (from == null) from = to;
@@ -392,7 +397,7 @@ public class MinecartMember extends NativeMinecartMember {
 			//update active signs
 			this.clearActiveSigns();
 			if (!this.isDerailed) {
-				for (Block sign : BlockUtil.getSignsAttached(this.getBlock())) {
+				for (Block sign : Util.getSignsAttached(this.getBlock())) {
 					this.addActiveSign(sign);
 				}
 				
@@ -794,9 +799,6 @@ public class MinecartMember extends NativeMinecartMember {
  	public boolean hasMoved() {
  		return Math.abs(this.getMovedX()) > 0.001 || Math.abs(this.getMovedZ()) > 0.001;
  	}
-	public boolean isMoving() {
- 		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
-	}
 	public boolean isTurned() {
 		return FaceUtil.isSubCardinal(this.direction);
 	}
@@ -1086,7 +1088,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.direction = this.direction.getOppositeFace();
 	}
 		
-	public MinecartMemberTrackerEntry getTracker2() {
+	public MinecartMemberTrackerEntry getTracker() {
 		if (this.world == null) return null;
 		if (this.tracker == null || this.tracker.isRemoved) {
 			this.tracker = MinecartMemberTrackerEntry.get(this);

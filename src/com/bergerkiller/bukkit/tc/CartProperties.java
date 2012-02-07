@@ -13,7 +13,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 
 public class CartProperties {

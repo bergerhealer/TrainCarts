@@ -7,8 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public abstract class SignAction {
 	

@@ -5,10 +5,10 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.tc.CartProperties;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 public class SignActionChest extends SignAction {

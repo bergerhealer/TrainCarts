@@ -7,11 +7,11 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.StationMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
@@ -31,7 +31,7 @@ public class SignActionStation extends SignAction {
 								group.clearActions();
 							} else {
 								//Check if not already targeting
-								if (group != null && info.hasRails()) {		
+								if (group != null && info.hasRails()) {	
 									//Get station length
 									double length = 0;
 									try {
@@ -102,8 +102,9 @@ public class SignActionStation extends SignAction {
 										} else {
 											instruction = BlockFace.SELF;
 										}
+									} else {
+										return;
 									}
-									if (instruction == BlockFace.UP) return; 
 
 									//What do we do?
 									if (instruction == BlockFace.SELF) {

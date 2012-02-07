@@ -23,9 +23,10 @@ import org.bukkit.event.block.SignChangeEvent;
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -250,7 +251,7 @@ public class SignActionDetector extends SignAction {
 		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detects the presence of trains between this detector sign and another")) {
 			//try to create the other sign
 			Block startsign = event.getBlock();
-			Block startrails = BlockUtil.getRailsBlockFromSign(startsign);
+			Block startrails = Util.getRailsBlockFromSign(startsign);
 			if (startrails == null) {
 				event.getPlayer().sendMessage(ChatColor.RED + "Note that no rails are nearby, so it is not yet activated.");
 				return;
@@ -269,7 +270,7 @@ public class SignActionDetector extends SignAction {
 					event.getPlayer().sendMessage(ChatColor.RED + "Could not find a second connected detector sign, place one to activate this detector.");
 					return;
 				}
-				for (Block signblock : BlockUtil.getSignsAttached(next)) {
+				for (Block signblock : Util.getSignsAttached(next)) {
 					sign = BlockUtil.getSign(signblock);
 					if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
 						if (sign.getLine(1).toLowerCase().startsWith("detector")) {

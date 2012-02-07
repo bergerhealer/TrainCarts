@@ -5,8 +5,8 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionTrain extends SignAction {
 

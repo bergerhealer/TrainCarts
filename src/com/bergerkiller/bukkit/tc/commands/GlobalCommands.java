@@ -6,9 +6,9 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.GroupManager;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
-import com.bergerkiller.bukkit.tc.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
+import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class GlobalCommands {
 	

@@ -3,15 +3,15 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 
 import org.bukkit.Location;
-import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.API.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
-import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class SignActionSpawn extends SignAction {
 
@@ -21,10 +21,7 @@ public class SignActionSpawn extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_ON)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("spawn")) {
-					double force = 0;
-					try {
-						force = Double.parseDouble(info.getLine(1).substring(5).trim());
-					} catch (Exception ex) {};
+					double force = StringUtil.tryParse(info.getLine(1).substring(5).trim(), 0.0);
 
 					//Get the cart types to spawn
 					ArrayList<Integer> types = new ArrayList<Integer>();
@@ -40,18 +37,25 @@ public class SignActionSpawn extends SignAction {
 
 					if (types.size() == 0) return;
 
-					BlockFace dir = info.getFacing();
-					Location[] locs = TrackMap.walk(info.getRails(), dir, types.size(), TrainCarts.cartDistance);
-
-					//Check if spot is taken
-					for (int i = 0;i < locs.length;i++) {
+					Location[] locs = new Location[types.size()];
+					TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), info.getFacing());
+					for (int i = 0; i < types.size(); i++) {
+						if (!iter.hasNext()) return;
+						locs[i] = iter.next();
+						//not taken?
 						if (MinecartMember.getAt(locs[i]) != null) return;
-					}		
-					
-					//Spawn the group
-					BlockFace direction = info.getFacing();
-					MinecartGroup group = MinecartGroup.spawn(info.getRails(), info.getFacing(), types);
-					group.head().addActionLaunch(direction, 2, force);
+					}
+
+					//Spawn
+					MinecartGroup group = MinecartGroup.create();
+					for (int i = 0; i < locs.length; i++) {
+						MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
+						group.add(mm);
+						if (force != 0 && i == 0) {
+							mm.addActionLaunch(info.getFacing(), 2, force);
+						}
+					}
+					GroupCreateEvent.call(group);
 				}
 			}
 		}

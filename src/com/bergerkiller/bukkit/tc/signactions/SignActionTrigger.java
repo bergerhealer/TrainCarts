@@ -3,8 +3,8 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
 
 public class SignActionTrigger extends SignAction {
 

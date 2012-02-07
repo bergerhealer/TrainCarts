@@ -12,6 +12,7 @@ import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -52,7 +53,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.actionType = actionType;
 	}
 	public SignActionEvent(final Block signblock) {
-		this(signblock, BlockUtil.getRailsBlockFromSign(signblock));
+		this(signblock, Util.getRailsBlockFromSign(signblock));
 	}
 	public SignActionEvent(final Block signblock, final Block railsblock) {
 		super("SignActionEvent");
@@ -173,7 +174,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (from != BlockFace.DOWN && type == Material.DIODE_BLOCK_ON) {
 			return BlockUtil.getFacing(block) != from;
 		}
-		return this.getBlock().isBlockFacePowered(from);
+		return this.getBlock().getRelative(from).isBlockPowered();
 	}
 	public boolean isPowered() {
 		return this.getBlock().isBlockIndirectlyPowered() ||
@@ -203,7 +204,11 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public BlockFace getRailDirection() {
 		if (this.raildirection == null) {
-			this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
+			if (BlockUtil.isRails(this.railsblock)) {
+				this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
+			} else if (Util.isPressurePlate(this.railsblock.getTypeId())) {
+				this.raildirection = Util.getPlateDirection(this.railsblock);
+			}
 		}
 		return this.raildirection;
 	}

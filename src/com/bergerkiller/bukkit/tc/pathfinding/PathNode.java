@@ -13,10 +13,10 @@ import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlock;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathNode {
@@ -224,7 +224,7 @@ public class PathNode {
 		BlockLocation location;
 		while (iter.hasNext()) {
 			tmpblock = iter.next();
-			for (Block signblock : BlockUtil.getSignsAttached(tmpblock)) {
+			for (Block signblock : Util.getSignsAttached(tmpblock)) {
 				SignActionEvent event = new SignActionEvent(signblock);
 				if (event.getMode() != SignActionMode.NONE) {
 					if (event.isType("tag", "switcher")){

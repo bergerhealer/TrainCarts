@@ -11,9 +11,9 @@ import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.tc.permissions.Permission;
+import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class CartCommands {
 	
