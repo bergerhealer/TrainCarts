@@ -9,7 +9,6 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.Util;
 
 public class TrackMap extends ArrayList<Block> {
 	private static final long serialVersionUID = 1L;
@@ -154,9 +153,5 @@ public class TrackMap extends ArrayList<Block> {
 		if (next != null) this.add(next);
 		return next;
 	}
-		
-	public Block[] getAttachedSignBlocks() {
-		return Util.getSignsAttached(this.getBlock());
-	}
-		
+				
 }

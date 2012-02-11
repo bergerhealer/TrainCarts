@@ -44,8 +44,11 @@ public enum Permission implements IPermissionDefault {
 	BUILD_EJECTOR("train.build.ejector", PermissionDefault.OP, "The player can build train ejectors"),
 	BUILD_PROPERTY("train.build.property", PermissionDefault.OP, "The player can build train property setters"),
 	BUILD_CHEST("train.build.chest", PermissionDefault.OP, "The player can build train-chest item transfer systems"),
+	BUILD_FURNACE("train.build.furnace", PermissionDefault.OP, "The player can build train-furnace item transfer systems"),
 	BUILD_TELEPORTER("train.build.teleporter", PermissionDefault.OP, "The player can build train teleporters (portals)"),
 	BUILD_BLOCKER("train.build.blocker", PermissionDefault.OP, "The player can build train blockers"),
+	BUILD_WAIT("train.build.wait", PermissionDefault.OP, "The player can build train wait signs"),
+	
 	GENERAL_PLACE_MINECART("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts"),
 	GENERAL_PROPERTIES_DEFAULT("train.properties.default", PermissionDefault.NOT_OP, "Carts placed by this player get the default properties"),
 	GENERAL_PROPERTIES_ADMIN("train.properties.admin", PermissionDefault.OP, "Carts placed by this player get the admin properties");

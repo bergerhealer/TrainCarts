@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.logging.Level;
 
 
+import net.minecraft.server.IInventory;
+
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -21,9 +23,11 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.API.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.API.GroupLinkEvent;
@@ -318,6 +322,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public GroupActionSizzle addActionSizzle() {
 		return this.addAction(new GroupActionSizzle(this));
 	}
+	public GroupActionWaitOccupied addActionWaitOccupied(int maxsize) {
+		return this.addAction(new GroupActionWaitOccupied(this, maxsize));
+	}
 	public boolean isWaitAction() {
 		Action a = this.actions.peek();
 		return a == null ? false : a instanceof WaitAction;
@@ -402,7 +409,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (mm == null) return -1;
 		return super.indexOf(mm);
 	}
-	
+		
 	private void addMemberSigns(MinecartMember member) {
 		for (Block sign : member.getActiveSigns()) {
 			this.setActiveSign(sign, true);
@@ -574,8 +581,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 	}
 	public void stop() {
+		this.stop(false);
+	}
+	public void stop(boolean cancelLocationChange) {
 		for (MinecartMember m : this) {
-			m.stop();
+			m.stop(cancelLocationChange);
 		}
 	}
 	public void limitSpeed() {
@@ -765,6 +775,20 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public boolean isRemoved() {
 		return this.isEmpty() || !groups.contains(this);
+	}
+	
+	public Inventory getInventory() {
+		//count amount of storage minecarts
+		IInventory[] source = new IInventory[this.size(Material.STORAGE_MINECART)];
+		int i = 0;
+		for (MinecartMember mm : this) {
+			if (mm.isStorageMinecart()) {
+				source[i] = mm;
+				i++;
+			}
+		}
+		//return
+		return MergedInventory.convert(source);
 	}
 	
 	public void loadChunks() {

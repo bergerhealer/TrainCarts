@@ -9,19 +9,22 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionBlock extends SignAction {
 
-	public static boolean canPass(SignActionEvent event, BlockFace direction) {
+	public static boolean isHeadingTo(SignActionEvent event) {
+		return isHeadingTo(event, event.getMember().getDirection());
+	}
+	public static boolean isHeadingTo(SignActionEvent event, BlockFace direction) {
 		if (event.isLine(2, "n")) {
-			return direction != BlockFace.NORTH;
+			return direction == BlockFace.NORTH;
 		} else if (event.isLine(2, "e")) {
-			return direction != BlockFace.EAST;
+			return direction == BlockFace.EAST;
 		} else if (event.isLine(2, "s")) {
-			return direction != BlockFace.SOUTH;
+			return direction == BlockFace.SOUTH;
 		} else if (event.isLine(2, "w")) {
-			return direction != BlockFace.WEST;			
+			return direction == BlockFace.WEST;			
 		} else if (event.isLine(2, "l")) {
-			return direction != FaceUtil.rotate(event.getFacing(), -2);
+			return direction == FaceUtil.rotate(event.getFacing(), -2);
 		} else if (event.isLine(2, "r")) {
-			return direction != FaceUtil.rotate(event.getFacing(), 2);
+			return direction == FaceUtil.rotate(event.getFacing(), 2);
 		} else if (event.isLine(2, "b")) {
 			return direction != event.getFacing();
 		} else {
@@ -33,8 +36,8 @@ public class SignActionBlock extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (info.isType("blocker") && info.isAction(SignActionType.MEMBER_MOVE, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
 			if (info.getMode() != SignActionMode.NONE && info.isPowered() && info.hasGroup()) {
-				if (!canPass(info, info.getMember().getDirection())) {
-					info.getGroup().stop();
+				if (isHeadingTo(info)) {
+					info.getGroup().stop(true);
 				}
 			}
 		}

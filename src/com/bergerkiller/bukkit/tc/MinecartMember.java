@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -131,29 +132,63 @@ public class MinecartMember extends NativeMinecartMember {
 		return mm;
 	}
 	
-	public static MinecartMember getAt(Block railblock) {
+	public static MinecartMember getAt(Block railblock, boolean checkmoving) {
 		if (railblock == null) return null;
-		return getAt(railblock.getLocation().add(0.5, 0.5, 0.5));
+		return getAt(WorldUtil.getNative(railblock.getWorld()), BlockUtil.getCoordinates(railblock), checkmoving);
 	}
-	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
-		int cx = coord.x >> 4;
-		int cz = coord.z >> 4;
-		if (world.isChunkLoaded(cx, cz)) {
+	
+	private static boolean isHeadingTo(MinecartMember mm, ChunkCoordinates to) {
+		if (mm == null) {
+			return false;
+		} else {
+			BlockFace dir = mm.getDirection();
+			if (dir.getModX() + mm.blockx != to.x) return false;
+			if (dir.getModZ() + mm.blockz != to.z) return false;
+			return true;
+		}
+	}
+		
+	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord, boolean checkmoving) {
+		return getAt(WorldUtil.getNative(world), coord, checkmoving);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public static MinecartMember getAt(World world, ChunkCoordinates coord, boolean checkmoving) {
+		net.minecraft.server.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
+		if (chunk != null) {
 			MinecartMember mm;
 			MinecartMember result = null;
-			for (Entity e : world.getChunkAt(cx, cz).getEntities()) {
-				mm = get(e);
-				if (mm == null) continue;
-				if (mm.blockx != coord.x) continue;
-				if (mm.blocky != coord.y) continue;
-				if (mm.blockz != coord.z) continue;
-				result = mm;
-				if (result.isHeadingTo(coord)) return result;
+			for (List list : chunk.entitySlices) {
+				for (Object e : list) {
+					if (e instanceof MinecartMember) {
+						mm = (MinecartMember) e;
+						if (mm.blockx != coord.x) continue;
+						if (mm.blocky != coord.y) continue;
+						if (mm.blockz != coord.z) continue;
+						result = mm;
+						if (result.isHeadingTo(coord)) return result;
+					}
+				}
 			}
-			return result;
+			if (result == null && checkmoving) {
+				//maybe one minecart is speeding towards this block and will be here very soon?
+				mm = getAt(world, new ChunkCoordinates(coord.x + 1, coord.y, coord.z), false);
+				if (isHeadingTo(mm, coord)) return mm;
+				mm = getAt(world, new ChunkCoordinates(coord.x - 1, coord.y, coord.z), false);
+				if (isHeadingTo(mm, coord)) return mm;
+				mm = getAt(world, new ChunkCoordinates(coord.x, coord.y, coord.z + 1), false);
+				if (isHeadingTo(mm, coord)) return mm;
+				mm = getAt(world, new ChunkCoordinates(coord.x, coord.y, coord.z - 1), false);
+				if (isHeadingTo(mm, coord)) return mm;
+				return null;
+			} else {
+				return result;
+			}
 		}
 		return null;
 	}
+	
+	
 	public static MinecartMember getAt(Location at) {
 		return getAt(at, null);
 	}
@@ -341,6 +376,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return event.refill();
 	}
 	
+	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
 		if (!this.activeSigns.isEmpty()) {
@@ -397,7 +433,7 @@ public class MinecartMember extends NativeMinecartMember {
 			//update active signs
 			this.clearActiveSigns();
 			if (!this.isDerailed) {
-				for (Block sign : Util.getSignsAttached(this.getBlock())) {
+				for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
 					this.addActiveSign(sign);
 				}
 				
@@ -1071,13 +1107,19 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
 	}
+	
 	public void stop() {
+		this.stop(false);
+	}
+	public void stop(boolean cancelLocationChange) {
 		this.motX = 0;
 		this.motY = 0;
 		this.motZ = 0;
-		this.locX = this.lastX;
-		this.locY = this.lastY;
-		this.locZ = this.lastZ;
+		if (cancelLocationChange) {
+			this.locX = this.lastX;
+			this.locY = this.lastY;
+			this.locZ = this.lastZ;
+		}
 	}
 	public void reverse() {
 		this.motX *= -1;
@@ -1098,8 +1140,8 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	private boolean died = false;
 	public void die() {
-		super.die();
 		if (!died) {
+			this.dead = false;
 			died = true;
 			replacedCarts.remove(this);
 			this.clearActiveSigns();
@@ -1107,6 +1149,7 @@ public class MinecartMember extends NativeMinecartMember {
 			if (this.passenger != null) this.passenger.setPassengerOf(null);
 			if (this.group != null) this.group.remove(this);
 			if (this.properties != null) this.properties.remove();
+			this.dead = true;
 		}
 	}
 

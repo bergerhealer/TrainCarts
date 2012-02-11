@@ -43,7 +43,7 @@ public class SignActionTeleport extends SignAction {
 						if (BlockUtil.isSign(sign)) {
 							BlockFace facing = BlockUtil.getFacing(sign);
 							BlockFace direction = facing;
-							Block destinationRail = Util.getRailsBlockFromSign(sign);
+							Block destinationRail = Util.getRailsFromSign(sign);
 							if (BlockUtil.isRails(destinationRail)) {
 								//rail aligned at sign?
 								if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
@@ -68,8 +68,7 @@ public class SignActionTeleport extends SignAction {
 	@Override
 	public void build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (event.getLine(0).equalsIgnoreCase("[portal]")) {
-			
-			if (Util.getRailsAttached(event.getBlock()) != null) {
+			if (Util.getRailsFromSign(event.getBlock()) != null) {
 				handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
 			}
 		}

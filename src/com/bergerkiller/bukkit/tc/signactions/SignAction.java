@@ -23,9 +23,11 @@ public abstract class SignAction {
 		register(new SignActionCart());
 		register(new SignActionTrain());
 		register(new SignActionChest());
+		register(new SignActionFurnace());
 		register(new SignActionDetector());
 		register(new SignActionDestination());
 		register(new SignActionBlock());
+		register(new SignActionWait());
 	}
 	public static void deinit() {
 		actions = null;

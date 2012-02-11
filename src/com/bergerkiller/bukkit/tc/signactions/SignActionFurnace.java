@@ -1,17 +1,25 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.ChatColor;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 
-import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.common.ItemParser;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 
-public class SignActionChest extends SignAction {
+public class SignActionFurnace extends SignAction {
+
+	public void transferFurnace(int radius) {
+		for (int dx = -radius; dx <= radius; dx++) {
+			for (int dy = -radius; dy <= radius; dy++) {
+				for (int dz = -radius; dz <= radius; dz++) {
+				}
+			}
+		}
+	}
 	
 	@Override
 	public void execute(SignActionEvent info) {
@@ -21,13 +29,13 @@ public class SignActionChest extends SignAction {
 		if (!docart && !dotrain) return;
 		if (!info.isPoweredFacing()) return;
 		if (!info.hasRails()) return;
-		boolean in = info.isType("chest in");
-		boolean out = info.isType("chest out");
+		boolean in = info.isType("furnace in");
+		boolean out = info.isType("furnace out");
 		if (!in && !out) return;
 		//get the radius to look for chests
 		int radius;
 		try {
-			String lname = info.getLine(1).substring(in ? 9 : 10);
+			String lname = info.getLine(1).substring(in ? 11 : 12);
 			radius = MathUtil.limit(Integer.parseInt(lname), 1, 5);
 		} catch (Exception ex) {
 			radius = TrainCarts.defaultTransferRadius;
@@ -82,16 +90,16 @@ public class SignActionChest extends SignAction {
 			}
 		}
 	}
-	
+
 	@Override
 	public void build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("chest in")) {
-				handleBuild(event, Permission.BUILD_CHEST, "storage minecart to chest dispenser", 
-						"transfer items from storage minecarts to multiple chests connected to the tracks");
-			} else if (type.startsWith("chest out")) {
-				handleBuild(event, Permission.BUILD_CHEST, "chest to storage minecart dispenser", 
-						"transfer items from multiple chests connected to the tracks to storage minecarts");
+			if (type.startsWith("furnace in")) {
+				handleBuild(event, Permission.BUILD_FURNACE, "storage minecart to furnace dispenser", 
+						"transfer items from storage minecarts to multiple furnaces connected to the tracks to start smelting");
+			} else if (type.startsWith("furnace out")) {
+				handleBuild(event, Permission.BUILD_FURNACE, "furnace to storage minecart dispenser", 
+						"transfer items from multiple furnaces connected to the tracks to storage minecarts");
 			}
 		}
 	}

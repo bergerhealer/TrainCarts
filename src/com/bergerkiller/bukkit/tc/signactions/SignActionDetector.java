@@ -251,7 +251,7 @@ public class SignActionDetector extends SignAction {
 		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detects the presence of trains between this detector sign and another")) {
 			//try to create the other sign
 			Block startsign = event.getBlock();
-			Block startrails = Util.getRailsBlockFromSign(startsign);
+			Block startrails = Util.getRailsFromSign(startsign);
 			if (startrails == null) {
 				event.getPlayer().sendMessage(ChatColor.RED + "Note that no rails are nearby, so it is not yet activated.");
 				return;
@@ -270,7 +270,7 @@ public class SignActionDetector extends SignAction {
 					event.getPlayer().sendMessage(ChatColor.RED + "Could not find a second connected detector sign, place one to activate this detector.");
 					return;
 				}
-				for (Block signblock : Util.getSignsAttached(next)) {
+				for (Block signblock : Util.getSignsFromRails(next)) {
 					sign = BlockUtil.getSign(signblock);
 					if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
 						if (sign.getLine(1).toLowerCase().startsWith("detector")) {

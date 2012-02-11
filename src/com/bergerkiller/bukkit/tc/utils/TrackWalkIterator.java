@@ -34,8 +34,10 @@ public class TrackWalkIterator {
 		this.iter = new TrackIterator(start.getBlock(), direction, onlyIfLoaded);
 		this.iter.next();
 		this.next = start;
-		this.genDirection();
-		this.genNext();
+		if (this.iter.hasNext()) {
+			this.genDirection();
+			this.genNext();
+		}
 	}
 	
 	public TrackWalkIterator setStep(double size) {

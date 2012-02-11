@@ -7,9 +7,11 @@ import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 
 public enum SignActionMode {
     TRAIN, CART, NONE;
-    public static SignActionMode fromString(String name) {
+    public static SignActionMode fromString(String name) {    	
     	if (name.equalsIgnoreCase("[train]")) return TRAIN;
     	if (name.equalsIgnoreCase("[cart]")) return CART;
+    	if (name.equalsIgnoreCase("[!train]")) return TRAIN;
+    	if (name.equalsIgnoreCase("[!cart]")) return CART;
     	return NONE;
     }
     public static SignActionMode fromSign(Sign sign) {

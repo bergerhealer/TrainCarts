@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class TrainCarts extends PluginBase {
 
@@ -54,6 +55,7 @@ public class TrainCarts extends PluginBase {
 	private Set<Material> allowedBlockBreakTypes = new HashSet<Material>();
 	public static int maxDetectorLength;
 	public static int maxMinecartStackSize;
+	public static int defaultTransferRadius;
 
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -144,6 +146,9 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("maxMinecartStackSize", "\nThe maximum amount of minecart items that can be stacked in one item");
 		maxMinecartStackSize = config.get("maxMinecartStackSize", 64);
+		
+		config.setHeader("defaultTransferRadius", "\nThe default radius chest/furnace sign systems look for the needed blocks");
+		defaultTransferRadius = MathUtil.limit(config.get("defaultTransferRadius", 2), 1, 5);
 
 		config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
 		config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");

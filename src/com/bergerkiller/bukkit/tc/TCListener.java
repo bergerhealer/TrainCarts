@@ -1,11 +1,8 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.util.HashSet;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
@@ -31,6 +28,7 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -44,7 +42,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
 
-	private HashSet<Block> poweredBlocks = new HashSet<Block>();
+	private BlockSet poweredBlocks = new BlockSet();
 	public static Player lastPlayer = null;
 
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -294,9 +292,6 @@ public class TCListener implements Listener {
 			if (entered != null && !entered.getProperties().allowPlayerExit) {
 				event.setCancelled(true);
 			}
-			if (!mm.getProperties().isPublic && !mm.getProperties().isOwner(event.getPlayer())) {
-				event.setCancelled(true);
-			}
 		}
 	}
 
@@ -322,7 +317,7 @@ public class TCListener implements Listener {
 			if (BlockUtil.isSign(event.getBlock())) {
 				SignActionDetector.removeDetector(event.getBlock());
 				//invalidate this piece of track
-				PathNode.clear(Util.getRailsBlockFromSign(event.getBlock()));
+				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
 			} else if (BlockUtil.isRails(event.getBlock())) {
 				PathNode.remove(event.getBlock());
 			}

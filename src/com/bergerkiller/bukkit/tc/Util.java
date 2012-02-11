@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -41,22 +42,60 @@ public class Util {
 		SafeField.set(item, "maxStackSize", maxstacksize);
 	}
 	
-    public static Block getRailsBlockFromSign(final Block signblock) {
-		//try to find out where the rails block is located
-		Block above = signblock.getRelative(0, 2, 0);
-		if (Util.isRails(above)) {
-			return above;
-		} else {
-			//rail located above the attached face?
-			BlockFace face = BlockUtil.getAttachedFace(signblock);
-			above = signblock.getRelative(face.getModX(), 1, face.getModZ());
-			if (Util.isRails(above)) {
-				return above;
-			} else {
-				return null;
+	
+	public static boolean hasSignsAttached(Block block) {
+		Block b;
+		for (BlockFace dir : FaceUtil.attachedFaces) {
+			b = block.getRelative(dir);
+			if (BlockUtil.isSign(b) && BlockUtil.getAttachedFace(b) == dir.getOppositeFace()) {
+				return true;
 			}
 		}
-    }
+		return false;
+	}
+	public static Block getRailsFromSign(final Block signblock) {
+		int type = signblock.getTypeId();
+		if (type == Material.SIGN_POST.getId()) {
+			Block rails = signblock.getRelative(BlockFace.UP);
+			if (isRails(rails)) return rails;
+		} else if (type == Material.WALL_SIGN.getId()) {
+			Block rails = BlockUtil.getAttachedBlock(signblock);	
+			do {
+				rails = rails.getRelative(BlockFace.UP);
+				if (isRails(rails)) return rails;
+			} while (hasSignsAttached(rails));
+		}
+		return null;
+	}
+	private static List<Block> blockbuff = new ArrayList<Block>();
+	public static List<Block> getSignsFromRails(Block railsblock) {
+		return getSignsFromRails(blockbuff, railsblock);
+	}
+	public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
+		rval.clear();
+		Block b;
+		boolean added;
+		do {
+			added = false;
+			railsblock = railsblock.getRelative(BlockFace.DOWN);
+			if (railsblock.getTypeId() == Material.SIGN_POST.getId()) {
+				rval.add(railsblock);
+				break;
+			} else {
+				//check signs attached
+				for (BlockFace face : FaceUtil.axis) {
+					b = railsblock.getRelative(face);
+					if (b.getTypeId() == Material.WALL_SIGN.getId()) {
+						if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+							rval.add(b);
+							added = true;
+						}
+					}
+				}
+			}
+		} while (added);
+		return rval;
+	}
 			
 	/*
 	 * Entity miscellaneous
@@ -100,34 +139,7 @@ public class Util {
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
 	}
-	
-	public static Block getRailsAttached(Block signblock) {
-		Material type = signblock.getType();
-		Block rail = null;
-		if (type == Material.WALL_SIGN) {
-			rail = BlockUtil.getAttachedBlock(signblock).getRelative(BlockFace.UP);
-			if (isRails(rail)) return rail;
-		}
-		if (BlockUtil.isSign(type)) {
-			rail = signblock.getRelative(0, 2, 0);
-			if (isRails(rail)) return rail;
-		}
-		return null;
-	}
-	public static Block[] getSignsAttached(Block rails) {
-		ArrayList<Block> rval = new ArrayList<Block>(3);
-		Block under = rails.getRelative(0, -2, 0);
-		if (BlockUtil.isSign(under)) rval.add(under);
-		for (BlockFace face : FaceUtil.axis) {
-			Block side = rails.getRelative(face.getModX(), -1, face.getModZ());
-			if (!BlockUtil.isSign(side)) continue;
-			if (BlockUtil.getAttachedFace(side) == face.getOppositeFace()) {
-				rval.add(side);
-			}
-		}
-		return rval.toArray(new Block[0]);
-	}
-	
+		
 	public static boolean isRails(Block block) {
 		return block != null && isRails(block.getTypeId());
 	}

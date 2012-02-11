@@ -134,6 +134,7 @@ public class ArrivalSigns {
 			if (!TrainCarts.SignLinkEnabled) return false;
 			//Calculate the time to display
 			String dur = getDuration();
+			Variables.get(this.name).set(dur);
 			Variables.get(this.name + 'T').set(dur);
 			if (dur.equals("00:00:00")) {
 				timerSigns.remove(this.name);

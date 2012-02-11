@@ -224,7 +224,7 @@ public class PathNode {
 		BlockLocation location;
 		while (iter.hasNext()) {
 			tmpblock = iter.next();
-			for (Block signblock : Util.getSignsAttached(tmpblock)) {
+			for (Block signblock : Util.getSignsFromRails(tmpblock)) {
 				SignActionEvent event = new SignActionEvent(signblock);
 				if (event.getMode() != SignActionMode.NONE) {
 					if (event.isType("tag", "switcher")){
@@ -234,10 +234,10 @@ public class PathNode {
 						location = new BlockLocation(tmpblock);
 						newdest = event.getLine(2);
 					} else if (event.isType("blocker")) {
-						if (SignActionBlock.canPass(event, iter.currentDirection())) {
-							continue;
-						} else {
+						if (SignActionBlock.isHeadingTo(event, iter.currentDirection())) {
 							return;
+						} else {
+							continue;
 						}
 					} else {
 						continue;

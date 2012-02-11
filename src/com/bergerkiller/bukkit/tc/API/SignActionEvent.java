@@ -53,7 +53,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.actionType = actionType;
 	}
 	public SignActionEvent(final Block signblock) {
-		this(signblock, Util.getRailsBlockFromSign(signblock));
+		this(signblock, Util.getRailsFromSign(signblock));
 	}
 	public SignActionEvent(final Block signblock, final Block railsblock) {
 		super("SignActionEvent");
@@ -61,6 +61,11 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.sign = BlockUtil.getSign(signblock);
 		this.mode = SignActionMode.fromSign(this.sign);
 		this.railsblock = railsblock;
+		if (this.sign == null) {
+			this.powerinv = false;
+		} else {
+			this.powerinv = this.getLine(0).startsWith("[!");
+		}
 	}
 	
 	private final Block signblock;
@@ -74,6 +79,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private MinecartGroup group = null;
 	private boolean memberchecked = false;
 	private boolean cancelled = false;
+	private final boolean powerinv;
 	
 	public void setLevers(boolean down) {
 		BlockUtil.setLeversAroundBlock(this.getAttachedBlock(), down);
@@ -163,18 +169,22 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this;
 	}
 	
+	public boolean isPowerInverted() {
+		return this.powerinv;
+	}
+	
 	public boolean isPowered(BlockFace from) {
 		Block block = this.getBlock().getRelative(from);
 		Material type = block.getType();
-		if (type == Material.REDSTONE_TORCH_ON) return true;
-		if (type == Material.REDSTONE_TORCH_OFF) return false;
+		if (type == Material.REDSTONE_TORCH_ON) return !this.powerinv;
+		if (type == Material.REDSTONE_TORCH_OFF) return this.powerinv;
 		if (type == Material.REDSTONE_WIRE) {
-			return block.getData() != 0;
+			return this.powerinv != (block.getData() != 0);
 		}
 		if (from != BlockFace.DOWN && type == Material.DIODE_BLOCK_ON) {
-			return BlockUtil.getFacing(block) != from;
+			return this.powerinv != (BlockUtil.getFacing(block) != from);
 		}
-		return this.getBlock().getRelative(from).isBlockPowered();
+		return this.powerinv != this.getBlock().getRelative(from).isBlockPowered();
 	}
 	public boolean isPowered() {
 		return this.getBlock().isBlockIndirectlyPowered() ||
@@ -236,7 +246,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public MinecartMember getMember() {
 		if (this.member == null) {
 			if (!this.memberchecked) {
-				this.member = MinecartMember.getAt(this.railsblock);
+				this.member = MinecartMember.getAt(this.railsblock, false);
 				this.memberchecked = true;
 			}
 			if (this.group != null && !this.group.isEmpty()) {
