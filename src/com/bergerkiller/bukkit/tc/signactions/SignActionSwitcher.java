@@ -35,6 +35,7 @@ public class SignActionSwitcher extends SignAction {
 				}
 				if (conn != null) {
 					info.setRailsFromCart(conn.direction);
+					return true;
 				}
 			}
 		}
@@ -43,7 +44,8 @@ public class SignActionSwitcher extends SignAction {
 	
 	public void handleRails(SignActionEvent info, boolean left, boolean right) {
 		boolean down = false;
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.isFacing()) {
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER, 
+				SignActionType.GROUP_UPDATE, SignActionType.MEMBER_UPDATE) && info.isFacing()) {
 			down = left || right;         
 			if (info.isPowered()) info.setRails(left, right);
 		}
@@ -51,10 +53,10 @@ public class SignActionSwitcher extends SignAction {
 	}
 	
 	public boolean handleCounter(SignActionEvent info, String l, String r) {
-		try {
-			boolean left = false;
-			boolean right = false;
-			if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.isFacing()) {
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.isFacing()) {
+			try {
+				boolean left = false;
+				boolean right = false;
 				int lcount = Integer.parseInt(l);
 				int rcount = Integer.parseInt(r);
 				AtomicInteger i = getSwitchedTimes(info.getLocation());
@@ -69,20 +71,20 @@ public class SignActionSwitcher extends SignAction {
 					right = true;
 					i.incrementAndGet();
 				}
-			}
-			handleRails(info, left, right);
-			return true;
-		} catch (NumberFormatException ex) {
-			return false;
+				handleRails(info, left, right);
+				return true;
+			} catch (NumberFormatException ex) {}
 		}
+		return false;
 	}
 
 	@Override
 	public void execute(SignActionEvent info) {
+		if (!info.isType("switcher", "tag")) return;
 		String l = info.getLine(2);
 		String r = info.getLine(3);
-		if (!info.isType("switcher", "tag")) return;
-		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
+		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE, 
+				SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
 			if (!info.hasRailedMember()) return;
 			if (!handleDestination(info)) {
 				if (!handleCounter(info, l, r)) {
@@ -91,7 +93,8 @@ public class SignActionSwitcher extends SignAction {
 					handleRails(info, left, right);
 				}
 			}
-		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
+		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE, 
+				SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
 			if (!handleDestination(info)) {
 				if (!handleCounter(info, l, r)) {

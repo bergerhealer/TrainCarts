@@ -310,6 +310,11 @@ public class TrainProperties {
 		}
 	}
 	
+	public void tryUpdate() {
+		MinecartGroup g = this.getGroup();
+		if (g != null) g.update();
+	}
+	
 	/*
 	 * Loading and saving
 	 */

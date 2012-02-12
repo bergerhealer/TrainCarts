@@ -93,7 +93,9 @@ public class Util {
 		signblock = signblock.getRelative(BlockFace.UP);
 		if (isRails(signblock)) return signblock;
 		while (true) {
-			if (hasAttachedSigns(signblock)) {
+			if (isRails(signblock)) {
+				return signblock;
+			} else if (hasAttachedSigns(signblock)) {
 				signblock = signblock.getRelative(BlockFace.UP);					
 			} else {
 				signblock = signblock.getRelative(BlockFace.UP);	
@@ -105,7 +107,6 @@ public class Util {
 			}
 		}
 	}
-
 				
 	public static ItemParser[] getParsers(String... items) {
 		StringBuilder total = new StringBuilder();

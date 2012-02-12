@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
@@ -87,7 +88,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
-		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {			
+		if (!event.isCancelled()) {			
 			Minecart m = (Minecart) event.getVehicle();
 			Location loc = m.getLocation();
 			loc.setYaw(m.getLocation().getYaw() + 180);
@@ -102,6 +103,8 @@ public class TCListener implements Listener {
 					e.teleport(loc);
 				}
 			}.start(0);
+			MinecartMember mm = MinecartMember.get(m);
+			if (mm != null) mm.update();
 		}
 	}
 
@@ -145,6 +148,7 @@ public class TCListener implements Listener {
 				} else if (!prop.allowMobsEnter) {
 					event.setCancelled(true);
 				}
+				member.update();
 			}
 		}
 	}
@@ -297,17 +301,38 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
-		if (BlockUtil.isSign(event.getBlock())) {
-			SignActionEvent info = new SignActionEvent(event.getBlock());
-			SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-			boolean powered = poweredBlocks.contains(event.getBlock());
-			if (!powered && event.getNewCurrent() > 0) {
-				poweredBlocks.add(event.getBlock());
-				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
-			} else if (powered && event.getNewCurrent() == 0) {
-				poweredBlocks.remove(event.getBlock());
-				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
+		int type = event.getBlock().getTypeId();
+		if (BlockUtil.isType(type, Material.LEVER)) {
+			Block up = event.getBlock().getRelative(BlockFace.UP);
+			Block down = event.getBlock().getRelative(BlockFace.DOWN);
+			if (BlockUtil.isSign(up)) {
+				triggerRedstoneChange(up, event);
 			}
+			if (BlockUtil.isSign(down)) {
+				triggerRedstoneChange(down, event);
+			}
+		} else if (BlockUtil.isType(type, Material.SIGN_POST, Material.WALL_SIGN)) {
+			triggerRedstoneChange(event.getBlock(), event);
+		}
+	}
+	
+	public void triggerRedstoneChange(Block signblock, BlockRedstoneEvent event) {
+		boolean powered = poweredBlocks.contains(event.getBlock());
+		if (!powered && event.getNewCurrent() > 0) {
+			poweredBlocks.add(event.getBlock());
+			triggerRedstoneChange(signblock, true);
+		} else if (powered && event.getNewCurrent() == 0) {
+			poweredBlocks.remove(event.getBlock());
+			triggerRedstoneChange(signblock, false);
+		}
+	}
+	public void triggerRedstoneChange(Block signblock, boolean powered) {
+		SignActionEvent info = new SignActionEvent(signblock);
+		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+		if (powered) {
+			SignAction.executeAll(info, SignActionType.REDSTONE_ON);
+		} else {
+			SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
 		}
 	}
 

@@ -20,17 +20,17 @@ public class SignActionSpawn extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_ON)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("spawn")) {
-					if (!info.hasRailedMember()) return;
+					if (!info.hasRails()) return;
 					double force = StringUtil.tryParse(info.getLine(1).substring(5).trim(), 0.0);
 
 					//Get the cart types to spawn
 					ArrayList<Integer> types = new ArrayList<Integer>();
 					for (char cart : (info.getLine(2) + info.getLine(3)).toCharArray()) {
-						if (cart == 'm') {
+						if (cart == 'm' || cart == 'M') {
 							types.add(0);
-						} else if (cart == 's') {
+						} else if (cart == 's' || cart == 'S') {
 							types.add(1);
-						} else if (cart == 'p') {
+						} else if (cart == 'p' || cart == 'P') {
 							types.add(2);
 						}
 					}

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -216,11 +217,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
     /*
      * NON-STATIC REGION
      */
-	private HashSet<Block> activeSigns = new HashSet<Block>();
-	private Queue<Action> actions = new LinkedList<Action>();
+	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
+	private final Queue<Action> actions = new LinkedList<Action>();
 	private String name;
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
+	private boolean needsUpdate = false;
 	
 	private MinecartGroup() {}
 		
@@ -846,6 +848,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		this.breakPhysics = true;
 	}
 		
+	public void update() {
+		this.needsUpdate = true;
+	}
+	
 	/*
 	 * Synchronizes all members' entity trackers
 	 * Makes them move nicely in-sync
@@ -913,7 +919,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {
 		this.breakPhysics = false;
-		try {
+		try {			
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
 				mm.validate();
@@ -1029,6 +1035,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			
 			//Synchronize to clients
 			this.sync();
+			
+			//final updating
+			if (this.needsUpdate) {
+				this.needsUpdate = false;
+				for (Block b : this.activeSigns) {
+					SignAction.executeAll(new SignActionEvent(b, null, this), SignActionType.GROUP_UPDATE);
+				}
+			}
 			
 			return true;
 		} catch (MemberDeadException ex) {

@@ -9,6 +9,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.material.Lever;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
@@ -168,23 +169,27 @@ public class SignActionEvent extends Event implements Cancellable {
 	public boolean isPowered(BlockFace from) {
 		Block block = this.getBlock().getRelative(from);
 		Material type = block.getType();
-		if (type == Material.REDSTONE_TORCH_ON) return !this.powerinv;
-		if (type == Material.REDSTONE_TORCH_OFF) return this.powerinv;
-		if (type == Material.REDSTONE_WIRE) {
-			return this.powerinv != (block.getData() != 0);
+		if (type == Material.REDSTONE_TORCH_ON) {
+			return !this.powerinv;
+		} else if (type == Material.REDSTONE_TORCH_OFF) {
+			return this.powerinv;
+		} else if (type == Material.LEVER) {
+			return this.powerinv != BlockUtil.getData(block, Lever.class).isPowered();
+		} else if (from != BlockFace.DOWN && from != BlockFace.UP)  {
+			if (type == Material.REDSTONE_WIRE) {
+			    return this.powerinv != (block.getData() != 0);
+			} else if (type == Material.DIODE_BLOCK_ON) {
+				return this.powerinv != (BlockUtil.getFacing(block) != from);
+			}
 		}
-		if (from != BlockFace.DOWN && type == Material.DIODE_BLOCK_ON) {
-			return this.powerinv != (BlockUtil.getFacing(block) != from);
-		}
-		return this.powerinv != this.getBlock().getRelative(from).isBlockPowered();
+		return this.powerinv != block.isBlockPowered();
 	}
 	public boolean isPowered() {
-		return this.getBlock().isBlockIndirectlyPowered() ||
-				isPowered(BlockFace.DOWN) || 
-				isPowered(BlockFace.NORTH) ||
-				isPowered(BlockFace.EAST) ||
-				isPowered(BlockFace.SOUTH) ||
-				isPowered(BlockFace.WEST);
+		if (this.getBlock().isBlockIndirectlyPowered()) return true;
+		for (BlockFace face : FaceUtil.attachedFacesDown) {
+			if (this.isPowered(face)) return true;
+		}
+		return false;
 	}
 	public boolean isPoweredFacing() {
 		return this.actionType == SignActionType.REDSTONE_ON || (this.isFacing() && this.isPowered());
@@ -233,7 +238,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.facing;
 	}
 	public boolean isFacing() {
-		if (getMember() == null) return false;
+		if (!this.hasMember()) return false;
 		if (!getMember().isMoving()) return true;
 		return getMember().getDirection() != getFacing();
 	}

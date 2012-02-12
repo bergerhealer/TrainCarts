@@ -12,6 +12,7 @@ import net.minecraft.server.TileEntityDispenser;
 import net.minecraft.server.TileEntityFurnace;
 
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 
@@ -24,6 +25,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 
 public class SignActionCollect extends SignAction {
 
@@ -79,6 +81,18 @@ public class SignActionCollect extends SignAction {
 		return typesToCheck;
 	}
 	
+	protected static Set<TileEntity> getTileEntities(SignActionEvent info, int radius) {
+		int radX = radius;
+		int radZ = radius;
+		BlockFace dir = info.getRailDirection();
+		if (dir == BlockFace.SOUTH) {
+			radX = 0;
+		} else if (dir == BlockFace.WEST) {
+			radZ = 0;
+		}
+		return BlockUtil.getTileEntities(info.getRails(), radX, radius, radZ);
+	}
+	
 	@Override
 	public void execute(SignActionEvent info) {		  
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
@@ -93,7 +107,7 @@ public class SignActionCollect extends SignAction {
 		
 		//get the tile entities to collect
 		List<IInventory> invlist = new ArrayList<IInventory>();
-		Set<TileEntity> found = BlockUtil.getTileEntities(info.getRails(), radius);
+		Set<TileEntity> found = getTileEntities(info, radius);
 		if (found.isEmpty()) return;
 		for (Material mat : typesToCheck) {
 			if (mat == Material.CHEST) {
@@ -135,6 +149,7 @@ public class SignActionCollect extends SignAction {
 		
 		//get inventory
 		Inventory from = MergedInventory.convert(invlist);
+		if (TrainCarts.showTransferAnimations) to = new InventoryWatcher(invlist.get(0), info.getMember(), to);
 
 		//get items to transfer
         ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));

@@ -57,6 +57,11 @@ public class CartProperties {
 		return this.uuid;
 	}
 	
+	public void tryUpdate() {
+		MinecartMember m = this.getMember();
+		if (m != null) m.update();
+	}
+	
 	/*
 	 * Block obtaining
 	 */

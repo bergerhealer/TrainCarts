@@ -19,18 +19,19 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 
 public class SignActionDeposit extends SignAction {
 
-	public void deposit(List<TileEntityFurnace> furnaces, ItemParser[] parsers, Inventory cartinv) {
+	public void deposit(List<TileEntityFurnace> furnaces, ItemParser[] parsers, Inventory cartinv, MinecartMember m) {
     	//put stuff from the inventory into the furnaces
 		if (furnaces.isEmpty()) return;
 		int limit;
@@ -68,18 +69,14 @@ public class SignActionDeposit extends SignAction {
     		for (TileEntityFurnace f : furnaces) {
     			furnaceinv = new CraftInventory(f);
     			ItemStack item = furnaceinv.getItem(0);
-    			System.out.println(item + " MAX = " + limit);
+    			if (TrainCarts.showTransferAnimations) furnaceinv = new InventoryWatcher(f, m, furnaceinv);
     			limit -= ItemUtil.transfer(cartinv, item, p, limit);
-    			System.out.println(item);
     			ItemUtil.setItem(furnaceinv, 0, item);
     		}
     	}
-    	
-    	//System.out.println("DD");
-    	
+    	    	
     	//transfer coal (requires manual limiting if no amount is set)
 		for (ItemParser p : burned) {
-			System.out.println(p);
 			if (p == null) continue;
 			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
 			//first fill the amount needed
@@ -110,9 +107,8 @@ public class SignActionDeposit extends SignAction {
 				if (fuelNeeded <= 0) continue;
 				//====================================================
 				int itemcount = Math.min(limit, (int) Math.ceil((double) fuelNeeded / (double) fuelPerItem));
-				//System.out.println(fuel.toString());
+				if (TrainCarts.showTransferAnimations) furnaceinv = new InventoryWatcher(f, m, furnaceinv);
 				limit -= ItemUtil.transfer(cartinv, fuel, p, itemcount);
-				//System.out.println(fuel.toString());
 				ItemUtil.setItem(furnaceinv, 1, fuel);
 			}
 			//if an amount is set; top it off
@@ -120,6 +116,7 @@ public class SignActionDeposit extends SignAction {
         		for (TileEntityFurnace f : furnaces) {
         			furnaceinv = new CraftInventory(f);
         			ItemStack item = furnaceinv.getItem(1);
+        			if (TrainCarts.showTransferAnimations) furnaceinv = new InventoryWatcher(f, m, furnaceinv);
         			limit -= ItemUtil.transfer(cartinv, item, p, limit);
         			ItemUtil.setItem(furnaceinv, 1, item);
         		}
@@ -139,7 +136,7 @@ public class SignActionDeposit extends SignAction {
 		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
 		
 		//get the tile entities to deposit to
-		Set<TileEntity> found = BlockUtil.getTileEntities(info.getRails(), radius);
+		Set<TileEntity> found = SignActionCollect.getTileEntities(info, radius);
 		if (found.isEmpty()) return;
 		List<IInventory> invlist = new ArrayList<IInventory>();
 		List<TileEntityFurnace> furnaces = new ArrayList<TileEntityFurnace>();
@@ -186,6 +183,7 @@ public class SignActionDeposit extends SignAction {
 		if (!invlist.isEmpty()) {
 			int limit;
 			Inventory to = MergedInventory.convert(invlist);
+			if (TrainCarts.showTransferAnimations) to = new InventoryWatcher(info.getMember(), invlist.get(0), to);
 			for (ItemParser p : parsers) {
 				if (p == null) continue;
 				limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
@@ -193,7 +191,7 @@ public class SignActionDeposit extends SignAction {
 			}
 		}
 		if (!furnaces.isEmpty()) {
-			deposit(furnaces, parsers, cartinv);
+			deposit(furnaces, parsers, cartinv, info.getMember());
 		}
 	}
 

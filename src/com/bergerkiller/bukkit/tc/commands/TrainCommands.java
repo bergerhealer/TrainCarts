@@ -264,7 +264,9 @@ public class TrainCommands {
 			}
 		} else {
 			p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
+			return true;
 		}
+		prop.tryUpdate();
 		return true;
 	}
 	

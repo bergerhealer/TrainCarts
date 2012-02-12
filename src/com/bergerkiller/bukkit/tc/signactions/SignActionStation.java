@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionStation extends SignAction {
@@ -42,7 +43,7 @@ public class SignActionStation extends SignAction {
 										delayMS = (long) (Double.parseDouble(info.getLine(2)) * 1000);
 									} catch (Exception ex) {};
 									//Get the mode used
-                                    StationMode mode = StationMode.fromString(info.getLine(3));
+                                    StationMode mode = EnumUtil.parse(info.getLine(3), StationMode.NONE);
 	
 									//Get the middle minecart
 									MinecartMember midd = group.middle();
@@ -108,7 +109,7 @@ public class SignActionStation extends SignAction {
 
 									//What do we do?
 									if (instruction == BlockFace.SELF) {
-										if (north || east || south || west) {
+										if (north || east || south || west || info.isPowered(BlockFace.UP) || info.isPowered(BlockFace.DOWN)) {
 											//Redstone change and moving?
 											if (!info.isAction(SignActionType.REDSTONE_CHANGE) || !info.getMember().isMoving()) {
 												//Brake

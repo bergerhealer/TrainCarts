@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -63,7 +64,8 @@ public class TrainCarts extends PluginBase {
 	public static int maxDetectorLength;
 	public static int maxMinecartStackSize;
 	public static int defaultTransferRadius;
-
+	public static boolean showTransferAnimations;
+	
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
 	public static boolean MyWorldsEnabled = false;
@@ -180,6 +182,9 @@ public class TrainCarts extends PluginBase {
 		for (Material mat : allowedBlockBreakTypes) {
 			types.add(mat.toString());
 		}
+		
+		config.setHeader("showTransferAnimations", "\nWhether or not to show item animations when transferring items");
+		showTransferAnimations = config.get("showTransferAnimations", true);
 		
 		//parser shortcuts
 		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
@@ -352,6 +357,8 @@ public class TrainCarts extends PluginBase {
 		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
 
 		SignAction.deinit();
+		
+		ItemAnimation.deinit();
 
 		plugin = null;
 	}

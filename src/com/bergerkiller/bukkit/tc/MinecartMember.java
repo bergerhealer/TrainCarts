@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -268,9 +269,10 @@ public class MinecartMember extends NativeMinecartMember {
 	private boolean isDerailed = false;
 	private boolean isFlying = false;
 	private boolean isInitWorld = false;
+	private boolean needsUpdate = false;
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
-	private HashSet<Block> activeSigns = new HashSet<Block>();
+	private Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private MinecartMemberTrackerEntry tracker;
 	
 	private MinecartMember(World world, double x, double y, double z, int type) {
@@ -354,6 +356,12 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 		}
 		this.updateBlock(false);
+		if (this.needsUpdate) {
+			this.needsUpdate = false;
+			for (Block b : this.activeSigns) {
+				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
+			}
+		}
 	}
 	
 	@Override
@@ -502,7 +510,6 @@ public class MinecartMember extends NativeMinecartMember {
 			return new MinecartMember[0];
 		}
 	}
-	
  	
  	/*
  	 * Active signs
@@ -1105,6 +1112,17 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
+	}
+	
+	public void setItem(int index, net.minecraft.server.ItemStack item) {
+		super.setItem(index, item);
+		this.update();
+	}
+	
+	public void update() {
+		if (this.dead) return; 
+		this.needsUpdate = true;
+		this.getGroup().update();
 	}
 	
 	public void stop() {

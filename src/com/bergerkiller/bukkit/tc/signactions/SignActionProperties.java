@@ -49,7 +49,10 @@ public class SignActionProperties extends SignAction {
 			prop.setAllowPlayerEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerexit")) {
 			prop.setAllowPlayerExit(StringUtil.getBool(arg));
+		} else {
+			return;
 		}
+		prop.tryUpdate();
 	}
 	public void handleProperties(CartProperties prop, String mode, String arg) {
 		if (mode.equals("addtag")) {
@@ -66,7 +69,10 @@ public class SignActionProperties extends SignAction {
 			prop.allowPlayerEnter = StringUtil.getBool(arg);
 		} else if (mode.equals("playerexit")) {
 			prop.allowPlayerExit = StringUtil.getBool(arg);
+		} else {
+			return;
 		}
+		prop.tryUpdate();
 	}
 	
 	@Override
