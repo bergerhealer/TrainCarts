@@ -224,7 +224,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		public double prevZ;
 		public float prevYaw;
 		public float prevPitch;
-		public int[][] aint;
+		public int[][] moveMatrix;
 		public int blockX;
 		public int blockY;
 		public int blockZ;
@@ -234,9 +234,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		public Location getPrevLoc(World world) {
 			return new Location(world.getWorld(), prevX, prevY, prevZ, prevYaw, prevPitch);
 		}
-	}
-	public boolean hasDonePhysics() {
-		return this.moveinfo != null;
 	}
 
 	/*
@@ -266,15 +263,11 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.setDamage(this.getDamage() - 1);
 		}
 
-		if (this.j() && this.random.nextInt(4) == 0) {
-			this.world.a("largesmoke", this.locX, this.locY + 0.8D, this.locZ, 0.0D, 0.0D, 0.0D);
-		}
-
 		this.lastX = this.locX;
 		this.lastY = this.locY;
 		this.lastZ = this.locZ;
 		this.wasOnMinecartTrack = this.isOnMinecartTrack;
-		this.motY -= 0.03999999910593033D * (1 / stepcount);
+		this.motY -= 0.04 * (1 / stepcount);
 		moveinfo.blockX = MathHelper.floor(this.locX);
 		moveinfo.blockY = MathHelper.floor(this.locY);
 		moveinfo.blockZ = MathHelper.floor(this.locZ);
@@ -293,7 +286,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		moveinfo.isLaunching = false;
 
 		//TrainCarts - prevent sloped movement if forces are ignored
-		double slopedMotion = this.ignoreForces() ? 0 : 0.0078125D; //forward movement on slopes
+		double slopedMotion = this.ignoreForces() ? 0 : 0.0078125; //forward movement on slopes
 
 		if (moveinfo.isRailed) {
 			moveinfo.vec3d = this.h(this.locX, this.locY, this.locZ);
@@ -337,35 +330,35 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			//TrainNote: Used to move a minecart up or down sloped tracks
 			if (moveinfo.raildata == 2) {
-				if (this.motX <= 0 || this.group().getProperties().slowDown) {
+				if (this.motX <= 0 && this.group().getProperties().slowDown) {
 					this.motX -= slopedMotion;
 				}
 			}
 
 			if (moveinfo.raildata == 3) {
-				if (this.motX >= 0 || this.group().getProperties().slowDown) {
+				if (this.motX >= 0 && this.group().getProperties().slowDown) {
 					this.motX += slopedMotion;
 				}
 			}
 
 			if (moveinfo.raildata == 4) {
-				if (this.motZ >= 0 || this.group().getProperties().slowDown) {
+				if (this.motZ >= 0 && this.group().getProperties().slowDown) {
 					this.motZ += slopedMotion;
 				}
 			}
 
 			if (moveinfo.raildata == 5) {
-				if (this.motZ <= 0 || this.group().getProperties().slowDown) {
+				if (this.motZ <= 0 && this.group().getProperties().slowDown) {
 					this.motZ -= slopedMotion;
 				}
 			}
 			//TrainNote end
 
-			moveinfo.aint = matrix[moveinfo.raildata];
+			moveinfo.moveMatrix = matrix[moveinfo.raildata];
 
 			//rail motion is calculated from the rails
-			double railMotionX = (double) (moveinfo.aint[1][0] - moveinfo.aint[0][0]);
-			double railMotionZ = (double) (moveinfo.aint[1][2] - moveinfo.aint[0][2]);		
+			double railMotionX = (double) (moveinfo.moveMatrix[1][0] - moveinfo.moveMatrix[0][0]);
+			double railMotionZ = (double) (moveinfo.moveMatrix[1][2] - moveinfo.moveMatrix[0][2]);		
 			//reverse motion if needed
 			if (this.motX * railMotionX + this.motZ * railMotionZ < 0) {
 				railMotionX = -railMotionX;
@@ -391,10 +384,10 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			//location is updated to follow the tracks
-			double oldRailX = (double) moveinfo.blockX + 0.5D + (double) moveinfo.aint[0][0] * 0.5D;
-			double oldRailZ = (double) moveinfo.blockZ + 0.5D + (double) moveinfo.aint[0][2] * 0.5D;
-			double newRailX = (double) moveinfo.blockX + 0.5D + (double) moveinfo.aint[1][0] * 0.5D;
-			double newRailZ = (double) moveinfo.blockZ + 0.5D + (double) moveinfo.aint[1][2] * 0.5D;
+			double oldRailX = (double) moveinfo.blockX + 0.5 + (double) moveinfo.moveMatrix[0][0] * 0.5;
+			double oldRailZ = (double) moveinfo.blockZ + 0.5 + (double) moveinfo.moveMatrix[0][2] * 0.5;
+			double newRailX = (double) moveinfo.blockX + 0.5 + (double) moveinfo.moveMatrix[1][0] * 0.5;
+			double newRailZ = (double) moveinfo.blockZ + 0.5 + (double) moveinfo.moveMatrix[1][2] * 0.5;
 
 			railMotionX = newRailX - oldRailX;
 			railMotionZ = newRailZ - oldRailZ;
@@ -446,10 +439,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		motZ *= speedFactor;
 		if (moveinfo.isRailed) {
 			this.move(motX, 0.0D, motZ);
-			if (moveinfo.aint[0][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.aint[0][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.aint[0][2]) {
-				this.setPosition(this.locX, this.locY + (double) moveinfo.aint[0][1], this.locZ);
-			} else if (moveinfo.aint[1][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.aint[1][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.aint[1][2]) {
-				this.setPosition(this.locX, this.locY + (double) moveinfo.aint[1][1], this.locZ);
+			if (moveinfo.moveMatrix[0][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[0][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[0][2]) {
+				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[0][1], this.locZ);
+			} else if (moveinfo.moveMatrix[1][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[1][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[1][2]) {
+				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[1][1], this.locZ);
 			}
 
 			// CraftBukkit

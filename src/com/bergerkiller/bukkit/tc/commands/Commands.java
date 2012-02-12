@@ -21,7 +21,7 @@ public class Commands {
 	
 	public static boolean execute(CommandSender sender, String command, String[] args) {
 		if (args.length == 0) {
-			sender.sendMessage("TrainCarts " + TrainCarts.version + " - See WIKI page for more information");
+			sender.sendMessage("TrainCarts " + TrainCarts.plugin.getVersion() + " - See WIKI page for more information");
 			return true;
 		}
 		try {

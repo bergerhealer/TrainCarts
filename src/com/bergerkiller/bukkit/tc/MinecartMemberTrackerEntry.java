@@ -1,41 +1,38 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 
-	private static Field trackerSet = null;
-	private static Field trackerMap = null;
-	public static void failFields(Throwable t) {
+	private static SafeField<Set> trackerSet;
+	private static SafeField<IntHashMap> trackerMap;
+	public static void failFields() {
 		trackerMap = null;
 		trackerSet = null;
-		TrainCarts.plugin.log(Level.SEVERE, "Failed to initialize the entity tracker replacement:");
-		t.printStackTrace();
-		TrainCarts.plugin.log(Level.INFO, "Train movement will not be smoothed!");
+		TrainCarts.plugin.log(Level.WARNING, "Failed to initialize the entity tracker replacement:");
+		TrainCarts.plugin.log(Level.WARNING, "Train movement will not be smoothed!");
 	}
 	public static void initFields() {
-		try {
-			trackerMap = EntityTracker.class.getDeclaredField("trackedEntities");
-			trackerSet = EntityTracker.class.getDeclaredField("a");
-			trackerMap.setAccessible(true);
-			trackerSet.setAccessible(true);
-		} catch (Throwable t) {
-			failFields(t);
+		trackerMap = new SafeField<IntHashMap>(EntityTracker.class, "trackedEntities");
+		trackerSet = new SafeField<Set>(EntityTracker.class, "a");
+		if (!trackerMap.isValid() || !trackerSet.isValid()) {
+			failFields();
 		}
 	}
 	public static MinecartMemberTrackerEntry get(MinecartMember member) {
-		EntityTracker tracker = ((WorldServer) member.world).tracker;
+		EntityTracker tracker = WorldUtil.getTracker(member.world);
 		if (trackerMap != null) {
 			try {
-				IntHashMap map = (IntHashMap) trackerMap.get(tracker);
+				IntHashMap map = trackerMap.get(tracker);
 				synchronized (tracker) {
 					Object entry = map.a(member.id);
 					if (entry == null) {
@@ -46,13 +43,13 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 						return (MinecartMemberTrackerEntry) entry;
 					}
 					map.a(member.id, entry);
-					Set set = (Set) trackerSet.get(tracker);
+					Set set = trackerSet.get(tracker);
 					set.remove(entry);
 					set.add(entry);
 					return (MinecartMemberTrackerEntry) entry;
 				}
 			} catch (Throwable t) {
-				failFields(t);
+				failFields();
 			}
 		}
 		return null;
@@ -225,10 +222,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			if (d0 >= (double) (-this.b) && d0 <= (double) this.b && d1 >= (double) (-this.b) && d1 <= (double) this.b) {
 				if (this.trackedPlayers.add(entityplayer)) {
 					//send spawn packet
-					int type = ((MinecartMember) this.tracker).type;
-					if (type < 0 || type > 2) {
-						type = 0;
-					}
+					int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
 					entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
 					entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
 					entityplayer.netServerHandler.sendPacket(this.createTeleportPacket());

@@ -1,21 +1,27 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
+import net.minecraft.server.Chunk;
+import net.minecraft.server.Entity;
+import net.minecraft.server.WorldServer;
+
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -24,6 +30,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class TrainCarts extends PluginBase {
 
@@ -64,12 +71,15 @@ public class TrainCarts extends PluginBase {
 	public static boolean isSCSEnabled = false;
 	public static Plugin bleedingMobsInstance = null;
 
-	public static String version;
-
 	public static TrainCarts plugin;
+	private Task signtask, cleanupTask;
+	private Map<String, ItemParser[]> parsers = new HashMap<String, ItemParser[]>();
 
-	private Task signtask;
-
+	public ItemParser[] getParsers(String key) {
+		ItemParser[] rval = parsers.get(key.toLowerCase());
+		return rval == null ? new ItemParser[0] : rval;
+	}
+	
 	public static boolean canBreak(Material type) {
 		return plugin.allowedBlockBreakTypes.contains(type);
 	}
@@ -163,12 +173,20 @@ public class TrainCarts extends PluginBase {
 			allowedBlockBreakTypes.add(Material.CROPS);
 			allowedBlockBreakTypes.add(Material.LOG);
 		}
-
+		
 		//set it again
 		List<String> types = config.getList("allowedBlockBreakTypes", String.class);
 		types.clear();
 		for (Material mat : allowedBlockBreakTypes) {
 			types.add(mat.toString());
+		}
+		
+		//parser shortcuts
+		ConfigurationNode itemshort = config.getNode("itemShortcuts");
+		parsers.put("fuel", Util.getParsers(itemshort.get("fuel", "wood;coal;stick")));
+		for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
+			if (entry.getKey().equalsIgnoreCase("fuel")) continue;
+			parsers.put(entry.getKey().toLowerCase(), Util.getParsers(entry.getValue()));
 		}
 
 		exitOffset = new Vector(exitx, exity, exitz);
@@ -205,8 +223,7 @@ public class TrainCarts extends PluginBase {
 		}
 	}
 
-	private Task cleanupTask;
-
+	@SuppressWarnings("rawtypes")
 	public void enable() {
 		plugin = this;
 
@@ -250,19 +267,47 @@ public class TrainCarts extends PluginBase {
 
 		//Restore carts where possible
 		GroupManager.refresh();
-
+		
+		//Properly dispose of partly-referenced carts
+		new Operation(false) {
+			private Set worldentities;
+			@Override
+			public void run() {
+				this.worldentities = new HashSet();
+				this.doWorlds();
+			}
+			@Override
+			@SuppressWarnings("unchecked")
+			public void handle(WorldServer world) {
+				this.worldentities.clear();
+				this.worldentities.addAll(world.entityList);
+				this.doChunks(world);
+			}
+			@Override
+			public void handle(Chunk chunk) {
+				this.doEntities(chunk);
+			}
+			@Override
+			public void handle(Entity entity) {
+				if (!this.worldentities.contains(entity)) {
+					//remove from chunk and tracker
+					WorldUtil.getTracker(entity.world).untrackEntity(entity);
+					entity.world.removeEntity(entity);
+				}
+			}
+		}.start(1);
+		
 		//Start member removal task
 		cleanupTask = new Task(this) {
 			public void run() {
 				MinecartMember.cleanUpDeadCarts();
 			}
-		};
-		cleanupTask.start(0, 10);
+		}.start(0, 10);
 	}
 	public void disable() {
 		//Stop tasks
-		if (signtask != null) signtask.stop();
-		if (cleanupTask != null) cleanupTask.stop();
+		Task.stop(signtask);
+		Task.stop(cleanupTask);
 
 		//update max item stack
 		if (maxMinecartStackSize != 1) {
@@ -270,7 +315,6 @@ public class TrainCarts extends PluginBase {
 			Util.setItemMaxSize(Material.POWERED_MINECART, 1);
 			Util.setItemMaxSize(Material.STORAGE_MINECART, 1);
 		}
-
 		
 		//Save properties
 		TrainProperties.deinit();
@@ -291,12 +335,16 @@ public class TrainCarts extends PluginBase {
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			GroupManager.hideGroup(mg);
 		}
+		
 		//entities left behind?
-		for (World w : Bukkit.getServer().getWorlds()) {
-			for (Entity e : w.getEntities()) {
-				GroupManager.hideGroup(e);
+		new Operation() {
+			public void run() {
+				this.doEntities();
 			}
-		}
+			public void handle(Entity entity) {
+				GroupManager.hideGroup(entity);
+			}
+		};
 
 		//Save for next load
 		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");

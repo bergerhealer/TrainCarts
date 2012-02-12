@@ -22,8 +22,8 @@ public abstract class SignAction {
 		register(new SignActionTeleport());
 		register(new SignActionCart());
 		register(new SignActionTrain());
-		register(new SignActionChest());
-		register(new SignActionFurnace());
+		register(new SignActionCollect());
+		register(new SignActionDeposit());
 		register(new SignActionDetector());
 		register(new SignActionDestination());
 		register(new SignActionBlock());

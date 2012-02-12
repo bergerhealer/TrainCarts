@@ -43,8 +43,9 @@ public enum Permission implements IPermissionDefault {
 	BUILD_DETECTOR("train.build.detector", PermissionDefault.OP, "The player can build train detectors"),
 	BUILD_EJECTOR("train.build.ejector", PermissionDefault.OP, "The player can build train ejectors"),
 	BUILD_PROPERTY("train.build.property", PermissionDefault.OP, "The player can build train property setters"),
-	BUILD_CHEST("train.build.chest", PermissionDefault.OP, "The player can build train-chest item transfer systems"),
-	BUILD_FURNACE("train.build.furnace", PermissionDefault.OP, "The player can build train-furnace item transfer systems"),
+	BUILD_COLLECTOR("train.build.collector", PermissionDefault.OP, "The player can build systems to let trains collect from storage blocks"),
+	BUILD_DEPOSITOR("train.build.depositor", PermissionDefault.OP, "The player can build systems to fill storage blocks with items from trains"),
+	
 	BUILD_TELEPORTER("train.build.teleporter", PermissionDefault.OP, "The player can build train teleporters (portals)"),
 	BUILD_BLOCKER("train.build.blocker", PermissionDefault.OP, "The player can build train blockers"),
 	BUILD_WAIT("train.build.wait", PermissionDefault.OP, "The player can build train wait signs"),

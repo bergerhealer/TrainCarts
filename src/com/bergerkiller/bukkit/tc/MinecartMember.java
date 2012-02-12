@@ -327,7 +327,7 @@ public class MinecartMember extends NativeMinecartMember {
 					if (ItemUtil.isIgnored(item)) continue;
 					stack = item.getItemStack();
 					double distance = this.distance(e);
-					if (ItemUtil.canTransfer(stack, inv)) {
+					if (ItemUtil.testTransfer(stack, inv) == stack.getAmount()) {
 						if (distance < 0.7) {
 							ItemUtil.transfer(stack, inv, Integer.MAX_VALUE);
 							//this.world.playNote
@@ -804,7 +804,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public void updateDirectionFrom(MinecartMember member) {
 		this.updateDirection(member.getOffset(this));
 	}
-	
 	
 	/*
 	 * Pitch functions

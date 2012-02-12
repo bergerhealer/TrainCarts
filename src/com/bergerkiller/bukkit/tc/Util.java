@@ -6,24 +6,21 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 
-import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityMinecart;
-import net.minecraft.server.Packet22Collect;
-import net.minecraft.server.WorldServer;
 
+import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
 
 public class Util {
-	
+		
 	/*
 	 * Entity states
 	 */
@@ -96,15 +93,35 @@ public class Util {
 		} while (added);
 		return rval;
 	}
-			
-	/*
-	 * Entity miscellaneous
-	 */
-	public static void pickUpAnimation(Item item, Entity by) {
-		pickUpAnimation(EntityUtil.getNative(item), EntityUtil.getNative(by));
+				
+	public static ItemParser[] getParsers(String... items) {
+		StringBuilder total = new StringBuilder();
+		for (String item : items) {
+			if (item == null) continue;
+			item = item.trim();
+			if (item.length() == 0) continue;
+			if (total.length() > 0) total.append(';');
+			total.append(item);
+		}
+		return getParsers(total.toString());
 	}
-	public static void pickUpAnimation(EntityItem item, net.minecraft.server.Entity by) {
-		((WorldServer) item.world).tracker.a(by, new Packet22Collect(item.id, by.id));
+	public static ItemParser[] getParsers(final String items) {
+        List<ItemParser> parsers = new ArrayList<ItemParser>();
+        for (String type : items.split(";")) {
+        	//==========================================
+        	//TODO: CONVERT CONSTANTS FROM CONFIGURATION
+        	//==========================================
+        	parsers.add(ItemParser.parse(type));
+        }
+        return parsers.toArray(new ItemParser[0]);
+	}
+	
+	public static int parse(String line, int def) {
+		try {
+			return Integer.parseInt(line.substring(line.lastIndexOf(' ') + 1));
+		} catch (Exception ex) {
+			return def;
+		}
 	}
 	
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
@@ -124,17 +141,18 @@ public class Util {
 		with.setDamage(toreplace.getDamage());
 		ItemUtil.transfer(toreplace, with);
 		with.dead = false;
+		with.bz = true; //force removal in chunk
 		toreplace.dead = true;
 		
 		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
 		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());
 		
-		//longer public in 1.0.0... :-(
+		//no longer public in 1.0.0... :-(
 		//with.e = toreplace.e;
-		
+
 		//swap
 		MinecartSwapEvent.call(toreplace, with);
-		((WorldServer) toreplace.world).tracker.untrackEntity(toreplace);
+		WorldUtil.getTracker(toreplace.world).untrackEntity(toreplace);
 		toreplace.world.removeEntity(toreplace);
 		with.world.addEntity(with);
 		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
