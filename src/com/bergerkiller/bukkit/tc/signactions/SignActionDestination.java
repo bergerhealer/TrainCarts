@@ -11,12 +11,13 @@ public class SignActionDestination extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("destination")) return;
-		if (!info.hasMember()) return;
 		if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
+			if (!info.hasRailedMember()) return;
 		    PathNode.getOrCreate(info);
 			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
 			info.getMember().getProperties().destination = info.getLine(3);
 		} else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {
+			if (!info.hasRailedMember()) return;
 			PathNode.getOrCreate(info);
 			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
 			info.getGroup().getProperties().setDestination(info.getLine(3));

@@ -29,38 +29,25 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
 	public SignActionEvent(Block signblock, MinecartMember member) {
-		this(signblock);
+		this(signblock, member.isDerailed() ? null : member.getRailsBlock());
 		this.member = member;
 		this.memberchecked = true;
 	}
-	public SignActionEvent(Block signblock, MinecartGroup group) {
+	public SignActionEvent(Block signblock, Block railsblock, MinecartGroup group) {
 		this(signblock);
 		this.group = group;
 		this.memberchecked = true;
-	}
-	public SignActionEvent(SignActionType actionType, Block signblock, MinecartMember member) {
-		this(actionType, signblock);
-		this.member = member;
-		this.memberchecked = true;
-	}
-	public SignActionEvent(SignActionType actionType, Block signblock, MinecartGroup group) {
-		this(actionType, signblock);
-		this.group = group;
-		this.memberchecked = true;
-	}	
-	public SignActionEvent(SignActionType actionType, Block signblock) {
-		this(signblock);
-		this.actionType = actionType;
 	}
 	public SignActionEvent(final Block signblock) {
-		this(signblock, Util.getRailsFromSign(signblock));
+		this(signblock, (Block) null);
 	}
-	public SignActionEvent(final Block signblock, final Block railsblock) {
+	public SignActionEvent(final Block signblock, Block railsblock) {
 		super("SignActionEvent");
 		this.signblock = signblock;
 		this.sign = BlockUtil.getSign(signblock);
 		this.mode = SignActionMode.fromSign(this.sign);
 		this.railsblock = railsblock;
+		this.railschecked = this.railsblock != null;
 		if (this.sign == null) {
 			this.powerinv = false;
 		} else {
@@ -69,7 +56,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	
 	private final Block signblock;
-	private final Block railsblock;
+	private Block railsblock;
 	private final SignActionMode mode;
 	private SignActionType actionType;
 	private BlockFace facing = null;
@@ -79,6 +66,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private MinecartGroup group = null;
 	private boolean memberchecked = false;
 	private boolean cancelled = false;
+	private boolean railschecked = false;
 	private final boolean powerinv;
 	
 	public void setLevers(boolean down) {
@@ -169,6 +157,10 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this;
 	}
 	
+	public boolean hasRailedMember() {
+		return this.hasRails() && this.hasMember();
+	}
+	
 	public boolean isPowerInverted() {
 		return this.powerinv;
 	}
@@ -204,15 +196,20 @@ public class SignActionEvent extends Event implements Cancellable {
 		return BlockUtil.getAttachedBlock(this.signblock);
 	}
 	public Block getRails() {
+		if (!this.railschecked)  {
+			this.railsblock = Util.getRailsFromSign(this.signblock);
+			this.railschecked = true;
+		}
 		return this.railsblock;
 	}
 	public World getWorld() {
 		return this.signblock.getWorld();
 	}
 	public boolean hasRails() {
-		return this.railsblock != null;
+		return this.getRails() != null;
 	}
 	public BlockFace getRailDirection() {
+		if (!this.hasRails()) return null;
 		if (this.raildirection == null) {
 			if (BlockUtil.isRails(this.railsblock)) {
 				this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
@@ -223,7 +220,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.raildirection;
 	}
 	public Location getRailLocation() {
-		if (this.railsblock == null) return null;
+		if (!this.hasRails()) return null;
 		return this.railsblock.getLocation().add(0.5, 0, 0.5);
 	}
 	public Location getLocation() {
@@ -246,7 +243,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public MinecartMember getMember() {
 		if (this.member == null) {
 			if (!this.memberchecked) {
-				this.member = MinecartMember.getAt(this.railsblock, false);
+				this.member = this.hasRails() ? MinecartMember.getAt(this.railsblock, false) : null;
 				this.memberchecked = true;
 			}
 			if (this.group != null && !this.group.isEmpty()) {

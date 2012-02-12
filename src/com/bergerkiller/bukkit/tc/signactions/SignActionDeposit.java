@@ -128,25 +128,14 @@ public class SignActionDeposit extends SignAction {
 	}
 	
 	@Override
-	public void execute(SignActionEvent info) {
-		//parse the sign
-		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
-		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
-		if (!docart && !dotrain) return;
-		if (!info.isPoweredFacing()) return;
-		if (!info.hasRails()) return;
+	public void execute(SignActionEvent info) {		   
+		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
+			return;
+		}
 		
-		//get the inventory to transfer from
-        Inventory cartinv;
-        if (docart) {
-        	if (!info.getMember().isStorageMinecart()) return;
-        	cartinv = info.getMember().getInventory();
-        } else {
-        	cartinv = info.getGroup().getInventory();
-        }
-        
 		//get the block types to collect and the radius (2nd line)
 		LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(info.getLine(1), "deposit");
+		if (typesToCheck.isEmpty()) return;
 		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
 		
 		//get the tile entities to deposit to
@@ -176,6 +165,22 @@ public class SignActionDeposit extends SignAction {
 			}
 		}
 		if (invlist.isEmpty() && furnaces.isEmpty()) return;
+
+		//parse the sign
+		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
+		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
+		if (!docart && !dotrain) return;
+		if (!info.isPoweredFacing() || !info.hasRails()) return;
+		
+		//get the inventory to transfer from
+        Inventory cartinv;
+        if (docart) {
+        	if (!info.getMember().isStorageMinecart()) return;
+        	cartinv = info.getMember().getInventory();
+        } else {
+        	cartinv = info.getGroup().getInventory();
+        }
+        
 		ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
 		
 		if (!invlist.isEmpty()) {

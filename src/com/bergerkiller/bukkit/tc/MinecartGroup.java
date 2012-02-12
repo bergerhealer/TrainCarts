@@ -359,11 +359,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public boolean setActiveSign(Block signblock, boolean active) {
 		if (signblock == null) return false;
-		return setActiveSign(new SignActionEvent(signblock, this), active);
+		return setActiveSign(new SignActionEvent(signblock, null, this), active);
 	}
 	public void clearActiveSigns() {
 		for (Block signblock : this.activeSigns) {
-			SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.GROUP_LEAVE);
+			SignAction.executeAll(new SignActionEvent(signblock, null, this), SignActionType.GROUP_LEAVE);
 		}
 		this.activeSigns.clear();
 		for (MinecartMember mm : this) {

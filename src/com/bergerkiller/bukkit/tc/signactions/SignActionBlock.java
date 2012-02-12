@@ -35,7 +35,7 @@ public class SignActionBlock extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (info.isType("blocker") && info.isAction(SignActionType.MEMBER_MOVE, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
-			if (info.getMode() != SignActionMode.NONE && info.isPowered() && info.hasGroup()) {
+			if (info.getMode() != SignActionMode.NONE && info.isPowered() && info.hasRails() && info.hasGroup()) {
 				if (isHeadingTo(info)) {
 					info.getGroup().stop(true);
 				}

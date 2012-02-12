@@ -13,11 +13,12 @@ public class SignActionCart extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
 			if (!info.isCartSign()) return;
-			if (info.getMember() == null) return;
 			if (info.isPoweredFacing()) {
 				if (info.isType("destroy")) {
+					if (!info.hasRailedMember()) return;
 					info.getMember().die();
 				} else if (info.isType("eject")) {
+					if (!info.hasRailedMember()) return;
 					String[] offsettext = info.getLine(2).split("/");
 					Vector offset = new Vector();
 					if (offsettext.length == 3) {

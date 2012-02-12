@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.Material;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
 
@@ -39,60 +41,71 @@ public class Util {
 		SafeField.set(item, "maxStackSize", maxstacksize);
 	}
 	
-	
-	public static boolean hasSignsAttached(Block block) {
+	public static boolean hasAttachedSigns(final Block middle) {
+		return addAttachedSigns(middle, null);
+	}
+	public static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
+		boolean found = false;
 		Block b;
-		for (BlockFace dir : FaceUtil.attachedFaces) {
-			b = block.getRelative(dir);
-			if (BlockUtil.isSign(b) && BlockUtil.getAttachedFace(b) == dir.getOppositeFace()) {
-				return true;
+		for (BlockFace face : FaceUtil.axis) {
+			b = middle.getRelative(face);
+			if (b.getTypeId() == Material.WALL_SIGN.getId()) {
+				if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+					if (rval != null) rval.add(b);
+					found = true;
+				}
 			}
 		}
-		return false;
+		return found;
 	}
-	public static Block getRailsFromSign(final Block signblock) {
-		int type = signblock.getTypeId();
-		if (type == Material.SIGN_POST.getId()) {
-			Block rails = signblock.getRelative(BlockFace.UP);
-			if (isRails(rails)) return rails;
-		} else if (type == Material.WALL_SIGN.getId()) {
-			Block rails = BlockUtil.getAttachedBlock(signblock);	
-			do {
-				rails = rails.getRelative(BlockFace.UP);
-				if (isRails(rails)) return rails;
-			} while (hasSignsAttached(rails));
-		}
-		return null;
-	}
+	
 	private static List<Block> blockbuff = new ArrayList<Block>();
 	public static List<Block> getSignsFromRails(Block railsblock) {
 		return getSignsFromRails(blockbuff, railsblock);
 	}
 	public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
 		rval.clear();
-		Block b;
-		boolean added;
-		do {
-			added = false;
-			railsblock = railsblock.getRelative(BlockFace.DOWN);
+		//ignore mid-sections
+		railsblock = railsblock.getRelative(BlockFace.DOWN);
+		addAttachedSigns(railsblock, rval);
+		railsblock = railsblock.getRelative(BlockFace.DOWN);
+		//loop downwards
+		while (true) {
 			if (railsblock.getTypeId() == Material.SIGN_POST.getId()) {
 				rval.add(railsblock);
-				break;
+				railsblock = railsblock.getRelative(BlockFace.DOWN);
+			} else if (addAttachedSigns(railsblock, rval)) {
+				railsblock = railsblock.getRelative(BlockFace.DOWN);
 			} else {
-				//check signs attached
-				for (BlockFace face : FaceUtil.axis) {
-					b = railsblock.getRelative(face);
-					if (b.getTypeId() == Material.WALL_SIGN.getId()) {
-						if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
-							rval.add(b);
-							added = true;
-						}
-					}
-				}
+				break;
 			}
-		} while (added);
+		}
 		return rval;
 	}
+			
+	public static Block getRailsFromSign(Block signblock) {
+		if (signblock.getTypeId() == Material.SIGN_POST.getId()) {
+		} else if (signblock.getTypeId() == Material.WALL_SIGN.getId()) {
+			signblock = BlockUtil.getAttachedBlock(signblock);
+		} else {
+			return null;
+		}
+		signblock = signblock.getRelative(BlockFace.UP);
+		if (isRails(signblock)) return signblock;
+		while (true) {
+			if (hasAttachedSigns(signblock)) {
+				signblock = signblock.getRelative(BlockFace.UP);					
+			} else {
+				signblock = signblock.getRelative(BlockFace.UP);	
+				if (isRails(signblock)) {
+					return signblock;
+				} else {
+					return null;
+				}
+			}
+		}
+	}
+
 				
 	public static ItemParser[] getParsers(String... items) {
 		StringBuilder total = new StringBuilder();
@@ -108,10 +121,38 @@ public class Util {
 	public static ItemParser[] getParsers(final String items) {
         List<ItemParser> parsers = new ArrayList<ItemParser>();
         for (String type : items.split(";")) {
+            int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*");
+            Integer amount = null;
+        	if (idx > 0) {
+        		try {
+            		amount = Integer.parseInt(type.substring(0, idx));
+            		type = type.substring(idx + 1);
+        		} catch (Exception ex) {
+        		}
+        	}
+        	ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type);
+        	if (keyparsers.length != 0) {
+        		if (amount == null) {
+        			//add parsers directly
+        			for (ItemParser p : keyparsers) {
+        				parsers.add(p);
+        			}
+        		} else {
+        			//add parsers with set modifier amount
+        			//add parsers directly
+        			for (ItemParser p : keyparsers) {
+        				parsers.add(new ItemParser(
+        						(p.hasAmount() ? p.getAmount() : 1) * amount, 
+        						p.getType(), p.hasData() ? p.getData() : null));
+        			}
+        		}
+        	} else {
+        		parsers.add(ItemParser.parse(type, amount == null ? null : amount.toString()));
+        	}
+        	
         	//==========================================
         	//TODO: CONVERT CONSTANTS FROM CONFIGURATION
         	//==========================================
-        	parsers.add(ItemParser.parse(type));
         }
         return parsers.toArray(new ItemParser[0]);
 	}

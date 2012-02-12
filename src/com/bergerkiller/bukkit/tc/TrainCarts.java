@@ -182,11 +182,13 @@ public class TrainCarts extends PluginBase {
 		}
 		
 		//parser shortcuts
+		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
 		ConfigurationNode itemshort = config.getNode("itemShortcuts");
 		parsers.put("fuel", Util.getParsers(itemshort.get("fuel", "wood;coal;stick")));
 		for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
 			if (entry.getKey().equalsIgnoreCase("fuel")) continue;
 			parsers.put(entry.getKey().toLowerCase(), Util.getParsers(entry.getValue()));
+			itemshort.setRead(entry.getKey());
 		}
 
 		exitOffset = new Vector(exitx, exity, exitz);

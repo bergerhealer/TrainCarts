@@ -4,7 +4,6 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 
@@ -12,16 +11,15 @@ public class SignActionTrain extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			if (!info.isTrainSign()) return;
-			MinecartGroup group = info.getGroup();
-			if (group == null) return;
 			if (info.isPoweredFacing()) {
 				if (info.isType("destroy")) {
-					group.playLinkEffect();
-					group.destroy();
+					if (!info.hasRailedMember()) return;
+					info.getGroup().playLinkEffect();
+					info.getGroup().destroy();
 				} else if (info.isType("eject")) {
+					if (!info.hasRailedMember()) return;
 					String[] offsettext = info.getLine(2).split("/");
 					Vector offset = new Vector();
 					if (offsettext.length == 3) {

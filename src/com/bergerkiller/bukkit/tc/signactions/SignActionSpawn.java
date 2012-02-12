@@ -17,10 +17,10 @@ public class SignActionSpawn extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.hasRails()) return;
 		if (info.isAction(SignActionType.REDSTONE_ON)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("spawn")) {
+					if (!info.hasRailedMember()) return;
 					double force = StringUtil.tryParse(info.getLine(1).substring(5).trim(), 0.0);
 
 					//Get the cart types to spawn

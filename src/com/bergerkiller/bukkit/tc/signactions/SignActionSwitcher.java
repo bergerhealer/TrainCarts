@@ -81,10 +81,9 @@ public class SignActionSwitcher extends SignAction {
 	public void execute(SignActionEvent info) {
 		String l = info.getLine(2);
 		String r = info.getLine(3);
-		if (!info.hasRails()) return;
-		if (!info.hasMember()) return;
 		if (!info.isType("switcher", "tag")) return;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
+			if (!info.hasRailedMember()) return;
 			if (!handleDestination(info)) {
 				if (!handleCounter(info, l, r)) {
 					boolean left = !l.equals("") && info.getGroup().hasTag(l);
@@ -93,6 +92,7 @@ public class SignActionSwitcher extends SignAction {
 				}
 			}
 		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
+			if (!info.hasRailedMember()) return;
 			if (!handleDestination(info)) {
 				if (!handleCounter(info, l, r)) {
 					boolean left = !l.equals("") && info.getMember().hasTag(l);

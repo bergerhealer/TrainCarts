@@ -80,28 +80,17 @@ public class SignActionCollect extends SignAction {
 	}
 	
 	@Override
-	public void execute(SignActionEvent info) {
-		//parse the sign
-		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
-		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
-		if (!docart && !dotrain) return;
-		if (!info.isPoweredFacing()) return;
-		if (!info.hasRails()) return;
+	public void execute(SignActionEvent info) {		  
+		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
+			return;
+		}
 		
-		//get the inventory to transfer to
-        Inventory to;
-        if (docart) {
-        	if (!info.getMember().isStorageMinecart()) return;
-        	to = info.getMember().getInventory();
-        } else {
-        	to = info.getGroup().getInventory();
-        }
-        
-		//get the block types to collect and the radius (2nd line)
-		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
 		LinkedHashSet<Material> typesToCheck = parseName(info.getLine(1), "collect");
 		if (typesToCheck.isEmpty()) return;
 
+		//get the block types to collect and the radius (2nd line)
+		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
+		
 		//get the tile entities to collect
 		List<IInventory> invlist = new ArrayList<IInventory>();
 		Set<TileEntity> found = BlockUtil.getTileEntities(info.getRails(), radius);
@@ -128,6 +117,21 @@ public class SignActionCollect extends SignAction {
 			}
 		}
 		if (invlist.isEmpty()) return;
+		
+		//parse the sign
+		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
+		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
+		if (!docart && !dotrain) return;
+		if (!info.isPoweredFacing() || !info.hasRails()) return;
+		
+		//get the inventory to transfer to
+        Inventory to;
+        if (docart) {
+        	if (!info.getMember().isStorageMinecart()) return;
+        	to = info.getMember().getInventory();
+        } else {
+        	to = info.getGroup().getInventory();
+        }
 		
 		//get inventory
 		Inventory from = MergedInventory.convert(invlist);

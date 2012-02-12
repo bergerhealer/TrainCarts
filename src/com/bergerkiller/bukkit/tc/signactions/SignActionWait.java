@@ -15,9 +15,9 @@ public class SignActionWait extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.hasGroup()) return;
-		if (info.isType("wait") && info.hasRails()) {
+		if (info.isType("wait")) {
 			if (info.isAction(SignActionType.GROUP_ENTER) && info.isPowered()) {
+				if (!info.hasRailedMember()) return;
 				//allowed?
 				BlockFace dir = info.getMember().getDirection();
 				if (SignActionBlock.isHeadingTo(info, dir.getOppositeFace())) {
@@ -44,6 +44,7 @@ public class SignActionWait extends SignAction {
 					}
 				}
 			} else if (info.isAction(SignActionType.REDSTONE_OFF)) {
+				if (!info.hasRailedMember()) return;
 				info.getGroup().clearActions();
 			}
 		}
