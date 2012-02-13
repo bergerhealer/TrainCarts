@@ -1044,4 +1044,7 @@ public class NativeMinecartMember extends EntityMinecart {
 
 	}
 
+	public boolean canBeRidden() { return this.type == 0; }
+	public boolean isStorageCart() { return this.type == 1; }
+	public boolean isPoweredCart() { return this.type == 2; }
 }
