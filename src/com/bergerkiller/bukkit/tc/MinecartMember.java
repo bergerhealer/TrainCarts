@@ -319,7 +319,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
 		this.validate();
-		if (this.getProperties().pickUp && this.isStorageMinecart()) {
+		if (this.getProperties().pickUp && this.isStorageCart()) {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
 			Item item;
@@ -928,12 +928,6 @@ public class MinecartMember extends NativeMinecartMember {
 		if (Math.abs(cz - this.getChunkZ()) > 2) return false;
 	    return true;
 	}
-	public boolean isPoweredMinecart() {
-		return this.type == 2;
-	}
-	public boolean isStorageMinecart() {
-		return this.type == 1;
-	}
 	public boolean isRegularMinecart() {
 		return this.type == 0;
 	}
@@ -967,7 +961,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.hasItem(type.getId());
 	}
 	public boolean hasItem(int typeid) {
-		if (!this.isStorageMinecart()) return false;
+		if (!this.isStorageCart()) return false;
 		for (ItemStack stack : this.getContents()) {
 			if (stack != null) {
 				if (stack.id == typeid) {
@@ -978,7 +972,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return false;
 	}
 	public boolean hasItem(int typeid, int data) {
-		if (!this.isStorageMinecart()) return false;
+		if (!this.isStorageCart()) return false;
 		for (ItemStack stack : this.getContents()) {
 			if (stack != null) {
 				if (stack.id == typeid && stack.getData() == data) {
@@ -989,7 +983,7 @@ public class MinecartMember extends NativeMinecartMember {
 		return false;
 	}
 	public boolean hasItems() {
-		if (!this.isStorageMinecart()) return false;
+		if (!this.isStorageCart()) return false;
 		for (ItemStack stack : this.getContents()) {
 			if (stack != null) return true;
 		}
@@ -1019,9 +1013,9 @@ public class MinecartMember extends NativeMinecartMember {
 	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
 	    	state = this.hasFuel();
 	    } else if (tag.equalsIgnoreCase("powered")) {
-	    	state = this.isPoweredMinecart();
+	    	state = this.isPoweredCart();
 	    } else if (tag.equalsIgnoreCase("storage")) {
-	    	state = this.isStorageMinecart();
+	    	state = this.isStorageCart();
 	    } else if (tag.equalsIgnoreCase("minecart")) {
 	    	state = this.isRegularMinecart();
 	    } else {

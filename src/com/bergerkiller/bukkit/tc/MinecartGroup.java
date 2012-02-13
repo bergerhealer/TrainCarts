@@ -784,7 +784,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		IInventory[] source = new IInventory[this.size(Material.STORAGE_MINECART)];
 		int i = 0;
 		for (MinecartMember mm : this) {
-			if (mm.isStorageMinecart()) {
+			if (mm.isStorageCart()) {
 				source[i] = mm;
 				i++;
 			}

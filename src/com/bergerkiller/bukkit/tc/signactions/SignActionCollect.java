@@ -141,7 +141,7 @@ public class SignActionCollect extends SignAction {
 		//get the inventory to transfer to
         Inventory to;
         if (docart) {
-        	if (!info.getMember().isStorageMinecart()) return;
+        	if (!info.getMember().isStorageCart()) return;
         	to = info.getMember().getInventory();
         } else {
         	to = info.getGroup().getInventory();

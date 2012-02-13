@@ -172,7 +172,7 @@ public class SignActionDeposit extends SignAction {
 		//get the inventory to transfer from
         Inventory cartinv;
         if (docart) {
-        	if (!info.getMember().isStorageMinecart()) return;
+        	if (!info.getMember().isStorageCart()) return;
         	cartinv = info.getMember().getInventory();
         } else {
         	cartinv = info.getGroup().getInventory();
