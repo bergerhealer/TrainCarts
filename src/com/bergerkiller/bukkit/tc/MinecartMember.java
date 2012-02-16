@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.ItemStack;
+import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
 
@@ -41,6 +42,7 @@ import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -402,17 +404,6 @@ public class MinecartMember extends NativeMinecartMember {
 			this.blockx = x;
 			this.blocky = y;
 			this.blockz = z;
-			//is it in loaded chunks?
-			if (!this.world.areChunksLoaded(this.blockx, this.blocky, this.blockz, 32)) {
-			    if (this.getGroup().canUnload()) {
-			    	//this train has to be unloaded
-			    	GroupManager.hideGroup(this.getGroup());
-			    	throw new GroupUnloadedException();
-			    } else {
-			    	//load nearby chunks
-			    	this.loadChunks();
-			    }
-			}
 			//find the correct Y-value
 			this.railsloped = false;
 			this.isDerailed = false;
@@ -913,9 +904,6 @@ public class MinecartMember extends NativeMinecartMember {
 		return true;
 	}
 
-	public boolean isMovingUpSlope() {
-		return this.railsloped && this.direction == this.getRailDirection();
-	}
 	public boolean isOnSlope() {
 		return this.railsloped;
 	}
@@ -1164,4 +1152,20 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 
+	private int prevcx = MathUtil.locToChunk(this.locX);
+	private int prevcz = MathUtil.locToChunk(this.locZ);
+	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
+		int newx = MathHelper.floor(this.locX);
+		int newz = MathHelper.floor(this.locZ);
+		if ((newx >> 4) != prevcx || (newz >> 4) != prevcz) {
+			if (canunload) {
+				if (!this.world.areChunksLoaded(newx, this.blocky, newz, 32)) {
+					WorldGroupManager.hideGroup(this.getGroup());
+					throw new GroupUnloadedException();
+				}
+			} else {
+				this.loadChunks();
+			}
+		}
+	}
 }

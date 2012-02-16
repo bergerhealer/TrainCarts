@@ -40,6 +40,7 @@ import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
@@ -134,8 +135,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		//max links per update
 		if (g1 != g2) {
 			if (m1.isDerailed() || m2.isDerailed()) return false;
-			if (GroupManager.wasInGroup(m1.uniqueId)) return false;
-			if (GroupManager.wasInGroup(m2.uniqueId)) return false;
+			if (WorldGroupManager.wasInGroup(m1.uniqueId)) return false;
+			if (WorldGroupManager.wasInGroup(m2.uniqueId)) return false;
 			//Can the two groups bind?
 			TrainProperties prop1 = g1.getProperties();
 			TrainProperties prop2 = g2.getProperties();
@@ -223,7 +224,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
-	
+
 	private MinecartGroup() {}
 		
 	/*
@@ -570,7 +571,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public void unload() {
 		GroupUnloadEvent.call(this);
-		this.stop();
+		this.stop(true);
 		for (MinecartMember mm : this.toArray()) {
 			MinecartMember.undoReplacement(mm);
 		}
@@ -688,7 +689,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember m : this) {
 			f = m.getForwardForce();
 			fforce += f;
-			if (!m.isMovingUpSlope()  && f < 0) {
+			if (f < 0) {
 				force -= m.getForce();
 			} else {
 				force += m.getForce();
@@ -698,6 +699,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		//Reverse
 		if (fforce < 0) {
 			reverseOrder();
+			force = -force;
 		}
 		return force;
 	}
@@ -886,7 +888,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			tracker.syncMeta();
 		}
 	}
-	
+			
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -933,6 +935,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				MinecartMember mm = this.head();
 				this.updateAction();
 				mm.preUpdate(stepcount);
+				mm.checkChunks(this.canUnload());
 				this.updateDirection();
 				mm.postUpdate(1);
 				this.updateDirection();
@@ -948,6 +951,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			this.updateAction();
 			for (MinecartMember m : this) {
 				m.preUpdate(stepcount);
+			}
+			
+			//still in loaded chunks?
+			boolean canunload = this.canUnload();
+			for (MinecartMember mm : this) {
+				mm.checkChunks(canunload);
 			}
 			
 			//Get the average forwarding force of all carts

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -39,6 +40,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
@@ -63,7 +65,7 @@ public class TCListener implements Listener {
 			if (hastounload) {
 				for (MinecartGroup mg : MinecartGroup.getGroups()) {
 					if (mg.isInChunk(event.getChunk())) {
-						GroupManager.hideGroup(mg);
+						WorldGroupManager.hideGroup(mg);
 					}
 				}
 			}
@@ -72,7 +74,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkLoad(ChunkLoadEvent event) {
-		GroupManager.refresh(event.getWorld());
+		WorldGroupManager.loadChunk(event.getChunk());
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
@@ -110,7 +112,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleCreate(VehicleCreateEvent event) {
-		if (event.getVehicle() instanceof Minecart) {
+		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			if (MinecartMember.canConvert(event.getVehicle())) {
 				new Task(TrainCarts.plugin, event.getVehicle(), lastPlayer) {
 					public void run() {
@@ -183,6 +185,10 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
+			if (WorldGroupManager.wasInGroup(event.getVehicle())) {
+				event.setCancelled(true);
+				return;
+			}
 			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
 			if (mm1 != null) {
 				if (mm1.getGroup().isVelocityAction()) {
@@ -192,10 +198,18 @@ public class TCListener implements Listener {
 				} else {
 					TrainProperties prop = mm1.getGroup().getProperties();
 					if (event.getEntity() instanceof Minecart) {
+						if (WorldGroupManager.wasInGroup(event.getEntity())) {
+							event.setCancelled(true);
+							return;
+						}
 						MinecartMember mm2 = MinecartMember.convert(event.getEntity());
 						if (mm2 == null || mm1.getGroup() == mm2.getGroup() || MinecartGroup.link(mm1, mm2)) {
 							event.setCancelled(true);
 						} else if (mm2.getGroup().isVelocityAction()) {
+							event.setCancelled(true);
+						} else if (!mm2.getGroup().getProperties().canCollide(mm1)) {
+							event.setCancelled(true);
+						} else if (!mm1.getGroup().getProperties().canCollide(mm2)) {
 							event.setCancelled(true);
 						}
 					} else if (prop.canPushAway(event.getEntity())) {
@@ -217,7 +231,7 @@ public class TCListener implements Listener {
 			if (isplate || BlockUtil.isRails(id)) {
 				ItemStack item = event.getPlayer().getItemInHand();
 				Material itemmat = item == null ? null : item.getType();
-				
+
 				if (CommonUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
 					//Placing a minecart on the tracks
 					if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
@@ -246,7 +260,16 @@ public class TCListener implements Listener {
 								case POWERED_MINECART : type = 2; break;
 								default : type = 0; break;
 								}
+
+								//subtract item
+								if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
+									item.setAmount(item.getAmount() - 1);
+									if (item.getAmount() == 0) {
+										event.getPlayer().setItemInHand(null);
+									}
+								}
 								
+								//event
 								MinecartMember member = MinecartMember.spawn(loc, type);
 								CommonUtil.callEvent(new VehicleCreateEvent(member.getMinecart()));
 							}
@@ -315,7 +338,7 @@ public class TCListener implements Listener {
 			triggerRedstoneChange(event.getBlock(), event);
 		}
 	}
-	
+
 	public void triggerRedstoneChange(Block signblock, BlockRedstoneEvent event) {
 		boolean powered = poweredBlocks.contains(event.getBlock());
 		if (!powered && event.getNewCurrent() > 0) {
@@ -324,15 +347,19 @@ public class TCListener implements Listener {
 		} else if (powered && event.getNewCurrent() == 0) {
 			poweredBlocks.remove(event.getBlock());
 			triggerRedstoneChange(signblock, false);
+		} else {
+			triggerRedstoneChange(signblock, (Boolean) null);
 		}
 	}
-	public void triggerRedstoneChange(Block signblock, boolean powered) {
+	public void triggerRedstoneChange(Block signblock, Boolean powered) {
 		SignActionEvent info = new SignActionEvent(signblock);
 		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-		if (powered) {
-			SignAction.executeAll(info, SignActionType.REDSTONE_ON);
-		} else {
-			SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
+		if (powered != null) {
+			if (powered) {
+				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
+			} else {
+				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
+			}
 		}
 	}
 

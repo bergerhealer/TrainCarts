@@ -5,7 +5,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
-import com.bergerkiller.bukkit.tc.GroupManager;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
@@ -35,13 +35,13 @@ public class GlobalCommands {
 					}
 				}
 				if (w != null) {
-					int count = GroupManager.destroyAll(w);
+					int count = WorldGroupManager.destroyAll(w);
 					sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 				} else {
 					sender.sendMessage(ChatColor.RED + "World not found!");
 				}
 			} else {
-				int count = GroupManager.destroyAll();
+				int count = WorldGroupManager.destroyAll();
 				sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 			}
 			return true;

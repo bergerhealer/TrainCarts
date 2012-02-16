@@ -150,10 +150,6 @@ public class Util {
         	} else {
         		parsers.add(ItemParser.parse(type, amount == null ? null : amount.toString()));
         	}
-        	
-        	//==========================================
-        	//TODO: CONVERT CONSTANTS FROM CONFIGURATION
-        	//==========================================
         }
         return parsers.toArray(new ItemParser[0]);
 	}

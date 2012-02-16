@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
-import com.bergerkiller.bukkit.tc.GroupManager;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -144,7 +144,7 @@ public class TrainCommands {
 				if (TrainProperties.exists(newname)) {
 					p.sendMessage(ChatColor.RED + "This name is already taken!");
 				} else {
-					GroupManager.rename(prop.getTrainName(), newname);
+					WorldGroupManager.rename(prop.getTrainName(), newname);
 					p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 				}
 			}

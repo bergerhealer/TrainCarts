@@ -26,9 +26,9 @@ public class SignActionBlock extends SignAction {
 		} else if (event.isLine(2, "r")) {
 			return direction == FaceUtil.rotate(event.getFacing(), 2);
 		} else if (event.isLine(2, "b")) {
-			return direction != event.getFacing();
-		} else {
 			return direction != event.getFacing().getOppositeFace();
+		} else {
+			return direction != event.getFacing();
 		}
 	}
 	

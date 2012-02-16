@@ -4,9 +4,12 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -45,15 +48,39 @@ public class SignActionSwitcher extends SignAction {
 	public void handleRails(SignActionEvent info, boolean left, boolean right) {
 		boolean down = false;
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER, 
-				SignActionType.GROUP_UPDATE, SignActionType.MEMBER_UPDATE) && info.isFacing()) {
+				SignActionType.GROUP_UPDATE, SignActionType.MEMBER_UPDATE)) {
 			down = left || right;         
 			if (info.isPowered()) info.setRails(left, right);
 		}
 		info.setLevers(down);
 	}
 	
+	public boolean isFacing(SignActionEvent info) {
+		if (info.isFacing()) return true;
+		//rails facing same direction above the tracks?
+		BlockFace f = info.getFacing();
+		Block b = info.getRails().getRelative(f);
+		if (Util.isRails(b)) {
+			if (Util.isPressurePlate(b.getTypeId())) {
+				return false;
+			} else {
+				//facing same direction?
+				switch (f) {
+				case NORTH : f = BlockFace.SOUTH; break;
+				case EAST : f = BlockFace.WEST; break;
+				case SOUTH : break;
+				case WEST : break;
+				default : return false;
+				}
+				return info.getRailDirection() != f;
+			}
+		} else {
+			return true;
+		}		
+	}
+	
 	public boolean handleCounter(SignActionEvent info, String l, String r) {
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.isFacing()) {
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
 			try {
 				boolean left = false;
 				boolean right = false;
@@ -87,6 +114,7 @@ public class SignActionSwitcher extends SignAction {
 				SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
 			if (!info.hasRailedMember()) return;
 			if (!handleDestination(info)) {
+				if (!isFacing(info)) return;
 				if (!handleCounter(info, l, r)) {
 					boolean left = !l.equals("") && info.getGroup().hasTag(l);
 					boolean right = !r.equals("") && info.getGroup().hasTag(r);
@@ -97,12 +125,13 @@ public class SignActionSwitcher extends SignAction {
 				SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
 			if (!handleDestination(info)) {
+				if (!isFacing(info)) return;
 				if (!handleCounter(info, l, r)) {
 					boolean left = !l.equals("") && info.getMember().hasTag(l);
 					boolean right = !r.equals("") && info.getMember().hasTag(r);
 					handleRails(info, left, right);
 				}
-			}	
+			}
 		}
 	}
 

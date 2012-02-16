@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -9,10 +8,10 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.bukkit.material.Lever;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -21,13 +20,13 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = 1L;
-    private static final HandlerList handlers = new HandlerList();
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
+	private static final HandlerList handlers = new HandlerList();
+	public HandlerList getHandlers() {
+		return handlers;
+	}
+	public static HandlerList getHandlerList() {
+		return handlers;
+	}
 
 	public SignActionEvent(Block signblock, MinecartMember member) {
 		this(signblock, member.isDerailed() ? null : member.getRailsBlock());
@@ -55,7 +54,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.powerinv = this.getLine(0).startsWith("[!");
 		}
 	}
-	
+
 	private final Block signblock;
 	private Block railsblock;
 	private final SignActionMode mode;
@@ -69,7 +68,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	private boolean cancelled = false;
 	private boolean railschecked = false;
 	private final boolean powerinv;
-	
+	private BlockFace fixedPowerDir = null;
+	private boolean isfixedpower = false;
+
 	public void setLevers(boolean down) {
 		BlockUtil.setLeversAroundBlock(this.getAttachedBlock(), down);
 	}
@@ -79,6 +80,12 @@ public class SignActionEvent extends Event implements Cancellable {
 	public void setRailsRelative(BlockFace direction) {
 		BlockFace main = this.getFacing().getOppositeFace();
 		setRails(FaceUtil.offset(main, direction));
+	}
+
+	public SignActionEvent assumePower(BlockFace from, boolean powered) {
+		this.fixedPowerDir = from;
+		this.isfixedpower = powered;
+		return this;
 	}
 	
 	/**
@@ -143,7 +150,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		//Set it
 		this.setRailsFromCart(main);
 	}
-	
+
 	public SignActionType getAction() {
 		return this.actionType;
 	}
@@ -157,39 +164,43 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.actionType = type;
 		return this;
 	}
-	
+
 	public boolean hasRailedMember() {
 		return this.hasRails() && this.hasMember();
 	}
-	
+
 	public boolean isPowerInverted() {
 		return this.powerinv;
 	}
-	
-	public boolean isPowered(BlockFace from) {
-		Block block = this.getBlock().getRelative(from);
-		Material type = block.getType();
-		if (type == Material.REDSTONE_TORCH_ON) {
-			return !this.powerinv;
-		} else if (type == Material.REDSTONE_TORCH_OFF) {
-			return this.powerinv;
-		} else if (type == Material.LEVER) {
-			return this.powerinv != BlockUtil.getData(block, Lever.class).isPowered();
-		} else if (from != BlockFace.DOWN && from != BlockFace.UP)  {
-			if (type == Material.REDSTONE_WIRE) {
-			    return this.powerinv != (block.getData() != 0);
-			} else if (type == Material.DIODE_BLOCK_ON) {
-				return this.powerinv != (BlockUtil.getFacing(block) != from);
-			}
+
+	public PowerState getPower(BlockFace from) {
+		if (this.fixedPowerDir == from) {
+			return this.isfixedpower ? PowerState.ON : PowerState.OFF;
+		} else {
+			return PowerState.get(this.getBlock(), from);
 		}
-		return this.powerinv != block.isBlockPowered();
+	}
+	public boolean isPowered(BlockFace from) {
+		return this.powerinv != this.getPower(from).hasPower();
 	}
 	public boolean isPowered() {
-		if (this.getBlock().isBlockIndirectlyPowered()) return true;
-		for (BlockFace face : FaceUtil.attachedFacesDown) {
-			if (this.isPowered(face)) return true;
+		if (this.powerinv) {
+			boolean def = true;
+			for (BlockFace face : FaceUtil.attachedFacesDown) {
+				PowerState state = this.getPower(face);
+				switch (state) {
+				case NONE : continue;
+				case ON : def = false; continue;
+				case OFF : return true;
+				}
+			}
+			return def;
+		} else {
+			for (BlockFace face : FaceUtil.attachedFacesDown) {
+				if (this.getPower(face).hasPower()) return true;
+			}
+			return false;
 		}
-		return false;
 	}
 	public boolean isPoweredFacing() {
 		return this.actionType == SignActionType.REDSTONE_ON || (this.isFacing() && this.isPowered());

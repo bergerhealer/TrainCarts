@@ -291,7 +291,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (moveinfo.isRailed) {
 			moveinfo.vec3d = this.h(this.locX, this.locY, this.locZ);
 			moveinfo.raildata = this.world.getData(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
-
+			
 			this.locY = (double) moveinfo.blockY;
 			moveinfo.isLaunching = false;
 			boolean isBraking = false;
@@ -325,42 +325,26 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				if (moveinfo.raildata >= 2 && moveinfo.raildata <= 5) {
 					this.locY = (double) (moveinfo.blockY + 1);
+					//TrainNote: Used to move a minecart up or down sloped tracks
+					if (this.group().getProperties().slowDown) {
+						switch (moveinfo.raildata) {
+						case 2 : this.motX -= slopedMotion; break;
+						case 3 : this.motX += slopedMotion; break;
+						case 4 : this.motZ += slopedMotion; break;
+						case 5 : this.motZ -= slopedMotion; break;	
+						}
+					}
+					//TrainNote end
 				}
 			}
-
-			//TrainNote: Used to move a minecart up or down sloped tracks
-			if (moveinfo.raildata == 2) {
-				if (this.motX <= 0 && this.group().getProperties().slowDown) {
-					this.motX -= slopedMotion;
-				}
-			}
-
-			if (moveinfo.raildata == 3) {
-				if (this.motX >= 0 && this.group().getProperties().slowDown) {
-					this.motX += slopedMotion;
-				}
-			}
-
-			if (moveinfo.raildata == 4) {
-				if (this.motZ >= 0 && this.group().getProperties().slowDown) {
-					this.motZ += slopedMotion;
-				}
-			}
-
-			if (moveinfo.raildata == 5) {
-				if (this.motZ <= 0 && this.group().getProperties().slowDown) {
-					this.motZ -= slopedMotion;
-				}
-			}
-			//TrainNote end
-
+			
 			moveinfo.moveMatrix = matrix[moveinfo.raildata];
 
 			//rail motion is calculated from the rails
 			double railMotionX = (double) (moveinfo.moveMatrix[1][0] - moveinfo.moveMatrix[0][0]);
 			double railMotionZ = (double) (moveinfo.moveMatrix[1][2] - moveinfo.moveMatrix[0][2]);		
 			//reverse motion if needed
-			if (this.motX * railMotionX + this.motZ * railMotionZ < 0) {
+			if ((this.motX * railMotionX + this.motZ * railMotionZ) < 0.0) {
 				railMotionX = -railMotionX;
 				railMotionZ = -railMotionZ;
 			}
@@ -426,13 +410,17 @@ public class NativeMinecartMember extends EntityMinecart {
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
 		if (this.moveinfo == null) return; //pre-update is needed
-		double motX = this.motX;
-		double motZ = this.motZ;
-		//Prevent NaN (you never know!)
-		motX = MathUtil.fixNaN(motX);
-		motZ = MathUtil.fixNaN(motZ);
+		double motX = MathUtil.fixNaN(this.motX);
+		double motZ = MathUtil.fixNaN(this.motZ);
+		
+        if (TrainCarts.slowDownEmptyCarts && this.group().getProperties().slowDown && this.passenger != null) {
+        	motX *= 0.75;
+        	motZ *= 0.75;
+        }
+        
 		speedFactor = MathUtil.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
+		
 		motX = MathUtil.limit(motX, this.maxSpeed);
 		motZ = MathUtil.limit(motZ, this.maxSpeed);
 		motX *= speedFactor;
@@ -468,9 +456,15 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 			if (this.group().getProperties().slowDown) {
-				this.motX *= 0.997;
-				this.motY *= 0.0;
-				this.motZ *= 0.997;
+				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
+					this.motX *= 0.997;
+					this.motY *= 0.0;
+					this.motZ *= 0.997;
+				} else {
+					this.motX *= 0.96;
+					this.motY *= 0.0;
+					this.motZ *= 0.96;
+				}
 			}
 			//==================================================
 
@@ -483,9 +477,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				if (this.group().getProperties().slowDown) {
 					motLength = this.getForce();
 					if (motLength > 0) {
-						double slopeSlowDown = (moveinfo.vec3d.b - vec3d1.b) * 0.05;
-						slopeSlowDown /= motLength;
-						slopeSlowDown += 1;
+						double slopeSlowDown = (moveinfo.vec3d.b - vec3d1.b) * 0.05 / motLength + 1;
 						this.motX *= slopeSlowDown;
 						this.motZ *= slopeSlowDown;
 					}

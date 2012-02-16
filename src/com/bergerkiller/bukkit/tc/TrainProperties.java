@@ -14,6 +14,7 @@ import org.bukkit.entity.Slime;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 
 public class TrainProperties {
 	public static final TrainProperties EMPTY = new TrainProperties();
@@ -332,7 +333,7 @@ public class TrainProperties {
 		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		for (TrainProperties prop : properties.values()) {
 			//does this train even exist?!
-			if (GroupManager.contains(prop.getTrainName())) {
+			if (WorldGroupManager.contains(prop.getTrainName())) {
 				ConfigurationNode train = config.getNode(prop.getTrainName());
 				prop.save(train);
 				if (train.getKeys().isEmpty()) {

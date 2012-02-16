@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
+import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -36,7 +37,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 public class TrainCarts extends PluginBase {
 
 	public TrainCarts() {
-		super(1818, 1846);
+		super(1818, 1970);
 	}
 
 	/*
@@ -65,6 +66,7 @@ public class TrainCarts extends PluginBase {
 	public static int maxMinecartStackSize;
 	public static int defaultTransferRadius;
 	public static boolean showTransferAnimations;
+	public static boolean slowDownEmptyCarts;
 	
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -94,7 +96,7 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("This is the configuration file of TrainCarts");
 		config.addHeader("In here you can tweak TrainCarts to what you want");
 		config.addHeader("For more information, you can visit the following websites:");
-		config.addHeader("http://wiki.bukkit.org/TrainCarts-Plugin");
+		config.addHeader("http://www.minecraftwiki.net/wiki/Bukkit/TrainCarts");
 		config.addHeader("http://forums.bukkit.org/threads/traincarts.29491/");
 
 		config.setHeader("normal", "\nSettings for normally-aligned (straight) carts");
@@ -162,6 +164,9 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("defaultTransferRadius", "\nThe default radius chest/furnace sign systems look for the needed blocks");
 		defaultTransferRadius = MathUtil.limit(config.get("defaultTransferRadius", 2), 1, 5);
 
+		config.setHeader("slowDownEmptyCarts", "\nWhether or not empty minecarts slow down faster than occupied minecarts");
+		slowDownEmptyCarts = config.get("slowDownEmptyCarts", false);
+		
 		config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
 		config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");
 		config.addHeader("allowedBlockBreakTypes", "Others have to use one from this list");
@@ -255,7 +260,7 @@ public class TrainCarts extends PluginBase {
 		SignAction.init();
 
 		//Load groups
-		GroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
+		WorldGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
 		//Load properties
 		TrainProperties.init();
@@ -273,7 +278,7 @@ public class TrainCarts extends PluginBase {
 		SignActionDetector.init(getDataFolder() + File.separator + "detectorsigns.dat");
 
 		//Restore carts where possible
-		GroupManager.refresh();
+		WorldGroupManager.refresh();
 		
 		//Properly dispose of partly-referenced carts
 		new Operation(false) {
@@ -340,7 +345,7 @@ public class TrainCarts extends PluginBase {
 
 		//undo replacements for correct native saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
-			GroupManager.hideGroup(mg);
+			WorldGroupManager.hideGroup(mg);
 		}
 		
 		//entities left behind?
@@ -349,12 +354,12 @@ public class TrainCarts extends PluginBase {
 				this.doEntities();
 			}
 			public void handle(Entity entity) {
-				GroupManager.hideGroup(entity);
+				WorldGroupManager.hideGroup(entity);
 			}
 		};
 
 		//Save for next load
-		GroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
+		WorldGroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
 
 		SignAction.deinit();
 		
