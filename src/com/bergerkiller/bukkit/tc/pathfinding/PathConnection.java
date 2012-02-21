@@ -15,7 +15,7 @@ public class PathConnection {
 	public final PathNode destination;
 	
 	public String toString() {
-		return "[" + this.direction + "/" + this.distance + "/" + this.destination.toString() + "]";
+		return "to " + destination.toString() + " going " + this.direction.toString() + " distance " + this.distance;
 	}
 	
 }

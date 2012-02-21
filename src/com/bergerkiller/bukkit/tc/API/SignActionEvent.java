@@ -97,7 +97,27 @@ public class SignActionEvent extends Event implements Cancellable {
 	 */
 	public void setRailsFromCart(BlockFace to) {
 		if (this.getMember() == null) return;
-		BlockUtil.setRails(this.getRails(), this.member.getDirection().getOppositeFace(), to);
+		BlockFace from = this.member.getDirection().getOppositeFace();
+		
+		//fix weird directions
+		if (to == BlockFace.NORTH || to == BlockFace.SOUTH) {
+			switch (from) {
+			case SOUTH_EAST : 
+			case NORTH_EAST : from = BlockFace.EAST; break;
+			case SOUTH_WEST : 
+			case NORTH_WEST : from = BlockFace.WEST; break;
+			}
+		} else if (to == BlockFace.EAST || to == BlockFace.WEST) {
+			switch (from) {
+			case NORTH_WEST : 
+			case NORTH_EAST : from = BlockFace.NORTH; break;
+			case SOUTH_WEST : 
+			case SOUTH_EAST : from = BlockFace.SOUTH; break;
+			}
+		}
+		
+		//set the rails (finally!)
+		BlockUtil.setRails(this.getRails(), from, to);
 		if (this.member.getDirection().getOppositeFace() == to){
 			double force = this.member.getForce();
 			this.getGroup().stop();

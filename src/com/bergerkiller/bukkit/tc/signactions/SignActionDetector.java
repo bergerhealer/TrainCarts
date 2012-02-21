@@ -17,6 +17,7 @@ import net.minecraft.server.ChunkCoordinates;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -28,6 +29,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.detector.DetectorListener;
@@ -67,9 +69,10 @@ public class SignActionDetector extends SignAction {
 			return null;
 		}
 				
-		public boolean updateMembers(final Block signblock, final String line1, final String line2) {
+		public boolean updateMembers(final Sign sign) {
+			Block signblock = sign.getBlock();
 			for (MinecartMember mm : this.region.getMembers()) {
-				if (isDown(line1, line2, mm)) {
+				if (isDown(sign.getLine(2), sign.getLine(3), mm)) {
 					BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
 					return true;
 				}
@@ -77,9 +80,10 @@ public class SignActionDetector extends SignAction {
 			BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), false);
 			return false;
 		}
-		public boolean updateGroups(final Block signblock, final String line1, final String line2) {
+		public boolean updateGroups(final Sign sign) {
+			Block signblock = sign.getBlock();
 			for (MinecartGroup g : this.region.getGroups()) {
-				if (isDown(line1, line2, g)) {
+				if (isDown(sign.getLine(2), sign.getLine(3), g)) {
 					BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
 					return true;
 				}
@@ -102,46 +106,46 @@ public class SignActionDetector extends SignAction {
 						
 		@Override
 		public void onLeave(MinecartGroup group) {
-			Block sign1, sign2;
-			if (this.sign1down && (sign1 = getSign1(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign1);
+			Block signblock;
+			if (this.sign1down && (signblock = getSign1(group.getWorld())) != null) {
+				Sign sign = BlockUtil.getSign(signblock);
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
 					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
-						this.sign1down = updateGroups(sign1, sign.getLine(2), sign.getLine(3));
+						this.sign1down = updateGroups(sign);
 					}
 				}
 			}
-			if (this.sign2down && (sign2 = getSign2(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign2);
+			if (this.sign2down && (signblock = getSign2(group.getWorld())) != null) {
+				Sign sign = BlockUtil.getSign(signblock);
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
 					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
-						this.sign2down = updateGroups(sign2, sign.getLine(2), sign.getLine(3));
+						this.sign2down = updateGroups(sign);
 					}
 				}
 			}
 		}
 		@Override
 		public void onEnter(MinecartGroup group) {
-			Block sign1, sign2;
-			if (!this.sign1down && (sign1 = getSign1(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign1);
+			Block signblock;
+			if (!this.sign1down && (signblock = getSign1(group.getWorld())) != null) {
+				Sign sign = BlockUtil.getSign(signblock);
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
 					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
 						this.sign1down = true;
-						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(sign1), true);
+						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
 					}
 				}
 			}
-			if (!this.sign2down && (sign2 = getSign2(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign2);
+			if (!this.sign2down && (signblock = getSign2(group.getWorld())) != null) {
+				Sign sign = BlockUtil.getSign(signblock);
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
 					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
 						this.sign2down = true;
-						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(sign2), true);
+						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
 					}
 				}
 			}
@@ -155,7 +159,7 @@ public class SignActionDetector extends SignAction {
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.CART) {
 					if (isDown(sign.getLine(2), sign.getLine(3), member)) {
-						this.sign1down = updateMembers(sign1, sign.getLine(2), sign.getLine(3));
+						this.sign1down = updateMembers(sign);
 					}
 				}
 			}
@@ -164,7 +168,7 @@ public class SignActionDetector extends SignAction {
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.CART) {
 					if (isDown(sign.getLine(2), sign.getLine(3), member)) {
-						this.sign2down = updateMembers(sign2, sign.getLine(2), sign.getLine(3));
+						this.sign2down = updateMembers(sign);
 					}
 				}
 			}
@@ -227,6 +231,21 @@ public class SignActionDetector extends SignAction {
 				return group.hasTag(line1) || group.hasTag(line2);
 			}
 		}
+	
+		@Override
+		public void onUpdate(MinecartMember member) {
+			Sign sign = BlockUtil.getSign(this.getSign1(member.getWorld()));
+			if (sign != null) this.updateMembers(sign);
+			sign = BlockUtil.getSign(this.getSign2(member.getWorld()));
+			if (sign != null) this.updateMembers(sign);
+		}
+		@Override
+		public void onUpdate(MinecartGroup group) {
+			Sign sign = BlockUtil.getSign(this.getSign1(group.getWorld()));
+			if (sign != null) this.updateGroups(sign);
+			sign = BlockUtil.getSign(this.getSign2(group.getWorld()));
+			if (sign != null) this.updateGroups(sign);
+		}
 	}
 	
 	public static boolean isValid(Sign sign) {
@@ -242,51 +261,56 @@ public class SignActionDetector extends SignAction {
 	public void execute(SignActionEvent info) {
 		//nothing happens here, relies on rail detector events
 	}
-
+	
+	public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
+		TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
+		map.next();
+		//now try to find the end rails : find the other sign
+		Block endsign = null;
+		Sign sign;
+		while (map.hasNext()) {
+			for (Block signblock : Util.getSignsFromRails(map.next())) {
+				sign = BlockUtil.getSign(signblock);
+				if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
+					if (sign.getLine(1).toLowerCase().startsWith("detector")) {
+						endsign = signblock;
+						//start and end found : add it
+						Detector detector = new Detector(startsign, endsign);
+						detectors.put(startsign, detector);
+						detectors.put(endsign, detector);
+						DetectorRegion.create(map).register(detector);
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+		
 	@Override
 	public void build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (!isValid(event.getLines())) {
 			return;
 		}
-		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detects the presence of trains between this detector sign and another")) {
+		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detect trains between this detector sign and another")) {
 			//try to create the other sign
 			Block startsign = event.getBlock();
 			Block startrails = Util.getRailsFromSign(startsign);
 			if (startrails == null) {
-				event.getPlayer().sendMessage(ChatColor.RED + "Note that no rails are nearby, so it is not yet activated.");
+				event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
 				return;
 			}
-			TrackMap map = new TrackMap(startrails, BlockUtil.getFacing(startsign));
-			//now try to find the end rails : find the other sign
-			boolean found = false;
-			int i = TrainCarts.maxDetectorLength;
-			Block next;
-			Block endsign = null;
-			Sign sign;
-			while (!found) {
-				next = map.next();
-				if (--i < 0 || next == null) {
-					//no second sign found
-					event.getPlayer().sendMessage(ChatColor.RED + "Could not find a second connected detector sign, place one to activate this detector.");
-					return;
-				}
-				for (Block signblock : Util.getSignsFromRails(next)) {
-					sign = BlockUtil.getSign(signblock);
-					if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
-						if (sign.getLine(1).toLowerCase().startsWith("detector")) {
-							endsign = signblock;
-							found = true;
-							break;
-						}
+			BlockFace dir = BlockUtil.getFacing(startsign);
+			if (!tryBuild(startrails, startsign, dir)) {
+				if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, 2))) {
+					if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, -2))) {
+						event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
+						event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
+						return;
 					}
 				}
 			}
-			//start and end found : add it
-			event.getPlayer().sendMessage(ChatColor.GREEN + "A second connected detector sign was found, detector region set.");
-			Detector detector = new Detector(startsign, endsign);
-			detectors.put(startsign, detector);
-			detectors.put(endsign, detector);
-			DetectorRegion.create(map).register(detector);
+			event.getPlayer().sendMessage(ChatColor.GREEN + "A second detector sign was found: Region set.");
 		}
 	}
 

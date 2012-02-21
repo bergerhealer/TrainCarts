@@ -276,6 +276,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private MinecartMemberTrackerEntry tracker;
+	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
@@ -363,6 +364,9 @@ public class MinecartMember extends NativeMinecartMember {
 			for (Block b : this.activeSigns) {
 				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
 			}
+			for (DetectorRegion reg : this.activeDetectorRegions) {
+				reg.update(this);
+			}
 		}
 	}
 	
@@ -444,7 +448,11 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 			
 			//Detector regions
-			DetectorRegion.handleMove(this, from, to);
+			List<DetectorRegion> newregions = DetectorRegion.handleMove(this, from, to);
+			this.activeDetectorRegions.clear();
+			if (newregions != null) {
+				this.activeDetectorRegions.addAll(newregions);
+			}
 								
 			//event
 			MemberBlockChangeEvent.call(this, from, to);
@@ -551,6 +559,10 @@ public class MinecartMember extends NativeMinecartMember {
 		return !this.activeSigns.isEmpty();
 	}
  	
+	public List<DetectorRegion> getActiveDetectorRegions() {
+		return this.activeDetectorRegions;
+	}
+	
  	/*
  	 * Block functions
  	 */

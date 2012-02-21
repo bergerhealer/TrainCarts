@@ -17,20 +17,21 @@ public class TrackMap extends ArrayList<Block> {
 	public TrackMap(Block start, BlockFace direction) {
 		this(new TrackIterator(start, direction));
 	}
-	public TrackMap(Block start, BlockFace direction, int size) {
-		this(new TrackIterator(start, direction, size, false));
-		this.add(start);
-		for (int i = 0;i < size;i++) this.next();
-	}
-	public TrackMap(Block start, BlockFace direction, int size, double stepsize) {
-		this(new TrackIterator(start, direction, size, false));
-		stepsize *= size;
-		while (this.getDistance() < stepsize && this.hasNext()) {
-			this.next();
-		}
+	public TrackMap(Block start, BlockFace direction, final int maxdistance) {
+		this(new TrackIterator(start, direction, maxdistance, false));
 	}
 	public TrackMap(final TrackIterator iterator) {
 		this.iterator = iterator;
+	}
+	
+	public TrackMap generate(int size) {
+		while (this.getDistance() < size && this.hasNext()) {
+			this.next();
+		}
+		return this;
+	}
+	public TrackMap generate(int size, double stepsize) {
+		return this.generate((int) (stepsize * size));
 	}
 	
 	public boolean find(Block rail, int maxstepcount) {
@@ -44,7 +45,7 @@ public class TrackMap extends ArrayList<Block> {
 	}
 	
 	public static Location[] walk(Block start, BlockFace direction, int size, double stepsize) {
-		return new TrackMap(start, direction, size, stepsize).walk(size, stepsize);
+		return new TrackMap(start, direction).generate(size, stepsize).walk(size, stepsize);
 	}
 
 	public Block last() {
@@ -142,7 +143,7 @@ public class TrackMap extends ArrayList<Block> {
 		return rval;
 	}
 	
-	public TrackIterator iterator() {
+	public TrackIterator getTrackIterator() {
 		return this.iterator;
 	}
 	public boolean hasNext() {

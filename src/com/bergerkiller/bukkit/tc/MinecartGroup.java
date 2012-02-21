@@ -38,6 +38,7 @@ import com.bergerkiller.bukkit.tc.API.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.API.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.*;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
@@ -220,6 +221,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
      */
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
+	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
 	private String name;
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
@@ -941,6 +943,15 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.updateDirection();
 				MinecartMemberTrackerEntry tracker = mm.getTracker();
 				if (tracker != null) tracker.sync();
+				
+				//final updating
+				if (this.needsUpdate) {
+					this.needsUpdate = false;
+					for (Block b : this.activeSigns) {
+						SignAction.executeAll(new SignActionEvent(b, null, this), SignActionType.GROUP_UPDATE);
+					}
+				}
+				
 				return true;
 			} else if (this.isEmpty()) {
 				this.remove();
@@ -1050,6 +1061,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				this.needsUpdate = false;
 				for (Block b : this.activeSigns) {
 					SignAction.executeAll(new SignActionEvent(b, null, this), SignActionType.GROUP_UPDATE);
+				}
+				tmpRegions.clear();
+				for (MinecartMember mm : this) {
+					tmpRegions.addAll(mm.getActiveDetectorRegions());
+				}
+				for (DetectorRegion reg : tmpRegions) {
+					reg.update(this);
 				}
 			}
 			

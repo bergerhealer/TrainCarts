@@ -33,12 +33,12 @@ import net.minecraft.server.ChunkCoordinates;
 public final class DetectorRegion {
 	private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<UUID, DetectorRegion>();
 	private static BlockMap<List<DetectorRegion>> regions = new BlockMap<List<DetectorRegion>>();
-	public static void handleMove(MinecartMember mm, Block from, Block to) {
+	public static List<DetectorRegion> handleMove(MinecartMember mm, Block from, Block to) {
 		if (from == to) {
-			handleEnter(mm, from);
+			return handleEnter(mm, from);
 		} else if (from.getWorld() != to.getWorld()) {
 			handleLeave(mm, from);
-			handleEnter(mm, to);
+			return handleEnter(mm, to);
 		} else {
 			List<DetectorRegion> list = regions.get(from);
 			//Leave the regions if the to-location is not contained
@@ -51,10 +51,10 @@ public final class DetectorRegion {
 				}
 			}
 			//Enter possible new locations
-			handleEnter(mm, to);
+			return handleEnter(mm, to);
 		}
 	}
-	public static void handleLeave(MinecartMember mm, Block block) {
+	public static List<DetectorRegion> handleLeave(MinecartMember mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);
 		if (list != null) {
 			for (DetectorRegion region : list) {
@@ -63,8 +63,9 @@ public final class DetectorRegion {
 				}
 			}
 		}
+		return list;
 	}
-	public static void handleEnter(MinecartMember mm, Block block) {
+	public static List<DetectorRegion> handleEnter(MinecartMember mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);
 		if (list != null) {
 			for (DetectorRegion region : list) {
@@ -73,6 +74,7 @@ public final class DetectorRegion {
 				}
 			}
 		}
+		return list;
 	}
 	
 	public static DetectorRegion create(Collection<Block> blocks) {
@@ -204,6 +206,17 @@ public final class DetectorRegion {
 		}
 		for (DetectorListener listener : this.listeners) {
 			listener.onEnter(mm.getGroup());
+		}
+	}
+	
+	public void update(MinecartMember member) {
+		for (DetectorListener list : this.listeners) {
+			list.onUpdate(member);
+		}
+	}
+	public void update(MinecartGroup group) {
+		for (DetectorListener list : this.listeners) {
+			list.onUpdate(group);
 		}
 	}
 	

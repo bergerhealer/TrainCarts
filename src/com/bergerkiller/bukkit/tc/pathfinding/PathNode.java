@@ -216,9 +216,8 @@ public class PathNode {
 		if (this.location == null) return;
 		Block tmpblock = this.location.getBlock();
 		if (tmpblock == null) return;
-		tmpblock = TrackIterator.getNextTrack(tmpblock, dir);
-		
 		TrackIterator iter = new TrackIterator(tmpblock, dir);
+		iter.next(); //ignore first (start) block
 
 		String newdest;
 		BlockLocation location;
