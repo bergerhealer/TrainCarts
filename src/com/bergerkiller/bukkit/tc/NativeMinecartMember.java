@@ -413,11 +413,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		double motX = MathUtil.fixNaN(this.motX);
 		double motZ = MathUtil.fixNaN(this.motZ);
 		
-        if (TrainCarts.slowDownEmptyCarts && this.group().getProperties().slowDown && this.passenger != null) {
-        	motX *= 0.75;
-        	motZ *= 0.75;
-        }
-        
 		speedFactor = MathUtil.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
 		

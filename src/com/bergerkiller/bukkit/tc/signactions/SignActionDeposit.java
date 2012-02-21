@@ -138,6 +138,8 @@ public class SignActionDeposit extends SignAction {
 		//get the tile entities to deposit to
 		Set<TileEntity> found = SignActionCollect.getTileEntities(info, radius);
 		if (found.isEmpty()) return;
+		if (!info.isPoweredFacing() || !info.hasRails()) return;
+		
 		List<IInventory> invlist = new ArrayList<IInventory>();
 		List<TileEntityFurnace> furnaces = new ArrayList<TileEntityFurnace>();
 		for (Material mat : typesToCheck) {
@@ -167,7 +169,6 @@ public class SignActionDeposit extends SignAction {
 		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
 		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
 		if (!docart && !dotrain) return;
-		if (!info.isPoweredFacing() || !info.hasRails()) return;
 		
 		//get the inventory to transfer from
         Inventory cartinv;

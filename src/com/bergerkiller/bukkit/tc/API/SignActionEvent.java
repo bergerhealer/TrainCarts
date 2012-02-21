@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.API;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -184,24 +185,49 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.powerinv != this.getPower(from).hasPower();
 	}
 	public boolean isPowered() {
+		BlockFace att = BlockUtil.getAttachedFace(this.signblock);
+		if (this.signblock.isBlockIndirectlyPowered()) {
+			Block attblock = this.signblock.getRelative(att);
+			boolean found = false;
+			for (BlockFace face : FaceUtil.attachedFaces) {
+				if (BlockUtil.isType(attblock.getRelative(face), Material.LEVER)) {
+					//check EVERYTHING
+					PowerState state;
+					for (BlockFace alter : FaceUtil.attachedFacesDown) {
+						if (alter == face) continue;
+						state = PowerState.get(attblock, alter, false);
+						switch (state) {
+						case ON : return !this.powerinv;
+						}
+					}
+					found = true;
+					break;
+				}
+			}
+			if (!found) return !this.powerinv;
+		}
 		if (this.powerinv) {
 			boolean def = true;
 			for (BlockFace face : FaceUtil.attachedFacesDown) {
+				if (face == att) continue;
 				PowerState state = this.getPower(face);
 				switch (state) {
 				case NONE : continue;
-				case ON : def = false; continue;
-				case OFF : return true;
+				case ON : return false; //def = false; continue;
+				case OFF : continue; //return true;
 				}
 			}
+		
 			return def;
 		} else {
 			for (BlockFace face : FaceUtil.attachedFacesDown) {
+				if (face == att) continue;
 				if (this.getPower(face).hasPower()) return true;
 			}
 			return false;
 		}
 	}
+		
 	public boolean isPoweredFacing() {
 		return this.actionType == SignActionType.REDSTONE_ON || (this.isFacing() && this.isPowered());
 	}

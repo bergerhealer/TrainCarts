@@ -43,7 +43,7 @@ public class SignActionStation extends SignAction {
 								StationMode mode = EnumUtil.parse(info.getLine(3), StationMode.NONE);
 
 								//Get the middle minecart
-								MinecartMember midd = group.middle();
+								MinecartMember toAffect = info.isCartSign() ? info.getMember() : group.middle();
 								//First, get the direction of the tracks above
 								BlockFace dir = info.getRailDirection();
 								//Get the length of the track to center in
@@ -112,12 +112,12 @@ public class SignActionStation extends SignAction {
 										//Brake
 										//TODO: ADD CHECK?!
 										group.clearActions();		
-										midd.addActionLaunch(info.getRailLocation(), 0);
+										toAffect.addActionLaunch(info.getRailLocation(), 0);
 										BlockFace trainDirection = null;
 										if (mode == StationMode.CONTINUE) {
-											trainDirection = midd.getDirection();
+											trainDirection = toAffect.getDirection();
 										} else if (mode == StationMode.REVERSE) {
-											trainDirection = midd.getDirection().getOppositeFace();
+											trainDirection = toAffect.getDirection().getOppositeFace();
 										} else if (mode == StationMode.LEFT || mode == StationMode.RIGHT) {
 											trainDirection = info.getFacing();
 											//Convert
@@ -134,7 +134,7 @@ public class SignActionStation extends SignAction {
 												info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 											}
 											group.addActionWait(delayMS);
-											midd.addActionLaunch(trainDirection, length, TrainCarts.launchForce);
+											toAffect.addActionLaunch(trainDirection, length, TrainCarts.launchForce);
 										} else {
 											info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 											if (TrainCarts.playSoundAtStation) group.addActionSizzle();
@@ -148,14 +148,14 @@ public class SignActionStation extends SignAction {
 
 									if (delayMS > 0 || (head.isMoving() && head.getDirection() != instruction)) {
 										//Reversing or has delay, need to center it in the middle first
-										midd.addActionLaunch(info.getRailLocation(), 0);
+										toAffect.addActionLaunch(info.getRailLocation(), 0);
 									}
 									if (delayMS > 0) {
 										if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 										info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 									}
 									group.addActionWait(delayMS);
-									midd.addActionLaunch(instruction, length, TrainCarts.launchForce);
+									toAffect.addActionLaunch(instruction, length, TrainCarts.launchForce);
 								}
 							}
 						}

@@ -101,7 +101,8 @@ public class SignActionCollect extends SignAction {
 		
 		LinkedHashSet<Material> typesToCheck = parseName(info.getLine(1), "collect");
 		if (typesToCheck.isEmpty()) return;
-
+		if (!info.isPoweredFacing() || !info.hasRails()) return;
+		
 		//get the block types to collect and the radius (2nd line)
 		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
 		
@@ -136,7 +137,6 @@ public class SignActionCollect extends SignAction {
 		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
 		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
 		if (!docart && !dotrain) return;
-		if (!info.isPoweredFacing() || !info.hasRails()) return;
 		
 		//get the inventory to transfer to
         Inventory to;

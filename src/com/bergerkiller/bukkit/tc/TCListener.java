@@ -90,7 +90,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
-		if (!event.isCancelled()) {			
+		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {
 			Minecart m = (Minecart) event.getVehicle();
 			Location loc = m.getLocation();
 			loc.setYaw(m.getLocation().getYaw() + 180);
@@ -341,24 +341,19 @@ public class TCListener implements Listener {
 
 	public void triggerRedstoneChange(Block signblock, BlockRedstoneEvent event) {
 		boolean powered = poweredBlocks.contains(event.getBlock());
-		if (!powered && event.getNewCurrent() > 0) {
-			poweredBlocks.add(event.getBlock());
-			triggerRedstoneChange(signblock, true);
-		} else if (powered && event.getNewCurrent() == 0) {
-			poweredBlocks.remove(event.getBlock());
-			triggerRedstoneChange(signblock, false);
-		} else {
-			triggerRedstoneChange(signblock, (Boolean) null);
-		}
-	}
-	public void triggerRedstoneChange(Block signblock, Boolean powered) {
 		SignActionEvent info = new SignActionEvent(signblock);
 		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-		if (powered != null) {
-			if (powered) {
-				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
-			} else {
+		if (powered) {
+			//no longer powered?
+			if (info.isPowerInverted() != (event.getNewCurrent() == 0) && !info.isPowered()) {
+				poweredBlocks.remove(signblock);
 				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
+			}
+		} else {
+			//now powered?
+			if (info.isPowerInverted() != (event.getNewCurrent() > 0) && info.isPowered()) {
+				poweredBlocks.add(event.getBlock());
+				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
 			}
 		}
 	}

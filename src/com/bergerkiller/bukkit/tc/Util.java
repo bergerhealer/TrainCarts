@@ -162,6 +162,20 @@ public class Util {
 		}
 	}
 	
+    public static boolean canDistractWire(Material type) {
+		switch (type) {
+		case REDSTONE_WIRE : return true;
+		case REDSTONE_TORCH_ON : return true;
+		case REDSTONE_TORCH_OFF : return true;
+		case LEVER : return true;
+		case WOOD_PLATE : return true;
+		case STONE_PLATE : return true;
+		case STONE_BUTTON : return true;
+		case DETECTOR_RAIL : return true;
+		}
+		return false;
+    }
+	
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
 		with.yaw = toreplace.yaw;
 		with.pitch = toreplace.pitch;
