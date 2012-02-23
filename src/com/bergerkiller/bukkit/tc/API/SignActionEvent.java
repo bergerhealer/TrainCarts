@@ -97,26 +97,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	 */
 	public void setRailsFromCart(BlockFace to) {
 		if (this.getMember() == null) return;
-		BlockFace from = this.member.getDirection().getOppositeFace();
+		BlockFace from = this.member.getDirectionTo().getOppositeFace();
 		
-		//fix weird directions
-		if (to == BlockFace.NORTH || to == BlockFace.SOUTH) {
-			switch (from) {
-			case SOUTH_EAST : 
-			case NORTH_EAST : from = BlockFace.EAST; break;
-			case SOUTH_WEST : 
-			case NORTH_WEST : from = BlockFace.WEST; break;
-			}
-		} else if (to == BlockFace.EAST || to == BlockFace.WEST) {
-			switch (from) {
-			case NORTH_WEST : 
-			case NORTH_EAST : from = BlockFace.NORTH; break;
-			case SOUTH_WEST : 
-			case SOUTH_EAST : from = BlockFace.SOUTH; break;
-			}
-		}
-		
-		//set the rails (finally!)
+		//set the rails
 		BlockUtil.setRails(this.getRails(), from, to);
 		if (this.member.getDirection().getOppositeFace() == to){
 			double force = this.member.getForce();
@@ -305,7 +288,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public MinecartMember getMember() {
 		if (this.member == null) {
 			if (!this.memberchecked) {
-				this.member = this.hasRails() ? MinecartMember.getAt(this.railsblock, false) : null;
+				this.member = this.hasRails() ? MinecartMember.getAt(this.railsblock, true) : null;
 				this.memberchecked = true;
 			}
 			if (this.group != null && !this.group.isEmpty()) {

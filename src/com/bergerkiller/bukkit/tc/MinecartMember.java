@@ -154,7 +154,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord, boolean checkmoving) {
 		return getAt(WorldUtil.getNative(world), coord, checkmoving);
 	}
-	
+		
 	@SuppressWarnings("rawtypes")
 	public static MinecartMember getAt(World world, ChunkCoordinates coord, boolean checkmoving) {
 		net.minecraft.server.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
@@ -174,19 +174,50 @@ public class MinecartMember extends NativeMinecartMember {
 				}
 			}
 			if (result == null && checkmoving) {
-				//maybe one minecart is speeding towards this block and will be here very soon?
-				mm = getAt(world, new ChunkCoordinates(coord.x + 1, coord.y, coord.z), false);
-				if (isHeadingTo(mm, coord)) return mm;
-				mm = getAt(world, new ChunkCoordinates(coord.x - 1, coord.y, coord.z), false);
-				if (isHeadingTo(mm, coord)) return mm;
-				mm = getAt(world, new ChunkCoordinates(coord.x, coord.y, coord.z + 1), false);
-				if (isHeadingTo(mm, coord)) return mm;
-				mm = getAt(world, new ChunkCoordinates(coord.x, coord.y, coord.z - 1), false);
-				if (isHeadingTo(mm, coord)) return mm;
-				return null;
-			} else {
-				return result;
+				Block b = world.getWorld().getBlockAt(coord.x, coord.y, coord.z);
+				int id = b.getTypeId();
+				
+				//get the two connected rails to check
+				if (BlockUtil.isRails(id)) {
+					BlockFace[] possible = FaceUtil.getFaces(BlockUtil.getRails(b).getDirection());
+				    MinecartMember mm1 = getAt(Util.getRailsBlock(b.getRelative(possible[0])), false);
+				    MinecartMember mm2 = getAt(Util.getRailsBlock(b.getRelative(possible[1])), false);
+				    if (mm1 != null && mm2 != null && mm1.group == mm2.group) {
+				    	Location loc = b.getLocation();
+				    	return mm1.distance(loc) < mm2.distance(loc) ? mm1 : mm2;
+				    } else if (isHeadingTo(mm1, coord)) {
+				    	return mm1;
+				    } else if (isHeadingTo(mm2, coord)) {
+				    	return mm2;
+				    } else {
+				    	return null;
+				    }
+				} else if (Util.isPressurePlate(id)) {
+					//check all directions
+				    MinecartMember mm1 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.NORTH)), false);
+				    MinecartMember mm2 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.SOUTH)), false);
+				    MinecartMember mm3 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.EAST)), false);
+				    MinecartMember mm4 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.WEST)), false);
+				    if (mm1 != null && mm2 != null && mm1.group == mm2.group) {
+				    	Location loc = b.getLocation();
+				    	return mm1.distance(loc) < mm2.distance(loc) ? mm1 : mm2;
+				    } else if (mm3 != null && mm4 != null && mm3.group == mm4.group) {
+				    	Location loc = b.getLocation();
+				    	return mm3.distance(loc) < mm4.distance(loc) ? mm3 : mm4;
+				    } else if (isHeadingTo(mm1, coord)) {
+				    	return mm1;
+				    } else if (isHeadingTo(mm2, coord)) {
+				    	return mm2;
+				    } else if (isHeadingTo(mm3, coord)) {
+				    	return mm3;
+				    } else if (isHeadingTo(mm4, coord)) {
+				    	return mm4;
+				    } else {
+				    	return null;
+				    }
+				}
 			}
+			return result;
 		}
 		return null;
 	}
@@ -265,6 +296,8 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 
 	private BlockFace direction;
+	private BlockFace directionTo;
+	private BlockFace directionFrom;
 	MinecartGroup group;
 	private int blockx, blocky, blockz;
 	private boolean railsloped = false;
@@ -783,18 +816,48 @@ public class MinecartMember extends NativeMinecartMember {
 	public BlockFace getDirection() {
 		return this.direction;
 	}
+	public BlockFace getDirectionFrom() {
+		return this.directionFrom;
+	}
+	public BlockFace getDirectionTo() {
+		return this.directionTo;
+	}
 	public int getDirectionDifference(BlockFace dircomparer) {
 		return FaceUtil.getFaceYawDifference(this.direction, dircomparer);
 	}
 	public int getDirectionDifference(MinecartMember comparer) {
 		return this.getDirectionDifference(comparer.direction);
 	}
+	public void updateDirection(BlockFace direction) {
+		this.direction = direction;
+		switch (this.direction) {
+		case NORTH_EAST :
+			this.directionFrom = BlockFace.NORTH;
+			this.directionTo = BlockFace.EAST;
+			break;
+		case NORTH_WEST :
+			this.directionFrom = BlockFace.NORTH;
+			this.directionTo = BlockFace.WEST;
+			break;
+		case SOUTH_EAST :
+			this.directionFrom = BlockFace.SOUTH;
+			this.directionTo = BlockFace.EAST;
+			break;
+		case SOUTH_WEST :
+			this.directionFrom = BlockFace.SOUTH;
+			this.directionTo = BlockFace.WEST;	
+			break;
+		default :
+			this.directionFrom = this.directionTo = direction;	
+			break;
+		}
+	}
 	public void updateDirection() {
-		this.direction = FaceUtil.getDirection(this.motX, this.motZ, true);
+		this.updateDirection(FaceUtil.getDirection(this.motX, this.motZ, true));
 	}
 	public void updateDirection(Vector movement) {
 		if (this.isDerailed) {
-			this.direction = FaceUtil.getDirection(movement);
+			this.updateDirection(FaceUtil.getDirection(movement));
 		} else {
 			this.direction = FaceUtil.getRailsCartDirection(this.getRailDirection());
 			if (movement.getX() == 0 || movement.getZ() == 0) {
@@ -806,6 +869,7 @@ public class MinecartMember extends NativeMinecartMember {
 					this.direction = this.direction.getOppositeFace();
 				}
 			}
+			this.updateDirection(this.direction);
 		}
 	}
 	public void updateDirectionTo(MinecartMember member) {
@@ -877,12 +941,9 @@ public class MinecartMember extends NativeMinecartMember {
 		Block from = this.getRailsBlock();
 		if (BlockUtil.equals(from, track)) return true;
 		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getBlockSteps(from, track, false);
-		TrackMap map = new TrackMap(from, this.getDirection());
-		Block next;
-		for (;maxstepcount > 0; --maxstepcount) {
-			next = map.next();
-			if (next == null) return false;
-			if (BlockUtil.equals(next, track)) return true;
+		TrackIterator iter = new TrackIterator(from, this.directionTo);
+		for (;maxstepcount > 0 && iter.hasNext(); --maxstepcount) {
+			if (BlockUtil.equals(iter.next(), track)) return true;
 		}
 		return false;
 	}
