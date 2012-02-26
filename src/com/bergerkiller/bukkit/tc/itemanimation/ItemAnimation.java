@@ -20,13 +20,17 @@ public class ItemAnimation {
 	private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<ItemAnimation>();
 	private static Task task;
 	public static void start(Object from, Object to, ItemStack data) {
+		if (from == null || to == null || data == null) return;
 		runningAnimations.add(new ItemAnimation(from, to, data));
 		if (task != null) return;
 		task = new Task() {
 			public void run() {
 				Iterator<ItemAnimation> iter = runningAnimations.iterator();
+				ItemAnimation anim;
 				while (iter.hasNext()) {
-					if (iter.next().update()) {
+					anim = iter.next();
+					if (anim.update()) {
+						anim.item.die();
 						iter.remove();
 					}
 				}
@@ -38,6 +42,9 @@ public class ItemAnimation {
 		}.start(1, 1);
 	}
 	public static void deinit() {
+		for (ItemAnimation anim : runningAnimations) {
+			anim.item.die();
+		}
 		runningAnimations.clear();
 		Task.stop(task);
 		task = null;
@@ -55,6 +62,7 @@ public class ItemAnimation {
 			throw new IllegalArgumentException("Locations are on different worlds!");
 		}
 		this.item = new VirtualItem(f, data);
+		this.item.motY += 0.1;
 	}
 	
 	private static Object fixObject(Object object) {
@@ -66,7 +74,7 @@ public class ItemAnimation {
 			object = ((BlockState) object).getBlock();
 		}
 		if (object instanceof Block) {
-			return ((Block) object).getLocation();
+			return ((Block) object).getLocation().add(0.5, 0.5, 0.5);
 		}
 		if (object instanceof net.minecraft.server.Entity) {
 			return ((net.minecraft.server.Entity) object).getBukkitEntity();
@@ -88,32 +96,29 @@ public class ItemAnimation {
 		return getLocation(this.from);
 	}
 	
+	public int ticksToFinish = 10;
+	
+	public Vector getDirection(Location to) {
+		return new Vector(to.getX() - this.item.locX, to.getY() - this.item.locY, to.getZ() - this.item.locZ);
+	}
 	public boolean update() {
-		Location to = this.getTo();
-		if (to == null) return true;
-		Vector dir = new Vector(to.getX() - this.item.locX, to.getY() - this.item.locY, to.getZ() - this.item.locZ);
-		double len = dir.length();
-		if (len <= 0.5) {
-			this.item.die();
+		if (--this.ticksToFinish > 0) {
+			Location to = this.getTo();
+			if (to == null) return true;
+			Vector dir = this.getDirection(to);
+			double distancePerTick = dir.length();
+			distancePerTick /= (double) this.ticksToFinish;
+			
+			dir.normalize().multiply(distancePerTick);
+			
+			this.item.motX = dir.getX() + Math.random() * 0.02 - 0.01;
+			this.item.motY = MathUtil.useOld(this.item.motY, dir.getY(), 0.1);
+			this.item.motZ = dir.getZ() + Math.random() * 0.02 - 0.01;
+			this.item.velocityChanged = true;
+			this.item.y_();
+		} else {
 			return true;
 		}
-		final double factor;
-		if (len > 1) {
-			factor = 0.8;
-		} else if (len > 0.75) {
-			factor = 0.5;
-		} else {
-			factor = 0.25;
-		}
-		dir.multiply((factor / len) / len);
-		
-		final double rate = 0.8;
-		this.item.motX = MathUtil.useOld(this.item.motX, dir.getX(), rate);
-		this.item.motY = MathUtil.useOld(this.item.motY, dir.getY(), rate);
-		this.item.motY += 0.01;
-		this.item.motZ = MathUtil.useOld(this.item.motZ, dir.getZ(), rate);
-		this.item.velocityChanged = true;
-		this.item.y_();
 		return false;
 	}
 

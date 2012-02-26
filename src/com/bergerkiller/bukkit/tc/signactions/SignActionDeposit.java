@@ -40,19 +40,11 @@ public class SignActionDeposit extends SignAction {
 		//split parsers into the burned and cooked items
 		List<ItemParser> cooked = new ArrayList<ItemParser>();
 		List<ItemParser> burned = new ArrayList<ItemParser>();
+		boolean useDefault = true;
 		for (ItemParser parser : parsers) {
+			useDefault = false;
 			if (!parser.hasType()) {
-				//stock default
-				cooked.clear();
-				burned.clear();
-				cooked.add(parser);
-				for (ItemParser p : TrainCarts.plugin.getParsers("fuel")) {
-					if (!p.hasType()) {
-						burned.clear();
-						break;
-					}
-					burned.add(p);
-				}
+				useDefault = true;
 				break;
 			} else if (RecipeUtil.isFuelItem(parser.getTypeId())) {
 				//this item is fuel
@@ -60,6 +52,26 @@ public class SignActionDeposit extends SignAction {
 			} else if (RecipeUtil.getFurnaceResult(parser.getTypeId()) != null) {
 				//this item is NOT
 				cooked.add(parser);
+			}
+		}
+		if (useDefault) {
+			cooked.clear();
+			burned.clear();
+			for (ItemParser p : TrainCarts.plugin.getParsers("heatable")) {
+				if (!p.hasType()) {
+					cooked.clear();
+					break;
+				} else {
+					cooked.add(p);
+				}
+			}
+			for (ItemParser p : TrainCarts.plugin.getParsers("fuel")) {
+				if (!p.hasType()) {
+					burned.clear();
+					break;
+				} else {
+					burned.add(p);
+				}
 			}
 		}
 		
@@ -126,7 +138,7 @@ public class SignActionDeposit extends SignAction {
 	
 	@Override
 	public void execute(SignActionEvent info) {		   
-		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
+		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
 		

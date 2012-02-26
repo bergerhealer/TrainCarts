@@ -95,7 +95,7 @@ public class SignActionCollect extends SignAction {
 	
 	@Override
 	public void execute(SignActionEvent info) {		  
-		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
+		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
 		

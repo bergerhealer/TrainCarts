@@ -2,10 +2,6 @@ package com.bergerkiller.bukkit.tc.detector;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,6 +21,8 @@ import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.common.config.DataReader;
+import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 
@@ -240,9 +238,8 @@ public final class DetectorRegion {
 	public static void init(String filename) {
 		regionsById.clear();
 		regions.clear();
-		try {
-			DataInputStream stream = new DataInputStream(new FileInputStream(filename));
-			try {
+		new DataReader(filename) {
+			public void read(DataInputStream stream) throws IOException {
 				int count = stream.readInt();
 				int coordcount;
 				for (;count > 0; --count) {
@@ -262,28 +259,12 @@ public final class DetectorRegion {
 				} else {
 					TrainCarts.plugin.log(Level.INFO, regionsById.size() + " detector rail regions loaded covering " + regions.size() + " blocks");
 				}
-			} catch (IOException ex) {
-				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector regions!");
-				ex.printStackTrace();
-			} catch (Exception ex) {
-				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector regions!");
-				ex.printStackTrace();
-			} finally {
-				stream.close();
 			}
-		} catch (FileNotFoundException ex) {
-			//nothing, we allow non-existence of this file
-		} catch (Exception ex) {
-			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector regions!");
-			ex.printStackTrace();
-		}
+		}.read();
 	}
 	public static void deinit(String filename) {
-		try {
-			File f = new File(filename);
-			if (f.exists()) f.delete();
-			DataOutputStream stream = new DataOutputStream(new FileOutputStream(filename));
-			try {
+		new DataWriter(filename) {
+			public void write(DataOutputStream stream) throws IOException {
 				stream.writeInt(regionsById.size());
 				for (DetectorRegion region : regionsById.values()) {
 					StreamUtil.writeUUID(stream, region.id);
@@ -293,22 +274,8 @@ public final class DetectorRegion {
 						StreamUtil.writeCoordinates(stream, coord);
 					}
 				}
-			} catch (IOException ex) {
-				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector regions!");
-				ex.printStackTrace();
-			} catch (Exception ex) {
-				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector regions!");
-				ex.printStackTrace();
-			} finally {
-				stream.close();
 			}
-		} catch (FileNotFoundException ex) {
-			TrainCarts.plugin.log(Level.WARNING, "Failed to write to the detector regions save file!");
-			ex.printStackTrace();
-		} catch (Exception ex) {
-			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector regions!");
-			ex.printStackTrace();
-		}
+		}.write();
 	}
 	
 }

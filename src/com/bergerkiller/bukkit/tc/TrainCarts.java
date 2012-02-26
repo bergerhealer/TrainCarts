@@ -32,6 +32,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class TrainCarts extends PluginBase {
@@ -195,8 +196,27 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
 		ConfigurationNode itemshort = config.getNode("itemShortcuts");
 		parsers.put("fuel", Util.getParsers(itemshort.get("fuel", "wood;coal;stick")));
+		String heatables = itemshort.get("heatable", "");
+		if (heatables.isEmpty()) {
+			StringBuilder tmp = new StringBuilder();
+			for (int type : RecipeUtil.getHeatableItems()) {
+				if (tmp.length() > 0) {
+					tmp.append(';');
+				}
+				Material mat = Material.getMaterial(type);
+				if (mat == null) {
+					tmp.append(type);
+				} else {
+					tmp.append(mat.toString().toLowerCase());
+				}
+			}
+			heatables = tmp.toString();
+			itemshort.set("heatable", heatables);
+		}
+		parsers.put("heatable", Util.getParsers(heatables));
 		for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
 			if (entry.getKey().equalsIgnoreCase("fuel")) continue;
+			if (entry.getKey().equalsIgnoreCase("heatable")) continue;
 			parsers.put(entry.getKey().toLowerCase(), Util.getParsers(entry.getValue()));
 			itemshort.setRead(entry.getKey());
 		}
@@ -242,10 +262,10 @@ public class TrainCarts extends PluginBase {
 		//registering
 		this.register(TCListener.class);
 		this.register("train", "cart");
-
+		
 		//Load configuration
 		loadConfig();
-		
+				
 		//update max item stack
 		if (maxMinecartStackSize != 1) {
 			Util.setItemMaxSize(Material.MINECART, maxMinecartStackSize);
@@ -255,31 +275,31 @@ public class TrainCarts extends PluginBase {
 		
 		//init reflection-made fields
 		MinecartMemberTrackerEntry.initFields();
-
+		
 		//Init signs
 		SignAction.init();
-
+		
 		//Load groups
 		WorldGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
-
+		
 		//Load properties
 		TrainProperties.init();
-
+		
 		//Load destinations
-		PathNode.init();
-
+		PathNode.init(getDataFolder() + File.separator + "destinations.dat");
+		
 		//Load arrival times
 		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
-
+		
 		//Load detector regions
 		DetectorRegion.init(getDataFolder() + File.separator + "detectorregions.dat");	
-
+		
 		//Load detector sign locations
 		SignActionDetector.init(getDataFolder() + File.separator + "detectorsigns.dat");
-
+		
 		//Restore carts where possible
 		WorldGroupManager.refresh();
-		
+				
 		//Properly dispose of partly-referenced carts
 		new Operation(false) {
 			private Set worldentities;
@@ -332,7 +352,7 @@ public class TrainCarts extends PluginBase {
 		TrainProperties.deinit();
 
 		//Save destinations
-		PathNode.deinit();
+		PathNode.deinit(getDataFolder() + File.separator + "destinations.dat");
 
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");

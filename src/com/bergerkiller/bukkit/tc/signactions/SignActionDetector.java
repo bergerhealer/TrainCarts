@@ -2,15 +2,10 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 import net.minecraft.server.ChunkCoordinates;
 
@@ -28,6 +23,8 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.common.config.DataReader;
+import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
@@ -316,9 +313,8 @@ public class SignActionDetector extends SignAction {
 
 	public static void init(String filename) {
 		detectors.clear();
-		try {
-			DataInputStream stream = new DataInputStream(new FileInputStream(filename));
-			try {
+		new DataReader(filename) {
+			public void read(DataInputStream stream) throws IOException {
 				int count = stream.readInt();
 				for (;count > 0; --count) {
 					//get required info
@@ -336,28 +332,12 @@ public class SignActionDetector extends SignAction {
 					detectors.put(det.region.getWorldName(), det.sign1, det);
 					detectors.put(det.region.getWorldName(), det.sign2, det);
 				}
-			} catch (IOException ex) {
-				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector sign locations!");
-				ex.printStackTrace();
-			} catch (Exception ex) {
-				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector sign locations!");
-				ex.printStackTrace();
-			} finally {
-				stream.close();
 			}
-		} catch (FileNotFoundException ex) {
-			//nothing, we allow non-existence of this file
-		} catch (Exception ex) {
-			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector sign locations!");
-			ex.printStackTrace();
-		}
+		}.read();
 	}
 	public static void deinit(String filename) {
-		try {
-			File f = new File(filename);
-			if (f.exists()) f.delete();
-			DataOutputStream stream = new DataOutputStream(new FileOutputStream(filename));
-			try {
+		new DataWriter(filename) {
+			public void write(DataOutputStream stream) throws IOException {
 				Set<Detector> detectorset = new HashSet<Detector>(detectors.size() / 2);
 				for (Detector dec : detectors.values()) {
 					detectorset.add(dec);
@@ -370,22 +350,8 @@ public class SignActionDetector extends SignAction {
 					stream.writeBoolean(det.sign1down);
 					stream.writeBoolean(det.sign2down);
 				}
-			} catch (IOException ex) {
-				TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading detector sign locations!");
-				ex.printStackTrace();
-			} catch (Exception ex) {
-				TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading detector sign locations!");
-				ex.printStackTrace();
-			} finally {
-				stream.close();
 			}
-		} catch (FileNotFoundException ex) {
-			TrainCarts.plugin.log(Level.WARNING, "Failed to write to the detector  sign locations save file!");
-			ex.printStackTrace();
-		} catch (Exception ex) {
-			TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading detector sign locations!");
-			ex.printStackTrace();
-		}
+		}.write();
 	}
 	
 }

@@ -2,10 +2,6 @@ package com.bergerkiller.bukkit.tc.storage;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +23,8 @@ import org.bukkit.craftbukkit.util.LongHashtable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
+import com.bergerkiller.bukkit.common.config.DataReader;
+import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -279,9 +277,8 @@ public class WorldGroupManager {
 	public static void init(String filename) {
 		synchronized (managers) {
 			deinit();
-			try {
-				DataInputStream stream = new DataInputStream(new FileInputStream(filename));
-				try {
+			new DataReader(filename) {
+				public void read(DataInputStream stream) throws IOException {
 					int totalgroups = 0;
 					int totalmembers = 0;
 					int worldcount = stream.readInt();
@@ -306,21 +303,8 @@ public class WorldGroupManager {
 					if (totalmembers != 1) msg += "s";
 					msg += ")";
 					TrainCarts.plugin.log(Level.INFO, msg);
-				} catch (IOException ex) {
-					TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading groups!");
-					ex.printStackTrace();
-				} catch (Exception ex) {
-					TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading groups!");
-					ex.printStackTrace();
-				} finally {
-					stream.close();
 				}
-			} catch (FileNotFoundException ex) {
-				//nothing, we allow non-existence of groups
-			} catch (Exception ex) {
-				TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading groups!");
-				ex.printStackTrace();
-			}
+			}.read();
 		}
 	}
 
@@ -330,11 +314,8 @@ public class WorldGroupManager {
 	 */
 	public static void deinit(String filename) {
 		synchronized (managers) {
-			try {
-				File f = new File(filename);
-				if (f.exists()) f.delete();
-				DataOutputStream stream = new DataOutputStream(new FileOutputStream(filename));
-				try {			
+			new DataWriter(filename) {
+				public void write(DataOutputStream stream) throws IOException {
 					//clear empty worlds
 					Iterator<WorldGroupManager> iter = managers.values().iterator();
 					while (iter.hasNext()) {
@@ -351,22 +332,8 @@ public class WorldGroupManager {
 						stream.writeInt(entry.getValue().groups.size());
 						for (WorldGroup wg : entry.getValue().groups) wg.writeTo(stream);
 					}
-				} catch (IOException ex) {
-					TrainCarts.plugin.log(Level.WARNING, "An IO exception occured while reading groups!");
-					ex.printStackTrace();
-				} catch (Exception ex) {
-					TrainCarts.plugin.log(Level.WARNING, "A general exception occured while reading groups!");
-					ex.printStackTrace();
-				} finally {
-					stream.close();
 				}
-			} catch (FileNotFoundException ex) {
-				TrainCarts.plugin.log(Level.WARNING, "Failed to write to the groups save file!");
-				ex.printStackTrace();
-			} catch (Exception ex) {
-				TrainCarts.plugin.log(Level.WARNING, "An exception occured at the end while reading groups!");
-				ex.printStackTrace();
-			}
+			}.write();
 			deinit();
 		}
 	}

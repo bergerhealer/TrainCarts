@@ -1,0 +1,86 @@
+package com.bergerkiller.bukkit.tc.signactions;
+
+import net.minecraft.server.World;
+
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.inventory.Inventory;
+
+import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.utils.RecipeUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
+
+public class SignActionCraft extends SignAction {
+
+	@Override
+	public void execute(SignActionEvent info) {
+		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
+			return;
+		}
+		if (info.isType("craft", "crafter")) {
+			//parse the sign
+			boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
+			boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
+			if (!docart && !dotrain) return;
+			if (!info.hasRailedMember()) return;
+			
+			int radX, radY, radZ;
+			radX = radY = radZ = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
+			BlockFace dir = info.getRailDirection();
+			if (dir == BlockFace.SOUTH) {
+				radX = 0;
+			} else if (dir == BlockFace.WEST) {
+				radZ = 0;
+			}
+			World world = WorldUtil.getNative(info.getWorld());
+			Block m = info.getRails();
+			int id;
+			Block w = null;
+			for (int x = -radX; x <= radX && w == null; x++) {
+				for (int y = -radY; y <= radY && w == null; y++) {
+					for (int z = -radZ; z <= radZ && w == null; z++) {
+						id = world.getTypeId(m.getX() + x, m.getY() + y, m.getZ() + z);
+						if (id == Material.WORKBENCH.getId()) {
+							w = m.getRelative(x, y, z);
+						}
+					}
+				}
+			}
+			if (w != null) {
+				//get the inventory to transfer in
+		        Inventory inventory;
+		        if (docart) {
+		        	if (!info.getMember().isStorageCart()) return;
+		        	inventory = info.getMember().getInventory();
+		        } else {
+		        	inventory = info.getGroup().getInventory();
+		        }
+		        if (TrainCarts.showTransferAnimations) {
+		        	inventory = new InventoryWatcher(w, info.getMember(), inventory);
+		        }
+		        
+		        //craft
+		        for (ItemParser item : Util.getParsers(info.getLine(2), info.getLine(3))) {
+		        	RecipeUtil.craftItems(item, inventory);
+		        }
+			}
+		}
+	}
+
+	@Override
+	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+		if (mode != SignActionMode.NONE) {
+			if (type.startsWith("craft")) {
+				handleBuild(event, Permission.BUILD_CRAFTER, "workbench item crafter", "craft items inside storage minecarts");
+			}
+		}
+	}
+
+}

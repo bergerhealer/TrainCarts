@@ -1035,7 +1035,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Validate positions in the group
 			for (int i = 0; i < this.size() - 1; i++) {
 				if (!head(i + 1).isFollowingOnTrack(head(i))) {
-					System.out.println(head(i + 1).getDirection() + " - " + head(i).getDirection());
 					for (int j = i + 1; j < this.size(); j++) {
 						this.get(j).setForceFactor(stepcount);
 					}

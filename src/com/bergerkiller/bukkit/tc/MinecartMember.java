@@ -569,7 +569,7 @@ public class MinecartMember extends NativeMinecartMember {
 		boolean found;
 		for (Block signblock : this.activeSigns) {
 			SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.MEMBER_LEAVE);
-			if (this.dead) return; 
+			if (this.getGroup() == null) return; 
 			//this sign is not present in other members of the group?
 			found = false;
 			for (MinecartMember mm : this.getGroup()) {
@@ -579,7 +579,7 @@ public class MinecartMember extends NativeMinecartMember {
 				}
 			}
 			if (found) continue;
-			if (this.getGroup().size() == 1 || this.getGroup().tail() == this) {
+			if (this.getGroup().tail() == this) {
 				this.getGroup().setActiveSign(signblock, false);
 			}
 		}

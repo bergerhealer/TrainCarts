@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -10,9 +13,8 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.BlockMap;
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.common.config.CompressedDataReader;
+import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
@@ -90,25 +92,14 @@ public class PathNode {
 		return node;
 	}
 	
-	private PathNode(ConfigurationNode node) {
-		this.location = BlockLocation.parseLocation(node.getName());
-		if (this.location == null) {
-			this.name = null;
-			this.hasName = false;
-		} else {
-			this.name = node.get("name", this.location.toString());
-			this.hasName = !this.name.equals(this.location.toString());
-		}
-	}
 	private PathNode(final String name, final BlockLocation location) {
 		this.location = location;
-		this.name = name;
-		this.hasName = !this.name.equals(this.location.toString());
+		this.name = name == null ? location.toString() : name;
 	}
 	
+	public int index;
 	public final String name;
 	public final BlockLocation location;
-	private final boolean hasName;
 	public final Map<PathNode, PathConnection> neighboursFrom = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> neighboursTo = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
@@ -203,7 +194,7 @@ public class PathNode {
 	}
 
 	public String toString() {
-		return "[" + (this.hasName ? this.name + "/" : "") + this.location.toString() + "]";
+		return "[" + this.name + "]";
 	}
 	
 	public void explore() {
@@ -252,65 +243,80 @@ public class PathNode {
 		}
 	}
 
-	private static final String destinationsFile = "destinations.yml";
-	public static void init() {
-		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, destinationsFile);
-		config.load();
-		load(config);
+	
+	public static void init(String filename) {
+		new CompressedDataReader(filename) {
+			public void read(DataInputStream stream) throws IOException {
+				//initializing the nodes
+				int count = stream.readInt();
+				nodes = new HashMap<String, PathNode>(count);
+				blockNodes.clear();
+				PathNode[] parr = new PathNode[count];
+				for (int i = 0; i < count; i++) {
+					String name = stream.readUTF();
+					BlockLocation loc = new BlockLocation(stream.readUTF(), stream.readInt(), stream.readInt(), stream.readInt());
+					if (name.length() == 0) {
+						name = loc.toString();
+					}
+					parr[i] = new PathNode(name, loc);
+					nodes.put(parr[i].name, parr[i]);
+					blockNodes.put(loc, parr[i]);
+				}
+				//generating connections
+				for (PathNode node : parr) {
+					PathConnection conn;
+					int ncount = stream.readInt();
+					for (int i = 0 ; i < ncount; i++) {
+						conn = new PathConnection(stream, parr[stream.readInt()]);
+						node.neighboursTo.put(conn.destination, conn);
+						conn.destination.neighboursFrom.put(node, conn);
+						node.connections.put(conn.destination, conn);
+					}
+					
+					ncount = stream.readInt();
+					for (int i = 0 ; i < ncount; i++) {
+						conn = new PathConnection(stream, parr[stream.readInt()]);
+						node.connections.put(conn.destination, conn);
+					}					
+				}
+			}
+		}.read();
 	}
-	public static void deinit() {
-		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, destinationsFile);
-		save(config);
-		config.save();
+	public static void deinit(String filename) {
+		new CompressedDataWriter(filename) {
+			public void write(DataOutputStream stream) throws IOException {
+				stream.writeInt(nodes.size());
+				//generate indices
+				int i = 0;
+				for (PathNode node : nodes.values()) {
+					node.index = i;
+					if (node.name.equals(node.location.toString())) {
+						stream.writeShort(0);
+					} else {
+						stream.writeUTF(node.name);
+					}
+					stream.writeUTF(node.location.world);
+					stream.writeInt(node.location.x);
+					stream.writeInt(node.location.y);
+					stream.writeInt(node.location.z);
+					i++;
+				}
+				//write out connections
+				for (PathNode node : nodes.values()) {
+					stream.writeInt(node.neighboursTo.size());
+					for (PathConnection conn : node.neighboursTo.values()) {
+					    conn.writeTo(stream);
+					}
+					stream.writeInt(node.connections.size() - node.neighboursTo.size());
+					for (PathConnection conn : node.connections.values()) {
+						if (node.neighboursTo.containsKey(conn.destination)) continue;
+						conn.writeTo(stream);
+					}
+				}
+			}
+		}.write();
 		clearAll();
 	}
-	public static void load(FileConfiguration config) {
-		for (ConfigurationNode node : config.getNodes()) {
-			PathNode pn = new PathNode(node);
-			if (pn.location != null && pn.name != null) {
-				nodes.put(pn.name, pn);
-				blockNodes.put(pn.location, pn);
-			}
-		}
-		for (PathNode pnode : nodes.values()) {
-			pnode.load(config.getNode(pnode.location.toString()));
-		}
-	}
-	public static void save(FileConfiguration config) {
-		for (PathNode pnode : nodes.values()) {
-			pnode.save(config.getNode(pnode.location.toString()));
-		}
-	}
-	public void load(ConfigurationNode node) {
-		node = node.getNode("neighbours");
-		String directionname;
-		for (ConfigurationNode neigh : node.getNodes()) {
-			PathNode pnode = get(neigh.getName());
-			if (pnode == null) continue; //not found
-			Integer distance = neigh.get("dist", Integer.class);
-			if (distance == null) continue; //invalid
-			directionname = neigh.get("dir", String.class, null);
-			if (directionname == null) continue; //invalid
-			BlockFace direction = null;
-			//parse direction
-			if (directionname.equals("NORTH")) direction = BlockFace.NORTH;
-			if (directionname.equals("EAST")) direction = BlockFace.EAST;
-			if (directionname.equals("SOUTH")) direction = BlockFace.SOUTH;
-			if (directionname.equals("WEST")) direction = BlockFace.WEST;
-			if (direction == null) continue; //invalid
-			//create
-			this.createNeighbourConnection(pnode, distance, direction);
-		}
-	}
-	public void save(ConfigurationNode node) {
-		if (this.hasName) node.set("name", this.name);
-		if (!this.neighboursTo.isEmpty()) {
-			node = node.getNode("neighbours");
-			for (Map.Entry<PathNode, PathConnection> entry : this.neighboursTo.entrySet()) {
-				ConfigurationNode neigh = node.getNode(entry.getKey().name);
-				neigh.set("dir", entry.getValue().direction.toString());
-				neigh.set("dist", entry.getValue().distance);
-			}
-		}
-	}
+	
+	
 }
