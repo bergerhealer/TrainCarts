@@ -79,9 +79,13 @@ public class SignActionDeposit extends SignAction {
     	for (ItemParser p : cooked) {
     		limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
     		for (TileEntityFurnace f : furnaces) {
-    			furnaceinv = new CraftInventory(f);
+    			if (TrainCarts.showTransferAnimations) {
+    				furnaceinv = InventoryWatcher.convert(m, f, f);
+    			} else {
+    				furnaceinv = new CraftInventory(f);
+    			}
+
     			ItemStack item = furnaceinv.getItem(0);
-    			if (TrainCarts.showTransferAnimations) furnaceinv = new InventoryWatcher(f, m, furnaceinv);
     			limit -= ItemUtil.transfer(cartinv, item, p, limit);
     			ItemUtil.setItem(furnaceinv, 0, item);
     		}
@@ -94,8 +98,11 @@ public class SignActionDeposit extends SignAction {
 			//first fill the amount needed
 			for (TileEntityFurnace f : furnaces) {
 				if (limit == 0) return;
-				
-				furnaceinv = new CraftInventory(f);
+    			if (TrainCarts.showTransferAnimations) {
+    				furnaceinv = InventoryWatcher.convert(m, f, f);
+    			} else {
+    				furnaceinv = new CraftInventory(f);
+    			}
 				ItemStack cookeditem = furnaceinv.getItem(0);
 				if (cookeditem.getTypeId() == 0) continue;
 				int fuelNeeded = cookeditem.getAmount() * 200;
@@ -119,16 +126,18 @@ public class SignActionDeposit extends SignAction {
 				if (fuelNeeded <= 0) continue;
 				//====================================================
 				int itemcount = Math.min(limit, (int) Math.ceil((double) fuelNeeded / (double) fuelPerItem));
-				if (TrainCarts.showTransferAnimations) furnaceinv = new InventoryWatcher(f, m, furnaceinv);
 				limit -= ItemUtil.transfer(cartinv, fuel, p, itemcount);
 				ItemUtil.setItem(furnaceinv, 1, fuel);
 			}
 			//if an amount is set; top it off
 			if (p.hasAmount()) {
         		for (TileEntityFurnace f : furnaces) {
-        			furnaceinv = new CraftInventory(f);
+        			if (TrainCarts.showTransferAnimations) {
+        				furnaceinv = InventoryWatcher.convert(m, f, f);
+        			} else {
+        				furnaceinv = new CraftInventory(f);
+        			}
         			ItemStack item = furnaceinv.getItem(1);
-        			if (TrainCarts.showTransferAnimations) furnaceinv = new InventoryWatcher(f, m, furnaceinv);
         			limit -= ItemUtil.transfer(cartinv, item, p, limit);
         			ItemUtil.setItem(furnaceinv, 1, item);
         		}
@@ -195,8 +204,7 @@ public class SignActionDeposit extends SignAction {
 		
 		if (!invlist.isEmpty()) {
 			int limit;
-			Inventory to = MergedInventory.convert(invlist);
-			if (TrainCarts.showTransferAnimations) to = new InventoryWatcher(info.getMember(), invlist.get(0), to);
+			final Inventory to = MergedInventory.convert(invlist);
 			for (ItemParser p : parsers) {
 				if (p == null) continue;
 				limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;

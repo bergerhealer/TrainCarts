@@ -8,19 +8,41 @@ import net.minecraft.server.TileEntity;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class ItemAnimation {
 	
 	private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<ItemAnimation>();
 	private static Task task;
+	public static void start(Object from, Object to, net.minecraft.server.ItemStack data) {
+		if (data == null) return;
+		start(from, to, new CraftItemStack(data));
+	}
 	public static void start(Object from, Object to, ItemStack data) {
 		if (from == null || to == null || data == null) return;
+		if (data.getAmount() == 0) return;
+		data = data.clone();
+		//try to stack the item to a nearby location first
+		Location l1 = getLocation(fixObject(from));
+		for (ItemAnimation anim : runningAnimations) {
+			Location l2 = getLocation(fixObject(anim.item));
+			if (l2 != null && l1.getWorld() == l2.getWorld()) {
+				if (l1.distanceSquared(l2) < 10.0) {
+					ItemStack thisdata = new CraftItemStack(anim.item.itemStack);
+					if (thisdata.getAmount() == 0) continue;
+					ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);
+					if (data.getAmount() == 0) return;
+				}
+			}
+		}
+		if (data.getAmount() == 0) return;
 		runningAnimations.add(new ItemAnimation(from, to, data));
 		if (task != null) return;
 		task = new Task() {
@@ -64,7 +86,7 @@ public class ItemAnimation {
 		this.item = new VirtualItem(f, data);
 		this.item.motY += 0.1;
 	}
-	
+		
 	private static Object fixObject(Object object) {
 		if (object instanceof TileEntity) {
 			TileEntity t = (TileEntity) object;

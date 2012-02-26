@@ -13,14 +13,17 @@ import net.minecraft.server.TileEntityFurnace;
 
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -93,6 +96,22 @@ public class SignActionCollect extends SignAction {
 		return BlockUtil.getTileEntities(info.getRails(), radX, radius, radZ);
 	}
 	
+	public void collect(List<IInventory> furnaces, ItemParser[] parsers, Inventory cartinv, MinecartMember m) {
+		int limit;
+		Inventory furnaceinv;
+		for (ItemParser p : parsers) {
+    		limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
+    		for (IInventory f : furnaces) {
+    			furnaceinv = new CraftInventory(f);
+    			ItemStack item = furnaceinv.getItem(2);
+    			if (item.getTypeId() != 0 && p.match(item)) {
+        			limit -= ItemUtil.transfer(item, cartinv, limit);
+        			ItemUtil.setItem(furnaceinv, 2, item);
+    			}
+    		}
+		}
+	}
+	
 	@Override
 	public void execute(SignActionEvent info) {		  
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
@@ -108,19 +127,21 @@ public class SignActionCollect extends SignAction {
 		
 		//get the tile entities to collect
 		List<IInventory> invlist = new ArrayList<IInventory>();
+		List<IInventory> furnacelist = new ArrayList<IInventory>();
 		Set<TileEntity> found = getTileEntities(info, radius);
 		if (found.isEmpty()) return;
 		for (Material mat : typesToCheck) {
 			if (mat == Material.CHEST) {
 				for (TileEntity tile : found) {
 					if (tile instanceof TileEntityChest) {
+						
 						invlist.add((IInventory) tile);
 					}
 				}
 			} else if (mat == Material.FURNACE) {
 				for (TileEntity tile : found) {
 					if (tile instanceof TileEntityFurnace) {
-						invlist.add((IInventory) tile);
+						furnacelist.add((IInventory) tile);
 					}
 				}
 			} else if (mat == Material.DISPENSER) {
@@ -131,8 +152,21 @@ public class SignActionCollect extends SignAction {
 				}
 			}
 		}
-		if (invlist.isEmpty()) return;
+		if (invlist.isEmpty() && furnacelist.isEmpty()) return;
 		
+		//convert inventories to watched inventories
+		if (TrainCarts.showTransferAnimations) {
+			for (int i = 0; i < invlist.size(); i++) {
+				IInventory inv = invlist.get(i);
+				invlist.set(i, new InventoryWatcher(info.getMember(), inv, inv));
+			}
+			for (int i = 0; i < furnacelist.size(); i++) {
+				IInventory inv = furnacelist.get(i);
+				furnacelist.set(i, new InventoryWatcher(info.getMember(), inv, inv));
+			}
+		}
+		
+
 		//parse the sign
 		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
 		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
@@ -146,21 +180,29 @@ public class SignActionCollect extends SignAction {
         } else {
         	to = info.getGroup().getInventory();
         }
-		
-		//get inventory
-		Inventory from = MergedInventory.convert(invlist);
-		if (TrainCarts.showTransferAnimations) to = new InventoryWatcher(invlist.get(0), info.getMember(), to);
-
+        
 		//get items to transfer
         ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
         
-		//actually transfer
-        int limit;
-		for (ItemParser p : parsers) {
-			if (p == null) continue;
-			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-			ItemUtil.transfer(from, to, p, limit);
-		}
+        //collect from furnaces
+        if (!furnacelist.isEmpty()) {
+        	collect(furnacelist, parsers, to, info.getMember());
+        }
+        
+        if (!invlist.isEmpty()) {
+    		//get inventory
+    		Inventory from = MergedInventory.convert(invlist);
+    		//if (TrainCarts.showTransferAnimations) to = new InventoryWatcher(invlist.get(0), info.getMember(), to);
+
+            
+    		//actually transfer
+            int limit;
+    		for (ItemParser p : parsers) {
+    			if (p == null) continue;
+    			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
+    			ItemUtil.transfer(from, to, p, limit);
+    		}
+        }
 	}
 
 	@Override
