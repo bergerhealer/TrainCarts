@@ -63,6 +63,18 @@ public class WorldGroupManager {
 			}
 		}
 	}
+	public static void unloadChunk(Chunk chunk) {
+		synchronized (managers) {
+			WorldGroupManager man = managers.get(chunk.getWorld().getUID());
+			if (man != null) {
+				if (man.groups.isEmpty()) {
+					managers.remove(chunk.getWorld().getUID());
+				} else {
+					man.unloadChunk(chunk.getX(), chunk.getZ());
+				}
+			}
+		}
+	}
 
 	private Set<WorldGroup> groups = new HashSet<WorldGroup>();
 	private LongHashtable<Set<WorldGroup>> groupmap = new LongHashtable<Set<WorldGroup>>();
@@ -93,10 +105,9 @@ public class WorldGroupManager {
 		ChunkProviderServer cps = WorldUtil.getNative(world).chunkProviderServer;
 		group.chunkCounter = 0;
 		for (long chunk : group.chunks) {
+			this.add(chunk, group);
 			if (cps.chunks.containsKey(chunk)) {
 				group.chunkCounter++;
-			} else {
-				this.add(chunk, group);
 			}
 		}
 		this.groups.add(group);
@@ -110,6 +121,14 @@ public class WorldGroupManager {
 		containedTrains.add(group.name);
 	}
 
+	public void unloadChunk(int x, int z) {
+		Set<WorldGroup> groupset = this.groupmap.get(x, z);
+		if (groupset != null) {
+			for (WorldGroup group : groupset) {
+				group.chunkCounter--;
+			}
+		}
+	}
 	public void loadChunk(World world, int x, int z) {
 		Set<WorldGroup> groupset = groupmap.get(x, z);
 		if (groupset != null) {

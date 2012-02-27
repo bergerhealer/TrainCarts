@@ -257,7 +257,7 @@ public class TrainProperties {
 		save();
 		defconfig = null;
 	}
-    
+    		
 	/*
 	 * Train properties defaults
 	 */

@@ -13,7 +13,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-
 import net.minecraft.server.IInventory;
 
 import org.bukkit.Chunk;
@@ -25,7 +24,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
@@ -600,9 +598,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public void eject() {
 		for (MinecartMember mm : this) mm.eject();
-	}
-	public void eject(Vector offset) {
-		for (MinecartMember mm : this) mm.eject(offset);
 	}
 
 	public void teleport(Block start, BlockFace direction) {

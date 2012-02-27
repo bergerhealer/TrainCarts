@@ -221,8 +221,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return null;
 	}
-	
-	
+		
 	public static MinecartMember getAt(Location at) {
 		return getAt(at, null);
 	}
@@ -1152,15 +1151,15 @@ public class MinecartMember extends NativeMinecartMember {
 	public void eject() {
 		this.getMinecart().eject();
 	}
-	public void eject(Vector offset) {
+	public void eject(Location to) {
 		if (this.passenger != null) {
 			Entity passenger = this.passenger.getBukkitEntity();
 			this.passenger.setPassengerOf(null);
-			new Task(TrainCarts.plugin, passenger, offset) {
+			new Task(TrainCarts.plugin, passenger, to) {
 				public void run() {
 					Entity e = arg(0, Entity.class);
-					Vector offset = arg(1, Vector.class);
-					e.teleport(e.getLocation().add(offset.getX(), offset.getY(), offset.getZ()));
+				    Location l = arg(1, Location.class);
+					e.teleport(l);
 				}
 			}.start(0);
 		}

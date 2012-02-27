@@ -134,7 +134,6 @@ public class SignActionCollect extends SignAction {
 			if (mat == Material.CHEST) {
 				for (TileEntity tile : found) {
 					if (tile instanceof TileEntityChest) {
-						
 						invlist.add((IInventory) tile);
 					}
 				}

@@ -7,6 +7,8 @@ import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
@@ -50,6 +52,10 @@ public class GlobalCommands {
 			PathNode.clearAll();
 			sender.sendMessage("All train routings will be recalculated.");
 			return true;
+		} else if (args[0].equals("reload")) {
+			Permission.COMMAND_RELOAD.handle(sender);
+			TrainProperties.reloadDefaults();
+			TrainCarts.plugin.loadConfig();
 		}
 		return false;
 	}

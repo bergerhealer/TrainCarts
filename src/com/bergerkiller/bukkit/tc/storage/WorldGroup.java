@@ -64,7 +64,7 @@ class WorldGroup {
 				}
 			}
 		}
-		this.chunkCounter = this.chunks.size();
+		this.chunkCounter = 0;
 	}
 	
 	/**

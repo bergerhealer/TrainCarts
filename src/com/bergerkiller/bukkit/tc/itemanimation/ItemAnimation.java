@@ -34,7 +34,7 @@ public class ItemAnimation {
 		for (ItemAnimation anim : runningAnimations) {
 			Location l2 = getLocation(fixObject(anim.item));
 			if (l2 != null && l1.getWorld() == l2.getWorld()) {
-				if (l1.distanceSquared(l2) < 10.0) {
+				if (l1.distanceSquared(l2) < 4.0) {
 					ItemStack thisdata = new CraftItemStack(anim.item.itemStack);
 					if (thisdata.getAmount() == 0) continue;
 					ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);

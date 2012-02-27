@@ -44,6 +44,7 @@ public class TrainCarts extends PluginBase {
 	/*
 	 * Settings
 	 */	
+	public static double maxEjectDistance;
 	public static double cartDistance;
 	public static double turnedCartDistance;
 	public static double cartDistanceForcer;
@@ -117,7 +118,7 @@ public class TrainCarts extends PluginBase {
 		nearCartDistanceFactor = config.get("nearCartDistanceFactor", 1.2);	
 
 		config.setHeader("maxCartDistance", "\nThe maximum allowed cart distance, after this distance the carts break apart");
-		maxCartDistance = config.get("maxCartDistance", (double) 4);
+		maxCartDistance = config.get("maxCartDistance", 4.0);
 
 		config.setHeader("breakCombinedCarts", "\nWhether or not the combined carts (powered/storage minecarts) break up into two items");
 		breakCombinedCarts = config.get("breakCombinedCarts", false);
@@ -129,9 +130,12 @@ public class TrainCarts extends PluginBase {
 		poweredCartBoost = config.get("poweredCartBoost", 0.1);
 
 		config.setHeader("exitOffset", "\nThe XYZ offset used when a passenger exits a minecart");
-		exitx = config.get("exitOffset.x", (double) 0);
-		exity = config.get("exitOffset.y", (double) 0);
-		exitz = config.get("exitOffset.z", (double) 0);
+		exitx = config.get("exitOffset.x", 0.0);
+		exity = config.get("exitOffset.y", 0.0);
+		exitz = config.get("exitOffset.z", 0.0);
+		
+		config.setHeader("maxEjectDistance", "\nThe maximum allowed ejection distance for eject signs");
+		maxEjectDistance = config.get("maxEjectDistance", 10.0);
 
 		config.setHeader("launchForce", "\nThe amount of velocity stations give when launching trains");
 		launchForce = config.get("launchForce", 10.0);

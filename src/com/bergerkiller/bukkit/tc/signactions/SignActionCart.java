@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 
@@ -17,22 +15,6 @@ public class SignActionCart extends SignAction {
 				if (info.isType("destroy")) {
 					if (!info.hasRailedMember()) return;
 					info.getMember().die();
-				} else if (info.isType("eject")) {
-					if (!info.hasRailedMember()) return;
-					String[] offsettext = info.getLine(2).split("/");
-					Vector offset = new Vector();
-					if (offsettext.length == 3) {
-						offset.setX(StringUtil.tryParse(offsettext[0], 0));
-						offset.setY(StringUtil.tryParse(offsettext[1], 0));
-						offset.setZ(StringUtil.tryParse(offsettext[2], 0));
-					} else if (offsettext.length == 1) {
-						offset.setY(StringUtil.tryParse(offsettext[0], 0));
-					}
-					if (offset.equals(new Vector())) {
-						info.getMember().eject();
-					} else {
-						info.getMember().eject(offset);
-					}
 				}
 			}
 		}
@@ -43,8 +25,6 @@ public class SignActionCart extends SignAction {
 		if (mode == SignActionMode.CART) {
 			if (type.startsWith("destroy")) {
 				handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
-			} else if (type.startsWith("eject")) {
-				handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passenger of a minecart");
 			}
 		}
 	}

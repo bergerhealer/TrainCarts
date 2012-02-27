@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.ArrayList;
+
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -47,26 +49,31 @@ public class TCListener implements Listener {
 
 	private BlockSet poweredBlocks = new BlockSet();
 	public static Player lastPlayer = null;
-
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onChunkUnload(ChunkUnloadEvent event) {
-		if (!event.isCancelled()) {
-			boolean hastounload = false;
+	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
+	
+	@EventHandler(priority = EventPriority.LOWEST)
+	public void onChunkUnloadLow(ChunkUnloadEvent event) {
+		synchronized (this.expectUnload) {
+			this.expectUnload.clear();
 			for (MinecartGroup mg : MinecartGroup.getGroups()) {
 				if (mg.isInChunk(event.getChunk())) {
 					if (mg.canUnload()) {
-						hastounload = true;
+						this.expectUnload.add(mg);
 					} else {
 						event.setCancelled(true);
 						return;
 					}
 				}
 			}
-			if (hastounload) {
-				for (MinecartGroup mg : MinecartGroup.getGroups()) {
-					if (mg.isInChunk(event.getChunk())) {
-						WorldGroupManager.hideGroup(mg);
-					}
+		}
+	}
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onChunkUnload(ChunkUnloadEvent event) {
+		if (!event.isCancelled()) {
+			WorldGroupManager.unloadChunk(event.getChunk());
+			synchronized (this.expectUnload) {
+				for (MinecartGroup mg : this.expectUnload) {
+					WorldGroupManager.hideGroup(mg);
 				}
 			}
 		}
@@ -99,6 +106,7 @@ public class TCListener implements Listener {
 			new Task(TrainCarts.plugin, event.getExited(), loc) {
 				public void run() {
 					Entity e = arg(0, Entity.class);
+					if (e.isDead()) return;
 					Location loc = arg(1, Location.class);
 					loc.setYaw(e.getLocation().getYaw());
 					loc.setPitch(e.getLocation().getPitch());
@@ -224,7 +232,7 @@ public class TCListener implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onPlayerInteract(PlayerInteractEvent event) {
+	public void onPlayerInteract(PlayerInteractEvent event) {		
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 			int id = event.getClickedBlock().getTypeId();
 			boolean isplate = Util.isPressurePlate(id);

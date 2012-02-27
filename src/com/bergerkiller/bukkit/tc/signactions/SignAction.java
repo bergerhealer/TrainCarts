@@ -20,6 +20,7 @@ public abstract class SignAction {
 		register(new SignActionProperties());
 		register(new SignActionTrigger());
 		register(new SignActionTeleport());
+		register(new SignActionEject());
 		register(new SignActionCart());
 		register(new SignActionTrain());
 		register(new SignActionCollect());
