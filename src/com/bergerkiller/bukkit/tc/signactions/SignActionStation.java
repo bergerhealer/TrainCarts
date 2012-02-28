@@ -23,7 +23,7 @@ public class SignActionStation extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("station") && info.hasRails()) {
-					MinecartGroup group = info.getGroup();
+					MinecartGroup group = info.getGroup(true);
 					if (group != null) {
 						if (info.isAction(SignActionType.GROUP_LEAVE)) {
 							info.setLevers(false);
@@ -112,7 +112,6 @@ public class SignActionStation extends SignAction {
 										//Brake
 										//TODO: ADD CHECK?!
 										group.clearActions();		
-										toAffect.addActionLaunch(info.getRailLocation(), 0);
 										BlockFace trainDirection = null;
 										if (mode == StationMode.CONTINUE) {
 											trainDirection = toAffect.getDirection();
@@ -127,15 +126,22 @@ public class SignActionStation extends SignAction {
 												trainDirection = FaceUtil.rotate(trainDirection, -2);
 											}	
 										}
+										if (trainDirection != group.head().getDirectionTo()) {
+											toAffect.addActionLaunch(info.getRailLocation(), 0);
+										}
 										if (trainDirection != null) {
 											//Actual launching here
 											if (delayMS > 0) {
+												toAffect.addActionLaunch(info.getRailLocation(), 0);
 												if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 												info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+												group.addActionWait(delayMS);
+											} else if (group.head().getDirectionTo() != trainDirection) {
+												toAffect.addActionLaunch(info.getRailLocation(), 0);
 											}
-											group.addActionWait(delayMS);
 											toAffect.addActionLaunch(trainDirection, length, TrainCarts.launchForce);
 										} else {
+											toAffect.addActionLaunch(info.getRailLocation(), 0);
 											info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 											if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 											group.addActionWaitForever();

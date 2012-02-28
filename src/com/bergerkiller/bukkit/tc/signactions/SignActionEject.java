@@ -25,7 +25,7 @@ public class SignActionEject extends SignAction {
 		} else {
 			return;
 		}
-		if (info.isPoweredFacing()) {
+		if (info.hasMember() && info.isPoweredFacing()) {
 			//read from the sign
 			String[] offsettext = info.getLine(2).split("/");
 			String[] angletext = info.getLine(3).split("/");

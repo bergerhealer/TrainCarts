@@ -2,12 +2,24 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
 public class SignActionDestination extends SignAction {
 
+	public void setDestination(CartProperties prop, SignActionEvent info) {
+		if (!info.isAction(SignActionType.REDSTONE_CHANGE)) {
+			if (!info.getLine(2).isEmpty() && !prop.destination.isEmpty()) {
+				if (!info.getLine(2).equals(prop.destination)) {
+					return;
+				}
+			}
+		}
+		prop.destination = info.getLine(3);
+	}
+	
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("destination")) return;
@@ -15,12 +27,14 @@ public class SignActionDestination extends SignAction {
 			if (!info.hasRailedMember()) return;
 		    PathNode.getOrCreate(info);
 			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
-			info.getMember().getProperties().destination = info.getLine(3);
+			setDestination(info.getMember().getProperties(), info);
 		} else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {
 			if (!info.hasRailedMember()) return;
 			PathNode.getOrCreate(info);
 			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
-			info.getGroup().getProperties().setDestination(info.getLine(3));
+			for (CartProperties prop : info.getGroup().getProperties().getCarts()) {
+				setDestination(prop, info);
+			}
 		}
 	}
 

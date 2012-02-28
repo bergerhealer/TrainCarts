@@ -50,12 +50,14 @@ public class GlobalCommands {
 		} else if (args[0].equals("reroute")) {
 			Permission.COMMAND_REROUTE.handle(sender);
 			PathNode.clearAll();
-			sender.sendMessage("All train routings will be recalculated.");
+			sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated.");
 			return true;
 		} else if (args[0].equals("reload")) {
 			Permission.COMMAND_RELOAD.handle(sender);
 			TrainProperties.reloadDefaults();
 			TrainCarts.plugin.loadConfig();
+			sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
+			return true;
 		}
 		return false;
 	}

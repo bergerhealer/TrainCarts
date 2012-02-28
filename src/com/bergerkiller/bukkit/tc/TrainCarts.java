@@ -199,6 +199,7 @@ public class TrainCarts extends PluginBase {
 		//parser shortcuts
 		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
 		ConfigurationNode itemshort = config.getNode("itemShortcuts");
+		parsers.clear();
 		parsers.put("fuel", Util.getParsers(itemshort.get("fuel", "wood;coal;stick")));
 		String heatables = itemshort.get("heatable", "");
 		if (heatables.isEmpty()) {

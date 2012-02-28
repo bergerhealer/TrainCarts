@@ -244,7 +244,7 @@ public class TrainProperties {
 		properties.put(this.trainname, this);
 	}
 	public TrainProperties rename(String newtrainname) {
-		this.remove();
+		properties.remove(this.trainname);
 		this.trainname = newtrainname;
 		properties.put(newtrainname, this);
 		return this;

@@ -13,7 +13,10 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
+import net.minecraft.server.ItemStack;
+import net.minecraft.server.PlayerInventory;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -23,10 +26,13 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.API.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.API.GroupLinkEvent;
@@ -324,9 +330,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public GroupActionSizzle addActionSizzle() {
 		return this.addAction(new GroupActionSizzle(this));
-	}
-	public GroupActionWaitOccupied addActionWaitOccupied(int maxsize) {
-		return this.addAction(new GroupActionWaitOccupied(this, maxsize));
 	}
 	public boolean isWaitAction() {
 		Action a = this.actions.peek();
@@ -752,15 +755,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	    	state = this.hasPassenger();
 	    } else if (tag.equalsIgnoreCase("items")) {
 	    	state =  this.hasItems();
-	    } else if (tag.toLowerCase().startsWith("item")) {
-	    	ItemParser parser = ItemParser.parse(tag.substring(4));
-	    	if (parser != null) {
-	    		state =  this.hasItem(parser);
-	    	} else {
-	    		state =  this.hasItems();
-	    	}
 	    } else if (tag.equalsIgnoreCase("empty")) {
-	    	state = ! this.hasItems() && ! this.hasPassenger();
+	    	state = !this.hasItems() && !this.hasPassenger();
 	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
 	    	state =  this.hasFuel();
 	    } else if (tag.equalsIgnoreCase("powered")) {
@@ -770,7 +766,117 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	    } else if (tag.equalsIgnoreCase("minecart")) {
 	    	state =  this.size(Material.MINECART) > 0;
 	    } else {
-	    	state = this.getProperties().hasTag(tag);
+	    	String lowertag = tag.toLowerCase();
+	    	if (lowertag.startsWith("i@")) {
+	    		//contains this item?
+	    		state = false;
+	    		for (ItemParser parser : Util.getParsers(lowertag.substring(2))) {
+	    			if (this.hasItem(parser)) {
+	    				state = true;
+	    				break;
+	    			}
+	    		}
+	    	} else if (lowertag.startsWith("o@")) {
+	    		//contains this owner?
+	    		for (MinecartMember mm : this) {
+	    			if (mm.getProperties().isOwner(lowertag.substring(2))){
+	    				state = true;
+	    				break;
+	    			}
+	    		}
+	    	} else if (lowertag.startsWith("p@")) {
+	    		//contains this player passenger?
+	    		for (MinecartMember mm : this) {
+		    		if (mm.hasPlayerPassenger()) {
+		    			String pname = ((Player) mm.passenger.getBukkitEntity()).getName();
+		    			if (pname.equalsIgnoreCase(lowertag.substring(2))) {
+		    				state = true;
+		    				break;
+		    			}
+		    		}
+	    		}
+	    	} else if (lowertag.startsWith("m@")) {
+	    		//contains this mob as passenger?
+	    		String[] types = lowertag.substring(2).split(";");
+	    		if (types.length == 0) {
+	    			//contains a mob?
+	    			for (MinecartMember mm : this) {
+	    				if (!mm.hasPassenger()) continue;
+	    				if (!EntityUtil.isMob(mm.passenger)) continue;
+	    				state = true;
+	    				break;
+	    			}
+	    		} else {
+	    			//contains one of the defined mobs?
+	    			for (int i = 0; i < types.length; i++) {
+	    				types[i] = types[i].replace("_", "").replace(" ", "");
+	    			}
+	    			for (MinecartMember mm : this) {
+	    				if (!mm.hasPassenger()) continue;
+	    				if (!EntityUtil.isMob(mm.passenger)) continue;
+	    				String mobname = EntityUtil.getName(mm.passenger);
+	    				for (String type : types) {
+	    				    if (mobname.contains(type)) {
+	    				    	state = true;
+	    				    	break;
+	    				    }
+	    				}
+	    				if (state) break;
+	    			}
+	    		}
+	    	} else if (lowertag.startsWith("pi@")) {
+	    		//player inventory contains these items?
+    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
+    				for (MinecartMember mm : this) {
+    					if (!mm.hasPlayerPassenger()) continue;
+    					PlayerInventory inventory = ((EntityPlayer) mm.passenger).inventory;
+        				if (parser.hasType()) {
+    	    				Integer data = parser.hasData() ? (int) parser.getData() : null;
+    	    				ItemStack item = ItemUtil.findItem(inventory, parser.getTypeId(), data);
+    	    				if (item == null) continue;
+    	    				if (parser.hasAmount()) {
+    	    					state = item.count >= parser.getAmount();
+    	    				} else {
+    	    					state = true;
+    	    				}
+        				} else {
+        					state = false;
+        					for (ItemStack item : inventory.getContents()) {
+        						if (item != null) {
+        							state = true;
+        							break;
+        						}
+        					}
+        					break;
+        				}
+    				}
+    				if (state) break;
+    			}
+	    	} else if (lowertag.startsWith("ph@")) {
+	    		//player item in hand is one of defined items?
+    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
+    				for (MinecartMember mm : this) {
+    					if (!mm.hasPlayerPassenger()) continue;
+    					ItemStack item = ((EntityPlayer) mm.passenger).inventory.getItemInHand();
+    					if (item == null) continue;
+        				if (parser.hasType()) {
+        					if (item == null || item.id != parser.getTypeId()) continue;
+        					if (parser.hasData() && item.getData() != parser.getData()) continue;
+        					if (parser.hasAmount() && item.count < parser.getAmount()) continue;
+        					state = true;
+        					break;
+        				} else {
+        					if (item != null) {
+        						state = true;
+        						break;
+        					}
+        				}
+    				}
+    				if (state) break;
+    			}
+	    	} else {
+		    	state = this.getProperties().hasTag(tag);
+	    	}
 	    }
 	    return state != inv;
 	}

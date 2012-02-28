@@ -13,8 +13,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
+import net.minecraft.server.PlayerInventory;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
 
@@ -248,6 +250,7 @@ public class MinecartMember extends NativeMinecartMember {
 		replacedCarts.remove(mm);
 		if (!mm.dead) {
 			denyConversion = true;
+			mm.died = true;
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
 			Util.replaceMinecarts(mm, em);
 			denyConversion = false;
@@ -304,6 +307,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private boolean isFlying = false;
 	private boolean isInitWorld = false;
 	private boolean needsUpdate = false;
+	private boolean ignoreAllCollisions = false;
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
@@ -656,6 +660,9 @@ public class MinecartMember extends NativeMinecartMember {
 	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
 		return this.addAction(new MemberActionLaunchDirection(this, targetdistance, targetvelocity, direction));
 	}
+	public MemberActionWaitOccupied addActionWaitOccupied(int maxsize) {
+		return this.addAction(new MemberActionWaitOccupied(this, maxsize));
+	}
 	
 	/*
 	 * Velocity functions
@@ -1006,6 +1013,9 @@ public class MinecartMember extends NativeMinecartMember {
 	public Inventory getInventory() {
 		return new CraftInventory(this);
 	}
+	public boolean hasPlayerPassenger() {
+		return this.passenger != null && this.passenger instanceof EntityPlayer;
+	}
 	public boolean hasItem(ItemParser item) {
 		if (item == null) return false;
 		if (item.hasData()) {
@@ -1061,13 +1071,6 @@ public class MinecartMember extends NativeMinecartMember {
 	    	state = this.hasPassenger();
 	    } else if (tag.equalsIgnoreCase("items")) {
 	    	state = this.hasItems();
-	    } else if (tag.toLowerCase().startsWith("item")) {
-	    	ItemParser parser = ItemParser.parse(tag.substring(4));
-	    	if (parser != null) {
-	    		state = this.hasItem(parser);
-	    	} else {
-	    		state = this.hasItems();
-	    	}
 	    } else if (tag.equalsIgnoreCase("empty")) {
 	    	state = !this.hasItems() && !this.hasPassenger();
 	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
@@ -1079,7 +1082,91 @@ public class MinecartMember extends NativeMinecartMember {
 	    } else if (tag.equalsIgnoreCase("minecart")) {
 	    	state = this.isRegularMinecart();
 	    } else {
-	    	state = this.getProperties().hasTag(tag);
+	    	String lowertag = tag.toLowerCase();
+	    	if (lowertag.startsWith("i@")) {
+	    		//contains this item?
+	    		state = false;
+	    		for (ItemParser parser : Util.getParsers(lowertag.substring(2))) {
+	    			if (this.hasItem(parser)) {
+	    				state = true;
+	    				break;
+	    			}
+	    		}
+	    	} else if (lowertag.startsWith("o@")) {
+	    		//contains this owner?
+	    		state = this.getProperties().isOwner(lowertag.substring(2));	
+	    	} else if (lowertag.startsWith("p@")) {
+	    		//contains this player passenger?
+	    		if (this.hasPlayerPassenger()) {
+	    			String pname = ((Player)this.passenger.getBukkitEntity()).getName();
+	    			state = pname.equalsIgnoreCase(lowertag.substring(2));
+	    		}
+	    	} else if (lowertag.startsWith("m@")) {
+	    		//contains this mob as passenger?
+	    		String[] types = lowertag.substring(2).split(";");
+	    		if (types.length == 0) {
+	    			//contains a mob?
+    				state = this.hasPassenger() && EntityUtil.isMob(this.passenger);
+	    		} else {
+	    			//contains one of the defined mobs?
+	    			for (int i = 0; i < types.length; i++) {
+	    				types[i] = types[i].replace("_", "").replace(" ", "");
+	    			}
+	    			if (this.hasPassenger() && EntityUtil.isMob(this.passenger)) {
+	    				String mobname = EntityUtil.getName(this.passenger);
+	    				for (String type : types) {
+	    				    if (mobname.contains(type)) {
+	    				    	state = true;
+	    				    	break;
+	    				    }
+	    				}
+	    			}
+	    		}
+	    	} else if (lowertag.startsWith("pi@")) {
+	    		//player inventory contains these items?
+	    		if (this.hasPlayerPassenger()) {
+	    			PlayerInventory inventory = ((EntityPlayer) this.passenger).inventory;
+	    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
+	    				if (parser.hasType()) {
+		    				Integer data = parser.hasData() ? (int) parser.getData() : null;
+		    				ItemStack item = ItemUtil.findItem(inventory, parser.getTypeId(), data);
+		    				if (item == null) continue;
+		    				if (parser.hasAmount()) {
+		    					state = item.count >= parser.getAmount();
+		    				} else {
+		    					state = true;
+		    				}
+	    				} else {
+	    					state = false;
+	    					for (ItemStack item : inventory.getContents()) {
+	    						if (item != null) {
+	    							state = true;
+	    							break;
+	    						}
+	    					}
+	    					break;
+	    				}
+	    			}
+	    		}
+	    	} else if (lowertag.startsWith("ph@")) {
+	    		//player item in hand is one of defined items?
+	    		if (this.hasPlayerPassenger()) {
+	    			ItemStack item = ((EntityPlayer) this.passenger).inventory.getItemInHand();
+	    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
+	    				if (parser.hasType()) {
+	    					if (item == null || item.id != parser.getTypeId()) continue;
+	    					if (parser.hasData() && item.getData() != parser.getData()) continue;
+	    					if (parser.hasAmount() && item.count < parser.getAmount()) continue;
+	    					state = true;
+	    				} else {
+	    					state = item != null;
+	    				}
+	    				break;
+	    			}
+	    		}
+	    	} else {
+		    	state = this.getProperties().hasTag(tag);
+	    	}
 	    }
 	    return inv != state;
 	}
@@ -1136,14 +1223,16 @@ public class MinecartMember extends NativeMinecartMember {
 		if (entity instanceof MinecartMember) {
 			return this.isCollisionIgnored((MinecartMember) entity);
 		}
+		if (this.ignoreAllCollisions) return true;
 		return collisionIgnoreTimes.containsKey(entity.uniqueId);
 	}
 	public boolean isCollisionIgnored(MinecartMember member) {
+		if (this.ignoreAllCollisions || member.ignoreAllCollisions) return true; 
 		return this.collisionIgnoreTimes.containsKey(member.uniqueId) || 
 				member.collisionIgnoreTimes.containsKey(this.uniqueId);
 	}
-	public void ignoreCollision(Entity entity, int time) {
-		ignoreCollision(EntityUtil.getNative(entity), time);
+	public void ignoreCollision(Entity entity, int ticktime) {
+		this.ignoreCollision(EntityUtil.getNative(entity), ticktime);
 	}
 	public void ignoreCollision(net.minecraft.server.Entity entity, int ticktime) {
 		collisionIgnoreTimes.put(entity.uniqueId, new AtomicInteger(ticktime));
@@ -1177,6 +1266,13 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.dead) return; 
 		this.needsUpdate = true;
 		this.getGroup().update();
+	}
+	
+	public boolean isIgnoringCollisions() {
+		return this.ignoreAllCollisions;
+	}
+	public void setIgnoreCollisions(boolean ignoreAll) {
+		this.ignoreAllCollisions = ignoreAll;
 	}
 	
 	public void stop() {
