@@ -350,18 +350,17 @@ public class TCListener implements Listener {
 	public void triggerRedstoneChange(Block signblock, BlockRedstoneEvent event) {
 		boolean powered = poweredBlocks.contains(event.getBlock());
 		SignActionEvent info = new SignActionEvent(signblock);
+		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 		if (powered) {
 			//no longer powered?
 			if (info.isPowerInverted() != (event.getNewCurrent() == 0) && !info.isPowered()) {
 				poweredBlocks.remove(signblock);
-				SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
 			}
 		} else {
 			//now powered?
 			if (info.isPowerInverted() != (event.getNewCurrent() > 0) && info.isPowered()) {
 				poweredBlocks.add(event.getBlock());
-				SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
 			}
 		}

@@ -42,7 +42,7 @@ public class Commands {
 			args = StringUtil.remove(args, 0);
 			if (command.equalsIgnoreCase("train")) {
 				TrainProperties prop = mm.getGroup().getProperties();
-				if (prop.isOwner(player)) {
+				if (prop.hasOwnership(player)) {
 					return TrainCommands.execute(player, prop, cmd, args);
 				} else {
 					player.sendMessage(ChatColor.RED + "You don't own this train!");

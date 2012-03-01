@@ -784,6 +784,15 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	    				break;
 	    			}
 	    		}
+	    	} else if (lowertag.startsWith("d@")) {
+	    		for (CartProperties prop : this.getProperties().getCarts()) {
+		    		String dest = prop.destination;
+		    		if (dest == null) dest = "";
+		    		if (dest.equals(tag.substring(2))) {
+		    			state = true;
+		    			break;
+		    		}
+	    		}
 	    	} else if (lowertag.startsWith("p@")) {
 	    		//contains this player passenger?
 	    		for (MinecartMember mm : this) {

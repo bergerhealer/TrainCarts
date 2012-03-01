@@ -49,6 +49,22 @@ public class SignActionProperties extends SignAction {
 			prop.setAllowPlayerEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerexit")) {
 			prop.setAllowPlayerExit(StringUtil.getBool(arg));
+		} else if (mode.equals("setowner")) {
+			arg = arg.toLowerCase();
+			for (CartProperties cprop : prop.getCarts()) {
+				cprop.getOwners().clear();
+				cprop.getOwners().add(arg);
+			}
+		} else if (mode.equals("addowner")) {
+			arg = arg.toLowerCase();
+			for (CartProperties cprop : prop.getCarts()) {
+				cprop.getOwners().add(arg);
+			}
+		} else if (mode.equals("remowner")) {
+			arg = arg.toLowerCase();
+			for (CartProperties cprop : prop.getCarts()) {
+				cprop.getOwners().remove(arg);
+			}
 		} else {
 			return;
 		}
@@ -69,6 +85,16 @@ public class SignActionProperties extends SignAction {
 			prop.allowPlayerEnter = StringUtil.getBool(arg);
 		} else if (mode.equals("playerexit")) {
 			prop.allowPlayerExit = StringUtil.getBool(arg);
+		} else if (mode.equals("setowner")) {
+			arg = arg.toLowerCase();
+			prop.getOwners().clear();
+			prop.getOwners().add(arg);
+		} else if (mode.equals("addowner")) {
+			arg = arg.toLowerCase();
+			prop.getOwners().add(arg);
+		} else if (mode.equals("remowner")) {
+			arg = arg.toLowerCase();
+			prop.getOwners().remove(arg);
 		} else {
 			return;
 		}

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.Lever;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Redstone;
 
@@ -72,7 +73,15 @@ public enum PowerState {
 		} else if (type == Material.DIODE_BLOCK_ON && from != BlockFace.DOWN && from != BlockFace.UP) {
 			return (BlockUtil.getFacing(block) != from) ? PowerState.ON : PowerState.OFF;
 		} else if (type == Material.LEVER) {
-			return PowerState.NONE;
+			if (useSignLogic) {
+				if (BlockUtil.getData(block, Lever.class).isPowered()) {
+					return PowerState.ON;
+				} else {
+					return PowerState.OFF;
+				}
+			} else {
+				return PowerState.NONE;
+			}
 		} else if (from != BlockFace.DOWN) {
 			MaterialData dat = type.getNewData(block.getData());
 			if (dat != null && dat instanceof Redstone) {

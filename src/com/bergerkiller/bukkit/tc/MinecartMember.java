@@ -991,8 +991,8 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
 		if (world != this.getWorld()) return false;
-		if (Math.abs(cx - this.getChunkX()) > 2) return false;
-		if (Math.abs(cz - this.getChunkZ()) > 2) return false;
+		if (Math.abs(cx - MathUtil.locToChunk(this.locX)) > 2) return false;
+		if (Math.abs(cz - MathUtil.locToChunk(this.locZ)) > 2) return false;
 	    return true;
 	}
 	public boolean isRegularMinecart() {
@@ -1095,6 +1095,10 @@ public class MinecartMember extends NativeMinecartMember {
 	    	} else if (lowertag.startsWith("o@")) {
 	    		//contains this owner?
 	    		state = this.getProperties().isOwner(lowertag.substring(2));	
+	    	} else if (lowertag.startsWith("d@")) {
+	    		String dest = this.getProperties().destination;
+	    		if (dest == null) dest = "";
+	    		state = dest.equals(tag.substring(2));
 	    	} else if (lowertag.startsWith("p@")) {
 	    		//contains this player passenger?
 	    		if (this.hasPlayerPassenger()) {

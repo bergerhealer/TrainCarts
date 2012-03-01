@@ -181,7 +181,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (this.fixedPowerDir == from) {
 			return this.isfixedpower ? PowerState.ON : PowerState.OFF;
 		} else {
-			return PowerState.get(this.getBlock(), from);
+			return PowerState.get(this.signblock, from);
 		}
 	}
 	public boolean isPowered(BlockFace from) {
@@ -189,7 +189,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean isPowered() {
 		BlockFace att = BlockUtil.getAttachedFace(this.signblock);
-		if (this.signblock.isBlockIndirectlyPowered()) {
+		if (this.signblock.isBlockFaceIndirectlyPowered(att)) {
 			Block attblock = this.signblock.getRelative(att);
 			boolean found = false;
 			for (BlockFace face : FaceUtil.attachedFaces) {

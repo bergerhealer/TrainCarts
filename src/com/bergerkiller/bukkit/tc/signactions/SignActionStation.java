@@ -102,7 +102,7 @@ public class SignActionStation extends SignAction {
 								} else {
 									return;
 								}
-								
+									
 								//What do we do?
 								if (instruction == BlockFace.UP) {
 									info.getGroup().clearActions();
