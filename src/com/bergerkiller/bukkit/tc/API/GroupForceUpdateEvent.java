@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 
 public class GroupForceUpdateEvent extends GroupEvent {
-	private static final long serialVersionUID = 1L;
     private static final HandlerList handlers = new HandlerList();
     public HandlerList getHandlers() {
         return handlers;
@@ -18,7 +17,7 @@ public class GroupForceUpdateEvent extends GroupEvent {
 	private double force;
 	
 	public GroupForceUpdateEvent(final MinecartGroup group, double force) {
-		super("ForceUpdateEvent", group);
+		super(group);
 		this.force = force;
 	}
 	

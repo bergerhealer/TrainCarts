@@ -120,6 +120,9 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.locZ = this.lastZ;
 	}
 
+	
+	
+	
 	/*
 	 * Replaced standard droppings based on TrainCarts settings. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
@@ -140,10 +143,10 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			i = event.getDamage();
 			// CraftBukkit end
-
-			this.d(-this.m());
-			this.c(10);
-			this.aM();
+			
+            this.e(-n());
+            this.d(10);
+            this.aV();
 			this.setDamage(this.getDamage() + i * 10);
 			if (this.getDamage() > 40) {
 				if (this.passenger != null) {
@@ -255,8 +258,8 @@ public class NativeMinecartMember extends EntityMinecart {
 		moveinfo.prevPitch = this.pitch;
 		// CraftBukkit end
 
-		if (this.l() > 0) {
-			this.c(this.l() - 1);
+		if (this.m() > 0) {
+			this.d(this.m() - 1);
 		}
 
 		if (this.getDamage() > 0) {
@@ -596,7 +599,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		List<Entity> list = this.world.getEntities(this, this.boundingBox.grow(0.2, 0, 0.2));
 		if (list != null && !list.isEmpty()) {
 			for (Entity entity : list) {
-				if (entity != this.passenger && entity.f_() && entity instanceof EntityMinecart) {
+				if (entity != this.passenger && entity.e_() && entity instanceof EntityMinecart) {
 					entity.collide(this);
 				}
 			}
@@ -659,295 +662,251 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public void move(double d0, double d1, double d2) {
-		if (this.bQ) {
-			this.boundingBox.d(d0, d1, d2);
-			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-			this.locY = this.boundingBox.b + (double) this.height - (double) this.bO;
-			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
-		} else {
-			this.bO *= 0.4F;
-			double d3 = this.locX;
-			double d4 = this.locZ;
+    public void move(double d0, double d1, double d2)
+    {
+        if(bQ)
+        {
+            boundingBox.d(d0, d1, d2);
+            locX = (boundingBox.a + boundingBox.d) / 2D;
+            locY = (boundingBox.b + (double)height) - (double)bO;
+            locZ = (boundingBox.c + boundingBox.f) / 2D;
+        } else
+        {
+            bO *= 0.4F;
+            double d3 = locX;
+            double d4 = locZ;
+            if(bC)
+            {
+                bC = false;
+                d0 *= 0.25D;
+                d1 *= 0.05000000074505806D;
+                d2 *= 0.25D;
+                motX = 0.0D;
+                motY = 0.0D;
+                motZ = 0.0D;
+            }
+            double d5 = d0;
+            double d6 = d1;
+            double d7 = d2;
+            AxisAlignedBB axisalignedbb = boundingBox.clone();
+            List list = world.getCubes(this, boundingBox.a(d0, d1, d2));
+            
+            //================================================
+            filterCollisionList(list);
+            //================================================
+            
+            for(int i = 0; i < list.size(); i++)
+                d1 = ((AxisAlignedBB)list.get(i)).b(boundingBox, d1);
 
-			if (this.bC) {
-				this.bC = false;
-				d0 *= 0.25D;
-				d1 *= 0.05000000074505806D;
-				d2 *= 0.25D;
-				this.motX = 0.0D;
-				this.motY = 0.0D;
-				this.motZ = 0.0D;
-			}
+            boundingBox.d(0.0D, d1, 0.0D);
+            if(!bD && d6 != d1)
+            {
+                d2 = 0.0D;
+                d1 = 0.0D;
+                d0 = 0.0D;
+            }
+            boolean flag1 = onGround || d6 != d1 && d6 < 0.0D;
+            for(int j = 0; j < list.size(); j++)
+                d0 = ((AxisAlignedBB)list.get(j)).a(boundingBox, d0);
 
-			double d5 = d0;
-			double d6 = d1;
-			double d7 = d2;
-			AxisAlignedBB axisalignedbb = this.boundingBox.clone();
-			boolean flag = this.onGround && this.isSneaking();
+            boundingBox.d(d0, 0.0D, 0.0D);
+            if(!bD && d5 != d0)
+            {
+                d2 = 0.0D;
+                d1 = 0.0D;
+                d0 = 0.0D;
+            }
+            for(int j = 0; j < list.size(); j++)
+                d2 = ((AxisAlignedBB)list.get(j)).c(boundingBox, d2);
 
-			if (flag) {
-				double d8;
+            boundingBox.d(0.0D, 0.0D, d2);
+            if(!bD && d7 != d2)
+            {
+                d2 = 0.0D;
+                d1 = 0.0D;
+                d0 = 0.0D;
+            }
+            double d9;
+            double d10;
+            int k;
+            if(bP > 0.0F && flag1 && bO < 0.05F && (d5 != d0 || d7 != d2))
+            {
+                d9 = d0;
+                d10 = d1;
+                double d11 = d2;
+                d0 = d5;
+                d1 = bP;
+                d2 = d7;
+                AxisAlignedBB axisalignedbb1 = boundingBox.clone();
+                boundingBox.b(axisalignedbb);
+                list = world.getCubes(this, boundingBox.a(d5, d1, d7));
+                
+                //================================================
+                filterCollisionList(list);
+                //================================================
+                
+                for(k = 0; k < list.size(); k++)
+                    d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
 
-				for (d8 = 0.05D; d0 != 0.0D && this.world.a(this, this.boundingBox.c(d0, -1.0D, 0.0D)).size() == 0; d5 = d0) {
-					if (d0 < d8 && d0 >= -d8) {
-						d0 = 0.0D;
-					} else if (d0 > 0.0D) {
-						d0 -= d8;
-					} else {
-						d0 += d8;
-					}
-				}
+                boundingBox.d(0.0D, d1, 0.0D);
+                if(!bD && d6 != d1)
+                {
+                    d2 = 0.0D;
+                    d1 = 0.0D;
+                    d0 = 0.0D;
+                }
+                for(k = 0; k < list.size(); k++)
+                    d0 = ((AxisAlignedBB)list.get(k)).a(boundingBox, d0);
 
-				for (; d2 != 0.0D && this.world.a(this, this.boundingBox.c(0.0D, -1.0D, d2)).size() == 0; d7 = d2) {
-					if (d2 < d8 && d2 >= -d8) {
-						d2 = 0.0D;
-					} else if (d2 > 0.0D) {
-						d2 -= d8;
-					} else {
-						d2 += d8;
-					}
-				}
-			}
+                boundingBox.d(d0, 0.0D, 0.0D);
+                if(!bD && d5 != d0)
+                {
+                    d2 = 0.0D;
+                    d1 = 0.0D;
+                    d0 = 0.0D;
+                }
+                for(k = 0; k < list.size(); k++)
+                    d2 = ((AxisAlignedBB)list.get(k)).c(boundingBox, d2);
 
-			List list = this.world.a(this, this.boundingBox.a(d0, d1, d2));
+                boundingBox.d(0.0D, 0.0D, d2);
+                if(!bD && d7 != d2)
+                {
+                    d2 = 0.0D;
+                    d1 = 0.0D;
+                    d0 = 0.0D;
+                }
+                if(!bD && d6 != d1)
+                {
+                    d2 = 0.0D;
+                    d1 = 0.0D;
+                    d0 = 0.0D;
+                } else
+                {
+                    d1 = -bP;
+                    for(k = 0; k < list.size(); k++)
+                        d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
 
-			//=========================TrainCarts Changes Start==============================
-			filterCollisionList(list);
-			//=========================TrainCarts Changes End==============================
+                    boundingBox.d(0.0D, d1, 0.0D);
+                }
+                if(d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2)
+                {
+                    d0 = d9;
+                    d1 = d10;
+                    d2 = d11;
+                    boundingBox.b(axisalignedbb1);
+                } else
+                {
+                    double d12 = boundingBox.b - (double)(int)boundingBox.b;
+                    if(d12 > 0.0D)
+                        bO = (float)((double)bO + d12 + 0.01D);
+                }
+            }
+            locX = (boundingBox.a + boundingBox.d) / 2D;
+            locY = (boundingBox.b + (double)height) - (double)bO;
+            locZ = (boundingBox.c + boundingBox.f) / 2D;
+            positionChanged = d5 != d0 || d7 != d2;
+            bz = d6 != d1;
+            onGround = d6 != d1 && d6 < 0.0D;
+            bA = positionChanged || bz;
+            a(d1, onGround);
+            if(d5 != d0)
+                motX = 0.0D;
+            if(d6 != d1)
+                motY = 0.0D;
+            if(d7 != d2)
+                motZ = 0.0D;
+            d9 = locX - d3;
+            d10 = locZ - d4;
+            if(positionChanged && (getBukkitEntity() instanceof Vehicle))
+            {
+                Vehicle vehicle = (Vehicle)getBukkitEntity();
+                org.bukkit.block.Block block = world.getWorld().getBlockAt(MathHelper.floor(locX), MathHelper.floor(locY - (double)height), MathHelper.floor(locZ));
+                if(d5 > d0)
+                    block = block.getRelative(BlockFace.SOUTH);
+                else
+                if(d5 < d0)
+                    block = block.getRelative(BlockFace.NORTH);
+                else
+                if(d7 > d2)
+                    block = block.getRelative(BlockFace.WEST);
+                else
+                if(d7 < d2)
+                    block = block.getRelative(BlockFace.EAST);
+                VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
+                world.getServer().getPluginManager().callEvent(event);
+            }
+            int l;
+            int i1;
+            int j1;
+            if(g_() && this.vehicle == null)
+            {
+                bJ = (float)((double)bJ + (double)MathHelper.sqrt(d9 * d9 + d10 * d10) * 0.59999999999999998D);
+                l = MathHelper.floor(locX);
+                i1 = MathHelper.floor(locY - 0.20000000298023224D - (double)height);
+                j1 = MathHelper.floor(locZ);
+                k = world.getTypeId(l, i1, j1);
+                if(k == 0 && world.getTypeId(l, i1 - 1, j1) == Block.FENCE.id)
+                    k = world.getTypeId(l, i1 - 1, j1);
+                if(bJ > (float)b && k > 0)
+                {
+                    b = (int)bJ + 1;
+                    a(l, i1, j1, k);
+                    Block.byId[k].b(world, l, i1, j1, this);
+                }
+            }
+            l = MathHelper.floor(boundingBox.a + 0.001D);
+            i1 = MathHelper.floor(boundingBox.b + 0.001D);
+            j1 = MathHelper.floor(boundingBox.c + 0.001D);
+            k = MathHelper.floor(boundingBox.d - 0.001D);
+            int k1 = MathHelper.floor(boundingBox.e - 0.001D);
+            int l1 = MathHelper.floor(boundingBox.f - 0.001D);
+            if(world.a(l, i1, j1, k, k1, l1))
+            {
+                for(int i2 = l; i2 <= k; i2++)
+                {
+                    for(int j2 = i1; j2 <= k1; j2++)
+                    {
+                        for(int k2 = j1; k2 <= l1; k2++)
+                        {
+                            int l2 = world.getTypeId(i2, j2, k2);
+                            if(l2 > 0)
+                                Block.byId[l2].a(world, i2, j2, k2, this);
+                        }
 
-			for (int i = 0; i < list.size(); ++i) {
-				d1 = ((AxisAlignedBB) list.get(i)).b(this.boundingBox, d1);
-			}
+                    }
 
-			this.boundingBox.d(0.0D, d1, 0.0D);
-			if (!this.bD && d6 != d1) {
-				d2 = 0.0D;
-				d1 = 0.0D;
-				d0 = 0.0D;
-			}
+                }
 
-			boolean flag1 = this.onGround || d6 != d1 && d6 < 0.0D;
+            }
+            boolean flag2 = aS();
+            if(world.d(boundingBox.shrink(0.001D, 0.001D, 0.001D)))
+            {
+                burn(1);
+                if(!flag2)
+                {
+                    fireTicks++;
+                    if(fireTicks <= 0)
+                    {
+                        EntityCombustEvent event = new EntityCombustEvent(getBukkitEntity(), 8);
+                        world.getServer().getPluginManager().callEvent(event);
+                        if(!event.isCancelled())
+                            setOnFire(event.getDuration());
+                    } else
+                    {
+                        setOnFire(8);
+                    }
+                }
+            } else
+            if(fireTicks <= 0)
+                fireTicks = -maxFireTicks;
+            if(flag2 && fireTicks > 0)
+            {
+                world.makeSound(this, "random.fizz", 0.7F, 1.6F + (random.nextFloat() - random.nextFloat()) * 0.4F);
+                fireTicks = -maxFireTicks;
+            }
+        }
+    }
 
-			int j;
-
-			for (j = 0; j < list.size(); ++j) {
-				d0 = ((AxisAlignedBB) list.get(j)).a(this.boundingBox, d0);
-			}
-
-			this.boundingBox.d(d0, 0.0D, 0.0D);
-			if (!this.bD && d5 != d0) {
-				d2 = 0.0D;
-				d1 = 0.0D;
-				d0 = 0.0D;
-			}
-
-			for (j = 0; j < list.size(); ++j) {
-				d2 = ((AxisAlignedBB) list.get(j)).c(this.boundingBox, d2);
-			}
-
-			this.boundingBox.d(0.0D, 0.0D, d2);
-			if (!this.bD && d7 != d2) {
-				d2 = 0.0D;
-				d1 = 0.0D;
-				d0 = 0.0D;
-			}
-
-			double d9;
-			double d10;
-			int k;
-
-			if (this.bP > 0.0F && flag1 && (flag || this.bO < 0.05F) && (d5 != d0 || d7 != d2)) {
-				d9 = d0;
-				d10 = d1;
-				double d11 = d2;
-
-				d0 = d5;
-				d1 = (double) this.bP;
-				d2 = d7;
-				AxisAlignedBB axisalignedbb1 = this.boundingBox.clone();
-
-				this.boundingBox.b(axisalignedbb);
-				list = this.world.a(this, this.boundingBox.a(d5, d1, d7));
-
-				//=========================TrainCarts Changes Start==============================
-				filterCollisionList(list);
-				//=========================TrainCarts Changes End==============================
-
-				for (k = 0; k < list.size(); ++k) {
-					d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
-				}
-
-				this.boundingBox.d(0.0D, d1, 0.0D);
-				if (!this.bD && d6 != d1) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
-
-				for (k = 0; k < list.size(); ++k) {
-					d0 = ((AxisAlignedBB) list.get(k)).a(this.boundingBox, d0);
-				}
-
-				this.boundingBox.d(d0, 0.0D, 0.0D);
-				if (!this.bD && d5 != d0) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
-
-				for (k = 0; k < list.size(); ++k) {
-					d2 = ((AxisAlignedBB) list.get(k)).c(this.boundingBox, d2);
-				}
-
-				this.boundingBox.d(0.0D, 0.0D, d2);
-				if (!this.bD && d7 != d2) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
-
-				if (!this.bD && d6 != d1) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				} else {
-					d1 = (double) (-this.bP);
-
-					for (k = 0; k < list.size(); ++k) {
-						d1 = ((AxisAlignedBB) list.get(k)).b(this.boundingBox, d1);
-					}
-
-					this.boundingBox.d(0.0D, d1, 0.0D);
-				}
-
-				if (d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2) {
-					d0 = d9;
-					d1 = d10;
-					d2 = d11;
-					this.boundingBox.b(axisalignedbb1);
-				} else {
-					double d12 = this.boundingBox.b - (double) ((int) this.boundingBox.b);
-
-					if (d12 > 0.0D) {
-						this.bO = (float) ((double) this.bO + d12 + 0.01D);
-					}
-				}
-			}
-
-			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-			this.locY = this.boundingBox.b + (double) this.height - (double) this.bO;
-			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
-			this.positionChanged = d5 != d0 || d7 != d2;
-			this.bz = d6 != d1;
-			this.onGround = d6 != d1 && d6 < 0.0D;
-			this.bA = this.positionChanged || this.bz;
-			this.a(d1, this.onGround);
-			if (d5 != d0) {
-				this.motX = 0.0D;
-			}
-
-			if (d6 != d1) {
-				this.motY = 0.0D;
-			}
-
-			if (d7 != d2) {
-				this.motZ = 0.0D;
-			}
-
-			d9 = this.locX - d3;
-			d10 = this.locZ - d4;
-			int l;
-			int i1;
-			int j1;
-
-			// CraftBukkit start
-			if ((this.positionChanged) && (this.getBukkitEntity() instanceof Vehicle)) {
-				Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-				org.bukkit.block.Block block = this.world.getWorld().getBlockAt(MathHelper.floor(this.locX), MathHelper.floor(this.locY - 0.20000000298023224D - (double) this.height), MathHelper.floor(this.locZ));
-
-				if (d5 > d0) {
-					block = block.getRelative(BlockFace.SOUTH);
-				} else if (d5 < d0) {
-					block = block.getRelative(BlockFace.NORTH);
-				} else if (d7 > d2) {
-					block = block.getRelative(BlockFace.WEST);
-				} else if (d7 < d2) {
-					block = block.getRelative(BlockFace.EAST);
-				}
-
-				VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
-				this.world.getServer().getPluginManager().callEvent(event);
-			}
-			// CraftBukkit end
-
-			if (this.g_() && !flag && this.vehicle == null) {
-				this.bJ = (float) ((double) this.bJ + (double) MathHelper.sqrt(d9 * d9 + d10 * d10) * 0.6D);
-				l = MathHelper.floor(this.locX);
-				i1 = MathHelper.floor(this.locY - 0.20000000298023224D - (double) this.height);
-				j1 = MathHelper.floor(this.locZ);
-				k = this.world.getTypeId(l, i1, j1);
-				if (k == 0 && this.world.getTypeId(l, i1 - 1, j1) == Block.FENCE.id) {
-					k = this.world.getTypeId(l, i1 - 1, j1);
-				}
-
-				if (this.bJ > (float) this.b && k > 0) {
-					this.b = (int) this.bJ + 1;
-					this.a(l, i1, j1, k);
-					Block.byId[k].b(this.world, l, i1, j1, this);
-				}
-			}
-
-			l = MathHelper.floor(this.boundingBox.a + 0.0010D);
-			i1 = MathHelper.floor(this.boundingBox.b + 0.0010D);
-			j1 = MathHelper.floor(this.boundingBox.c + 0.0010D);
-			k = MathHelper.floor(this.boundingBox.d - 0.0010D);
-			int k1 = MathHelper.floor(this.boundingBox.e - 0.0010D);
-			int l1 = MathHelper.floor(this.boundingBox.f - 0.0010D);
-
-			if (this.world.a(l, i1, j1, k, k1, l1)) {
-				for (int i2 = l; i2 <= k; ++i2) {
-					for (int j2 = i1; j2 <= k1; ++j2) {
-						for (int k2 = j1; k2 <= l1; ++k2) {
-							int l2 = this.world.getTypeId(i2, j2, k2);
-
-							if (l2 > 0) {
-								Block.byId[l2].a(this.world, i2, j2, k2, this);
-							}
-						}
-					}
-				}
-			}
-
-			boolean flag2 = this.aJ();
-
-			if (this.world.d(this.boundingBox.shrink(0.0010D, 0.0010D, 0.0010D))) {
-				this.burn(1);
-				if (!flag2) {
-					++this.fireTicks;
-					// CraftBukkit start - not on fire yet
-					if (this.fireTicks <= 0) { // only throw events on the first combust, otherwise it spams
-						EntityCombustEvent event = new EntityCombustEvent(this.getBukkitEntity(), 8);
-						this.world.getServer().getPluginManager().callEvent(event);
-
-						if (!event.isCancelled()) {
-							this.setOnFire(event.getDuration());
-						}
-					} else {
-						// CraftBukkit end
-						this.setOnFire(8);
-					}
-				}
-			} else if (this.fireTicks <= 0) {
-				this.fireTicks = -this.maxFireTicks;
-			}
-
-			if (flag2 && this.fireTicks > 0) {
-				this.world.makeSound(this, "random.fizz", 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
-				this.fireTicks = -this.maxFireTicks;
-			}
-		}
-	}
 
 	/*
 	 * Returns if this entity is allowed to collide with another entity

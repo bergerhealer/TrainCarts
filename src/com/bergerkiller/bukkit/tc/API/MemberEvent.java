@@ -6,11 +6,9 @@ import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
 public abstract class MemberEvent extends Event {
-	private static final long serialVersionUID = 1L;
 	
 	private final MinecartMember member;
-	public MemberEvent(final String eventname, final MinecartMember member) {
-		super(eventname);
+	public MemberEvent(final MinecartMember member) {
 		this.member = member;
 	}
 	

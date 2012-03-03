@@ -1,11 +1,16 @@
 package com.bergerkiller.bukkit.tc.itemanimation;
 
+import java.util.List;
+
 import net.minecraft.server.EntityHuman;
 import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
 
+import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 
 public class InventoryWatcher implements IInventory {
 
@@ -99,6 +104,31 @@ public class InventoryWatcher implements IInventory {
 	}
 	public void update() {
 		this.source.update();
+	}
+
+	@Override
+	public InventoryHolder getOwner() {
+		return this.source.getOwner();
+	}
+
+	@Override
+	public List<HumanEntity> getViewers() {
+		return this.source.getViewers();
+	}
+
+	@Override
+	public void onClose(CraftHumanEntity arg0) {
+		this.source.onClose(arg0);
+	}
+
+	@Override
+	public void onOpen(CraftHumanEntity arg0) {
+		this.source.onOpen(arg0);
+	}
+
+	@Override
+	public ItemStack splitWithoutUpdate(int arg0) {
+		return this.source.splitWithoutUpdate(arg0);
 	}
 	
 }

@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
 public class MemberAddEvent extends MemberEvent {
-	private static final long serialVersionUID = 1L;
     private static final HandlerList handlers = new HandlerList();
     public HandlerList getHandlers() {
         return handlers;
@@ -18,7 +17,7 @@ public class MemberAddEvent extends MemberEvent {
 	
 	private final MinecartGroup toGroup;
 	public MemberAddEvent(final MinecartMember member, final MinecartGroup toGroup) {
-		super("MemberAddEvent", member);
+		super(member);
 		this.toGroup = toGroup;
 	}
 	

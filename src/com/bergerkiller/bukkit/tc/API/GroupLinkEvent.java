@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 
 public class GroupLinkEvent extends Event implements Cancellable {
-	private static final long serialVersionUID = 1L;
     private static final HandlerList handlers = new HandlerList();
     public HandlerList getHandlers() {
         return handlers;
@@ -21,7 +20,6 @@ public class GroupLinkEvent extends Event implements Cancellable {
 	private final MinecartGroup group2;
 	private boolean cancelled = false;
 	public GroupLinkEvent(final MinecartGroup group1, final MinecartGroup group2) {
-		super("GroupLinkEvent");
 		this.group1 = group1;
 		this.group2 = group2;
 	}

@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
-	private static final long serialVersionUID = 1L;
 	private static final HandlerList handlers = new HandlerList();
 	public HandlerList getHandlers() {
 		return handlers;
@@ -43,7 +42,6 @@ public class SignActionEvent extends Event implements Cancellable {
 		this(signblock, (Block) null);
 	}
 	public SignActionEvent(final Block signblock, Block railsblock) {
-		super("SignActionEvent");
 		this.signblock = signblock;
 		this.sign = BlockUtil.getSign(signblock);
 		this.mode = SignActionMode.fromSign(this.sign);

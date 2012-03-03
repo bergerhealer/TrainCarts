@@ -34,7 +34,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			try {
 				IntHashMap map = trackerMap.get(tracker);
 				synchronized (tracker) {
-					Object entry = map.a(member.id);
+					Object entry = map.get(member.id);
 					if (entry == null) {
 						entry = new MinecartMemberTrackerEntry(member);
 					} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
@@ -62,11 +62,11 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public MinecartMemberTrackerEntry(EntityTrackerEntry source) {
 		super(source.tracker, 80, 3, true);
 		//copy important information over
-		this.d = source.d;
-		this.e = source.e;
-		this.f = source.f;
-		this.g = source.g;
-		this.h = source.h;
+		this.xLoc = source.xLoc;
+		this.yLoc = source.yLoc;
+		this.zLoc = source.zLoc;
+		this.xRot = source.xRot;
+		this.yRot = source.yRot;
 		this.m = source.m;
 		this.trackedPlayers.addAll(source.trackedPlayers);
 		this.isRemoved = false;
@@ -86,7 +86,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			return;
 		}
 		//update players
-		if (this.m = this.tracker.e(this.prevX, this.prevY, this.prevZ) > 16) {
+		if (this.tracker.e(this.prevX, this.prevY, this.prevZ) > 16.0) {
 			this.prevX = this.tracker.locX;
 			this.prevY = this.tracker.locY;
 			this.prevZ = this.tracker.locZ;
@@ -109,7 +109,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		return ++this.ticksNoTeleport > 400;
 	}
 	public boolean needsLocationSync() {
-		return ++this.l % this.c == 0;
+		return ++this.m % this.c == 0;
 	}
 
 	public void doTeleport() {
@@ -121,57 +121,54 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		int z = MathHelper.floor(this.tracker.locZ * 32);
 		int yaw = MathHelper.d(this.tracker.yaw * 256 / 360);
 		int pitch = MathHelper.d(this.tracker.pitch * 256 / 360);
-		this.d = x;
-		this.e = y;
-		this.f = z;
-		this.g = yaw;
-		this.h = pitch;
+		this.xLoc = x;
+		this.yLoc = y;
+		this.zLoc = z;
+		this.xRot = yaw;
+		this.yRot = pitch;
 		this.ticksNoTeleport = 0;
 		return new Packet34EntityTeleport(this.tracker.id, x, y, z, (byte) yaw, (byte) pitch);
 	}
 
-	public boolean dd = false;
 	public void syncLocation(boolean teleport) {
-		if (dd) return;
 		if (!teleport) {
-			int i = MathHelper.floor(this.tracker.locX * 32);
-			int j = MathHelper.floor(this.tracker.locY * 32);
-			int k = MathHelper.floor(this.tracker.locZ * 32);
-			int j1 = i - this.d;
-			int k1 = j - this.e;
-			int l1 = k - this.f;
-			while (this.g < 0) this.g += 256;
-			while (this.h < 0) this.h += 256;
-			teleport = Math.abs(j1) > 128 || Math.abs(k1) > 128 || Math.abs(l1) > 128;
+			int newXLoc = MathHelper.floor(this.tracker.locX * 32);
+			int newYLoc = MathHelper.floor(this.tracker.locY * 32);
+			int newZLoc = MathHelper.floor(this.tracker.locZ * 32);
+			int xDiff = newXLoc - this.xLoc;
+			int yDiff = newYLoc - this.yLoc;
+			int zDiff = newZLoc - this.zLoc;
+			while (this.xRot < 0) this.xRot += 256;
+			while (this.yRot < 0) this.yRot += 256;
+			teleport = Math.abs(xDiff) > 128 || Math.abs(yDiff) > 128 || Math.abs(zDiff) > 128;
 			if (!teleport) {
-				int l = MathHelper.d(this.tracker.yaw * 256 / 360);
-				int i1 = MathHelper.d(this.tracker.pitch * 256 / 360);
-				boolean looked = Math.abs(l - this.g) >= 4 || Math.abs(i1 - this.h) >= 4;
-				boolean moved = Math.abs(j1) >= 4 || Math.abs(k1) >= 4 || Math.abs(l1) >= 4;
+				int newXRot = MathHelper.d(this.tracker.yaw * 256 / 360);
+				int newYRot = MathHelper.d(this.tracker.pitch * 256 / 360);
+				boolean looked = Math.abs(newXRot - this.xRot) >= 4 || Math.abs(newYRot - this.yRot) >= 4;
+				boolean moved = Math.abs(xDiff) >= 4 || Math.abs(yDiff) >= 4 || Math.abs(zDiff) >= 4;
 				if (moved) {
 					//moving to derailed track?
 					MinecartMember mm = (MinecartMember) this.tracker;
 					if (mm.wasOnMinecartTrack && !mm.isOnMinecartTrack) {
-						this.doTeleport();
-						return;
+						teleport = true;
 					}
 				}
 				if (!teleport) {
 					if (moved && looked) {
-						this.broadcast(new Packet33RelEntityMoveLook(this.tracker.id, (byte) j1, (byte) k1, (byte) l1, (byte) l, (byte) i1));
+						this.broadcast(new Packet33RelEntityMoveLook(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff, (byte) newXRot, (byte) newYRot));
 					} else if (moved) {
-						this.broadcast(new Packet31RelEntityMove(this.tracker.id, (byte) j1, (byte) k1, (byte) l1));
+						this.broadcast(new Packet31RelEntityMove(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff));
 					} else if (looked) {
-						this.broadcast(new Packet32EntityLook(this.tracker.id, (byte) l, (byte) i1));
+						this.broadcast(new Packet32EntityLook(this.tracker.id, (byte) newXRot, (byte) newYRot));
 					}
 					if (moved) {
-						this.d = i;
-						this.e = j;
-						this.f = k;
+						this.xLoc = newXLoc;
+						this.yLoc = newYLoc;
+						this.zLoc = newZLoc;
 					}
 					if (looked) {
-						this.g = l;
-						this.h = i1;
+						this.xRot = newXRot;
+						this.yRot = newYRot;
 					}
 				}
 			}
@@ -180,17 +177,17 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		this.tracker.ce = false;
 
 		//motion packets
-		double motDiff = MathUtil.distanceSquared(this.tracker.motX, this.tracker.motY, this.tracker.motZ, this.i, this.k, this.k);
+		double motDiff = MathUtil.distanceSquared(this.tracker.motX, this.tracker.motY, this.tracker.motZ, this.j, this.k, this.l);
 		if (motDiff > 0.0004 || (motDiff > 0 && this.tracker.motX == 0 && this.tracker.motY == 0 && this.tracker.motZ == 0)) {
-			this.i = this.tracker.motX;
-			this.j = this.tracker.motY;
-			this.k = this.tracker.motZ;
-			this.broadcast(new Packet28EntityVelocity(this.tracker.id, this.i, this.j, this.k));
+			this.j = this.tracker.motX;
+			this.k = this.tracker.motY;
+			this.l = this.tracker.motZ;
+			this.broadcast(new Packet28EntityVelocity(this.tracker.id, this.j, this.k, this.l));
 		}
 	}
 	public void syncVelocity() {
 		if (this.tracker.dead) return;
-		this.broadcastIncludingSelf(new Packet28EntityVelocity(this.tracker));
+		this.broadcast(new Packet28EntityVelocity(this.tracker));
 		this.tracker.velocityChanged = false;
 	}
 	public void syncMeta() {
@@ -209,16 +206,16 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public void a(EntityPlayer entityplayer) {
 		this.trackedPlayers.remove(entityplayer);
 	}
-	public void c(EntityPlayer entityplayer) {
+	public void clear(EntityPlayer entityplayer) {
 		if (this.trackedPlayers.remove(entityplayer)) {
 			entityplayer.netServerHandler.sendPacket(new Packet29DestroyEntity(this.tracker.id));
 		}
 	}
-	public void b(EntityPlayer entityplayer) {
+	public void updatePlayer(EntityPlayer entityplayer) {
 		if (this.tracker.dead) return;
 		if (entityplayer != this.tracker) {
-			double d0 = entityplayer.locX - (double) (this.d / 32);
-			double d1 = entityplayer.locZ - (double) (this.f / 32);
+			double d0 = entityplayer.locX - (double) (this.xLoc / 32);
+			double d1 = entityplayer.locZ - (double) (this.zLoc / 32);
 			if (d0 >= (double) (-this.b) && d0 <= (double) this.b && d1 >= (double) (-this.b) && d1 <= (double) this.b) {
 				if (this.trackedPlayers.add(entityplayer)) {
 					//send spawn packet
@@ -228,7 +225,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 					entityplayer.netServerHandler.sendPacket(this.createTeleportPacket());
 				}
 			} else {
-				this.c(entityplayer);
+				this.clear(entityplayer);
 			}
 		}
 	}

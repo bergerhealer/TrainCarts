@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
 public class MinecartSwapEvent extends MemberEvent {
-	private static final long serialVersionUID = 1L;
     private static final HandlerList handlers = new HandlerList();
     public HandlerList getHandlers() {
         return handlers;
@@ -21,7 +20,7 @@ public class MinecartSwapEvent extends MemberEvent {
 	private final EntityMinecart from;
 	private final EntityMinecart to;
 	public MinecartSwapEvent(final EntityMinecart from, final EntityMinecart to) {
-		super("MinecartSwapEvent", from instanceof MinecartMember ? (MinecartMember) from : (MinecartMember) to);
+		super(from instanceof MinecartMember ? (MinecartMember) from : (MinecartMember) to);
 		this.from = from;
 		this.to = to;
 	}

@@ -38,7 +38,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 public class TrainCarts extends PluginBase {
 
 	public TrainCarts() {
-		super(1818, 1970);
+		super(2002, 2032);
 	}
 
 	/*
