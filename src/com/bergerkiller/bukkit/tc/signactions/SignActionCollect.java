@@ -104,7 +104,7 @@ public class SignActionCollect extends SignAction {
     		for (IInventory f : furnaces) {
     			furnaceinv = new CraftInventory(f);
     			ItemStack item = furnaceinv.getItem(2);
-    			if (item.getTypeId() != 0 && p.match(item)) {
+    			if (item != null && item.getTypeId() != 0 && p.match(item)) {
         			limit -= ItemUtil.transfer(item, cartinv, limit);
         			ItemUtil.setItem(furnaceinv, 2, item);
     			}
@@ -164,7 +164,6 @@ public class SignActionCollect extends SignAction {
 				furnacelist.set(i, new InventoryWatcher(info.getMember(), inv, inv));
 			}
 		}
-		
 
 		//parse the sign
 		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();

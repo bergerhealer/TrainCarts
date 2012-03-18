@@ -37,10 +37,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class TrainCarts extends PluginBase {
 
-	public TrainCarts() {
-		super(2002, 2032);
-	}
-
 	/*
 	 * Settings
 	 */	
@@ -306,31 +302,36 @@ public class TrainCarts extends PluginBase {
 		WorldGroupManager.refresh();
 				
 		//Properly dispose of partly-referenced carts
-		new Operation(false) {
-			private Set worldentities;
+		new Task(this) {
 			@Override
 			public void run() {
-				this.worldentities = new HashSet();
-				this.doWorlds();
-			}
-			@Override
-			@SuppressWarnings("unchecked")
-			public void handle(WorldServer world) {
-				this.worldentities.clear();
-				this.worldentities.addAll(world.entityList);
-				this.doChunks(world);
-			}
-			@Override
-			public void handle(Chunk chunk) {
-				this.doEntities(chunk);
-			}
-			@Override
-			public void handle(Entity entity) {
-				if (!this.worldentities.contains(entity)) {
-					//remove from chunk and tracker
-					WorldUtil.getTracker(entity.world).untrackEntity(entity);
-					entity.world.removeEntity(entity);
-				}
+				new Operation() {
+					private Set worldentities;
+					@Override
+					public void run() {
+						this.worldentities = new HashSet();
+						this.doWorlds();
+					}
+					@Override
+					@SuppressWarnings("unchecked")
+					public void handle(WorldServer world) {
+						this.worldentities.clear();
+						this.worldentities.addAll(world.entityList);
+						this.doChunks(world);
+					}
+					@Override
+					public void handle(Chunk chunk) {
+						this.doEntities(chunk);
+					}
+					@Override
+					public void handle(Entity entity) {
+						if (!this.worldentities.contains(entity)) {
+							//remove from chunk and tracker
+							WorldUtil.getTracker(entity.world).untrackEntity(entity);
+							entity.world.removeEntity(entity);
+						}
+					}
+				};
 			}
 		}.start(1);
 		

@@ -45,11 +45,12 @@ public class SignActionTeleport extends SignAction {
 							BlockFace facing = BlockUtil.getFacing(sign);
 							BlockFace direction = facing;
 							Block destinationRail = Util.getRailsFromSign(sign);
-							if (BlockUtil.isRails(destinationRail)) {
+							boolean isPlate = Util.isRails(destinationRail);
+							if (isPlate || BlockUtil.isRails(destinationRail)) {
 								//rail aligned at sign?
 								if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
 								if (facing == BlockFace.EAST) facing = BlockFace.WEST;
-								if (facing == BlockUtil.getRails(destinationRail).getDirection()) {
+								if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
 									//Allowed?
 									if (getTPT(info)) {
 										double force = info.getGroup().getAverageForce();

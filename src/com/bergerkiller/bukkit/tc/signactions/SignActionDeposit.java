@@ -13,6 +13,7 @@ import net.minecraft.server.TileEntityFurnace;
 
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -84,8 +85,10 @@ public class SignActionDeposit extends SignAction {
     			} else {
     				furnaceinv = new CraftInventory(f);
     			}
-
     			ItemStack item = furnaceinv.getItem(0);
+    			if (item == null) {
+    				item = new CraftItemStack(0, 0);
+    			}
     			limit -= ItemUtil.transfer(cartinv, item, p, limit);
     			ItemUtil.setItem(furnaceinv, 0, item);
     		}
@@ -104,14 +107,19 @@ public class SignActionDeposit extends SignAction {
     				furnaceinv = new CraftInventory(f);
     			}
 				ItemStack cookeditem = furnaceinv.getItem(0);
-				if (cookeditem.getTypeId() == 0) continue;
+				if (cookeditem == null || cookeditem.getTypeId() == 0) continue;
 				int fuelNeeded = cookeditem.getAmount() * 200;
 				if (fuelNeeded == 0) continue; //nothing to cook
 				//===================================================
 				fuelNeeded -= f.cookTime;
 				if (fuelNeeded <= 0) continue; //we got enough
 				//===================================================
-				ItemStack fuel = furnaceinv.getItem(1).clone();
+				ItemStack fuel = furnaceinv.getItem(1);
+				if (fuel == null) {
+					fuel = new CraftItemStack(0, 0);
+				} else {
+					fuel = fuel.clone();
+				}
 				int fuelPerItem = 0;
 				if (fuel.getTypeId() == 0) {
 					if (p.hasType()) {

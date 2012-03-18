@@ -16,6 +16,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class ItemAnimation {
 	
@@ -45,7 +46,7 @@ public class ItemAnimation {
 		if (data.getAmount() == 0) return;
 		runningAnimations.add(new ItemAnimation(from, to, data));
 		if (task != null) return;
-		task = new Task() {
+		task = new Task(TrainCarts.plugin) {
 			public void run() {
 				Iterator<ItemAnimation> iter = runningAnimations.iterator();
 				ItemAnimation anim;
