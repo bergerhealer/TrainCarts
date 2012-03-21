@@ -428,6 +428,10 @@ public class MinecartMember extends NativeMinecartMember {
 	
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
+		if (this.locY < 0) {
+			this.dead = true;
+			throw new MemberDeadException();
+		}
 		this.validate();
 		if (!this.activeSigns.isEmpty()) {
 			SignActionEvent info;
@@ -834,38 +838,17 @@ public class MinecartMember extends NativeMinecartMember {
 	public int getDirectionDifference(MinecartMember comparer) {
 		return this.getDirectionDifference(comparer.direction);
 	}
-	public void updateDirection(BlockFace direction) {
-		this.direction = direction;
-		switch (this.direction) {
-		case NORTH_EAST :
-			this.directionFrom = BlockFace.NORTH;
-			this.directionTo = BlockFace.EAST;
-			break;
-		case NORTH_WEST :
-			this.directionFrom = BlockFace.NORTH;
-			this.directionTo = BlockFace.WEST;
-			break;
-		case SOUTH_EAST :
-			this.directionFrom = BlockFace.SOUTH;
-			this.directionTo = BlockFace.EAST;
-			break;
-		case SOUTH_WEST :
-			this.directionFrom = BlockFace.SOUTH;
-			this.directionTo = BlockFace.WEST;	
-			break;
-		default :
-			this.directionFrom = this.directionTo = direction;	
-			break;
-		}
-	}
 	public void updateDirection() {
-		this.updateDirection(FaceUtil.getDirection(this.motX, this.motZ, true));
+		this.updateDirection(this.getVelocity());
 	}
 	public void updateDirection(Vector movement) {
 		if (this.isDerailed) {
-			this.updateDirection(FaceUtil.getDirection(movement));
+			this.direction = FaceUtil.getDirection(movement);
+			this.directionTo = FaceUtil.getDirection(movement, false);
+			this.directionFrom = this.directionTo.getOppositeFace();
 		} else {
-			this.direction = FaceUtil.getRailsCartDirection(this.getRailDirection());
+			BlockFace raildirection = this.getRailDirection();
+			this.direction = FaceUtil.getRailsCartDirection(raildirection);
 			if (movement.getX() == 0 || movement.getZ() == 0) {
 				if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
 					this.direction = this.direction.getOppositeFace();
@@ -875,7 +858,43 @@ public class MinecartMember extends NativeMinecartMember {
 					this.direction = this.direction.getOppositeFace();
 				}
 			}
-			this.updateDirection(this.direction);
+			//calculate from and to
+			switch (this.direction) {
+			case NORTH_WEST :
+				if (raildirection == BlockFace.NORTH_EAST) {
+					this.directionFrom = BlockFace.WEST;
+					this.directionTo = BlockFace.NORTH;
+				} else {
+					this.directionFrom = BlockFace.NORTH;
+					this.directionTo = BlockFace.WEST;
+				}
+			case SOUTH_EAST :
+				if (raildirection == BlockFace.NORTH_EAST) {
+					this.directionFrom = BlockFace.SOUTH;
+					this.directionTo = BlockFace.EAST;
+				} else {
+					this.directionFrom = BlockFace.EAST;
+					this.directionTo = BlockFace.SOUTH;
+				}
+			case NORTH_EAST :
+				if (raildirection == BlockFace.NORTH_WEST) {
+					this.directionFrom = BlockFace.EAST;
+					this.directionTo = BlockFace.NORTH;
+				} else {
+					this.directionFrom = BlockFace.NORTH;
+					this.directionTo = BlockFace.EAST;
+				}
+			case SOUTH_WEST :
+				if (raildirection == BlockFace.NORTH_WEST) {
+					this.directionFrom = BlockFace.SOUTH;
+					this.directionTo = BlockFace.WEST;
+				} else {
+					this.directionFrom = BlockFace.WEST;
+					this.directionTo = BlockFace.SOUTH;
+				}
+			default :
+				this.directionFrom = this.directionTo = direction;
+			}
 		}
 	}
 	public void updateDirectionTo(MinecartMember member) {
@@ -960,8 +979,11 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.isMoving()) {
 			Block memberrail = member.getRailsBlock();
 			if (memberrail == null) return true; //derailed
-			if (TrackIterator.isConnected(this.getRailsBlock(), memberrail, true)) return true;
-			return this.isHeadingToTrack(memberrail);
+			if (this.isHeadingToTrack(memberrail)) {
+				return true;
+			} else {
+				return TrackIterator.isConnected(this.getRailsBlock(), memberrail, true);
+			}
 		} else {
 			return TrackIterator.isConnected(this.getRailsBlock(), member.getRailsBlock(), false);
 		}
