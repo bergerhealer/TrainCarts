@@ -5,8 +5,10 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 
@@ -81,6 +83,29 @@ public abstract class SignAction {
 		for (SignAction action : actions) {
 			action.build(event, type, mode);
 			if (event.isCancelled()) return;
+		}
+		if (mode != SignActionMode.NONE) {
+			//snap to fixed 90-degree angle
+			BlockFace facing = BlockUtil.getFacing(event.getBlock());
+			switch (facing) {
+			case EAST_NORTH_EAST:
+			case EAST_SOUTH_EAST:
+			case NORTH_EAST:
+				facing = BlockFace.EAST; break;
+			case NORTH_NORTH_EAST:
+			case NORTH_NORTH_WEST:
+			case NORTH_WEST:
+				facing = BlockFace.NORTH; break;
+			case SOUTH_SOUTH_EAST:
+			case SOUTH_SOUTH_WEST:
+			case SOUTH_EAST:
+				facing = BlockFace.SOUTH; break;
+			case WEST_NORTH_WEST:
+			case WEST_SOUTH_WEST:
+			case SOUTH_WEST:
+				facing = BlockFace.WEST; break;
+			}
+			BlockUtil.setFacing(event.getBlock(), facing);
 		}
 	}
 	public static final void executeAll(SignActionEvent info, SignActionType actiontype) {
