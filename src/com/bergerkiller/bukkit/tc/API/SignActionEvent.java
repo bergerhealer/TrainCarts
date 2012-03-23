@@ -87,17 +87,8 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this;
 	}
 	
-	/**
-	 * Sets rail of current event in given direction, coming from direction the minecart is coming from.
-	 * This will go straight if trying to go into the direction the cart is coming from.
-	 * This function requires a MinecartMember to work!
-	 * @param to Absolute direction to go to.
-	 */
-	public void setRailsFromCart(BlockFace to) {
-		if (this.getMember() == null) return;
-		BlockFace from = this.member.getDirectionTo().getOppositeFace();
-		
-		//set the rails
+	public void setRailsFromTo(BlockFace from, BlockFace to) {
+		if (!this.hasMember()) return;
 		BlockUtil.setRails(this.getRails(), from, to);
 		if (this.member.getDirection().getOppositeFace() == to){
 			double force = this.member.getForce();
@@ -106,51 +97,63 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.member.addActionLaunch(to, 1, force);
 		}
 	}
-	public void setRailsRelativeFromCart(BlockFace direction) {
-		setRailsFromCart(getRelativeFromCart(direction));
+	
+	public BlockFace getCartDirection() {
+		if (!this.hasMember()) return BlockFace.NORTH;
+		return this.member.getDirectionTo();
 	}
-	public BlockFace getRelativeFromCart(BlockFace to) {
-		if (this.getMember() == null) return to;
-		return FaceUtil.offset(this.getMember().getDirection(), to);
+	
+	/**
+	 * Sets rail of current event in given direction, coming from direction the minecart is coming from.
+	 * This will go straight if trying to go into the direction the cart is coming from.
+	 * This function requires a MinecartMember to work!
+	 * @param to Absolute direction to go to.
+	 */
+	public void setRailsFromCart(BlockFace to) {
+		if (!this.hasMember()) return;
+		BlockFace from = this.member.getDirectionTo().getOppositeFace();
+		
+		//set the rails
+		this.setRailsFromTo(from, to);
 	}
-	public void setRails(boolean left, boolean right) {
+	public void setRails(BlockFace from, boolean left, boolean right) {
 		if (right) {
-			setRailsRight();
+			setRailsRight(from);
 		} else if (left) {
-			setRailsLeft();
+			setRailsLeft(from);
 		} else {
-			setRailsForward();
+			setRailsForward(from);
 		}
 	}
-	public void setRailsLeft() {
+	public void setRailsLeft(BlockFace from) {
 		//is a track present at this direction?
-		BlockFace main = this.getRelativeFromCart(BlockFace.WEST);
-		if (!BlockUtil.isRails(this.getRails().getRelative(main))) {
-			main = this.getRelativeFromCart(BlockFace.NORTH);
-		}
-		//Set it
-		this.setRailsFromCart(main);
-	}
-	public void setRailsRight() {
-		//is a track present at this direction?
-		BlockFace main = this.getRelativeFromCart(BlockFace.EAST);
-		if (!BlockUtil.isRails(this.getRails().getRelative(main))) {
-			main = this.getRelativeFromCart(BlockFace.NORTH);
+		BlockFace main = FaceUtil.offset(from.getOppositeFace(), BlockFace.WEST);
+		if (!Util.isRails(this.getRails().getRelative(main))) {
+			main = FaceUtil.offset(from.getOppositeFace(), BlockFace.NORTH);
 		}
 		//Set it
-		this.setRailsFromCart(main);
+		this.setRailsFromTo(from, main);
 	}
-	public void setRailsForward() {
+	public void setRailsRight(BlockFace from) {
 		//is a track present at this direction?
-		BlockFace main = this.getRelativeFromCart(BlockFace.NORTH);
-		if (!BlockUtil.isRails(this.getRails().getRelative(main))) {
-			main = this.getRelativeFromCart(BlockFace.EAST);
+		BlockFace main = FaceUtil.offset(from.getOppositeFace(), BlockFace.EAST);
+		if (!Util.isRails(this.getRails().getRelative(main))) {
+			main = FaceUtil.offset(from.getOppositeFace(), BlockFace.NORTH);
+		}
+		//Set it
+		this.setRailsFromTo(from, main);
+	}
+	public void setRailsForward(BlockFace from) {
+		//is a track present at this direction?
+		BlockFace main = FaceUtil.offset(from.getOppositeFace(), BlockFace.NORTH);
+		if (!Util.isRails(this.getRails().getRelative(main))) {
+			main = FaceUtil.offset(from.getOppositeFace(), BlockFace.EAST);
 			if (!BlockUtil.isRails(this.getRails().getRelative(main))) {
-				main = this.getRelativeFromCart(BlockFace.WEST);
+				main = FaceUtil.offset(from.getOppositeFace(), BlockFace.WEST);
 			}
 		}
 		//Set it
-		this.setRailsFromCart(main);
+		this.setRailsFromTo(from, main);
 	}
 
 	public SignActionType getAction() {

@@ -24,7 +24,7 @@ public class SignActionSwitcher extends SignAction {
 		}
 		return i;
 	}
-	
+
 	public boolean handleDestination(SignActionEvent info) {
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
 			PathNode node = PathNode.getOrCreate(info);
@@ -43,19 +43,19 @@ public class SignActionSwitcher extends SignAction {
 		}
 		return false;
 	}
-	
+
 	public void handleRails(SignActionEvent info, boolean left, boolean right) {
 		boolean down = false;
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER, 
 				SignActionType.GROUP_UPDATE, SignActionType.MEMBER_UPDATE)) {
 			down = left || right;         
-			if (info.isPowered()) info.setRails(left, right);
+			if (info.isPowered()) info.setRails(info.getFacing(), left, right);
 		}
 		info.setLevers(down);
 	}
-	
+
 	public boolean isFacing(SignActionEvent info) {
-		if (info.getMember().getDirection() == info.getFacing().getOppositeFace()) {
+		if (!info.getMember().isMoving() || info.getMember().getDirection() == info.getFacing().getOppositeFace()) {
 			return true;
 		} else {
 			//can a train face the sign at all?
@@ -63,7 +63,7 @@ public class SignActionSwitcher extends SignAction {
 			return !Util.isRails(b);
 		}
 	}
-	
+
 	public boolean handleCounter(SignActionEvent info, String l, String r) {
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
 			try {
@@ -98,26 +98,29 @@ public class SignActionSwitcher extends SignAction {
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE, 
 				SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
 			if (!info.hasRailedMember()) return;
-			if (!handleDestination(info)) {
-				if (!isFacing(info)) return;
-				if (!handleCounter(info, l, r)) {
-					boolean left = !l.equals("") && info.getGroup().hasTag(l);
-					boolean right = !r.equals("") && info.getGroup().hasTag(r);
+			if (isFacing(info) && !handleCounter(info, l, r)) {
+				boolean left = !l.equals("") && info.getGroup().hasTag(l);
+				boolean right = !r.equals("") && info.getGroup().hasTag(r);
+				if (left || right || !info.getGroup().getProperties().hasDestination()) {
 					handleRails(info, left, right);
+					return;
 				}
 			}
 		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE, 
 				SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
-			if (!handleDestination(info)) {
-				if (!isFacing(info)) return;
-				if (!handleCounter(info, l, r)) {
-					boolean left = !l.equals("") && info.getMember().hasTag(l);
-					boolean right = !r.equals("") && info.getMember().hasTag(r);
+			if (isFacing(info) && !handleCounter(info, l, r)) {
+				boolean left = !l.equals("") && info.getMember().hasTag(l);
+				boolean right = !r.equals("") && info.getMember().hasTag(r);
+				if (left || right || !info.getMember().getProperties().hasDestination()) {
 					handleRails(info, left, right);
+					return;
 				}
 			}
+		} else {
+			return;
 		}
+		handleDestination(info);
 	}
 
 	@Override

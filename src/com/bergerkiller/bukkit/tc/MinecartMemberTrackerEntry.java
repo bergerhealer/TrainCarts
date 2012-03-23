@@ -222,7 +222,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 					int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
 					entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
 					entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
-					entityplayer.netServerHandler.sendPacket(this.createTeleportPacket());
+					this.broadcast(this.createTeleportPacket());
 				}
 			} else {
 				this.clear(entityplayer);

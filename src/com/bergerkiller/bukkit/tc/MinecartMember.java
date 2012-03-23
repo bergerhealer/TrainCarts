@@ -332,7 +332,7 @@ public class MinecartMember extends NativeMinecartMember {
 	 * Overridden Minecart functions
 	 */
 	@Override
-	public void G_() {
+	public void F_() {
 		MinecartGroup g = this.getGroup();
 		if (g == null) return;
 		if (this.dead) {
@@ -340,7 +340,7 @@ public class MinecartMember extends NativeMinecartMember {
 			g.remove(this);
 		} else if (g.size() == 0) {
 			g.remove();
-			super.G_();
+			super.F_();
 		} else if (g.tail() == this) {
 			g.doPhysics();
 		}

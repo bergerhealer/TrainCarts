@@ -130,5 +130,10 @@ public class InventoryWatcher implements IInventory {
 	public ItemStack splitWithoutUpdate(int arg0) {
 		return this.source.splitWithoutUpdate(arg0);
 	}
+
+	@Override
+	public void setMaxStackSize(int arg0) {
+		this.source.setMaxStackSize(arg0);
+	}
 	
 }

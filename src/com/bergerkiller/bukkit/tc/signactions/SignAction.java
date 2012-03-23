@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -84,7 +85,7 @@ public abstract class SignAction {
 			action.build(event, type, mode);
 			if (event.isCancelled()) return;
 		}
-		if (mode != SignActionMode.NONE) {
+		if (mode != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
 			//snap to fixed 90-degree angle
 			BlockFace facing = BlockUtil.getFacing(event.getBlock());
 			switch (facing) {
