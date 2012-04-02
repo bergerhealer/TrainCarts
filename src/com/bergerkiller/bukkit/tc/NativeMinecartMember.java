@@ -49,12 +49,12 @@ public class NativeMinecartMember extends EntityMinecart {
 	public int fuel;
 	public boolean isOnMinecartTrack = true;
 	public boolean wasOnMinecartTrack = true;
-	private static final int[][][] matrix = new int[][][] { 
-		{ { 0, 0, -1 }, { 0, 0, 1 } }, { { -1, 0, 0 }, { 1, 0, 0 } },
-		{ { -1, -1, 0 }, { 1, 0, 0 } }, { { -1, 0, 0 }, { 1, -1, 0 } },
-		{ { 0, 0, -1 }, { 0, -1, 1 } }, { { 0, -1, -1 }, { 0, 0, 1 } },
-		{ { 0, 0, 1 }, { 1, 0, 0 } }, { { 0, 0, 1 }, { -1, 0, 0 } },
-		{ { 0, 0, -1 }, { -1, 0, 0 } }, { { 0, 0, -1 }, { 1, 0, 0 } } };
+	private static final Vector[][] matrix = new Vector[][] { 
+		{ new Vector(0, 0, -1), new Vector(0, 0, 1) }, { new Vector(-1, 0, 0), new Vector(1, 0, 0) },
+		{ new Vector(-1, -1, 0), new Vector(1, 0, 0) }, { new Vector(-1, 0, 0), new Vector(1, -1, 0) },
+		{ new Vector(0, 0, -1), new Vector(0, -1, 1) }, { new Vector(0, -1, -1), new Vector(0, 0, 1) },
+		{ new Vector(0, 0, 1), new Vector(1, 0, 0) }, { new Vector(0, 0, 1), new Vector(-1, 0, 0) },
+		{ new Vector(0, 0, -1), new Vector(-1, 0, 0) }, { new Vector(0, 0, -1), new Vector(1, 0, 0) } };
 
 	public void validate() throws MemberDeadException {
 		if (this.dead) {
@@ -100,9 +100,9 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public boolean isMoving() {
- 		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
+		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
 	}
-	
+
 	private boolean ignoreForces() {
 		return group().isVelocityAction();
 	}
@@ -121,18 +121,18 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.locZ = this.lastZ;
 	}
 
-	
-	
-	
+
+
+
 	/*
 	 * Replaced standard droppings based on TrainCarts settings. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
 	 */
 	@Override
-    public boolean damageEntity(DamageSource damagesource, int i)
-    {
-        if(!world.isStatic && !dead)
-        {
+	public boolean damageEntity(DamageSource damagesource, int i)
+	{
+		if(!world.isStatic && !dead)
+		{
 			// CraftBukkit start
 			Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 			org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
@@ -147,91 +147,91 @@ public class NativeMinecartMember extends EntityMinecart {
 			i = event.getDamage();
 			// CraftBukkit end
 
-            e(-n());
-            d(10);
-            aW();
-            setDamage(getDamage() + i * 10);
-            if(getDamage() > 40)
-            {
-    			// CraftBukkit start
-                List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
-                if (TrainCarts.spawnItemDrops) {
-                	if (TrainCarts.breakCombinedCarts) {
-                        drops.add(new CraftItemStack(Item.MINECART.id, 1));
-                        if (type == 1) {
-                        	drops.add(new CraftItemStack(Block.CHEST.id, 1));
-                        } else if(type == 2) {
-                            drops.add(new CraftItemStack(Block.FURNACE.id, 1));
-                        }
-                	} else {
-                		switch (this.type) {
-                		case 0:
-                			drops.add(new CraftItemStack(Item.MINECART.id, 1));
-                			break;
-                		case 1:
-                			drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
-                			break;
-                		case 2:
-                			drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
-                			break;
-                		}
-                	}
-                }
+			e(-n());
+			d(10);
+			aW();
+			setDamage(getDamage() + i * 10);
+			if(getDamage() > 40)
+			{
+				// CraftBukkit start
+				List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
+				if (TrainCarts.spawnItemDrops) {
+					if (TrainCarts.breakCombinedCarts) {
+						drops.add(new CraftItemStack(Item.MINECART.id, 1));
+						if (type == 1) {
+							drops.add(new CraftItemStack(Block.CHEST.id, 1));
+						} else if(type == 2) {
+							drops.add(new CraftItemStack(Block.FURNACE.id, 1));
+						}
+					} else {
+						switch (this.type) {
+						case 0:
+							drops.add(new CraftItemStack(Item.MINECART.id, 1));
+							break;
+						case 1:
+							drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
+							break;
+						case 2:
+							drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
+							break;
+						}
+					}
+				}
 
-                VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger, drops);
-                world.getServer().getPluginManager().callEvent(destroyEvent);
-                if(destroyEvent.isCancelled()) {
-                    setDamage(40);
-                    return true;
-                }
-    			// CraftBukkit end
-                
-                if(this.passenger != null) {
-                	this.passenger.mount(this);
-                }
-                
-                this.die();
+				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
+				world.getServer().getPluginManager().callEvent(destroyEvent);
+				if(destroyEvent.isCancelled()) {
+					setDamage(40);
+					return true;
+				}
+				// CraftBukkit end
 
-                for (org.bukkit.inventory.ItemStack stack : drops) {
-                	this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
-                }
+				if(this.passenger != null) {
+					this.passenger.mount(this);
+				}
 
-                if(type == 1)
-                {
-                    EntityMinecart entityminecart = this;
-                    for(int j = 0; j < entityminecart.getSize(); j++)
-                    {
-                        net.minecraft.server.ItemStack itemstack = entityminecart.getItem(j);
-                        if(itemstack != null)
-                        {
-                            float f = random.nextFloat() * 0.8F + 0.1F;
-                            float f1 = random.nextFloat() * 0.8F + 0.1F;
-                            float f2 = random.nextFloat() * 0.8F + 0.1F;
-                            while(itemstack.count > 0) 
-                            {
-                                int k = random.nextInt(21) + 10;
-                                if(k > itemstack.count)
-                                    k = itemstack.count;
-                                itemstack.count -= k;
-                                EntityItem entityitem = new EntityItem(world, locX + (double)f, locY + (double)f1, locZ + (double)f2, new net.minecraft.server.ItemStack(itemstack.id, k, itemstack.getData(), itemstack.getEnchantments()));
-                                float f3 = 0.05F;
-                                entityitem.motX = (float)random.nextGaussian() * f3;
-                                entityitem.motY = (float)random.nextGaussian() * f3 + 0.2F;
-                                entityitem.motZ = (float)random.nextGaussian() * f3;
-                                world.addEntity(entityitem);
-                            }
-                        }
-                    }
-                }
-            }
-            return true;
-        } else
-        {
-            return true;
-        }
-    }
+				this.die();
 
-    /*
+				for (org.bukkit.inventory.ItemStack stack : drops) {
+					this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
+				}
+
+				if(type == 1)
+				{
+					EntityMinecart entityminecart = this;
+					for(int j = 0; j < entityminecart.getSize(); j++)
+					{
+						net.minecraft.server.ItemStack itemstack = entityminecart.getItem(j);
+						if(itemstack != null)
+						{
+							float f = random.nextFloat() * 0.8F + 0.1F;
+							float f1 = random.nextFloat() * 0.8F + 0.1F;
+							float f2 = random.nextFloat() * 0.8F + 0.1F;
+							while(itemstack.count > 0) 
+							{
+								int k = random.nextInt(21) + 10;
+								if(k > itemstack.count)
+									k = itemstack.count;
+								itemstack.count -= k;
+								EntityItem entityitem = new EntityItem(world, locX + (double)f, locY + (double)f1, locZ + (double)f2, new net.minecraft.server.ItemStack(itemstack.id, k, itemstack.getData(), itemstack.getEnchantments()));
+								float f3 = 0.05F;
+								entityitem.motX = (float)random.nextGaussian() * f3;
+								entityitem.motY = (float)random.nextGaussian() * f3 + 0.2F;
+								entityitem.motZ = (float)random.nextGaussian() * f3;
+								world.addEntity(entityitem);
+							}
+						}
+					}
+				}
+			}
+			return true;
+		} else
+		{
+			return true;
+		}
+	}
+
+	/*
 	 * Stores physics information (since functions are now pretty much scattered around)
 	 */
 	private MoveInfo moveinfo = new MoveInfo();
@@ -242,7 +242,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		public double prevZ;
 		public float prevYaw;
 		public float prevPitch;
-		public int[][] moveMatrix;
+		public Vector[] moveMatrix;
 		public int blockX;
 		public int blockY;
 		public int blockZ;
@@ -300,7 +300,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			moveinfo.isRailed = Util.isRails(railtype);
 		}
 		this.isOnMinecartTrack = moveinfo.isRailed ? BlockUtil.isRails(railtype) : false;
-		
+
 		moveinfo.isLaunching = false;
 
 		//TrainCarts - prevent sloped movement if forces are ignored
@@ -309,7 +309,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (moveinfo.isRailed) {
 			moveinfo.vec3d = this.h(this.locX, this.locY, this.locZ);
 			moveinfo.raildata = this.world.getData(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
-			
+
 			this.locY = (double) moveinfo.blockY;
 			moveinfo.isLaunching = false;
 			boolean isBraking = false;
@@ -355,12 +355,12 @@ public class NativeMinecartMember extends EntityMinecart {
 					//TrainNote end
 				}
 			}
-			
+
 			moveinfo.moveMatrix = matrix[moveinfo.raildata];
 
 			//rail motion is calculated from the rails
-			double railMotionX = (double) (moveinfo.moveMatrix[1][0] - moveinfo.moveMatrix[0][0]);
-			double railMotionZ = (double) (moveinfo.moveMatrix[1][2] - moveinfo.moveMatrix[0][2]);		
+			double railMotionX = moveinfo.moveMatrix[1].getX() - moveinfo.moveMatrix[0].getX();
+			double railMotionZ = moveinfo.moveMatrix[1].getZ() - moveinfo.moveMatrix[0].getZ();		
 			//reverse motion if needed
 			if ((this.motX * railMotionX + this.motZ * railMotionZ) < 0.0) {
 				railMotionX = -railMotionX;
@@ -386,10 +386,10 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			//location is updated to follow the tracks
-			double oldRailX = (double) moveinfo.blockX + 0.5 + (double) moveinfo.moveMatrix[0][0] * 0.5;
-			double oldRailZ = (double) moveinfo.blockZ + 0.5 + (double) moveinfo.moveMatrix[0][2] * 0.5;
-			double newRailX = (double) moveinfo.blockX + 0.5 + (double) moveinfo.moveMatrix[1][0] * 0.5;
-			double newRailZ = (double) moveinfo.blockZ + 0.5 + (double) moveinfo.moveMatrix[1][2] * 0.5;
+			double oldRailX = (double) moveinfo.blockX + 0.5 + moveinfo.moveMatrix[0].getX() * 0.5;
+			double oldRailZ = (double) moveinfo.blockZ + 0.5 + moveinfo.moveMatrix[0].getZ() * 0.5;
+			double newRailX = (double) moveinfo.blockX + 0.5 + moveinfo.moveMatrix[1].getX() * 0.5;
+			double newRailZ = (double) moveinfo.blockZ + 0.5 + moveinfo.moveMatrix[1].getZ() * 0.5;
 
 			railMotionX = newRailX - oldRailX;
 			railMotionZ = newRailZ - oldRailZ;
@@ -409,14 +409,15 @@ public class NativeMinecartMember extends EntityMinecart {
 			//finally update the position
 			this.setPosition(this.locX, this.locY + (double) this.height, this.locZ);
 		} else {
+			Vector der;
 			if (this.onGround) {
-				// CraftBukkit start
-				Vector der = this.getDerailedVelocityMod();
-				this.motX *= der.getX();
-				this.motY *= der.getY();
-				this.motZ *= der.getZ();
-				// CraftBukkit start
+				der = this.getDerailedVelocityMod();
+			} else {
+				der = this.getFlyingVelocityMod();
 			}
+			this.motX *= der.getX();
+			this.motY *= der.getY();
+			this.motZ *= der.getZ();
 		}
 		return true;
 	}
@@ -430,20 +431,21 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (this.moveinfo == null) return; //pre-update is needed
 		double motX = MathUtil.fixNaN(this.motX);
 		double motZ = MathUtil.fixNaN(this.motZ);
-		
+
 		speedFactor = MathUtil.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
-		
+
 		motX = MathUtil.limit(motX, this.maxSpeed);
 		motZ = MathUtil.limit(motZ, this.maxSpeed);
 		motX *= speedFactor;
 		motZ *= speedFactor;
+		this.move(motX, 0.0D, motZ);
+
 		if (moveinfo.isRailed) {
-			this.move(motX, 0.0D, motZ);
-			if (moveinfo.moveMatrix[0][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[0][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[0][2]) {
-				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[0][1], this.locZ);
-			} else if (moveinfo.moveMatrix[1][1] != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[1][0] && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[1][2]) {
-				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[1][1], this.locZ);
+			if (moveinfo.moveMatrix[0].getY() != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[0].getX() && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[0].getZ()) {
+				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[0].getY(), this.locZ);
+			} else if (moveinfo.moveMatrix[1].getY() != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[1].getX() && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[1].getZ()) {
+				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[1].getY(), this.locZ);
 			}
 
 			// CraftBukkit
@@ -546,26 +548,6 @@ public class NativeMinecartMember extends EntityMinecart {
 						this.motZ = -0.02;
 					}
 				}
-			}
-		} else {
-
-			if (this.onGround) {
-				// CraftBukkit start
-				Vector der = this.getDerailedVelocityMod();
-				this.motX *= der.getX();
-				this.motY *= der.getY();
-				this.motZ *= der.getZ();
-				// CraftBukkit start
-			}
-
-			this.move(motX, this.motY, motZ);
-			if (!this.onGround) {
-				// CraftBukkit start
-				Vector der = this.getFlyingVelocityMod();
-				this.motX *= der.getX();
-				this.motY *= der.getY();
-				this.motZ *= der.getZ();
-				// CraftBukkit start
 			}
 		}
 
@@ -677,248 +659,248 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-    public void move(double d0, double d1, double d2)
-    {
-        if(bQ)
-        {
-            boundingBox.d(d0, d1, d2);
-            locX = (boundingBox.a + boundingBox.d) / 2D;
-            locY = (boundingBox.b + (double)height) - (double)bO;
-            locZ = (boundingBox.c + boundingBox.f) / 2D;
-        } else
-        {
-            bO *= 0.4F;
-            double d3 = locX;
-            double d4 = locZ;
-            if(bC)
-            {
-                bC = false;
-                d0 *= 0.25D;
-                d1 *= 0.05000000074505806D;
-                d2 *= 0.25D;
-                motX = 0.0D;
-                motY = 0.0D;
-                motZ = 0.0D;
-            }
-            double d5 = d0;
-            double d6 = d1;
-            double d7 = d2;
-            AxisAlignedBB axisalignedbb = boundingBox.clone();
-            List list = world.getCubes(this, boundingBox.a(d0, d1, d2));
-            //================================================
-            filterCollisionList(list);
-            //================================================
-            
-            for(int i = 0; i < list.size(); i++)
-                d1 = ((AxisAlignedBB)list.get(i)).b(boundingBox, d1);
+	public void move(double d0, double d1, double d2)
+	{
+		if(bQ)
+		{
+			boundingBox.d(d0, d1, d2);
+			locX = (boundingBox.a + boundingBox.d) / 2D;
+			locY = (boundingBox.b + (double)height) - (double)bO;
+			locZ = (boundingBox.c + boundingBox.f) / 2D;
+		} else
+		{
+			bO *= 0.4F;
+			double d3 = locX;
+			double d4 = locZ;
+			if(bC)
+			{
+				bC = false;
+				d0 *= 0.25D;
+				d1 *= 0.05000000074505806D;
+				d2 *= 0.25D;
+				motX = 0.0D;
+				motY = 0.0D;
+				motZ = 0.0D;
+			}
+			double d5 = d0;
+			double d6 = d1;
+			double d7 = d2;
+			AxisAlignedBB axisalignedbb = boundingBox.clone();
+			List list = world.getCubes(this, boundingBox.a(d0, d1, d2));
+			//================================================
+					filterCollisionList(list);
+			//================================================
 
-            boundingBox.d(0.0D, d1, 0.0D);
-            if(!bD && d6 != d1)
-            {
-                d2 = 0.0D;
-                d1 = 0.0D;
-                d0 = 0.0D;
-            }
-            boolean flag1 = onGround || d6 != d1 && d6 < 0.0D;
-            for(int j = 0; j < list.size(); j++)
-                d0 = ((AxisAlignedBB)list.get(j)).a(boundingBox, d0);
+					for(int i = 0; i < list.size(); i++)
+						d1 = ((AxisAlignedBB)list.get(i)).b(boundingBox, d1);
 
-            boundingBox.d(d0, 0.0D, 0.0D);
-            if(!bD && d5 != d0)
-            {
-                d2 = 0.0D;
-                d1 = 0.0D;
-                d0 = 0.0D;
-            }
-            for(int j = 0; j < list.size(); j++)
-                d2 = ((AxisAlignedBB)list.get(j)).c(boundingBox, d2);
+					boundingBox.d(0.0D, d1, 0.0D);
+					if(!bD && d6 != d1)
+					{
+						d2 = 0.0D;
+						d1 = 0.0D;
+						d0 = 0.0D;
+					}
+					boolean flag1 = onGround || d6 != d1 && d6 < 0.0D;
+					for(int j = 0; j < list.size(); j++)
+						d0 = ((AxisAlignedBB)list.get(j)).a(boundingBox, d0);
 
-            boundingBox.d(0.0D, 0.0D, d2);
-            if(!bD && d7 != d2)
-            {
-                d2 = 0.0D;
-                d1 = 0.0D;
-                d0 = 0.0D;
-            }
-            double d9;
-            double d10;
-            int k;
-            if(bP > 0.0F && flag1 && bO < 0.05F && (d5 != d0 || d7 != d2))
-            {
-                d9 = d0;
-                d10 = d1;
-                double d11 = d2;
-                d0 = d5;
-                d1 = bP;
-                d2 = d7;
-                AxisAlignedBB axisalignedbb1 = boundingBox.clone();
-                boundingBox.b(axisalignedbb);
-                list = world.getCubes(this, boundingBox.a(d5, d1, d7));
-                
-                //================================================
-                filterCollisionList(list);
-                //================================================
-                
-                for(k = 0; k < list.size(); k++)
-                    d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
+					boundingBox.d(d0, 0.0D, 0.0D);
+					if(!bD && d5 != d0)
+					{
+						d2 = 0.0D;
+						d1 = 0.0D;
+						d0 = 0.0D;
+					}
+					for(int j = 0; j < list.size(); j++)
+						d2 = ((AxisAlignedBB)list.get(j)).c(boundingBox, d2);
 
-                boundingBox.d(0.0D, d1, 0.0D);
-                if(!bD && d6 != d1)
-                {
-                    d2 = 0.0D;
-                    d1 = 0.0D;
-                    d0 = 0.0D;
-                }
-                for(k = 0; k < list.size(); k++)
-                    d0 = ((AxisAlignedBB)list.get(k)).a(boundingBox, d0);
+					boundingBox.d(0.0D, 0.0D, d2);
+					if(!bD && d7 != d2)
+					{
+						d2 = 0.0D;
+						d1 = 0.0D;
+						d0 = 0.0D;
+					}
+					double d9;
+					double d10;
+					int k;
+					if(bP > 0.0F && flag1 && bO < 0.05F && (d5 != d0 || d7 != d2))
+					{
+						d9 = d0;
+						d10 = d1;
+						double d11 = d2;
+						d0 = d5;
+						d1 = bP;
+						d2 = d7;
+						AxisAlignedBB axisalignedbb1 = boundingBox.clone();
+						boundingBox.b(axisalignedbb);
+						list = world.getCubes(this, boundingBox.a(d5, d1, d7));
 
-                boundingBox.d(d0, 0.0D, 0.0D);
-                if(!bD && d5 != d0)
-                {
-                    d2 = 0.0D;
-                    d1 = 0.0D;
-                    d0 = 0.0D;
-                }
-                for(k = 0; k < list.size(); k++)
-                    d2 = ((AxisAlignedBB)list.get(k)).c(boundingBox, d2);
+						//================================================
+								filterCollisionList(list);
+						//================================================
 
-                boundingBox.d(0.0D, 0.0D, d2);
-                if(!bD && d7 != d2)
-                {
-                    d2 = 0.0D;
-                    d1 = 0.0D;
-                    d0 = 0.0D;
-                }
-                if(!bD && d6 != d1)
-                {
-                    d2 = 0.0D;
-                    d1 = 0.0D;
-                    d0 = 0.0D;
-                } else
-                {
-                    d1 = -bP;
-                    for(k = 0; k < list.size(); k++)
-                        d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
+								for(k = 0; k < list.size(); k++)
+									d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
 
-                    boundingBox.d(0.0D, d1, 0.0D);
-                }
-                if(d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2)
-                {
-                    d0 = d9;
-                    d1 = d10;
-                    d2 = d11;
-                    boundingBox.b(axisalignedbb1);
-                } else
-                {
-                    double d12 = boundingBox.b - (double)(int)boundingBox.b;
-                    if(d12 > 0.0D)
-                        bO = (float)((double)bO + d12 + 0.01D);
-                }
-            }
-            locX = (boundingBox.a + boundingBox.d) / 2D;
-            locY = (boundingBox.b + (double)height) - (double)bO;
-            locZ = (boundingBox.c + boundingBox.f) / 2D;
-            positionChanged = d5 != d0 || d7 != d2;
-            bz = d6 != d1;
-            onGround = d6 != d1 && d6 < 0.0D;
-            bA = positionChanged || bz;
-            a(d1, onGround);
-            if(d5 != d0)
-                motX = 0.0D;
-            if(d6 != d1)
-                motY = 0.0D;
-            if(d7 != d2)
-                motZ = 0.0D;
-            d9 = locX - d3;
-            d10 = locZ - d4;
-            if(positionChanged) {
-                Vehicle vehicle = (Vehicle)getBukkitEntity();
-                org.bukkit.block.Block block = world.getWorld().getBlockAt(MathHelper.floor(locX), MathHelper.floor(locY - (double)height), MathHelper.floor(locZ));
-                if(d5 > d0)
-                    block = block.getRelative(BlockFace.SOUTH);
-                else
-                if(d5 < d0)
-                    block = block.getRelative(BlockFace.NORTH);
-                else
-                if(d7 > d2)
-                    block = block.getRelative(BlockFace.WEST);
-                else
-                if(d7 < d2)
-                    block = block.getRelative(BlockFace.EAST);
-                VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
-                world.getServer().getPluginManager().callEvent(event);
-            }
-            int l;
-            int i1;
-            int j1;
-            if(g_() && this.vehicle == null)
-            {
-                bJ = (float)((double)bJ + (double)MathHelper.sqrt(d9 * d9 + d10 * d10) * 0.59999999999999998D);
-                l = MathHelper.floor(locX);
-                i1 = MathHelper.floor(locY - 0.20000000298023224D - (double)height);
-                j1 = MathHelper.floor(locZ);
-                k = world.getTypeId(l, i1, j1);
-                if(k == 0 && world.getTypeId(l, i1 - 1, j1) == Block.FENCE.id)
-                    k = world.getTypeId(l, i1 - 1, j1);
-                if(bJ > (float)b && k > 0)
-                {
-                    b = (int)bJ + 1;
-                    a(l, i1, j1, k);
-                    Block.byId[k].b(world, l, i1, j1, this);
-                }
-            }
-            l = MathHelper.floor(boundingBox.a + 0.001D);
-            i1 = MathHelper.floor(boundingBox.b + 0.001D);
-            j1 = MathHelper.floor(boundingBox.c + 0.001D);
-            k = MathHelper.floor(boundingBox.d - 0.001D);
-            int k1 = MathHelper.floor(boundingBox.e - 0.001D);
-            int l1 = MathHelper.floor(boundingBox.f - 0.001D);
-            if(world.a(l, i1, j1, k, k1, l1))
-            {
-                for(int i2 = l; i2 <= k; i2++)
-                {
-                    for(int j2 = i1; j2 <= k1; j2++)
-                    {
-                        for(int k2 = j1; k2 <= l1; k2++)
-                        {
-                            int l2 = world.getTypeId(i2, j2, k2);
-                            if(l2 > 0)
-                                Block.byId[l2].a(world, i2, j2, k2, this);
-                        }
+						boundingBox.d(0.0D, d1, 0.0D);
+						if(!bD && d6 != d1)
+						{
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						}
+						for(k = 0; k < list.size(); k++)
+							d0 = ((AxisAlignedBB)list.get(k)).a(boundingBox, d0);
 
-                    }
+						boundingBox.d(d0, 0.0D, 0.0D);
+						if(!bD && d5 != d0)
+						{
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						}
+						for(k = 0; k < list.size(); k++)
+							d2 = ((AxisAlignedBB)list.get(k)).c(boundingBox, d2);
 
-                }
+						boundingBox.d(0.0D, 0.0D, d2);
+						if(!bD && d7 != d2)
+						{
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						}
+						if(!bD && d6 != d1)
+						{
+							d2 = 0.0D;
+							d1 = 0.0D;
+							d0 = 0.0D;
+						} else
+						{
+							d1 = -bP;
+							for(k = 0; k < list.size(); k++)
+								d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
 
-            }
-            boolean flag2 = aT();
-            if(world.d(boundingBox.shrink(0.001D, 0.001D, 0.001D)))
-            {
-                burn(1);
-                if(!flag2)
-                {
-                    fireTicks++;
-                    if(fireTicks <= 0)
-                    {
-                        EntityCombustEvent event = new EntityCombustEvent(getBukkitEntity(), 8);
-                        world.getServer().getPluginManager().callEvent(event);
-                        if(!event.isCancelled())
-                            setOnFire(event.getDuration());
-                    } else
-                    {
-                        setOnFire(8);
-                    }
-                }
-            } else
-            if(fireTicks <= 0)
-                fireTicks = -maxFireTicks;
-            if(flag2 && fireTicks > 0)
-            {
-                world.makeSound(this, "random.fizz", 0.7F, 1.6F + (random.nextFloat() - random.nextFloat()) * 0.4F);
-                fireTicks = -maxFireTicks;
-            }
-        }
-    }
+							boundingBox.d(0.0D, d1, 0.0D);
+						}
+						if(d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2)
+						{
+							d0 = d9;
+							d1 = d10;
+							d2 = d11;
+							boundingBox.b(axisalignedbb1);
+						} else
+						{
+							double d12 = boundingBox.b - (double)(int)boundingBox.b;
+							if(d12 > 0.0D)
+								bO = (float)((double)bO + d12 + 0.01D);
+						}
+					}
+					locX = (boundingBox.a + boundingBox.d) / 2D;
+					locY = (boundingBox.b + (double)height) - (double)bO;
+					locZ = (boundingBox.c + boundingBox.f) / 2D;
+					positionChanged = d5 != d0 || d7 != d2;
+					bz = d6 != d1;
+					onGround = d6 != d1 && d6 < 0.0D;
+					bA = positionChanged || bz;
+					a(d1, onGround);
+					if(d5 != d0)
+						motX = 0.0D;
+					if(d6 != d1)
+						motY = 0.0D;
+					if(d7 != d2)
+						motZ = 0.0D;
+					d9 = locX - d3;
+					d10 = locZ - d4;
+					if(positionChanged) {
+						Vehicle vehicle = (Vehicle)getBukkitEntity();
+						org.bukkit.block.Block block = world.getWorld().getBlockAt(MathHelper.floor(locX), MathHelper.floor(locY - (double)height), MathHelper.floor(locZ));
+						if(d5 > d0)
+							block = block.getRelative(BlockFace.SOUTH);
+						else
+							if(d5 < d0)
+								block = block.getRelative(BlockFace.NORTH);
+							else
+								if(d7 > d2)
+									block = block.getRelative(BlockFace.WEST);
+								else
+									if(d7 < d2)
+										block = block.getRelative(BlockFace.EAST);
+						VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
+						world.getServer().getPluginManager().callEvent(event);
+					}
+					int l;
+					int i1;
+					int j1;
+					if(g_() && this.vehicle == null)
+					{
+						bJ = (float)((double)bJ + (double)MathHelper.sqrt(d9 * d9 + d10 * d10) * 0.59999999999999998D);
+						l = MathHelper.floor(locX);
+						i1 = MathHelper.floor(locY - 0.20000000298023224D - (double)height);
+						j1 = MathHelper.floor(locZ);
+						k = world.getTypeId(l, i1, j1);
+						if(k == 0 && world.getTypeId(l, i1 - 1, j1) == Block.FENCE.id)
+							k = world.getTypeId(l, i1 - 1, j1);
+						if(bJ > (float)b && k > 0)
+						{
+							b = (int)bJ + 1;
+							a(l, i1, j1, k);
+							Block.byId[k].b(world, l, i1, j1, this);
+						}
+					}
+					l = MathHelper.floor(boundingBox.a + 0.001D);
+					i1 = MathHelper.floor(boundingBox.b + 0.001D);
+					j1 = MathHelper.floor(boundingBox.c + 0.001D);
+					k = MathHelper.floor(boundingBox.d - 0.001D);
+					int k1 = MathHelper.floor(boundingBox.e - 0.001D);
+					int l1 = MathHelper.floor(boundingBox.f - 0.001D);
+					if(world.a(l, i1, j1, k, k1, l1))
+					{
+						for(int i2 = l; i2 <= k; i2++)
+						{
+							for(int j2 = i1; j2 <= k1; j2++)
+							{
+								for(int k2 = j1; k2 <= l1; k2++)
+								{
+									int l2 = world.getTypeId(i2, j2, k2);
+									if(l2 > 0)
+										Block.byId[l2].a(world, i2, j2, k2, this);
+								}
+
+							}
+
+						}
+
+					}
+					boolean flag2 = aT();
+					if(world.d(boundingBox.shrink(0.001D, 0.001D, 0.001D)))
+					{
+						burn(1);
+						if(!flag2)
+						{
+							fireTicks++;
+							if(fireTicks <= 0)
+							{
+								EntityCombustEvent event = new EntityCombustEvent(getBukkitEntity(), 8);
+								world.getServer().getPluginManager().callEvent(event);
+								if(!event.isCancelled())
+									setOnFire(event.getDuration());
+							} else
+							{
+								setOnFire(8);
+							}
+						}
+					} else
+						if(fireTicks <= 0)
+							fireTicks = -maxFireTicks;
+					if(flag2 && fireTicks > 0)
+					{
+						world.makeSound(this, "random.fizz", 0.7F, 1.6F + (random.nextFloat() - random.nextFloat()) * 0.4F);
+						fireTicks = -maxFireTicks;
+					}
+		}
+	}
 
 	/*
 	 * Returns if this entity is allowed to collide with another entity

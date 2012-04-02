@@ -17,6 +17,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.BlockMap;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -94,8 +95,9 @@ public class SignActionDetector extends SignAction {
 				return true;
 			} else {
 				if (this.region != null) {
-					this.region.unregister(this);
-					if (!this.region.isRegistered()) this.region.remove();
+					DetectorRegion region = this.region;
+					region.unregister(this);
+					if (!region.isRegistered()) region.remove();
 				}
 				return false;
 			}
@@ -260,7 +262,7 @@ public class SignActionDetector extends SignAction {
 	}
 	
 	public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
-		TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
+		final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
 		map.next();
 		//now try to find the end rails : find the other sign
 		Block endsign = null;
@@ -272,10 +274,14 @@ public class SignActionDetector extends SignAction {
 					if (sign.getLine(1).toLowerCase().startsWith("detector")) {
 						endsign = signblock;
 						//start and end found : add it
-						Detector detector = new Detector(startsign, endsign);
+						final Detector detector = new Detector(startsign, endsign);
 						detectors.put(startsign, detector);
 						detectors.put(endsign, detector);
-						DetectorRegion.create(map).register(detector);
+						new Task(TrainCarts.plugin) {
+							public void run() {
+								DetectorRegion.create(map).register(detector);
+							}
+						}.start();
 						return true;
 					}
 				}
