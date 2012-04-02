@@ -234,7 +234,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Stores physics information (since functions are now pretty much scattered around)
 	 */
-	private MoveInfo moveinfo = new MoveInfo();
+	private final MoveInfo moveinfo = new MoveInfo();
 	private class MoveInfo {
 		public boolean isRailed; //sets what post-velocity update to run
 		public double prevX;
@@ -428,7 +428,6 @@ public class NativeMinecartMember extends EntityMinecart {
 	@SuppressWarnings("unchecked")
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
-		if (this.moveinfo == null) return; //pre-update is needed
 		double motX = MathUtil.fixNaN(this.motX);
 		double motZ = MathUtil.fixNaN(this.motZ);
 
@@ -439,15 +438,16 @@ public class NativeMinecartMember extends EntityMinecart {
 		motZ = MathUtil.limit(motZ, this.maxSpeed);
 		motX *= speedFactor;
 		motZ *= speedFactor;
-		this.move(motX, 0.0D, motZ);
 
 		if (moveinfo.isRailed) {
-			if (moveinfo.moveMatrix[0].getY() != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[0].getX() && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[0].getZ()) {
-				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[0].getY(), this.locZ);
-			} else if (moveinfo.moveMatrix[1].getY() != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == moveinfo.moveMatrix[1].getX() && MathHelper.floor(this.locZ) - moveinfo.blockZ == moveinfo.moveMatrix[1].getZ()) {
-				this.setPosition(this.locX, this.locY + (double) moveinfo.moveMatrix[1].getY(), this.locZ);
+			this.move(motX, 0.0, motZ);
+			for (Vector mov : moveinfo.moveMatrix) {
+				if (mov.getY() != 0 && MathHelper.floor(this.locX) - moveinfo.blockX == mov.getX() && MathHelper.floor(this.locZ) - moveinfo.blockZ == mov.getZ()) {
+					this.setPosition(this.locX, this.locY + mov.getY(), this.locZ);
+					break;
+				}
 			}
-
+		    
 			// CraftBukkit
 			//==================TrainCarts edited==============
 			if (this.type == 2 && !ignoreForces()) {
@@ -549,6 +549,8 @@ public class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 			}
+		} else {
+			this.move(motX, this.motY, motZ);
 		}
 
 		//Update yaw and pitch
