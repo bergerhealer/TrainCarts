@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class SignActionTeleport extends SignAction {

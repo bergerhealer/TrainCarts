@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -32,6 +31,7 @@ import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.detector.DetectorListener;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class SignActionDetector extends SignAction {
 	public static void removeDetector(Block at) {

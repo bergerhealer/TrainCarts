@@ -11,10 +11,10 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public abstract class SignAction {
-	
+
 	public static void init() {
 		actions = new ArrayList<SignAction>();
 		register(new SignActionStation());

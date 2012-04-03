@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class SignActionEject extends SignAction {
 
@@ -38,7 +38,7 @@ public class SignActionEject extends SignAction {
 				offset.setY(StringUtil.tryParse(offsettext[0], 0.0));
 			}
 			if (offset.length() > TrainCarts.maxEjectDistance) {
-				offset.normalize().multiply(TrainCarts.maxCartDistance);
+				offset.normalize().multiply(TrainCarts.maxEjectDistance);
 			}
 
 			float dyaw = 0F;

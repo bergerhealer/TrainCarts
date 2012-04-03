@@ -6,8 +6,8 @@ import org.bukkit.event.block.SignChangeEvent;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class SignActionWait extends SignAction {
 

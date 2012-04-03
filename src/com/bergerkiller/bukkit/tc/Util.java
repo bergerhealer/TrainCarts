@@ -19,7 +19,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.API.MinecartSwapEvent;
+import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
 
 public class Util {
 		

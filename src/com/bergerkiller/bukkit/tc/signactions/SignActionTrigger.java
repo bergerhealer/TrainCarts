@@ -4,7 +4,7 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class SignActionTrigger extends SignAction {
 

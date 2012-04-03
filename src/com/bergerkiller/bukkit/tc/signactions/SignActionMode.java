@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public enum SignActionMode {
     TRAIN, CART, NONE;

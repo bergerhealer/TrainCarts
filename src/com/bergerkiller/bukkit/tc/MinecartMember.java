@@ -37,11 +37,11 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.tc.API.MemberCoalUsedEvent;
-import com.bergerkiller.bukkit.tc.API.MemberBlockChangeEvent;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
+import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;

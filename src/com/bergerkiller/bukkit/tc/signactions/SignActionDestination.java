@@ -4,7 +4,7 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
 public class SignActionDestination extends SignAction {

@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.API;
+package com.bergerkiller.bukkit.tc.events;
 
 import net.minecraft.server.EntityMinecart;
 

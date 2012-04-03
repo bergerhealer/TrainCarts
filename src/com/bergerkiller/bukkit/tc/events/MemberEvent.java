@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.API;
+package com.bergerkiller.bukkit.tc.events;
 
 import org.bukkit.event.Event;
 

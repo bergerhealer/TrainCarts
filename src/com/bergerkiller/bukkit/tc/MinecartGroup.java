@@ -34,15 +34,15 @@ import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.API.GroupCreateEvent;
-import com.bergerkiller.bukkit.tc.API.GroupLinkEvent;
-import com.bergerkiller.bukkit.tc.API.GroupRemoveEvent;
-import com.bergerkiller.bukkit.tc.API.GroupUnloadEvent;
-import com.bergerkiller.bukkit.tc.API.MemberAddEvent;
-import com.bergerkiller.bukkit.tc.API.MemberRemoveEvent;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
+import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
+import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
+import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
+import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
+import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
@@ -711,9 +711,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	
 	public boolean hasPassenger() {
 		for (MinecartMember mm : this) {
-			if (!mm.hasPassenger()) return false;
+			if (mm.hasPassenger()) return true;
 		}
-		return true;
+		return false;
 	}
 	public boolean hasFuel() {
 		for (MinecartMember mm : this) {

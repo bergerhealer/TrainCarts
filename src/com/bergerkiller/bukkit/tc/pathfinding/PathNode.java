@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.API.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlock;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
