@@ -410,20 +410,25 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean onCoalUsed() {
 		MemberCoalUsedEvent event = MemberCoalUsedEvent.call(this);
 		if (event.useCoal()) {
-			for (MinecartMember mm : this.getNeightbours()) {
-				//Is it a storage minecart?
-				if (mm.type == 1) {
-					//has coal?
-					for (int i = 0; i < mm.getSize(); i++) {
-						if (mm.getItem(i) != null && mm.getItem(i).id == Material.COAL.getId()) {
-							 mm.getItem(i).count--;
-							 return true;
-						}
+			return this.getCoalFromNeighbours();
+		}
+		return event.refill();
+	}
+	
+	public boolean getCoalFromNeighbours() {
+		for (MinecartMember mm : this.getNeightbours()) {
+			//Is it a storage minecart?
+			if (mm.type == 1) {
+				//has coal?
+				for (int i = 0; i < mm.getSize(); i++) {
+					if (mm.getItem(i) != null && mm.getItem(i).id == Material.COAL.getId()) {
+						 mm.getItem(i).count--;
+						 return true;
 					}
 				}
 			}
 		}
-		return event.refill();
+		return false;
 	}
 	
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
@@ -1029,9 +1034,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public Entity getPassenger() {
 		return this.passenger == null ? null : this.passenger.getBukkitEntity();
 	}
-	public boolean hasFuel() {
-		return this.fuel > 0;
-	}	
 	public Inventory getInventory() {
 		return new CraftInventory(this);
 	}

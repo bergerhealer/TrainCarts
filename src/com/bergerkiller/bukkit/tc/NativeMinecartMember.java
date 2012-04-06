@@ -47,6 +47,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
 	public int fuel;
+	private int fuelCheckCounter = 0;
 	public boolean isOnMinecartTrack = true;
 	public boolean wasOnMinecartTrack = true;
 	private static final Vector[][] matrix = new Vector[][] { 
@@ -55,6 +56,8 @@ public class NativeMinecartMember extends EntityMinecart {
 		{ new Vector(0, 0, -1), new Vector(0, -1, 1) }, { new Vector(0, -1, -1), new Vector(0, 0, 1) },
 		{ new Vector(0, 0, 1), new Vector(1, 0, 0) }, { new Vector(0, 0, 1), new Vector(-1, 0, 0) },
 		{ new Vector(0, 0, -1), new Vector(-1, 0, 0) }, { new Vector(0, 0, -1), new Vector(1, 0, 0) } };
+	
+	public static final int FUEL_PER_COAL = 3600;
 
 	public void validate() throws MemberDeadException {
 		if (this.dead) {
@@ -91,16 +94,14 @@ public class NativeMinecartMember extends EntityMinecart {
 		return world.getWorld();
 	}
 	public Location getLocation() {
-		if (this instanceof MinecartMember) {
-			MinecartMember mm = (MinecartMember) this;
-			return new Location(getWorld(), getX(), getY(), getZ(), mm.getYaw(), mm.getPitch());
-		} else {
-			return new Location(getWorld(), getX(), getY(), getZ(), this.yaw, this.pitch);
-		}
+		return new Location(getWorld(), getX(), getY(), getZ(), this.yaw, this.pitch);
 	}
 
 	public boolean isMoving() {
 		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
+	}
+	public boolean hasFuel() {
+		return this.fuel > 0;
 	}
 
 	private boolean ignoreForces() {
@@ -120,9 +121,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.locY = this.lastY;
 		this.locZ = this.lastZ;
 	}
-
-
-
 
 	/*
 	 * Replaced standard droppings based on TrainCarts settings. For source, see:
@@ -254,6 +252,14 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
+	public void addFuel(int fuel) {
+		this.fuel += fuel;
+		if (MathUtil.lengthSquared(this.b, this.c) <= 0) {
+			this.b = this.motX;
+			this.c = this.motZ;
+		}
+	}
+	
 	/*
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
@@ -273,12 +279,29 @@ public class NativeMinecartMember extends EntityMinecart {
 		moveinfo.prevPitch = this.pitch;
 		// CraftBukkit end
 
+		//fire ticks decrease
 		if (this.m() > 0) {
 			this.d(this.m() - 1);
 		}
 
+		//health regenerate
 		if (this.getDamage() > 0) {
 			this.setDamage(this.getDamage() - 1);
+		}
+		
+		//put coal into cart if needed
+		if (this.isPoweredCart()) {
+			if (this.fuel <= 0) {
+				if (fuelCheckCounter++ % 20 == 0 && TrainCarts.useCoalFromStorageCart && this.member().getCoalFromNeighbours()) {
+					this.addFuel(FUEL_PER_COAL);
+				}
+			} else {
+				this.fuelCheckCounter = 0;
+				if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
+					this.b = this.motX;
+					this.c = this.motZ;
+				}
+			}
 		}
 
 		this.lastX = this.locX;
@@ -450,9 +473,9 @@ public class NativeMinecartMember extends EntityMinecart {
 		    
 			// CraftBukkit
 			//==================TrainCarts edited==============
-			if (this.type == 2 && !ignoreForces()) {
-				double fuelPower = MathUtil.length(this.b, this.c);
-				if (fuelPower > 0.01) {
+			if (this.isPoweredCart() && !ignoreForces()) {
+				double fuelPower;
+				if (this.hasFuel() && (fuelPower = MathUtil.length(this.b, this.c)) > 0) {
 					this.b /= fuelPower;
 					this.c /= fuelPower;
 					double boost = 0.04 + TrainCarts.poweredCartBoost;
@@ -510,7 +533,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			//PushX and PushZ updated for Powered Minecarts
-			if (this.type == 2) {
+			if (this.isPoweredCart()) {
 				motLength = MathUtil.length(this.b, this.c);
 				if (motLength > 0.01 && this.motX * this.motX + this.motZ * this.motZ > 0.001) {
 					this.b /= motLength;
@@ -609,17 +632,21 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.passenger = null;
 		}
 
-		if (this.fuel > 0 && this.type == 2) {
-			if (--this.fuel == 0) {
+		if (this.fuel > 0 && this.isPoweredCart()) {
+			this.fuel--;
+			if (this.fuel == 0) {
 				//TrainCarts - Actions to be done when empty
 				if (this.onCoalUsed()) {
-					this.fuel += 3600; //Refill
-				} else {
-					this.b = this.c = 0.0D;
+					this.addFuel(FUEL_PER_COAL); //Refill
 				}
 			}
 		}
-		this.a(this.fuel > 0);
+		if (this.fuel <= 0) {
+			this.fuel = 0;
+			this.b = this.c = 0.0;
+		}
+		
+		this.a(this.hasFuel());
 	}
 
 	/*
@@ -628,7 +655,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	@Override
 	public boolean b(EntityHuman entityhuman) {
-		if (this.type == 2) {
+		if (this.isPoweredCart()) {
 			ItemStack itemstack = entityhuman.inventory.getItemInHand();
 			if (itemstack != null && itemstack.id == Item.COAL.id) {
 				if (--itemstack.count == 0) {

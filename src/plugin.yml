@@ -1,6 +1,6 @@
 name: Train Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
-version: 1.62
+version: 1.63
 author: bergerkiller
 description: Plugin that allows the use of minecart trains with adjustable settings
 depend: [BKCommonLib]
