@@ -21,7 +21,11 @@ public class SignActionSpawn extends SignAction {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("spawn")) {
 					if (!info.hasRails()) return;
-					double force = StringUtil.tryParse(info.getLine(1).substring(5).trim(), 0.0);
+					int idx = info.getLine(1).lastIndexOf(" ", 5);
+					double force = 0.0;
+					if (idx != -1) {
+						force = StringUtil.tryParse(info.getLine(1).substring(idx + 1), 0.0);
+					}
 
 					//Get the cart types to spawn
 					ArrayList<Integer> types = new ArrayList<Integer>();

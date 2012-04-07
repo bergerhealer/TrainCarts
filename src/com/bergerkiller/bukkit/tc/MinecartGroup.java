@@ -18,6 +18,7 @@ import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.PlayerInventory;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -1029,6 +1030,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		} catch (Exception ex) {
 			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
 			ex.printStackTrace();
+		} catch (Throwable t) {
+			TrainCarts.handleError(t);
 		}
 	}
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {

@@ -12,6 +12,7 @@ import net.minecraft.server.Chunk;
 import net.minecraft.server.Entity;
 import net.minecraft.server.WorldServer;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
@@ -40,6 +41,7 @@ public class TrainCarts extends PluginBase {
 	/*
 	 * Settings
 	 */	
+	public static double maxVelocity;
 	public static double maxEjectDistance;
 	public static double cartDistance;
 	public static double turnedCartDistance;
@@ -125,6 +127,9 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("poweredCartBoost", "\nA performance boost to give to powered minecarts (0 = normal speed)");
 		poweredCartBoost = config.get("poweredCartBoost", 0.1);
 
+		config.setHeader("maxVelocity", "\nThe maximum velocity (blocks/tick) a minecart can possibly have set");
+		maxVelocity = config.get("maxVelocity", 5.0);
+		
 		config.setHeader("exitOffset", "\nThe XYZ offset used when a passenger exits a minecart");
 		exitx = config.get("exitOffset.x", 0.0);
 		exity = config.get("exitOffset.y", 0.0);
@@ -403,4 +408,17 @@ public class TrainCarts extends PluginBase {
 		this.loadPermissions(Permission.class);
 	}
 
+	public static void handleError(Throwable reason) {
+		if (reason instanceof Exception) {
+			reason.printStackTrace();
+		} else if (reason instanceof NoClassDefFoundError) {
+			plugin.log(Level.WARNING, "Class is missing (plugin was hot-swapped?): " + reason.getMessage());
+		} else {
+			plugin.log(Level.SEVERE, "TrainCarts encountered a critical error and had to be disabled.");
+			plugin.log(Level.SEVERE, "You may have to update TrainCarts or look for a newer CraftBukkit build.");
+			reason.printStackTrace();
+			Bukkit.getPluginManager().disablePlugin(plugin);
+		}
+	}
+	
 }

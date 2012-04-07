@@ -84,7 +84,9 @@ public class Util {
 	}
 			
 	public static Block getRailsFromSign(Block signblock) {
-		if (signblock.getTypeId() == Material.SIGN_POST.getId()) {
+		if (signblock == null) {
+			return null;
+		} else if (signblock.getTypeId() == Material.SIGN_POST.getId()) {
 		} else if (signblock.getTypeId() == Material.WALL_SIGN.getId()) {
 			signblock = BlockUtil.getAttachedBlock(signblock);
 		} else {

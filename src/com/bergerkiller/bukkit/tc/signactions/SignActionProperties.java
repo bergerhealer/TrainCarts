@@ -5,6 +5,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -35,6 +36,7 @@ public class SignActionProperties extends SignAction {
 			} catch (NumberFormatException ex) {
 				prop.speedLimit = 0.4;
 			}
+			prop.speedLimit = Math.min(prop.speedLimit, TrainCarts.maxVelocity);
 		} else if (mode.equals("addtag")) {
 			prop.addTags(arg);
 		} else if (mode.equals("settag")) {

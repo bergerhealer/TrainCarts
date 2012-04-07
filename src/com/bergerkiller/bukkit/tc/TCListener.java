@@ -50,7 +50,7 @@ public class TCListener implements Listener {
 	private BlockSet poweredBlocks = new BlockSet();
 	public static Player lastPlayer = null;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onChunkUnloadLow(ChunkUnloadEvent event) {
 		synchronized (this.expectUnload) {
@@ -192,141 +192,158 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
-		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-			if (WorldGroupManager.wasInGroup(event.getVehicle())) {
-				event.setCancelled(true);
-				return;
-			}
-			MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
-			if (mm1 != null) {
-				if (mm1.getGroup().isVelocityAction()) {
+		try {
+			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
+				if (WorldGroupManager.wasInGroup(event.getVehicle())) {
 					event.setCancelled(true);
-				} else if (mm1.isCollisionIgnored(event.getEntity())) {
-					event.setCancelled(true);
-				} else {
-					TrainProperties prop = mm1.getGroup().getProperties();
-					if (event.getEntity() instanceof Minecart) {
-						if (WorldGroupManager.wasInGroup(event.getEntity())) {
-							event.setCancelled(true);
-							return;
-						}
-						MinecartMember mm2 = MinecartMember.convert(event.getEntity());
-						if (mm2 == null || mm1.getGroup() == mm2.getGroup() || MinecartGroup.link(mm1, mm2)) {
-							event.setCancelled(true);
-						} else if (mm2.getGroup().isVelocityAction()) {
-							event.setCancelled(true);
-						} else if (!mm2.getGroup().getProperties().canCollide(mm1)) {
-							event.setCancelled(true);
-						} else if (!mm1.getGroup().getProperties().canCollide(mm2)) {
-							event.setCancelled(true);
-						}
-					} else if (prop.canPushAway(event.getEntity())) {
-						mm1.pushSideways(event.getEntity());
+					return;
+				}
+				MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
+				if (mm1 != null) {
+					MinecartGroup g1 = mm1.getGroup();
+					if (g1 == null) {
 						event.setCancelled(true);
-					} else if (!prop.canCollide(event.getEntity())) {
+					} else if (g1.isVelocityAction()) {
 						event.setCancelled(true);
+					} else if (mm1.isCollisionIgnored(event.getEntity())) {
+						event.setCancelled(true);
+					} else {
+						TrainProperties prop = g1.getProperties();
+						if (event.getEntity() instanceof Minecart) {
+							if (WorldGroupManager.wasInGroup(event.getEntity())) {
+								event.setCancelled(true);
+								return;
+							}
+							MinecartMember mm2 = MinecartMember.convert(event.getEntity());
+							MinecartGroup g2 = mm2.getGroup();
+							if (g2 == null || mm2 == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
+								event.setCancelled(true);
+							} else if (g2.isVelocityAction()) {
+								event.setCancelled(true);
+							} else if (!g2.getProperties().canCollide(mm1)) {
+								event.setCancelled(true);
+							} else if (!g1.getProperties().canCollide(mm2)) {
+								event.setCancelled(true);
+							}
+						} else if (prop.canPushAway(event.getEntity())) {
+							mm1.pushSideways(event.getEntity());
+							event.setCancelled(true);
+						} else if (!prop.canCollide(event.getEntity())) {
+							event.setCancelled(true);
+						}
 					}
 				}
 			}
+		} catch (Throwable t) {
+			TrainCarts.handleError(t);
 		}
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onPlayerInteract(PlayerInteractEvent event) {		
-		if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-			int id = event.getClickedBlock().getTypeId();
-			boolean isplate = Util.isPressurePlate(id);
-			if (isplate || BlockUtil.isRails(id)) {
-				ItemStack item = event.getPlayer().getItemInHand();
-				Material itemmat = item == null ? null : item.getType();
+	public void onPlayerInteract(PlayerInteractEvent event) {	
+		try {
 
-				if (CommonUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
-					//Placing a minecart on the tracks
-					if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
-						//Not already a minecart at this spot?
-						Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
-						if (MinecartMember.getAt(at, null, 0.5) == null) {
-							lastPlayer = event.getPlayer();
-							if (isplate) {
-								//perform a manual Minecart spawn
-								BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
-								if (dir == BlockFace.SELF) {
-									dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
-								}
-								//get spawn location
-								Location loc = event.getClickedBlock().getLocation().add(0.5, 0.0, 0.5);
-								if (dir == BlockFace.SOUTH || dir == BlockFace.NORTH) {
-									loc.setYaw(0.0F);
-								} else {
-									loc.setYaw(90.0F);
-								}
+			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+				int id = event.getClickedBlock().getTypeId();
+				boolean isplate = Util.isPressurePlate(id);
+				if (isplate || BlockUtil.isRails(id)) {
+					ItemStack item = event.getPlayer().getItemInHand();
+					Material itemmat = item == null ? null : item.getType();
 
-								//get type of minecart
-								int type;
-								switch (itemmat) {
-								case STORAGE_MINECART : type = 1; break;
-								case POWERED_MINECART : type = 2; break;
-								default : type = 0; break;
-								}
-
-								//subtract item
-								if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
-									item.setAmount(item.getAmount() - 1);
-									if (item.getAmount() == 0) {
-										event.getPlayer().setItemInHand(null);
+					if (CommonUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
+						//Placing a minecart on the tracks
+						if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
+							//Not already a minecart at this spot?
+							Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
+							if (MinecartMember.getAt(at, null, 0.5) == null) {
+								lastPlayer = event.getPlayer();
+								if (isplate) {
+									//perform a manual Minecart spawn
+									BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
+									if (dir == BlockFace.SELF) {
+										dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
 									}
+									//get spawn location
+									Location loc = event.getClickedBlock().getLocation().add(0.5, 0.0, 0.5);
+									if (dir == BlockFace.SOUTH || dir == BlockFace.NORTH) {
+										loc.setYaw(0.0F);
+									} else {
+										loc.setYaw(90.0F);
+									}
+
+									//get type of minecart
+									int type;
+									switch (itemmat) {
+									case STORAGE_MINECART : type = 1; break;
+									case POWERED_MINECART : type = 2; break;
+									default : type = 0; break;
+									}
+
+									//subtract item
+									if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
+										item.setAmount(item.getAmount() - 1);
+										if (item.getAmount() == 0) {
+											event.getPlayer().setItemInHand(null);
+										}
+									}
+
+									//event
+									MinecartMember member = MinecartMember.spawn(loc, type);
+									CommonUtil.callEvent(new VehicleCreateEvent(member.getMinecart()));
 								}
-								
-								//event
-								MinecartMember member = MinecartMember.spawn(loc, type);
-								CommonUtil.callEvent(new VehicleCreateEvent(member.getMinecart()));
+								return;
 							}
-							return;
 						}
+						event.setCancelled(true);
 					}
-					event.setCancelled(true);
 				}
 			}
-		}
-		if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
-			Sign sign = BlockUtil.getSign(event.getClickedBlock());
-			if (sign != null) {
-				if (sign.getLine(0).equalsIgnoreCase("[train]")) {
-					if (sign.getLine(1).equalsIgnoreCase("destination")) {
-						//get the train this player is editing
-						Player p = event.getPlayer();
-						MinecartMember mm = MinecartMember.getEditing(p);
-						if (mm != null) {
-							TrainProperties prop = mm.getGroup().getProperties();
-							if (prop == null) {
-								if (CartProperties.canHaveOwnership(p)) {
-									p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+			if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
+				Sign sign = BlockUtil.getSign(event.getClickedBlock());
+				if (sign != null) {
+					if (sign.getLine(0).equalsIgnoreCase("[train]")) {
+						if (sign.getLine(1).equalsIgnoreCase("destination")) {
+							//get the train this player is editing
+							Player p = event.getPlayer();
+							MinecartMember mm = MinecartMember.getEditing(p);
+							if (mm != null) {
+								TrainProperties prop = mm.getGroup().getProperties();
+								if (prop == null) {
+									if (CartProperties.canHaveOwnership(p)) {
+										p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+									} else {
+										p.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
+									}
+								} else if (!prop.isOwner(p)) {
+									p.sendMessage(ChatColor.RED + "You don't own this train!");
 								} else {
-									p.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
+									String dest = sign.getLine(2);
+									prop.setDestination(dest);
+									p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
 								}
-							} else if (!prop.isOwner(p)) {
-								p.sendMessage(ChatColor.RED + "You don't own this train!");
-							} else {
-								String dest = sign.getLine(2);
-								prop.setDestination(dest);
-								p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
 							}
 						}
 					}
 				}
 			}
+		} catch (Throwable t) {
+			TrainCarts.handleError(t);
 		}
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-		MinecartMember mm = MinecartMember.get(event.getRightClicked());
-		if (mm != null) {
-			mm.setEditing(event.getPlayer());
-			MinecartMember entered = MinecartMember.get(event.getPlayer().getVehicle());
-			if (entered != null && !entered.getProperties().allowPlayerExit) {
-				event.setCancelled(true);
+		try {
+			MinecartMember mm = MinecartMember.get(event.getRightClicked());
+			if (mm != null) {
+				mm.setEditing(event.getPlayer());
+				MinecartMember entered = MinecartMember.get(event.getPlayer().getVehicle());
+				if (entered != null && !entered.getProperties().allowPlayerExit) {
+					event.setCancelled(true);
+				}
 			}
+		} catch (Throwable t) {
+			TrainCarts.handleError(t);
 		}
 	}
 

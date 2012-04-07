@@ -191,7 +191,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public boolean isPowered() {
 		BlockFace att = BlockUtil.getAttachedFace(this.signblock);
 		Block attblock = this.signblock.getRelative(att);
-		if (attblock.isBlockIndirectlyPowered()) {
+		if (attblock.isBlockPowered()) {
 			boolean found = false;
 			for (BlockFace face : FaceUtil.attachedFaces) {
 				if (BlockUtil.isType(attblock.getRelative(face), Material.LEVER)) {

@@ -127,6 +127,7 @@ public class TrainCommands {
 				} catch (NumberFormatException ex) {
 					prop.speedLimit = 0.4;
 				}
+				prop.speedLimit = Math.min(prop.speedLimit, TrainCarts.maxVelocity);
 			}
 			p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
 		} else if (cmd.equals("requirepoweredminecart") || cmd.equals("requirepowered")) {
