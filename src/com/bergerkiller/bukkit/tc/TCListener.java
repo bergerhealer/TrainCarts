@@ -97,6 +97,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
+		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {
 			Minecart m = (Minecart) event.getVehicle();
 			Location loc = m.getLocation();
@@ -120,6 +121,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleCreate(VehicleCreateEvent event) {
+		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			if (MinecartMember.canConvert(event.getVehicle())) {
 				new Task(TrainCarts.plugin, event.getVehicle(), lastPlayer) {
@@ -192,6 +194,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
+		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 				if (WorldGroupManager.wasInGroup(event.getVehicle())) {
@@ -240,9 +243,9 @@ public class TCListener implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onPlayerInteract(PlayerInteractEvent event) {	
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) return;
 		try {
-
 			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 				int id = event.getClickedBlock().getTypeId();
 				boolean isplate = Util.isPressurePlate(id);
@@ -349,6 +352,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
+		if (TrainCarts.isWorldDisabled(event)) return;
 		int type = event.getBlock().getTypeId();
 		if (BlockUtil.isType(type, Material.LEVER)) {
 			Block up = event.getBlock().getRelative(BlockFace.UP);
@@ -398,6 +402,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onSignChange(SignChangeEvent event) {
+		if (TrainCarts.isWorldDisabled(event)) return;
 		SignAction.handleBuild(event);
 	}
 

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -14,7 +15,10 @@ import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
+import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
@@ -62,6 +66,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean keepChunksLoadedOnlyWhenMoving;
 	public static boolean playSoundAtStation;
 	private Set<Material> allowedBlockBreakTypes = new HashSet<Material>();
+	private Set<String> disabledWorlds = new HashSet<String>();
 	public static int maxDetectorLength;
 	public static int maxMinecartStackSize;
 	public static int defaultTransferRadius;
@@ -185,6 +190,19 @@ public class TrainCarts extends PluginBase {
 		} else {
 			allowedBlockBreakTypes.add(Material.CROPS);
 			allowedBlockBreakTypes.add(Material.LOG);
+		}
+		
+		config.setHeader("disabledWorlds", "\nA list of world names where TrainCarts should be disabled");
+		config.addHeader("disabledWorlds", "World names are not case-sensitive");
+		this.disabledWorlds.clear();
+		if (!config.contains("disabledWorlds")) {
+			ArrayList<String> defworlds = new ArrayList<String>();
+			defworlds.add("DefaultWorld1");
+			defworlds.add("DefaultWorld2");
+			config.set("disabledWorlds", defworlds);
+		}
+		for (String world : config.getList("disabledWorlds", String.class)) {
+			this.disabledWorlds.add(world.toLowerCase());
 		}
 		
 		//set it again
@@ -419,6 +437,19 @@ public class TrainCarts extends PluginBase {
 			reason.printStackTrace();
 			Bukkit.getPluginManager().disablePlugin(plugin);
 		}
+	}
+	
+	public static boolean isWorldDisabled(BlockEvent event) {
+		return isWorldDisabled(event.getBlock().getWorld());
+	}
+	public static boolean isWorldDisabled(Block worldContainer) {
+		return isWorldDisabled(worldContainer.getWorld());
+	}
+	public static boolean isWorldDisabled(World world) {
+		return isWorldDisabled(world.getName());
+	}
+	public static boolean isWorldDisabled(String worldname) {
+		return plugin.disabledWorlds.contains(worldname.toLowerCase());
 	}
 	
 }
