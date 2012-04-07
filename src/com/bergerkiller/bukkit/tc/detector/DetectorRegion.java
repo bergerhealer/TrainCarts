@@ -33,10 +33,8 @@ public final class DetectorRegion {
 	private static BlockMap<List<DetectorRegion>> regions = new BlockMap<List<DetectorRegion>>();
 	public static List<DetectorRegion> handleMove(MinecartMember mm, Block from, Block to) {
 		if (from == to) {
-			return handleEnter(mm, from);
 		} else if (from.getWorld() != to.getWorld()) {
 			handleLeave(mm, from);
-			return handleEnter(mm, to);
 		} else {
 			List<DetectorRegion> list = regions.get(from);
 			//Leave the regions if the to-location is not contained
@@ -48,9 +46,9 @@ public final class DetectorRegion {
 					}
 				}
 			}
-			//Enter possible new locations
-			return handleEnter(mm, to);
 		}
+		//Enter possible new locations
+		return handleEnter(mm, to);
 	}
 	public static List<DetectorRegion> handleLeave(MinecartMember mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);

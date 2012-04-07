@@ -45,28 +45,32 @@ public class SignActionDetector extends SignAction {
 	private static BlockMap<Detector> detectors = new BlockMap<Detector>();
 	private static class Detector implements DetectorListener {
 		private DetectorRegion region;
-			
+
 		public Detector(Block sign1, Block sign2) {
 			this.sign1 = BlockUtil.getCoordinates(sign1);
 			this.sign2 = BlockUtil.getCoordinates(sign2);
 		}
 		public Detector() {};
-		
+
 		private boolean sign1down = false;
 		private boolean sign2down = false;
 		public ChunkCoordinates sign1;
 		public ChunkCoordinates sign2;
 		public Block getSign1(World world) {
-			Block b = BlockUtil.getBlock(world, this.sign1);
-			if (BlockUtil.isSign(b)) return b;
+			if (world.isChunkLoaded(this.sign1.x >> 4, this.sign1.z >> 4)) {
+				Block b = BlockUtil.getBlock(world, this.sign1);
+				if (BlockUtil.isSign(b)) return b;
+			}
 			return null;
 		}
 		public Block getSign2(World world) {
-			Block b = BlockUtil.getBlock(world, this.sign2);
-			if (BlockUtil.isSign(b)) return b;
+			if (world.isChunkLoaded(this.sign2.x >> 4, this.sign2.z >> 4)) {
+				Block b = BlockUtil.getBlock(world, this.sign2);
+				if (BlockUtil.isSign(b)) return b;
+			}
 			return null;
 		}
-				
+
 		public boolean updateMembers(final Sign sign) {
 			Block signblock = sign.getBlock();
 			for (MinecartMember mm : this.region.getMembers()) {
@@ -89,7 +93,7 @@ public class SignActionDetector extends SignAction {
 			BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), false);
 			return false;
 		}
-		
+
 		public boolean validate(Sign sign) {
 			if (isValid(sign)) {
 				return true;
@@ -102,7 +106,7 @@ public class SignActionDetector extends SignAction {
 				return false;
 			}
 		}
-						
+
 		@Override
 		public void onLeave(MinecartGroup group) {
 			Block signblock;
@@ -149,7 +153,7 @@ public class SignActionDetector extends SignAction {
 				}
 			}
 		}
-		
+
 		@Override
 		public void onLeave(MinecartMember member) {
 			Block sign1, sign2;
@@ -196,14 +200,14 @@ public class SignActionDetector extends SignAction {
 				}
 			}
 		}
-		
+
 		public void onRegister(DetectorRegion region) {
 			this.region = region;
 		}
 		public void onUnregister(DetectorRegion region) {
 			if (this.region == region) this.region = null;
 		}
-		
+
 		public static boolean isDown(final String line1, final String line2, final MinecartMember member) {
 			if (line1.isEmpty()) {
 				if (line2.isEmpty()) {
@@ -230,7 +234,7 @@ public class SignActionDetector extends SignAction {
 				return group.hasTag(line1) || group.hasTag(line2);
 			}
 		}
-	
+
 		@Override
 		public void onUpdate(MinecartMember member) {
 			Sign sign = BlockUtil.getSign(this.getSign1(member.getWorld()));
@@ -246,7 +250,7 @@ public class SignActionDetector extends SignAction {
 			if (sign != null) this.updateGroups(sign);
 		}
 	}
-	
+
 	public static boolean isValid(Sign sign) {
 		if (sign == null) return false;
 		return isValid(sign.getLines());
@@ -255,12 +259,12 @@ public class SignActionDetector extends SignAction {
 		return SignActionMode.fromString(lines[0]) != SignActionMode.NONE &&
 				lines[1].toLowerCase().startsWith("detector");
 	}
-	
+
 	@Override
 	public void execute(SignActionEvent info) {
 		//nothing happens here, relies on rail detector events
 	}
-	
+
 	public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
 		final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
 		map.next();
@@ -289,7 +293,7 @@ public class SignActionDetector extends SignAction {
 		}
 		return false;
 	}
-		
+
 	@Override
 	public void build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (!isValid(event.getLines())) {
@@ -359,5 +363,5 @@ public class SignActionDetector extends SignAction {
 			}
 		}.write();
 	}
-	
+
 }

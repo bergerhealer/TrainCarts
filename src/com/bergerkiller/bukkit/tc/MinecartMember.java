@@ -969,6 +969,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean isHeadingToTrack(Block track, int maxstepcount) {
 		if (this.isDerailed) return false;
 		Block from = this.getRailsBlock();
+		if (from == null || track == null) return false;
 		if (BlockUtil.equals(from, track)) return true;
 		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getBlockSteps(from, track, false);
 		TrackIterator iter = new TrackIterator(from, this.directionTo);

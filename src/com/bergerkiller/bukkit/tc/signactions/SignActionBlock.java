@@ -14,13 +14,13 @@ public class SignActionBlock extends SignAction {
 	}
 	public static boolean isHeadingTo(SignActionEvent event, BlockFace direction) {
 		if (event.isLine(2, "n")) {
-			return direction == BlockFace.NORTH;
-		} else if (event.isLine(2, "e")) {
-			return direction == BlockFace.EAST;
-		} else if (event.isLine(2, "s")) {
 			return direction == BlockFace.SOUTH;
+		} else if (event.isLine(2, "e")) {
+			return direction == BlockFace.WEST;
+		} else if (event.isLine(2, "s")) {
+			return direction == BlockFace.NORTH;
 		} else if (event.isLine(2, "w")) {
-			return direction == BlockFace.WEST;			
+			return direction == BlockFace.EAST;			
 		} else if (event.isLine(2, "l")) {
 			return direction == FaceUtil.rotate(event.getFacing(), -2);
 		} else if (event.isLine(2, "r")) {
