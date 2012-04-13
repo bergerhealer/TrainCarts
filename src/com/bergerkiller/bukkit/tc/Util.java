@@ -195,7 +195,7 @@ public class Util {
 		with.setDamage(toreplace.getDamage());
 		ItemUtil.transfer(toreplace, with);
 		with.dead = false;
-		with.bz = true; //force removal in chunk
+		toreplace.bz = true; //force removal in chunk
 		toreplace.dead = true;
 		
 		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());

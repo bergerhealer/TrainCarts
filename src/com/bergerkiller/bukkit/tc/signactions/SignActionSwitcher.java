@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.Permission;
@@ -48,19 +49,23 @@ public class SignActionSwitcher extends SignAction {
 		boolean down = false;
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER, 
 				SignActionType.GROUP_UPDATE, SignActionType.MEMBER_UPDATE)) {
-			down = left || right;         
-			if (info.isPowered()) info.setRails(info.getFacing(), left, right);
+			down = left || right;
+			BlockFace from = info.getFacing();
+			if (Util.getRailsBlock(info.getRails().getRelative(from)) == null) {
+				from = from.getOppositeFace();
+			}
+			if (info.isPowered()) info.setRails(from, left, right);
 		}
 		info.setLevers(down);
 	}
 
 	public boolean isFacing(SignActionEvent info) {
-		if (!info.getMember().isMoving() || info.getMember().getDirection() == info.getFacing().getOppositeFace()) {
+		if (!info.getMember().isMoving() || info.getMember().getDirectionTo() == info.getFacing().getOppositeFace()) {
 			return true;
 		} else {
 			//can a train face the sign at all?
 			Block b = info.getRails().getRelative(info.getFacing());
-			return !Util.isRails(b);
+			return !Util.isRails(b) && info.getFacing() == info.getMember().getDirectionTo();
 		}
 	}
 

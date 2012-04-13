@@ -3,23 +3,19 @@ package com.bergerkiller.bukkit.tc.storage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
-import net.minecraft.server.ChunkProviderServer;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.util.LongHashtable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
@@ -55,10 +51,26 @@ public class WorldGroupManager {
 		synchronized (managers) {
 			WorldGroupManager man = managers.get(chunk.getWorld().getUID());
 			if (man != null) {
-				if (man.groups.isEmpty()) {
+				if (man.groupmap.isEmpty()) {
 					managers.remove(chunk.getWorld().getUID());
 				} else {
-					man.loadChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
+					Set<WorldGroup> groups = man.groupmap.remove(chunk);
+					if (groups != null) {
+						for (WorldGroup group : groups) {
+							group.chunkCounter++;
+							if (group.testFullyLoaded()) {
+								//a participant to be restored
+								if (group.updateLoadedChunks(chunk.getWorld())) {
+									man.groupmap.remove(group);
+									containedTrains.remove(group.name);
+									restoreGroup(group, chunk.getWorld());
+								} else {
+									//add it again
+									man.groupmap.add(group);
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -67,96 +79,21 @@ public class WorldGroupManager {
 		synchronized (managers) {
 			WorldGroupManager man = managers.get(chunk.getWorld().getUID());
 			if (man != null) {
-				if (man.groups.isEmpty()) {
+				if (man.groupmap.isEmpty()) {
 					managers.remove(chunk.getWorld().getUID());
 				} else {
-					man.unloadChunk(chunk.getX(), chunk.getZ());
-				}
-			}
-		}
-	}
-
-	private Set<WorldGroup> groups = new HashSet<WorldGroup>();
-	private LongHashtable<Set<WorldGroup>> groupmap = new LongHashtable<Set<WorldGroup>>();
-
-	private void remove(long chunk, WorldGroup group) {
-		Set<WorldGroup> groups = this.groupmap.get(chunk);
-		if (groups != null && groups.remove(group) & groups.isEmpty()) {
-			this.groupmap.remove(chunk);
-		}
-	}
-	public void remove(WorldGroup group) {
-		containedTrains.remove(group.name);
-		if (this.groups.remove(group)) {
-			for (long chunk : group.chunks) {
-				this.remove(chunk, group);
-			}
-		}
-	}
-	public void add(long chunk, WorldGroup group) {
-		Set<WorldGroup> groups = this.groupmap.get(chunk);
-		if (groups == null) {
-			groups = new HashSet<WorldGroup>();
-			this.groupmap.put(chunk, groups);
-		}
-		groups.add(group);
-	}
-	public void add(WorldGroup group, World world) {
-		ChunkProviderServer cps = WorldUtil.getNative(world).chunkProviderServer;
-		group.chunkCounter = 0;
-		for (long chunk : group.chunks) {
-			this.add(chunk, group);
-			if (cps.chunks.containsKey(chunk)) {
-				group.chunkCounter++;
-			}
-		}
-		this.groups.add(group);
-		containedTrains.add(group.name);
-	}
-	public void add(WorldGroup group) {
-		for (long chunk : group.chunks) {
-			this.add(chunk, group);
-		}
-		this.groups.add(group);
-		containedTrains.add(group.name);
-	}
-
-	public void unloadChunk(int x, int z) {
-		Set<WorldGroup> groupset = this.groupmap.get(x, z);
-		if (groupset != null) {
-			for (WorldGroup group : groupset) {
-				group.chunkCounter--;
-			}
-		}
-	}
-	public void loadChunk(World world, int x, int z) {
-		Set<WorldGroup> groupset = groupmap.get(x, z);
-		if (groupset != null) {
-			List<WorldGroup> groups = new ArrayList<WorldGroup>(groupset);
-			groupset.clear();
-			//==============================================
-			for (WorldGroup group : groups) {
-				group.chunkCounter++;
-				if (group.testFullyLoaded()) {
-					//a participant to be restored
-					if (group.updateLoadedChunks(world)) {
-						this.remove(group);
-						restoreGroup(group, world);
-					} else {
-						//sync
-						this.add(group, world);
-						if (group.testFullyLoaded()) {
-							//We don't trust this group, just remove it...
-							this.remove(group);
+					Set<WorldGroup> groupset = man.groupmap.get(chunk);
+					if (groupset != null) {
+						for (WorldGroup group : groupset) {
+							group.chunkCounter--;
 						}
 					}
 				}
 			}
-			if (groupset.isEmpty()) {
-				this.groupmap.remove(x, z);
-			}
 		}
 	}
+
+	private WorldGroupMap groupmap = new WorldGroupMap();
 
 	public static void refresh() {
 		for (WorldServer world : WorldUtil.getWorlds()) {
@@ -167,7 +104,7 @@ public class WorldGroupManager {
 		synchronized (managers) {
 			WorldGroupManager man = managers.get(world.getUID());
 			if (man != null) {
-				if (man.groups.isEmpty()) {
+				if (man.groupmap.isEmpty()) {
 					managers.remove(world.getUID());
 				} else {
 					ignoreChunkLoad = true;
@@ -181,15 +118,14 @@ public class WorldGroupManager {
 	public void refreshGroups(World world) {
 		chunkLoadReq = false;
 		try {
-			Iterator<WorldGroup> iter = this.groups.iterator();
+			Iterator<WorldGroup> iter = this.groupmap.values().iterator();
 			while (iter.hasNext()) {
 				WorldGroup wg = iter.next();
 				if (checkChunks(wg, world)) {
-					restoreGroup(wg, world);
-					for (long chunk : wg.chunks) {
-						this.remove(chunk, wg);
-					}
+					containedTrains.remove(wg.name);
+					this.groupmap.remove(wg, true);
 					iter.remove();
+					restoreGroup(wg, world);
 				}
 			}
 			if (chunkLoadReq) {
@@ -241,7 +177,7 @@ public class WorldGroupManager {
 		synchronized (managers) {
 			WorldGroupManager man = managers.remove(world.getUID());
 			if (man != null) {
-				for (WorldGroup wg : man.groups) {
+				for (WorldGroup wg : man.groupmap) {
 					containedTrains.remove(wg.name);
 					for (WorldMember wm : wg.members) {
 						hiddenMinecarts.remove(wm.entityUID);
@@ -308,7 +244,8 @@ public class WorldGroupManager {
 						for (int j = 0; j < groupcount; j++) {
 							WorldGroup wg = WorldGroup.readFrom(stream);
 							for (WorldMember wm : wg.members) hiddenMinecarts.add(wm.entityUID);
-							man.add(wg);
+							man.groupmap.add(wg);
+						    containedTrains.add(wg.name);
 							totalmembers += wg.members.length;
 						}
 
@@ -338,7 +275,7 @@ public class WorldGroupManager {
 					//clear empty worlds
 					Iterator<WorldGroupManager> iter = managers.values().iterator();
 					while (iter.hasNext()) {
-						if (iter.next().groups.isEmpty()) {
+						if (iter.next().groupmap.isEmpty()) {
 							iter.remove();
 						}
 					}
@@ -348,8 +285,8 @@ public class WorldGroupManager {
 					for (Map.Entry<UUID, WorldGroupManager> entry : managers.entrySet()) {
 						StreamUtil.writeUUID(stream, entry.getKey());
 
-						stream.writeInt(entry.getValue().groups.size());
-						for (WorldGroup wg : entry.getValue().groups) wg.writeTo(stream);
+						stream.writeInt(entry.getValue().groupmap.size());
+						for (WorldGroup wg : entry.getValue().groupmap) wg.writeTo(stream);
 					}
 				}
 			}.write();
@@ -369,7 +306,12 @@ public class WorldGroupManager {
 			for (MinecartMember mm : group) {
 				hiddenMinecarts.add(mm.uniqueId);
 			}
-			get(world).add(new WorldGroup(group), world);
+			//==== add =====
+			WorldGroup wg = new WorldGroup(group);
+			wg.updateLoadedChunks(world);
+			get(world).groupmap.add(wg);
+			containedTrains.add(wg.name);
+			//==============
 			group.unload();
 		}
 	}
@@ -400,7 +342,7 @@ public class WorldGroupManager {
 		MinecartGroup.rename(oldtrainname, newtrainname);
 		synchronized (managers) {
 			for (WorldGroupManager man : managers.values()) {
-				for (WorldGroup group : man.groups) {
+				for (WorldGroup group : man.groupmap) {
 					if (group.name.equals(oldtrainname)) {
 						group.name = newtrainname;
 						containedTrains.remove(oldtrainname);

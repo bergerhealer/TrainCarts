@@ -110,6 +110,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return g;
 	}
 	
+	public static Set<MinecartGroup> getGroupsUnsafe() {
+		return groups;
+	}
 	public static MinecartGroup[] getGroups() {
 		return groups.toArray(new MinecartGroup[0]);
 	}
@@ -903,7 +906,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				i++;
 			}
 		}
-		//return
 		return MergedInventory.convert(source);
 	}
 	
@@ -964,6 +966,20 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		
 	public void update() {
 		this.needsUpdate = true;
+	}
+	
+	/*
+	 * These two overrides ensure that sets use this MinecartGroup properly
+	 * Without it, the AbstractList versions were used, which don't apply here
+	 */
+	@Override
+	public int hashCode() {
+		return System.identityHashCode(this);
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		return other == this;
 	}
 	
 	/*
