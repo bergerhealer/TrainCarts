@@ -584,6 +584,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		groups.remove(this);
 	}
 	
+	/**
+	 * Visually respawns this minecart to avoid teleportation smoothing
+	 */
+	public void respawn() {
+		for (MinecartMember mm : this) {
+			mm.respawn();
+		}
+	}
 	public void playLinkEffect() {
 		for (MinecartMember mm : this) {
 			mm.playLinkEffect();
@@ -616,6 +624,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		this.teleport(locations, false);
 	}
 	public void teleport(Location[] locations, boolean reversed) {
+		if (locations == null || locations.length == 0 || locations.length != this.size()) {
+			return;
+		}
+		boolean needAvoidSmoothing = locations[0].getWorld() == this.getWorld();
 		this.clearActiveSigns();
 		this.breakPhysics();
 		if (reversed) {
@@ -626,6 +638,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			for (int i = 0; i < locations.length; i++) {
 				this.get(i).teleport(locations[i]);
 			}
+		}
+		if (needAvoidSmoothing) {
+			this.respawn();
 		}
 	}
 	

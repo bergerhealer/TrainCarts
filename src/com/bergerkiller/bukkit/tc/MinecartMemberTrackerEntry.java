@@ -199,6 +199,32 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		}
 	}
 
+	public void doRespawn() {
+		for (EntityPlayer ep : (Set<EntityPlayer>) this.trackedPlayers) {
+			this.doRespawn(ep);
+		}
+	}
+	
+	public void doRespawn(EntityPlayer entityplayer) {
+		this.doDestroy(entityplayer);
+		this.doSpawn(entityplayer);
+	}
+	
+	public void doDestroy(EntityPlayer entityplayer) {
+		entityplayer.netServerHandler.sendPacket(new Packet29DestroyEntity(this.tracker.id));
+	}
+	
+	public void doSpawn(EntityPlayer entityplayer) {
+		//send spawn packet
+		int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
+		entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
+		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
+		this.broadcast(this.createTeleportPacket());
+		if (entityplayer == this.tracker.passenger) {
+			entityplayer.netServerHandler.sendPacket(new Packet39AttachEntity(entityplayer, this.tracker));
+		}
+	}
+	
 	public void a() {
 		super.a();
 		this.isRemoved = true;
@@ -208,7 +234,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 	public void clear(EntityPlayer entityplayer) {
 		if (this.trackedPlayers.remove(entityplayer)) {
-			entityplayer.netServerHandler.sendPacket(new Packet29DestroyEntity(this.tracker.id));
+			this.doDestroy(entityplayer);
 		}
 	}
 	public void updatePlayer(EntityPlayer entityplayer) {
@@ -219,10 +245,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			if (d0 >= (double) (-this.b) && d0 <= (double) this.b && d1 >= (double) (-this.b) && d1 <= (double) this.b) {
 				if (this.trackedPlayers.add(entityplayer)) {
 					//send spawn packet
-					int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
-					entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
-					entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
-					this.broadcast(this.createTeleportPacket());
+					this.doSpawn(entityplayer);
 				}
 			} else {
 				this.clear(entityplayer);

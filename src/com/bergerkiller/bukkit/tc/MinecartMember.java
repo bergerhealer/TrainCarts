@@ -1309,6 +1309,14 @@ public class MinecartMember extends NativeMinecartMember {
 		this.ignoreAllCollisions = ignoreAll;
 	}
 	
+	/**
+	 * Respawns the entity to the client (used to avoid teleport smoothing)
+	 */
+	public void respawn() {
+		if (this.getTracker() != null) {
+			this.tracker.doRespawn();
+		}
+	}
 	public void stop() {
 		this.stop(false);
 	}

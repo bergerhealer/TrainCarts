@@ -70,6 +70,27 @@ public class SignActionElevator extends SignAction {
 	
 	private BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
 	
+	public static BlockFace getSpawnDirection(Block destrail) {
+		return getSpawnDirection(destrail, FaceUtil.getFaces(BlockUtil.getRails(destrail).getDirection().getOppositeFace()));
+	}
+	
+	public static BlockFace getSpawnDirection(Block destrail, BlockFace[] possible) {
+		//find out which direction is best for this occasion
+		BlockFace rval = possible[0];
+		int dist = 0;
+		int i = 0;
+		for (BlockFace f : possible) {
+			TrackIterator iter = new TrackIterator(destrail, f);
+			final int lim = 4;
+			for (i = 0; i < lim && iter.hasNext(); i++) iter.next();
+			if (i > dist) {
+				rval = f;
+				dist = i;
+			}
+		}
+		return rval;
+	}
+	
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("elevator")) return;
@@ -112,24 +133,8 @@ public class SignActionElevator extends SignAction {
 						}
 					}
 					if (launchDir == null) {
-						//find out which direction is best for this occasion
-						
-						TrackIterator iter1 = new TrackIterator(dest, startDirs[0]);
-						TrackIterator iter2 = new TrackIterator(dest, startDirs[1]);
-						
-						final int lim = 4;
-						
-						int iter1Dist = 0;
-						for (iter1Dist = 0; iter1Dist < lim && iter1.hasNext(); iter1Dist++) iter1.next();
-						
-						int iter2Dist = 0;
-						for (iter2Dist = 0; iter2Dist < lim && iter2.hasNext(); iter2Dist++) iter2.next();
-						
-						if (iter1Dist < iter2Dist) {
-							launchDir = startDirs[1];
-						} else {
-							launchDir = startDirs[0];
-						}
+						//find out which direction is best
+						launchDir = getSpawnDirection(dest, startDirs);
 					}
 					
 					//teleport train
