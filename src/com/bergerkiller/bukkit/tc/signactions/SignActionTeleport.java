@@ -45,12 +45,7 @@ public class SignActionTeleport extends SignAction {
 								if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
 									//Allowed?
 									if (this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
-										double force = info.getGroup().getAverageForce();
-										info.getGroup().teleport(destinationRail, direction);
-										info.getGroup().stop();
-										if (force > 0.01) {
-											info.getGroup().tail().addActionLaunch(direction, 1, force);
-										}
+										info.getGroup().teleportAndGo(destinationRail, direction);
 										this.teleportTimes.mark(sign);
 									}
 								}

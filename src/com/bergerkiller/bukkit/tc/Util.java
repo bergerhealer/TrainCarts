@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Minecart;
@@ -108,6 +109,28 @@ public class Util {
 				}
 			}
 		}
+	}
+	
+	public static Block findRailsVertical(Block from, BlockFace mode) {
+		int sy = from.getY();
+		int x = from.getX();
+		int z = from.getZ();
+		World world = from.getWorld();
+		if (mode == BlockFace.DOWN) {
+			for (int y = sy - 1; y > 0; --y) {
+				if (Util.isRails(world.getBlockTypeIdAt(x, y, z))) {
+					return world.getBlockAt(x, y, z);
+				}
+			}
+		} else if (mode == BlockFace.UP) {
+			int height = world.getMaxHeight();
+			for (int y = sy + 1; y < height; y++) {
+				if (Util.isRails(world.getBlockTypeIdAt(x, y, z))) {
+					return world.getBlockAt(x, y, z);
+				}
+			}
+		}
+		return null;
 	}
 				
 	public static ItemParser[] getParsers(String... items) {

@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -16,30 +15,8 @@ import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class SignActionElevator extends SignAction {
-
-	public Block findRails(Block from, BlockFace mode) {
-		int sy = from.getY();
-		int x = from.getX();
-		int z = from.getZ();
-		World world = from.getWorld();
-		if (mode == BlockFace.DOWN) {
-			for (int y = sy - 1; y > 0; --y) {
-				if (Util.isRails(world.getBlockTypeIdAt(x, y, z))) {
-					return world.getBlockAt(x, y, z);
-				}
-			}
-		} else if (mode == BlockFace.UP) {
-			int height = world.getMaxHeight();
-			for (int y = sy + 1; y < height; y++) {
-				if (Util.isRails(world.getBlockTypeIdAt(x, y, z))) {
-					return world.getBlockAt(x, y, z);
-				}
-			}
-		}
-		return null;
-	}
 		
-	public boolean isElevator(Sign sign) {
+	public static boolean isElevator(Sign sign) {
 		if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
 			if (sign.getLine(1).toLowerCase().startsWith("elevator")) {
 				return true;
@@ -48,8 +25,8 @@ public class SignActionElevator extends SignAction {
 		return false;
 	}
 	
-	public Block findElevator(Block from, BlockFace mode) {
-		while ((from = findRails(from, mode)) != null) {
+	public static Block findElevator(Block from, BlockFace mode) {
+		while ((from = Util.findRailsVertical(from, mode)) != null) {
 			for (Block signblock : Util.getSignsFromRails(from)) {
 				if (isElevator(BlockUtil.getSign(signblock))) {
 					return from;
@@ -59,7 +36,7 @@ public class SignActionElevator extends SignAction {
 		return null;
 	}
 	
-	public Block findElevator(Block from, BlockFace mode, int elevatorCount) {
+	public static Block findElevator(Block from, BlockFace mode, int elevatorCount) {
 		while ((from = findElevator(from, mode)) != null) {
 			if (--elevatorCount <= 0) {
 				return from;
@@ -68,7 +45,7 @@ public class SignActionElevator extends SignAction {
 		return null;
 	}
 	
-	private BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
+	public static BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
 	
 	public static BlockFace getSpawnDirection(Block destrail) {
 		return getSpawnDirection(destrail, FaceUtil.getFaces(BlockUtil.getRails(destrail).getDirection().getOppositeFace()));
@@ -97,20 +74,27 @@ public class SignActionElevator extends SignAction {
 		if (info.getMode() != SignActionMode.NONE && info.hasRails() && info.hasMember() && info.isPoweredFacing()) {
 			if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE)) {
 				//is it allowed?
-				if (this.ignoreTimes.isMarked(info.getRails(), 1000)) {
+				if (ignoreTimes.isMarked(info.getRails(), 1000)) {
 					return;
 				}
 				
 				//where to go?
+				boolean forced = false;
 				BlockFace mode = BlockFace.UP;
 				if (info.isLine(2, "down")) {
 					mode = BlockFace.DOWN;
+					forced = true;
+				} else if (info.isLine(2, "up")) {
+					forced = true;
 				}
 				//possible amounts to skip?
 				int elevatorCount = Util.parse(info.getLine(2), 1);
 				Block dest = findElevator(info.getRails(), mode, elevatorCount);
+				if (!forced && dest == null) {
+					dest = findElevator(info.getRails(), mode.getOppositeFace(), elevatorCount);
+				}
 				if (dest != null) {
-					this.ignoreTimes.mark(dest);
+					ignoreTimes.mark(dest);
 					
 					//get the direction to spawn and launch to
 					
@@ -138,12 +122,7 @@ public class SignActionElevator extends SignAction {
 					}
 					
 					//teleport train
-					double force = info.getGroup().getAverageForce();
-					info.getGroup().teleport(dest, launchDir);
-					info.getGroup().stop();
-					if (force > 0.01) {
-						info.getGroup().tail().addActionLaunch(launchDir, 1, force);
-					}
+					info.getGroup().teleportAndGo(dest, launchDir);
 				}
 			}
 		}

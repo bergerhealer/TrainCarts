@@ -614,6 +614,19 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : this) mm.eject();
 	}
 
+	/**
+	 * A simple version of teleport where the inertia of the train is maintained
+	 */
+	public void teleportAndGo(Block start, BlockFace direction) {
+		double force = this.getAverageForce();
+		this.teleport(start, direction);
+		this.stop();
+		this.clearActions();
+		if (force > 0.01 || force < -0.01) {
+			this.tail().addActionLaunch(direction, 1.0, force);
+		}
+	}
+	
 	public void teleport(Block start, BlockFace direction) {
 		this.teleport(start, direction, TrainCarts.cartDistance);
 	}
