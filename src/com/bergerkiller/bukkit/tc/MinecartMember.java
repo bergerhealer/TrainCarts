@@ -873,6 +873,7 @@ public class MinecartMember extends NativeMinecartMember {
 					this.directionFrom = BlockFace.NORTH;
 					this.directionTo = BlockFace.WEST;
 				}
+				break;
 			case SOUTH_EAST :
 				if (raildirection == BlockFace.NORTH_EAST) {
 					this.directionFrom = BlockFace.SOUTH;
@@ -881,6 +882,7 @@ public class MinecartMember extends NativeMinecartMember {
 					this.directionFrom = BlockFace.EAST;
 					this.directionTo = BlockFace.SOUTH;
 				}
+				break;
 			case NORTH_EAST :
 				if (raildirection == BlockFace.NORTH_WEST) {
 					this.directionFrom = BlockFace.EAST;
@@ -889,6 +891,7 @@ public class MinecartMember extends NativeMinecartMember {
 					this.directionFrom = BlockFace.NORTH;
 					this.directionTo = BlockFace.EAST;
 				}
+				break;
 			case SOUTH_WEST :
 				if (raildirection == BlockFace.NORTH_WEST) {
 					this.directionFrom = BlockFace.SOUTH;
@@ -897,8 +900,10 @@ public class MinecartMember extends NativeMinecartMember {
 					this.directionFrom = BlockFace.WEST;
 					this.directionTo = BlockFace.SOUTH;
 				}
+				break;
 			default :
 				this.directionFrom = this.directionTo = direction;
+				break;
 			}
 		}
 	}

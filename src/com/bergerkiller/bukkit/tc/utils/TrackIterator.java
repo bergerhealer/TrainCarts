@@ -117,6 +117,19 @@ public class TrackIterator implements Iterator<Block> {
 		this.nextdirection = direction;
 		this.next = startblock;
 		this.distance = 0;
+		//adjust direction if moving into a curve
+		Rails rails = BlockUtil.getRails(this.next);
+		if (rails != null && rails.isCurve()) {
+			BlockFace[] p = FaceUtil.getFaces(rails.getDirection().getOppositeFace());
+			if (p[0] != this.nextdirection && p[1] != this.nextdirection) {
+				BlockFace from = this.nextdirection.getOppositeFace();
+				if (p[0] == from) {
+					this.nextdirection = p[1];
+				} else if (p[1] == from) {
+					this.nextdirection = p[0];
+				}
+			}
+		}
 	}
 	
 	private void genNextBlock() {
