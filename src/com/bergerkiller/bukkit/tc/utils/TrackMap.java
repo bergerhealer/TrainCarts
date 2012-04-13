@@ -43,10 +43,6 @@ public class TrackMap extends ArrayList<Block> {
 		}
 		return false;
 	}
-	
-	public static Location[] walk(Block start, BlockFace direction, int size, double stepsize) {
-		return new TrackMap(start, direction).generate(size, stepsize).walk(size, stepsize);
-	}
 
 	public Block last() {
 		return last(0);

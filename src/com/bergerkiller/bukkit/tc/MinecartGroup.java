@@ -46,7 +46,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
-import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
 	private static final long serialVersionUID = 3;
@@ -99,7 +99,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return spawn(startblock, direction, typelist);
 	}
 	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Integer> types) {
-		Location[] destinations = TrackMap.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
+		Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
 		if (types.size() != destinations.length || destinations.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < destinations.length; i++) {
@@ -610,13 +610,14 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		this.teleport(start, direction, TrainCarts.cartDistance);
 	}
 	public void teleport(Block start, BlockFace direction, double stepsize) {
-		this.teleport(TrackMap.walk(start, direction, this.size(), stepsize), true);
+		this.teleport(TrackWalkIterator.walk(start, direction, this.size(), stepsize), true);
 	}
 	public void teleport(Location[] locations) {
 		this.teleport(locations, false);
 	}
 	public void teleport(Location[] locations, boolean reversed) {
 		this.clearActiveSigns();
+		this.breakPhysics();
 		if (reversed) {
 			for (int i = 0; i < locations.length; i++) {
 				this.get(i).teleport(locations[locations.length - i - 1]);

@@ -34,6 +34,7 @@ public abstract class SignAction {
 		register(new SignActionDestination());
 		register(new SignActionBlock());
 		register(new SignActionWait());
+		register(new SignActionElevator());
 	}
 	public static void deinit() {
 		actions = null;

@@ -5,27 +5,19 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
-import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.mw.MyWorlds;
 import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class SignActionTeleport extends SignAction {
 
-	private BlockMap<Long> teleportTimes = new BlockMap<Long>();
-	private void setTPT(Block signblock) {
-		teleportTimes.put(signblock, System.currentTimeMillis());
-	}
-	private boolean getTPT(SignActionEvent info) {
-		Long time = teleportTimes.get(info.getBlock());
-		if (time == null) return true;
-		return (System.currentTimeMillis() - time) > MyWorlds.teleportInterval;
-	}
-		
+	private BlockTimeoutMap teleportTimes = new BlockTimeoutMap();
+
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!TrainCarts.MyWorldsEnabled) return;
@@ -52,12 +44,14 @@ public class SignActionTeleport extends SignAction {
 								if (facing == BlockFace.EAST) facing = BlockFace.WEST;
 								if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
 									//Allowed?
-									if (getTPT(info)) {
+									if (this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
 										double force = info.getGroup().getAverageForce();
 										info.getGroup().teleport(destinationRail, direction);
 										info.getGroup().stop();
-										info.getGroup().head().addActionLaunch(direction, 1, force);
-										setTPT(sign);
+										if (force > 0.01) {
+											info.getGroup().tail().addActionLaunch(direction, 1, force);
+										}
+										this.teleportTimes.mark(sign);
 									}
 								}
 							}

@@ -14,6 +14,19 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
  */
 public class TrackWalkIterator {
 	
+	public static Location[] walk(Block start, BlockFace direction, int size, double stepsize) {
+		TrackWalkIterator iter = new TrackWalkIterator(start, direction);
+		Location[] rval = new Location[size];
+		for (int i = 0; i < size; i++) {
+			if (iter.hasNext()) {
+				rval[i] = iter.next();
+			} else {
+				rval[i] = rval[i - 1];
+			}
+		}
+		return rval;
+	}
+	
 	private Location current;
 	private Location next;
 	private Vector direction;
