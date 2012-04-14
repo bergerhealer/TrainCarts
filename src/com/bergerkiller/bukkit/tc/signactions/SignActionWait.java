@@ -35,12 +35,13 @@ public class SignActionWait extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			if (type.startsWith("wait")) {
-				handleBuild(event, Permission.BUILD_WAIT, "train wait sign", "waits the train until the tracks ahead are clear");
+				return handleBuild(event, Permission.BUILD_WAIT, "train wait sign", "waits the train until the tracks ahead are clear");
 			}
 		}
+		return false;
 	}
 
 }

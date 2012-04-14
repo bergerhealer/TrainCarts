@@ -66,12 +66,13 @@ public class SignActionSpawn extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			if (type.startsWith("spawn")) {
-				handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone");
+				return handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone");
 			}
 		}
+		return false;
 	}
 
 }

@@ -21,12 +21,13 @@ public class SignActionCart extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode == SignActionMode.CART) {
 			if (type.startsWith("destroy")) {
-				handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
+				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
 			}
 		}
+		return false;
 	}
 
 }

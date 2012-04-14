@@ -13,6 +13,7 @@ import org.bukkit.event.HandlerList;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.PowerState;
+import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -287,6 +288,22 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.sign;
 	}
 	
+	public MinecartGroup getRCTrainGroup() {
+		return MinecartGroup.get(this.getRCTrainName());
+	}
+	public TrainProperties getRCTrainProperties() {
+		return TrainProperties.get(this.getRCTrainName());
+	}
+	public String getRCTrainName() {
+		if (this.isRCSign()) {
+			String name = this.getLine(0);
+			int idx = name.indexOf(' ') + 1;
+			return name.substring(idx, name.length() - idx - 1);
+		} else {
+			return null;
+		}
+	}
+	
 	public MinecartMember getMember() {
 		return this.getMember(false);
 	}
@@ -341,6 +358,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean isTrainSign() {
 		return this.mode == SignActionMode.TRAIN;
+	}
+	public boolean isRCSign() {
+		return this.mode == SignActionMode.RCTRAIN;
 	}
 	public boolean isLine(int line, String... texttypes) {
 		String linetext = this.getLine(line).toLowerCase();

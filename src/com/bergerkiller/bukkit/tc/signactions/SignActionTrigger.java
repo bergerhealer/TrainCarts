@@ -24,12 +24,13 @@ public class SignActionTrigger extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			if (type.startsWith("trigger")) {
-				handleBuild(event, Permission.BUILD_TRIGGER, "train trigger", "reset the arrival time, train name and destination, which can be displayed using SignLink");
+				return handleBuild(event, Permission.BUILD_TRIGGER, "train trigger", "reset the arrival time, train name and destination, which can be displayed using SignLink");
 			}
 		}
+		return false;
 	}
 	
 }

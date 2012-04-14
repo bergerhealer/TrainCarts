@@ -80,11 +80,12 @@ public class SignActionFuel extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE && type.startsWith("fuel")) {
-			handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", 
+			return handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", 
 					"fuel the powered minecart using coal from a chest");
 		}
+		return false;
 	}
 
 }

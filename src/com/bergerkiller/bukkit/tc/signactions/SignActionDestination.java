@@ -39,16 +39,17 @@ public class SignActionDestination extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode == SignActionMode.TRAIN) {
 			if (type.startsWith("destination")) {
-				handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");			
+				return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");			
 			}
 		} else if (mode == SignActionMode.CART) {
 			if (type.startsWith("destination")) {
-				handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
+				return handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
 			}
 		}
+		return false;
 	}
 
 }

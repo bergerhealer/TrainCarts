@@ -21,12 +21,13 @@ public class SignActionTrain extends SignAction {
 	}
 	
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode == SignActionMode.TRAIN) {
 			if (type.startsWith("destroy")) {
-				handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train");
+				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train");
 			}
 		}
+		return false;
 	}
 
 }

@@ -295,9 +295,9 @@ public class SignActionDetector extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (!isValid(event.getLines())) {
-			return;
+			return false;
 		}
 		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detect trains between this detector sign and another")) {
 			//try to create the other sign
@@ -305,7 +305,7 @@ public class SignActionDetector extends SignAction {
 			Block startrails = Util.getRailsFromSign(startsign);
 			if (startrails == null) {
 				event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
-				return;
+				return true;
 			}
 			BlockFace dir = BlockUtil.getFacing(startsign);
 			if (!tryBuild(startrails, startsign, dir)) {
@@ -313,12 +313,14 @@ public class SignActionDetector extends SignAction {
 					if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, -2))) {
 						event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
 						event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
-						return;
+						return true;
 					}
 				}
 			}
 			event.getPlayer().sendMessage(ChatColor.GREEN + "A second detector sign was found: Region set.");
+			return true;
 		}
+		return false;
 	}
 
 	public static void init(String filename) {

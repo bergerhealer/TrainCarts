@@ -129,12 +129,13 @@ public class SignActionElevator extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			if (type.startsWith("elevator")) {
-				handleBuild(event, Permission.BUILD_ELEVATOR, "train elevator", "teleport trains vertically");
+				return handleBuild(event, Permission.BUILD_ELEVATOR, "train elevator", "teleport trains vertically");
 			}
 		}
+		return false;
 	}
 
 }

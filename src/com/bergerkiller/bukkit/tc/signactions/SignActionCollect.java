@@ -204,19 +204,20 @@ public class SignActionCollect extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(type, "collect");
-			if (typesToCheck.isEmpty()) return;	
+			if (typesToCheck.isEmpty()) return false;
 			String[] types = new String[typesToCheck.size()];
 			int i = 0;
 			for (Material mat : typesToCheck) {
 				types[i] = mat.toString().toLowerCase() + "s";
 				i++;
 			}
-			handleBuild(event, Permission.BUILD_COLLECTOR, "storage minecart item collector", 
+			return handleBuild(event, Permission.BUILD_COLLECTOR, "storage minecart item collector", 
 					"obtain items from " + StringUtil.combineNames(types));
 		}
+		return false;
 	}
 
 }

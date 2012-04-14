@@ -57,12 +57,13 @@ public class SignActionTeleport extends SignAction {
 		}	
 	}
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (event.getLine(0).equalsIgnoreCase("[portal]")) {
 			if (Util.getRailsFromSign(event.getBlock()) != null) {
-				handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+				return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
 			}
 		}
+		return false;
 	}
 
 }

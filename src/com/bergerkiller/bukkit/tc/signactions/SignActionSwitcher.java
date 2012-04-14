@@ -129,16 +129,17 @@ public class SignActionSwitcher extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode == SignActionMode.CART) {
 			if (type.startsWith("switcher") || type.startsWith("tag")) {
-				handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
+				return handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
 			}
 		} else if (mode == SignActionMode.TRAIN) {
 			if (type.startsWith("switcher") || type.startsWith("tag")) {
-				handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
+				return handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
 			}
 		}
+		return false;
 	}
 
 }

@@ -661,13 +661,15 @@ public class NativeMinecartMember extends EntityMinecart {
 				if (--itemstack.count == 0) {
 					entityhuman.inventory.setItem(entityhuman.inventory.itemInHandIndex, (ItemStack) null);
 				}
-				this.fuel += 3600;
+				this.addFuel(3600);
 			}
 			this.b = this.locX - entityhuman.locX;
 			this.c = this.locZ - entityhuman.locZ;	
 			BlockFace dir = FaceUtil.getDirection(this.b, this.c, false);
-			if (dir == this.member().getDirection().getOppositeFace()) {
-				this.group().reverse();
+			if (this.group().isMoving()) {
+				if (dir == this.member().getDirectionTo().getOppositeFace()) {
+					this.group().reverse();
+				}
 			}
 			return true;
 		} else {

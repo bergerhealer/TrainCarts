@@ -104,6 +104,10 @@ public class SignActionProperties extends SignAction {
 	}
 	
 	@Override
+	public boolean canSupportRC() {
+		return true;
+	}
+	@Override
 	public void execute(SignActionEvent info) {
 		// TODO Auto-generated method stub
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.isCartSign()) {
@@ -127,16 +131,21 @@ public class SignActionProperties extends SignAction {
 		}
 	}
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode == SignActionMode.CART) {
 			if (type.startsWith("property")) {
-				handleBuild(event, Permission.BUILD_PROPERTY, "cart property setter", "set properties on the cart above");
+				return handleBuild(event, Permission.BUILD_PROPERTY, "cart property setter", "set properties on the cart above");
 			}
 		} else if (mode == SignActionMode.TRAIN) {
 			if (type.startsWith("property")) {
-				handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "set properties on the train above");
+				return handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "set properties on the train above");
+			}
+		} else if (mode == SignActionMode.RCTRAIN) {
+			if (type.startsWith("property")) {
+				return handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "remotely set properties on the train specified");
 			}
 		}
+		return false;
 	}
 
 }

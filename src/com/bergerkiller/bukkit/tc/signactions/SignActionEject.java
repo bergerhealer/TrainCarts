@@ -74,12 +74,13 @@ public class SignActionEject extends SignAction {
 	}
 
 	@Override
-	public void build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			if (type.startsWith("eject")) {
-				handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
+				return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
 			}
 		}
+		return false;
 	}
 
 }

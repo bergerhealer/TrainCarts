@@ -40,8 +40,15 @@ public abstract class SignAction {
 		actions = null;
 	}
 		
+	/**
+	 * Whether the remote control format is supported for this sign
+	 */
+	public boolean canSupportRC() {
+		return false;
+	}
+	
 	public abstract void execute(SignActionEvent info);
-	public abstract void build(SignChangeEvent event, String type, SignActionMode mode);
+	public abstract boolean build(SignChangeEvent event, String type, SignActionMode mode);
 	
 	private static List<SignAction> actions;
 	public static final <T extends SignAction> T register(T action) {
@@ -84,7 +91,16 @@ public abstract class SignAction {
 		SignActionMode mode = SignActionMode.fromEvent(event);
 		String type = event.getLine(1).toLowerCase();
 		for (SignAction action : actions) {
-			action.build(event, type, mode);
+			if (action.build(event, type, mode)) {
+				if (mode == SignActionMode.RCTRAIN && !action.canSupportRC()) {
+					event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
+					if (event.getLine(0).startsWith("[!")) {
+						event.setLine(0, "[!train]");
+					} else {
+						event.setLine(0, "[train]");
+					}
+				}
+			}
 			if (event.isCancelled()) return;
 		}
 		if (mode != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {

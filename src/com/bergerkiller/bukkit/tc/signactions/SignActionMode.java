@@ -6,12 +6,25 @@ import org.bukkit.event.block.SignChangeEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public enum SignActionMode {
-    TRAIN, CART, NONE;
+    TRAIN, CART, RCTRAIN, NONE;
     public static SignActionMode fromString(String name) {    	
     	if (name.equalsIgnoreCase("[train]")) return TRAIN;
     	if (name.equalsIgnoreCase("[cart]")) return CART;
     	if (name.equalsIgnoreCase("[!train]")) return TRAIN;
     	if (name.equalsIgnoreCase("[!cart]")) return CART;
+    	if (name.endsWith("]") && name.startsWith("[")) {
+    		name = name.substring(1, name.length() - 2);
+    		if (name.startsWith("!")) {
+    			name = name.substring(1);
+    		}
+    		name = name.toLowerCase();
+    		//further parsing
+    		if (name.startsWith("train ") && name.length() > 6) {
+    			return RCTRAIN;
+    		} else if (name.startsWith("t ") && name.length() > 2) {
+        		return RCTRAIN;
+    		}
+    	}
     	return NONE;
     }
     public static SignActionMode fromSign(Sign sign) {
