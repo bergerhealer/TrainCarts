@@ -4,6 +4,7 @@ import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
@@ -35,9 +36,19 @@ public class SignActionDestination extends SignAction {
 			for (CartProperties prop : info.getGroup().getProperties().getCarts()) {
 				setDestination(prop, info);
 			}
+		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
+			TrainProperties prop = info.getRCTrainProperties();
+			for (CartProperties cprop : prop.getCarts()) {
+				setDestination(cprop, info);
+			}
 		}
 	}
 
+	@Override
+	public boolean canSupportRC() {
+		return true;
+	}
+	
 	@Override
 	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode == SignActionMode.TRAIN) {
@@ -47,6 +58,10 @@ public class SignActionDestination extends SignAction {
 		} else if (mode == SignActionMode.CART) {
 			if (type.startsWith("destination")) {
 				return handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
+			}
+		} else if (mode == SignActionMode.RCTRAIN) {
+			if (type.startsWith("destination")) {
+				return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
 			}
 		}
 		return false;

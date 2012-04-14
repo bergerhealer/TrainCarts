@@ -32,8 +32,21 @@ public class TrainProperties {
 	}
 	public static boolean exists(String trainname) {
 		if (properties == null) return false;
-		return properties.containsKey(trainname);
+		if (properties.containsKey(trainname)) {
+			if (WorldGroupManager.contains(trainname)) {
+				return true;
+			} else if (MinecartGroup.get(trainname) != null) {
+				return true;
+			} else {
+				//doesn't link to a train!
+				properties.remove(trainname);
+			}
+		}
+		return false;
 	}	
+	public static void clear() {
+		properties.clear();
+	}
 	
 	private String trainname;	
 	public boolean allowLinking = true;

@@ -128,6 +128,11 @@ public class SignActionProperties extends SignAction {
 					}
 				}
 			}
+		} else if (info.isAction(SignActionType.REDSTONE_ON) && info.isRCSign()) {
+			if (info.isType("property")) {
+				String mode = info.getLine(2).toLowerCase().trim();
+				handleProperties(info.getRCTrainProperties(), mode, info.getLine(3));
+			}
 		}
 	}
 	@Override

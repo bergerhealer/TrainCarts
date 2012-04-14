@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -18,14 +19,18 @@ public class SignActionEject extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (!info.isType("eject")) return;
 		final boolean isTrain;
+	    boolean isRemote = false;
 		if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
 			isTrain = false;
 		} else if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
 			isTrain = true;
+		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
+			isRemote = true;
+			isTrain = true;
 		} else {
 			return;
 		}
-		if (info.hasMember() && info.isPoweredFacing()) {
+		if (isRemote || (info.hasMember() && info.isPoweredFacing())) {
 			//read from the sign
 			String[] offsettext = info.getLine(2).split("/");
 			String[] angletext = info.getLine(3).split("/");
@@ -57,12 +62,20 @@ public class SignActionEject extends SignAction {
 			
 			//actually eject
 			if (isTrain) {
-				for (MinecartMember mm : info.getGroup()) {
-					Location loc = mm.getBlock().getLocation();
-					loc = loc.add(0.5, 1.5, 0.5).add(offset);
-					loc.setYaw(dyaw);
-					loc.setPitch(dpitch);
-					mm.eject(loc);
+				final MinecartGroup group;
+				if (isRemote) {
+					group = info.getRCTrainGroup();
+				} else {
+					group = info.getGroup();
+				}
+				if (group != null) {
+					for (MinecartMember mm : group) {
+						Location loc = mm.getBlock().getLocation();
+						loc = loc.add(0.5, 1.5, 0.5).add(offset);
+						loc.setYaw(dyaw);
+						loc.setPitch(dpitch);
+						mm.eject(loc);
+					}
 				}
 			} else {
 				Location loc = info.getRailLocation().add(offset);
@@ -74,10 +87,18 @@ public class SignActionEject extends SignAction {
 	}
 
 	@Override
+	public boolean canSupportRC() {
+		return true;
+	}
+	@Override
 	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
 		if (mode != SignActionMode.NONE) {
 			if (type.startsWith("eject")) {
-				return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
+				if (mode == SignActionMode.RCTRAIN) {
+					return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
+				} else {
+					return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
+				}
 			}
 		}
 		return false;

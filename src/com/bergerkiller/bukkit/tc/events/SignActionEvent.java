@@ -113,7 +113,6 @@ public class SignActionEvent extends Event implements Cancellable {
 	public void setRailsFromCart(BlockFace to) {
 		if (!this.hasMember()) return;
 		BlockFace from = this.member.getDirectionTo().getOppositeFace();
-		
 		//set the rails
 		this.setRailsFromTo(from, to);
 	}
@@ -298,7 +297,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (this.isRCSign()) {
 			String name = this.getLine(0);
 			int idx = name.indexOf(' ') + 1;
-			return name.substring(idx, name.length() - idx - 1);
+			return name.substring(idx, name.length() - 1);
 		} else {
 			return null;
 		}
