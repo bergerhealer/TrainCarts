@@ -46,37 +46,6 @@ public class SignActionStation extends SignAction {
 								MinecartMember toAffect = info.isCartSign() ? info.getMember() : group.middle();
 								//First, get the direction of the tracks above
 								BlockFace dir = info.getRailDirection();
-								//Get the length of the track to center in
-								if (length == 0) {
-									//manually calculate the length
-									//use the amount of straight blocks
-									for (BlockFace face : FaceUtil.getFaces(dir)) {
-										int tlength = 0;
-										//get the type of rail required
-										BlockFace checkface = face;
-										if (checkface == BlockFace.NORTH)
-											checkface = BlockFace.SOUTH;
-										if (checkface == BlockFace.EAST)
-											checkface = BlockFace.WEST;
-
-										Block b = info.getRails();
-										int maxlength = 20;
-										while (true) {
-											//Next until invalid
-											b = b.getRelative(face);
-											Rails rr = BlockUtil.getRails(b);
-											if (rr == null || rr.getDirection() != checkface)
-												break;
-											tlength++;
-
-											//prevent inf. loop or long processing
-											maxlength--;
-											if (maxlength <= 0) break;
-										}
-										//Update the length
-										if (length == 0 || tlength < length) length = tlength;
-									}
-								}
 								//which directions to move, or brake?
 								BlockFace instruction = BlockFace.UP; //SELF is brake
 								if (dir == BlockFace.WEST) {
@@ -101,6 +70,48 @@ public class SignActionStation extends SignAction {
 									}
 								} else {
 									return;
+								}
+								
+								//Get the length of the track to center in
+								if (length == 0) {
+									//manually calculate the length
+									//use the amount of straight blocks
+									BlockFace[] toCheck;
+									if (instruction == BlockFace.SELF) {
+										toCheck = FaceUtil.getFaces(dir);
+									} else {
+										toCheck = new BlockFace[] {instruction};
+									}
+									
+									for (BlockFace face : toCheck) {
+										int tlength = 0;
+										//get the type of rail required
+										BlockFace checkface = face;
+										if (checkface == BlockFace.NORTH)
+											checkface = BlockFace.SOUTH;
+										if (checkface == BlockFace.EAST)
+											checkface = BlockFace.WEST;
+
+										Block b = info.getRails();
+										int maxlength = 20;
+										while (true) {
+											//Next until invalid
+											b = b.getRelative(face);
+											Rails rr = BlockUtil.getRails(b);
+											if (rr == null || rr.getDirection() != checkface)
+												break;
+											tlength++;
+
+											//prevent inf. loop or long processing
+											maxlength--;
+											if (maxlength <= 0) break;
+										}
+										//Update the length
+										if (length == 0 || tlength < length) length = tlength;
+										if (length == 0) {
+											length++;
+										}
+									}
 								}
 									
 								//What do we do?

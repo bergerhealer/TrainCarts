@@ -338,7 +338,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if (this.dead) {
 			//remove self
 			g.remove(this);
-		} else if (g.size() == 0) {
+		} else if (g.isEmpty()) {
 			g.remove();
 			super.F_();
 		} else if (g.tail() == this) {
