@@ -220,8 +220,8 @@ public class TCListener implements Listener {
 								return;
 							}
 							MinecartMember mm2 = MinecartMember.convert(event.getEntity());
-							MinecartGroup g2 = mm2.getGroup();
-							if (g2 == null || mm2 == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
+							MinecartGroup g2 = null;
+							if (mm2 == null || (g2 = mm2.getGroup()) == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
 								event.setCancelled(true);
 							} else if (g2.isVelocityAction()) {
 								event.setCancelled(true);

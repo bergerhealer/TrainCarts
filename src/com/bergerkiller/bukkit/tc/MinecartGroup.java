@@ -54,7 +54,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	 * STATIC REGION
 	 */
 	private static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
-	
+
 	public static MinecartGroup create() {
 		MinecartGroup g = new MinecartGroup();
 		groups.add(g);
@@ -82,7 +82,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		GroupCreateEvent.call(g);
 		return g;
 	}
-	
+
 	public static MinecartGroup spawn(Location[] at, int... types) {
 		if (at.length != types.length || at.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
@@ -96,7 +96,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public static MinecartGroup spawn(Block startblock, BlockFace direction, int... types) {
 		ArrayList<Integer> typelist = new ArrayList<Integer>(types.length);
 		for (int i : types) typelist.add(i);
-		return spawn(startblock, direction, typelist);
+				return spawn(startblock, direction, typelist);
 	}
 	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Integer> types) {
 		Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
@@ -109,7 +109,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		GroupCreateEvent.call(g);
 		return g;
 	}
-	
+
 	public static Set<MinecartGroup> getGroupsUnsafe() {
 		return groups;
 	}
@@ -128,7 +128,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return null;
 	}
-	
+
 	public static boolean link(Minecart m1, Minecart m2) {
 		if (m1 == m2) return false;
 		if (m1.isDead()) return false;
@@ -158,7 +158,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					return false;
 				}
 			}
-			
+
 			//Can the minecarts reach the other?
 			if (!MinecartMember.isTrackConnected(m1, m2)) return true;
 
@@ -170,7 +170,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			if (!g2.canConnect(m1, m2index) || !g1.canConnect(m2, m1index)) {
 				return false;
 			}
-			
+
 			//Event
 			if (GroupLinkEvent.call(g1, g2).isCancelled()) return false;
 
@@ -201,11 +201,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					g2.setActiveSign(sign, true);
 				}
 			}
-			
+
 			//Correct the yaw and order
 			g2.getAverageForce();
 			g2.updateDirection();
-			
+
 			g1.remove();
 			m2.playLinkEffect();
 			return true;
@@ -222,10 +222,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		TrainProperties.get(oldtrainname).rename(newtrainname);
 	}
-	
-    /*
-     * NON-STATIC REGION
-     */
+
+	/*
+	 * NON-STATIC REGION
+	 */
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
@@ -235,7 +235,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private boolean needsUpdate = false;
 
 	private MinecartGroup() {}
-		
+
 	/*
 	 * Name
 	 */
@@ -263,7 +263,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		this.name = name;
 	}
-	
+
 	/*
 	 * Properties
 	 */
@@ -288,7 +288,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public void reinitProperties() {
 		this.prop = null;
 	}
-		
+
 	/*
 	 * Actions
 	 */
@@ -342,7 +342,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		Action a = this.actions.peek();
 		return a == null ? false : a instanceof VelocityAction;
 	}
-		
+
 	/*
 	 * Signs underneath this group
 	 */
@@ -379,7 +379,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			mm.clearActiveSigns();
 		}
 	}
-	
+
 	public MinecartMember head(int index) {
 		return this.get(index);
 	}
@@ -395,11 +395,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public MinecartMember middle() {
 		return this.get((int) Math.floor((double) size() / 2));
 	}
-	
+
 	public MinecartMember[] toArray() {
 		return super.toArray(new MinecartMember[0]);
 	}
-	
+
 	public boolean connect(MinecartMember contained, MinecartMember with) {
 		if (this.size() <= 1) {
 			this.add(with);
@@ -412,13 +412,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return true;
 	}
-		
+
 	public int indexOf(Object object) {
 		MinecartMember mm = MinecartMember.get(object);
 		if (mm == null) return -1;
 		return super.indexOf(mm);
 	}
-		
+
 	private void addMemberSigns(MinecartMember member) {
 		for (Block sign : member.getActiveSigns()) {
 			this.setActiveSign(sign, true);
@@ -447,7 +447,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		super.addAll(index, members);
 		for (MinecartMember member : members) this.addMemberSigns(member);
-		return true;
+				return true;
 	}
 	public boolean addAll(Collection<? extends MinecartMember> members) {
 		for (MinecartMember m : members) {
@@ -457,21 +457,21 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		super.addAll(members);
 		for (MinecartMember member : members) this.addMemberSigns(member);
-		return true;
+				return true;
 	}
-	
+
 	public boolean contains(Object o) {
-	    return super.contains(MinecartMember.get(o));
+		return super.contains(MinecartMember.get(o));
 	}
 	public boolean containsIndex(int index) {
 		return this.isEmpty() ? false : index >= 0 && index < this.size();
 	}
-	
+
 	public World getWorld() {
 		if (this.size() == 0) return null;
 		return this.get(0).getWorld();
 	}
-	
+
 	public double length() {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
@@ -489,7 +489,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return rval;
 	}
-	
+
 	public boolean isValid() {
 		if (this.size() == 0) return false;
 		if (this.size() == 1) return true;
@@ -499,7 +499,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			return true;
 		}
 	}
-	
+
 	public boolean remove(Object o) {
 		int index = this.indexOf(o);
 		if (index == -1) return false;
@@ -547,7 +547,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return removed;
 	}
-	
+
 	public void clear() {
 		this.clearActiveSigns();
 		this.clearActions();
@@ -573,7 +573,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public void destroy() {
 		for (MinecartMember mm : this) mm.dead = true;
-	    this.remove();
+				this.remove();
 	}
 	public void unload() {
 		GroupUnloadEvent.call(this);
@@ -583,7 +583,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		groups.remove(this);
 	}
-	
+
 	/**
 	 * Visually respawns this minecart to avoid teleportation smoothing
 	 */
@@ -626,7 +626,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			this.tail().addActionLaunch(direction, 1.0, force);
 		}
 	}
-	
+
 	public void teleport(Block start, BlockFace direction) {
 		this.teleport(start, direction, TrainCarts.cartDistance);
 	}
@@ -656,7 +656,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			this.respawn();
 		}
 	}
-	
+
 	public void shareForce() {
 		double f = this.getAverageForce();
 		for (MinecartMember m : this) {
@@ -684,9 +684,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				mm.setForceFactor(f);
 			}
 		}
-		
+
 	}
-	
+
 	public boolean canConnect(MinecartMember mm, int at) {
 		if (this.size() == 1) return true;
 		if (this.size() == 0) return false;
@@ -737,10 +737,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public List<Integer> getTypes() {
 		ArrayList<Integer> types = new ArrayList<Integer>(this.size());
-		for (MinecartMember mm : this) types.add(mm.type);
+		for (MinecartMember mm : this) {
+			types.add(mm.type);
+		}
 		return types;
 	}
-	
+
 	public boolean hasPassenger() {
 		for (MinecartMember mm : this) {
 			if (mm.hasPassenger()) return true;
@@ -776,155 +778,155 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return !this.getProperties().keepChunksLoaded;
 	}
 	public boolean hasTag(String tag) {
-	    boolean inv = false;
-	    while (tag.startsWith("!")) {
-	    	tag = tag.substring(1);
-	    	inv = !inv;
-	    }
-	    boolean state = false; 
-	    //parse line here
-	    if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
-	    	state = this.hasPassenger();
-	    } else if (tag.equalsIgnoreCase("items")) {
-	    	state =  this.hasItems();
-	    } else if (tag.equalsIgnoreCase("empty")) {
-	    	state = !this.hasItems() && !this.hasPassenger();
-	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
-	    	state =  this.hasFuel();
-	    } else if (tag.equalsIgnoreCase("powered")) {
-	    	state =  this.size(Material.POWERED_MINECART) > 0;
-	    } else if (tag.equalsIgnoreCase("storage")) {
-	    	state =  this.size(Material.STORAGE_MINECART) > 0;
-	    } else if (tag.equalsIgnoreCase("minecart")) {
-	    	state =  this.size(Material.MINECART) > 0;
-	    } else {
-	    	String lowertag = tag.toLowerCase();
-	    	if (lowertag.startsWith("i@")) {
-	    		//contains this item?
-	    		state = false;
-	    		for (ItemParser parser : Util.getParsers(lowertag.substring(2))) {
-	    			if (this.hasItem(parser)) {
-	    				state = true;
-	    				break;
-	    			}
-	    		}
-	    	} else if (lowertag.startsWith("o@")) {
-	    		//contains this owner?
-	    		for (MinecartMember mm : this) {
-	    			if (mm.getProperties().isOwner(lowertag.substring(2))){
-	    				state = true;
-	    				break;
-	    			}
-	    		}
-	    	} else if (lowertag.startsWith("d@")) {
-	    		for (CartProperties prop : this.getProperties().getCarts()) {
-		    		String dest = prop.destination;
-		    		if (dest == null) dest = "";
-		    		if (dest.equals(tag.substring(2))) {
-		    			state = true;
-		    			break;
-		    		}
-	    		}
-	    	} else if (lowertag.startsWith("p@")) {
-	    		//contains this player passenger?
-	    		for (MinecartMember mm : this) {
-		    		if (mm.hasPlayerPassenger()) {
-		    			String pname = ((Player) mm.passenger.getBukkitEntity()).getName();
-		    			if (pname.equalsIgnoreCase(lowertag.substring(2))) {
-		    				state = true;
-		    				break;
-		    			}
-		    		}
-	    		}
-	    	} else if (lowertag.startsWith("m@")) {
-	    		//contains this mob as passenger?
-	    		String[] types = lowertag.substring(2).split(";");
-	    		if (types.length == 0) {
-	    			//contains a mob?
-	    			for (MinecartMember mm : this) {
-	    				if (!mm.hasPassenger()) continue;
-	    				if (!EntityUtil.isMob(mm.passenger)) continue;
-	    				state = true;
-	    				break;
-	    			}
-	    		} else {
-	    			//contains one of the defined mobs?
-	    			for (int i = 0; i < types.length; i++) {
-	    				types[i] = types[i].replace("_", "").replace(" ", "");
-	    			}
-	    			for (MinecartMember mm : this) {
-	    				if (!mm.hasPassenger()) continue;
-	    				if (!EntityUtil.isMob(mm.passenger)) continue;
-	    				String mobname = EntityUtil.getName(mm.passenger);
-	    				for (String type : types) {
-	    				    if (mobname.contains(type)) {
-	    				    	state = true;
-	    				    	break;
-	    				    }
-	    				}
-	    				if (state) break;
-	    			}
-	    		}
-	    	} else if (lowertag.startsWith("pi@")) {
-	    		//player inventory contains these items?
-    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
-    				for (MinecartMember mm : this) {
-    					if (!mm.hasPlayerPassenger()) continue;
-    					PlayerInventory inventory = ((EntityPlayer) mm.passenger).inventory;
-        				if (parser.hasType()) {
-    	    				Integer data = parser.hasData() ? (int) parser.getData() : null;
-    	    				ItemStack item = ItemUtil.findItem(inventory, parser.getTypeId(), data);
-    	    				if (item == null) continue;
-    	    				if (parser.hasAmount()) {
-    	    					state = item.count >= parser.getAmount();
-    	    				} else {
-    	    					state = true;
-    	    				}
-        				} else {
-        					state = false;
-        					for (ItemStack item : inventory.getContents()) {
-        						if (item != null) {
-        							state = true;
-        							break;
-        						}
-        					}
-        					break;
-        				}
-    				}
-    				if (state) break;
-    			}
-	    	} else if (lowertag.startsWith("ph@")) {
-	    		//player item in hand is one of defined items?
-    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
-    				for (MinecartMember mm : this) {
-    					if (!mm.hasPlayerPassenger()) continue;
-    					ItemStack item = ((EntityPlayer) mm.passenger).inventory.getItemInHand();
-    					if (item == null) continue;
-        				if (parser.hasType()) {
-        					if (item == null || item.id != parser.getTypeId()) continue;
-        					if (parser.hasData() && item.getData() != parser.getData()) continue;
-        					if (parser.hasAmount() && item.count < parser.getAmount()) continue;
-        					state = true;
-        					break;
-        				} else {
-        					if (item != null) {
-        						state = true;
-        						break;
-        					}
-        				}
-    				}
-    				if (state) break;
-    			}
-	    	} else {
-		    	state = this.getProperties().hasTag(tag);
-	    	}
-	    }
-	    return state != inv;
+		boolean inv = false;
+		while (tag.startsWith("!")) {
+			tag = tag.substring(1);
+			inv = !inv;
+		}
+		boolean state = false; 
+		//parse line here
+		if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
+			state = this.hasPassenger();
+		} else if (tag.equalsIgnoreCase("items")) {
+			state =  this.hasItems();
+		} else if (tag.equalsIgnoreCase("empty")) {
+			state = !this.hasItems() && !this.hasPassenger();
+		} else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
+			state =  this.hasFuel();
+		} else if (tag.equalsIgnoreCase("powered")) {
+			state =  this.size(Material.POWERED_MINECART) > 0;
+		} else if (tag.equalsIgnoreCase("storage")) {
+			state =  this.size(Material.STORAGE_MINECART) > 0;
+		} else if (tag.equalsIgnoreCase("minecart")) {
+			state =  this.size(Material.MINECART) > 0;
+		} else {
+			String lowertag = tag.toLowerCase();
+			if (lowertag.startsWith("i@")) {
+				//contains this item?
+				state = false;
+				for (ItemParser parser : Util.getParsers(lowertag.substring(2))) {
+					if (this.hasItem(parser)) {
+						state = true;
+						break;
+					}
+				}
+			} else if (lowertag.startsWith("o@")) {
+				//contains this owner?
+				for (MinecartMember mm : this) {
+					if (mm.getProperties().isOwner(lowertag.substring(2))){
+						state = true;
+						break;
+					}
+				}
+			} else if (lowertag.startsWith("d@")) {
+				for (CartProperties prop : this.getProperties().getCarts()) {
+					String dest = prop.destination;
+					if (dest == null) dest = "";
+					if (dest.equals(tag.substring(2))) {
+						state = true;
+						break;
+					}
+				}
+			} else if (lowertag.startsWith("p@")) {
+				//contains this player passenger?
+				for (MinecartMember mm : this) {
+					if (mm.hasPlayerPassenger()) {
+						String pname = ((Player) mm.passenger.getBukkitEntity()).getName();
+						if (pname.equalsIgnoreCase(lowertag.substring(2))) {
+							state = true;
+							break;
+						}
+					}
+				}
+			} else if (lowertag.startsWith("m@")) {
+				//contains this mob as passenger?
+				String[] types = lowertag.substring(2).split(";");
+				if (types.length == 0) {
+					//contains a mob?
+					for (MinecartMember mm : this) {
+						if (!mm.hasPassenger()) continue;
+						if (!EntityUtil.isMob(mm.passenger)) continue;
+						state = true;
+						break;
+					}
+				} else {
+					//contains one of the defined mobs?
+					for (int i = 0; i < types.length; i++) {
+						types[i] = types[i].replace("_", "").replace(" ", "");
+					}
+					for (MinecartMember mm : this) {
+						if (!mm.hasPassenger()) continue;
+						if (!EntityUtil.isMob(mm.passenger)) continue;
+						String mobname = EntityUtil.getName(mm.passenger);
+						for (String type : types) {
+							if (mobname.contains(type)) {
+								state = true;
+								break;
+							}
+						}
+						if (state) break;
+					}
+				}
+			} else if (lowertag.startsWith("pi@")) {
+				//player inventory contains these items?
+				for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
+					for (MinecartMember mm : this) {
+						if (!mm.hasPlayerPassenger()) continue;
+						PlayerInventory inventory = ((EntityPlayer) mm.passenger).inventory;
+						if (parser.hasType()) {
+							Integer data = parser.hasData() ? (int) parser.getData() : null;
+							ItemStack item = ItemUtil.findItem(inventory, parser.getTypeId(), data);
+							if (item == null) continue;
+							if (parser.hasAmount()) {
+								state = item.count >= parser.getAmount();
+							} else {
+								state = true;
+							}
+						} else {
+							state = false;
+							for (ItemStack item : inventory.getContents()) {
+								if (item != null) {
+									state = true;
+									break;
+								}
+							}
+							break;
+						}
+					}
+					if (state) break;
+				}
+			} else if (lowertag.startsWith("ph@")) {
+				//player item in hand is one of defined items?
+				for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
+					for (MinecartMember mm : this) {
+						if (!mm.hasPlayerPassenger()) continue;
+						ItemStack item = ((EntityPlayer) mm.passenger).inventory.getItemInHand();
+						if (item == null) continue;
+						if (parser.hasType()) {
+							if (item == null || item.id != parser.getTypeId()) continue;
+							if (parser.hasData() && item.getData() != parser.getData()) continue;
+							if (parser.hasAmount() && item.count < parser.getAmount()) continue;
+							state = true;
+							break;
+						} else {
+							if (item != null) {
+								state = true;
+								break;
+							}
+						}
+					}
+					if (state) break;
+				}
+			} else {
+				state = this.getProperties().hasTag(tag);
+			}
+		}
+		return state != inv;
 	}
 	public boolean isRemoved() {
 		return this.isEmpty() || !groups.contains(this);
 	}
-	
+
 	public Inventory getInventory() {
 		//count amount of storage minecarts
 		IInventory[] source = new IInventory[this.size(Material.STORAGE_MINECART)];
@@ -937,11 +939,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return MergedInventory.convert(source);
 	}
-	
+
 	public void loadChunks() {
 		for (MinecartMember mm : this) mm.loadChunks();
 	}
-	
+
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
 	}
@@ -951,7 +953,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		}
 		return false;
 	}
-	
+
 	/*
 	 * Splits this train, the index is the first cart for the new group
 	 */
@@ -971,32 +973,32 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Add the group
 			groups.add(gnew);
 			GroupCreateEvent.call(gnew);
-			
+
 			//Set the new active signs
 			for (MinecartMember mm : gnew) {
 				for (Block sign : mm.getActiveSigns()) {
 					gnew.setActiveSign(sign, true);
 				}
 			}
-			
+
 			//Set the new group properties
 			gnew.getProperties().load(this.getProperties());
-			
+
 			return gnew;
 		} else {
 			gnew.clear();
 			return null;
 		}
 	}
-	
+
 	public void breakPhysics() {
 		this.breakPhysics = true;
 	}
-		
+
 	public void update() {
 		this.needsUpdate = true;
 	}
-	
+
 	/*
 	 * These two overrides ensure that sets use this MinecartGroup properly
 	 * Without it, the AbstractList versions were used, which don't apply here
@@ -1005,12 +1007,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public int hashCode() {
 		return System.identityHashCode(this);
 	}
-	
+
 	@Override
 	public boolean equals(Object other) {
 		return other == this;
 	}
-	
+
 	/*
 	 * Synchronizes all members' entity trackers
 	 * Makes them move nicely in-sync
@@ -1019,33 +1021,37 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		if (this.isEmpty()) return;
 		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
 		if (headtracker == null) return;
-		boolean location = headtracker.needsLocationSync();
-		boolean teleport = headtracker.needsTeleport();
-		boolean velocity = false;
-		for (MinecartMember mm : this) {
-			MinecartMemberTrackerEntry tracker = mm.getTracker();
-			if (tracker == null) continue;
-			if (!location && tracker.tracker.ce) {
-				location = true;
+		if (this.size() == 1) {
+			headtracker.sync();
+		} else {
+			boolean location = headtracker.needsLocationSync();
+			boolean teleport = headtracker.needsTeleport();
+			boolean velocity = false;
+			for (MinecartMember mm : this) {
+				MinecartMemberTrackerEntry tracker = mm.getTracker();
+				if (tracker == null) continue;
+				if (!location && tracker.tracker.ce) {
+					location = true;
+				}
+				if (!velocity && tracker.tracker.velocityChanged) {
+					velocity = true;
+				}
 			}
-			if (!velocity && tracker.tracker.velocityChanged) {
-				velocity = true;
+
+			for (MinecartMember mm : this) {
+				MinecartMemberTrackerEntry tracker = mm.getTracker();
+				if (tracker == null) continue;
+				if (location) {
+					tracker.syncLocation(teleport);
+				}
+				if (velocity) {
+					tracker.syncVelocity();
+				}
+				tracker.syncMeta();
 			}
-		}
-		
-		for (MinecartMember mm : this) {
-			MinecartMemberTrackerEntry tracker = mm.getTracker();
-			if (tracker == null) continue;
-			if (location) {
-				tracker.syncLocation(teleport);
-			}
-			if (velocity) {
-				tracker.syncVelocity();
-			}
-			tracker.syncMeta();
 		}
 	}
-			
+
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -1081,138 +1087,124 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {
 		this.breakPhysics = false;
 		try {			
+			//Prevent index exceptions: remove if not a train
+			if (this.isEmpty()) {
+				this.remove();
+				throw new GroupUnloadedException();
+			}
+			
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
 				mm.validate();
 				mm.maxSpeed = this.getProperties().speedLimit / (double) stepcount;
 			}
-
-			this.updateDirection();
 			
-			//Prevent index exceptions: remove if not a train
-			if (this.size() == 1) {
-				MinecartMember mm = this.head();
-				this.updateAction();
-				mm.preUpdate(stepcount);
-				mm.checkChunks(this.canUnload());
-				this.updateDirection();
-				mm.postUpdate(1);
-				this.updateDirection();
-				MinecartMemberTrackerEntry tracker = mm.getTracker();
-				if (tracker != null) tracker.sync();
-				
-				//final updating
-				if (this.needsUpdate) {
-					this.needsUpdate = false;
-					for (Block b : this.activeSigns) {
-						SignAction.executeAll(new SignActionEvent(b, null, this), SignActionType.GROUP_UPDATE);
-					}
-				}
-				
-				return true;
-			} else if (this.isEmpty()) {
-				this.remove();
-				throw new GroupUnloadedException();
-			}
-							
 			//pre-update
+			this.updateDirection();
 			this.updateAction();
 			for (MinecartMember m : this) {
 				m.preUpdate(stepcount);
 			}
-			
+
 			//still in loaded chunks?
 			boolean canunload = this.canUnload();
 			for (MinecartMember mm : this) {
 				mm.checkChunks(canunload);
 			}
-			
-			//Get the average forwarding force of all carts
-			double force = this.getAverageForce();
-			this.updateDirection();
 
-			//Perform forward force or not? First check if we are not messing up...
-			boolean performUpdate = true;
-			for (int i = 0; i < this.size() - 1; i++) {
-				if (!head(i + 1).isFollowingOnTrack(head(i))) {
-					performUpdate = false;
-					break;
-				}
-			}
-			
-			if (performUpdate) {
-				//update force
-				for (MinecartMember m : this) {
-					m.setForwardForce(force);
-				}							
-			}
+			if (this.size() == 1) {
+				//Simplified calculation for single carts
+				this.updateDirection();
+				this.head().postUpdate(1);
+				this.updateDirection();
+			} else {
+				//Get the average forwarding force of all carts
+				double force = this.getAverageForce();
+				this.updateDirection();
 
-			//Apply force factors to carts from last cart and perform post positional updates
-			final int size = this.size();
-			if (size < 2) return false;
-						
-			//Post updating
-			try {
-				int i = 1;
-				double distance, threshold, forcer;
-				MinecartMember after;
-				for (MinecartMember member : this) {
-					after = this.get(i);
-					distance = member.distanceXZ(after);
-					if (member.isFlying()) {
-						member.postUpdate(1);
-					} else {
-						if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
-							threshold = TrainCarts.turnedCartDistance;
-							forcer = TrainCarts.turnedCartDistanceForcer;
-						} else {
-							threshold = TrainCarts.cartDistance;
-							forcer = TrainCarts.cartDistanceForcer;
-						}
-						if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
-						member.postUpdate(1 + (forcer * (threshold - distance)));
-					}
-					if (this.breakPhysics) return true;
-					if (i++ == this.size() - 1) {
-						this.tail().postUpdate(1);
-						if (this.breakPhysics) return true;
+				//Perform forward force or not? First check if we are not messing up...
+				boolean performUpdate = true;
+				for (int i = 0; i < this.size() - 1; i++) {
+					if (!head(i + 1).isFollowingOnTrack(head(i))) {
+						performUpdate = false;
 						break;
 					}
 				}
-			} catch (ConcurrentModificationException ex) {
-				return true;
-			}
-			
-			//Update order after position change
-			this.getAverageForce();
-			
-			//update yaw and then the positions
-			this.updateDirection();
-			
-			//Validate positions in the group
-			for (int i = 0; i < this.size() - 1; i++) {
-				if (!head(i + 1).isFollowingOnTrack(head(i))) {
-					for (int j = i + 1; j < this.size(); j++) {
-						this.get(j).setForceFactor(stepcount);
-					}
-					MinecartGroup gnew = this.split(i + 1);
-					if (gnew != null) { 
-						//what time do we want to prevent them from colliding too soon?
-						//needs to travel 2 blocks in the meantime
-						int time = (int) MathUtil.limit(2 / gnew.head().getForce(), 20, 40);
-						for (MinecartMember mm1 : gnew) {
-							for (MinecartMember mm2: this) {
-								mm1.ignoreCollision(mm2, time);
+
+				if (performUpdate) {
+					//update force
+					for (MinecartMember m : this) {
+						m.setForwardForce(force);
+					}							
+				}
+
+				//Apply force factors to carts from last cart and perform post positional updates
+				final int size = this.size();
+				if (size < 2) return false;
+
+				//Post updating
+				try {
+					int i = 1;
+					double distance, threshold, forcer;
+					MinecartMember after;
+					for (MinecartMember member : this) {
+						after = this.get(i);
+						distance = member.distanceXZ(after);
+						if (member.isFlying()) {
+							member.postUpdate(1);
+						} else {
+							if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
+								threshold = TrainCarts.turnedCartDistance;
+								forcer = TrainCarts.turnedCartDistanceForcer;
+							} else {
+								threshold = TrainCarts.cartDistance;
+								forcer = TrainCarts.cartDistanceForcer;
 							}
+							if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
+							member.postUpdate(1 + (forcer * (threshold - distance)));
+						}
+						if (this.breakPhysics) return true;
+						if (i++ == this.size() - 1) {
+							this.tail().postUpdate(1);
+							if (this.breakPhysics) return true;
+							break;
 						}
 					}
-					return false;
+				} catch (ConcurrentModificationException ex) {
+					return true;
+				}
+
+				//Update order after position change
+				this.getAverageForce();
+
+				//update yaw and then the positions
+				this.updateDirection();
+
+				//Validate positions in the group
+				for (int i = 0; i < this.size() - 1; i++) {
+					if (!head(i + 1).isFollowingOnTrack(head(i))) {
+						for (int j = i + 1; j < this.size(); j++) {
+							this.get(j).setForceFactor(stepcount);
+						}
+						MinecartGroup gnew = this.split(i + 1);
+						if (gnew != null) { 
+							//what time do we want to prevent them from colliding too soon?
+							//needs to travel 2 blocks in the meantime
+							int time = (int) MathUtil.limit(2 / gnew.head().getForce(), 20, 40);
+							for (MinecartMember mm1 : gnew) {
+								for (MinecartMember mm2: this) {
+									mm1.ignoreCollision(mm2, time);
+								}
+							}
+						}
+						return false;
+					}
 				}
 			}
-			
+
 			//Synchronize to clients
 			this.sync();
-			
+
 			//final updating
 			if (this.needsUpdate) {
 				this.needsUpdate = false;
@@ -1227,11 +1219,11 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					reg.update(this);
 				}
 			}
-			
+
 			return true;
 		} catch (MemberDeadException ex) {
 			return false;
 		}
 	}
-		
+
 }
