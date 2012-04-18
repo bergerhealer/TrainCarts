@@ -495,13 +495,13 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 			if (this.group().getProperties().slowDown) {
 				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
-					this.motX *= 0.997;
+					this.motX *= TrainCarts.slowDownMultiplierNormal;
 					this.motY *= 0.0;
-					this.motZ *= 0.997;
+					this.motZ *= TrainCarts.slowDownMultiplierNormal;
 				} else {
-					this.motX *= 0.96;
+					this.motX *= TrainCarts.slowDownMultiplierSlow;
 					this.motY *= 0.0;
-					this.motZ *= 0.96;
+					this.motZ *= TrainCarts.slowDownMultiplierSlow;
 				}
 			}
 			//==================================================

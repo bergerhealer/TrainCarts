@@ -22,5 +22,10 @@ public class MemberActionWaitLocation extends MemberAction implements WaitAction
 		if (this.getWorld() != dest.getWorld()) return false;
 		return this.getMember().distanceSquared(dest) <= this.radiussquared;
 	}
+	
+	@Override
+	public boolean isVelocityChangesSuppressed() {
+		return true;
+	}
 
 }

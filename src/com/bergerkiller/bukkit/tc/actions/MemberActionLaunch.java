@@ -26,6 +26,11 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 		if (this.startvelocity < minVelocity) this.startvelocity = minVelocity;
 	}
 	
+	@Override
+	public boolean isVelocityChangesSuppressed() {
+		return true;
+	}
+	
 	private static final double minVelocity = 0.02;
 	private static final double minVelocityForLaunch = 0.004;
 	

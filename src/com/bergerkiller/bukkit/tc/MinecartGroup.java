@@ -331,6 +331,9 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public GroupActionWaitForever addActionWaitForever() {
 		return this.addAction(new GroupActionWaitForever(this));
 	}
+	public GroupActionWaitState addActionWaitState() {
+		return this.addAction(new GroupActionWaitState(this));
+	}
 	public GroupActionSizzle addActionSizzle() {
 		return this.addAction(new GroupActionSizzle(this));
 	}
@@ -340,7 +343,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public boolean isVelocityAction() {
 		Action a = this.actions.peek();
-		return a == null ? false : a instanceof VelocityAction;
+		return a == null ? false : a instanceof VelocityAction && ((VelocityAction) a).isVelocityChangesSuppressed();
 	}
 
 	/*

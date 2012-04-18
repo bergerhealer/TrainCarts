@@ -18,5 +18,10 @@ public class GroupActionWaitTill extends GroupAction implements WaitAction {
 	public boolean update() {
 		return this.finishtime <= System.currentTimeMillis();
 	}
+	
+	@Override
+	public boolean isVelocityChangesSuppressed() {
+		return true;
+	}
 
 }

@@ -11,5 +11,10 @@ public class GroupActionWaitForever extends GroupAction implements WaitAction {
 	public boolean update() {
 		return false;
 	}
-
+		
+	@Override
+	public boolean isVelocityChangesSuppressed() {
+		return true;
+	}
+	
 }

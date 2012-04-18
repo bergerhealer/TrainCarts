@@ -4,7 +4,11 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.StationMode;
+import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionBlock extends SignAction {
@@ -35,12 +39,45 @@ public class SignActionBlock extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("blocker")) return;
-		if (info.getMode() != SignActionMode.NONE && info.hasRails() && info.hasMember() && info.isPowered()) {
-			if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
-				if (isHeadingTo(info)) {
-					info.getGroup().stop(info.isAction(SignActionType.MEMBER_MOVE));
-				}	
-			}	
+		if (info.getMode() != SignActionMode.NONE) {
+			if (info.isAction(SignActionType.GROUP_LEAVE)) {
+				Action action = info.getGroup().getCurrentAction();
+				if (action != null && action instanceof GroupActionWaitState) {
+					info.getGroup().clearActions();
+				}
+			} else if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
+				if (!info.hasRailedMember()) return;
+				if (info.isPowered()) {
+					if (isHeadingTo(info)) {
+						BlockFace trainDirection = null;
+						StationMode mode = EnumUtil.parse(info.getLine(3), StationMode.NONE);
+						if (mode == StationMode.CONTINUE) {
+							trainDirection = info.getCartDirection();
+						} else if (mode == StationMode.REVERSE) {
+							trainDirection = info.getCartDirection().getOppositeFace();
+						} else if (mode == StationMode.LEFT || mode == StationMode.RIGHT) {
+							trainDirection = info.getFacing();
+							//Convert
+							if (mode == StationMode.LEFT) {
+								trainDirection = FaceUtil.rotate(trainDirection, 2);
+							} else {
+								trainDirection = FaceUtil.rotate(trainDirection, -2);
+							}
+						}
+						if (info.isAction(SignActionType.GROUP_ENTER) && trainDirection != null) {
+							info.getGroup().clearActions();
+							info.getGroup().addActionWaitState();
+							info.getMember().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());
+						}
+						info.getGroup().stop(info.isAction(SignActionType.MEMBER_MOVE));
+					}
+				} else if (info.isAction(SignActionType.REDSTONE_CHANGE)) {
+					Action action = info.getGroup().getCurrentAction();
+					if (action != null && action instanceof GroupActionWaitState) {
+						((GroupActionWaitState) action).stop();
+					}
+				}
+			}
 		}
 	}
 

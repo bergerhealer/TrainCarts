@@ -72,6 +72,8 @@ public class TrainCarts extends PluginBase {
 	public static int defaultTransferRadius;
 	public static boolean showTransferAnimations;
 	public static boolean slowDownEmptyCarts;
+	public static double slowDownMultiplierSlow;
+	public static double slowDownMultiplierNormal;
 	
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
@@ -139,6 +141,11 @@ public class TrainCarts extends PluginBase {
 		exitx = config.get("exitOffset.x", 0.0);
 		exity = config.get("exitOffset.y", 0.0);
 		exitz = config.get("exitOffset.z", 0.0);
+		
+		config.setHeader("slowDownMultiplier", "\nThe multiplier used to slow down minecarts");
+		config.addHeader("slowDownMultiplier", "Normal is the default, slow is when the minecart is meant to slow down.");
+		slowDownMultiplierNormal = config.get("slowDownMultiplier.normal", 0.997);
+		slowDownMultiplierSlow = config.get("slowDownMultiplier.slow", 0.96);
 		
 		config.setHeader("maxEjectDistance", "\nThe maximum allowed ejection distance for eject signs");
 		maxEjectDistance = config.get("maxEjectDistance", 10.0);

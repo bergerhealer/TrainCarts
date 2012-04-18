@@ -20,4 +20,9 @@ public class GroupActionWaitTicks extends GroupAction implements WaitAction {
 		}
 	}
 	
+	@Override
+	public boolean isVelocityChangesSuppressed() {
+		return true;
+	}
+	
 }

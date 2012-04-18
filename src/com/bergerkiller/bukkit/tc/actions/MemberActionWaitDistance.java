@@ -16,4 +16,9 @@ public class MemberActionWaitDistance extends MemberAction implements WaitAction
 		return this.distance <= 0;
 	}
 	
+	@Override
+	public boolean isVelocityChangesSuppressed() {
+		return true;
+	}
+	
 }
