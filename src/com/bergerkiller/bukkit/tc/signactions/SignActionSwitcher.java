@@ -26,25 +26,6 @@ public class SignActionSwitcher extends SignAction {
 		return i;
 	}
 
-	public boolean handleDestination(SignActionEvent info) {
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
-			PathNode node = PathNode.getOrCreate(info);
-			if (node != null) {
-				PathConnection conn = null;
-				if (info.isCartSign()) {
-					conn = node.findConnection(info.getMember().getProperties().destination);
-				} else if (info.isTrainSign()) {
-					conn = node.findConnection(info.getGroup().getProperties().getDestination());
-				}
-				if (conn != null) {
-					info.setRailsFromCart(conn.direction);
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
 	public void handleRails(SignActionEvent info, boolean left, boolean right) {
 		boolean down = false;
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER, 
@@ -125,7 +106,21 @@ public class SignActionSwitcher extends SignAction {
 		} else {
 			return;
 		}
-		handleDestination(info);
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
+			PathNode node = PathNode.getOrCreate(info);
+			if (node != null) {
+				PathConnection conn = null;
+				if (info.isCartSign()) {
+					conn = node.findConnection(info.getMember().getProperties().destination);
+				} else if (info.isTrainSign()) {
+					conn = node.findConnection(info.getGroup().getProperties().getDestination());
+				}
+				if (conn != null) {
+					info.setRailsFromCart(conn.direction);
+					return;
+				}
+			}
+		}
 	}
 
 	@Override

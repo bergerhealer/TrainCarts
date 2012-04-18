@@ -115,7 +115,7 @@ public class PathNode {
 		return this.getConnection(get(name));
 	}
 	
-	public PathConnection removeNeightbourConnection(final PathNode to) {
+	public PathConnection removeNeighbourConnection(final PathNode to) {
 		PathConnection conn = this.neighboursTo.remove(to);
 		to.neighboursFrom.remove(this);
 		return conn;
@@ -204,11 +204,15 @@ public class PathNode {
 		this.explore(BlockFace.WEST);
 	}
 	public void explore(final BlockFace dir) {
+		//obtain the rails block to start at
 		if (this.location == null) return;
 		Block tmpblock = this.location.getBlock();
 		if (tmpblock == null) return;
+		tmpblock = Util.getRailsBlock(tmpblock.getRelative(dir));
+		if (tmpblock == null) return;
+		
+		//start iterating
 		TrackIterator iter = new TrackIterator(tmpblock, dir);
-		iter.next(); //ignore first (start) block
 
 		String newdest;
 		BlockLocation location;
@@ -255,7 +259,7 @@ public class PathNode {
 				for (int i = 0; i < count; i++) {
 					String name = stream.readUTF();
 					BlockLocation loc = new BlockLocation(stream.readUTF(), stream.readInt(), stream.readInt(), stream.readInt());
-					if (name.length() == 0) {
+					if (name.isEmpty()) {
 						name = loc.toString();
 					}
 					parr[i] = new PathNode(name, loc);
