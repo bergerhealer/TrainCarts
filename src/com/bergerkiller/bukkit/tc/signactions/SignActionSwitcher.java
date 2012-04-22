@@ -96,9 +96,9 @@ public class SignActionSwitcher extends SignAction {
 				SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
 			if (isFacing(info) && !handleCounter(info, l, r)) {
-				boolean left = !l.equals("") && info.getMember().hasTag(l);
-				boolean right = !r.equals("") && info.getMember().hasTag(r);
-				if (left || right || !info.getMember().getProperties().hasDestination()) {
+				boolean left = !l.isEmpty() && info.getMember().hasTag(l);
+				boolean right = !r.isEmpty() && info.getMember().hasTag(r);
+				if (left || right || !info.getMember().getProperties().hasDestination() || (!l.isEmpty() && !r.isEmpty())) {
 					handleRails(info, left, right);
 					return;
 				}
@@ -106,6 +106,7 @@ public class SignActionSwitcher extends SignAction {
 		} else {
 			return;
 		}
+		//handle destination
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {

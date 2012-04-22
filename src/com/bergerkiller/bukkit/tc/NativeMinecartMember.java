@@ -37,6 +37,7 @@ import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Item;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
+import net.minecraft.server.NBTTagCompound;
 import net.minecraft.server.Vec3D;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityMinecart;
@@ -177,8 +178,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 
 				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
-				world.getServer().getPluginManager().callEvent(destroyEvent);
-				if(destroyEvent.isCancelled()) {
+				if(CommonUtil.callEvent(destroyEvent).isCancelled()) {
 					setDamage(40);
 					return true;
 				}
@@ -254,7 +254,10 @@ public class NativeMinecartMember extends EntityMinecart {
 
 	public void addFuel(int fuel) {
 		this.fuel += fuel;
-		if (MathUtil.lengthSquared(this.b, this.c) <= 0) {
+		if (this.fuel <= 0) {
+			this.fuel = 0;
+			this.b = this.c = 0.0;
+		} else if (this.b == 0.0 && this.c == 0.0) {
 			this.b = this.motX;
 			this.c = this.motZ;
 		}
@@ -676,6 +679,21 @@ public class NativeMinecartMember extends EntityMinecart {
 			return super.b(entityhuman);
 		}
 	}
+	
+	/*
+	 * Overridden to make it save properly (id was faulty)
+	 */
+	@Override
+    public boolean c(NBTTagCompound nbttagcompound) {
+        if (!this.dead) {
+            nbttagcompound.setString("id", "Minecart");
+            this.d(nbttagcompound);
+            return true;
+        } else {
+            return false;
+        }
+    }
+	
 	/*
 	 * To be overridden by MinecartMember
 	 * Returns if the fuel should be refilled
@@ -1012,7 +1030,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		} catch (ConcurrentModificationException ex) {
 			TrainCarts.plugin.log(Level.WARNING, "Another plugin is interacting with the world entity list from another thread, please check your plugins!");
 		}
-
 	}
 
 	public boolean canBeRidden() { return this.type == 0; }

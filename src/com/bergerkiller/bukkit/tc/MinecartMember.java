@@ -1097,7 +1097,11 @@ public class MinecartMember extends NativeMinecartMember {
 	    }
 	    boolean state = false; 
 	    //parse line here
-	    if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
+		if (tag.equalsIgnoreCase("true")) {
+			state = true;
+		} else if (tag.equalsIgnoreCase("false")) {
+			state = false;
+		} else if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
 	    	state = this.hasPassenger();
 	    } else if (tag.equalsIgnoreCase("items")) {
 	    	state = this.hasItems();
