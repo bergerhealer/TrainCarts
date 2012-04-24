@@ -4,7 +4,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.StationMode;
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -50,21 +50,10 @@ public class SignActionBlock extends SignAction {
 				if (info.isPowered()) {
 					if (isHeadingTo(info)) {
 						BlockFace trainDirection = null;
-						StationMode mode = EnumUtil.parse(info.getLine(3), StationMode.NONE);
-						if (mode == StationMode.CONTINUE) {
-							trainDirection = info.getCartDirection();
-						} else if (mode == StationMode.REVERSE) {
-							trainDirection = info.getCartDirection().getOppositeFace();
-						} else if (mode == StationMode.LEFT || mode == StationMode.RIGHT) {
-							trainDirection = info.getFacing();
-							//Convert
-							if (mode == StationMode.LEFT) {
-								trainDirection = FaceUtil.rotate(trainDirection, 2);
-							} else {
-								trainDirection = FaceUtil.rotate(trainDirection, -2);
-							}
-						}
-						if (info.isAction(SignActionType.GROUP_ENTER) && trainDirection != null) {
+						Direction direction = Direction.parse(info.getLine(3));
+						trainDirection = direction.convert(info.getFacing(), info.getCartDirection());
+						
+						if (info.isAction(SignActionType.GROUP_ENTER) && direction != Direction.NONE) {
 							info.getGroup().clearActions();
 							info.getGroup().addActionWaitState();
 							info.getMember().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());

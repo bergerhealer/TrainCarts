@@ -8,12 +8,11 @@ import org.bukkit.material.Rails;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.StationMode;
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class SignActionStation extends SignAction {
@@ -40,7 +39,7 @@ public class SignActionStation extends SignAction {
 									delayMS = (long) (Double.parseDouble(info.getLine(2)) * 1000);
 								} catch (Exception ex) {};
 								//Get the mode used
-								StationMode mode = EnumUtil.parse(info.getLine(3), StationMode.NONE);
+								Direction direction = Direction.parse(info.getLine(3));
 
 								//Get the middle minecart
 								MinecartMember toAffect = info.isCartSign() ? info.getMember() : group.middle();
@@ -123,24 +122,11 @@ public class SignActionStation extends SignAction {
 										//Brake
 										//TODO: ADD CHECK?!
 										group.clearActions();		
-										BlockFace trainDirection = null;
-										if (mode == StationMode.CONTINUE) {
-											trainDirection = toAffect.getDirection();
-										} else if (mode == StationMode.REVERSE) {
-											trainDirection = toAffect.getDirection().getOppositeFace();
-										} else if (mode == StationMode.LEFT || mode == StationMode.RIGHT) {
-											trainDirection = info.getFacing();
-											//Convert
-											if (mode == StationMode.LEFT) {
-												trainDirection = FaceUtil.rotate(trainDirection, 2);
-											} else {
-												trainDirection = FaceUtil.rotate(trainDirection, -2);
-											}	
-										}
-										if (trainDirection != group.head().getDirectionTo()) {
+										BlockFace trainDirection = direction.convert(info.getFacing(), toAffect.getDirectionTo());
+										if (direction == Direction.NONE || trainDirection != group.head().getDirectionTo()) {
 											toAffect.addActionLaunch(info.getRailLocation(), 0);
 										}
-										if (trainDirection != null) {
+										if (direction != Direction.NONE) {
 											//Actual launching here
 											if (delayMS > 0) {
 												toAffect.addActionLaunch(info.getRailLocation(), 0);

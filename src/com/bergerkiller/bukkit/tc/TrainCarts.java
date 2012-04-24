@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
+import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -307,6 +308,9 @@ public class TrainCarts extends PluginBase {
 		//init reflection-made fields
 		MinecartMemberTrackerEntry.initFields();
 		
+		//init statements
+		Statement.init();
+		
 		//Init signs
 		SignAction.init();
 		
@@ -403,6 +407,9 @@ public class TrainCarts extends PluginBase {
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
 			WorldGroupManager.hideGroup(mg);
 		}
+		
+		//clear statements
+		Statement.deinit();
 		
 		//entities left behind?
 		new Operation() {
