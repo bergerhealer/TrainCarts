@@ -61,7 +61,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public static boolean canConvert(Entity entity) {
 		return !denyConversion && get(entity) == null;
 	}
-	
+
 	private static EntityMinecart findByID(UUID uuid) {
 		EntityMinecart e;
 		for (World world : WorldUtil.getWorlds()) {
@@ -128,7 +128,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return rval;
 	}
-	
+
 	public static MinecartMember spawn(Location at, int type) {
 		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
@@ -136,12 +136,12 @@ public class MinecartMember extends NativeMinecartMember {
 		mm.world.addEntity(mm);
 		return mm;
 	}
-	
+
 	public static MinecartMember getAt(Block railblock, boolean checkmoving) {
 		if (railblock == null) return null;
 		return getAt(WorldUtil.getNative(railblock.getWorld()), BlockUtil.getCoordinates(railblock), checkmoving);
 	}
-	
+
 	private static boolean isHeadingTo(MinecartMember mm, ChunkCoordinates to) {
 		if (mm == null) {
 			return false;
@@ -152,11 +152,11 @@ public class MinecartMember extends NativeMinecartMember {
 			return true;
 		}
 	}
-		
+
 	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord, boolean checkmoving) {
 		return getAt(WorldUtil.getNative(world), coord, checkmoving);
 	}
-		
+
 	@SuppressWarnings("rawtypes")
 	public static MinecartMember getAt(World world, ChunkCoordinates coord, boolean checkmoving) {
 		net.minecraft.server.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
@@ -223,7 +223,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return null;
 	}
-		
+
 	public static MinecartMember getAt(Location at) {
 		return getAt(at, null);
 	}
@@ -274,7 +274,7 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 		}
 	}
-	
+
 	/*
 	 * Editing
 	 */
@@ -313,7 +313,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
-	
+
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.direction = FaceUtil.yawToFace(this.yaw);
@@ -327,7 +327,7 @@ public class MinecartMember extends NativeMinecartMember {
 		} catch (MemberDeadException ex) {
 		} catch (GroupUnloadedException ex) {}
 	}
-	
+
 	/*
 	 * Overridden Minecart functions
 	 */
@@ -345,7 +345,7 @@ public class MinecartMember extends NativeMinecartMember {
 			g.doPhysics();
 		}
 	}
-	
+
 	public boolean preUpdate(int stepcount) {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
@@ -354,7 +354,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return super.preUpdate(stepcount);
 	}
-	
+
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
 		this.validate();
@@ -405,7 +405,7 @@ public class MinecartMember extends NativeMinecartMember {
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean onCoalUsed() {
 		MemberCoalUsedEvent event = MemberCoalUsedEvent.call(this);
@@ -414,7 +414,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return event.refill();
 	}
-	
+
 	public boolean getCoalFromNeighbours() {
 		for (MinecartMember mm : this.getNeightbours()) {
 			//Is it a storage minecart?
@@ -430,7 +430,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return false;
 	}
-	
+
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
 		if (this.locY < 0) {
@@ -503,7 +503,7 @@ public class MinecartMember extends NativeMinecartMember {
 			MemberBlockChangeEvent.call(this, from, to);
 		}
 	}
-				
+
 	/*
 	 * General getters and setters
 	 */
@@ -554,7 +554,7 @@ public class MinecartMember extends NativeMinecartMember {
 			return new MinecartMember[0];
 		}
 	}
- 	
+
  	/*
  	 * Active signs
  	 */
@@ -603,11 +603,11 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean hasSign() {
 		return !this.activeSigns.isEmpty();
 	}
- 	
+ 
 	public List<DetectorRegion> getActiveDetectorRegions() {
 		return this.activeDetectorRegions;
 	}
-	
+
  	/*
  	 * Block functions
  	 */
@@ -641,7 +641,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public Block getGroundBlock() {
 		return this.getBlock(0, -1, 0);
 	}
-	
+
 	/*
 	 * Actions
 	 */
@@ -672,7 +672,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public MemberActionWaitOccupied addActionWaitOccupied(int maxsize) {
 		return this.addAction(new MemberActionWaitOccupied(this, maxsize));
 	}
-	
+
 	/*
 	 * Velocity functions
 	 */
@@ -684,7 +684,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.motY *= factor;
 		this.motZ *= factor;
 	}
-	
+
 	private void setYForce(double force) {
 		if (this.railsloped) {
 			//calculate upwards or downwards force
@@ -731,7 +731,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public TrackMap makeTrackMap(int size) {
 		return new TrackMap(this.getRailsBlock(), this.direction, size);
 	}
-		
+
 	/*
 	 * Location functions
 	 */
@@ -913,7 +913,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public void updateDirectionFrom(MinecartMember member) {
 		this.updateDirection(member.getOffset(this));
 	}
-	
+
 	/*
 	 * Pitch functions
 	 */
@@ -926,7 +926,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public float getPitchDifference(float pitchcomparer) {
 		return MathUtil.getAngleDifference(this.getPitch(), pitchcomparer);
 	}
-		
+
 	/*
 	 * Yaw functions
 	 */
@@ -1208,7 +1208,7 @@ public class MinecartMember extends NativeMinecartMember {
 	    }
 	    return inv != state;
 	}
-		
+
 	/*
 	 * Actions
 	 */
@@ -1253,7 +1253,7 @@ public class MinecartMember extends NativeMinecartMember {
 		EntityUtil.teleport(TrainCarts.plugin, this, to);
 		this.died = false;
 	}
-		
+
 	public boolean isCollisionIgnored(Entity entity) {
 		return isCollisionIgnored(EntityUtil.getNative(entity));
 	}
@@ -1294,25 +1294,25 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
 	}
-	
+
 	public void setItem(int index, net.minecraft.server.ItemStack item) {
 		super.setItem(index, item);
 		this.update();
 	}
-	
+
 	public void update() {
 		if (this.dead) return; 
 		this.needsUpdate = true;
 		this.getGroup().update();
 	}
-	
+
 	public boolean isIgnoringCollisions() {
 		return this.ignoreAllCollisions;
 	}
 	public void setIgnoreCollisions(boolean ignoreAll) {
 		this.ignoreAllCollisions = ignoreAll;
 	}
-	
+
 	/**
 	 * Respawns the entity to the client (used to avoid teleport smoothing)
 	 */
@@ -1342,7 +1342,7 @@ public class MinecartMember extends NativeMinecartMember {
 		this.c *= -1;
 		this.direction = this.direction.getOppositeFace();
 	}
-		
+
 	public MinecartMemberTrackerEntry getTracker() {
 		if (this.world == null) return null;
 		if (this.tracker == null || this.tracker.isRemoved) {
@@ -1350,7 +1350,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return this.tracker;
 	}
-	
+
 	private boolean died = false;
 	public void die() {
 		if (!died) {
@@ -1365,7 +1365,6 @@ public class MinecartMember extends NativeMinecartMember {
 			this.dead = true;
 		}
 	}
-
 	private int prevcx = MathUtil.locToChunk(this.locX);
 	private int prevcz = MathUtil.locToChunk(this.locZ);
 	protected void checkChunks(boolean canunload) throws GroupUnloadedException {

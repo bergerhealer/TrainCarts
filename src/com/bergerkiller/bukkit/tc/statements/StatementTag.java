@@ -31,5 +31,4 @@ public class StatementTag extends Statement {
 		}
 		return false;
 	}
-	
 }

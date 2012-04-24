@@ -61,9 +61,16 @@ public abstract class Statement {
 	public static void init() {
 		register(new StatementDestination());
 		register(new StatementBoolean());
+		register(new StatementEmpty());
 		register(new StatementPassenger());
-		
-		
+		register(new StatementOwners());
+		register(new StatementItems());
+		register(new StatementFuel());
+		register(new StatementType());
+		register(new StatementPlayerItems());
+		register(new StatementPlayerHand());
+		register(new StatementMob());
+		register(new StatementCartCount());
 		register(new StatementTag()); //register lastly!
 	}
 	

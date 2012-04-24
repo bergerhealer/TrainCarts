@@ -20,7 +20,7 @@ public class StatementDestination extends Statement {
 	}
 		
 	@Override
-	public boolean handleArray(MinecartMember member, String text[]) {
+	public boolean handleArray(MinecartMember member, String[] text) {
 		String dest = member.getProperties().destination;
 		for (String elem : text) {
 			if (dest == null ? elem.length() == 0 : elem.equals(dest)) {

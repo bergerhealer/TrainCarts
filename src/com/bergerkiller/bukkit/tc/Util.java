@@ -280,4 +280,50 @@ public class Util {
 		}
 	}
 	
+	private static double getValue(String text, int offset) {
+		try {
+			return Double.parseDouble(text.substring(offset).trim());
+		} catch (NumberFormatException ex) {
+			return 0.0;
+		}
+	}
+	
+	public static boolean isOperator(char character) {
+		final char[] characters = new char[] {'!', '=', '<', '>'};
+		for (char c : characters) {
+			if (c == character) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static boolean evaluate(double value, String text) {
+		if (text == null || text.isEmpty()) {
+			return false; //no valid input
+		}
+		while (!isOperator(text.charAt(0))) {
+			text = text.substring(1);
+			if (text.isEmpty()) {
+				return false; //no operators
+			}
+		}
+		if (text.startsWith(">=") || text.startsWith("=>")) {
+			return value >= getValue(text, 2);
+		} else if (text.startsWith("<=") || text.startsWith("=<")) {
+			return value <= getValue(text, 2);
+		} else if (text.startsWith("==")) {
+			return value == getValue(text, 2);
+		} else if (text.startsWith("!=") || text.startsWith("<>") || text.startsWith("><")) {
+			return value != getValue(text, 2);
+		} else if (text.startsWith(">")) {
+			return value > getValue(text, 1);
+		} else if (text.startsWith("<")) {
+			return value < getValue(text, 1);
+		} else if (text.startsWith("=")) {
+			return value == getValue(text, 1);
+		} else {
+			return false;
+		}
+	}
 }
