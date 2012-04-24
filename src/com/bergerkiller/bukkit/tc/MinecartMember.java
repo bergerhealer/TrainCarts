@@ -16,7 +16,6 @@ import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
-import net.minecraft.server.PlayerInventory;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
 
@@ -1089,126 +1088,7 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 		return false;
 	}
-	public boolean hasTag(String tag) {
-	    boolean inv = false;
-	    while (tag.startsWith("!")) {
-	    	tag = tag.substring(1);
-	    	inv = !inv;
-	    }
-	    boolean state = false; 
-	    //parse line here
-		if (tag.equalsIgnoreCase("true")) {
-			state = true;
-		} else if (tag.equalsIgnoreCase("false")) {
-			state = false;
-		} else if (tag.equalsIgnoreCase("passenger") || tag.equalsIgnoreCase("passengers")) {
-	    	state = this.hasPassenger();
-	    } else if (tag.equalsIgnoreCase("items")) {
-	    	state = this.hasItems();
-	    } else if (tag.equalsIgnoreCase("empty")) {
-	    	state = !this.hasItems() && !this.hasPassenger();
-	    } else if (tag.equalsIgnoreCase("coal") || tag.equalsIgnoreCase("fuel")  || tag.equalsIgnoreCase("fueled")) {
-	    	state = this.hasFuel();
-	    } else if (tag.equalsIgnoreCase("powered")) {
-	    	state = this.isPoweredCart();
-	    } else if (tag.equalsIgnoreCase("storage")) {
-	    	state = this.isStorageCart();
-	    } else if (tag.equalsIgnoreCase("minecart")) {
-	    	state = this.isRegularMinecart();
-	    } else {
-	    	String lowertag = tag.toLowerCase();
-	    	if (lowertag.startsWith("i@")) {
-	    		//contains this item?
-	    		state = false;
-	    		for (ItemParser parser : Util.getParsers(lowertag.substring(2))) {
-	    			if (this.hasItem(parser)) {
-	    				state = true;
-	    				break;
-	    			}
-	    		}
-	    	} else if (lowertag.startsWith("o@")) {
-	    		//contains this owner?
-	    		state = this.getProperties().isOwner(lowertag.substring(2));	
-	    	} else if (lowertag.startsWith("d@")) {
-	    		String dest = this.getProperties().destination;
-	    		if (dest == null) dest = "";
-	    		state = dest.equals(tag.substring(2));
-	    	} else if (lowertag.startsWith("p@")) {
-	    		//contains this player passenger?
-	    		if (this.hasPlayerPassenger()) {
-	    			String pname = ((Player)this.passenger.getBukkitEntity()).getName();
-	    			state = pname.equalsIgnoreCase(lowertag.substring(2));
-	    		}
-	    	} else if (lowertag.startsWith("m@")) {
-	    		//contains this mob as passenger?
-	    		String[] types = lowertag.substring(2).split(";");
-	    		if (types.length == 0) {
-	    			//contains a mob?
-    				state = this.hasPassenger() && EntityUtil.isMob(this.passenger);
-	    		} else {
-	    			//contains one of the defined mobs?
-	    			for (int i = 0; i < types.length; i++) {
-	    				types[i] = types[i].replace("_", "").replace(" ", "");
-	    			}
-	    			if (this.hasPassenger() && EntityUtil.isMob(this.passenger)) {
-	    				String mobname = EntityUtil.getName(this.passenger);
-	    				for (String type : types) {
-	    				    if (mobname.contains(type)) {
-	    				    	state = true;
-	    				    	break;
-	    				    }
-	    				}
-	    			}
-	    		}
-	    	} else if (lowertag.startsWith("pi@")) {
-	    		//player inventory contains these items?
-	    		if (this.hasPlayerPassenger()) {
-	    			PlayerInventory inventory = ((EntityPlayer) this.passenger).inventory;
-	    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
-	    				if (parser.hasType()) {
-		    				Integer data = parser.hasData() ? (int) parser.getData() : null;
-		    				ItemStack item = ItemUtil.findItem(inventory, parser.getTypeId(), data);
-		    				if (item == null) continue;
-		    				if (parser.hasAmount()) {
-		    					state = item.count >= parser.getAmount();
-		    				} else {
-		    					state = true;
-		    				}
-	    				} else {
-	    					state = false;
-	    					for (ItemStack item : inventory.getContents()) {
-	    						if (item != null) {
-	    							state = true;
-	    							break;
-	    						}
-	    					}
-	    					break;
-	    				}
-	    			}
-	    		}
-	    	} else if (lowertag.startsWith("ph@")) {
-	    		//player item in hand is one of defined items?
-	    		if (this.hasPlayerPassenger()) {
-	    			ItemStack item = ((EntityPlayer) this.passenger).inventory.getItemInHand();
-	    			for (ItemParser parser : Util.getParsers(lowertag.substring(3))) {
-	    				if (parser.hasType()) {
-	    					if (item == null || item.id != parser.getTypeId()) continue;
-	    					if (parser.hasData() && item.getData() != parser.getData()) continue;
-	    					if (parser.hasAmount() && item.count < parser.getAmount()) continue;
-	    					state = true;
-	    				} else {
-	    					state = item != null;
-	    				}
-	    				break;
-	    			}
-	    		}
-	    	} else {
-		    	state = this.getProperties().hasTag(tag);
-	    	}
-	    }
-	    return inv != state;
-	}
-
+	
 	/*
 	 * Actions
 	 */

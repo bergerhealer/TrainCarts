@@ -281,6 +281,7 @@ public class Util {
 	}
 	
 	private static double getValue(String text, int offset) {
+		text = text.replace("$", "").replace(',', '.');
 		try {
 			return Double.parseDouble(text.substring(offset).trim());
 		} catch (NumberFormatException ex) {

@@ -16,7 +16,8 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
 
-public class TrainProperties {
+public class TrainProperties extends HashSet<CartProperties> {
+	private static final long serialVersionUID = 1L;
 	public static final TrainProperties EMPTY = new TrainProperties();
 	private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
 	private static final String propertiesFile = "TrainProperties.yml";
@@ -44,7 +45,7 @@ public class TrainProperties {
 		}
 		return false;
 	}	
-	public static void clear() {
+	public static void clearAll() {
 		properties.clear();
 	}
 	
@@ -60,33 +61,35 @@ public class TrainProperties {
 	public boolean keepChunksLoaded = false;
 	public boolean ignoreStations = false;
 	
-	private final Set<CartProperties> cartproperties = new HashSet<CartProperties>();
 	public Set<CartProperties> getCarts() {
-		return this.cartproperties;
+		return this;
 	}
 	public MinecartGroup getGroup() {
 		return MinecartGroup.get(this.trainname);
 	}
-	
-	protected void addCart(MinecartMember member) {
-		this.cartproperties.add(member.getProperties());
+		
+	/*
+	 * Carts
+	 */
+	public void add(MinecartMember member) {
+		this.add(member.getProperties());
 	}
-	protected void removeCart(MinecartMember member) {
-		this.cartproperties.remove(member.getProperties());
+	public void remove(MinecartMember member) {
+		this.remove(member.getProperties());
 	}
 	
 	/*
 	 * Pick up items
 	 */
 	public void setPickup(boolean pickup) {
-		for (CartProperties prop : this.cartproperties) prop.pickUp = pickup;
+		for (CartProperties prop : this) prop.pickUp = pickup;
 	}
 	
 	/*
 	 * Owners
 	 */
 	public boolean hasOwners() {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			if (prop.hasOwners()) return true;
 		}
 		return false;
@@ -99,7 +102,7 @@ public class TrainProperties {
 	}
 	public boolean isOwner(Player player) {
 		boolean hasowner = false;
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			if (prop.isOwner(player)) return true;
 			if (prop.hasOwners()) hasowner = true;
 		}
@@ -109,14 +112,14 @@ public class TrainProperties {
 		return this.isDirectOwner(player.getName().toLowerCase());
 	}
 	public boolean isDirectOwner(String player) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			if (prop.isOwner(player)) return true;
 		}
 		return false;
 	}
 	public Set<String> getOwners() {
 		Set<String> rval = new HashSet<String>();
-		for (CartProperties cprop : this.cartproperties) {
+		for (CartProperties cprop : this) {
 			rval.addAll(cprop.getOwners());
 		}
 		return rval;
@@ -126,28 +129,28 @@ public class TrainProperties {
 	 * Tags
 	 */
 	public boolean hasTag(String tag) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			if (prop.hasTag(tag)) return true;
 		}
 		return false;
 	}
 	public void clearTags() {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			prop.clearTags();
 		}
 	}
 	public void setTags(String... tags) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			prop.setTags(tags);
 		}
 	}
 	public void addTags(String... tags) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			prop.addTags(tags);
 		}
 	}
 	public void removeTags(String... tags) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			prop.removeTags(tags);
 		}
 	}
@@ -156,17 +159,17 @@ public class TrainProperties {
 	 * Other batch cart property changing
 	 */
 	public void setAllowPlayerEnter(boolean state) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 		    prop.allowPlayerEnter = state;
 		}
 	}
 	public void setAllowPlayerExit(boolean state) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 		    prop.allowPlayerExit = state;
 		}
 	}
 	public void setAllowMobsEnter(boolean state) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 		    prop.allowMobsEnter = state;
 		}
 	}
@@ -175,19 +178,19 @@ public class TrainProperties {
 	 * Destination
 	 */
 	public boolean hasDestination() {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			if (prop.hasDestination()) return true;
 		}
 		return false;
 	}
 	public String getDestination() {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			if (prop.hasDestination()) return prop.destination;
 		}
 		return "";
 	}
 	public void setDestination(String destination) {
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			prop.destination = destination;
 		}
 	}
@@ -305,7 +308,7 @@ public class TrainProperties {
 	}
 	public void setDefault(ConfigurationNode node) {
 		this.load(node);
-		for (CartProperties prop : this.cartproperties) {
+		for (CartProperties prop : this) {
 			prop.load(node);
 		}
 	}
@@ -372,7 +375,7 @@ public class TrainProperties {
 		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
 			try {
 				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()));
-				this.cartproperties.add(prop);
+				this.add(prop);
 				prop.load(cart);
 			} catch (Exception ex) {
 				ex.printStackTrace();
@@ -389,8 +392,8 @@ public class TrainProperties {
 		this.speedLimit = MathUtil.limit(source.speedLimit, 0, 20);
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.keepChunksLoaded = source.keepChunksLoaded;
-		this.cartproperties.clear();
-		this.cartproperties.addAll(source.cartproperties);
+		this.clear();
+		this.addAll(source);
 	}
 	public void save(ConfigurationNode node) {
 		this.save(node, true);
@@ -428,7 +431,7 @@ public class TrainProperties {
 		}
 		if (savecarts) {
 			ConfigurationNode carts = node.getNode("carts");
-			for (CartProperties prop : this.cartproperties) {
+			for (CartProperties prop : this) {
 				ConfigurationNode cart = carts.getNode(prop.getUUID().toString());
 				prop.save(cart, minimal);
 				if (cart.getKeys().isEmpty()) carts.remove(cart.getName());

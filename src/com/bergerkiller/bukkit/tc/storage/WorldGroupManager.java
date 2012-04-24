@@ -209,7 +209,7 @@ public class WorldGroupManager {
 		for (World world : Bukkit.getServer().getWorlds()) {
 			destroyMinecarts(world);
 		}
-		TrainProperties.clear();
+		TrainProperties.clearAll();
 		return count;
 	}
 	public static void destroyMinecarts(World world) {

@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.detector.DetectorListener;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -213,12 +214,12 @@ public class SignActionDetector extends SignAction {
 				if (line2.isEmpty()) {
 					return true;
 				} else {
-					return member.hasTag(line2);
+					return Statement.has(member, line2);
 				}
 			} else if (line2.isEmpty()) {
-				return member.hasTag(line1);
+				return Statement.has(member, line1);
 			} else {
-				return member.hasTag(line1) || member.hasTag(line2);
+				return Statement.has(member, line1) || Statement.has(member, line2);
 			}
 		}
 		public static boolean isDown(final String line1, final String line2, final MinecartGroup group) {
@@ -226,12 +227,12 @@ public class SignActionDetector extends SignAction {
 				if (line2.isEmpty()) {
 					return true;
 				} else {
-					return group.hasTag(line2);
+					return Statement.has(group, line2);
 				}
 			} else if (line2.isEmpty()) {
-				return group.hasTag(line1);
+				return Statement.has(group, line1);
 			} else {
-				return group.hasTag(line1) || group.hasTag(line2);
+				return Statement.has(group, line1) || Statement.has(group, line2);
 			}
 		}
 

@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.statements.Statement;
 
 public class SignActionSwitcher extends SignAction {
 
@@ -85,8 +86,8 @@ public class SignActionSwitcher extends SignAction {
 				SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
 			if (!info.hasRailedMember()) return;
 			if (isFacing(info) && !handleCounter(info, l, r)) {
-				boolean left = !l.equals("") && info.getGroup().hasTag(l);
-				boolean right = !r.equals("") && info.getGroup().hasTag(r);
+				boolean left = Statement.has(info.getGroup(), l);
+				boolean right = Statement.has(info.getGroup(), r);
 				if (left || right || !info.getGroup().getProperties().hasDestination()) {
 					handleRails(info, left, right);
 					return;
@@ -96,8 +97,8 @@ public class SignActionSwitcher extends SignAction {
 				SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
 			if (isFacing(info) && !handleCounter(info, l, r)) {
-				boolean left = !l.isEmpty() && info.getMember().hasTag(l);
-				boolean right = !r.isEmpty() && info.getMember().hasTag(r);
+				boolean left = Statement.has(info.getMember(), l);
+				boolean right = Statement.has(info.getMember(), r);
 				if (left || right || !info.getMember().getProperties().hasDestination() || (!l.isEmpty() && !r.isEmpty())) {
 					handleRails(info, left, right);
 					return;

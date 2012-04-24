@@ -82,63 +82,65 @@ public abstract class Statement {
 		statements.add(statement);
 		return statement;
 	}
-	
-	public static Direction handleAll(MinecartMember member, String text) {
-		return handleAll(member, null, text);
+		
+	public static Direction getDirection(MinecartMember member, String text) {
+		return getDirection(member, null, text);
 	}
 	
-	public static Direction handleAll(MinecartGroup group, String text) {
-		return handleAll(null, group, text);
+	public static Direction getDirection(MinecartGroup group, String text) {
+		return getDirection(null, group, text);
 	}
 	
-	private static Direction handleAll(MinecartMember member, MinecartGroup group, String text) {
+	private static Direction getDirection(MinecartMember member, MinecartGroup group, String text) {
 		Direction dir = Direction.parse(text);
 		if (dir != Direction.NONE) {
 			int idx = text.indexOf(':');
 			if (idx != -1) {
 				text = text.substring(0, idx);
 			}
-			boolean inv = false;
-			while (text.startsWith("!")) {
-				text = text.substring(1);
-				inv = !inv;
-			}
-			String lowerText = text.toLowerCase();
-			idx = lowerText.indexOf('@');
-			String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
-			String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
-			for (Statement statement : statements) {
-				if (statement.match(lowerText)) {
-					if (member != null) {
-						if (statement.handle(member, text) != inv) {
-							return dir;
-						}
-					} else if (group != null) {
-						if (statement.handle(group, text) != inv) {
-							return dir;
-						}
-					} else {
-						continue;
-					}
-				} else if (arrayText != null && statement.matchArray(arrayText)) {
-					if (member != null) {
-						if (statement.handleArray(member, array) != inv) {
-							return dir;
-						}
-					} else if (group != null) {
-						if (statement.handleArray(group, array) != inv) {
-							return dir;
-						}
-					} else {
-						continue;
-					}
-				} else {
-					continue;
-				}
-				return Direction.NONE;
+			if (has(member, group, text)) {
+				return dir;
 			}
 		}
 		return Direction.NONE;
 	}
-
+	
+	public static boolean has(MinecartMember member, String text) {
+		return has(member, null, text);
+	}
+	
+	public static boolean has(MinecartGroup group, String text) {
+		return has(null, group, text);
+	}
+		
+	private static boolean has(MinecartMember member, MinecartGroup group, String text) {
+		boolean inv = false;
+		while (text.startsWith("!")) {
+			text = text.substring(1);
+			inv = !inv;
+		}
+		if (text.isEmpty()) {
+			return inv;
+		}
+		String lowerText = text.toLowerCase();
+		int idx = lowerText.indexOf('@');
+		String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
+		String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
+		for (Statement statement : statements) {
+			if (statement.match(lowerText)) {
+				if (member != null) {
+					return statement.handle(member, text) != inv;
+				} else if (group != null) {
+					return statement.handle(group, text) != inv;
+				}
+			} else if (arrayText != null && statement.matchArray(arrayText)) {
+				if (member != null) {
+					return statement.handleArray(member, array) != inv;
+				} else if (group != null) {
+					return statement.handleArray(group, array) != inv;
+				}
+			}
+		}
+		return false;
+	}
 }
