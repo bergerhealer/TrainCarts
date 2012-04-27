@@ -41,14 +41,9 @@ public class SignActionSwitcher extends SignAction {
 		info.setLevers(down);
 	}
 
-	public boolean isFacing(SignActionEvent info) {
-		if (!info.getMember().isMoving() || info.getMember().getDirectionTo() == info.getFacing().getOppositeFace()) {
-			return true;
-		} else {
-			//can a train face the sign at all?
-			Block b = info.getRails().getRelative(info.getFacing());
-			return !Util.isRails(b) && info.getFacing() == info.getMember().getDirectionTo();
-		}
+	@Override
+	public boolean overrideFacing() {
+		return true;
 	}
 
 	public boolean handleCounter(SignActionEvent info, String l, String r) {
@@ -82,10 +77,9 @@ public class SignActionSwitcher extends SignAction {
 		if (!info.isType("switcher", "tag")) return;
 		String l = info.getLine(2);
 		String r = info.getLine(3);
-		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE, 
-				SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
+		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
 			if (!info.hasRailedMember()) return;
-			if (isFacing(info) && !handleCounter(info, l, r)) {
+			if (info.isFacing() && !handleCounter(info, l, r)) {
 				boolean left = Statement.has(info.getGroup(), l);
 				boolean right = Statement.has(info.getGroup(), r);
 				if (left || right || !info.getGroup().getProperties().hasDestination()) {
@@ -93,10 +87,9 @@ public class SignActionSwitcher extends SignAction {
 					return;
 				}
 			}
-		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE, 
-				SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
+		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
-			if (isFacing(info) && !handleCounter(info, l, r)) {
+			if (info.isFacing() && !handleCounter(info, l, r)) {
 				boolean left = Statement.has(info.getMember(), l);
 				boolean right = Statement.has(info.getMember(), r);
 				if (left || right || !info.getMember().getProperties().hasDestination() || (!l.isEmpty() && !r.isEmpty())) {

@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
-import com.bergerkiller.bukkit.tc.signactions.SignActionBlock;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathNode {
@@ -228,7 +227,7 @@ public class PathNode {
 						location = new BlockLocation(tmpblock);
 						newdest = event.getLine(2);
 					} else if (event.isType("blocker")) {
-						if (SignActionBlock.isHeadingTo(event, iter.currentDirection())) {
+						if (event.isWatchedDirection(iter.currentDirection())) {
 							return;
 						} else {
 							continue;

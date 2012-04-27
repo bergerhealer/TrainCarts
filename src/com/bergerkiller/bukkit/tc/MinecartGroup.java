@@ -13,6 +13,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 
 import org.bukkit.Chunk;
@@ -785,6 +786,24 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		for (MinecartMember mm : this) {
 			if (mm.isStorageCart()) {
 				source[i] = mm;
+				i++;
+			}
+		}
+		return MergedInventory.convert(source);
+	}
+	public Inventory getPlayerInventory() {
+		//count amount of player passengers
+		int count = 0;
+		for (MinecartMember mm : this) {
+			if (mm.hasPlayerPassenger()) {
+				count++;
+			}
+		}
+		IInventory[] source = new IInventory[count];
+		int i = 0;
+		for (MinecartMember mm : this) {
+			if (mm.hasPlayerPassenger()) {
+				source[i] = ((EntityPlayer) mm.passenger).inventory;
 				i++;
 			}
 		}

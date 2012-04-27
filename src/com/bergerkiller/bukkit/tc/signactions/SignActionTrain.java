@@ -12,7 +12,7 @@ public class SignActionTrain extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (info.isTrainSign()) {
 			if (!info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
-				if (!info.isPoweredFacing()) {
+				if (!info.isPowered()) {
 					return;
 				}
 			}

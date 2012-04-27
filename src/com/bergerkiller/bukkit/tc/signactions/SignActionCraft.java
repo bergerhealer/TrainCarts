@@ -30,7 +30,7 @@ public class SignActionCraft extends SignAction {
 			boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
 			if (!docart && !dotrain) return;
 			if (!info.hasRailedMember()) return;
-			if (!info.isPoweredFacing()) return;
+			if (!info.isPowered()) return;
 			
 			int radX, radY, radZ;
 			radX = radY = radZ = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);

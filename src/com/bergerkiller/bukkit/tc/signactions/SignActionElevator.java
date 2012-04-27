@@ -71,7 +71,7 @@ public class SignActionElevator extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("elevator")) return;
-		if (info.getMode() != SignActionMode.NONE && info.hasRails() && info.hasMember() && info.isPoweredFacing()) {
+		if (info.getMode() != SignActionMode.NONE && info.hasRails() && info.hasMember() && info.isPowered()) {
 			if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE)) {
 				//is it allowed?
 				if (ignoreTimes.isMarked(info.getRails(), 1000)) {

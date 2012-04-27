@@ -30,7 +30,7 @@ public class SignActionEject extends SignAction {
 		} else {
 			return;
 		}
-		if (isRemote || (info.hasMember() && info.isPoweredFacing())) {
+		if (isRemote || (info.hasMember() && info.isPowered())) {
 			//read from the sign
 			String[] offsettext = info.getLine(2).split("/");
 			String[] angletext = info.getLine(3).split("/");

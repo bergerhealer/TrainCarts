@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.events;
 
+import java.util.HashSet;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -10,6 +12,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.PowerState;
@@ -50,8 +53,45 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.railschecked = this.railsblock != null;
 		if (this.sign == null) {
 			this.powerinv = false;
+			this.watchedDirections = FaceUtil.axis;
 		} else {
-			this.powerinv = this.getLine(0).startsWith("[!");
+			String linez = this.getLine(0);
+			this.powerinv = linez.startsWith("[!");
+			int idx = linez.indexOf(':');
+			if (idx == -1) {
+				//find out using the rails above and sign facing
+				if (this.railsblock == null) {
+					this.watchedDirections = new BlockFace[] {this.getFacing().getOppositeFace()};
+				} else {
+					BlockFace facing = this.getFacing();
+					if (Util.getRailsBlock(this.railsblock.getRelative(facing)) != null) {
+						this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
+					} else if (Util.getRailsBlock(this.railsblock.getRelative(facing.getOppositeFace())) != null) {
+						this.watchedDirections = new BlockFace[] {facing};
+					} else {
+						this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
+					}
+				}
+			} else {
+				linez = linez.substring(idx + 1);
+				Direction dir = Direction.parse(linez);
+				if (dir == Direction.NONE) {
+					HashSet<BlockFace> faces = new HashSet<BlockFace>(linez.length());
+					for (char c : linez.toCharArray()) {
+						dir = Direction.parse(c);
+						if (dir != Direction.NONE) {
+							faces.add(dir.getDirection(this.getFacing()));
+						}
+					}
+					if (faces.isEmpty()) {
+						this.watchedDirections = new BlockFace[] {this.getFacing().getOppositeFace()};
+					} else {
+						this.watchedDirections = faces.toArray(new BlockFace[0]);
+					}
+				} else {
+					this.watchedDirections = new BlockFace[] {dir.getDirection(this.getFacing())};
+				}
+			}
 		}
 	}
 
@@ -67,9 +107,8 @@ public class SignActionEvent extends Event implements Cancellable {
 	private boolean memberchecked = false;
 	private boolean cancelled = false;
 	private boolean railschecked = false;
+	private final BlockFace[] watchedDirections;
 	private final boolean powerinv;
-	private BlockFace fixedPowerDir = null;
-	private boolean isfixedpower = false;
 
 	public void setLevers(boolean down) {
 		BlockUtil.setLeversAroundBlock(this.getAttachedBlock(), down);
@@ -82,12 +121,6 @@ public class SignActionEvent extends Event implements Cancellable {
 		setRails(FaceUtil.offset(main, direction));
 	}
 
-	public SignActionEvent assumePower(BlockFace from, boolean powered) {
-		this.fixedPowerDir = from;
-		this.isfixedpower = powered;
-		return this;
-	}
-	
 	public void setRailsFromTo(BlockFace from, BlockFace to) {
 		if (!this.hasMember()) return;
 		BlockUtil.setRails(this.getRails(), from, to);
@@ -179,11 +212,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 
 	public PowerState getPower(BlockFace from) {
-		if (this.fixedPowerDir == from) {
-			return this.isfixedpower ? PowerState.ON : PowerState.OFF;
-		} else {
-			return PowerState.get(this.signblock, from);
-		}
+		return PowerState.get(this.signblock, from);
 	}
 	public boolean isPowered(BlockFace from) {
 		return this.powerinv != this.getPower(from).hasPower();
@@ -231,7 +260,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			return false;
 		}
 	}
-		
+
 	public boolean isPoweredFacing() {
 		return this.actionType == SignActionType.REDSTONE_ON || (this.isFacing() && this.isPowered());
 	}
@@ -281,7 +310,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public boolean isFacing() {
 		if (!this.hasMember()) return false;
 		if (!getMember().isMoving()) return true;
-		return getMember().getDirection() != getFacing();
+		return this.isWatchedDirection(this.getMember().getDirectionTo());
 	}
 	public Sign getSign() {
 		return this.sign;
@@ -325,6 +354,16 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean hasMember() {
 		return this.getMember() != null;
+	}
+	
+	public BlockFace[] getWatchedDirections() {
+		return this.watchedDirections;
+	}
+	public boolean isWatchedDirection(BlockFace direction) {
+		for (BlockFace face : this.watchedDirections) {
+			if (face == direction) return true;
+		}
+		return false;
 	}
 	
 	public MinecartGroup getGroup() {

@@ -13,7 +13,7 @@ public class SignActionTrigger extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER, SignActionType.REDSTONE_OFF)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("trigger")) {
-					if (info.isAction(SignActionType.REDSTONE_ON) || info.isFacing()) {
+					if (info.isPowered()) {
 						ArrivalSigns.trigger(info.getSign(), info.getMember());
 					} else if (info.isAction(SignActionType.REDSTONE_OFF)) {
 						ArrivalSigns.timeCalcStop(info.getLocation());

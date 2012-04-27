@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.statements;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Util;
 
 public class StatementType extends Statement {
 
@@ -11,12 +12,15 @@ public class StatementType extends Statement {
 	}
 	
 	public int getType(String text) {
-		if (text.equalsIgnoreCase("powered")) {
+		text = text.toLowerCase();
+		if (text.startsWith("powered")) {
 			return 2;
-		} else if (text.equalsIgnoreCase("storage")) {
+		} else if (text.startsWith("storage")) {
 			return 1;
-		} else if (text.equalsIgnoreCase("minecart")) {
+		} else if (text.startsWith("minecart")) {
 			return 0;
+		} else if (text.startsWith("cartcount") || text.startsWith("trainsize")) {
+			return 3;
 		} else {
 			return -1;
 		}
@@ -24,12 +28,14 @@ public class StatementType extends Statement {
 	
 	@Override
 	public boolean handle(MinecartMember member, String text) {
-		return member.type == getType(text);
+		int type = getType(text);
+		return type == 3 || member.type == type;
 	}
 	
 	@Override
 	public boolean handle(MinecartGroup group, String text) {
-		return group.size(getType(text)) > 0;
+		int type = getType(text);
+		return Util.evaluate(type == 3 ? group.size() : group.size(type), text);
 	}
 	
 	@Override

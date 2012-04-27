@@ -3,13 +3,13 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -46,10 +46,16 @@ public abstract class SignAction {
 	public boolean canSupportRC() {
 		return false;
 	}
+	/**
+	 * Whether this sign overrides the internal facing check
+	 */
+	public boolean overrideFacing() {
+		return false;
+	}
 	
 	public abstract void execute(SignActionEvent info);
 	public abstract boolean build(SignChangeEvent event, String type, SignActionMode mode);
-	
+		
 	private static List<SignAction> actions;
 	public static final <T extends SignAction> T register(T action) {
 		if (actions == null) return action;
@@ -90,8 +96,10 @@ public abstract class SignAction {
 	public static void handleBuild(SignChangeEvent event) {
 		SignActionMode mode = SignActionMode.fromEvent(event);
 		String type = event.getLine(1).toLowerCase();
+		System.out.println("MODE:  " + mode);
 		for (SignAction action : actions) {
 			if (action.build(event, type, mode)) {
+				System.out.println("SUCC");
 				if (mode == SignActionMode.RCTRAIN && !action.canSupportRC()) {
 					event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
 					if (event.getLine(0).startsWith("[!")) {
@@ -103,6 +111,7 @@ public abstract class SignAction {
 			}
 			if (event.isCancelled()) return;
 		}
+		System.out.println("NEXT");
 		if (mode != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
 			//snap to fixed 90-degree angle
 			BlockFace facing = BlockUtil.getFacing(event.getBlock());
@@ -135,11 +144,19 @@ public abstract class SignAction {
 		if (info.getSign() == null) return;
 		//Event
 		info.setCancelled(false);
-		Bukkit.getServer().getPluginManager().callEvent(info);
-		if (!info.isCancelled() && actions != null) {
+		if (!CommonUtil.callEvent(info).isCancelled() && actions != null) {
+			//facing?
+			boolean facing;
+			if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF)) {
+				facing = true;
+			} else {
+				facing = info.isFacing();
+			}
 			for (SignAction action : actions) {
-				action.execute(info);
-				if (info.isCancelled()) break;
+				if (facing || action.overrideFacing()) {
+					action.execute(info);
+					if (info.isCancelled()) break;
+				}
 			}
 		}
 	}

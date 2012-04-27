@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
+import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
@@ -26,6 +27,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.craftbukkit.inventory.CraftInventoryPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
@@ -35,6 +37,7 @@ import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -1041,6 +1044,13 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 	public Inventory getInventory() {
 		return new CraftInventory(this);
+	}
+	public Inventory getPlayerInventory() {
+		if (this.hasPlayerPassenger()) {
+			return new CraftInventoryPlayer(((EntityPlayer) this.passenger).inventory);
+		} else {
+			return new CraftInventory(new MergedInventory(new IInventory[0]));
+		}
 	}
 	public boolean hasPlayerPassenger() {
 		return this.passenger != null && this.passenger instanceof EntityPlayer;

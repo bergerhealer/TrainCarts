@@ -112,7 +112,7 @@ public class SignActionProperties extends SignAction {
 		// TODO Auto-generated method stub
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.isCartSign()) {
 			if (info.isType("property")) {
-				if (info.isPoweredFacing()) {
+				if (info.isPowered()) {
 					if (info.hasRailedMember()) {
 						String mode = info.getLine(2).toLowerCase().trim();
 						handleProperties(info.getMember().getProperties(), mode, info.getLine(3));
@@ -121,7 +121,7 @@ public class SignActionProperties extends SignAction {
 			}
 		} else if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.isTrainSign()) {
 			if (info.isType("property")) {
-				if (info.isPoweredFacing()) {
+				if (info.isPowered()) {
 					if (info.hasRailedMember()) {
 						String mode = info.getLine(2).toLowerCase().trim();
 						handleProperties(info.getGroup().getProperties(), mode, info.getLine(3));

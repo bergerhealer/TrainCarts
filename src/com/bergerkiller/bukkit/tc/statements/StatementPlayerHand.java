@@ -1,18 +1,21 @@
 package com.bergerkiller.bukkit.tc.statements;
 
+import java.util.ArrayList;
+
+import org.bukkit.inventory.Inventory;
+
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 
-import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.SimpleInventory;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
-import com.bergerkiller.bukkit.tc.Util;
 
-public class StatementPlayerHand extends Statement {
+public class StatementPlayerHand extends StatementItems {
 
 	@Override
 	public boolean match(String text) {
-		return false;
+		return text.startsWith("playerhand");
 	}
 
 	@Override
@@ -20,40 +23,30 @@ public class StatementPlayerHand extends Statement {
 		return text.equals("ph");
 	}
 	
-	public boolean handleItem(MinecartMember member, ItemParser[] parsers) {
+	@Override
+	public Inventory getInventory(MinecartMember member) {
+		ItemStack item = null;
 		if (member.hasPlayerPassenger()) {
-			ItemStack item = ((EntityPlayer) member.passenger).inventory.getItemInHand();
-			if (item != null) {
-				for (ItemParser parser : parsers) {
-					if (parser.hasType()) {
-						if (item == null || item.id != parser.getTypeId()) continue;
-						if (parser.hasData() && item.getData() != parser.getData()) continue;
-						if (parser.hasAmount() && item.count < parser.getAmount()) continue;
-						return true;
-					} else {
-						if (item != null) {
-							return true;
-						}
-					}
+			item = ((EntityPlayer) member.passenger).inventory.getItemInHand();
+		}
+		if (item == null) {
+			return new SimpleInventory(new ItemStack[0]).getInventory();
+		} else {
+			return new SimpleInventory(item).getInventory();
+		}
+	}
+	
+	@Override
+	public Inventory getInventory(MinecartGroup group) {
+		ArrayList<ItemStack> items = new ArrayList<ItemStack>();
+		for (MinecartMember member : group) {
+			if (member.hasPlayerPassenger()) {
+				ItemStack item = ((EntityPlayer) member.passenger).inventory.getItemInHand();
+				if (item != null) {
+					items.add(item);
 				}
 			}
 		}
-		return false;
-	}
-	
-	@Override
-	public boolean handleArray(MinecartMember member, String[] text) {
-		return handleItem(member, Util.getParsers(text));
-	}
-	
-	@Override
-	public boolean handleArray(MinecartGroup group, String[] text) {
-		ItemParser[] parsers = Util.getParsers(text);
-		for (MinecartMember member : group) {
-			if (handleItem(member, parsers)) {
-				return true;
-			}
-		}
-		return false;
+		return new SimpleInventory(items).getInventory();
 	}
 }

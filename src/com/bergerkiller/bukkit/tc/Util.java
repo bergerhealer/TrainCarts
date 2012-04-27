@@ -289,6 +289,15 @@ public class Util {
 		}
 	}
 	
+	public static int getOperatorIndex(String text) {
+		for (int i = 0; i < text.length(); i++) {
+			if (isOperator(text.charAt(i))) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
 	public static boolean isOperator(char character) {
 		final char[] characters = new char[] {'!', '=', '<', '>'};
 		for (char c : characters) {
@@ -303,11 +312,11 @@ public class Util {
 		if (text == null || text.isEmpty()) {
 			return false; //no valid input
 		}
-		while (!isOperator(text.charAt(0))) {
-			text = text.substring(1);
-			if (text.isEmpty()) {
-				return false; //no operators
-			}
+		int idx = getOperatorIndex(text);
+		if (idx == -1) {
+			return value > 0; //no operators, just perform a 'has'
+		} else {
+			text = text.substring(idx);
 		}
 		if (text.startsWith(">=") || text.startsWith("=>")) {
 			return value >= getValue(text, 2);

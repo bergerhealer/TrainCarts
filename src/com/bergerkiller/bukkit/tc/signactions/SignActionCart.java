@@ -11,7 +11,7 @@ public class SignActionCart extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
 			if (!info.isCartSign()) return;
-			if (info.isPoweredFacing()) {
+			if (info.isPowered()) {
 				if (info.isType("destroy")) {
 					if (!info.hasRailedMember()) return;
 					info.getMember().die();

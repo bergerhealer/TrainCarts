@@ -167,7 +167,7 @@ public class SignActionDeposit extends SignAction {
 		//get the tile entities to deposit to
 		Set<TileEntity> found = SignActionCollect.getTileEntities(info, radius);
 		if (found.isEmpty()) return;
-		if (!info.isPoweredFacing() || !info.hasRails()) return;
+		if (!info.isPowered() || !info.hasRails()) return;
 		
 		List<IInventory> invlist = new ArrayList<IInventory>();
 		List<TileEntityFurnace> furnaces = new ArrayList<TileEntityFurnace>();

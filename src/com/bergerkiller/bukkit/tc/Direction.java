@@ -16,22 +16,31 @@ public enum Direction {
 		this.aliases = aliases;
 	}
 	
-	public BlockFace convert(BlockFace signfacing) {
-		return this.convert(signfacing, signfacing.getOppositeFace());
+	public BlockFace getDirection(BlockFace signfacing) {
+		return getDirection(signfacing, signfacing.getOppositeFace());
 	}
-	
-	public BlockFace convert(BlockFace signfacing, BlockFace cartdirection) {
+
+	public BlockFace getDirection(BlockFace signfacing, BlockFace cartdirection) {
 		switch (this) {
-		case NORTH : return BlockFace.NORTH;
-		case EAST : return BlockFace.EAST;
-		case SOUTH : return BlockFace.SOUTH;
-		case WEST : return BlockFace.WEST;
-		case LEFT : return FaceUtil.rotate(signfacing, 2);
-		case RIGHT : return FaceUtil.rotate(signfacing, -2);
+		case NORTH : return BlockFace.SOUTH;
+		case EAST : return BlockFace.WEST;
+		case SOUTH : return BlockFace.NORTH;
+		case WEST : return BlockFace.EAST;
+		case LEFT : return FaceUtil.rotate(signfacing, -2);
+		case RIGHT : return FaceUtil.rotate(signfacing, 2);
 		case FORWARD : return cartdirection;
 		case BACKWARD : return cartdirection.getOppositeFace();
-		default : return cartdirection;
+		default : return signfacing.getOppositeFace();
 		}
+	}
+	
+	public boolean match(char character) {
+		for (String alias : this.aliases) {
+			if (alias.length() == 1 && alias.charAt(0) == character) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public boolean match(String text) {
@@ -41,15 +50,17 @@ public enum Direction {
 		return false;
 	}
 	
-	public static Direction parse(String text) {
-		int idx = text.indexOf(':');
-		if (idx != -1) {
-			text = text.substring(0, idx);
+	public static Direction parse(char character) {
+		for (Direction dir : values()) {
+			if (dir.match(character)) return dir;
 		}
+		return NONE;
+	}
+	
+	public static Direction parse(String text) {
 		for (Direction dir : values()) {
 			if (dir.match(text)) return dir;
 		}
 		return NONE;
 	}
-
 }

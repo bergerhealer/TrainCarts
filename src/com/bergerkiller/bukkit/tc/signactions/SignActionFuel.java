@@ -30,6 +30,7 @@ public class SignActionFuel extends SignAction {
 			boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
 			boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
 			if (!docart && !dotrain) return;
+			if (!info.isPowered()) return;
 			
 			//get nearby chests
 			int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
@@ -42,7 +43,7 @@ public class SignActionFuel extends SignAction {
 			}
 			
 			if (chests.isEmpty()) return;
-
+			
 			List<MinecartMember> carts;
 			if (dotrain) {
 				carts = info.getGroup();

@@ -120,7 +120,7 @@ public class SignActionCollect extends SignAction {
 		
 		LinkedHashSet<Material> typesToCheck = parseName(info.getLine(1), "collect");
 		if (typesToCheck.isEmpty()) return;
-		if (!info.isPoweredFacing() || !info.hasRails()) return;
+		if (!info.isPowered() || !info.hasRails()) return;
 		
 		//get the block types to collect and the radius (2nd line)
 		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);

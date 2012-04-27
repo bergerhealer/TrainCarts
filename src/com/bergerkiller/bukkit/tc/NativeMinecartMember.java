@@ -130,102 +130,100 @@ public class NativeMinecartMember extends EntityMinecart {
 	@Override
 	public boolean damageEntity(DamageSource damagesource, int i)
 	{
-		if(!world.isStatic && !dead)
-		{
-			// CraftBukkit start
-			Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-			org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
-
-			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
-			this.world.getServer().getPluginManager().callEvent(event);
-
-			if (event.isCancelled()) {
-				return true;
-			}
-
-			i = event.getDamage();
-			// CraftBukkit end
-
-			e(-n());
-			d(10);
-			aW();
-			setDamage(getDamage() + i * 10);
-			if(getDamage() > 40)
+		try {
+			if(!this.dead)
 			{
 				// CraftBukkit start
-				List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
-				if (TrainCarts.spawnItemDrops) {
-					if (TrainCarts.breakCombinedCarts) {
-						drops.add(new CraftItemStack(Item.MINECART.id, 1));
-						if (type == 1) {
-							drops.add(new CraftItemStack(Block.CHEST.id, 1));
-						} else if(type == 2) {
-							drops.add(new CraftItemStack(Block.FURNACE.id, 1));
-						}
-					} else {
-						switch (this.type) {
-						case 0:
-							drops.add(new CraftItemStack(Item.MINECART.id, 1));
-							break;
-						case 1:
-							drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
-							break;
-						case 2:
-							drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
-							break;
-						}
-					}
-				}
+				Vehicle vehicle = (Vehicle) this.getBukkitEntity();
+				org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
 
-				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
-				if(CommonUtil.callEvent(destroyEvent).isCancelled()) {
-					setDamage(40);
+				VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
+
+				if (CommonUtil.callEvent(event).isCancelled()) {
 					return true;
 				}
+
+				i = event.getDamage();
 				// CraftBukkit end
 
-				if(this.passenger != null) {
-					this.passenger.mount(this);
-				}
-
-				this.die();
-
-				for (org.bukkit.inventory.ItemStack stack : drops) {
-					this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
-				}
-
-				if(type == 1)
+				e(-n());
+				d(10);
+				aW();
+				setDamage(getDamage() + i * 10);
+				if(getDamage() > 40)
 				{
-					EntityMinecart entityminecart = this;
-					for(int j = 0; j < entityminecart.getSize(); j++)
-					{
-						net.minecraft.server.ItemStack itemstack = entityminecart.getItem(j);
-						if(itemstack != null)
-						{
-							float f = random.nextFloat() * 0.8F + 0.1F;
-							float f1 = random.nextFloat() * 0.8F + 0.1F;
-							float f2 = random.nextFloat() * 0.8F + 0.1F;
-							while(itemstack.count > 0) 
-							{
-								int k = random.nextInt(21) + 10;
-								if(k > itemstack.count)
-									k = itemstack.count;
-								itemstack.count -= k;
-								EntityItem entityitem = new EntityItem(world, locX + (double)f, locY + (double)f1, locZ + (double)f2, new net.minecraft.server.ItemStack(itemstack.id, k, itemstack.getData(), itemstack.getEnchantments()));
-								float f3 = 0.05F;
-								entityitem.motX = (float)random.nextGaussian() * f3;
-								entityitem.motY = (float)random.nextGaussian() * f3 + 0.2F;
-								entityitem.motZ = (float)random.nextGaussian() * f3;
-								world.addEntity(entityitem);
+					// CraftBukkit start
+					List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
+					if (TrainCarts.spawnItemDrops) {
+						if (TrainCarts.breakCombinedCarts) {
+							drops.add(new CraftItemStack(Item.MINECART.id, 1));
+							if (type == 1) {
+								drops.add(new CraftItemStack(Block.CHEST.id, 1));
+							} else if(type == 2) {
+								drops.add(new CraftItemStack(Block.FURNACE.id, 1));
+							}
+						} else {
+							switch (this.type) {
+							case 0:
+								drops.add(new CraftItemStack(Item.MINECART.id, 1));
+								break;
+							case 1:
+								drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
+								break;
+							case 2:
+								drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
+								break;
+							}
+						}
+					}
+
+					VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
+					if(CommonUtil.callEvent(destroyEvent).isCancelled()) {
+						setDamage(40);
+						return true;
+					}
+					// CraftBukkit end
+
+					if(this.passenger != null) {
+						this.passenger.mount(this);
+					}
+
+					this.die();
+
+					for (org.bukkit.inventory.ItemStack stack : drops) {
+						this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
+					}
+
+					if (this.isStorageCart()) {
+						EntityMinecart entityminecart = this;
+						for(int j = 0; j < entityminecart.getSize(); j++) {
+							net.minecraft.server.ItemStack itemstack = entityminecart.getItem(j);
+							if(itemstack != null) {
+								double rX = random.nextFloat() * 0.8 + 0.1;
+								double rY = random.nextFloat() * 0.8 + 0.1;
+								double rZ = random.nextFloat() * 0.8 + 0.1;
+								while(itemstack.count > 0) {
+									int k = random.nextInt(21) + 10;
+									if(k > itemstack.count)
+										k = itemstack.count;
+									itemstack.count -= k;
+									EntityItem entityitem = new EntityItem(world, locX + rX, locY + rY, locZ + rZ, new ItemStack(itemstack.id, k, itemstack.getData(), itemstack.getEnchantments()));
+									
+									final double f3 = 0.05;
+									entityitem.motX = random.nextGaussian() * f3;
+									entityitem.motY = random.nextGaussian() * f3 + 0.2F;
+									entityitem.motZ = random.nextGaussian() * f3;
+									world.addEntity(entityitem);
+								}
 							}
 						}
 					}
 				}
 			}
 			return true;
-		} else
-		{
-			return true;
+		} catch (Throwable t) {
+			TrainCarts.handleError(t);
+			return false;
 		}
 	}
 

@@ -70,7 +70,6 @@ public abstract class Statement {
 		register(new StatementPlayerItems());
 		register(new StatementPlayerHand());
 		register(new StatementMob());
-		register(new StatementCartCount());
 		register(new StatementTag()); //register lastly!
 	}
 	

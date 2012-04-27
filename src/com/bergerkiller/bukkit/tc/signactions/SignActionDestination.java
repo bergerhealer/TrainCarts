@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
 public class SignActionDestination extends SignAction {
-
+	
 	public void setDestination(CartProperties prop, SignActionEvent info) {
 		if (!info.isAction(SignActionType.REDSTONE_CHANGE)) {
 			if (!info.getLine(2).isEmpty() && prop.hasDestination()) {
@@ -26,7 +26,7 @@ public class SignActionDestination extends SignAction {
 		if (!info.isType("destination")) return;
 		if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
 			if (!info.hasRailedMember()) return;
-		    PathNode.getOrCreate(info);
+			PathNode.getOrCreate(info);
 			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
 			setDestination(info.getMember().getProperties(), info);
 		} else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {

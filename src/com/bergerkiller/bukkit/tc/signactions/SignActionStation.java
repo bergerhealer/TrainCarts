@@ -18,6 +18,11 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 public class SignActionStation extends SignAction {
 
 	@Override
+	public boolean overrideFacing() {
+		return true;
+	}
+	
+	@Override
 	public void execute(SignActionEvent info) {
 		if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
 			if (info.isTrainSign() || info.isCartSign()) {
@@ -122,7 +127,7 @@ public class SignActionStation extends SignAction {
 										//Brake
 										//TODO: ADD CHECK?!
 										group.clearActions();		
-										BlockFace trainDirection = direction.convert(info.getFacing(), toAffect.getDirectionTo());
+										BlockFace trainDirection = direction.getDirection(info.getFacing(), toAffect.getDirectionTo());
 										if (direction == Direction.NONE || trainDirection != group.head().getDirectionTo()) {
 											toAffect.addActionLaunch(info.getRailLocation(), 0);
 										}
