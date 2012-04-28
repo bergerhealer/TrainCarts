@@ -21,9 +21,6 @@ public class SignActionCraft extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
-			return;
-		}
 		if (info.isType("craft")) {
 			//parse the sign
 			boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();

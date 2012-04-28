@@ -570,8 +570,10 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		groups.remove(this);
 	}
 	public void destroy() {
-		for (MinecartMember mm : this) mm.dead = true;
-				this.remove();
+		for (MinecartMember mm : this) {
+			mm.dead = true;
+		}
+		this.remove();
 	}
 	public void unload() {
 		GroupUnloadEvent.call(this);
@@ -661,7 +663,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			m.setForwardForce(f);
 		}
 	}
-	public void reverseOrder() {
+	private void reverseOrder() {
 		Collections.reverse(this);
 	}
 	public void reverse() {
@@ -976,12 +978,6 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				m.preUpdate(stepcount);
 			}
 
-			//still in loaded chunks?
-			boolean canunload = this.canUnload();
-			for (MinecartMember mm : this) {
-				mm.checkChunks(canunload);
-			}
-
 			if (this.size() == 1) {
 				//Simplified calculation for single carts
 				this.updateDirection();
@@ -1009,10 +1005,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 				}
 
 				//Apply force factors to carts from last cart and perform post positional updates
-				final int size = this.size();
-				if (size < 2) return false;
-
-				//Post updating
+				if (this.size() < 2) return false;
 				try {
 					int i = 1;
 					double distance, threshold, forcer;
@@ -1070,6 +1063,12 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 						return false;
 					}
 				}
+			}
+			
+			//still in loaded chunks?
+			boolean canunload = this.canUnload();
+			for (MinecartMember mm : this) {
+				mm.checkChunks(canunload);
 			}
 
 			//Synchronize to clients

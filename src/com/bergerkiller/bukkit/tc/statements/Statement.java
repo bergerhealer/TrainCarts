@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.statements;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 
@@ -80,28 +79,6 @@ public abstract class Statement {
 	public static <T extends Statement> T register(T statement) {
 		statements.add(statement);
 		return statement;
-	}
-		
-	public static Direction getDirection(MinecartMember member, String text) {
-		return getDirection(member, null, text);
-	}
-	
-	public static Direction getDirection(MinecartGroup group, String text) {
-		return getDirection(null, group, text);
-	}
-	
-	private static Direction getDirection(MinecartMember member, MinecartGroup group, String text) {
-		Direction dir = Direction.parse(text);
-		if (dir != Direction.NONE) {
-			int idx = text.indexOf(':');
-			if (idx != -1) {
-				text = text.substring(0, idx);
-			}
-			if (has(member, group, text)) {
-				return dir;
-			}
-		}
-		return Direction.NONE;
 	}
 	
 	public static boolean has(MinecartMember member, String text) {

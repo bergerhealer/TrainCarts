@@ -9,6 +9,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
@@ -264,11 +265,23 @@ public class TrainCommands {
 				}
 			}
 		} else {
-			p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
+			if (!cmd.equals("help") && !cmd.equals("?")) {
+				p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
+			}
+			help(new MessageBuilder()).send(p);
 			return true;
 		}
 		prop.tryUpdate();
 		return true;
+	}
+	
+	public static MessageBuilder help(MessageBuilder builder) {
+		builder.green("Available commands: ").yellow("/train ").red("[info");
+		builder.setSeparator(ChatColor.WHITE, "/").setIndent(10);
+		builder.red("linking").red("keepchunksloaded").red("claim").red("addowners").red("setowners");
+		builder.red("addtags").red("settags").red("destination").red("destroy").red("public").red("private");
+		builder.red("pickup").red("break").red("default").red("rename").red("speedlimit").red("setcollide").red("slowdown");
+		return builder.red("pushplayers").red("pushmobs").red("pushmisc").setSeparator(null).red("]");
 	}
 	
 	public static void info(Player p, TrainProperties prop) {

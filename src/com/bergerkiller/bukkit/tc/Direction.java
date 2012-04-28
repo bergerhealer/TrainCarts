@@ -7,9 +7,9 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 public enum Direction {
 	NORTH("n", "north"), EAST("e", "east"), SOUTH("s", "south"), 
 	WEST("w", "west"), LEFT("l", "left"), RIGHT("r", "right"), 
-	FORWARD("f", "forward", "forwards", "continue"), 
-	BACKWARD("b", "backward", "backwards", "reverse"), 
-	NONE("", "none");
+	FORWARD("f", "front", "forward", "forwards", "continue"), 
+	BACKWARD("b", "back", "backward", "backwards", "reverse"), 
+	NONE("", "n", "none");
 	
 	private final String[] aliases;
 	private Direction(String... aliases) {
@@ -22,15 +22,15 @@ public enum Direction {
 
 	public BlockFace getDirection(BlockFace signfacing, BlockFace cartdirection) {
 		switch (this) {
-		case NORTH : return BlockFace.SOUTH;
-		case EAST : return BlockFace.WEST;
-		case SOUTH : return BlockFace.NORTH;
-		case WEST : return BlockFace.EAST;
-		case LEFT : return FaceUtil.rotate(signfacing, -2);
-		case RIGHT : return FaceUtil.rotate(signfacing, 2);
+		case NORTH : return BlockFace.NORTH;
+		case EAST : return BlockFace.EAST;
+		case SOUTH : return BlockFace.SOUTH;
+		case WEST : return BlockFace.WEST;
+		case LEFT : return FaceUtil.rotate(signfacing, 2);
+		case RIGHT : return FaceUtil.rotate(signfacing, -2);
 		case FORWARD : return cartdirection;
 		case BACKWARD : return cartdirection.getOppositeFace();
-		default : return signfacing.getOppositeFace();
+		default : return cartdirection;
 		}
 	}
 	

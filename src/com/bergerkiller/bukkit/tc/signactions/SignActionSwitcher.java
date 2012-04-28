@@ -1,27 +1,32 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 
+import com.bergerkiller.bukkit.common.BlockMap;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Direction;
+import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
-import com.bergerkiller.bukkit.tc.statements.Statement;
 
 public class SignActionSwitcher extends SignAction {
 
-	private HashMap<Location, AtomicInteger> switchedTimes = new HashMap<Location, AtomicInteger>();
-	private AtomicInteger getSwitchedTimes(Location signloc) {
-		AtomicInteger i = switchedTimes.get(signloc);
+	private BlockMap<AtomicInteger> switchedTimes = new BlockMap<AtomicInteger>();
+	private AtomicInteger getSwitchedTimes(Block signblock) {
+		AtomicInteger i = switchedTimes.get(signblock);
 		if (i == null) {
 			i = new AtomicInteger();
-			switchedTimes.put(signloc, i);
+			switchedTimes.put(signblock, i);
 		}
 		return i;
 	}
@@ -52,7 +57,7 @@ public class SignActionSwitcher extends SignAction {
 				boolean right = false;
 				int lcount = Integer.parseInt(l);
 				int rcount = Integer.parseInt(r);
-				AtomicInteger i = getSwitchedTimes(info.getLocation());
+				AtomicInteger i = getSwitchedTimes(info.getBlock());
 				int count = i.get();
 				if (count < lcount) {
 					left = true;
@@ -74,39 +79,96 @@ public class SignActionSwitcher extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("switcher", "tag")) return;
-		String l = info.getLine(2);
-		String r = info.getLine(3);
-		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
+		boolean doCart = false;
+		boolean doTrain = false;
+		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
 			if (!info.hasRailedMember()) return;
-			if (info.isFacing() && !handleCounter(info, l, r)) {
-				boolean left = Statement.has(info.getGroup(), l);
-				boolean right = Statement.has(info.getGroup(), r);
-				if (left || right || !info.getGroup().getProperties().hasDestination()) {
-					handleRails(info, left, right);
-					return;
-				}
-			}
-		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_LEAVE, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
+			doTrain = true;
+		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
 			if (!info.hasRailedMember()) return;
-			if (info.isFacing() && !handleCounter(info, l, r)) {
-				boolean left = Statement.has(info.getMember(), l);
-				boolean right = Statement.has(info.getMember(), r);
-				if (left || right || !info.getMember().getProperties().hasDestination() || (!l.isEmpty() && !r.isEmpty())) {
-					handleRails(info, left, right);
-					return;
-				}
-			}
-		} else {
+			doCart = true;
+		} else if (info.isAction(SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
+			info.setLevers(false);
+			return;
+		} else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
+			info.setLevers(false);
+			return;
+	    } else {
 			return;
 		}
-		//handle destination
+		
+		if ((doCart || doTrain) && info.isFacing()) {
+			//find out what statements to parse
+			List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
+			statements.add(new DirectionStatement(info.getLine(2), Direction.LEFT));
+			statements.add(new DirectionStatement(info.getLine(3), Direction.RIGHT));
+			//other signs below this sign we could parse?
+			Block signblock = info.getBlock();
+			while (BlockUtil.isSign(signblock = signblock.getRelative(BlockFace.DOWN))) {
+				Sign sign = BlockUtil.getSign(signblock);
+				if (sign == null) break;
+				boolean valid = true;
+				for (String line : sign.getLines()) {
+					DirectionStatement stat = new DirectionStatement(line);
+					if (stat.direction == Direction.NONE) {
+						valid = false;
+						break;
+					} else {
+						statements.add(stat);
+					}
+				}
+				if (!valid) break;
+			}
+			//parse all of the statements
+			//are we going to use a counter?
+			int maxcount = 0;
+			int currentcount = 0;
+			AtomicInteger signcounter = null;
+			for (DirectionStatement stat : statements) {
+				if (stat.hasNumber()) {
+					maxcount += stat.number;
+					if (signcounter == null) {
+						signcounter = getSwitchedTimes(info.getBlock());
+						if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
+							currentcount = signcounter.getAndIncrement();
+						} else {
+							currentcount = signcounter.get();
+						}
+					}
+				}
+			}
+			if (signcounter != null && currentcount >= maxcount) {
+				signcounter.set(1);
+				currentcount = 0;
+			}
+			
+			int counter = 0;
+			Direction dir = Direction.NONE;
+			for (DirectionStatement stat : statements) {
+				if ((stat.hasNumber() && (counter += stat.number) > currentcount)
+						|| (doCart && stat.has(info.getMember()))
+						|| (doTrain && stat.has(info.getGroup()))) {
+
+					dir = stat.direction;
+					break;
+				}
+			}
+			info.setLevers(dir != Direction.NONE);
+			if (dir != Direction.NONE) {
+				//handle this direction
+				info.setRailsFromCart(dir.getDirection(info.getFacing()));
+				return; //don't do destination stuff
+			}
+		}
+
+		//handle destination alternatively
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {
 				PathConnection conn = null;
-				if (info.isCartSign()) {
+				if (doCart) {
 					conn = node.findConnection(info.getMember().getProperties().destination);
-				} else if (info.isTrainSign()) {
+				} else if (doTrain) {
 					conn = node.findConnection(info.getGroup().getProperties().getDestination());
 				}
 				if (conn != null) {

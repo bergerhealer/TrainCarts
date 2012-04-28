@@ -472,6 +472,8 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 		    
+			this.validate();
+			
 			// CraftBukkit
 			//==================TrainCarts edited==============
 			if (this.isPoweredCart() && !ignoreForces()) {

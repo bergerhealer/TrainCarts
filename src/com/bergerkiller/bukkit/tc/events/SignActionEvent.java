@@ -80,7 +80,7 @@ public class SignActionEvent extends Event implements Cancellable {
 					for (char c : linez.toCharArray()) {
 						dir = Direction.parse(c);
 						if (dir != Direction.NONE) {
-							faces.add(dir.getDirection(this.getFacing()));
+							faces.add(dir.getDirection(this.getFacing()).getOppositeFace());
 						}
 					}
 					if (faces.isEmpty()) {
@@ -89,7 +89,7 @@ public class SignActionEvent extends Event implements Cancellable {
 						this.watchedDirections = faces.toArray(new BlockFace[0]);
 					}
 				} else {
-					this.watchedDirections = new BlockFace[] {dir.getDirection(this.getFacing())};
+					this.watchedDirections = new BlockFace[] {dir.getDirection(this.getFacing().getOppositeFace())};
 				}
 			}
 		}

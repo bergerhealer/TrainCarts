@@ -307,7 +307,6 @@ public class MinecartMember extends NativeMinecartMember {
 	private boolean railsloped = false;
 	private boolean isDerailed = false;
 	private boolean isFlying = false;
-	private boolean isInitWorld = false;
 	private boolean needsUpdate = false;
 	private boolean ignoreAllCollisions = false;
 	private CartProperties properties;
@@ -318,16 +317,12 @@ public class MinecartMember extends NativeMinecartMember {
 
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
+		this.blockx = this.blocky = this.blockz = Integer.MIN_VALUE;
+		this.prevcx = MathUtil.locToChunk(this.locX);
+		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
+		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
 		replacedCarts.add(this);
-	}
-	public void initInWorld() {
-		if (this.isInitWorld) return;
-		this.isInitWorld = true;
-		try {
-			this.updateBlock(true);
-		} catch (MemberDeadException ex) {
-		} catch (GroupUnloadedException ex) {}
 	}
 
 	/*
@@ -396,7 +391,7 @@ public class MinecartMember extends NativeMinecartMember {
 				}
 			}
 		}
-		this.updateBlock(false);
+		this.updateBlock();
 		if (this.needsUpdate) {
 			this.needsUpdate = false;
 			for (Block b : this.activeSigns) {
@@ -434,7 +429,7 @@ public class MinecartMember extends NativeMinecartMember {
 	}
 
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
-	private void updateBlock(boolean forced) throws MemberDeadException, GroupUnloadedException {
+	private void updateBlock() throws MemberDeadException, GroupUnloadedException {
 		if (this.locY < 0) {
 			this.dead = true;
 			throw new MemberDeadException();
@@ -447,10 +442,11 @@ public class MinecartMember extends NativeMinecartMember {
 				SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
 			}
 		}
-		Block from = forced ? null : this.getBlock();
 		int x = super.getBlockX();
 		int y = super.getBlockY();
 		int z = super.getBlockZ();
+		boolean forced = Math.abs(this.blockx - x) > 128 || Math.abs(this.blocky - y) > 128 || Math.abs(this.blockz - z) > 128;
+		Block from = forced ? null : this.getBlock();
 		if (forced || x != this.blockx || z != this.blockz || y != (this.railsloped ? this.blocky : this.blocky + 1)) {
 			this.blockx = x;
 			this.blocky = y;
@@ -851,8 +847,8 @@ public class MinecartMember extends NativeMinecartMember {
 	public void updateDirection(Vector movement) {
 		if (this.isDerailed) {
 			this.direction = FaceUtil.getDirection(movement);
+			this.directionFrom = this.directionTo;
 			this.directionTo = FaceUtil.getDirection(movement, false);
-			this.directionFrom = this.directionTo.getOppositeFace();
 		} else {
 			BlockFace raildirection = this.getRailDirection();
 			this.direction = FaceUtil.getRailsCartDirection(raildirection);
@@ -1255,8 +1251,7 @@ public class MinecartMember extends NativeMinecartMember {
 			this.dead = true;
 		}
 	}
-	private int prevcx = MathUtil.locToChunk(this.locX);
-	private int prevcz = MathUtil.locToChunk(this.locZ);
+	private int prevcx, prevcz;
 	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
 		int newx = MathHelper.floor(this.locX);
 		int newz = MathHelper.floor(this.locZ);
