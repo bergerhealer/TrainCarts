@@ -44,7 +44,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 			}
 		}
 		return false;
-	}	
+	}
 	public static void clearAll() {
 		properties.clear();
 	}
@@ -61,6 +61,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 	public boolean keepChunksLoaded = false;
 	public boolean ignoreStations = false;
 	
+	@Deprecated
 	public Set<CartProperties> getCarts() {
 		return this;
 	}

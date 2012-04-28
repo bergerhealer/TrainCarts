@@ -45,7 +45,6 @@ public class StatementItems extends Statement {
 			}
 			for (ItemParser parser : Util.getParsers(itemnamefixed)) {
 				count = ItemUtil.getItemCount(inv, parser.hasType() ? parser.getTypeId() : null, parser.hasData() ? (int) parser.getData() : null);
-				System.out.println("C: " + count);
 				if (opidx == -1) {
 					if (parser.hasAmount()) {
 						if (count >= parser.getAmount()) {
@@ -74,7 +73,7 @@ public class StatementItems extends Statement {
 	public boolean handleArray(MinecartMember member, String[] items) {
 		return handleInventory(getInventory(member), items);
 	}
-		
+	
 	@Override
 	public boolean handleArray(MinecartGroup group, String[] items) {
 		return handleInventory(getInventory(group), items);

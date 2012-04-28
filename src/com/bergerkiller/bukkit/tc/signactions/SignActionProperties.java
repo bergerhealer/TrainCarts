@@ -53,18 +53,18 @@ public class SignActionProperties extends SignAction {
 			prop.setAllowPlayerExit(StringUtil.getBool(arg));
 		} else if (mode.equals("setowner")) {
 			arg = arg.toLowerCase();
-			for (CartProperties cprop : prop.getCarts()) {
+			for (CartProperties cprop : prop) {
 				cprop.getOwners().clear();
 				cprop.getOwners().add(arg);
 			}
 		} else if (mode.equals("addowner")) {
 			arg = arg.toLowerCase();
-			for (CartProperties cprop : prop.getCarts()) {
+			for (CartProperties cprop : prop) {
 				cprop.getOwners().add(arg);
 			}
 		} else if (mode.equals("remowner")) {
 			arg = arg.toLowerCase();
-			for (CartProperties cprop : prop.getCarts()) {
+			for (CartProperties cprop : prop) {
 				cprop.getOwners().remove(arg);
 			}
 		} else {

@@ -11,7 +11,7 @@ public enum SignActionMode {
     	if (name.endsWith("]")) {
     		if (name.startsWith("[!")) {
     			name = name.substring(2);
-    		} else if (name.startsWith(("["))) {
+    		} else if (name.startsWith("[")) {
     			name = name.substring(1);
     		} else {
     			return NONE;

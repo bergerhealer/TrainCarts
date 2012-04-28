@@ -52,7 +52,7 @@ public class TrainCommands {
 					toadd.add(player.toLowerCase());
 				}
 			}
-			for (CartProperties cprop : prop.getCarts()) {
+			for (CartProperties cprop : prop) {
 				if (!CartProperties.hasGlobalOwnership(p)) {
 					if (cprop.hasOwners()) {
 						if (!cprop.isOwner(p)) continue;
@@ -65,7 +65,7 @@ public class TrainCommands {
 				}
 				changed++;
 			}
-			if (changed == prop.getCarts().size()) {
+			if (changed == prop.size()) {
 				p.sendMessage(ChatColor.YELLOW + "Owners updated for This entire train!");
 			} else if (changed == 1) {
 				p.sendMessage(ChatColor.YELLOW + "Owners updated for one train cart your own!");
@@ -194,7 +194,7 @@ public class TrainCommands {
 			} else {
 				pub = StringUtil.getBool(args[0]);
 			}
-			for (CartProperties cprop : prop.getCarts()) cprop.isPublic = pub;
+			for (CartProperties cprop : prop) cprop.isPublic = pub;
 			p.sendMessage(ChatColor.YELLOW + "The selected train can be used by everyone: " + ChatColor.WHITE + pub);
 		} else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
 			Permission.COMMAND_SETPUBLIC.handle(p);
@@ -204,7 +204,7 @@ public class TrainCommands {
 			} else {
 				pub = !StringUtil.getBool(args[0]);
 			}
-			for (CartProperties cprop : prop.getCarts()) cprop.isPublic = pub;
+			for (CartProperties cprop : prop) cprop.isPublic = pub;
 			p.sendMessage(ChatColor.YELLOW + "The selected train can only be used by the respective owners: " + ChatColor.WHITE + !pub);
 		} else if (cmd.equals("pickup")) {
 			Permission.COMMAND_PICKUP.handle(p);
@@ -224,11 +224,11 @@ public class TrainCommands {
 			Permission.COMMAND_BREAKBLOCK.handle(p);
 			if (args.length == 0) {
 				Set<Material> types = new HashSet<Material>();
-				for (CartProperties cprop : prop.getCarts()) types.addAll(cprop.blockBreakTypes);
+				for (CartProperties cprop : prop) types.addAll(cprop.blockBreakTypes);
 				p.sendMessage(ChatColor.YELLOW + "This train breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
 			} else {
 				if (StringUtil.isBool(args[0]) && !StringUtil.getBool(args[0])) {
-					for (CartProperties cprop : prop.getCarts()) cprop.blockBreakTypes.clear();
+					for (CartProperties cprop : prop) cprop.blockBreakTypes.clear();
 					p.sendMessage(ChatColor.YELLOW + "Train block break types have been cleared!");
 				} else {
 					boolean asBreak = true;
@@ -251,12 +251,12 @@ public class TrainCommands {
 						return true;
 					}
 					if (asBreak) {
-						for (CartProperties cprop : prop.getCarts()) {
+						for (CartProperties cprop : prop) {
 							cprop.blockBreakTypes.addAll(mats);
 						}
 						p.sendMessage(ChatColor.YELLOW + "This cart can now (also) break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
 					} else {
-						for (CartProperties cprop : prop.getCarts()) {
+						for (CartProperties cprop : prop) {
 							cprop.blockBreakTypes.removeAll(mats);
 						}
 						p.sendMessage(ChatColor.YELLOW + "This cart can no longer break: " + ChatColor.WHITE + StringUtil.combineNames(mats));

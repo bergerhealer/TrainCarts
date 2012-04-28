@@ -96,10 +96,8 @@ public abstract class SignAction {
 	public static void handleBuild(SignChangeEvent event) {
 		SignActionMode mode = SignActionMode.fromEvent(event);
 		String type = event.getLine(1).toLowerCase();
-		System.out.println("MODE:  " + mode);
 		for (SignAction action : actions) {
 			if (action.build(event, type, mode)) {
-				System.out.println("SUCC");
 				if (mode == SignActionMode.RCTRAIN && !action.canSupportRC()) {
 					event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
 					if (event.getLine(0).startsWith("[!")) {
@@ -111,7 +109,6 @@ public abstract class SignAction {
 			}
 			if (event.isCancelled()) return;
 		}
-		System.out.println("NEXT");
 		if (mode != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
 			//snap to fixed 90-degree angle
 			BlockFace facing = BlockUtil.getFacing(event.getBlock());

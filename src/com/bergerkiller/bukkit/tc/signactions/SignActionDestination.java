@@ -33,12 +33,12 @@ public class SignActionDestination extends SignAction {
 			if (!info.hasRailedMember()) return;
 			PathNode.getOrCreate(info);
 			if (info.getLine(3).isEmpty() || !info.isPowered()) return;
-			for (CartProperties prop : info.getGroup().getProperties().getCarts()) {
+			for (CartProperties prop : info.getGroup().getProperties()) {
 				setDestination(prop, info);
 			}
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
 			TrainProperties prop = info.getRCTrainProperties();
-			for (CartProperties cprop : prop.getCarts()) {
+			for (CartProperties cprop : prop) {
 				setDestination(cprop, info);
 			}
 		}

@@ -30,6 +30,7 @@ import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.BlockSet;
@@ -76,6 +77,16 @@ public class TCListener implements Listener {
 					if (mg.isInChunk(event.getChunk())) {
 						WorldGroupManager.hideGroup(mg);
 					}
+				}
+			}
+		}
+	}
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onWorldUnload(WorldUnloadEvent event) {
+		if (!event.isCancelled()) {
+			for (MinecartGroup group : MinecartGroup.getGroups()) {
+				if (group.getWorld() == event.getWorld()) {
+					WorldGroupManager.hideGroup(group);
 				}
 			}
 		}
