@@ -76,12 +76,10 @@ public class TrainCarts extends PluginBase {
 	public static double slowDownMultiplierSlow;
 	public static double slowDownMultiplierNormal;
 	
+	public static boolean EssentialsEnabled = false;
 	public static boolean SignLinkEnabled = false;
 	public static boolean MinecartManiaEnabled = false;
 	public static boolean MyWorldsEnabled = false;
-	public static boolean isShowcaseEnabled = false;
-	public static boolean isSCSEnabled = false;
-	public static Plugin bleedingMobsInstance = null;
 
 	public static TrainCarts plugin;
 	private Task signtask, cleanupTask;
@@ -278,12 +276,8 @@ public class TrainCarts extends PluginBase {
 			if (MyWorldsEnabled = enabled) {
 				log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
 			}
-		} else if (pluginName.equals("Showcase")) {
-			isShowcaseEnabled = enabled;
-		} else if (pluginName.equals("ShowCaseStandalone")) {
-			isSCSEnabled = enabled;
-		} else if (pluginName.equals("BleedingMobs")) {
-			bleedingMobsInstance = plugin;
+		} else if (pluginName.equals("Essentials")) {
+			EssentialsEnabled = enabled;
 		}
 	}
 

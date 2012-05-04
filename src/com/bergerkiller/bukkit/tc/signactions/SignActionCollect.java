@@ -118,9 +118,10 @@ public class SignActionCollect extends SignAction {
 			return;
 		}
 		
+		if (!info.hasRailedMember() || !info.isPowered()) return;
+		
 		LinkedHashSet<Material> typesToCheck = parseName(info.getLine(1), "collect");
 		if (typesToCheck.isEmpty()) return;
-		if (!info.isPowered() || !info.hasRails()) return;
 		
 		//get the block types to collect and the radius (2nd line)
 		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);

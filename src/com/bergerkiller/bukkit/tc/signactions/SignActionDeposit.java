@@ -159,6 +159,8 @@ public class SignActionDeposit extends SignAction {
 			return;
 		}
 		
+		if (!info.hasRailedMember() || !info.isPowered()) return;
+		
 		//get the block types to collect and the radius (2nd line)
 		LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(info.getLine(1), "deposit");
 		if (typesToCheck.isEmpty()) return;
@@ -167,7 +169,6 @@ public class SignActionDeposit extends SignAction {
 		//get the tile entities to deposit to
 		Set<TileEntity> found = SignActionCollect.getTileEntities(info, radius);
 		if (found.isEmpty()) return;
-		if (!info.isPowered() || !info.hasRails()) return;
 		
 		List<IInventory> invlist = new ArrayList<IInventory>();
 		List<TileEntityFurnace> furnaces = new ArrayList<TileEntityFurnace>();
