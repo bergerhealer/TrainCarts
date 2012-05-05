@@ -40,7 +40,7 @@ import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class MinecartGroup extends ArrayList<MinecartMember> {
@@ -138,8 +138,8 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		//max links per update
 		if (g1 != g2) {
 			if (m1.isDerailed() || m2.isDerailed()) return false;
-			if (WorldGroupManager.wasInGroup(m1.uniqueId)) return false;
-			if (WorldGroupManager.wasInGroup(m2.uniqueId)) return false;
+			if (OfflineGroupManager.wasInGroup(m1.uniqueId)) return false;
+			if (OfflineGroupManager.wasInGroup(m2.uniqueId)) return false;
 			//Can the two groups bind?
 			TrainProperties prop1 = g1.getProperties();
 			TrainProperties prop2 = g2.getProperties();

@@ -19,5 +19,5 @@ public class BlockTimeoutMap extends BlockMap<Long> {
 	public boolean isMarked(Block block, final long timeout) {
 		Long value = super.get(block);
 		return value != null && value + timeout > System.currentTimeMillis();
-	}	
+	}
 }

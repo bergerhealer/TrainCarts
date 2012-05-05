@@ -43,7 +43,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
@@ -71,11 +71,11 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
-			WorldGroupManager.unloadChunk(event.getChunk());
+			OfflineGroupManager.unloadChunk(event.getChunk());
 			synchronized (this.expectUnload) {
 				for (MinecartGroup mg : this.expectUnload) {
 					if (mg.isInChunk(event.getChunk())) {
-						WorldGroupManager.hideGroup(mg);
+						OfflineGroupManager.hideGroup(mg);
 					}
 				}
 			}
@@ -86,7 +86,7 @@ public class TCListener implements Listener {
 		if (!event.isCancelled()) {
 			for (MinecartGroup group : MinecartGroup.getGroups()) {
 				if (group.getWorld() == event.getWorld()) {
-					WorldGroupManager.hideGroup(group);
+					OfflineGroupManager.hideGroup(group);
 				}
 			}
 		}
@@ -94,7 +94,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkLoad(ChunkLoadEvent event) {
-		WorldGroupManager.loadChunk(event.getChunk());
+		OfflineGroupManager.loadChunk(event.getChunk());
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
@@ -210,7 +210,7 @@ public class TCListener implements Listener {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				if (WorldGroupManager.wasInGroup(event.getVehicle())) {
+				if (OfflineGroupManager.wasInGroup(event.getVehicle())) {
 					event.setCancelled(true);
 					return;
 				}
@@ -226,7 +226,7 @@ public class TCListener implements Listener {
 					} else {
 						TrainProperties prop = g1.getProperties();
 						if (event.getEntity() instanceof Minecart) {
-							if (WorldGroupManager.wasInGroup(event.getEntity())) {
+							if (OfflineGroupManager.wasInGroup(event.getEntity())) {
 								event.setCancelled(true);
 								return;
 							}

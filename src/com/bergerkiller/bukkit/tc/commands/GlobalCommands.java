@@ -4,13 +4,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class GlobalCommands {
 	
@@ -37,13 +40,13 @@ public class GlobalCommands {
 					}
 				}
 				if (w != null) {
-					int count = WorldGroupManager.destroyAll(w);
+					int count = OfflineGroupManager.destroyAll(w);
 					sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 				} else {
 					sender.sendMessage(ChatColor.RED + "World not found!");
 				}
 			} else {
-				int count = WorldGroupManager.destroyAll();
+				int count = OfflineGroupManager.destroyAll();
 				sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 			}
 			return true;
@@ -58,8 +61,67 @@ public class GlobalCommands {
 			TrainCarts.plugin.loadConfig();
 			sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
 			return true;
+		} else if (args[0].equals("list")) {
+			if (!(sender instanceof Player)) {
+				sender.sendMessage("Consoles don't own trains!");
+				return true;
+			}
+			if (args.length == 2 && StringUtil.isIn(args[1], "renamed", "rename", "ren", "name", "named")) {
+				list((Player) sender, true);
+			} else {
+				list((Player) sender, false);
+			}
+			return true;
+		} else if (args[0].equals("edit")) {
+			if (!(sender instanceof Player)) {
+				sender.sendMessage("Can not edit a train through the console!");
+				return true;
+			}
+			if (args.length == 2) {
+				String name = args[1];
+				TrainProperties prop = TrainProperties.exists(name) ? TrainProperties.get(name) : null;
+				if (prop != null && !prop.isEmpty()) {
+					if (prop.isOwner((Player) sender)) {
+						prop.get(0).setEditing(((Player) sender).getName());
+						sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");	
+					} else {
+						sender.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
+					}
+					return true;
+				} else {
+					sender.sendMessage(ChatColor.RED + "Could not find a valid train named '" + name + "'!");	
+				}
+			} else {
+				sender.sendMessage(ChatColor.RED + "Please enter the exact name of the train to edit");	
+			}
+			list((Player) sender, false);
+			return true;
 		}
 		return false;
+	}
+	
+	public static void list(Player player, boolean named) {
+		MessageBuilder builder = new MessageBuilder();
+		builder.yellow("You are the proud owner of the following trains:");
+		builder.newLine().setSeparator(ChatColor.WHITE, " / ");
+		boolean found = false;
+		for (TrainProperties prop : TrainProperties.getAll()) {
+			if (!prop.isOwner(player)) continue;
+			if (named && !prop.isTrainRenamed()) continue;
+			found = true;
+			if (prop.isLoaded()) {
+				builder.green(prop.getTrainName());
+			} else {
+				builder.red(prop.getTrainName());
+			}
+		}
+		if (found) {
+			builder.send(player);
+		} else if (named) {
+			player.sendMessage(ChatColor.RED + "You do not own any renamed trains you can edit.");
+		} else {
+			player.sendMessage(ChatColor.RED + "You do not own any trains you can edit.");
+		}
 	}
 
 }

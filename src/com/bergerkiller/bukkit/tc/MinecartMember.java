@@ -46,7 +46,7 @@ import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -58,7 +58,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
 public class MinecartMember extends NativeMinecartMember {
 	private static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
-	private static Map<String, MinecartMember> editing = new HashMap<String, MinecartMember>();
 	private static boolean denyConversion = false;
 	public static boolean canConvert(Entity entity) {
 		return !denyConversion && get(entity) == null;
@@ -131,6 +130,14 @@ public class MinecartMember extends NativeMinecartMember {
 		return rval;
 	}
 
+	public static MinecartMember getEditing(Player player) {
+		return getEditing(player.getName());
+	}
+	public static MinecartMember getEditing(String playername) {
+		CartProperties cp = CartProperties.getEditing(playername);
+		return cp == null ? null : cp.getMember();
+	}
+	
 	public static MinecartMember spawn(Location at, int type) {
 		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
@@ -277,28 +284,6 @@ public class MinecartMember extends NativeMinecartMember {
 		}
 	}
 
-	/*
-	 * Editing
-	 */
-	public static MinecartMember getEditing(Player player) {
-		return getEditing(player.getName());
-	}
-	public static MinecartMember getEditing(String playername) {
-		MinecartMember mm = editing.get(playername.toLowerCase());
-		if (mm == null || mm.getGroup() == null) {
-			editing.remove(playername.toLowerCase());
-			return null;
-		} else {
-			return mm;
-		}
-	}
-	public void setEditing(Player player) {
-		this.setEditing(player.getName());
-	}
-	public void setEditing(String playername) {
-		editing.put(playername.toLowerCase(), this);
-	}
-
 	private BlockFace direction;
 	private BlockFace directionTo;
 	private BlockFace directionFrom;
@@ -317,7 +302,9 @@ public class MinecartMember extends NativeMinecartMember {
 
 	private MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.blockx = this.blocky = this.blockz = Integer.MIN_VALUE;
+		this.blockx = super.getBlockX();
+		this.blocky = super.getBlockY();
+		this.blockz = super.getBlockZ();
 		this.prevcx = MathUtil.locToChunk(this.locX);
 		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
@@ -1180,6 +1167,12 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
 	}
+	public void setEditing(String playername) {
+		this.getProperties().setEditing(playername);
+	}
+	public void setEditing(Player player) {
+		this.setEditing(player.getName());
+	}
 
 	public void setItem(int index, net.minecraft.server.ItemStack item) {
 		super.setItem(index, item);
@@ -1258,7 +1251,7 @@ public class MinecartMember extends NativeMinecartMember {
 		if ((newx >> 4) != prevcx || (newz >> 4) != prevcz) {
 			if (canunload) {
 				if (!this.world.areChunksLoaded(newx, this.blocky, newz, 32)) {
-					WorldGroupManager.hideGroup(this.getGroup());
+					OfflineGroupManager.hideGroup(this.getGroup());
 					throw new GroupUnloadedException();
 				}
 			} else {

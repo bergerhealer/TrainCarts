@@ -35,7 +35,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.statements.Statement;
-import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
@@ -309,7 +309,7 @@ public class TrainCarts extends PluginBase {
 		SignAction.init();
 		
 		//Load groups
-		WorldGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
+		OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 		
 		//Load properties
 		TrainProperties.init();
@@ -327,7 +327,7 @@ public class TrainCarts extends PluginBase {
 		SignActionDetector.init(getDataFolder() + File.separator + "detectorsigns.dat");
 		
 		//Restore carts where possible
-		WorldGroupManager.refresh();
+		OfflineGroupManager.refresh();
 				
 		//Properly dispose of partly-referenced carts
 		new Task(this) {
@@ -399,7 +399,7 @@ public class TrainCarts extends PluginBase {
 
 		//undo replacements for correct native saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
-			WorldGroupManager.hideGroup(mg);
+			OfflineGroupManager.hideGroup(mg);
 		}
 		
 		//clear statements
@@ -411,12 +411,12 @@ public class TrainCarts extends PluginBase {
 				this.doEntities();
 			}
 			public void handle(Entity entity) {
-				WorldGroupManager.hideGroup(entity);
+				OfflineGroupManager.hideGroup(entity);
 			}
 		};
 
 		//Save for next load
-		WorldGroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
+		OfflineGroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
 
 		SignAction.deinit();
 		

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,7 +15,8 @@ import org.bukkit.entity.Slime;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.storage.WorldGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class TrainProperties extends HashSet<CartProperties> {
 	private static final long serialVersionUID = 1L;
@@ -23,6 +25,9 @@ public class TrainProperties extends HashSet<CartProperties> {
 	private static final String propertiesFile = "TrainProperties.yml";
 	
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
+	public static Collection<TrainProperties> getAll() {
+		return properties.values();
+	}
 	public static TrainProperties get(String trainname) {
 		if (trainname == null) return null;
 		TrainProperties prop = properties.get(trainname);
@@ -34,7 +39,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 	public static boolean exists(String trainname) {
 		if (properties == null) return false;
 		if (properties.containsKey(trainname)) {
-			if (WorldGroupManager.contains(trainname)) {
+			if (OfflineGroupManager.contains(trainname)) {
 				return true;
 			} else if (MinecartGroup.get(trainname) != null) {
 				return true;
@@ -60,15 +65,21 @@ public class TrainProperties extends HashSet<CartProperties> {
 	public boolean requirePoweredMinecart = false;
 	public boolean keepChunksLoaded = false;
 	public boolean ignoreStations = false;
+	private SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
 	
 	@Deprecated
 	public Set<CartProperties> getCarts() {
 		return this;
 	}
 	public MinecartGroup getGroup() {
-		return MinecartGroup.get(this.trainname);
+		MinecartGroup group = this.group.get();
+		if (group == null || group.isRemoved()) {
+			return this.group.set(MinecartGroup.get(this.trainname));
+		} else {
+			return group;
+		}
 	}
-		
+	
 	/*
 	 * Carts
 	 */
@@ -77,6 +88,18 @@ public class TrainProperties extends HashSet<CartProperties> {
 	}
 	public void remove(MinecartMember member) {
 		this.remove(member.getProperties());
+	}
+	public boolean add(CartProperties properties) {
+		properties.group = this;
+		return super.add(properties);
+	}
+	public CartProperties get(int index) {
+		for (CartProperties prop : this) {
+			if (index-- == 0) {
+				return prop;
+			}
+		}
+		throw new IndexOutOfBoundsException("No cart properties found at index " + index);
 	}
 	
 	/*
@@ -266,7 +289,18 @@ public class TrainProperties extends HashSet<CartProperties> {
 		properties.put(newtrainname, this);
 		return this;
 	}
-	
+	public boolean isTrainRenamed() {
+		if (this.trainname.startsWith("train")) {
+			try {
+				Integer.parseInt(this.trainname.substring(5));
+			} catch (NumberFormatException ex) {return true;}
+		}
+		return false;
+	}
+	public boolean isLoaded() {
+		return this.getGroup() != null;
+	}
+
 	public static void init() {
 		load();
 	}
@@ -350,7 +384,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		for (TrainProperties prop : properties.values()) {
 			//does this train even exist?!
-			if (WorldGroupManager.contains(prop.getTrainName())) {
+			if (OfflineGroupManager.contains(prop.getTrainName())) {
 				ConfigurationNode train = config.getNode(prop.getTrainName());
 				prop.save(train);
 				if (train.getKeys().isEmpty()) {
@@ -375,7 +409,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 		this.ignoreStations = node.get("ignoreStations", this.ignoreStations);
 		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
 			try {
-				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()));
+				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()), this);
 				this.add(prop);
 				prop.load(cart);
 			} catch (Exception ex) {

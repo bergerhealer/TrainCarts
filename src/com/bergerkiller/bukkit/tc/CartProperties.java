@@ -14,25 +14,40 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class CartProperties {
-	public static final CartProperties EMPTY = new CartProperties(null);
+	public static final CartProperties EMPTY = new CartProperties(null, TrainProperties.EMPTY);
 	
 	private static HashMap<UUID, CartProperties> properties = new HashMap<UUID, CartProperties>();
-	public static CartProperties get(UUID uuid) {
+	private static HashMap<String, CartProperties> editing = new HashMap<String, CartProperties>();
+	
+	public static CartProperties getEditing(String playername) {
+		return editing.get(playername.toLowerCase());
+	}
+	public static void setEditing(String playername, CartProperties properties) {
+		if (properties == null) {
+			editing.remove(playername.toLowerCase());
+		} else {
+			editing.put(playername.toLowerCase(), properties);
+		}
+	}
+	
+	public static CartProperties get(UUID uuid, TrainProperties train) {
 		CartProperties prop = properties.get(uuid);
 		if (prop == null) {
-			prop = new CartProperties(uuid);
+			prop = new CartProperties(uuid, train);
 			properties.put(uuid, prop);
 		}
 		return prop;
 	}
 	public static CartProperties get(MinecartMember member) {
-		return get(member.uniqueId);
+		return get(member.uniqueId, member.getGroup().getProperties());
 	}
 	
-	private CartProperties(UUID uuid) {
+	private CartProperties(UUID uuid, TrainProperties group) {
 		this.uuid = uuid;
+		this.group = group;
 	}
 	
 	private final UUID uuid;
@@ -46,12 +61,33 @@ public class CartProperties {
 	public String destination = "";
 	public boolean isPublic = true;
 	public boolean pickUp = false;
+	private SoftReference<MinecartMember> member = new SoftReference<MinecartMember>();
+	protected TrainProperties group = null;
 	
+	public void setEditing(String playername) {
+		setEditing(playername, this);
+	}
 	public void remove() {
 		properties.remove(this.uuid);
 	}
+	public TrainProperties getTrainProperties() {
+		return this.group;
+	}
 	public MinecartMember getMember() {
-		return MinecartMember.get(this.uuid);
+		MinecartMember member = this.member.get();
+		if (member == null || member.dead || !member.uniqueId.equals(this.uuid)) {
+			return this.member.set(MinecartMember.get(this.uuid));
+		} else {
+			return member;
+		}
+	}
+	public MinecartGroup getGroup() {
+		MinecartMember member = this.getMember();
+		if (member == null) {
+			return this.group == null ? null : this.group.getGroup();
+		} else {
+			return member.getGroup();
+		}
 	}
 	public UUID getUUID() {
 		return this.uuid;
@@ -69,7 +105,7 @@ public class CartProperties {
 		if (this.blockBreakTypes.isEmpty()) return false;
 		return this.blockBreakTypes.contains(block.getType());
 	}
-	
+
 	/*
 	 * Owners
 	 */
@@ -124,7 +160,7 @@ public class CartProperties {
 		}
 		return false;
 	}
-		
+
 	/*
 	 * Tags
 	 */
@@ -204,7 +240,7 @@ public class CartProperties {
 	public boolean hasDestination() {
 		return this.destination != null && this.destination.length() != 0;
 	}
-		
+
 	public void load(CartProperties from) {
 		this.owners.clear();
 		this.owners.addAll(from.owners);
