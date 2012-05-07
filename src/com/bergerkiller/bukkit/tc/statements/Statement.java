@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public abstract class Statement {
 	
@@ -91,6 +92,7 @@ public abstract class Statement {
 		
 	private static boolean has(MinecartMember member, MinecartGroup group, String text) {
 		boolean inv = false;
+		text = TrainCarts.statementShortcuts.replace(text);
 		while (text.startsWith("!")) {
 			text = text.substring(1);
 			inv = !inv;

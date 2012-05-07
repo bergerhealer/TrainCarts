@@ -852,11 +852,11 @@ public class MinecartMember extends NativeMinecartMember {
 			switch (this.direction) {
 			case NORTH_WEST :
 				if (raildirection == BlockFace.NORTH_EAST) {
-					this.directionFrom = BlockFace.WEST;
-					this.directionTo = BlockFace.NORTH;
-				} else {
 					this.directionFrom = BlockFace.NORTH;
 					this.directionTo = BlockFace.WEST;
+				} else {
+					this.directionFrom = BlockFace.WEST;
+					this.directionTo = BlockFace.NORTH;
 				}
 				break;
 			case SOUTH_EAST :
@@ -870,20 +870,20 @@ public class MinecartMember extends NativeMinecartMember {
 				break;
 			case NORTH_EAST :
 				if (raildirection == BlockFace.NORTH_WEST) {
-					this.directionFrom = BlockFace.EAST;
-					this.directionTo = BlockFace.NORTH;
-				} else {
 					this.directionFrom = BlockFace.NORTH;
 					this.directionTo = BlockFace.EAST;
+				} else {
+					this.directionFrom = BlockFace.EAST;
+					this.directionTo = BlockFace.NORTH;
 				}
 				break;
 			case SOUTH_WEST :
 				if (raildirection == BlockFace.NORTH_WEST) {
-					this.directionFrom = BlockFace.SOUTH;
-					this.directionTo = BlockFace.WEST;
-				} else {
 					this.directionFrom = BlockFace.WEST;
 					this.directionTo = BlockFace.SOUTH;
+				} else {
+					this.directionFrom = BlockFace.SOUTH;
+					this.directionTo = BlockFace.WEST;
 				}
 				break;
 			default :

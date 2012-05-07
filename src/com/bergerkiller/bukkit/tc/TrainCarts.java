@@ -36,6 +36,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.ShortcutMap;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
@@ -75,6 +76,8 @@ public class TrainCarts extends PluginBase {
 	public static boolean slowDownEmptyCarts;
 	public static double slowDownMultiplierSlow;
 	public static double slowDownMultiplierNormal;
+	public static final ShortcutMap messageShortcuts = new ShortcutMap();
+	public static final ShortcutMap statementShortcuts = new ShortcutMap();
 	
 	public static boolean EssentialsEnabled = false;
 	public static boolean SignLinkEnabled = false;
@@ -221,6 +224,20 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("showTransferAnimations", "\nWhether or not to show item animations when transferring items");
 		showTransferAnimations = config.get("showTransferAnimations", true);
 		
+		//message shortcuts
+		config.setHeader("messageShortcuts", "\nSeveral shortcuts you can use on announce signs (text is replaced)");
+		if (!config.contains("messageShortcuts")) {
+			config.set("messageShortcuts.welcome", "&eWelcome to &f");
+		}
+		messageShortcuts.clear().load(config.getNode("messageShortcuts"));
+		
+		//statement shortcuts
+		config.setHeader("statementShortcuts", "\nSeveral shortcuts you can use on switcher and detector signs (text is replaced)");
+		if (!config.contains("statementShortcuts")) {
+			config.set("statementShortcuts.diamond", "i@diamond");
+		}
+		statementShortcuts.clear().load(config.getNode("statementShortcuts"));
+		
 		//parser shortcuts
 		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
 		ConfigurationNode itemshort = config.getNode("itemShortcuts");
@@ -334,10 +351,12 @@ public class TrainCarts extends PluginBase {
 			@Override
 			public void run() {
 				new Operation() {
+					private Set<Entity> toRemove;
 					private Set worldentities;
 					@Override
 					public void run() {
 						this.worldentities = new HashSet();
+						this.toRemove = new HashSet<Entity>();
 						this.doWorlds();
 					}
 					@Override
@@ -345,7 +364,13 @@ public class TrainCarts extends PluginBase {
 					public void handle(WorldServer world) {
 						this.worldentities.clear();
 						this.worldentities.addAll(world.entityList);
-						this.doChunks(world);
+						this.doEntities(world);
+						for (Entity entity : toRemove) {
+							//remove from chunk and tracker
+							WorldUtil.getTracker(entity.world).untrackEntity(entity);
+							entity.world.removeEntity(entity);
+						}
+						toRemove.clear();
 					}
 					@Override
 					public void handle(Chunk chunk) {
@@ -354,9 +379,7 @@ public class TrainCarts extends PluginBase {
 					@Override
 					public void handle(Entity entity) {
 						if (!this.worldentities.contains(entity)) {
-							//remove from chunk and tracker
-							WorldUtil.getTracker(entity.world).untrackEntity(entity);
-							entity.world.removeEntity(entity);
+							toRemove.add(entity);
 						}
 					}
 				};

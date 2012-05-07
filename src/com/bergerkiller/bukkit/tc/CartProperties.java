@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.tc.signactions.SignActionAnnounce;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class CartProperties {
@@ -230,7 +231,7 @@ public class CartProperties {
 	}
 	public void showEnterMessage(Player player) {
 		if (this.hasEnterMessage()) {
-			player.sendMessage(ChatColor.YELLOW + enterMessage);
+			SignActionAnnounce.sendMessage(ChatColor.YELLOW + SignActionAnnounce.getMessage(enterMessage), player);
 		}
 	}
 	

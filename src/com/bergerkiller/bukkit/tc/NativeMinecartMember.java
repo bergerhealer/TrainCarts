@@ -1000,7 +1000,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				} else {
 					return false;
 				}
-			} else if (this.type == 1 && EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().allowMobsEnter && this.passenger == null) {
+			} else if (this.passenger == null && this.canBeRidden() && EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().allowMobsEnter) {
 				e.setPassengerOf(this);
 				return false;
 			}

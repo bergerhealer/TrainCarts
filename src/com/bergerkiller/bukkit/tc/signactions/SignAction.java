@@ -24,8 +24,7 @@ public abstract class SignAction {
 		register(new SignActionTrigger());
 		register(new SignActionTeleport());
 		register(new SignActionEject());
-		register(new SignActionCart());
-		register(new SignActionTrain());
+		register(new SignActionDestroy());
 		register(new SignActionCollect());
 		register(new SignActionDeposit());
 		register(new SignActionFuel());
@@ -36,6 +35,7 @@ public abstract class SignAction {
 		register(new SignActionWait());
 		register(new SignActionElevator());
 		register(new SignActionTicket());
+		register(new SignActionAnnounce());
 	}
 	public static void deinit() {
 		actions = null;

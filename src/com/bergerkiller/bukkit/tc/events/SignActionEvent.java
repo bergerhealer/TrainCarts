@@ -11,6 +11,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -64,9 +65,9 @@ public class SignActionEvent extends Event implements Cancellable {
 					this.watchedDirections = new BlockFace[] {this.getFacing().getOppositeFace()};
 				} else {
 					BlockFace facing = this.getFacing();
-					if (Util.getRailsBlock(this.railsblock.getRelative(facing)) != null) {
+					if (this.isConnectedRails(facing)) {
 						this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
-					} else if (Util.getRailsBlock(this.railsblock.getRelative(facing.getOppositeFace())) != null) {
+					} else if (this.isConnectedRails(facing.getOppositeFace())) {
 						this.watchedDirections = new BlockFace[] {facing};
 					} else {
 						this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
@@ -315,7 +316,21 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Sign getSign() {
 		return this.sign;
 	}
-	
+	public boolean isConnectedRails(BlockFace direction) {
+		Block block = Util.getRailsBlock(this.railsblock.getRelative(direction));
+		if (block != null) {
+			Rails rails = BlockUtil.getRails(block);
+			if (rails == null) return true; //pressure plate
+			direction = direction.getOppositeFace();
+			for (BlockFace dir : FaceUtil.getFaces(rails.getDirection())) {
+				if (dir == direction) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	public MinecartGroup getRCTrainGroup() {
 		return MinecartGroup.get(this.getRCTrainName());
 	}

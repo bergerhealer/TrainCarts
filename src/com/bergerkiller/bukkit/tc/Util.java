@@ -8,14 +8,12 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Minecart;
 
 import net.minecraft.server.EntityMinecart;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -23,17 +21,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
 
 public class Util {
-		
-	/*
-	 * Entity states
-	 */
-	public static float getMinecartYaw(Minecart minecart) {
-		return getMinecartYaw(EntityUtil.getNative(minecart));
-	}
-	public static float getMinecartYaw(EntityMinecart minecart) {
-		if (minecart instanceof MinecartMember) return ((MinecartMember) minecart).getYaw();
-		return minecart.yaw;
-	}
 	
 	public static void setItemMaxSize(Material material, int maxstacksize) {
 		setItemMaxSize(net.minecraft.server.Item.byId[material.getId()], maxstacksize);
@@ -308,6 +295,24 @@ public class Util {
 		return false;
 	}
 	
+	public static String replaceColors(String line) {
+		int index = 0;
+		while (true) {
+			index = line.indexOf('&', index);
+			if (index >= 0 && index < line.length() - 1) {
+				char next = line.charAt(index + 1);
+				if (next == '0' || next == '1' || next == '2' || next == '3' || next == '4' ||
+						next == '5' || next == '6' || next == '7' || next == '8' || next == '9' ||
+						next == 'a' || next == 'b' || next == 'c' || next == 'd' || next == 'e' || next == 'f') {
+					line = line.substring(0, index) + '§' + line.substring(index + 1);
+				}
+				index++;
+			} else {
+				break;
+			}
+		}
+		return line;
+	}
 	public static boolean evaluate(double value, String text) {
 		if (text == null || text.isEmpty()) {
 			return false; //no valid input
