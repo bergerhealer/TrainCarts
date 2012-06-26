@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.statements;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementType extends Statement {
 
@@ -27,13 +28,13 @@ public class StatementType extends Statement {
 	}
 	
 	@Override
-	public boolean handle(MinecartMember member, String text) {
+	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		int type = getType(text);
 		return type == 3 || member.type == type;
 	}
 	
 	@Override
-	public boolean handle(MinecartGroup group, String text) {
+	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int type = getType(text);
 		return Util.evaluate(type == 3 ? group.size() : group.size(type), text);
 	}

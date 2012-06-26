@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementItems extends Statement {
 
@@ -16,13 +17,13 @@ public class StatementItems extends Statement {
 	}
 	
 	@Override
-	public boolean handle(MinecartMember member, String text) {
+	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		int count = ItemUtil.getItemCount(getInventory(member), null, null);
 		return Util.evaluate(count, text);
 	}
 	
 	@Override
-	public boolean handle(MinecartGroup group, String text) {
+	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = ItemUtil.getItemCount(getInventory(group), null, null);
 		return Util.evaluate(count, text);
 	}
@@ -70,12 +71,12 @@ public class StatementItems extends Statement {
 	}
 	
 	@Override
-	public boolean handleArray(MinecartMember member, String[] items) {
+	public boolean handleArray(MinecartMember member, String[] items, SignActionEvent event) {
 		return handleInventory(getInventory(member), items);
 	}
 	
 	@Override
-	public boolean handleArray(MinecartGroup group, String[] items) {
+	public boolean handleArray(MinecartGroup group, String[] items, SignActionEvent event) {
 		return handleInventory(getInventory(group), items);
 	}
 }

@@ -6,9 +6,10 @@ import java.util.List;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public abstract class Statement {
-	
+
 	/**
 	 * Checks if this statement matches the given text
 	 * The given text is lower cased.
@@ -16,7 +17,7 @@ public abstract class Statement {
 	 * @return if it matches and can handle it
 	 */
 	public abstract boolean match(String text);
-	
+
 	/**
 	 * Checks if this statement matches the given text
 	 * The given text is lower cased.
@@ -25,39 +26,39 @@ public abstract class Statement {
 	 * @return if it matches and can handle an array
 	 */
 	public abstract boolean matchArray(String text);
-	
-	public boolean handle(MinecartGroup group, String text) {
+
+	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		for (MinecartMember member : group) {
-			if (this.handle(member, text)) {
+			if (this.handle(member, text, event)) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
-	public boolean handleArray(MinecartGroup group, String[] text) {
+
+	public boolean handleArray(MinecartGroup group, String[] text, SignActionEvent event) {
 		for (MinecartMember member : group) {
-			if (this.handleArray(member, text)) {
+			if (this.handleArray(member, text, event)) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
-	public boolean handle(MinecartMember member, String text) {
+
+	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		return false;
 	}
-	
-	public boolean handleArray(MinecartMember member, String[] text) {
+
+	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
 		return false;
 	}
-	
+
 	public static String[] parseArray(String text) {
 		return text.split(";", -1);
 	}
-	
+
 	private static List<Statement> statements = new ArrayList<Statement>();
-	
+
 	public static void init() {
 		register(new StatementDestination());
 		register(new StatementBoolean());
@@ -70,27 +71,28 @@ public abstract class Statement {
 		register(new StatementPlayerItems());
 		register(new StatementPlayerHand());
 		register(new StatementMob());
+		register(new StatementRedstone());
 		register(new StatementTag()); //register lastly!
 	}
-	
+
 	public static void deinit() {
 		statements.clear();
 	}
-	
+
 	public static <T extends Statement> T register(T statement) {
 		statements.add(statement);
 		return statement;
 	}
-	
-	public static boolean has(MinecartMember member, String text) {
-		return has(member, null, text);
+
+	public static boolean has(MinecartMember member, String text, SignActionEvent event) {
+		return has(member, null, text, event);
 	}
-	
-	public static boolean has(MinecartGroup group, String text) {
-		return has(null, group, text);
+
+	public static boolean has(MinecartGroup group, String text, SignActionEvent event) {
+		return has(null, group, text, event);
 	}
-		
-	private static boolean has(MinecartMember member, MinecartGroup group, String text) {
+
+	private static boolean has(MinecartMember member, MinecartGroup group, String text, SignActionEvent event) {
 		boolean inv = false;
 		text = TrainCarts.statementShortcuts.replace(text);
 		while (text.startsWith("!")) {
@@ -107,15 +109,15 @@ public abstract class Statement {
 		for (Statement statement : statements) {
 			if (statement.match(lowerText)) {
 				if (member != null) {
-					return statement.handle(member, text) != inv;
+					return statement.handle(member, text, event) != inv;
 				} else if (group != null) {
-					return statement.handle(group, text) != inv;
+					return statement.handle(group, text, event) != inv;
 				}
 			} else if (arrayText != null && statement.matchArray(arrayText)) {
 				if (member != null) {
-					return statement.handleArray(member, array) != inv;
+					return statement.handleArray(member, array, event) != inv;
 				} else if (group != null) {
-					return statement.handleArray(group, array) != inv;
+					return statement.handleArray(group, array, event) != inv;
 				}
 			}
 		}

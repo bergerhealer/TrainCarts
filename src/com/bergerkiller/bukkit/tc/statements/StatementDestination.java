@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.statements;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementDestination extends Statement {
 	
@@ -10,7 +11,7 @@ public class StatementDestination extends Statement {
 	}
 	
 	@Override
-	public boolean handle(MinecartMember member, String text) {
+	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		return member.getProperties().hasDestination();
 	}
 	
@@ -20,7 +21,7 @@ public class StatementDestination extends Statement {
 	}
 		
 	@Override
-	public boolean handleArray(MinecartMember member, String[] text) {
+	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
 		String dest = member.getProperties().destination;
 		for (String elem : text) {
 			if (dest == null ? elem.length() == 0 : elem.equals(dest)) {

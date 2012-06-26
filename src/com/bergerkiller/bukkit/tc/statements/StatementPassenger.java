@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementPassenger extends Statement {
 
@@ -14,12 +15,12 @@ public class StatementPassenger extends Statement {
 	}
 	
 	@Override
-	public boolean handle(MinecartMember member, String text) {
+	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		return text.toLowerCase().startsWith("player") ? member.hasPlayerPassenger() : member.hasPassenger();
 	}
 	
 	@Override
-	public boolean handle(MinecartGroup group, String text) {
+	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = 0;
 		boolean playermode = text.toLowerCase().startsWith("player");
 		for (MinecartMember member : group) {
@@ -36,7 +37,7 @@ public class StatementPassenger extends Statement {
 	}
 	
 	@Override
-	public boolean handleArray(MinecartMember member, String[] names) {
+	public boolean handleArray(MinecartMember member, String[] names, SignActionEvent event) {
 		if (member.hasPlayerPassenger()) {
 			String pname = ((Player) member.passenger.getBukkitEntity()).getName();
 			for (String name : names) {

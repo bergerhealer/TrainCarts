@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementMob extends Statement {
 
@@ -13,12 +14,12 @@ public class StatementMob extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text) {
+	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		return member.hasPassenger() && EntityUtil.isMob(member.passenger);
 	}
 
 	@Override
-	public boolean handle(MinecartGroup group, String text) {
+	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = 0;
 		for (MinecartMember member : group) {
 			if (member.hasPassenger() && EntityUtil.isMob(member.passenger)) {
@@ -49,9 +50,9 @@ public class StatementMob extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] mobs) {
+	public boolean handleArray(MinecartMember member, String[] mobs, SignActionEvent event) {
 		if (mobs.length == 0) {
-			return this.handle(member, null);
+			return this.handle(member, null, event);
 		} else {
 			//contains one of the defined mobs?
 			for (int i = 0; i < mobs.length; i++) {
@@ -67,9 +68,9 @@ public class StatementMob extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartGroup group, String[] mobs) {
+	public boolean handleArray(MinecartGroup group, String[] mobs, SignActionEvent event) {
 		if (mobs.length == 0) {
-			return this.handle(group, null);
+			return this.handle(group, null, event);
 		} else {
 			//contains one of the defined mobs?
 			for (int i = 0; i < mobs.length; i++) {

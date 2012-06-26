@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
 public class DirectionStatement {
@@ -28,12 +29,12 @@ public class DirectionStatement {
 	public String text;
 	public Integer number;
 
-	public boolean has(MinecartMember member) {
-		return Statement.has(member, this.text);
+	public boolean has(SignActionEvent event, MinecartMember member) {
+		return Statement.has(member, this.text, event);
 	}
 
-	public boolean has(MinecartGroup group) {
-		return Statement.has(group, this.text);
+	public boolean has(SignActionEvent event, MinecartGroup group) {
+		return Statement.has(group, this.text, event);
 	}
 
 	public boolean hasNumber() {

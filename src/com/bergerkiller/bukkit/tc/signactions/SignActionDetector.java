@@ -73,25 +73,25 @@ public class SignActionDetector extends SignAction {
 		}
 
 		public boolean updateMembers(final Sign sign) {
-			Block signblock = sign.getBlock();
+			SignActionEvent event = new SignActionEvent(sign.getBlock());
 			for (MinecartMember mm : this.region.getMembers()) {
-				if (isDown(sign.getLine(2), sign.getLine(3), mm)) {
-					BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
+				if (isDown(event, mm)) {
+					event.setLevers(true);
 					return true;
 				}
 			}
-			BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), false);
+			event.setLevers(false);
 			return false;
 		}
 		public boolean updateGroups(final Sign sign) {
-			Block signblock = sign.getBlock();
+			SignActionEvent event = new SignActionEvent(sign.getBlock());
 			for (MinecartGroup g : this.region.getGroups()) {
-				if (isDown(sign.getLine(2), sign.getLine(3), g)) {
-					BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
+				if (isDown(event, g)) {
+					event.setLevers(true);
 					return true;
 				}
 			}
-			BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), false);
+			event.setLevers(false);
 			return false;
 		}
 
@@ -112,19 +112,21 @@ public class SignActionDetector extends SignAction {
 		public void onLeave(MinecartGroup group) {
 			Block signblock;
 			if (this.sign1down && (signblock = getSign1(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(signblock);
+				SignActionEvent event = new SignActionEvent(signblock);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
-					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
+				if (event.isTrainSign()) {
+					if (isDown(event, group)) {
 						this.sign1down = updateGroups(sign);
 					}
 				}
 			}
 			if (this.sign2down && (signblock = getSign2(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(signblock);
+				SignActionEvent event = new SignActionEvent(signblock);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
-					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
+				if (event.isTrainSign()) {
+					if (isDown(event, group)) {
 						this.sign2down = updateGroups(sign);
 					}
 				}
@@ -134,20 +136,22 @@ public class SignActionDetector extends SignAction {
 		public void onEnter(MinecartGroup group) {
 			Block signblock;
 			if (!this.sign1down && (signblock = getSign1(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(signblock);
+				SignActionEvent event = new SignActionEvent(signblock);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
-					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
+				if (event.isTrainSign()) {
+					if (isDown(event, group)) {
 						this.sign1down = true;
 						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
 					}
 				}
 			}
 			if (!this.sign2down && (signblock = getSign2(group.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(signblock);
+				SignActionEvent event = new SignActionEvent(signblock);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.TRAIN) {
-					if (isDown(sign.getLine(2), sign.getLine(3), group)) {
+				if (event.isTrainSign()) {
+					if (isDown(event, group)) {
 						this.sign2down = true;
 						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(signblock), true);
 					}
@@ -159,19 +163,21 @@ public class SignActionDetector extends SignAction {
 		public void onLeave(MinecartMember member) {
 			Block sign1, sign2;
 			if (this.sign1down && (sign1 = getSign1(member.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign1);
+				SignActionEvent event = new SignActionEvent(sign1);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.CART) {
-					if (isDown(sign.getLine(2), sign.getLine(3), member)) {
+				if (event.isCartSign()) {
+					if (isDown(event, member)) {
 						this.sign1down = updateMembers(sign);
 					}
 				}
 			}
 			if (this.sign2down && (sign2 = getSign2(member.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign2);
+				SignActionEvent event = new SignActionEvent(sign2);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.CART) {
-					if (isDown(sign.getLine(2), sign.getLine(3), member)) {
+				if (event.isCartSign()) {
+					if (isDown(event, member)) {
 						this.sign2down = updateMembers(sign);
 					}
 				}
@@ -181,20 +187,22 @@ public class SignActionDetector extends SignAction {
 		public void onEnter(MinecartMember member) {
 			Block sign1, sign2;
 			if (!this.sign1down && (sign1 = getSign1(member.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign1);
+				SignActionEvent event = new SignActionEvent(sign1);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
-				if (SignActionMode.fromSign(sign) == SignActionMode.CART) {
-					if (isDown(sign.getLine(2), sign.getLine(3), member)) {
+				if (event.isCartSign()) {
+					if (isDown(event, member)) {
 						this.sign1down = true;
 						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(sign1), true);
 					}
 				}
 			}
 			if (!this.sign2down && (sign2 = getSign2(member.getWorld())) != null) {
-				Sign sign = BlockUtil.getSign(sign2);
+				SignActionEvent event = new SignActionEvent(sign2);
+				Sign sign = event.getSign();
 				if (!validate(sign)) return;
 				if (SignActionMode.fromSign(sign) == SignActionMode.CART) {
-					if (isDown(sign.getLine(2), sign.getLine(3), member)) {
+					if (isDown(event, member)) {
 						this.sign2down = true;
 						BlockUtil.setLeversAroundBlock(BlockUtil.getAttachedBlock(sign2), true);
 					}
@@ -209,31 +217,26 @@ public class SignActionDetector extends SignAction {
 			if (this.region == region) this.region = null;
 		}
 
-		public static boolean isDown(final String line1, final String line2, final MinecartMember member) {
-			if (line1.isEmpty()) {
-				if (line2.isEmpty()) {
-					return true;
-				} else {
-					return Statement.has(member, line2);
-				}
-			} else if (line2.isEmpty()) {
-				return Statement.has(member, line1);
-			} else {
-				return Statement.has(member, line1) || Statement.has(member, line2);
+		public static boolean isDown(SignActionEvent event, final MinecartMember member) {
+			boolean state = false;
+			if (!event.getLine(2).isEmpty()) {
+				state |= Statement.has(member, event.getLine(2), event);
 			}
+			if (!event.getLine(3).isEmpty()) {
+				state |= Statement.has(member, event.getLine(3), event);
+			}
+			return state;
 		}
-		public static boolean isDown(final String line1, final String line2, final MinecartGroup group) {
-			if (line1.isEmpty()) {
-				if (line2.isEmpty()) {
-					return true;
-				} else {
-					return Statement.has(group, line2);
-				}
-			} else if (line2.isEmpty()) {
-				return Statement.has(group, line1);
-			} else {
-				return Statement.has(group, line1) || Statement.has(group, line2);
+
+		public static boolean isDown(SignActionEvent event, final MinecartGroup group) {
+			boolean state = false;
+			if (!event.getLine(2).isEmpty()) {
+				state |= Statement.has(group, event.getLine(2), event);
 			}
+			if (!event.getLine(3).isEmpty()) {
+				state |= Statement.has(group, event.getLine(3), event);
+			}
+			return state;
 		}
 
 		@Override

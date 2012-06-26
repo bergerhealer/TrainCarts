@@ -146,8 +146,8 @@ public class SignActionSwitcher extends SignAction {
 			Direction dir = Direction.NONE;
 			for (DirectionStatement stat : statements) {
 				if ((stat.hasNumber() && (counter += stat.number) > currentcount)
-						|| (doCart && stat.has(info.getMember()))
-						|| (doTrain && stat.has(info.getGroup()))) {
+						|| (doCart && stat.has(info, info.getMember()))
+						|| (doTrain && stat.has(info, info.getGroup()))) {
 
 					dir = stat.direction;
 					break;

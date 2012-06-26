@@ -8,15 +8,11 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 public enum SignActionMode {
     TRAIN, CART, RCTRAIN, NONE;
     public static SignActionMode fromString(String name) {    	
-    	if (name.endsWith("]")) {
-    		if (name.startsWith("[!")) {
-    			name = name.substring(2);
-    		} else if (name.startsWith("[")) {
-    			name = name.substring(1);
-    		} else {
-    			return NONE;
-    		}
-    		name = name.substring(0, name.length() - 1).toLowerCase();
+    	if (name.endsWith("]") && name.startsWith("[")) {
+			name = name.substring(1, name.length() - 1);
+			if (name.startsWith("!") || name.startsWith("+")) {
+				name = name.substring(1);
+			}
     		//further parsing
     		if (name.startsWith("train ") && name.length() > 6) {
     			return RCTRAIN;

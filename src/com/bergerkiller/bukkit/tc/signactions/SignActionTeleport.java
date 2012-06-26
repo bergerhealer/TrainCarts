@@ -22,7 +22,7 @@ public class SignActionTeleport extends SignAction {
 	public void execute(SignActionEvent info) {
 		if (!TrainCarts.MyWorldsEnabled) return;
 		if (!info.getLine(0).equalsIgnoreCase("[portal]")) return;
-		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.getGroup() != null) {
+		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.hasGroup()) {
 			if (info.isPowered()) {
 				if (!info.hasRails()) return;
 				Portal portal = Portal.get(info.getLocation());
@@ -37,14 +37,17 @@ public class SignActionTeleport extends SignAction {
 							BlockFace facing = BlockUtil.getFacing(sign);
 							BlockFace direction = facing;
 							Block destinationRail = Util.getRailsFromSign(sign);
-							boolean isPlate = Util.isRails(destinationRail);
+							if (destinationRail == null) {
+								return;
+							}
+							boolean isPlate = Util.isPressurePlate(destinationRail.getTypeId());
 							if (isPlate || BlockUtil.isRails(destinationRail)) {
 								//rail aligned at sign?
 								if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
 								if (facing == BlockFace.EAST) facing = BlockFace.WEST;
 								if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
 									//Allowed?
-									if (this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
+									if (!this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
 										info.getGroup().teleportAndGo(destinationRail, direction);
 										this.teleportTimes.mark(sign);
 									}

@@ -54,9 +54,11 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.railschecked = this.railsblock != null;
 		if (this.sign == null) {
 			this.powerinv = false;
+			this.poweron = false;
 			this.watchedDirections = FaceUtil.axis;
 		} else {
 			String linez = this.getLine(0);
+			this.poweron = linez.startsWith("[+");
 			this.powerinv = linez.startsWith("[!");
 			int idx = linez.indexOf(':');
 			if (idx == -1) {
@@ -110,6 +112,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private boolean railschecked = false;
 	private final BlockFace[] watchedDirections;
 	private final boolean powerinv;
+	private final boolean poweron;
 
 	public void setLevers(boolean down) {
 		BlockUtil.setLeversAroundBlock(this.getAttachedBlock(), down);
@@ -212,13 +215,29 @@ public class SignActionEvent extends Event implements Cancellable {
 		return this.powerinv;
 	}
 
+	public boolean isPowerAlwaysOn() {
+		return this.poweron;
+	}
+
 	public PowerState getPower(BlockFace from) {
 		return PowerState.get(this.signblock, from);
 	}
 	public boolean isPowered(BlockFace from) {
-		return this.powerinv != this.getPower(from).hasPower();
+		return this.poweron || this.powerinv != this.getPower(from).hasPower();
 	}
 	public boolean isPowered() {
+		if (this.poweron) {
+			return true;
+		}
+		return this.isPoweredRaw(this.powerinv);
+	}
+
+	/**
+	 * Checks if this sign is powered, ignoring settings on the sign
+	 * @param invert True to invert the power as a result, False to get the normal result
+	 * @return True if powered when not inverted, or not powered and inverted
+	 */
+	public boolean isPoweredRaw(boolean invert) {
 		BlockFace att = BlockUtil.getAttachedFace(this.signblock);
 		Block attblock = this.signblock.getRelative(att);
 		if (attblock.isBlockPowered()) {
@@ -231,16 +250,16 @@ public class SignActionEvent extends Event implements Cancellable {
 						if (alter == face) continue;
 						state = PowerState.get(attblock, alter, false);
 						switch (state) {
-						case ON : return !this.powerinv;
+						case ON : return !invert;
 						}
 					}
 					found = true;
 					break;
 				}
 			}
-			if (!found) return !this.powerinv;
+			if (!found) return !invert;
 		}
-		if (this.powerinv) {
+		if (invert) {
 			boolean def = true;
 			for (BlockFace face : FaceUtil.attachedFacesDown) {
 				if (face == att) continue;
@@ -251,7 +270,6 @@ public class SignActionEvent extends Event implements Cancellable {
 				case OFF : continue; //return true;
 				}
 			}
-		
 			return def;
 		} else {
 			for (BlockFace face : FaceUtil.attachedFacesDown) {
