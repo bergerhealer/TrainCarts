@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -208,6 +209,11 @@ public class CartCommands {
 			player.sendMessage(ChatColor.YELLOW + "This minecart will ignore tag switchers and will attempt to reach " + ChatColor.WHITE + prop.destination);
 		}
 		player.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + (prop.hasOwners() ? StringUtil.combineNames(prop.getOwners()) : "None"));
+		// Location
+		BlockLocation loc = prop.getLocation();
+		if (loc != null) {
+			player.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
+		}
 	}
 	
 }

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 
 import net.minecraft.server.ChunkProviderServer;
@@ -27,7 +28,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
  * Also adds functions to handle multiple members at once
  * Also adds functions to write and load from/to file
  */
-class OfflineGroup {
+public class OfflineGroup {
 	
 	public OfflineGroup() {}
 	public OfflineGroup(MinecartGroup group) {
@@ -36,12 +37,14 @@ class OfflineGroup {
 			this.members[i] = new OfflineMember(this, group.get(i));
 		}
 		this.name = group.getName();
+		this.worldUUID = group.getWorld().getUID();
 		this.genChunks();
 	}
 	public OfflineMember[] members;
 	public String name;
 	public final Set<Long> chunks = new HashSet<Long>();
 	public int chunkCounter;
+	public UUID worldUUID;
 	
 	public boolean testFullyLoaded() {
 		return this.chunkCounter == this.chunks.size();

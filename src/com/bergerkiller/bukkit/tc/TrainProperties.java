@@ -12,6 +12,7 @@ import org.bukkit.entity.Ghast;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -299,6 +300,13 @@ public class TrainProperties extends HashSet<CartProperties> {
 	}
 	public boolean isLoaded() {
 		return this.getGroup() != null;
+	}
+
+	public BlockLocation getLocation() {
+		for (CartProperties prop : this) {
+			return prop.getLocation();
+		}
+		return null;
 	}
 
 	public static void init() {

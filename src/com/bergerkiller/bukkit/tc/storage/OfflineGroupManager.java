@@ -244,6 +244,7 @@ public class OfflineGroupManager {
 						OfflineGroupManager man = get(worldUID);
 						for (int j = 0; j < groupcount; j++) {
 							OfflineGroup wg = OfflineGroup.readFrom(stream);
+							wg.worldUUID = worldUID;
 							for (OfflineMember wm : wg.members) hiddenMinecarts.add(wm.entityUID);
 							man.groupmap.add(wg);
 						    containedTrains.add(wg.name);
@@ -355,4 +356,27 @@ public class OfflineGroupManager {
 		}
 	}
 
+	public static OfflineGroup findGroup(String groupName) {
+		synchronized (managers) {
+			for (OfflineGroupManager manager : managers.values()) {
+				for (OfflineGroup group : manager.groupmap.values()) {
+					if (group.name.equals(groupName)) {
+						return group;
+					}
+				}
+			}
+		}
+		return null;
+	}
+	public static OfflineMember findMember(String groupName, UUID uuid) {
+		OfflineGroup group = findGroup(groupName);
+		if (group != null) {
+			for (OfflineMember member : group.members) {
+				if (member.entityUID.equals(uuid)) {
+					return member;
+				}
+			}
+		}
+		return null;
+	}
 }

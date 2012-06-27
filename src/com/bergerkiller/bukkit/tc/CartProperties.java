@@ -7,14 +7,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.tc.signactions.SignActionAnnounce;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class CartProperties {
@@ -223,6 +228,27 @@ public class CartProperties {
 		}
 	}
 
+	public BlockLocation getLocation() {
+		MinecartMember member = this.getMember();
+		if (member != null) {
+			return new BlockLocation(member.getLocation().getBlock());
+		} else {
+			// Offline member?
+			OfflineMember omember = OfflineGroupManager.findMember(this.getTrainProperties().getTrainName(), this.getUUID());
+			if (omember == null) {
+				return null;
+			} else {
+				// Find world
+				World world = Bukkit.getWorld(omember.group.worldUUID);
+				if (world == null) {
+					return new BlockLocation("Unknown", omember.cx << 4, 0, omember.cz << 4);
+				} else {
+					return new BlockLocation(world, omember.cx << 4, 0, omember.cz << 4);
+				}
+			}
+		}
+	}
+	
 	/*
 	 * Enter message
 	 */
