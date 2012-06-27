@@ -100,7 +100,7 @@ class OfflineGroup {
 		}
 		return rval.toArray(new Minecart[0]);
 	}
-		
+
 	/*
 	 * Read and write functions used internally
 	 */

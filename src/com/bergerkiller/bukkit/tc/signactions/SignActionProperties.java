@@ -1,13 +1,12 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.event.block.SignChangeEvent;
-
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionProperties extends SignAction {
 
@@ -136,21 +135,16 @@ public class SignActionProperties extends SignAction {
 		}
 	}
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode == SignActionMode.CART) {
-			if (type.startsWith("property")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.isType("property")) {
+			if (event.isCartSign()) {
 				return handleBuild(event, Permission.BUILD_PROPERTY, "cart property setter", "set properties on the cart above");
-			}
-		} else if (mode == SignActionMode.TRAIN) {
-			if (type.startsWith("property")) {
+			} else if (event.isTrainSign()) {
 				return handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "set properties on the train above");
-			}
-		} else if (mode == SignActionMode.RCTRAIN) {
-			if (type.startsWith("property")) {
+			} else if (event.isRCSign()) {
 				return handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "remotely set properties on the train specified");
 			}
 		}
 		return false;
 	}
-
 }

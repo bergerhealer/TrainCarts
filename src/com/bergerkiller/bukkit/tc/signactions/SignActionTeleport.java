@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.mw.MyWorlds;
 import com.bergerkiller.bukkit.mw.Portal;
@@ -11,6 +10,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
@@ -60,13 +60,12 @@ public class SignActionTeleport extends SignAction {
 		}	
 	}
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
+	public boolean build(SignChangeActionEvent event) {
 		if (event.getLine(0).equalsIgnoreCase("[portal]")) {
-			if (Util.getRailsFromSign(event.getBlock()) != null) {
+			if (event.hasRails()) {
 				return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
 			}
 		}
 		return false;
 	}
-
 }

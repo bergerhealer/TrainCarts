@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -10,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionAnnounce extends SignAction {
 
@@ -67,10 +67,10 @@ public class SignActionAnnounce extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("announce")) {
-				if (mode == SignActionMode.RCTRAIN) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("announce")) {
+				if (event.isRCSign()) {
 					return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "remotely send a message to all the players in the train");
 				} else {
 					return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "send a message to players in a train");

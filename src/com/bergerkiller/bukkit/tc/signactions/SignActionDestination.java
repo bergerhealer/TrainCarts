@@ -1,11 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.event.block.SignChangeEvent;
-
 import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
 public class SignActionDestination extends SignAction {
@@ -50,17 +49,17 @@ public class SignActionDestination extends SignAction {
 	}
 	
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode == SignActionMode.TRAIN) {
-			if (type.startsWith("destination")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.isTrainSign()) {
+			if (event.isType("destination")) {
 				return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");			
 			}
-		} else if (mode == SignActionMode.CART) {
-			if (type.startsWith("destination")) {
+		} else if (event.isCartSign()) {
+			if (event.isType("destination")) {
 				return handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
 			}
-		} else if (mode == SignActionMode.RCTRAIN) {
-			if (type.startsWith("destination")) {
+		} else if (event.isRCSign()) {
+			if (event.isType("destination")) {
 				return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
 			}
 		}

@@ -72,6 +72,7 @@ public class ArrivalSigns {
 	
 	public static String getTimeString(long time) {
 		if (time == 0) return "00:00:00";
+		time /= 1000; // msec -> sec
 		String seconds = Integer.toString((int)(time % 60));  
 		String minutes = Integer.toString((int)((time % 3600) / 60));  
 		String hours = Integer.toString((int)(time / 3600)); 
@@ -85,24 +86,24 @@ public class ArrivalSigns {
 		try {
 			if (timestring != null && !timestring.equals("")) {
 				String[] parts = timestring.split(":");
-					if (parts.length == 1) {
-						//Seconds display only
-						rval = Long.parseLong(parts[0]) * 1000;
-					} else if (parts.length == 2) {
-						//Min:Sec
-						rval = Long.parseLong(parts[0]) * 60000;
-						rval += Long.parseLong(parts[1]) * 1000;
-					} else if (parts.length == 3) {
-						//Hour:Min:Sec (ow come on -,-)
-						rval = Long.parseLong(parts[0]) * 3600000;
-						rval += Long.parseLong(parts[1]) * 60000;
-						rval += Long.parseLong(parts[2]) * 1000;
-					} else {
-						return 0;
-					}
+				if (parts.length == 1) {
+					//Seconds display only
+					rval = Long.parseLong(parts[0]) * 1000;
+				} else if (parts.length == 2) {
+					//Min:Sec
+					rval = Long.parseLong(parts[0]) * 60000;
+					rval += Long.parseLong(parts[1]) * 1000;
+				} else if (parts.length == 3) {
+					//Hour:Min:Sec (ow come on -,-)
+					rval = Long.parseLong(parts[0]) * 3600000;
+					rval += Long.parseLong(parts[1]) * 60000;
+					rval += Long.parseLong(parts[2]) * 1000;
 				} else {
 					return 0;
 				}
+			} else {
+				return 0;
+			}
 		} catch (Exception ex) {
 			//D'aw, failed. Start a timer for auto-update here...
 			return 0;
@@ -125,7 +126,7 @@ public class ArrivalSigns {
 				
 		public String getDuration() {
 			long elapsed = System.currentTimeMillis() - this.startTime;
-			long remaining = (duration - elapsed) / 1000;
+			long remaining = duration - elapsed;
 			if (remaining < 0) remaining = 0;
 			return getTimeString(remaining);
 		}
@@ -229,7 +230,7 @@ public class ArrivalSigns {
 			Block block = signblock.getBlock();
 			if (BlockUtil.isSign(block)) {
 				Sign sign = BlockUtil.getSign(block);
-				String dur = getTimeString(duration / 1000);
+				String dur = getTimeString(duration);
 				sign.setLine(3, dur);
 				sign.update(true);
 				//Message

@@ -42,6 +42,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
+import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -405,6 +406,7 @@ public class TCListener implements Listener {
 		if (!event.isCancelled()) {
 			if (BlockUtil.isSign(event.getBlock())) {
 				SignActionDetector.removeDetector(event.getBlock());
+				SignActionSpawn.remove(event.getBlock());
 				//invalidate this piece of track
 				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
 			} else if (BlockUtil.isRails(event.getBlock())) {

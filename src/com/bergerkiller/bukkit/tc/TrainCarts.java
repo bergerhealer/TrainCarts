@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
+import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ShortcutMap;
@@ -339,10 +340,13 @@ public class TrainCarts extends PluginBase {
 		
 		//Load detector regions
 		DetectorRegion.init(getDataFolder() + File.separator + "detectorregions.dat");	
-		
+
 		//Load detector sign locations
 		SignActionDetector.init(getDataFolder() + File.separator + "detectorsigns.dat");
-		
+
+		//Load spawn sign locations
+		SignActionSpawn.init(getDataFolder() + File.separator + "spawnsigns.dat");
+
 		//Restore carts where possible
 		OfflineGroupManager.refresh();
 				
@@ -413,6 +417,9 @@ public class TrainCarts extends PluginBase {
 
 		//Save arrival times
 		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
+
+		//Save spawn sign locations
+		SignActionSpawn.deinit(getDataFolder() + File.separator + "spawnsigns.dat");
 
 		//Save detector sign locations
 		SignActionDetector.deinit(getDataFolder() + File.separator + "detectorsigns.dat");

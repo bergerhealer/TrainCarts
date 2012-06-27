@@ -39,8 +39,8 @@ public class DetectorSignPair implements DetectorListener {
 	}
 
 	public void write(DataOutputStream stream) throws IOException {
-		StreamUtil.writeCoordinates(stream, this.sign1.signLocation);
-		StreamUtil.writeCoordinates(stream, this.sign2.signLocation);
+		StreamUtil.writeCoordinates(stream, this.sign1.getLocation());
+		StreamUtil.writeCoordinates(stream, this.sign2.getLocation());
 		stream.writeBoolean(this.sign1.wasDown);
 		stream.writeBoolean(this.sign2.wasDown);
 	}

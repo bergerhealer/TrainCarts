@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.statements;
 
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.MinecartGroup;

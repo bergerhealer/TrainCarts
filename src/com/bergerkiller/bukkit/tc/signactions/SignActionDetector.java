@@ -11,7 +11,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.Task;
@@ -27,25 +26,21 @@ import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSignPair;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionDetector extends SignAction {
 	public static void removeDetector(Block at) {
 		DetectorSignPair dec = detectors.get(at);
 		if (dec != null) {
-			detectors.remove(at.getWorld(), dec.sign1.signLocation);
-			detectors.remove(at.getWorld(), dec.sign2.signLocation);
+			detectors.remove(at.getWorld(), dec.sign1.getLocation());
+			detectors.remove(at.getWorld(), dec.sign2.getLocation());
 			dec.region.remove();
 		}
 	}
 	private static BlockMap<DetectorSignPair> detectors = new BlockMap<DetectorSignPair>();
 
-	public static boolean isValid(Sign sign) {
-		if (sign == null) return false;
-		return isValid(sign.getLines());
-	}
-	public static boolean isValid(String[] lines) {
-		return SignActionMode.fromString(lines[0]) != SignActionMode.NONE &&
-				lines[1].toLowerCase().startsWith("detector");
+	public static boolean isValid(SignActionEvent event) {
+		return event != null && event.getMode() == SignActionMode.NONE && event.isType("detector");
 	}
 
 	@Override
@@ -83,19 +78,19 @@ public class SignActionDetector extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (!isValid(event.getLines())) {
+	public boolean build(SignChangeActionEvent event) {
+		if (!isValid(event)) {
 			return false;
 		}
 		if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detect trains between this detector sign and another")) {
 			//try to create the other sign
-			Block startsign = event.getBlock();
-			Block startrails = Util.getRailsFromSign(startsign);
-			if (startrails == null) {
+			if (!event.hasRails()) {
 				event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
 				return true;
 			}
-			BlockFace dir = BlockUtil.getFacing(startsign);
+			Block startsign = event.getBlock();
+			Block startrails = event.getRails();
+			BlockFace dir = event.getFacing();
 			if (!tryBuild(startrails, startsign, dir)) {
 				if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, 2))) {
 					if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, -2))) {
@@ -125,8 +120,8 @@ public class SignActionDetector extends SignAction {
 					det.region = DetectorRegion.getRegion(id);
 					if (det.region == null) continue;
 					det.region.register(det);
-					detectors.put(det.region.getWorldName(), det.sign1.signLocation, det);
-					detectors.put(det.region.getWorldName(), det.sign2.signLocation, det);
+					detectors.put(det.region.getWorldName(), det.sign1.getLocation(), det);
+					detectors.put(det.region.getWorldName(), det.sign2.getLocation(), det);
 				}
 			}
 		}.read();

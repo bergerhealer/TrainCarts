@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.MinecartMember;
@@ -13,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TicketMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.earth2me.essentials.register.payment.*;
 import com.earth2me.essentials.register.payment.Method.MethodAccount;
 
@@ -80,9 +80,9 @@ public class SignActionTicket extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("ticket")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("ticket")) {
 				return handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
 			}
 		}

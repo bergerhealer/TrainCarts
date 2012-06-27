@@ -11,6 +11,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.Direction;
@@ -21,6 +22,7 @@ import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.ChangingSign;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
@@ -47,10 +49,14 @@ public class SignActionEvent extends Event implements Cancellable {
 		this(signblock, (Block) null);
 	}
 	public SignActionEvent(final Block signblock, Block railsblock) {
+		this(signblock, BlockUtil.getSign(signblock), railsblock);
+	}
+	public SignActionEvent(final Block signblock, final Sign sign, Block railsblock) {
 		this.signblock = signblock;
-		this.sign = BlockUtil.getSign(signblock);
+		this.sign = sign;
 		this.mode = SignActionMode.fromSign(this.sign);
 		this.railsblock = railsblock;
+		this.railschecked = this.railsblock != null;
 		this.railschecked = this.railsblock != null;
 		if (this.sign == null) {
 			this.powerinv = false;

@@ -1,13 +1,13 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.block.BlockFace;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionBlock extends SignAction {
 	
@@ -42,9 +42,9 @@ public class SignActionBlock extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("blocker")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("blocker")) {
 				return handleBuild(event, Permission.BUILD_BLOCKER, "train blocker", "block trains coming from a certain direction");
 			}
 		}

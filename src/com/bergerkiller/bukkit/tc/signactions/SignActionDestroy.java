@@ -1,10 +1,9 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.event.block.SignChangeEvent;
-
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionDestroy extends SignAction {
 
@@ -31,13 +30,13 @@ public class SignActionDestroy extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (type.startsWith("destroy")) {
-			if (mode == SignActionMode.CART) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.isType("destroy")) {
+			if (event.isCartSign()) {
 				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
-			} else if (mode == SignActionMode.TRAIN) {
+			} else if (event.isTrainSign()) {
 				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train");
-			} else if (mode == SignActionMode.RCTRAIN) {
+			} else if (event.isRCSign()) {
 				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train remotely");
 			}
 		}

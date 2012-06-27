@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -16,6 +15,7 @@ import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
@@ -180,11 +180,11 @@ public class SignActionSwitcher extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (type.startsWith("switcher") || type.startsWith("tag")) {
-			if (mode == SignActionMode.CART) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.isType("switcher", "tag")) {
+			if (event.isCartSign()) {
 				return handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
-			} else if (mode == SignActionMode.TRAIN) {
+			} else if (event.isTrainSign()) {
 				return handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
 			}
 		}

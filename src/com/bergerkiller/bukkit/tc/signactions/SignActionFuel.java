@@ -8,13 +8,13 @@ import net.minecraft.server.TileEntity;
 import net.minecraft.server.TileEntityChest;
 
 import org.bukkit.Material;
-import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 
 public class SignActionFuel extends SignAction {
@@ -81,12 +81,11 @@ public class SignActionFuel extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE && type.startsWith("fuel")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE && event.isType("fuel")) {
 			return handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", 
 					"fuel the powered minecart using coal from a chest");
 		}
 		return false;
 	}
-
 }

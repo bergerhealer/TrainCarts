@@ -1,10 +1,9 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.event.block.SignChangeEvent;
-
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionTrigger extends SignAction {
 
@@ -24,9 +23,9 @@ public class SignActionTrigger extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("trigger")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("trigger")) {
 				return handleBuild(event, Permission.BUILD_TRIGGER, "train trigger", "reset the arrival time, train name and destination, which can be displayed using SignLink");
 			}
 		}

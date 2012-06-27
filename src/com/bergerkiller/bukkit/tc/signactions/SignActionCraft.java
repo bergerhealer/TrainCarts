@@ -5,7 +5,6 @@ import net.minecraft.server.World;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.ItemParser;
@@ -15,6 +14,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 
 public class SignActionCraft extends SignAction {
@@ -73,9 +73,9 @@ public class SignActionCraft extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("craft")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("craft")) {
 				return handleBuild(event, Permission.BUILD_CRAFTER, "workbench item crafter", "craft items inside storage minecarts");
 			}
 		}

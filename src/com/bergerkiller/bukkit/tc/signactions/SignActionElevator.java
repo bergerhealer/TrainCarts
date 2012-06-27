@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.Directional;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -11,6 +10,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
@@ -129,13 +129,12 @@ public class SignActionElevator extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("elevator")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("elevator")) {
 				return handleBuild(event, Permission.BUILD_ELEVATOR, "train elevator", "teleport trains vertically");
 			}
 		}
 		return false;
 	}
-
 }

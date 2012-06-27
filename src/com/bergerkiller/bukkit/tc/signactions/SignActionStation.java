@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.MinecartGroup;
@@ -12,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
@@ -174,9 +174,9 @@ public class SignActionStation extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("station")) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("station")) {
 				return handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
 			}
 		}

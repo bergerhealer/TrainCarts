@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public abstract class SignAction {
 
@@ -55,8 +56,8 @@ public abstract class SignAction {
 	}
 	
 	public abstract void execute(SignActionEvent info);
-	public abstract boolean build(SignChangeEvent event, String type, SignActionMode mode);
-		
+	public abstract boolean build(SignChangeActionEvent info);
+
 	private static List<SignAction> actions;
 	public static final <T extends SignAction> T register(T action) {
 		if (actions == null) return action;
@@ -71,16 +72,16 @@ public abstract class SignAction {
 		actions.remove(action);
 	}
 	
-	public static boolean handleBuild(SignChangeEvent event, Permission permission, String signname) {
+	public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname) {
 		return handleBuild(event, permission, signname, null);
 	}
-	public static boolean handleBuild(SignChangeEvent event, Permission permission, String signname, String signdescription) {
+	public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname, String signdescription) {
 		return handleBuild(event, permission.toString(), signname, signdescription);
 	}
-	public static boolean handleBuild(SignChangeEvent event, String permission, String signname) {
+	public static boolean handleBuild(SignChangeActionEvent event, String permission, String signname) {
 		return handleBuild(event, permission, signname, null);
 	}
-	public static boolean handleBuild(SignChangeEvent event, String permission, String signname, String signdescription) {
+	public static boolean handleBuild(SignChangeActionEvent event, String permission, String signname, String signdescription) {
 		if (event.getPlayer().hasPermission(permission)) {
 			event.getPlayer().sendMessage(ChatColor.YELLOW + "You built a " + ChatColor.WHITE + signname + ChatColor.YELLOW + "!");
 			if (signdescription != null) {
@@ -95,11 +96,10 @@ public abstract class SignAction {
 	}
 	
 	public static void handleBuild(SignChangeEvent event) {
-		SignActionMode mode = SignActionMode.fromEvent(event);
-		String type = event.getLine(1).toLowerCase();
+		SignChangeActionEvent info = new SignChangeActionEvent(event);
 		for (SignAction action : actions) {
-			if (action.build(event, type, mode)) {
-				if (mode == SignActionMode.RCTRAIN && !action.canSupportRC()) {
+			if (action.build(info)) {
+				if (!action.canSupportRC() && info.isRCSign()) {
 					event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
 					if (event.getLine(0).startsWith("[!")) {
 						event.setLine(0, "[!train]");
@@ -110,7 +110,7 @@ public abstract class SignAction {
 			}
 			if (event.isCancelled()) return;
 		}
-		if (mode != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
+		if (info.getMode() != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
 			//snap to fixed 90-degree angle
 			BlockFace facing = BlockUtil.getFacing(event.getBlock());
 			switch (facing) {

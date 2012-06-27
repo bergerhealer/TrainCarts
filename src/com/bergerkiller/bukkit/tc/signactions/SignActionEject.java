@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.Location;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -12,6 +11,7 @@ import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionEject extends SignAction {
 
@@ -91,10 +91,10 @@ public class SignActionEject extends SignAction {
 		return true;
 	}
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			if (type.startsWith("eject")) {
-				if (mode == SignActionMode.RCTRAIN) {
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("eject")) {
+				if (event.isRCSign()) {
 					return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
 				} else {
 					return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");

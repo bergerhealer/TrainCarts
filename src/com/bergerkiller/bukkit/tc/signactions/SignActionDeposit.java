@@ -14,7 +14,6 @@ import net.minecraft.server.TileEntityFurnace;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -28,6 +27,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 
 public class SignActionDeposit extends SignAction {
@@ -226,9 +226,9 @@ public class SignActionDeposit extends SignAction {
 	}
 
 	@Override
-	public boolean build(SignChangeEvent event, String type, SignActionMode mode) {
-		if (mode != SignActionMode.NONE) {
-			LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(type, "deposit");
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(event.getLine(1), "deposit");
 			if (typesToCheck.isEmpty()) return false;
 			String[] types = new String[typesToCheck.size()];
 			int i = 0;
