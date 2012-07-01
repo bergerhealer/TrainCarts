@@ -40,7 +40,7 @@ public class SignActionDetector extends SignAction {
 	private static BlockMap<DetectorSignPair> detectors = new BlockMap<DetectorSignPair>();
 
 	public static boolean isValid(SignActionEvent event) {
-		return event != null && event.getMode() == SignActionMode.NONE && event.isType("detector");
+		return event != null && event.getMode() != SignActionMode.NONE && event.isType("detector");
 	}
 
 	@Override

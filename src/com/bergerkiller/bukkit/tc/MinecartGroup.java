@@ -208,23 +208,13 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return false;
 	}
 
-	public static void rename(String oldtrainname, String newtrainname) {
-		for (MinecartGroup group : groups) {
-			if (group.getName().equals(oldtrainname)) {
-				group.setName(newtrainname);
-				return;
-			}
-		}
-		TrainProperties.get(oldtrainname).rename(newtrainname);
-	}
-
 	/*
 	 * NON-STATIC REGION
 	 */
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
-	private String name;
+	protected String name;
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
@@ -246,17 +236,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		return this.name;
 	}
 	public void setName(String name) {
-		if (name != null) {
-			if (this.name == null) {
-				this.prop = TrainProperties.get(name);
-			} else if (!this.name.equals(name)) {
-				this.prop = TrainProperties.get(this.name).rename(name);
-			}
-		} else if (this.prop != null) {
-			this.prop.remove();
-			this.prop = null;
-		}
-		this.name = name;
+		this.getProperties().setName(name);
 	}
 
 	/*
@@ -1064,7 +1044,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					}
 				}
 			}
-			
+
 			//still in loaded chunks?
 			boolean canunload = this.canUnload();
 			for (MinecartMember mm : this) {

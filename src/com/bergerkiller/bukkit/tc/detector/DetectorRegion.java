@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import net.minecraft.server.ChunkCoordinates;
 
 public final class DetectorRegion {
+	private static List<DetectorListener> listenerBuffer = new ArrayList<DetectorListener>();
 	private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<UUID, DetectorRegion>();
 	private static BlockMap<List<DetectorRegion>> regions = new BlockMap<List<DetectorRegion>>();
 	public static List<DetectorRegion> handleMove(MinecartMember mm, Block from, Block to) {
@@ -183,28 +184,34 @@ public final class DetectorRegion {
 		return !this.listeners.isEmpty();
 	}
 	private void onLeave(MinecartMember mm) {
-		for (DetectorListener listener : this.listeners) {
+		this.setListenerBuffer();
+		for (DetectorListener listener : listenerBuffer) {
 			listener.onLeave(mm);
 		}
 		for (MinecartMember ex : this.members) {
 			if (ex != mm && ex.getGroup() == mm.getGroup()) return;
 		}
-		for (DetectorListener listener : this.listeners) {
+		for (DetectorListener listener : listenerBuffer) {
 			listener.onLeave(mm.getGroup());
 		}
 	}
 	private void onEnter(MinecartMember mm) {
-		for (DetectorListener listener : this.listeners) {
+		this.setListenerBuffer();
+		for (DetectorListener listener : listenerBuffer) {
 			listener.onEnter(mm);
 		}
 		for (MinecartMember ex : this.members) {
 			if (ex != mm && ex.getGroup() == mm.getGroup()) return;
 		}
-		for (DetectorListener listener : this.listeners) {
+		for (DetectorListener listener : listenerBuffer) {
 			listener.onEnter(mm.getGroup());
 		}
 	}
-	
+	private void setListenerBuffer() {
+		listenerBuffer.clear();
+		listenerBuffer.addAll(this.listeners);
+	}
+
 	public void update(MinecartMember member) {
 		for (DetectorListener list : this.listeners) {
 			list.onUpdate(member);

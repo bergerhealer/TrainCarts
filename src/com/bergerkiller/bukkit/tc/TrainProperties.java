@@ -96,7 +96,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 			return group;
 		}
 	}
-	
+
 	/*
 	 * Carts
 	 */
@@ -300,7 +300,20 @@ public class TrainProperties extends HashSet<CartProperties> {
 	public void add() {
 		properties.put(this.trainname, this);
 	}
-	public TrainProperties rename(String newtrainname) {
+	/**
+	 * Renames this train, this should be called to rename the train safely
+	 * @param newtrainname to set to
+	 * @return this
+	 */
+	public TrainProperties setName(String newtrainname) {
+		// Rename the group
+		MinecartGroup group = this.getGroup();
+		if (group != null) {
+			group.name = newtrainname;
+		}
+		// Rename the offline group
+		OfflineGroupManager.rename(this.trainname, newtrainname);
+		// Rename the properties
 		properties.remove(this.trainname);
 		this.trainname = newtrainname;
 		properties.put(newtrainname, this);

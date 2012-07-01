@@ -44,6 +44,15 @@ public class SignActionProperties extends SignAction {
 			prop.setDestination(arg);
 		} else if (mode.equals("remtag")) {
 			prop.removeTags(arg);
+		} else if (mode.equals("name") || mode.equals("rename") || mode.equals("setname")) {
+			String trainName = arg;
+			for (int i = 1; i < Integer.MAX_VALUE; i++) {
+				trainName = arg.replace("#", Integer.toString(i));
+				if (!TrainProperties.exists(trainName)) {
+					break;
+				}
+			}
+			prop.setName(trainName);
 		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
 			prop.setAllowMobsEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerenter")) {

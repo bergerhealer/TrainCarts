@@ -341,7 +341,6 @@ public class OfflineGroupManager {
 		return containedTrains.contains(trainname);
 	}
 	public static void rename(String oldtrainname, String newtrainname) {
-		MinecartGroup.rename(oldtrainname, newtrainname);
 		synchronized (managers) {
 			for (OfflineGroupManager man : managers.values()) {
 				for (OfflineGroup group : man.groupmap) {

@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CartProperties;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -147,7 +146,7 @@ public class TrainCommands {
 				if (TrainProperties.exists(newname)) {
 					p.sendMessage(ChatColor.RED + "This name is already taken!");
 				} else {
-					OfflineGroupManager.rename(prop.getTrainName(), newname);
+					prop.setName(newname);
 					p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 				}
 			}
