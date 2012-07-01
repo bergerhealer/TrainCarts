@@ -62,19 +62,14 @@ public class SignActionEject extends SignAction {
 			
 			//actually eject
 			if (isTrain) {
-				final MinecartGroup group;
 				if (isRemote) {
-					group = info.getRCTrainGroup();
+					for (MinecartGroup group : info.getRCTrainGroups()) {
+						eject(group, offset, dyaw, dpitch);
+					}
 				} else {
-					group = info.getGroup();
-				}
-				if (group != null) {
-					for (MinecartMember mm : group) {
-						Location loc = mm.getBlock().getLocation();
-						loc = loc.add(0.5, 1.5, 0.5).add(offset);
-						loc.setYaw(dyaw);
-						loc.setPitch(dpitch);
-						mm.eject(loc);
+					MinecartGroup group = info.getGroup();
+					if (group != null) {
+						eject(group, offset, dyaw, dpitch);
 					}
 				}
 			} else {
@@ -83,6 +78,16 @@ public class SignActionEject extends SignAction {
 				loc.setPitch(dpitch);
 				info.getMember().eject(loc);
 			}
+		}
+	}
+
+	private void eject(MinecartGroup group, Vector offset, float dyaw, float dpitch) {
+		for (MinecartMember mm : group) {
+			Location loc = mm.getBlock().getLocation();
+			loc = loc.add(0.5, 1.5, 0.5).add(offset);
+			loc.setYaw(dyaw);
+			loc.setPitch(dpitch);
+			mm.eject(loc);
 		}
 	}
 

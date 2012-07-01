@@ -18,7 +18,7 @@ public class ChangingSign extends CraftSign {
 	}
 
 	@Override
-	public void setLine(int index, String line) {
+	public void setLine(int index, String line) throws IndexOutOfBoundsException {
 		this.event.setLine(index, line);
 	}
 

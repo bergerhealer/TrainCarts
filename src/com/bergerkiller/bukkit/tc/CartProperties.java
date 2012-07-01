@@ -170,39 +170,8 @@ public class CartProperties {
 	/*
 	 * Tags
 	 */
-	private boolean hasTag(String[] requirements, boolean firstIsAllPossible, boolean lastIsAllPossible) {
-		if (requirements.length == 0) return this.tags.size() > 0;
-		for (String tag : this.tags) {
-			int index = 0;
-			boolean has = true;
-			boolean first = true;
-			for (int i = 0; i < requirements.length; i++) {
-				if (requirements[i].length() == 0) continue;
-				index = tag.indexOf(requirements[i], index);
-				if (index == -1 || (first && !firstIsAllPossible && index != 0)) {
-					has = false;
-					break;
-				} else {
-					index += requirements[i].length();
-				}
-				first = false;
-			}
-			if (has) {
-				if (lastIsAllPossible || index == tag.length()) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
 	public boolean hasTag(String tag) {
-		if (this.tags.isEmpty()) return false;
-		if (tag.startsWith("!")) {
-			return !hasTag(tag.substring(1));
-		} else {
-			if (tag.length() == 0) return false;
-			return hasTag(tag.split("\\*"), tag.startsWith("*"), tag.endsWith("*"));
-		}
+		return Util.matchText(this.tags, tag);
 	}
 	public boolean hasTags() {
 		return !this.tags.isEmpty();

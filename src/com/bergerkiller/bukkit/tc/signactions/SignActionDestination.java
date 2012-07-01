@@ -36,9 +36,10 @@ public class SignActionDestination extends SignAction {
 				setDestination(prop, info);
 			}
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
-			TrainProperties prop = info.getRCTrainProperties();
-			for (CartProperties cprop : prop) {
-				setDestination(cprop, info);
+			for (TrainProperties prop : info.getRCTrainProperties()) {
+				for (CartProperties cprop : prop) {
+					setDestination(cprop, info);
+				}
 			}
 		}
 	}

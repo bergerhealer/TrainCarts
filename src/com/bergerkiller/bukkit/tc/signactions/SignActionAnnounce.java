@@ -54,8 +54,7 @@ public class SignActionAnnounce extends SignAction {
 			if (!info.hasRailedMember() || !info.isPowered()) return;
 			sendMessage(info, info.getMember());
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
-			MinecartGroup group = info.getRCTrainGroup();
-			if (group != null) {
+			for (MinecartGroup group : info.getRCTrainGroups()) {
 				sendMessage(info, group);
 			}
 		}		

@@ -284,7 +284,7 @@ public class Util {
 		}
 		return -1;
 	}
-	
+
 	public static boolean isOperator(char character) {
 		final char[] characters = new char[] {'!', '=', '<', '>'};
 		for (char c : characters) {
@@ -294,7 +294,59 @@ public class Util {
 		}
 		return false;
 	}
-	
+
+	public static boolean matchText(Collection<String> textValues, String expression) {
+		if (textValues.isEmpty() || expression.isEmpty()) {
+			return false;
+		} else if (expression.startsWith("!")) {
+			return !matchText(textValues, expression.substring(1));
+		} else {
+			String[] elements = expression.split("\\*");
+			boolean first = expression.startsWith("*");
+			boolean last = expression.endsWith("*");
+			for (String text : textValues) {
+				if (matchText(text, elements, first, last)) {
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+	public static boolean matchText(String text, String expression) {
+		if (expression.isEmpty()) {
+			return false;
+		} else if (expression.startsWith("!")) {
+			return !matchText(text, expression.substring(1));
+		} else {
+			return matchText(text, expression.split("\\*"), expression.startsWith("*"), expression.endsWith("*"));
+		}
+	}
+	public static boolean matchText(String text, String[] elements, boolean firstAny, boolean lastAny) {
+		if (elements == null|| elements.length == 0) {
+			return true;
+		}
+		int index = 0;
+		boolean has = true;
+		boolean first = true;
+		for (int i = 0; i < elements.length; i++) {
+			if (elements[i].length() == 0) continue;
+			index = text.indexOf(elements[i], index);
+			if (index == -1 || (first && !firstAny && index != 0)) {
+				has = false;
+				break;
+			} else {
+				index += elements[i].length();
+			}
+			first = false;
+		}
+		if (has) {
+			if (lastAny || index == text.length()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static String replaceColors(String line) {
 		int index = 0;
 		while (true) {

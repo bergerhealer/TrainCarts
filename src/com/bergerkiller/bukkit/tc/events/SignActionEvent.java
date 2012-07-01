@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.events;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -11,7 +14,6 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.tc.Direction;
@@ -22,7 +24,6 @@ import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.ChangingSign;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
@@ -355,13 +356,21 @@ public class SignActionEvent extends Event implements Cancellable {
 		return false;
 	}
 
-	public MinecartGroup getRCTrainGroup() {
-		return MinecartGroup.get(this.getRCTrainName());
+	public Collection<MinecartGroup> getRCTrainGroups() {
+		Collection<TrainProperties> props = this.getRCTrainProperties();
+		List<MinecartGroup> groups = new ArrayList<MinecartGroup>(props.size());
+		for (TrainProperties prop : props) {
+			MinecartGroup group = prop.getGroup();
+			if (group != null) {
+				groups.add(group);
+			}
+		}
+		return groups;
 	}
-	public TrainProperties getRCTrainProperties() {
-		return TrainProperties.get(this.getRCTrainName());
+	public Collection<TrainProperties> getRCTrainProperties() {
+		return TrainProperties.getAll(this.getRCName());
 	}
-	public String getRCTrainName() {
+	public String getRCName() {
 		if (this.isRCSign()) {
 			String name = this.getLine(0);
 			int idx = name.indexOf(' ') + 1;
@@ -370,7 +379,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			return null;
 		}
 	}
-	
+
 	public MinecartMember getMember() {
 		return this.getMember(false);
 	}

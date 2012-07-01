@@ -16,8 +16,7 @@ public class SignActionDestroy extends SignAction {
 		} else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.hasMember()) {
 			info.getMember().die();
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
-			MinecartGroup group = info.getRCTrainGroup();
-			if (group != null) {
+			for (MinecartGroup group : info.getRCTrainGroups()) {
 				group.playLinkEffect();
 				group.destroy();
 			}

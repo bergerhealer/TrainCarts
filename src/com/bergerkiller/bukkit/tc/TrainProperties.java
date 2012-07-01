@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,6 +28,20 @@ public class TrainProperties extends HashSet<CartProperties> {
 	private static final String propertiesFile = "TrainProperties.yml";
 	
 	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
+	public static Collection<TrainProperties> getAll(String expression) {
+		List<TrainProperties> rval = new ArrayList<TrainProperties>();
+		if (expression != null && !expression.isEmpty()) {
+			String[] elements = expression.split("\\*");
+			boolean first = expression.startsWith("*");
+			boolean last = expression.startsWith("*");
+			for (TrainProperties prop : getAll()) {
+				if (prop.matchName(elements, first, last)) {
+					rval.add(prop);
+				}
+			}
+		}
+		return rval;
+	}
 	public static Collection<TrainProperties> getAll() {
 		return properties.values();
 	}
@@ -300,6 +316,12 @@ public class TrainProperties extends HashSet<CartProperties> {
 	}
 	public boolean isLoaded() {
 		return this.getGroup() != null;
+	}
+	public boolean matchName(String expression) {
+		return Util.matchText(this.getTrainName(), expression);
+	}
+	public boolean matchName(String[] expressionElements, boolean firstAny, boolean lastAny) {
+		return Util.matchText(this.getTrainName(), expressionElements, firstAny, lastAny);
 	}
 
 	public BlockLocation getLocation() {
