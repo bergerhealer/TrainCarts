@@ -82,10 +82,12 @@ public class DetectorSign extends OfflineSign {
 	public boolean updateMembers(SignActionEvent event) {
 		for (MinecartMember mm : this.detector.region.getMembers()) {
 			if (isDown(event, mm, null)) {
+				this.wasDown = true;
 				event.setLevers(true);
 				return true;
 			}
 		}
+		this.wasDown = false;
 		event.setLevers(false);
 		return false;
 	}
@@ -112,22 +114,16 @@ public class DetectorSign extends OfflineSign {
 	}
 
 	public boolean isDown(SignActionEvent event, MinecartMember member, MinecartGroup group) {
-		boolean state = false;
 		boolean firstEmpty = false;
 		if (event.getLine(2).isEmpty()) {
 			firstEmpty = true;
-		} else if (member == null) {
-			state |= Statement.has(group, event.getLine(2), event);
-		} else {
-			state |= Statement.has(member, event.getLine(2), event);
+		} else if (Statement.has(member, group, event.getLine(2), event)) {
+			return true;
 		}
 		if (event.getLine(3).isEmpty()) {
-			state = firstEmpty;
-		} else if (member == null) {
-			state |= Statement.has(group, event.getLine(3), event);
+			return firstEmpty; //two empty lines, no statements, simple 'has'
 		} else {
-			state |= Statement.has(member, event.getLine(3), event);
+			return Statement.has(member, group, event.getLine(3), event);
 		}
-		return state;
 	}
 }

@@ -72,6 +72,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 	}
 	
 	private String trainname;	
+	public String displayName;
 	public boolean allowLinking = true;
 	public boolean trainCollision = true;
 	public boolean slowDown = true;
@@ -287,7 +288,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 	 */
 	private TrainProperties() {};
 	private TrainProperties(String trainname) {
-		this.trainname = trainname;
+		this.displayName = this.trainname = trainname;
 		properties.put(trainname, this);
 		this.setDefault();
 	}	
@@ -315,7 +316,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 		OfflineGroupManager.rename(this.trainname, newtrainname);
 		// Rename the properties
 		properties.remove(this.trainname);
-		this.trainname = newtrainname;
+		this.displayName = this.trainname = newtrainname;
 		properties.put(newtrainname, this);
 		return this;
 	}
@@ -418,7 +419,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 		config.load();
 		for (ConfigurationNode node : config.getNodes()) {
 			TrainProperties prop = new TrainProperties();
-			prop.trainname = node.getName();
+			prop.trainname = prop.displayName = node.getName();
 			prop.load(node);
 			properties.put(prop.trainname, prop);
 		}
@@ -440,6 +441,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 		config.save();
 	}
 	public void load(ConfigurationNode node) {
+		this.displayName = node.get("displayName", this.displayName);
 		this.allowLinking = node.get("allowLinking", this.allowLinking);
 		this.trainCollision = node.get("trainCollision", this.trainCollision);
 		this.slowDown = node.get("slowDown", this.slowDown);
@@ -461,6 +463,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 		}
 	}
 	public void load(TrainProperties source) {
+		this.displayName = source.displayName;
 		this.allowLinking = source.allowLinking;
 		this.trainCollision = source.trainCollision;
 		this.slowDown = source.slowDown;
@@ -481,6 +484,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 	}
 	public void save(ConfigurationNode node, boolean savecarts, boolean minimal) {		
 		if (minimal) {
+			node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
 			node.set("allowLinking", this.allowLinking ? null : false);
 			node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
 			node.set("trainCollision", this.trainCollision ? null : false);
@@ -496,6 +500,7 @@ public class TrainProperties extends HashSet<CartProperties> {
 			}
 			node.set("ignoreStations", this.ignoreStations ? true : null);
 		} else {
+			node.set("displayName", this.displayName);
 			node.set("allowLinking", this.allowLinking);
 			node.set("requirePoweredMinecart", this.requirePoweredMinecart);
 			node.set("trainCollision", this.trainCollision);

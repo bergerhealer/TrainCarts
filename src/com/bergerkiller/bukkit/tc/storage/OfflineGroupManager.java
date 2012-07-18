@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
@@ -263,6 +264,36 @@ public class OfflineGroupManager {
 					TrainCarts.plugin.log(Level.INFO, msg);
 				}
 			}.read();
+			TrainCarts.plugin.log(Level.INFO, "Loading chunks near trains...");
+			// Obtain all the chunks that have to be loaded
+			for (World world : Bukkit.getWorlds()) {
+				initChunks(world);
+			}
+		}
+	}
+
+	/**
+	 * Loads all the chunks near keep-chunks-loaded trains
+	 * 
+	 * @param World to load
+	 */
+	public static void initChunks(World world) {
+		OfflineGroupManager man = get(world);
+		Set<ChunkCoordIntPair> loaded = new HashSet<ChunkCoordIntPair>();
+		for (OfflineGroup group : man.groupmap) {
+			TrainProperties prop = TrainProperties.get(group.name);
+			if (prop.keepChunksLoaded) {
+				for (OfflineMember wm : group.members) {
+					for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
+						for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
+							loaded.add(new ChunkCoordIntPair(x, z));
+						}
+					}
+				}
+			}
+		}
+		for (ChunkCoordIntPair coord : loaded) {
+			world.getChunkAt(coord.x, coord.z);
 		}
 	}
 

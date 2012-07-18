@@ -150,6 +150,14 @@ public class TrainCommands {
 					p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 				}
 			}
+		} else if (cmd.equals("displayname") || cmd.equals("display") || cmd.equals("dname") || cmd.equals("setdisplayname")) {
+			Permission.COMMAND_DISPLAYNAME.handle(p);
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
+			} else {
+				prop.displayName = StringUtil.combine(" ", args);
+				p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.displayName + ChatColor.YELLOW + "!");
+			}
 		} else if (cmd.equals("addtags") || cmd.equals("addtag")) {
 			Permission.COMMAND_SETTAGS.handle(p);
 			if (args.length == 0) {

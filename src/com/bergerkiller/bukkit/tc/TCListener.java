@@ -30,6 +30,7 @@ import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -82,6 +83,12 @@ public class TCListener implements Listener {
 			}
 		}
 	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onWorldLoad(WorldLoadEvent event) {
+		OfflineGroupManager.initChunks(event.getWorld());
+	}
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldUnload(WorldUnloadEvent event) {
 		if (!event.isCancelled()) {

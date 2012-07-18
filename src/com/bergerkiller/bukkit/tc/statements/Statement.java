@@ -68,6 +68,7 @@ public abstract class Statement {
 		register(new StatementItems());
 		register(new StatementFuel());
 		register(new StatementType());
+		register(new StatementVelocity());
 		register(new StatementPlayerItems());
 		register(new StatementPlayerHand());
 		register(new StatementMob());
@@ -92,7 +93,16 @@ public abstract class Statement {
 		return has(null, group, text, event);
 	}
 
-	private static boolean has(MinecartMember member, MinecartGroup group, String text, SignActionEvent event) {
+	/**
+	 * Gets if the member or group has the statement specified
+	 * 
+	 * @param member to use, or null to use group
+	 * @param group to use, or null to use member
+	 * @param text to evaluate
+	 * @param event to parse
+	 * @return True if successful, False if not
+	 */
+	public static boolean has(MinecartMember member, MinecartGroup group, String text, SignActionEvent event) {
 		boolean inv = false;
 		text = TrainCarts.statementShortcuts.replace(text);
 		while (text.startsWith("!")) {
@@ -121,6 +131,6 @@ public abstract class Statement {
 				}
 			}
 		}
-		return false;
+		return inv;
 	}
 }

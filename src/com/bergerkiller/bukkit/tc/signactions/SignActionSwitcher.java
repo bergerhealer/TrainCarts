@@ -154,7 +154,7 @@ public class SignActionSwitcher extends SignAction {
 				}
 			}
 			info.setLevers(dir != Direction.NONE);
-			if (dir != Direction.NONE) {
+			if (dir != Direction.NONE && info.isPowered()) {
 				//handle this direction
 				info.setRailsFromCart(dir.getDirection(info.getFacing()));
 				return; //don't do destination stuff

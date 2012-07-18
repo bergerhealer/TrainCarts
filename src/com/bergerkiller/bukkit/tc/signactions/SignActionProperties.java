@@ -53,6 +53,8 @@ public class SignActionProperties extends SignAction {
 				}
 			}
 			prop.setName(trainName);
+		} else if (mode.equals("dname") || mode.equals("displayname") || mode.equals("setdisplayname") || mode.equals("setdname")) {
+			prop.displayName = arg;
 		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
 			prop.setAllowMobsEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerenter")) {
