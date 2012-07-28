@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
@@ -206,8 +207,16 @@ public class Util {
 		ItemUtil.transfer(toreplace, with);
 		with.dead = false;
 		toreplace.bz = true; //force removal in chunk
+		// Set the chunk coordinates of the Entity
+		if (toreplace.ca == 0 && toreplace.cb == 0 && toreplace.cc == 0) {
+			toreplace.ca = MathUtil.locToChunk(toreplace.locX);
+			toreplace.cb = MathUtil.locToChunk(toreplace.locY);
+			toreplace.cc = MathUtil.locToChunk(toreplace.locZ);
+		}
+		with.ca = toreplace.ca;
+		with.cb = toreplace.cb;
+		with.cc = toreplace.cc;
 		toreplace.dead = true;
-		
 		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
 		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());
 		
