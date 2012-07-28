@@ -20,8 +20,8 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.PowerState;
-import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -368,7 +368,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		return groups;
 	}
 	public Collection<TrainProperties> getRCTrainProperties() {
-		return TrainProperties.getAll(this.getRCName());
+		return TrainProperties.matchAll(this.getRCName());
 	}
 	public String getRCName() {
 		if (this.isRCSign()) {

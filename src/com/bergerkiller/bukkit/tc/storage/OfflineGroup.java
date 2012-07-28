@@ -36,7 +36,7 @@ public class OfflineGroup {
 		for (int i = 0;i < members.length;i++) {
 			this.members[i] = new OfflineMember(this, group.get(i));
 		}
-		this.name = group.getName();
+		this.name = group.getProperties().getTrainName();
 		this.worldUUID = group.getWorld().getUID();
 		this.genChunks();
 	}

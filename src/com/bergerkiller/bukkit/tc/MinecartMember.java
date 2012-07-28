@@ -44,6 +44,8 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -342,7 +344,7 @@ public class MinecartMember extends NativeMinecartMember {
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
 		this.validate();
-		if (this.getProperties().pickUp && this.isStorageCart()) {
+		if (this.getProperties().canPickup() && this.isStorageCart()) {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
 			Item item;
@@ -1167,12 +1169,6 @@ public class MinecartMember extends NativeMinecartMember {
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
 	}
-	public void setEditing(String playername) {
-		this.getProperties().setEditing(playername);
-	}
-	public void setEditing(Player player) {
-		this.setEditing(player.getName());
-	}
 
 	public void setItem(int index, net.minecraft.server.ItemStack item) {
 		super.setItem(index, item);
@@ -1240,7 +1236,7 @@ public class MinecartMember extends NativeMinecartMember {
 			DetectorRegion.handleLeave(this, this.getBlock());
 			if (this.passenger != null) this.passenger.setPassengerOf(null);
 			if (this.group != null) this.group.remove(this);
-			if (this.properties != null) this.properties.remove();
+			CartPropertiesStore.remove(this.uniqueId);
 			this.dead = true;
 		}
 	}

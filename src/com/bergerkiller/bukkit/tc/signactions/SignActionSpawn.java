@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
@@ -74,6 +75,7 @@ public class SignActionSpawn extends SignAction {
 				//Spawn
 				MinecartGroup group = MinecartGroup.create();
 				for (int i = 0; i < locs.length; i++) {
+					WorldUtil.loadChunks(locs[i], 2);
 					MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
 					group.add(mm);
 					if (force != 0 && i == 0) {

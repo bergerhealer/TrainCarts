@@ -11,10 +11,12 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class CartCommands {
@@ -25,21 +27,21 @@ public class CartCommands {
 		} else if (cmd.equals("mobenter") || cmd.equals("mobsenter")) {
 			Permission.COMMAND_MOBENTER.handle(p);
 			if (args.length == 1) {
-				prop.allowMobsEnter = StringUtil.getBool(args[0]);
+				prop.setMobsEnter(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.allowMobsEnter);
+			p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.getMobsEnter());
 		} else if (cmd.equals("playerenter")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYERENTER.handle(p);
-				prop.allowPlayerEnter = StringUtil.getBool(args[0]);
+				prop.setPlayersEnter(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Players can enter this minecart: " + ChatColor.WHITE + " " + prop.allowPlayerEnter);
+			p.sendMessage(ChatColor.YELLOW + "Players can enter this minecart: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
 		} else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYEREXIT.handle(p);
-				prop.allowPlayerExit = StringUtil.getBool(args[0]);
+				prop.setPlayersExit(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Players can exit this minecart: " + ChatColor.WHITE + " " + prop.allowPlayerExit);
+			p.sendMessage(ChatColor.YELLOW + "Players can exit this minecart: " + ChatColor.WHITE + " " + prop.getPlayersExit());
 		} else if (cmd.equals("claim")) {
 			Permission.COMMAND_SETOWNERS.handle(p);
 			prop.clearOwners();
@@ -86,17 +88,17 @@ public class CartCommands {
 		} else if (cmd.equals("dest") || cmd.equals("destination")) {
 			Permission.COMMAND_SETDESTINATION.handle(p);
 			if (args.length == 0) {
-				prop.destination = "";
+				prop.clearDestination();
 				p.sendMessage(ChatColor.YELLOW + "The destination for this minecart has been cleared!");
 			} else {
-				prop.destination = StringUtil.combine(" ", args[0]);
+				prop.setDestination(StringUtil.combine(" ", args[0]));
 				p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + args[0] + ChatColor.YELLOW + " as destination for this minecart!");
 			}
 		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
 			Permission.COMMAND_DESTROY.handle(p);
 			MinecartMember mm = prop.getMember();
 			if (mm == null) {
-				prop.remove();
+				CartPropertiesStore.remove(prop.getUUID());
 			} else {
 				mm.die();
 			}
@@ -104,34 +106,34 @@ public class CartCommands {
 		} else if (cmd.equals("public")) {
 			Permission.COMMAND_SETPUBLIC.handle(p);
 			if (args.length == 0) {
-				prop.isPublic = true;
+				prop.setPublic(true);
 			} else {
-				prop.isPublic = StringUtil.getBool(args[0]);
+				prop.setPublic(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "The selected minecart can be used by everyone: " + ChatColor.WHITE + prop.isPublic);
+			p.sendMessage(ChatColor.YELLOW + "The selected minecart can be used by everyone: " + ChatColor.WHITE + prop.isPublic());
 		} else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
 			Permission.COMMAND_SETPUBLIC.handle(p);
 			if (args.length == 0) {
-				prop.isPublic = false;
+				prop.setPublic(false);
 			} else {
-				prop.isPublic = !StringUtil.getBool(args[0]);
+				prop.setPublic(!StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be used by you: " + ChatColor.WHITE + !prop.isPublic);
+			p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be used by you: " + ChatColor.WHITE + !prop.isPublic());
 		} else if (cmd.equals("pickup")) {
 			Permission.COMMAND_PICKUP.handle(p);
 			if (args.length == 0) {
-				prop.pickUp = true;
+				prop.setPickup(true);
 			} else {
-				prop.pickUp = StringUtil.getBool(args[0]);
-			}			
-			p.sendMessage(ChatColor.YELLOW + "The selected minecart picks up nearby items: " + ChatColor.WHITE + prop.pickUp);
+				prop.setPickup(StringUtil.getBool(args[0]));
+			}
+			p.sendMessage(ChatColor.YELLOW + "The selected minecart picks up nearby items: " + ChatColor.WHITE + prop.canPickup());
 		} else if (cmd.equals("break")) {
 			Permission.COMMAND_BREAKBLOCK.handle(p);
 			if (args.length == 0) {
-				p.sendMessage(ChatColor.YELLOW + "This cart breaks: " + ChatColor.WHITE + StringUtil.combineNames(prop.blockBreakTypes));
+				p.sendMessage(ChatColor.YELLOW + "This cart breaks: " + ChatColor.WHITE + StringUtil.combineNames(prop.getBlockBreakTypes()));
 			} else {
 				if (StringUtil.isBool(args[0]) && !StringUtil.getBool(args[0])) {
-					prop.blockBreakTypes.clear();
+					prop.clearBlockBreakTypes();
 					p.sendMessage(ChatColor.YELLOW + "Block break types have been cleared!");
 				} else {
 					boolean asBreak = true;
@@ -154,10 +156,10 @@ public class CartCommands {
 						return true;
 					}
 					if (asBreak) {
-						prop.blockBreakTypes.addAll(mats);
+						prop.getBlockBreakTypes().addAll(mats);
 						p.sendMessage(ChatColor.YELLOW + "This cart can now (also) break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
 					} else {
-						prop.blockBreakTypes.removeAll(mats);
+						prop.getBlockBreakTypes().removeAll(mats);
 						p.sendMessage(ChatColor.YELLOW + "This cart can no longer break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
 					}
 				}
@@ -181,39 +183,45 @@ public class CartCommands {
 		builder.red("pickup").red("break");
 		return builder.setSeparator(null).red("]");
 	}
-		
-	public static void info(Player player, CartProperties prop) {
-		//warning message not taken
-		if (!prop.hasOwners()) {
-			player.sendMessage(ChatColor.YELLOW + "Note: This minecart is not owned, claim it using /cart claim!");
+
+	public static void info(Player p, IProperties prop) {
+		p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + (prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));
+		if (prop.hasDestination()) {
+			p.sendMessage(ChatColor.YELLOW + "This minecart will attempt to reach: " + ChatColor.WHITE + prop.getDestination());
 		}
-		if (prop.allowMobsEnter) {
-			if (prop.allowPlayerEnter) {
-				player.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
+		if (prop.getMobsEnter()) {
+			if (prop.getPlayersEnter()) {
+				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
 			} else {
-				player.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs");
+				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs");
 			}
-		} else if (prop.allowPlayerEnter) {
-			player.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Players");
+		} else if (prop.getPlayersEnter()) {
+			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Players");
 		} else {
-			player.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.RED + " No one");
+			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.RED + " No one");
 		}
-		player.sendMessage(ChatColor.YELLOW + "Can be exited by players: " + ChatColor.WHITE + prop.allowPlayerExit);
-		player.sendMessage(ChatColor.YELLOW + "Picks up nearby items: " + ChatColor.WHITE + prop.pickUp);
-		if (!prop.blockBreakTypes.isEmpty()) {
-			player.sendMessage(ChatColor.YELLOW + "Breaks blocks: " + ChatColor.WHITE + StringUtil.combineNames(prop.blockBreakTypes));
-		}
-		player.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + (prop.enterMessage == null ? "None" : prop.enterMessage));
-		player.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + (prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));
-		if (prop.hasDestination()){					
-			player.sendMessage(ChatColor.YELLOW + "This minecart will ignore tag switchers and will attempt to reach " + ChatColor.WHITE + prop.destination);
-		}
-		player.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + (prop.hasOwners() ? StringUtil.combineNames(prop.getOwners()) : "None"));
-		// Location
+		p.sendMessage(ChatColor.YELLOW + "Can be exited by players: " + ChatColor.WHITE + prop.getPlayersExit());
 		BlockLocation loc = prop.getLocation();
 		if (loc != null) {
-			player.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
+			p.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
 		}
+		p.sendMessage(" ");
+	}
+
+	public static void info(Player p, CartProperties prop) {
+		//warning message not taken
+		if (!prop.hasOwners()) {
+			p.sendMessage(ChatColor.YELLOW + "Note: This minecart is not owned, claim it using /cart claim!");
+		}
+		p.sendMessage(ChatColor.YELLOW + "Picks up nearby items: " + ChatColor.WHITE + prop.canPickup());
+		if (prop.hasBlockBreakTypes()) {
+			p.sendMessage(ChatColor.YELLOW + "Breaks blocks: " + ChatColor.WHITE + StringUtil.combineNames(prop.getBlockBreakTypes()));
+		}
+		p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + (prop.hasEnterMessage() ? prop.getEnterMessage() : "None"));
+		p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + (prop.hasOwners() ? StringUtil.combineNames(prop.getOwners()) : "None"));
+
+		// Remaining common info
+		info(p, prop);
 	}
 	
 }

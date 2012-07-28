@@ -9,15 +9,15 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class TrainCommands {
@@ -28,9 +28,9 @@ public class TrainCommands {
 		} else if (cmd.equals("linking") || cmd.equals("link")) {
 			if (args.length == 1) {
 				Permission.COMMAND_SETLINKING.handle(p);
-				prop.allowLinking = StringUtil.getBool(args[0]);
+				prop.setLinking(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+			p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.getLinking());
 		} else if (cmd.equals("keepchunksloaded")) {
 			if (args.length == 1) {
 				Permission.COMMAND_KEEPCHUNKSLOADED.handle(p);
@@ -111,26 +111,25 @@ public class TrainCommands {
 		} else if (cmd.equals("slowdown") || cmd.equals("slow") || cmd.equals("setslow") || cmd.equals("setslowdown")) {
 			Permission.COMMAND_SLOWDOWN.handle(p);
 			if (args.length == 1) {
-				prop.slowDown = StringUtil.getBool(args[0]);
+				prop.setSlowingDown(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.slowDown);
+			p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.getSlowingDown());
 		} else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
 			Permission.COMMAND_SETCOLLIDE.handle(p);
 			if (args.length == 1) {
-				prop.trainCollision = StringUtil.getBool(args[0]);
+				prop.setColliding(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.trainCollision);
+			p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.getColliding());
 		} else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
 			Permission.COMMAND_SETSPEEDLIMIT.handle(p);
 			if (args.length == 1) {
 				try {
-					prop.speedLimit = Double.parseDouble(args[0]);
+					prop.setSpeedLimit(Double.parseDouble(args[0]));
 				} catch (NumberFormatException ex) {
-					prop.speedLimit = 0.4;
+					prop.setSpeedLimit(0.4);
 				}
-				prop.speedLimit = Math.min(prop.speedLimit, TrainCarts.maxVelocity);
 			}
-			p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
+			p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
 		} else if (cmd.equals("requirepoweredminecart") || cmd.equals("requirepowered")) {
 			Permission.COMMAND_SETPOWERCARTREQ.handle(p);
 			if (args.length == 1) {
@@ -155,8 +154,8 @@ public class TrainCommands {
 			if (args.length == 0) {
 				p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
 			} else {
-				prop.displayName = StringUtil.combine(" ", args);
-				p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.displayName + ChatColor.YELLOW + "!");
+				prop.setDisplayName(StringUtil.combine(" ", args));
+				p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.getDisplayName() + ChatColor.YELLOW + "!");
 			}
 		} else if (cmd.equals("addtags") || cmd.equals("addtag")) {
 			Permission.COMMAND_SETTAGS.handle(p);
@@ -190,7 +189,7 @@ public class TrainCommands {
 			Commands.permission(p, "train.command.destroy");
 			MinecartGroup group = prop.getGroup();
 			if (group == null) {
-				prop.remove();
+				TrainPropertiesStore.remove(prop.getTrainName());
 			} else {
 				group.destroy();
 			}
@@ -203,7 +202,7 @@ public class TrainCommands {
 			} else {
 				pub = StringUtil.getBool(args[0]);
 			}
-			for (CartProperties cprop : prop) cprop.isPublic = pub;
+			prop.setPublic(pub);
 			p.sendMessage(ChatColor.YELLOW + "The selected train can be used by everyone: " + ChatColor.WHITE + pub);
 		} else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
 			Permission.COMMAND_SETPUBLIC.handle(p);
@@ -213,7 +212,7 @@ public class TrainCommands {
 			} else {
 				pub = !StringUtil.getBool(args[0]);
 			}
-			for (CartProperties cprop : prop) cprop.isPublic = pub;
+			prop.setPublic(pub);
 			p.sendMessage(ChatColor.YELLOW + "The selected train can only be used by the respective owners: " + ChatColor.WHITE + !pub);
 		} else if (cmd.equals("pickup")) {
 			Permission.COMMAND_PICKUP.handle(p);
@@ -233,11 +232,11 @@ public class TrainCommands {
 			Permission.COMMAND_BREAKBLOCK.handle(p);
 			if (args.length == 0) {
 				Set<Material> types = new HashSet<Material>();
-				for (CartProperties cprop : prop) types.addAll(cprop.blockBreakTypes);
+				for (CartProperties cprop : prop) types.addAll(cprop.getBlockBreakTypes());
 				p.sendMessage(ChatColor.YELLOW + "This train breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
 			} else {
 				if (StringUtil.isBool(args[0]) && !StringUtil.getBool(args[0])) {
-					for (CartProperties cprop : prop) cprop.blockBreakTypes.clear();
+					for (CartProperties cprop : prop) cprop.clearBlockBreakTypes();
 					p.sendMessage(ChatColor.YELLOW + "Train block break types have been cleared!");
 				} else {
 					boolean asBreak = true;
@@ -261,12 +260,12 @@ public class TrainCommands {
 					}
 					if (asBreak) {
 						for (CartProperties cprop : prop) {
-							cprop.blockBreakTypes.addAll(mats);
+							cprop.getBlockBreakTypes().addAll(mats);
 						}
 						p.sendMessage(ChatColor.YELLOW + "This cart can now (also) break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
 					} else {
 						for (CartProperties cprop : prop) {
-							cprop.blockBreakTypes.removeAll(mats);
+							cprop.getBlockBreakTypes().removeAll(mats);
 						}
 						p.sendMessage(ChatColor.YELLOW + "This cart can no longer break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
 					}
@@ -291,7 +290,7 @@ public class TrainCommands {
 		builder.red("pickup").red("break").red("default").red("rename").red("speedlimit").red("setcollide").red("slowdown");
 		return builder.red("pushplayers").red("pushmobs").red("pushmisc").setSeparator(null).red("]");
 	}
-	
+		
 	public static void info(Player p, TrainProperties prop) {
 		if (!prop.isDirectOwner(p)) {
 			if (!prop.hasOwners()) {
@@ -299,9 +298,9 @@ public class TrainCommands {
 			}
 		}
 		p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
-		p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.allowLinking);
+		p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.getLinking());
 		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
-		p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.trainCollision);
+		p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.getColliding());
 		//push away
 		ArrayList<String> pushlist = new ArrayList<String>();
 		if (prop.pushMobs) pushlist.add("Mobs");
@@ -312,17 +311,15 @@ public class TrainCommands {
 		} else {
 			p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + StringUtil.combineNames(pushlist));
 		}
-		p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.speedLimit + " blocks/tick");
+		p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
 		if (prop.hasOwners()) {
 			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + " " + StringUtil.combineNames(prop.getOwners()));
 		} else {
 			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + "Everyone");
 		}
-		// Location
-		BlockLocation loc = prop.getLocation();
-		if (loc != null) {
-			p.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
-		}
+
+		// Remaining common info
+		CartCommands.info(p, prop);
 	}
 	
 }

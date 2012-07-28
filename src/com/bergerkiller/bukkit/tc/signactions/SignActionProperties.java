@@ -1,22 +1,21 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class SignActionProperties extends SignAction {
 
 	public void handleProperties(TrainProperties prop, String mode, String arg) {
 		if (mode.equals("collision") || mode.equals("collide")) {
-			prop.trainCollision = StringUtil.getBool(arg);
+			prop.setColliding(StringUtil.getBool(arg));
 		} else if (mode.equals("linking") || mode.equals("link")) {
-			prop.allowLinking = StringUtil.getBool(arg);
+			prop.setLinking(StringUtil.getBool(arg));
 		} else if (mode.equals("slow") || mode.equals("slowdown")) {
-			prop.slowDown = StringUtil.getBool(arg);
+			prop.setSlowingDown(StringUtil.getBool(arg));
 		} else if (mode.equals("setdefault") || mode.equals("default")) {
 			prop.setDefault(arg);
 		} else if (mode.equals("pushmobs")) {
@@ -31,11 +30,10 @@ public class SignActionProperties extends SignAction {
 			prop.pushMisc = prop.pushMobs;
 		} else if (mode.equals("speedlimit") || mode.equals("maxspeed")) {
 			try {
-				prop.speedLimit = Double.parseDouble(arg);
+				prop.setSpeedLimit(Double.parseDouble(arg));
 			} catch (NumberFormatException ex) {
-				prop.speedLimit = 0.4;
+				prop.setSpeedLimit(0.4);
 			}
-			prop.speedLimit = Math.min(prop.speedLimit, TrainCarts.maxVelocity);
 		} else if (mode.equals("addtag")) {
 			prop.addTags(arg);
 		} else if (mode.equals("settag")) {
@@ -54,13 +52,13 @@ public class SignActionProperties extends SignAction {
 			}
 			prop.setName(trainName);
 		} else if (mode.equals("dname") || mode.equals("displayname") || mode.equals("setdisplayname") || mode.equals("setdname")) {
-			prop.displayName = arg;
+			prop.setDisplayName(arg);
 		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-			prop.setAllowMobsEnter(StringUtil.getBool(arg));
+			prop.setMobsEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerenter")) {
-			prop.setAllowPlayerEnter(StringUtil.getBool(arg));
+			prop.setPlayersEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerexit")) {
-			prop.setAllowPlayerExit(StringUtil.getBool(arg));
+			prop.setPlayersExit(StringUtil.getBool(arg));
 		} else if (mode.equals("setowner")) {
 			arg = arg.toLowerCase();
 			for (CartProperties cprop : prop) {
@@ -88,15 +86,15 @@ public class SignActionProperties extends SignAction {
 		} else if (mode.equals("settag")) {
 			prop.setTags(arg);
 		} else if (mode.equals("destination")) {
-			prop.destination = arg;
+			prop.setDestination(arg);
 		} else if (mode.equals("remtag")) {
 			prop.removeTags(arg);
 		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-			prop.allowMobsEnter = StringUtil.getBool(arg);
+			prop.setMobsEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerenter")) {
-			prop.allowPlayerEnter = StringUtil.getBool(arg);
+			prop.setPlayersEnter(StringUtil.getBool(arg));
 		} else if (mode.equals("playerexit")) {
-			prop.allowPlayerExit = StringUtil.getBool(arg);
+			prop.setPlayersExit(StringUtil.getBool(arg));
 		} else if (mode.equals("setowner")) {
 			arg = arg.toLowerCase();
 			prop.getOwners().clear();

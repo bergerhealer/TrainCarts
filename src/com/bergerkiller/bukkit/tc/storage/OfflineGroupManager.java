@@ -27,7 +27,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class OfflineGroupManager {
 	private static boolean chunkLoadReq = false;

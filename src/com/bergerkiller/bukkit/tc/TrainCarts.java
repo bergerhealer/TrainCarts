@@ -32,6 +32,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -325,13 +326,13 @@ public class TrainCarts extends PluginBase {
 		
 		//Init signs
 		SignAction.init();
-		
+
+		//Load properties
+		TrainProperties.load();
+
 		//Load groups
 		OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
-		
-		//Load properties
-		TrainProperties.init();
-		
+
 		//Load destinations
 		PathNode.init(getDataFolder() + File.separator + "destinations.dat");
 		
@@ -410,7 +411,7 @@ public class TrainCarts extends PluginBase {
 		}
 		
 		//Save properties
-		TrainProperties.deinit();
+		TrainProperties.save();
 
 		//Save destinations
 		PathNode.deinit(getDataFolder() + File.separator + "destinations.dat");

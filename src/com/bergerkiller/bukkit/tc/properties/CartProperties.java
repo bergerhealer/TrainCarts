@@ -1,7 +1,7 @@
-package com.bergerkiller.bukkit.tc;
+package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,68 +17,41 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.SignActionAnnounce;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
-public class CartProperties {
+public class CartProperties extends CartPropertiesStore implements IProperties {
 	public static final CartProperties EMPTY = new CartProperties(null, TrainProperties.EMPTY);
-	
-	private static HashMap<UUID, CartProperties> properties = new HashMap<UUID, CartProperties>();
-	private static HashMap<String, CartProperties> editing = new HashMap<String, CartProperties>();
-	
-	public static CartProperties getEditing(String playername) {
-		return editing.get(playername.toLowerCase());
-	}
-	public static void setEditing(String playername, CartProperties properties) {
-		if (properties == null) {
-			editing.remove(playername.toLowerCase());
-		} else {
-			editing.put(playername.toLowerCase(), properties);
-		}
-	}
-	
-	public static CartProperties get(UUID uuid, TrainProperties train) {
-		CartProperties prop = properties.get(uuid);
-		if (prop == null) {
-			prop = new CartProperties(uuid, train);
-			properties.put(uuid, prop);
-		}
-		return prop;
-	}
-	public static CartProperties get(MinecartMember member) {
-		return get(member.uniqueId, member.getGroup().getProperties());
-	}
-	
-	private CartProperties(UUID uuid, TrainProperties group) {
+
+	protected CartProperties(UUID uuid, TrainProperties group) {
 		this.uuid = uuid;
 		this.group = group;
 	}
-	
+
 	private final UUID uuid;
 	private final Set<String> owners = new HashSet<String>();
 	private final Set<String> tags = new HashSet<String>();
-	public final Set<Material> blockBreakTypes = new HashSet<Material>();
-	public boolean allowMobsEnter = true;
-	public boolean allowPlayerExit = true;
-	public boolean allowPlayerEnter = true;
-	public String enterMessage = null;
-	public String destination = "";
-	public boolean isPublic = true;
-	public boolean pickUp = false;
+	private final Set<Material> blockBreakTypes = new HashSet<Material>();
+	private boolean allowMobsEnter = true;
+	private boolean allowPlayerExit = true;
+	private boolean allowPlayerEnter = true;
+	private String enterMessage = null;
+	private String destination = "";
+	private boolean isPublic = true;
+	private boolean pickUp = false;
 	private SoftReference<MinecartMember> member = new SoftReference<MinecartMember>();
 	protected TrainProperties group = null;
-	
-	public void setEditing(String playername) {
-		setEditing(playername, this);
-	}
-	public void remove() {
-		properties.remove(this.uuid);
-	}
+
 	public TrainProperties getTrainProperties() {
 		return this.group;
 	}
+
 	public MinecartMember getMember() {
 		MinecartMember member = this.member.get();
 		if (member == null || member.dead || !member.uniqueId.equals(this.uuid)) {
@@ -167,36 +140,70 @@ public class CartProperties {
 		return false;
 	}
 
-	/*
-	 * Tags
+	/**
+	 * Gets whether this Minecart can pick up nearby items
+	 * 
+	 * @return True if it can pick up items, False if not
 	 */
-	public boolean hasTag(String tag) {
+	public boolean canPickup() {
+		return this.pickUp;
+	}
+
+	public void setPickup(boolean pickup) {
+		this.pickUp = pickup;
+	}
+
+	@Override
+	public boolean isPublic() {
+		return this.isPublic;
+	}
+
+	@Override
+	public void setPublic(boolean state) {
+		this.isPublic = state;
+	}
+
+	@Override
+	public boolean matchTag(String tag) {
 		return Util.matchText(this.tags, tag);
 	}
+
+	@Override
 	public boolean hasTags() {
 		return !this.tags.isEmpty();
 	}
-	public void addTags(String... tags) {
-		for (String tag : tags) {
-			if (!this.hasTag(tag)) this.tags.add(tag);
-		}
-	}
+
+	@Override
 	public void setTags(String... tags) {
 		this.tags.clear();
 		this.addTags(tags);
 	}
-	public Set<String> getTags() {
-		return this.tags;
-	}
+
+	@Override
 	public void clearTags() {
 		this.tags.clear();
 	}
+
+	@Override
+	public void addTags(String... tags) {
+		for (String tag : tags) {
+			this.tags.add(tag);
+		}
+	}
+
+	@Override
 	public void removeTags(String... tags) {
 		for (String tag : tags) {
 			this.tags.remove(tag);
 		}
 	}
 
+	@Override
+	public Set<String> getTags() {
+		return this.tags;
+	}
+
+	@Override
 	public BlockLocation getLocation() {
 		MinecartMember member = this.getMember();
 		if (member != null) {
@@ -217,27 +224,92 @@ public class CartProperties {
 			}
 		}
 	}
-	
-	/*
-	 * Enter message
+
+	/**
+	 * Tests whether the Minecart has block types it can break
+	 * 
+	 * @return True if materials are contained, False if not
+	 */
+	public boolean hasBlockBreakTypes() {
+		return !this.blockBreakTypes.isEmpty();
+	}
+
+	/**
+	 * Clears all the materials this Minecart can break
+	 */
+	public void clearBlockBreakTypes() {
+		this.blockBreakTypes.clear();
+	}
+
+	/**
+	 * Gets a Collection of materials this Minecart can break
+	 * 
+	 * @return a Collection of blocks that are broken
+	 */
+	public Collection<Material> getBlockBreakTypes() {
+		return this.blockBreakTypes;
+	}
+
+	/**
+	 * Gets the Enter message that is currently displayed when a player enters
+	 * 
+	 * @return Enter message
+	 */
+	public String getEnterMessage() {
+		return this.enterMessage;
+	}
+
+	/**
+	 * Gets whether an Enter message is set
+	 * 
+	 * @return True if a message is set, False if not
 	 */
 	public boolean hasEnterMessage() {
 		return this.enterMessage != null && !this.enterMessage.equals("");
 	}
+
+	/**
+	 * Shows the enter message to the player specified
+	 * 
+	 * @param player to display the message to
+	 */
 	public void showEnterMessage(Player player) {
 		if (this.hasEnterMessage()) {
 			SignActionAnnounce.sendMessage(ChatColor.YELLOW + SignActionAnnounce.getMessage(enterMessage), player);
 		}
 	}
-	
-	/*
-	 * Destination
-	 */
-	public boolean hasDestination() {
-		return this.destination != null && this.destination.length() != 0;
+
+	@Override
+	public void setEnterMessage(String message) {
+		this.enterMessage = message;
 	}
 
+	public void clearDestination() {
+		this.destination = "";
+	}
+
+	@Override
+	public boolean hasDestination() {
+		return this.destination.length() != 0;
+	}
+
+	@Override
+	public void setDestination(String destination) {
+		this.destination = destination == null ? "" : destination;
+	}
+
+	@Override
+	public String getDestination() {
+		return this.destination;
+	}
+
+	/**
+	 * Loads the information from the properties specified
+	 * 
+	 * @param properties to load from
+	 */
 	public void load(CartProperties from) {
+		this.destination = from.destination;
 		this.owners.clear();
 		this.owners.addAll(from.owners);
 		this.tags.clear();
@@ -246,6 +318,8 @@ public class CartProperties {
 		this.allowPlayerEnter = from.allowPlayerEnter;
 		this.allowPlayerExit = from.allowPlayerExit;
 	}
+
+	@Override
 	public void load(ConfigurationNode node) {
 		for (String owner : node.getList("owners", String.class)) {
 			this.owners.add(owner.toLowerCase());
@@ -253,6 +327,7 @@ public class CartProperties {
 		for (String tag : node.getList("tags", String.class)) {
 			this.tags.add(tag);
 		}
+		this.destination = node.get("destination", this.destination);
 		this.allowMobsEnter = node.get("allowMobsEnter", this.allowMobsEnter);
 		this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
@@ -263,9 +338,8 @@ public class CartProperties {
 			if (mat != null) this.blockBreakTypes.add(mat);
 		}
 	}
-	public void save(ConfigurationNode node) {
-		this.save(node, true);
-	}
+
+	@Override
 	public void save(ConfigurationNode node, boolean minimal) {
 		if (minimal) {
 			node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
@@ -296,4 +370,33 @@ public class CartProperties {
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
 	}
 
+	@Override
+	public boolean getMobsEnter() {
+		return this.allowMobsEnter;
+	}
+
+	@Override
+	public void setMobsEnter(boolean state) {
+		this.allowMobsEnter = state;
+	}
+
+	@Override
+	public boolean getPlayersEnter() {
+		return this.allowPlayerEnter;
+	}
+
+	@Override
+	public void setPlayersEnter(boolean state) {
+		this.allowPlayerEnter = state;
+	}
+
+	@Override
+	public boolean getPlayersExit() {
+		return this.allowPlayerExit;
+	}
+
+	@Override
+	public void setPlayersExit(boolean state) {
+		this.allowPlayerExit = state;
+	}
 }

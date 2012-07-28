@@ -41,6 +41,9 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -155,7 +158,7 @@ public class TCListener implements Listener {
 								if (TrainCarts.setOwnerOnPlacement) {
 									mm.getProperties().setOwner(lp);
 								}
-								mm.setEditing(lp);
+								CartPropertiesStore.setEditing(lp, mm.getProperties());
 							}
 						}
 					}
@@ -173,12 +176,12 @@ public class TCListener implements Listener {
 				CartProperties prop = member.getProperties();
 				if (event.getEntered() instanceof Player) {
 					Player player = (Player) event.getEntered();
-					if (prop.allowPlayerEnter && (prop.isPublic || prop.isOwner(player))) {
+					if (prop.getPlayersEnter() && (prop.isPublic() || prop.isOwner(player))) {
 						prop.showEnterMessage(player);
 					} else {
 						event.setCancelled(true);
 					}
-				} else if (!prop.allowMobsEnter) {
+				} else if (!prop.getMobsEnter()) {
 					event.setCancelled(true);
 				}
 				member.update();
@@ -194,7 +197,7 @@ public class TCListener implements Listener {
 				if (mm != null) {
 					Player p = (Player) event.getAttacker();
 					if (mm.getProperties().hasOwnership(p)) {
-						mm.setEditing(p);
+						CartPropertiesStore.setEditing(p, mm.getProperties());
 					} else {
 						event.setCancelled(true);
 					}
@@ -360,9 +363,9 @@ public class TCListener implements Listener {
 		try {
 			MinecartMember mm = MinecartMember.get(event.getRightClicked());
 			if (mm != null) {
-				mm.setEditing(event.getPlayer());
+				CartPropertiesStore.setEditing(event.getPlayer(), mm.getProperties());
 				MinecartMember entered = MinecartMember.get(event.getPlayer().getVehicle());
-				if (entered != null && !entered.getProperties().allowPlayerExit) {
+				if (entered != null && !entered.getProperties().getPlayersExit()) {
 					event.setCancelled(true);
 				}
 			}

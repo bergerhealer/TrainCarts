@@ -1,8 +1,7 @@
-package com.bergerkiller.bukkit.tc;
+package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,79 +15,40 @@ import org.bukkit.entity.Slime;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
-public class TrainProperties extends HashSet<CartProperties> {
+public class TrainProperties extends TrainPropertiesStore implements IProperties {
 	private static final long serialVersionUID = 1L;
-	public static final TrainProperties EMPTY = new TrainProperties();
-	private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
-	private static final String propertiesFile = "TrainProperties.yml";
-	
-	private static HashMap<String, TrainProperties> properties = new HashMap<String, TrainProperties>();
-	public static Collection<TrainProperties> getAll(String expression) {
-		List<TrainProperties> rval = new ArrayList<TrainProperties>();
-		if (expression != null && !expression.isEmpty()) {
-			String[] elements = expression.split("\\*");
-			boolean first = expression.startsWith("*");
-			boolean last = expression.startsWith("*");
-			for (TrainProperties prop : getAll()) {
-				if (prop.matchName(elements, first, last)) {
-					rval.add(prop);
-				}
-			}
-		}
-		return rval;
-	}
-	public static Collection<TrainProperties> getAll() {
-		return properties.values();
-	}
-	public static TrainProperties get(String trainname) {
-		if (trainname == null) return null;
-		TrainProperties prop = properties.get(trainname);
-		if (prop == null) {
-			return new TrainProperties(trainname);
-		}
-		return prop;
-	}
-	public static boolean exists(String trainname) {
-		if (properties == null) return false;
-		if (properties.containsKey(trainname)) {
-			if (OfflineGroupManager.contains(trainname)) {
-				return true;
-			} else if (MinecartGroup.get(trainname) != null) {
-				return true;
-			} else {
-				//doesn't link to a train!
-				properties.remove(trainname);
-			}
-		}
-		return false;
-	}
-	public static void clearAll() {
-		properties.clear();
-	}
-	
-	private String trainname;	
-	public String displayName;
-	public boolean allowLinking = true;
-	public boolean trainCollision = true;
-	public boolean slowDown = true;
+	public static final TrainProperties EMPTY = new TrainProperties("");
+
+	protected String trainname;	
+	private String displayName;
+	private boolean allowLinking = true;
+	private boolean trainCollision = true;
+	private boolean slowDown = true;
+	private double speedLimit = 0.4;
 	public boolean pushMobs = false;
 	public boolean pushPlayers = false;
 	public boolean pushMisc = true;
-	public double speedLimit = 0.4;
 	public boolean requirePoweredMinecart = false;
 	public boolean keepChunksLoaded = false;
-	public boolean ignoreStations = false;
 	private SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
-	
-	@Deprecated
-	public Set<CartProperties> getCarts() {
-		return this;
+
+	protected TrainProperties(String trainname) {
+		this.displayName = this.trainname = trainname;
+		this.setDefault();
 	}
+
+	/**
+	 * Gets the Group associated with these Properties
+	 * 
+	 * @return the MinecartGroup these properties belong to, or null if not loaded
+	 */
 	public MinecartGroup getGroup() {
 		MinecartGroup group = this.group.get();
 		if (group == null || group.isRemoved()) {
@@ -98,19 +58,114 @@ public class TrainProperties extends HashSet<CartProperties> {
 		}
 	}
 
+	/**
+	 * Gets the maximum speed this Train can move at
+	 * 
+	 * @return max speed in blocks/tick
+	 */
+	public double getSpeedLimit() {
+		return this.speedLimit;
+	}
+
+	/**
+	 * Sets the maximum speed this Train can move at<br>
+	 * The maximum speed limit is enforced.
+	 * 
+	 * @param limit in blocks/tick
+	 */
+	public void setSpeedLimit(double limit) {
+		this.speedLimit = Math.min(limit, TrainCarts.maxVelocity);
+	}
+
+	/**
+	 * Gets whether the Train slows down over time
+	 * 
+	 * @return True if it slows down, False if not
+	 */
+	public boolean getSlowingDown() {
+		return this.slowDown;
+	}
+
+	/**
+	 * Sets whether the Train slows down over time
+	 * 
+	 * @param slowingDown state to set to
+	 */
+	public void setSlowingDown(boolean slowingDown) {
+		this.slowDown = slowingDown;
+	}
+	
+	/**
+	 * Gets whether this Train can collide with other Entities and Trains
+	 * 
+	 * @return True if it can collide, False if not
+	 */
+	public boolean getColliding() {
+		return this.trainCollision;
+	}
+
+	/**
+	 * Sets whether this Train can collide with other Entities and Trains
+	 * 
+	 * @param state to set to
+	 */
+	public void setColliding(boolean state) {
+		this.trainCollision = state;
+	}
+
+	/**
+	 * Gets whether this Train can link to other trains
+	 * 
+	 * @return linking state
+	 */
+	public boolean getLinking() {
+		return this.allowLinking;
+	}
+
+	/**
+	 * Sets whether this Train can link to other trains
+	 * 
+	 * @param linking state to set to
+	 */
+	public void setLinking(boolean linking) {
+		this.allowLinking = linking;
+	}
+
+	/**
+	 * Sets the Display Name for these properties
+	 * 
+	 * @param displayName to set to
+	 */
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	/**
+	 * Gets the Display Name of these properties
+	 * 
+	 * @return display name
+	 */
+	public String getDisplayName() {
+		return this.displayName;
+	}
+
 	/*
 	 * Carts
 	 */
 	public void add(MinecartMember member) {
 		this.add(member.getProperties());
 	}
+
 	public void remove(MinecartMember member) {
 		this.remove(member.getProperties());
 	}
+
+	@Override
 	public boolean add(CartProperties properties) {
 		properties.group = this;
 		return super.add(properties);
 	}
+
 	public CartProperties get(int index) {
 		for (CartProperties prop : this) {
 			if (index-- == 0) {
@@ -119,14 +174,14 @@ public class TrainProperties extends HashSet<CartProperties> {
 		}
 		throw new IndexOutOfBoundsException("No cart properties found at index " + index);
 	}
-	
-	/*
-	 * Pick up items
-	 */
+
+	@Override
 	public void setPickup(boolean pickup) {
-		for (CartProperties prop : this) prop.pickUp = pickup;
+		for (CartProperties prop : this) {
+			prop.setPickup(pickup);
+		}
 	}
-	
+
 	/*
 	 * Owners
 	 */
@@ -166,78 +221,165 @@ public class TrainProperties extends HashSet<CartProperties> {
 		}
 		return rval;
 	}
-	
-	/*
-	 * Tags
-	 */
-	public boolean hasTag(String tag) {
+
+	@Override
+	public void setPublic(boolean state) {
 		for (CartProperties prop : this) {
-			if (prop.hasTag(tag)) return true;
+			prop.setPublic(state);
+		}
+	}
+
+	@Override
+	public boolean isPublic() {
+		for (CartProperties prop : this) {
+			if (prop.isPublic()) {
+				return true;
+			}
 		}
 		return false;
 	}
+
+	@Override
+	public void setEnterMessage(String message) {
+		for (CartProperties prop : this) {
+			prop.setEnterMessage(message);
+		}
+	}
+
+	@Override
+	public boolean matchTag(String tag) {
+		for (CartProperties prop : this) {
+			if (prop.matchTag(tag)) return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean hasTags() {
+		for (CartProperties prop : this) {
+			if (prop.hasTags()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public Collection<String> getTags() {
+		List<String> tags = new ArrayList<String>();
+		for (CartProperties prop : this) {
+			tags.addAll(prop.getTags());
+		}
+		return tags;
+	}
+
+	@Override
 	public void clearTags() {
 		for (CartProperties prop : this) {
 			prop.clearTags();
 		}
 	}
+
+	@Override
 	public void setTags(String... tags) {
 		for (CartProperties prop : this) {
 			prop.setTags(tags);
 		}
 	}
+
+	@Override
 	public void addTags(String... tags) {
 		for (CartProperties prop : this) {
 			prop.addTags(tags);
 		}
 	}
+
+	@Override
 	public void removeTags(String... tags) {
 		for (CartProperties prop : this) {
 			prop.removeTags(tags);
 		}
 	}
-	
-	/*
-	 * Other batch cart property changing
-	 */
-	public void setAllowPlayerEnter(boolean state) {
+
+	@Override
+	public void setPlayersEnter(boolean state) {
 		for (CartProperties prop : this) {
-		    prop.allowPlayerEnter = state;
+		    prop.setPlayersEnter(state);
 		}
 	}
-	public void setAllowPlayerExit(boolean state) {
+
+	@Override
+	public void setPlayersExit(boolean state) {
 		for (CartProperties prop : this) {
-		    prop.allowPlayerExit = state;
+		    prop.setPlayersExit(state);
 		}
 	}
-	public void setAllowMobsEnter(boolean state) {
+
+	@Override
+	public void setMobsEnter(boolean state) {
 		for (CartProperties prop : this) {
-		    prop.allowMobsEnter = state;
+		    prop.setMobsEnter(state);
 		}
 	}
-	
-	/*
-	 * Destination
-	 */
+
+	@Override
+	public boolean getPlayersEnter() {
+		for (CartProperties prop : this) {
+			if (prop.getPlayersEnter()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean getPlayersExit() {
+		for (CartProperties prop : this) {
+			if (prop.getPlayersExit()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean getMobsEnter() {
+		for (CartProperties prop : this) {
+			if (prop.getMobsEnter()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public boolean hasDestination() {
 		for (CartProperties prop : this) {
 			if (prop.hasDestination()) return true;
 		}
 		return false;
 	}
+
+	@Override
 	public String getDestination() {
 		for (CartProperties prop : this) {
-			if (prop.hasDestination()) return prop.destination;
+			if (prop.hasDestination()) return prop.getDestination();
 		}
 		return "";
 	}
+
+	@Override
 	public void setDestination(String destination) {
 		for (CartProperties prop : this) {
-			prop.destination = destination;
+			prop.setDestination(destination);
 		}
 	}
+
+	@Override
 	public void clearDestination() {
-		this.setDestination("");
+		for (CartProperties prop : this) {
+			prop.clearDestination();
+		}
 	}
 
 	/*
@@ -282,44 +424,21 @@ public class TrainProperties extends HashSet<CartProperties> {
 			return this.canCollide(mm);
 		}
 	}
-		
-	/*
-	 * General coding not related to properties themselves
-	 */
-	private TrainProperties() {};
-	private TrainProperties(String trainname) {
-		this.displayName = this.trainname = trainname;
-		properties.put(trainname, this);
-		this.setDefault();
-	}	
+
 	public String getTrainName() {
 		return this.trainname;
-	}	
-	public void remove() {
-		properties.remove(this.trainname);
 	}
-	public void add() {
-		properties.put(this.trainname, this);
-	}
+
 	/**
 	 * Renames this train, this should be called to rename the train safely
 	 * @param newtrainname to set to
 	 * @return this
 	 */
 	public TrainProperties setName(String newtrainname) {
-		// Rename the group
-		MinecartGroup group = this.getGroup();
-		if (group != null) {
-			group.name = newtrainname;
-		}
-		// Rename the offline group
-		OfflineGroupManager.rename(this.trainname, newtrainname);
-		// Rename the properties
-		properties.remove(this.trainname);
-		this.displayName = this.trainname = newtrainname;
-		properties.put(newtrainname, this);
+		rename(this, newtrainname);
 		return this;
 	}
+
 	public boolean isTrainRenamed() {
 		if (this.trainname.startsWith("train")) {
 			try {
@@ -328,12 +447,15 @@ public class TrainProperties extends HashSet<CartProperties> {
 		}
 		return false;
 	}
+
 	public boolean isLoaded() {
 		return this.getGroup() != null;
 	}
+
 	public boolean matchName(String expression) {
 		return Util.matchText(this.getTrainName(), expression);
 	}
+
 	public boolean matchName(String[] expressionElements, boolean firstAny, boolean lastAny) {
 		return Util.matchText(this.getTrainName(), expressionElements, firstAny, lastAny);
 	}
@@ -345,101 +467,40 @@ public class TrainProperties extends HashSet<CartProperties> {
 		return null;
 	}
 
-	public static void init() {
-		load();
-	}
-	public static void deinit() {
-		save();
-		defconfig = null;
-	}
-    		
-	/*
-	 * Train properties defaults
-	 */
-	private static FileConfiguration defconfig = null;
-	public static void reloadDefaults() {
-		defconfig = new FileConfiguration(TrainCarts.plugin, defaultPropertiesFile);
-		defconfig.load();
-		boolean changed = false;
-		if (!defconfig.contains("default")) {
-			ConfigurationNode node = defconfig.getNode("default");
-			TrainProperties.EMPTY.save(node, false, false);
-			CartProperties.EMPTY.save(node, false);
-			changed = true;
-		}
-		if (!defconfig.contains("admin")) {
-			ConfigurationNode node = defconfig.getNode("admin");
-			TrainProperties.EMPTY.save(node, false, false);
-			CartProperties.EMPTY.save(node, false);
-			changed = true;
-		}
-		if (changed) defconfig.save();
-	}
-	public static FileConfiguration getDefaults() {
-		if (defconfig == null) reloadDefaults();
-		return defconfig;
-	}
 	public void setDefault() {
 		setDefault("default");
 	}
+
 	public void setDefault(String key) {
-		this.setDefault(getDefaults().getNode(key));
+		this.setDefault(getDefaultsByName(key));
 	}
+
 	public void setDefault(ConfigurationNode node) {
+		if (node == null) {
+			return;
+		}
 		this.load(node);
 		for (CartProperties prop : this) {
 			prop.load(node);
 		}
 	}
+
 	public void setDefault(Player player) {
 		if (player == null) {
 			//Set default
 			this.setDefault();
 		} else {
 			//Load it
-			for (ConfigurationNode node : getDefaults().getNodes()) {
-				if (player.hasPermission("train.properties." + node.getName())) {
-					this.setDefault(node);
-					break;
-				}
-			}
+			this.setDefault(getDefaultsByPlayer(player));
 		}
 	}
-	
+
 	public void tryUpdate() {
 		MinecartGroup g = this.getGroup();
 		if (g != null) g.update();
 	}
-	
-	/*
-	 * Loading and saving
-	 */
-	public static void load() {
-		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
-		config.load();
-		for (ConfigurationNode node : config.getNodes()) {
-			TrainProperties prop = new TrainProperties();
-			prop.trainname = prop.displayName = node.getName();
-			prop.load(node);
-			properties.put(prop.trainname, prop);
-		}
-	}
-	public static void save() {
-		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
-		for (TrainProperties prop : properties.values()) {
-			//does this train even exist?!
-			if (OfflineGroupManager.contains(prop.getTrainName())) {
-				ConfigurationNode train = config.getNode(prop.getTrainName());
-				prop.save(train);
-				if (train.getKeys().isEmpty()) {
-					config.remove(prop.getTrainName());
-				}
-			} else {
-				config.remove(prop.getTrainName());
-			}
-		}
-		config.save();
-	}
+
+	@Override
 	public void load(ConfigurationNode node) {
 		this.displayName = node.get("displayName", this.displayName);
 		this.allowLinking = node.get("allowLinking", this.allowLinking);
@@ -451,7 +512,6 @@ public class TrainProperties extends HashSet<CartProperties> {
 		this.speedLimit = MathUtil.limit(node.get("speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
-		this.ignoreStations = node.get("ignoreStations", this.ignoreStations);
 		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
 			try {
 				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()), this);
@@ -462,6 +522,12 @@ public class TrainProperties extends HashSet<CartProperties> {
 			}
 		}
 	}
+
+	/**
+	 * Loads the properties from the TrainProperties source specified
+	 * 
+	 * @param source to load from
+	 */
 	public void load(TrainProperties source) {
 		this.displayName = source.displayName;
 		this.allowLinking = source.allowLinking;
@@ -476,13 +542,9 @@ public class TrainProperties extends HashSet<CartProperties> {
 		this.clear();
 		this.addAll(source);
 	}
-	public void save(ConfigurationNode node) {
-		this.save(node, true);
-	}
-	public void save(ConfigurationNode node, boolean savecarts) {	
-		this.save(node, savecarts, true);
-	}
-	public void save(ConfigurationNode node, boolean savecarts, boolean minimal) {		
+
+	@Override
+	public void save(ConfigurationNode node, boolean minimal) {	
 		if (minimal) {
 			node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
 			node.set("allowLinking", this.allowLinking ? null : false);
@@ -498,7 +560,6 @@ public class TrainProperties extends HashSet<CartProperties> {
 			} else {
 				node.remove("pushAway");
 			}
-			node.set("ignoreStations", this.ignoreStations ? true : null);
 		} else {
 			node.set("displayName", this.displayName);
 			node.set("allowLinking", this.allowLinking);
@@ -510,9 +571,8 @@ public class TrainProperties extends HashSet<CartProperties> {
 			node.set("pushAway.mobs", this.pushMobs);
 			node.set("pushAway.players", this.pushPlayers);
 			node.set("pushAway.misc", this.pushMisc);
-			node.set("ignoreStations", this.ignoreStations);
 		}
-		if (savecarts) {
+		if (!this.isEmpty()) {
 			ConfigurationNode carts = node.getNode("carts");
 			for (CartProperties prop : this) {
 				ConfigurationNode cart = carts.getNode(prop.getUUID().toString());

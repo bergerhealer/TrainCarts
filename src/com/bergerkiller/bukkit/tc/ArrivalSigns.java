@@ -45,9 +45,9 @@ public class ArrivalSigns {
 		String duration = sign.getLine(3);
 		if (name == null || name.equals("")) return;
 		if (mm != null) {
-			Variables.get(name + 'N').set(mm.getGroup().getProperties().displayName);
+			Variables.get(name + 'N').set(mm.getGroup().getProperties().getDisplayName());
 			if (mm.getProperties().hasDestination()) {
-				Variables.get(name + 'D').set(mm.getProperties().destination);
+				Variables.get(name + 'D').set(mm.getProperties().getDestination());
 			} else {
 				Variables.get(name + 'D').set("Unknown");
 			}

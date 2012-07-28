@@ -38,6 +38,8 @@ import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -66,7 +68,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public static MinecartGroup create(String name, MinecartMember... members) {
 		MinecartGroup g = new MinecartGroup();
-		g.name = name;
+		g.prop = TrainProperties.get(name);
 		for (MinecartMember member : members) {
 			if (member != null && !member.dead) {
 				g.add(member);
@@ -118,8 +120,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	}
 	public static MinecartGroup get(String name) {
 		for (MinecartGroup group : groups) {
-			if (group.name == null) continue;
-			if (group.name.equalsIgnoreCase(name)) return group;
+			if (group.getProperties().getTrainName().equalsIgnoreCase(name)) return group;
 		}
 		return null;
 	}
@@ -143,7 +144,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//Can the two groups bind?
 			TrainProperties prop1 = g1.getProperties();
 			TrainProperties prop2 = g2.getProperties();
-			if (!prop1.allowLinking || !prop2.allowLinking) {
+			if (!prop1.getLinking() || !prop2.getLinking()) {
 				return false;
 			}
 
@@ -214,54 +215,30 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
-	protected String name;
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
 
-	private MinecartGroup() {}
-
-	/*
-	 * Name
-	 */
-	public String getName() {
-		if (this.name == null) {
-			for (int i = groups.size(); i < Integer.MAX_VALUE; i++) {
-				if (!TrainProperties.exists("train" + i)) {
-					this.name = "train" + i;
-					break;
-				}
-			}
-		}
-		return this.name;
-	}
-	public void setName(String name) {
-		this.getProperties().setName(name);
-	}
+	protected MinecartGroup() {}
 
 	/*
 	 * Properties
 	 */
 	public TrainProperties getProperties() {
 		if (this.prop == null) {
-			this.prop = TrainProperties.get(this.getName());
+			this.prop = TrainPropertiesStore.create();
 		}
 		return this.prop;
 	}
+
 	public void setProperties(TrainProperties properties) {
+		if (properties == null) {
+			throw new IllegalArgumentException("Can not set properties to null");
+		}
 		if (this.prop != null) {
-			this.prop.remove();
+			TrainPropertiesStore.remove(this.prop.getTrainName());
 		}
 		this.prop = properties;
-		if (this.prop != null) {
-			this.name = this.prop.getTrainName();
-			this.prop.add();
-		} else {
-			this.name = null;
-		}
-	}
-	public void reinitProperties() {
-		this.prop = null;
 	}
 
 	/*
@@ -544,7 +521,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		GroupRemoveEvent.call(this);
 		this.clear();
 		if (this.prop != null) {
-			this.prop.remove();
+			TrainPropertiesStore.remove(this.prop.getTrainName());
 			this.prop = null;
 		}
 		groups.remove(this);
@@ -907,7 +884,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
-			double speedlimit = this.getProperties().speedLimit;
+			double speedlimit = this.getProperties().getSpeedLimit();
 			if (totalforce > 0.4 && speedlimit > 0.4) {
 				int bits = (int) Math.ceil(speedlimit / 0.4);
 				for (MinecartMember mm : this) {
@@ -922,7 +899,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 					mm.motX *= (double) bits;
 					mm.motY *= (double) bits;
 					mm.motZ *= (double) bits;
-					mm.maxSpeed = this.getProperties().speedLimit;
+					mm.maxSpeed = this.getProperties().getSpeedLimit();
 				}
 			} else {
 				this.doPhysics(1);
@@ -930,7 +907,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 		} catch (GroupUnloadedException ex) {
 			//this group is gone
 		} catch (Exception ex) {
-			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + this.name + "':");
+			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + this.getProperties().getTrainName() + "':");
 			ex.printStackTrace();
 		} catch (Throwable t) {
 			TrainCarts.handleError(t);
@@ -948,7 +925,7 @@ public class MinecartGroup extends ArrayList<MinecartMember> {
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
 				mm.validate();
-				mm.maxSpeed = this.getProperties().speedLimit / (double) stepcount;
+				mm.maxSpeed = this.getProperties().getSpeedLimit() / (double) stepcount;
 			}
 			
 			//pre-update

@@ -22,11 +22,11 @@ public class StatementTag extends Statement {
 	public boolean handle(MinecartMember member, String tag, SignActionEvent event) {
 		return this.handleArray(member, parseArray(tag), event);
 	}
-	
+
 	@Override
 	public boolean handleArray(MinecartMember member, String[] tags, SignActionEvent event) {
 		for (String tag : tags) {
-			if (member.getProperties().hasTag(tag)) {
+			if (member.getProperties().matchTag(tag)) {
 				return true;
 			}
 		}

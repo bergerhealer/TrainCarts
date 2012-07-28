@@ -1,23 +1,23 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.tc.CartProperties;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class SignActionDestination extends SignAction {
 	
 	public void setDestination(CartProperties prop, SignActionEvent info) {
 		if (!info.isAction(SignActionType.REDSTONE_CHANGE)) {
 			if (!info.getLine(2).isEmpty() && prop.hasDestination()) {
-				if (!info.getLine(2).equals(prop.destination)) {
+				if (!info.getLine(2).equals(prop.getDestination())) {
 					return;
 				}
 			}
 		}
-		prop.destination = info.getLine(3);
+		prop.setDestination(info.getLine(3));
 	}
 	
 	@Override

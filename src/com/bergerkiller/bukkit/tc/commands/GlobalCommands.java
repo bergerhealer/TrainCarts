@@ -9,8 +9,9 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.TrainProperties;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -57,7 +58,7 @@ public class GlobalCommands {
 			return true;
 		} else if (args[0].equals("reload")) {
 			Permission.COMMAND_RELOAD.handle(sender);
-			TrainProperties.reloadDefaults();
+			TrainProperties.loadDefaults();
 			TrainCarts.plugin.loadConfig();
 			sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
 			return true;
@@ -82,7 +83,7 @@ public class GlobalCommands {
 				TrainProperties prop = TrainProperties.exists(name) ? TrainProperties.get(name) : null;
 				if (prop != null && !prop.isEmpty()) {
 					if (prop.isOwner((Player) sender)) {
-						prop.get(0).setEditing(((Player) sender).getName());
+						CartPropertiesStore.setEditing((Player) sender, prop.get(0));
 						sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");	
 					} else {
 						sender.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");

@@ -167,7 +167,7 @@ public class SignActionSwitcher extends SignAction {
 			if (node != null) {
 				PathConnection conn = null;
 				if (doCart) {
-					conn = node.findConnection(info.getMember().getProperties().destination);
+					conn = node.findConnection(info.getMember().getProperties().getDestination());
 				} else if (doTrain) {
 					conn = node.findConnection(info.getGroup().getProperties().getDestination());
 				}

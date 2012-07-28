@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
@@ -368,7 +369,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				if (moveinfo.raildata >= 2 && moveinfo.raildata <= 5) {
 					this.locY = (double) (moveinfo.blockY + 1);
 					//TrainNote: Used to move a minecart up or down sloped tracks
-					if (this.group().getProperties().slowDown) {
+					if (this.group().getProperties().getSlowingDown()) {
 						switch (moveinfo.raildata) {
 						case 2 : this.motX -= slopedMotion; break;
 						case 3 : this.motX += slopedMotion; break;
@@ -489,14 +490,14 @@ public class NativeMinecartMember extends EntityMinecart {
 					this.motX += this.b * boost;
 					this.motZ += this.c * boost;
 				} else {
-					if (this.group().getProperties().slowDown) {
+					if (this.group().getProperties().getSlowingDown()) {
 						this.motX *= 0.9;
 						this.motY *= 0.0;
 						this.motZ *= 0.9;
 					}
 				}
 			}
-			if (this.group().getProperties().slowDown) {
+			if (this.group().getProperties().getSlowingDown()) {
 				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
 					this.motX *= TrainCarts.slowDownMultiplierNormal;
 					this.motY *= 0.0;
@@ -515,7 +516,7 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			//x and z motion slowed down on slopes
 			if (vec3d1 != null && moveinfo.vec3d != null) {
-				if (this.group().getProperties().slowDown) {
+				if (this.group().getProperties().getSlowingDown()) {
 					motLength = this.getForce();
 					if (motLength > 0) {
 						double slopeSlowDown = (moveinfo.vec3d.b - vec3d1.b) * 0.05 / motLength + 1;
@@ -968,10 +969,10 @@ public class NativeMinecartMember extends EntityMinecart {
 				if (mm1.distance(mm2) > 0.5) {
 					return false;
 				}
-			} else if (!mm1.getGroup().getProperties().trainCollision) {
+			} else if (!mm1.getGroup().getProperties().getColliding()) {
 				//Allows train collisions?
 				return false;
-			} else if (!mm2.getGroup().getProperties().trainCollision) {
+			} else if (!mm2.getGroup().getProperties().getColliding()) {
 				//Other train allows train collisions?
 				return false;
 			} else if (mm2.getGroup().isVelocityAction()) {
@@ -984,13 +985,13 @@ public class NativeMinecartMember extends EntityMinecart {
 		} else {
 			//Use push-away?
 			TrainProperties prop = this.group().getProperties();
-			if (e instanceof EntityItem && this.member().getProperties().pickUp) {
+			if (e instanceof EntityItem && this.member().getProperties().canPickup()) {
 				return false;
 			} else if (prop.canPushAway(e.getBukkitEntity())) {
 				this.member().pushSideways(e.getBukkitEntity());
 				return false;
 			}
-			if (!prop.trainCollision) {
+			if (!prop.getColliding()) {
 				//No collision is allowed? (Owners override)
 				if (e instanceof EntityPlayer) {
 					Player p = (Player) e.getBukkitEntity();
@@ -1000,7 +1001,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				} else {
 					return false;
 				}
-			} else if (this.passenger == null && this.canBeRidden() && EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().allowMobsEnter) {
+			} else if (this.passenger == null && this.canBeRidden() && EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().getMobsEnter()) {
 				e.setPassengerOf(this);
 				return false;
 			}

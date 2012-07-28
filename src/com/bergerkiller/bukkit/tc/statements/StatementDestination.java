@@ -19,10 +19,10 @@ public class StatementDestination extends Statement {
 	public boolean matchArray(String text) {
 		return text.equals("d");
 	}
-		
+
 	@Override
 	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
-		String dest = member.getProperties().destination;
+		String dest = member.getProperties().getDestination();
 		for (String elem : text) {
 			if (dest == null ? elem.length() == 0 : elem.equals(dest)) {
 				return true;
