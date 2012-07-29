@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc;
+package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,6 +39,10 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.tc.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.MemberDeadException;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
@@ -58,7 +62,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
-public class MinecartMember extends NativeMinecartMember {
+public class MinecartMember extends MinecartMemberStore {
 	private static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static boolean denyConversion = false;
 	public static boolean canConvert(Entity entity) {
@@ -291,6 +295,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private BlockFace directionFrom;
 	MinecartGroup group;
 	private int blockx, blocky, blockz;
+	protected boolean died = false;
 	private boolean railsloped = false;
 	private boolean isDerailed = false;
 	private boolean isFlying = false;
@@ -302,7 +307,7 @@ public class MinecartMember extends NativeMinecartMember {
 	private MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 
-	private MinecartMember(World world, double x, double y, double z, int type) {
+	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.blockx = super.getBlockX();
 		this.blocky = super.getBlockY();
@@ -1226,7 +1231,6 @@ public class MinecartMember extends NativeMinecartMember {
 		return this.tracker;
 	}
 
-	private boolean died = false;
 	public void die() {
 		if (!died) {
 			this.dead = false;

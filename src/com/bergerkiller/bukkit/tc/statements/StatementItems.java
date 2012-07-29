@@ -4,9 +4,9 @@ import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementItems extends Statement {

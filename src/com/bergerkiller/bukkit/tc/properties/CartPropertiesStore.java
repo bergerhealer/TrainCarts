@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
  * Stores all the Cart Properties available by Minecart UUID

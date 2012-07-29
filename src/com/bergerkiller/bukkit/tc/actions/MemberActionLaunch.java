@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberActionLaunch extends MemberAction implements VelocityAction {
 

@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberActionLaunchDirection extends MemberActionLaunch implements VelocityAction {
 	

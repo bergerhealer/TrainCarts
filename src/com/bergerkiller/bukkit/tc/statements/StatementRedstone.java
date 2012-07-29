@@ -3,8 +3,8 @@ package com.bergerkiller.bukkit.tc.statements;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.tc.Direction;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementRedstone extends Statement {

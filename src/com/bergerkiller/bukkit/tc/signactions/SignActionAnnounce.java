@@ -3,11 +3,11 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.sl.API.Variables;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 

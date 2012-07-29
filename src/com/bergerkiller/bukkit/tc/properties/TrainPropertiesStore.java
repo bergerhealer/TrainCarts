@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
@@ -125,8 +124,6 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		if (trainProperties == null) return false;
 		if (trainProperties.containsKey(trainname)) {
 			if (OfflineGroupManager.contains(trainname)) {
-				return true;
-			} else if (MinecartGroup.get(trainname) != null) {
 				return true;
 			} else {
 				//doesn't link to a train!

@@ -2,8 +2,8 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.World;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberAction extends Action {
 	

@@ -162,6 +162,14 @@ public interface IProperties {
 	public BlockLocation getLocation();
 
 	/**
+	 * Sets a property denoted by the key by parsing the args specified
+	 * 
+	 * @param key of the property
+	 * @param value to set to
+	 */
+	public void parseSet(String key, String args);
+
+	/**
 	 * Loads the information from the Configuration Node specified
 	 * 
 	 * @param node to use

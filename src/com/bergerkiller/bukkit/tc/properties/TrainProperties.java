@@ -16,10 +16,11 @@ import org.bukkit.entity.Slime;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
@@ -94,7 +95,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public void setSlowingDown(boolean slowingDown) {
 		this.slowDown = slowingDown;
 	}
-	
+
 	/**
 	 * Gets whether this Train can collide with other Entities and Trains
 	 * 
@@ -192,10 +193,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return false;
 	}
 	public boolean hasOwnership(Player player) {
-        if (!CartProperties.canHaveOwnership(player)) return false;
-        if (CartProperties.hasGlobalOwnership(player)) return true;
-        if (!this.hasOwners()) return true;
-        return this.isOwner(player);
+		if (!CartProperties.canHaveOwnership(player)) return false;
+		if (CartProperties.hasGlobalOwnership(player)) return true;
+		if (!this.hasOwners()) return true;
+		return this.isOwner(player);
 	}
 	public boolean isOwner(Player player) {
 		boolean hasowner = false;
@@ -304,21 +305,21 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	@Override
 	public void setPlayersEnter(boolean state) {
 		for (CartProperties prop : this) {
-		    prop.setPlayersEnter(state);
+			prop.setPlayersEnter(state);
 		}
 	}
 
 	@Override
 	public void setPlayersExit(boolean state) {
 		for (CartProperties prop : this) {
-		    prop.setPlayersExit(state);
+			prop.setPlayersExit(state);
 		}
 	}
 
 	@Override
 	public void setMobsEnter(boolean state) {
 		for (CartProperties prop : this) {
-		    prop.setMobsEnter(state);
+			prop.setMobsEnter(state);
 		}
 	}
 
@@ -498,6 +499,77 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public void tryUpdate() {
 		MinecartGroup g = this.getGroup();
 		if (g != null) g.update();
+	}
+
+	@Override
+	public void parseSet(String key, String arg) {
+		if (key.equals("collision") || key.equals("collide")) {
+			this.setColliding(StringUtil.getBool(arg));
+		} else if (key.equals("linking") || key.equals("link")) {
+			this.setLinking(StringUtil.getBool(arg));
+		} else if (key.equals("slow") || key.equals("slowdown")) {
+			this.setSlowingDown(StringUtil.getBool(arg));
+		} else if (key.equals("setdefault") || key.equals("default")) {
+			this.setDefault(arg);
+		} else if (key.equals("pushmobs")) {
+			this.pushMobs = StringUtil.getBool(arg);
+		} else if (key.equals("pushplayers")) {
+			this.pushPlayers = StringUtil.getBool(arg);
+		} else if (key.equals("pushmisc")) {
+			this.pushMisc = StringUtil.getBool(arg);
+		} else if (key.equals("push") || key.equals("pushing")) {
+			this.pushMisc = this.pushPlayers = this.pushMobs = StringUtil.getBool(arg);
+		} else if (key.equals("speedlimit") || key.equals("maxspeed")) {
+			try {
+				this.setSpeedLimit(Double.parseDouble(arg));
+			} catch (NumberFormatException ex) {
+				this.setSpeedLimit(0.4);
+			}
+		} else if (key.equals("addtag")) {
+			this.addTags(arg);
+		} else if (key.equals("settag")) {
+			this.setTags(arg);
+		} else if (key.equals("destination")) {
+			this.setDestination(arg);
+		} else if (key.equals("remtag")) {
+			this.removeTags(arg);
+		} else if (key.equals("name") || key.equals("rename") || key.equals("setname")) {
+			String trainName = arg;
+			for (int i = 1; i < Integer.MAX_VALUE; i++) {
+				trainName = arg.replace("#", Integer.toString(i));
+				if (!TrainProperties.exists(trainName)) {
+					break;
+				}
+			}
+			this.setName(trainName);
+		} else if (key.equals("dname") || key.equals("displayname") || key.equals("setdisplayname") || key.equals("setdname")) {
+			this.setDisplayName(arg);
+		} else if (key.equals("mobenter") || key.equals("mobsenter")) {
+			this.setMobsEnter(StringUtil.getBool(arg));
+		} else if (key.equals("playerenter")) {
+			this.setPlayersEnter(StringUtil.getBool(arg));
+		} else if (key.equals("playerexit")) {
+			this.setPlayersExit(StringUtil.getBool(arg));
+		} else if (key.equals("setowner")) {
+			arg = arg.toLowerCase();
+			for (CartProperties cprop : this) {
+				cprop.getOwners().clear();
+				cprop.getOwners().add(arg);
+			}
+		} else if (key.equals("addowner")) {
+			arg = arg.toLowerCase();
+			for (CartProperties cprop : this) {
+				cprop.getOwners().add(arg);
+			}
+		} else if (key.equals("remowner")) {
+			arg = arg.toLowerCase();
+			for (CartProperties cprop : this) {
+				cprop.getOwners().remove(arg);
+			}
+		} else {
+			return;
+		}
+		this.tryUpdate();
 	}
 
 	@Override

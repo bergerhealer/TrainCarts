@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.statements;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public abstract class Statement {
@@ -62,6 +62,8 @@ public abstract class Statement {
 	public static void init() {
 		register(new StatementDestination());
 		register(new StatementBoolean());
+		register(new StatementProperty());
+		register(new StatementName());
 		register(new StatementEmpty());
 		register(new StatementPassenger());
 		register(new StatementOwners());

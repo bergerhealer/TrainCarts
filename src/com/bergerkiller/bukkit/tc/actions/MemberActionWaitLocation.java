@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.Location;
 
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberActionWaitLocation extends MemberAction implements WaitAction {
 	

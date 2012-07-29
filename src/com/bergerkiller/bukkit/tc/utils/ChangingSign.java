@@ -1,9 +1,10 @@
 package com.bergerkiller.bukkit.tc.utils;
 
-import org.bukkit.craftbukkit.block.CraftSign;
+import org.bukkit.block.Sign;
+import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.event.block.SignChangeEvent;
 
-public class ChangingSign extends CraftSign {
+public class ChangingSign extends CraftBlockState implements Sign {
 
 	private final SignChangeEvent event;
 

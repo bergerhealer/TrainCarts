@@ -5,7 +5,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
 public class GroupLinkEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();

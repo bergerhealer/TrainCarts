@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
  * Contains the information to get and restore a Minecart

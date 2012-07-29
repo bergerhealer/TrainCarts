@@ -213,9 +213,6 @@ public class Util {
 			toreplace.cb = MathUtil.locToChunk(toreplace.locY);
 			toreplace.cc = MathUtil.locToChunk(toreplace.locZ);
 		}
-		with.ca = toreplace.ca;
-		with.cb = toreplace.cb;
-		with.cc = toreplace.cc;
 		toreplace.dead = true;
 		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
 		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());

@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.actions;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {

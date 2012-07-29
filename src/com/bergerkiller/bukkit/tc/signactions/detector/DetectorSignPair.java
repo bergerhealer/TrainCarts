@@ -9,8 +9,8 @@ import net.minecraft.server.ChunkCoordinates;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorListener;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 

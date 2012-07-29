@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
 public class GroupActionWaitState extends GroupActionWaitForever {
 

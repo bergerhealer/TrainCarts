@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.statements;
 
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementDestination extends Statement {

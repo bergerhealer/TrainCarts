@@ -3,8 +3,8 @@ package com.bergerkiller.bukkit.tc.events;
 import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberAddEvent extends MemberEvent {
     private static final HandlerList handlers = new HandlerList();

@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.detector;
 
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public interface DetectorListener {
 	

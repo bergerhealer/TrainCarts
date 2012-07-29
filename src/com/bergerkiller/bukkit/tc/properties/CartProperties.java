@@ -17,10 +17,11 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.signactions.SignActionAnnounce;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
@@ -301,6 +302,38 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	@Override
 	public String getDestination() {
 		return this.destination;
+	}
+
+	@Override
+	public void parseSet(String key, String arg) {
+		if (key.equals("addtag")) {
+			this.addTags(arg);
+		} else if (key.equals("settag")) {
+			this.setTags(arg);
+		} else if (key.equals("destination")) {
+			this.setDestination(arg);
+		} else if (key.equals("remtag")) {
+			this.removeTags(arg);
+		} else if (key.equals("mobenter") || key.equals("mobsenter")) {
+			this.setMobsEnter(StringUtil.getBool(arg));
+		} else if (key.equals("playerenter")) {
+			this.setPlayersEnter(StringUtil.getBool(arg));
+		} else if (key.equals("playerexit")) {
+			this.setPlayersExit(StringUtil.getBool(arg));
+		} else if (key.equals("setowner")) {
+			arg = arg.toLowerCase();
+			this.getOwners().clear();
+			this.getOwners().add(arg);
+		} else if (key.equals("addowner")) {
+			arg = arg.toLowerCase();
+			this.getOwners().add(arg);
+		} else if (key.equals("remowner")) {
+			arg = arg.toLowerCase();
+			this.getOwners().remove(arg);
+		} else {
+			return;
+		}
+		this.tryUpdate();
 	}
 
 	/**

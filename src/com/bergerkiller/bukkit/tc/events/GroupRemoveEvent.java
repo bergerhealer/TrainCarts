@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.events;
 import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
 public class GroupRemoveEvent extends GroupEvent {
     private static final HandlerList handlers = new HandlerList();

@@ -1,129 +1,24 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class SignActionProperties extends SignAction {
 
-	public void handleProperties(TrainProperties prop, String mode, String arg) {
-		if (mode.equals("collision") || mode.equals("collide")) {
-			prop.setColliding(StringUtil.getBool(arg));
-		} else if (mode.equals("linking") || mode.equals("link")) {
-			prop.setLinking(StringUtil.getBool(arg));
-		} else if (mode.equals("slow") || mode.equals("slowdown")) {
-			prop.setSlowingDown(StringUtil.getBool(arg));
-		} else if (mode.equals("setdefault") || mode.equals("default")) {
-			prop.setDefault(arg);
-		} else if (mode.equals("pushmobs")) {
-			prop.pushMobs = StringUtil.getBool(arg);
-		} else if (mode.equals("pushplayers")) {
-			prop.pushPlayers = StringUtil.getBool(arg);
-		} else if (mode.equals("pushmisc")) {
-			prop.pushMisc = StringUtil.getBool(arg);
-		} else if (mode.equals("push") || mode.equals("pushing")) {
-			prop.pushMobs = StringUtil.getBool(arg);
-			prop.pushPlayers = prop.pushMobs;
-			prop.pushMisc = prop.pushMobs;
-		} else if (mode.equals("speedlimit") || mode.equals("maxspeed")) {
-			try {
-				prop.setSpeedLimit(Double.parseDouble(arg));
-			} catch (NumberFormatException ex) {
-				prop.setSpeedLimit(0.4);
-			}
-		} else if (mode.equals("addtag")) {
-			prop.addTags(arg);
-		} else if (mode.equals("settag")) {
-			prop.setTags(arg);
-		} else if (mode.equals("destination")) {
-			prop.setDestination(arg);
-		} else if (mode.equals("remtag")) {
-			prop.removeTags(arg);
-		} else if (mode.equals("name") || mode.equals("rename") || mode.equals("setname")) {
-			String trainName = arg;
-			for (int i = 1; i < Integer.MAX_VALUE; i++) {
-				trainName = arg.replace("#", Integer.toString(i));
-				if (!TrainProperties.exists(trainName)) {
-					break;
-				}
-			}
-			prop.setName(trainName);
-		} else if (mode.equals("dname") || mode.equals("displayname") || mode.equals("setdisplayname") || mode.equals("setdname")) {
-			prop.setDisplayName(arg);
-		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-			prop.setMobsEnter(StringUtil.getBool(arg));
-		} else if (mode.equals("playerenter")) {
-			prop.setPlayersEnter(StringUtil.getBool(arg));
-		} else if (mode.equals("playerexit")) {
-			prop.setPlayersExit(StringUtil.getBool(arg));
-		} else if (mode.equals("setowner")) {
-			arg = arg.toLowerCase();
-			for (CartProperties cprop : prop) {
-				cprop.getOwners().clear();
-				cprop.getOwners().add(arg);
-			}
-		} else if (mode.equals("addowner")) {
-			arg = arg.toLowerCase();
-			for (CartProperties cprop : prop) {
-				cprop.getOwners().add(arg);
-			}
-		} else if (mode.equals("remowner")) {
-			arg = arg.toLowerCase();
-			for (CartProperties cprop : prop) {
-				cprop.getOwners().remove(arg);
-			}
-		} else {
-			return;
-		}
-		prop.tryUpdate();
-	}
-	public void handleProperties(CartProperties prop, String mode, String arg) {
-		if (mode.equals("addtag")) {
-			prop.addTags(arg);
-		} else if (mode.equals("settag")) {
-			prop.setTags(arg);
-		} else if (mode.equals("destination")) {
-			prop.setDestination(arg);
-		} else if (mode.equals("remtag")) {
-			prop.removeTags(arg);
-		} else if (mode.equals("mobenter") || mode.equals("mobsenter")) {
-			prop.setMobsEnter(StringUtil.getBool(arg));
-		} else if (mode.equals("playerenter")) {
-			prop.setPlayersEnter(StringUtil.getBool(arg));
-		} else if (mode.equals("playerexit")) {
-			prop.setPlayersExit(StringUtil.getBool(arg));
-		} else if (mode.equals("setowner")) {
-			arg = arg.toLowerCase();
-			prop.getOwners().clear();
-			prop.getOwners().add(arg);
-		} else if (mode.equals("addowner")) {
-			arg = arg.toLowerCase();
-			prop.getOwners().add(arg);
-		} else if (mode.equals("remowner")) {
-			arg = arg.toLowerCase();
-			prop.getOwners().remove(arg);
-		} else {
-			return;
-		}
-		prop.tryUpdate();
-	}
-	
 	@Override
 	public boolean canSupportRC() {
 		return true;
 	}
 	@Override
 	public void execute(SignActionEvent info) {
-		// TODO Auto-generated method stub
 		if (info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.isCartSign()) {
 			if (info.isType("property")) {
 				if (info.isPowered()) {
 					if (info.hasRailedMember()) {
 						String mode = info.getLine(2).toLowerCase().trim();
-						handleProperties(info.getMember().getProperties(), mode, info.getLine(3));
+						info.getMember().getProperties().parseSet(mode, info.getLine(3));
 					}
 				}
 			}
@@ -132,7 +27,7 @@ public class SignActionProperties extends SignAction {
 				if (info.isPowered()) {
 					if (info.hasRailedMember()) {
 						String mode = info.getLine(2).toLowerCase().trim();
-						handleProperties(info.getGroup().getProperties(), mode, info.getLine(3));
+						info.getGroup().getProperties().parseSet(mode, info.getLine(3));
 					}
 				}
 			}
@@ -140,7 +35,7 @@ public class SignActionProperties extends SignAction {
 			if (info.isType("property")) {
 				String mode = info.getLine(2).toLowerCase().trim();
 				for (TrainProperties prop : info.getRCTrainProperties()) {
-					handleProperties(prop, mode, info.getLine(3));
+					prop.parseSet(mode, info.getLine(3));
 				}
 			}
 		}

@@ -24,9 +24,9 @@ import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.MinecartGroup;
-import com.bergerkiller.bukkit.tc.MinecartMember;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class OfflineGroupManager {
@@ -366,11 +366,9 @@ public class OfflineGroupManager {
 	}
 
 	public static boolean contains(String trainname) {
-		if (MinecartGroup.get(trainname) != null) {
-			return true;
-		}
 		return containedTrains.contains(trainname);
 	}
+
 	public static void rename(String oldtrainname, String newtrainname) {
 		synchronized (managers) {
 			for (OfflineGroupManager man : managers.values()) {
