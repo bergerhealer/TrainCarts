@@ -40,7 +40,9 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 	}
 	public static MinecartGroup create(String name, MinecartMember... members) {
 		MinecartGroup g = new MinecartGroup();
-		g.setProperties(TrainProperties.get(name));
+		if (name != null) {
+			g.setProperties(TrainProperties.get(name));
+		}
 		for (MinecartMember member : members) {
 			if (member != null && !member.dead) {
 				g.add(member);
