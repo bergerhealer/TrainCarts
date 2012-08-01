@@ -16,8 +16,11 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 import net.minecraft.server.ChunkCoordinates;
@@ -30,12 +33,51 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		super(world, d0, d1, d2, i);
 	}
 
-	private static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
+	protected static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static boolean denyConversion = false;
+
 	public static boolean canConvert(Entity entity) {
 		return !denyConversion && get(entity) == null;
 	}
 
+	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
+		with.yaw = toreplace.yaw;
+		with.pitch = toreplace.pitch;
+		with.locX = toreplace.locX;
+		with.locY = toreplace.locY;
+		with.locZ = toreplace.locZ;
+		with.motX = toreplace.motX;
+		with.motY = toreplace.motY;
+		with.motZ = toreplace.motZ;
+		with.b = toreplace.b;
+		with.c = toreplace.c;
+		with.fallDistance = toreplace.fallDistance;
+		with.ticksLived = toreplace.ticksLived;
+		with.uniqueId = toreplace.uniqueId;
+		with.setDamage(toreplace.getDamage());
+		ItemUtil.transfer(toreplace, with);
+		with.dead = false;
+		toreplace.bz = true; //force removal in chunk
+		// Set the chunk coordinates of the Entity
+		if (toreplace.ca == 0 && toreplace.cb == 0 && toreplace.cc == 0) {
+			toreplace.ca = MathUtil.locToChunk(toreplace.locX);
+			toreplace.cb = MathUtil.locToChunk(toreplace.locY);
+			toreplace.cc = MathUtil.locToChunk(toreplace.locZ);
+		}
+		toreplace.dead = true;
+		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
+		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());
+		
+		//no longer public in 1.0.0... :-(
+		//with.e = toreplace.e;
+
+		//swap
+		MinecartSwapEvent.call(toreplace, with);
+		WorldUtil.getTracker(toreplace.world).untrackEntity(toreplace);
+		toreplace.world.removeEntity(toreplace);
+		with.world.addEntity(with);
+		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
+	}
 	private static EntityMinecart findByID(UUID uuid) {
 		EntityMinecart e;
 		for (World world : WorldUtil.getWorlds()) {
@@ -93,7 +135,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		if (denyConversion) return null;
 		//convert
 		MinecartMember mm = new MinecartMember(em.world, em.lastX, em.lastY, em.lastZ, em.type);
-		Util.replaceMinecarts(em, mm);
+		replaceMinecarts(em, mm);
 		return mm;
 	}
 	public static MinecartMember[] convertAll(Entity... entities) {
@@ -235,7 +277,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 			denyConversion = true;
 			mm.died = true;
 			EntityMinecart em = new EntityMinecart(mm.world, mm.lastX, mm.lastY, mm.lastZ, mm.type);
-			Util.replaceMinecarts(mm, em);
+			replaceMinecarts(mm, em);
 			denyConversion = false;
 			return em;
 		}
