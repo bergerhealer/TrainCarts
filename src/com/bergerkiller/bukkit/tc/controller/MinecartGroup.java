@@ -564,7 +564,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (TrainCarts.keepChunksLoadedOnlyWhenMoving && !this.isMoving()) {
 			return true;
 		}
-		return !this.getProperties().keepChunksLoaded;
+		return !this.getProperties().isKeepingChunksLoaded();
 	}
 	public boolean isRemoved() {
 		return this.isEmpty() || !groups.contains(this);

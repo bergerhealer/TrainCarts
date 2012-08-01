@@ -33,11 +33,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	private boolean trainCollision = true;
 	private boolean slowDown = true;
 	private double speedLimit = 0.4;
+	private boolean keepChunksLoaded = false;
 	public boolean pushMobs = false;
 	public boolean pushPlayers = false;
 	public boolean pushMisc = true;
 	public boolean requirePoweredMinecart = false;
-	public boolean keepChunksLoaded = false;
 	private SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
 
 	protected TrainProperties(String trainname) {
@@ -83,7 +83,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 * 
 	 * @return True if it slows down, False if not
 	 */
-	public boolean getSlowingDown() {
+	public boolean isSlowingDown() {
 		return this.slowDown;
 	}
 
@@ -150,6 +150,24 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return this.displayName;
 	}
 
+	/**
+	 * Gets whether this Train keeps nearby chunks loaded
+	 * 
+	 * @return True or False
+	 */
+	public boolean isKeepingChunksLoaded() {
+		return this.keepChunksLoaded;
+	}
+
+	/**
+	 * Sets whether this Train keeps nearby chunks loaded
+	 * 
+	 * @param state to set to
+	 */
+	public void setKeepChunksLoaded(boolean state) {
+		this.keepChunksLoaded = state;
+	}
+	
 	/*
 	 * Carts
 	 */
@@ -525,6 +543,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			} catch (NumberFormatException ex) {
 				this.setSpeedLimit(0.4);
 			}
+		} else if (key.equals("keepcloaded") || key.equals("loadchunks") || key.equals("keeploaded")) {
+			this.keepChunksLoaded = StringUtil.getBool(arg);
 		} else if (key.equals("addtag")) {
 			this.addTags(arg);
 		} else if (key.equals("settag")) {

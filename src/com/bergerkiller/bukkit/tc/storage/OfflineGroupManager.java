@@ -140,7 +140,7 @@ public class OfflineGroupManager {
 
 	private static boolean checkChunks(OfflineGroup g, World world) {
 		if (g.updateLoadedChunks(world)) {
-		} else if (TrainProperties.get(g.name).keepChunksLoaded) {
+		} else if (TrainProperties.get(g.name).isKeepingChunksLoaded()) {
 			if (TrainCarts.keepChunksLoadedOnlyWhenMoving) {
 				boolean ismoving = false;
 				for (OfflineMember wm : g.members) {
@@ -326,7 +326,7 @@ public class OfflineGroupManager {
 		Set<ChunkCoordIntPair> loaded = new HashSet<ChunkCoordIntPair>();
 		for (OfflineGroup group : man.groupmap) {
 			TrainProperties prop = TrainProperties.get(group.name);
-			if (prop.keepChunksLoaded) {
+			if (prop.isKeepingChunksLoaded()) {
 				for (OfflineMember wm : group.members) {
 					for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
 						for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {

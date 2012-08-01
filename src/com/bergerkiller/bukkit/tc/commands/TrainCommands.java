@@ -34,9 +34,9 @@ public class TrainCommands {
 		} else if (cmd.equals("keepchunksloaded")) {
 			if (args.length == 1) {
 				Permission.COMMAND_KEEPCHUNKSLOADED.handle(p);
-				prop.keepChunksLoaded = StringUtil.getBool(args[0]);
+				prop.setKeepChunksLoaded(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
+			p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
 		} else if (cmd.equals("claim") || cmd.equals("addowner") || cmd.equals("setowner") || cmd.equals("addowners") || cmd.equals("setowners")) {
 			Permission.COMMAND_SETOWNERS.handle(p);
 			//claim as many carts as possible
@@ -113,7 +113,7 @@ public class TrainCommands {
 			if (args.length == 1) {
 				prop.setSlowingDown(StringUtil.getBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.getSlowingDown());
+			p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.isSlowingDown());
 		} else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
 			Permission.COMMAND_SETCOLLIDE.handle(p);
 			if (args.length == 1) {
@@ -299,7 +299,8 @@ public class TrainCommands {
 		}
 		p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
 		p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.getLinking());
-		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + " " + prop.keepChunksLoaded);
+		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
+		p.sendMessage(ChatColor.YELLOW + "Slow down over time: " + ChatColor.WHITE + prop.isSlowingDown());
 		p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.getColliding());
 		//push away
 		ArrayList<String> pushlist = new ArrayList<String>();
