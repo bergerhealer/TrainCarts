@@ -10,33 +10,32 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionBlock extends SignAction {
-	
+
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("blocker")) return;
 		if (info.getMode() != SignActionMode.NONE) {
-			if (info.isAction(SignActionType.GROUP_LEAVE)) {
+			if (!info.hasRailedMember()) return;
+			if (info.isAction(SignActionType.GROUP_LEAVE) || (info.isAction(SignActionType.REDSTONE_CHANGE) && !info.isPowered())) {
+				// Remove the wait state when the train leaves or the sign lost power to block
 				Action action = info.getGroup().getCurrentAction();
 				if (action != null && action instanceof GroupActionWaitState) {
 					info.getGroup().clearActions();
 				}
-			} else if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
-				if (!info.hasRailedMember()) return;
-				if (info.isPowered()) {
-					BlockFace trainDirection = null;
+			} else if (info.isPowered() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
+				// Set the next direction based on the sign
+				// Don't do this in the move event as that one fires too often (performance issue)
+				if (!info.isAction(SignActionType.MEMBER_MOVE)) {
 					Direction direction = Direction.parse(info.getLine(3));
-					trainDirection = direction.getDirection(info.getFacing(), info.getCartDirection());
-					
-					info.getGroup().clearActions();
-					info.getGroup().addActionWaitState();
-					info.getMember().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());
-					info.getGroup().stop(info.isAction(SignActionType.MEMBER_MOVE));
-				} else if (info.isAction(SignActionType.REDSTONE_CHANGE)) {
-					Action action = info.getGroup().getCurrentAction();
-					if (action != null && action instanceof GroupActionWaitState) {
-						((GroupActionWaitState) action).stop();
+					if (direction != Direction.NONE) {
+						BlockFace trainDirection = direction.getDirection(info.getFacing(), info.getCartDirection());
+						info.getGroup().clearActions();
+						info.getGroup().addActionWaitState();
+						info.getMember().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());
 					}
 				}
+				// Stop the train, if right after moving, also cancel a previous positional change
+				info.getGroup().stop(info.isAction(SignActionType.MEMBER_MOVE));
 			}
 		}
 	}

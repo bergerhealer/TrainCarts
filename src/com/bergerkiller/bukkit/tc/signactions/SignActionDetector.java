@@ -110,8 +110,7 @@ public class SignActionDetector extends SignAction {
 		detectors.clear();
 		new DataReader(filename) {
 			public void read(DataInputStream stream) throws IOException {
-				int count = stream.readInt();
-				for (;count > 0; --count) {
+				for (int count = stream.readInt(); count > 0; --count) {
 					//get required info
 					UUID id = StreamUtil.readUUID(stream);
 					//init a new detector

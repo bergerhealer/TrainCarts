@@ -20,6 +20,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
+import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
@@ -194,6 +195,7 @@ public class OfflineGroupManager {
 			}
 		}
 		destroyMinecarts(world);
+		removeBuggedMinecarts();
 		return count;
 	}
 	public static int destroyAll() {
@@ -210,6 +212,7 @@ public class OfflineGroupManager {
 		for (World world : Bukkit.getServer().getWorlds()) {
 			destroyMinecarts(world);
 		}
+		removeBuggedMinecarts();
 		TrainProperties.clearAll();
 		return count;
 	}
@@ -221,6 +224,47 @@ public class OfflineGroupManager {
 		}
 	}
 
+	/**
+	 * Gets rid of all Minecraft that are stored in the chunk, but not in the World,
+	 * resolving collision problems. (this should really never happen, but it is there just in case)
+	 */
+	@SuppressWarnings("rawtypes")
+	public static void removeBuggedMinecarts() {
+		new Operation() {
+			private Set<net.minecraft.server.Entity> toRemove;
+			private Set worldentities;
+			@Override
+			public void run() {
+				this.worldentities = new HashSet();
+				this.toRemove = new HashSet<net.minecraft.server.Entity>();
+				this.doWorlds();
+			}
+			@Override
+			@SuppressWarnings("unchecked")
+			public void handle(WorldServer world) {
+				this.worldentities.clear();
+				this.worldentities.addAll(world.entityList);
+				this.doEntities(world);
+				for (net.minecraft.server.Entity entity : toRemove) {
+					//remove from chunk and tracker
+					WorldUtil.getTracker(entity.world).untrackEntity(entity);
+					entity.world.removeEntity(entity);
+				}
+				toRemove.clear();
+			}
+			@Override
+			public void handle(net.minecraft.server.Chunk chunk) {
+				this.doEntities(chunk);
+			}
+			@Override
+			public void handle(net.minecraft.server.Entity entity) {
+				if (!this.worldentities.contains(entity)) {
+					toRemove.add(entity);
+				}
+			}
+		};
+	}
+	
 	private static void deinit() {
 		managers.clear();
 		hiddenMinecarts.clear();

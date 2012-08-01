@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.events;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -357,15 +355,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 
 	public Collection<MinecartGroup> getRCTrainGroups() {
-		Collection<TrainProperties> props = this.getRCTrainProperties();
-		List<MinecartGroup> groups = new ArrayList<MinecartGroup>(props.size());
-		for (TrainProperties prop : props) {
-			MinecartGroup group = prop.getGroup();
-			if (group != null) {
-				groups.add(group);
-			}
-		}
-		return groups;
+		return MinecartGroup.matchAll(this.getRCName());
 	}
 	public Collection<TrainProperties> getRCTrainProperties() {
 		return TrainProperties.matchAll(this.getRCName());

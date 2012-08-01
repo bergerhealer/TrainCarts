@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -81,6 +82,26 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		return g;
 	}
 
+	/**
+	 * Finds all the Minecart Groups that match the name with the expression given
+	 * 
+	 * @param expression to match to
+	 * @return a Collection of MinecartGroup that match
+	 */
+	public static Collection<MinecartGroup> matchAll(String expression) {
+		List<MinecartGroup> rval = new ArrayList<MinecartGroup>();
+		if (expression != null && !expression.isEmpty()) {
+			String[] elements = expression.split("\\*");
+			boolean first = expression.startsWith("*");
+			boolean last = expression.startsWith("*");
+			for (MinecartGroup group : groups) {
+				if (group.getProperties().matchName(elements, first, last)) {
+					rval.add(group);
+				}
+			}
+		}
+		return rval;
+	}
 	public static Set<MinecartGroup> getGroupsUnsafe() {
 		return groups;
 	}
@@ -92,9 +113,9 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		if (mm == null) return null;
 		return mm.getGroup();
 	}
-	public static MinecartGroup get(String name) {
+	public static MinecartGroup get(TrainProperties prop) {
 		for (MinecartGroup group : groups) {
-			if (group.getProperties().getTrainName().equalsIgnoreCase(name)) return group;
+			if (group.getProperties() == prop) return group;
 		}
 		return null;
 	}

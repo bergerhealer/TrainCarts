@@ -53,7 +53,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public MinecartGroup getGroup() {
 		MinecartGroup group = this.group.get();
 		if (group == null || group.isRemoved()) {
-			return this.group.set(MinecartGroup.get(this.trainname));
+			return this.group.set(MinecartGroup.get(this));
 		} else {
 			return group;
 		}

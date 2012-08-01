@@ -319,7 +319,7 @@ public class TrainCommands {
 		}
 
 		// Remaining common info
-		CartCommands.info(p, prop);
+		Commands.info(p, prop);
 	}
 	
 }

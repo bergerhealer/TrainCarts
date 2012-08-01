@@ -7,7 +7,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
-import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class CartCommands {
@@ -184,30 +182,6 @@ public class CartCommands {
 		return builder.setSeparator(null).red("]");
 	}
 
-	public static void info(Player p, IProperties prop) {
-		p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + (prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));
-		if (prop.hasDestination()) {
-			p.sendMessage(ChatColor.YELLOW + "This minecart will attempt to reach: " + ChatColor.WHITE + prop.getDestination());
-		}
-		if (prop.getMobsEnter()) {
-			if (prop.getPlayersEnter()) {
-				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
-			} else {
-				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs");
-			}
-		} else if (prop.getPlayersEnter()) {
-			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Players");
-		} else {
-			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.RED + " No one");
-		}
-		p.sendMessage(ChatColor.YELLOW + "Can be exited by players: " + ChatColor.WHITE + prop.getPlayersExit());
-		BlockLocation loc = prop.getLocation();
-		if (loc != null) {
-			p.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
-		}
-		p.sendMessage(" ");
-	}
-
 	public static void info(Player p, CartProperties prop) {
 		//warning message not taken
 		if (!prop.hasOwners()) {
@@ -221,7 +195,7 @@ public class CartCommands {
 		p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + (prop.hasOwners() ? StringUtil.combineNames(prop.getOwners()) : "None"));
 
 		// Remaining common info
-		info(p, prop);
+		Commands.info(p, prop);
 	}
 	
 }

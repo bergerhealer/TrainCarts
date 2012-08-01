@@ -9,9 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.Entity;
-import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -45,7 +43,6 @@ import com.bergerkiller.bukkit.tc.utils.ShortcutMap;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class TrainCarts extends PluginBase {
 
@@ -303,7 +300,6 @@ public class TrainCarts extends PluginBase {
 		}
 	}
 
-	@SuppressWarnings("rawtypes")
 	public void enable() {
 		plugin = this;
 
@@ -358,39 +354,7 @@ public class TrainCarts extends PluginBase {
 		new Task(this) {
 			@Override
 			public void run() {
-				new Operation() {
-					private Set<Entity> toRemove;
-					private Set worldentities;
-					@Override
-					public void run() {
-						this.worldentities = new HashSet();
-						this.toRemove = new HashSet<Entity>();
-						this.doWorlds();
-					}
-					@Override
-					@SuppressWarnings("unchecked")
-					public void handle(WorldServer world) {
-						this.worldentities.clear();
-						this.worldentities.addAll(world.entityList);
-						this.doEntities(world);
-						for (Entity entity : toRemove) {
-							//remove from chunk and tracker
-							WorldUtil.getTracker(entity.world).untrackEntity(entity);
-							entity.world.removeEntity(entity);
-						}
-						toRemove.clear();
-					}
-					@Override
-					public void handle(Chunk chunk) {
-						this.doEntities(chunk);
-					}
-					@Override
-					public void handle(Entity entity) {
-						if (!this.worldentities.contains(entity)) {
-							toRemove.add(entity);
-						}
-					}
-				};
+				OfflineGroupManager.removeBuggedMinecarts();
 			}
 		}.start(1);
 		

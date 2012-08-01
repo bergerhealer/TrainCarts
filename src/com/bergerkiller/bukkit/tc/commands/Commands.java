@@ -4,10 +4,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
@@ -65,4 +67,27 @@ public class Commands {
 		}
 	}
 
+	public static void info(Player p, IProperties prop) {
+		p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + (prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));
+		if (prop.hasDestination()) {
+			p.sendMessage(ChatColor.YELLOW + "This minecart will attempt to reach: " + ChatColor.WHITE + prop.getDestination());
+		}
+		if (prop.getMobsEnter()) {
+			if (prop.getPlayersEnter()) {
+				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
+			} else {
+				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs");
+			}
+		} else if (prop.getPlayersEnter()) {
+			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Players");
+		} else {
+			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.RED + " No one");
+		}
+		p.sendMessage(ChatColor.YELLOW + "Can be exited by players: " + ChatColor.WHITE + prop.getPlayersExit());
+		BlockLocation loc = prop.getLocation();
+		if (loc != null) {
+			p.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
+		}
+		p.sendMessage(" ");
+	}
 }
