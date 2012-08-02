@@ -786,8 +786,8 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
 		if (world != this.getWorld()) return false;
-		if (Math.abs(cx - MathUtil.locToChunk(this.locX)) > 2) return false;
-		if (Math.abs(cz - MathUtil.locToChunk(this.locZ)) > 2) return false;
+		if (Math.abs(cx - (super.getBlockX() >> 4)) > 2) return false;
+		if (Math.abs(cz - (super.getBlockZ() >> 4)) > 2) return false;
 	    return true;
 	}
 	public boolean isRegularMinecart() {
