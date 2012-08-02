@@ -119,7 +119,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		}
 		return null;
 	}
-
+	
 	public static boolean link(Minecart m1, Minecart m2) {
 		if (m1 == m2) return false;
 		if (m1.isDead()) return false;

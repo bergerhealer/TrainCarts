@@ -34,6 +34,9 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 	private static final double minVelocity = 0.02;
 	private static final double minVelocityForLaunch = 0.004;
 	
+	public double getTargetVelocity() {
+		return this.targetvelocity;
+	}
 	public double getTargetDistance() {
 		return this.targetdistance;
 	}

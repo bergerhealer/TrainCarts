@@ -149,22 +149,16 @@ public class TCListener implements Listener {
 	public void onVehicleCreate(VehicleCreateEvent event) {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-			if (MinecartMember.canConvert(event.getVehicle())) {
-				new Task(TrainCarts.plugin, event.getVehicle(), lastPlayer) {
-					public void run() {
-						MinecartMember mm = MinecartMember.convert(arg(0));
-						Player lp = arg(1, Player.class);
-						if (mm != null) {
-							if (lp != null) {
-								mm.getGroup().getProperties().setDefault(lp);
-								if (TrainCarts.setOwnerOnPlacement) {
-									mm.getProperties().setOwner(lp);
-								}
-								CartPropertiesStore.setEditing(lp, mm.getProperties());
-							}
-						}
+			if (lastPlayer != null && MinecartMember.canConvert(event.getVehicle())) {
+				// Replace minecart
+				MinecartMember mm = MinecartMember.convert(event.getVehicle());
+				if (mm != null) {
+					mm.getGroup().getProperties().setDefault(lastPlayer);
+					if (TrainCarts.setOwnerOnPlacement) {
+						mm.getProperties().setOwner(lastPlayer);
 					}
-				}.start(0);
+					CartPropertiesStore.setEditing(lastPlayer, mm.getProperties());
+				}
 				lastPlayer = null;
 			}
 		}

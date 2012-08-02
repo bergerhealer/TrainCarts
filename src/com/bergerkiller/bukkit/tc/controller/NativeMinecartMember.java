@@ -981,6 +981,21 @@ public class NativeMinecartMember extends EntityMinecart {
 				//Is this train targeting?
 				return false;
 			}
+		} else if (e instanceof EntityMinecart) {
+			//could be a bugged minecart.
+			//verify that it is not bugged
+			if (!e.world.entityList.contains(e)) {
+				//bugged minecart - kill it!
+				e.dead = true;
+				e.world.removeEntity(e);
+				e.ca = MathUtil.locToChunk(e.locX);
+				e.cb = MathUtil.locToChunk(e.locY);
+				e.cc = MathUtil.locToChunk(e.locZ);
+				if (e.world.isChunkLoaded(e.ca, e.cb, e.ca)) {
+					e.world.getChunkAt(e.ca, e.cc).b(e);
+				}
+			}
+			return false;
 		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {
 			//Ignore passenger collisions
 			return false;

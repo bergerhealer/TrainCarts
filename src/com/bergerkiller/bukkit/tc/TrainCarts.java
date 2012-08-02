@@ -376,7 +376,12 @@ public class TrainCarts extends PluginBase {
 			Util.setItemMaxSize(Material.POWERED_MINECART, 1);
 			Util.setItemMaxSize(Material.STORAGE_MINECART, 1);
 		}
-		
+
+		//undo replacements for correct native saving
+		for (MinecartGroup mg : MinecartGroup.getGroups()) {
+			OfflineGroupManager.hideGroup(mg);
+		}
+
 		//Save properties
 		TrainProperties.save();
 
@@ -394,15 +399,10 @@ public class TrainCarts extends PluginBase {
 
 		//Save detector regions
 		DetectorRegion.deinit(getDataFolder() + File.separator + "detectorregions.dat");	
-
-		//undo replacements for correct native saving
-		for (MinecartGroup mg : MinecartGroup.getGroups()) {
-			OfflineGroupManager.hideGroup(mg);
-		}
 		
 		//clear statements
 		Statement.deinit();
-		
+
 		//entities left behind?
 		new Operation() {
 			public void run() {

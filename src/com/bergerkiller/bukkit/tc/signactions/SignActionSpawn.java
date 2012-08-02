@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
@@ -62,9 +63,10 @@ public class SignActionSpawn extends SignAction {
 				}
 
 				if (types.isEmpty()) return;
+				BlockFace direction = info.getWatchedDirections()[0].getOppositeFace();
 
 				Location[] locs = new Location[types.size()];
-				TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), info.getFacing());
+				TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
 				for (int i = 0; i < types.size(); i++) {
 					if (!iter.hasNext()) return;
 					locs[i] = iter.next();
@@ -72,14 +74,18 @@ public class SignActionSpawn extends SignAction {
 					if (MinecartMember.getAt(locs[i]) != null) return;
 				}
 
+				// Prepare chunks
+				for (Location loc : locs) {
+					WorldUtil.loadChunks(loc, 2);
+				}
+
 				//Spawn
 				MinecartGroup group = MinecartGroup.create();
 				for (int i = 0; i < locs.length; i++) {
-					WorldUtil.loadChunks(locs[i], 2);
 					MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
 					group.add(mm);
 					if (force != 0 && i == 0) {
-						mm.addActionLaunch(info.getFacing(), 2, force);
+						mm.addActionLaunch(direction, 2, force);
 					}
 				}
 				GroupCreateEvent.call(group);

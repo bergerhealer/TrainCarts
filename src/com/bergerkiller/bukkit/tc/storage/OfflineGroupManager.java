@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -59,7 +60,16 @@ public class OfflineGroupManager {
 					Set<OfflineGroup> groups = man.groupmap.remove(chunk);
 					if (groups != null) {
 						for (OfflineGroup group : groups) {
-							group.chunkCounter++;
+							if (group.chunkCounter == 0) {
+								// First chunk being loaded, verify?
+								group.updateLoadedChunks(chunk.getWorld());
+							} else {
+								group.chunkCounter++;
+								if (group.chunkCounter == group.chunks.size() - 1) {
+									// Just in case we missed a chunk, refresh
+									group.updateLoadedChunks(chunk.getWorld());
+								}
+							}
 							if (group.testFullyLoaded()) {
 								//a participant to be restored
 								if (group.updateLoadedChunks(chunk.getWorld())) {
@@ -168,9 +178,8 @@ public class OfflineGroupManager {
 		for (OfflineMember wm : g.members) {
 			hiddenMinecarts.remove(wm.entityUID);
 		}
-		MinecartGroup.create(g.name, g.getMinecarts(world));
+		g.create(world);
 	}
-
 
 	/*
 	 * Train removal
@@ -228,7 +237,7 @@ public class OfflineGroupManager {
 	 * Gets rid of all Minecraft that are stored in the chunk, but not in the World,
 	 * resolving collision problems. (this should really never happen, but it is there just in case)
 	 */
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public static void removeBuggedMinecarts() {
 		new Operation() {
 			private Set<net.minecraft.server.Entity> toRemove;
@@ -240,21 +249,24 @@ public class OfflineGroupManager {
 				this.doWorlds();
 			}
 			@Override
-			@SuppressWarnings("unchecked")
 			public void handle(WorldServer world) {
 				this.worldentities.clear();
 				this.worldentities.addAll(world.entityList);
-				this.doEntities(world);
-				for (net.minecraft.server.Entity entity : toRemove) {
-					//remove from chunk and tracker
-					WorldUtil.getTracker(entity.world).untrackEntity(entity);
-					entity.world.removeEntity(entity);
-				}
-				toRemove.clear();
+				this.doChunks(world);
 			}
 			@Override
 			public void handle(net.minecraft.server.Chunk chunk) {
 				this.doEntities(chunk);
+				if (!this.toRemove.isEmpty()) {
+					for (List list : chunk.entitySlices) {
+						list.removeAll(this.toRemove);
+					}
+				}
+				for (net.minecraft.server.Entity e : this.toRemove) {
+					e.world.removeEntity(e);
+					WorldUtil.getTracker(e.world).untrackEntity(e);
+				}
+				this.toRemove.clear();
 			}
 			@Override
 			public void handle(net.minecraft.server.Entity entity) {

@@ -5,6 +5,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -25,6 +27,11 @@ public class OfflineMember {
 	public UUID entityUID;
 	public int cx, cz;
 	public OfflineGroup group;
+	public void setVelocity(double velocity) {
+		Vector vel = new Vector(this.motX, 0.0, this.motZ).normalize().multiply(velocity);
+		this.motX = vel.getX();
+		this.motZ = vel.getZ();
+	}
 	public void writeTo(DataOutputStream stream) throws IOException {
 		stream.writeLong(entityUID.getMostSignificantBits());
 		stream.writeLong(entityUID.getLeastSignificantBits());

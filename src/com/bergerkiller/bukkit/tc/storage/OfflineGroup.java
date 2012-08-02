@@ -15,13 +15,15 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 
 /**
  * A class containing an array of Minecart Members
@@ -29,7 +31,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
  * Also adds functions to write and load from/to file
  */
 public class OfflineGroup {
-	
 	public OfflineGroup() {}
 	public OfflineGroup(MinecartGroup group) {
 		this.members = new OfflineMember[group.size()];
@@ -38,6 +39,12 @@ public class OfflineGroup {
 		}
 		this.name = group.getProperties().getTrainName();
 		this.worldUUID = group.getWorld().getUID();
+		if (group.getCurrentAction() instanceof MemberActionLaunch) {
+			double vel = ((MemberActionLaunch) group.getCurrentAction()).getTargetVelocity();
+			for (OfflineMember member : this.members) {
+				member.setVelocity(vel);
+			}
+		}
 		this.genChunks();
 	}
 	public OfflineMember[] members;
@@ -75,8 +82,8 @@ public class OfflineGroup {
 	 * @param w
 	 * @return An array of Minecarts
 	 */
-	public Minecart[] getMinecarts(World w) {
-		ArrayList<Minecart> rval = new ArrayList<Minecart>();
+	public MinecartGroup create(World w) {
+		ArrayList<MinecartMember> rval = new ArrayList<MinecartMember>();
 		int missingNo = 0;
 		for (OfflineMember member : members) {
 			//first try to find it in the chunk
@@ -91,9 +98,11 @@ public class OfflineGroup {
 			if (m == null) {
 				m = EntityUtil.getEntity(w, member.entityUID, Minecart.class);
 			}
-			if (m != null) {
-				m.setVelocity(new Vector(member.motX, 0, member.motZ));
-				rval.add(m);
+			MinecartMember mm = MinecartMemberStore.convert(m);
+			if (mm != null) {
+				mm.motX = member.motX;
+				mm.motZ = member.motZ;
+				rval.add(mm);
 			} else {
 				missingNo++;
 			}
@@ -101,7 +110,12 @@ public class OfflineGroup {
 		if (missingNo > 0) {
 			TrainCarts.plugin.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' are missing! (externally edited?)");
 		}
-		return rval.toArray(new Minecart[0]);
+		if (rval.isEmpty()) {
+			return null;
+		}
+		MinecartGroup group = MinecartGroup.create(this.name, rval.toArray(new MinecartMember[0]));
+		group.getAverageForce(); // update group direction
+		return group;
 	}
 
 	/*

@@ -9,15 +9,16 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.entity.CraftMinecart;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
@@ -40,9 +41,14 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		return !denyConversion && get(entity) == null;
 	}
 
+	private static final SafeField<CraftMinecart> bukkitEntityField = new SafeField<CraftMinecart>(EntityMinecart.class, "bukkitEntity");
+
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
 		with.yaw = toreplace.yaw;
 		with.pitch = toreplace.pitch;
+		with.lastX = toreplace.lastX;
+		with.lastY = toreplace.lastY;
+		with.lastZ = toreplace.lastZ;
 		with.locX = toreplace.locX;
 		with.locY = toreplace.locY;
 		with.locZ = toreplace.locZ;
@@ -56,20 +62,26 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		with.uniqueId = toreplace.uniqueId;
 		with.setDamage(toreplace.getDamage());
 		ItemUtil.transfer(toreplace, with);
-		with.dead = false;
-		toreplace.bz = true; //force removal in chunk
-		// Set the chunk coordinates of the Entity
-		if (toreplace.ca == 0 && toreplace.cb == 0 && toreplace.cc == 0) {
-			toreplace.ca = MathUtil.locToChunk(toreplace.locX);
-			toreplace.cb = MathUtil.locToChunk(toreplace.locY);
-			toreplace.cc = MathUtil.locToChunk(toreplace.locZ);
-		}
-		toreplace.dead = true;
 		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
 		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());
-		
-		//no longer public in 1.0.0... :-(
-		//with.e = toreplace.e;
+		//force removal in chunk
+		with.dead = false;
+		toreplace.dead = true;
+		toreplace.bz = true;
+		// Set the chunk coordinates
+		if (toreplace.ca == 0 && toreplace.cb == 0 && toreplace.cc == 0) {
+			//System.out.println("FUUU!");
+		}
+		with.ca = toreplace.ca;
+		with.cb = toreplace.cb;
+		with.cc = toreplace.cc;
+
+		// preserve the Bukkit entity, simply swap the contents
+		CraftMinecart bukkitEntity = bukkitEntityField.get(toreplace);
+		if (bukkitEntity != null) {
+			bukkitEntity.setHandle(with);
+			bukkitEntityField.set(with, bukkitEntity);
+		}
 
 		//swap
 		MinecartSwapEvent.call(toreplace, with);
