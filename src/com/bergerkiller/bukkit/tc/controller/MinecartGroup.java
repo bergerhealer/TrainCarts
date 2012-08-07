@@ -691,7 +691,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			for (MinecartMember mm : this) {
 				MinecartMemberTrackerEntry tracker = mm.getTracker();
 				if (tracker == null) continue;
-				if (!location && tracker.tracker.ce) {
+				if (!location && tracker.tracker.al) {
 					location = true;
 				}
 				if (!velocity && tracker.tracker.velocityChanged) {

@@ -67,14 +67,14 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		//force removal in chunk
 		with.dead = false;
 		toreplace.dead = true;
-		toreplace.bz = true;
+		toreplace.ag = true;
 		// Set the chunk coordinates
-		if (toreplace.ca == 0 && toreplace.cb == 0 && toreplace.cc == 0) {
+		if (toreplace.ah == 0 && toreplace.ai == 0 && toreplace.aj == 0) {
 			//System.out.println("FUUU!");
 		}
-		with.ca = toreplace.ca;
-		with.cb = toreplace.cb;
-		with.cc = toreplace.cc;
+		with.ah = toreplace.ah;
+		with.ai = toreplace.ai;
+		with.aj = toreplace.aj;
 
 		// preserve the Bukkit entity, simply swap the contents
 		CraftMinecart bukkitEntity = bukkitEntityField.get(toreplace);

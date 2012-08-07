@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -91,7 +92,7 @@ public class ItemAnimation {
 	private static Object fixObject(Object object) {
 		if (object instanceof TileEntity) {
 			TileEntity t = (TileEntity) object;
-			return new Location(t.world.getWorld(), t.x, t.y, t.z);
+			return new Location(BlockUtil.getWorld(t).getWorld(), t.x, t.y, t.z);
 		}
 		if (object instanceof BlockState) {
 			object = ((BlockState) object).getBlock();
@@ -138,7 +139,7 @@ public class ItemAnimation {
 			this.item.motY = MathUtil.useOld(this.item.motY, dir.getY(), 0.1);
 			this.item.motZ = dir.getZ() + Math.random() * 0.02 - 0.01;
 			this.item.velocityChanged = true;
-			this.item.F_();
+			this.item.h_();
 		} else {
 			return true;
 		}

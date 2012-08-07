@@ -93,7 +93,7 @@ public class MinecartMember extends MinecartMemberStore {
 	 * Overridden Minecart functions
 	 */
 	@Override
-	public void F_() {
+	public void h_() {
 		MinecartGroup g = this.getGroup();
 		if (g == null) return;
 		if (this.dead) {
@@ -101,7 +101,7 @@ public class MinecartMember extends MinecartMemberStore {
 			g.remove(this);
 		} else if (g.isEmpty()) {
 			g.remove();
-			super.F_();
+			super.h_();
 		} else if (g.tail() == this) {
 			g.doPhysics();
 		}
@@ -233,7 +233,7 @@ public class MinecartMember extends MinecartMemberStore {
 				}
 			}
 			if (!this.isDerailed && Util.isPressurePlate(r)) {
-				this.c(this.yaw, this.pitch = 0.0F);
+				this.b(this.yaw, this.pitch = 0.0F);
 			}
 			
 			//Update from value if it was not set
@@ -1002,6 +1002,9 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	public void die() {
+		if (!this.dead) {
+			super.die();
+		}
 		if (!died) {
 			this.dead = false;
 			died = true;

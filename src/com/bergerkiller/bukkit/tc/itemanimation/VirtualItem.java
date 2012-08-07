@@ -27,10 +27,10 @@ public class VirtualItem extends EntityItem {
 	}
 	
 	@Override
-	public void a_(EntityHuman entityhuman) {};
+	public void b_(EntityHuman entityhuman) {};
 	
 	@Override
-	public void F_() {
+	public void h_() {
 		this.lastX = this.locX;
 		this.lastY = this.locY;
 		this.lastZ = this.locZ;

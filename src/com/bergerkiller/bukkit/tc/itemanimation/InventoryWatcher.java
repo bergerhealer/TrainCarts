@@ -81,9 +81,6 @@ public class InventoryWatcher implements IInventory {
 	public void f() {
 		this.source.f();
 	}
-	public void g() {
-		this.source.g();
-	}
 	public ItemStack[] getContents() {
 		return this.source.getContents();
 	}
@@ -135,5 +132,9 @@ public class InventoryWatcher implements IInventory {
 	public void setMaxStackSize(int arg0) {
 		this.source.setMaxStackSize(arg0);
 	}
-	
+
+	@Override
+	public void startOpen() {
+		this.source.startOpen();
+	}
 }

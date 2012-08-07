@@ -24,7 +24,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 	public static void initFields() {
 		trackerMap = new SafeField<IntHashMap>(EntityTracker.class, "trackedEntities");
-		trackerSet = new SafeField<Set>(EntityTracker.class, "a");
+		trackerSet = new SafeField<Set>(EntityTracker.class, "b");
 		if (!trackerMap.isValid() || !trackerSet.isValid()) {
 			failFields();
 		}
@@ -97,7 +97,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 
 	public void sync() {
 		if (this.tracker.dead) return;
-		if (this.needsLocationSync() || this.tracker.ce) {
+		if (this.needsLocationSync() || this.hasTrackerChanged()) {
 			this.syncLocation(this.needsTeleport());
 		}
 		if (this.tracker.velocityChanged) {
@@ -131,6 +131,14 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		return new Packet34EntityTeleport(this.tracker.id, x, y, z, (byte) yaw, (byte) pitch);
 	}
 
+	public boolean hasTrackerChanged() {
+		return this.tracker.al;
+	}
+
+	public void setTrackerChanged(boolean changed) {
+		this.tracker.al = changed;
+	}
+	
 	public void syncLocation(boolean teleport) {
 		if (!teleport) {
 			int newXLoc = MathHelper.floor(this.tracker.locX * 32);
@@ -175,7 +183,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			}
 		}
 		if (teleport) this.doTeleport();
-		this.tracker.ce = false;
+		this.setTrackerChanged(false);
 
 		//motion packets
 		double motDiff = MathUtil.distanceSquared(this.tracker.motX, this.tracker.motY, this.tracker.motZ, this.j, this.k, this.l);
