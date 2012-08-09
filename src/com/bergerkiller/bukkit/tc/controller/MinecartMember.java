@@ -638,11 +638,11 @@ public class MinecartMember extends MinecartMemberStore {
 				break;
 			case SOUTH_EAST :
 				if (raildirection == BlockFace.NORTH_EAST) {
-					this.directionFrom = BlockFace.SOUTH;
-					this.directionTo = BlockFace.EAST;
-				} else {
 					this.directionFrom = BlockFace.EAST;
 					this.directionTo = BlockFace.SOUTH;
+				} else {
+					this.directionFrom = BlockFace.SOUTH;
+					this.directionTo = BlockFace.EAST;
 				}
 				break;
 			case NORTH_EAST :
