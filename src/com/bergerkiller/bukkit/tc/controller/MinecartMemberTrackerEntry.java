@@ -22,6 +22,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		TrainCarts.plugin.log(Level.WARNING, "Failed to initialize the entity tracker replacement:");
 		TrainCarts.plugin.log(Level.WARNING, "Train movement will not be smoothed!");
 	}
+
 	public static void initFields() {
 		trackerMap = new SafeField<IntHashMap>(EntityTracker.class, "trackedEntities");
 		trackerSet = new SafeField<Set>(EntityTracker.class, "b");
@@ -29,6 +30,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			failFields();
 		}
 	}
+
 	public static MinecartMemberTrackerEntry get(MinecartMember member) {
 		EntityTracker tracker = WorldUtil.getTracker(member.world);
 		if (trackerMap != null) {
@@ -71,8 +73,8 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		this.m = source.m;
 		this.trackedPlayers.addAll(source.trackedPlayers);
 		this.isRemoved = false;
-		this.doTeleport();
 	}
+
 	public MinecartMemberTrackerEntry(MinecartMember member) {
 		super(member, 80, 3, true);
 		this.prevX = this.tracker.locX + 32;
@@ -109,17 +111,15 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public boolean needsTeleport() {
 		return ++this.ticksNoTeleport > 400;
 	}
+
 	public boolean needsLocationSync() {
 		return ++this.m % this.c == 0;
 	}
 
 	public void doTeleport() {
-		this.broadcast(this.createTeleportPacket());
-	}
-	public Packet34EntityTeleport createTeleportPacket() {
-		int x = MathHelper.floor(this.tracker.locX * 32);
+		int x = tracker.am.a(this.tracker.locX);
 		int y = MathHelper.floor(this.tracker.locY * 32);
-		int z = MathHelper.floor(this.tracker.locZ * 32);
+		int z = tracker.am.a(this.tracker.locZ);
 		int yaw = MathHelper.d(this.tracker.yaw * 256 / 360);
 		int pitch = MathHelper.d(this.tracker.pitch * 256 / 360);
 		this.xLoc = x;
@@ -128,7 +128,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		this.xRot = yaw;
 		this.yRot = pitch;
 		this.ticksNoTeleport = 0;
-		return new Packet34EntityTeleport(this.tracker.id, x, y, z, (byte) yaw, (byte) pitch);
+		this.broadcast(new Packet34EntityTeleport(this.tracker.id, x, y, z, (byte) yaw, (byte) pitch));
 	}
 
 	public boolean hasTrackerChanged() {
@@ -138,12 +138,12 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public void setTrackerChanged(boolean changed) {
 		this.tracker.al = changed;
 	}
-	
+
 	public void syncLocation(boolean teleport) {
 		if (!teleport) {
-			int newXLoc = MathHelper.floor(this.tracker.locX * 32);
+			int newXLoc = this.tracker.am.a(this.tracker.locX);
 			int newYLoc = MathHelper.floor(this.tracker.locY * 32);
-			int newZLoc = MathHelper.floor(this.tracker.locZ * 32);
+			int newZLoc = this.tracker.am.a(this.tracker.locZ);
 			int xDiff = newXLoc - this.xLoc;
 			int yDiff = newYLoc - this.yLoc;
 			int zDiff = newZLoc - this.zLoc;
@@ -194,11 +194,13 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			this.broadcast(new Packet28EntityVelocity(this.tracker.id, this.j, this.k, this.l));
 		}
 	}
+
 	public void syncVelocity() {
 		if (this.tracker.dead) return;
 		this.broadcast(new Packet28EntityVelocity(this.tracker));
 		this.tracker.velocityChanged = false;
 	}
+
 	public void syncMeta() {
 		if (this.tracker.dead) return;
 		//meta data packets (used for effects like smoke toggling)
@@ -213,39 +215,46 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			this.doRespawn(ep);
 		}
 	}
-	
+
 	public void doRespawn(EntityPlayer entityplayer) {
 		this.doDestroy(entityplayer);
 		this.doSpawn(entityplayer);
 	}
-	
+
 	public void doDestroy(EntityPlayer entityplayer) {
 		entityplayer.netServerHandler.sendPacket(new Packet29DestroyEntity(this.tracker.id));
 	}
-	
+
 	public void doSpawn(EntityPlayer entityplayer) {
 		//send spawn packet
 		int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
 		entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
 		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
-		this.broadcast(this.createTeleportPacket());
+		this.doTeleport();
 		if (entityplayer == this.tracker.passenger) {
 			entityplayer.netServerHandler.sendPacket(new Packet39AttachEntity(entityplayer, this.tracker));
 		}
 	}
-	
+
+	@Override
 	public void a() {
 		super.a();
 		this.isRemoved = true;
-	}   
+	}
+
+	@Override
 	public void a(EntityPlayer entityplayer) {
 		this.trackedPlayers.remove(entityplayer);
 	}
+
+	@Override
 	public void clear(EntityPlayer entityplayer) {
 		if (this.trackedPlayers.remove(entityplayer)) {
 			this.doDestroy(entityplayer);
 		}
 	}
+
+	@Override
 	public void updatePlayer(EntityPlayer entityplayer) {
 		if (this.tracker.dead) return;
 		if (entityplayer != this.tracker) {
@@ -261,5 +270,4 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			}
 		}
 	}
-
 }
