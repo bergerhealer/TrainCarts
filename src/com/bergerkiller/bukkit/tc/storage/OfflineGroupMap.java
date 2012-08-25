@@ -5,15 +5,15 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.bukkit.Chunk;
-import org.bukkit.craftbukkit.util.LongHashtable;
+import org.bukkit.craftbukkit.util.LongObjectHashMap;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	
 	private Set<OfflineGroup> groups = new HashSet<OfflineGroup>();
-	private LongHashtable<HashSet<OfflineGroup>> groupmap = new LongHashtable<HashSet<OfflineGroup>>();
-	
+	private LongObjectHashMap<HashSet<OfflineGroup>> groupmap = new LongObjectHashMap<HashSet<OfflineGroup>>();
+
 	@Override
 	public Iterator<OfflineGroup> iterator() {
 		return this.groups.iterator();

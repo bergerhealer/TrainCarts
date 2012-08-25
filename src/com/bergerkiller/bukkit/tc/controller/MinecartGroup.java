@@ -674,11 +674,13 @@ public class MinecartGroup extends MinecartGroupStore {
 		return other == this;
 	}
 
-	/*
-	 * Synchronizes all members' entity trackers
-	 * Makes them move nicely in-sync
+	/**
+	 * Synchronizes all members' entity trackers, 
+	 * Makes them move nicely in-sync<br><br>
+	 * 
+	 * Called from within the head tracker entry
 	 */
-	private void sync() {
+	protected void sync() {
 		if (this.isEmpty()) return;
 		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
 		if (headtracker == null) return;
@@ -702,6 +704,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			for (MinecartMember mm : this) {
 				MinecartMemberTrackerEntry tracker = mm.getTracker();
 				if (tracker == null) continue;
+				tracker.tracked = false;
 				if (location) {
 					tracker.syncLocation(teleport);
 				}
@@ -861,7 +864,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			}
 
 			//Synchronize to clients
-			this.sync();
+			//this.sync();
 
 			//final updating
 			if (this.needsUpdate) {

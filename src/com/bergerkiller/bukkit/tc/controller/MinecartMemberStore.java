@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
@@ -42,6 +43,32 @@ public class MinecartMemberStore extends NativeMinecartMember {
 	}
 
 	private static final SafeField<CraftMinecart> bukkitEntityField = new SafeField<CraftMinecart>(EntityMinecart.class, "bukkitEntity");
+
+	/**
+	 * Checks if the minecart is added to the world. If not, returns false and removes the minecart
+	 * 
+	 * @param minecart to check (only checks if it is an EntityMinecart)
+	 * @return True if valid, False if not
+	 */
+	public static boolean validateMinecart(net.minecraft.server.Entity minecart) {
+		if (minecart instanceof EntityMinecart) {
+			//could be a bugged minecart.
+			//verify that it is not bugged
+			if (!minecart.world.entityList.contains(minecart)) {
+				//bugged minecart - kill it!
+				minecart.dead = true;
+				minecart.world.removeEntity(minecart);
+				minecart.ah = MathUtil.locToChunk(minecart.locX);
+				minecart.ai = MathUtil.locToChunk(minecart.locY);
+				minecart.aj = MathUtil.locToChunk(minecart.locZ);
+				if (minecart.world.chunkProvider.isChunkLoaded(minecart.ah, minecart.aj)) {
+					minecart.world.getChunkAt(minecart.ah, minecart.aj).b(minecart);
+				}
+				return false;
+			}
+		}
+		return true;
+	}
 
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
 		with.yaw = toreplace.yaw;

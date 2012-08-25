@@ -608,7 +608,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		List<Entity> list = this.world.getEntities(this, this.boundingBox.grow(0.2, 0, 0.2));
 		if (list != null && !list.isEmpty()) {
 			for (Entity entity : list) {
-				if (entity != this.passenger && entity.M() && entity instanceof EntityMinecart) {
+				if (entity != this.passenger && entity.M() && entity instanceof EntityMinecart && MinecartMemberStore.validateMinecart(entity)) {
 					entity.collide(this);
 				}
 			}
@@ -925,8 +925,7 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	private boolean canCollide(Entity e) {
 		if (this.member().isCollisionIgnored(e)) return false;
-		if (e.dead) return false;
-		if (this.dead) return false;
+		if (e.dead || this.dead) return false;
 		if (this.group().isVelocityAction()) return false;
 		if (e instanceof MinecartMember) {
 			//colliding with a member in the group, or not?
@@ -946,20 +945,6 @@ public class NativeMinecartMember extends EntityMinecart {
 			} else if (mm2.getGroup().isVelocityAction()) {
 				//Is this train targeting?
 				return false;
-			}
-		} else if (e instanceof EntityMinecart) {
-			//could be a bugged minecart.
-			//verify that it is not bugged
-			if (!e.world.entityList.contains(e)) {
-				//bugged minecart - kill it!
-				e.dead = true;
-				e.world.removeEntity(e);
-				e.ah = MathUtil.locToChunk(e.locX);
-				e.ai = MathUtil.locToChunk(e.locY);
-				e.aj = MathUtil.locToChunk(e.locZ);
-				if (e.world.chunkProvider.isChunkLoaded(e.ah, e.aj)) {
-					e.world.getChunkAt(e.ah, e.aj).b(e);
-				}
 			}
 			return false;
 		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {
@@ -989,7 +974,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				return false;
 			}
 		}
-		return true;
+		return MinecartMemberStore.validateMinecart(e);
 	}
 
 	/*

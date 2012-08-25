@@ -13,6 +13,7 @@ public enum SignActionMode {
 			if (name.startsWith("!") || name.startsWith("+")) {
 				name = name.substring(1);
 			}
+			name = name.toLowerCase();
     		//further parsing
     		if (name.startsWith("train ") && name.length() > 6) {
     			return RCTRAIN;
