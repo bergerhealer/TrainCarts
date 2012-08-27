@@ -1,10 +1,16 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
+
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class SignActionDestination extends SignAction {
@@ -18,6 +24,39 @@ public class SignActionDestination extends SignAction {
 			}
 		}
 		prop.setDestination(info.getLine(3));
+	}
+	
+	@Override
+	public void click(SignActionEvent info, Player player, Action action) {
+		if (!info.isType("destination")) {
+			return;
+		}
+
+		//get the train this player is editing
+		MinecartMember mm = MinecartMember.getEditing(player);
+		if (mm == null) {
+			if (CartProperties.canHaveOwnership(player)) {
+				player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+			} else {
+				player.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
+			}
+			return;
+		}
+		IProperties prop;
+		if (info.isTrainSign()) {
+			prop = mm.getGroup().getProperties();
+		} else if (info.isCartSign()) {
+			prop = mm.getProperties();
+		} else {
+			return;
+		}
+		if (!prop.isOwner(player)) {
+			player.sendMessage(ChatColor.RED + "You don't own this train!");
+		} else {
+			String dest = info.getLine(2);
+			prop.setDestination(dest);
+			player.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
+		}
 	}
 	
 	@Override

@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.Collection;
 
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 
@@ -57,6 +59,14 @@ public interface IProperties {
 	 * @return collection of set tags
 	 */
 	public Collection<String> getTags();
+
+	/**
+	 * Gets whether a certain player is an owner set in these properties
+	 * 
+	 * @param player to test
+	 * @return True if it is an Owner, False if not
+	 */
+	public boolean isOwner(Player player);
 
 	/**
 	 * Sets whether nearby items are picked up by the Minecart(s)

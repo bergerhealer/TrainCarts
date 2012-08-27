@@ -6,7 +6,10 @@ import java.util.List;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -58,6 +61,9 @@ public abstract class SignAction {
 	public abstract void execute(SignActionEvent info);
 	public abstract boolean build(SignChangeActionEvent info);
 
+	public void click(SignActionEvent info, Player player, Action action) {
+	}
+
 	private static List<SignAction> actions;
 	public static final <T extends SignAction> T register(T action) {
 		if (actions == null) return action;
@@ -70,6 +76,17 @@ public abstract class SignAction {
 	public static final void unregister(SignAction action) {
 		if (actions == null) return;
 		actions.remove(action);
+	}
+	
+	public static void handleClick(PlayerInteractEvent event) {
+		SignActionEvent info = new SignActionEvent(event.getClickedBlock());
+		if (info.getSign() == null) {
+			return;
+		}
+		for (SignAction action : actions) {
+			action.click(info, event.getPlayer(), event.getAction());
+			if (info.isCancelled()) break;
+		}
 	}
 	
 	public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname) {

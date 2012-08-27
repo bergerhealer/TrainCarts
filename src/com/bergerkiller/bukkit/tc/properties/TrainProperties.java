@@ -216,6 +216,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		if (!this.hasOwners()) return true;
 		return this.isOwner(player);
 	}
+
+	@Override
 	public boolean isOwner(Player player) {
 		boolean hasowner = false;
 		for (CartProperties prop : this) {

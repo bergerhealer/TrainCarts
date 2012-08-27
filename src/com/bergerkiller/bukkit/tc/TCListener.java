@@ -2,13 +2,11 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
 
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -322,31 +320,8 @@ public class TCListener implements Listener {
 				}
 			}
 			if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
-				Sign sign = BlockUtil.getSign(event.getClickedBlock());
-				if (sign != null) {
-					if (sign.getLine(0).equalsIgnoreCase("[train]")) {
-						if (sign.getLine(1).equalsIgnoreCase("destination")) {
-							//get the train this player is editing
-							Player p = event.getPlayer();
-							MinecartMember mm = MinecartMember.getEditing(p);
-							if (mm != null) {
-								TrainProperties prop = mm.getGroup().getProperties();
-								if (prop == null) {
-									if (CartProperties.canHaveOwnership(p)) {
-										p.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
-									} else {
-										p.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
-									}
-								} else if (!prop.isOwner(p)) {
-									p.sendMessage(ChatColor.RED + "You don't own this train!");
-								} else {
-									String dest = sign.getLine(2);
-									prop.setDestination(dest);
-									p.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
-								}
-							}
-						}
-					}
+				if (BlockUtil.isSign(event.getClickedBlock())) {
+					SignAction.handleClick(event);
 				}
 			}
 		} catch (Throwable t) {

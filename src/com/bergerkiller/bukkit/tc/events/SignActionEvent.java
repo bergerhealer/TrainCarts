@@ -393,7 +393,12 @@ public class SignActionEvent extends Event implements Cancellable {
 	public boolean hasMember() {
 		return this.getMember() != null;
 	}
-	
+
+	public void setMember(MinecartMember member) {
+		this.member = member;
+		this.group = member.getGroup();
+	}
+
 	public BlockFace[] getWatchedDirections() {
 		return this.watchedDirections;
 	}

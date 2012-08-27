@@ -101,9 +101,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	public static boolean canHaveOwnership(Player player) {
 		return Permission.COMMAND_PROPERTIES.has(player) || hasGlobalOwnership(player);
 	}
+
+	@Override
 	public boolean isOwner(Player player) {
 		return this.isOwner(player.getName().toLowerCase());
 	}
+
 	public boolean isOwner(String player) {
 		return this.owners.contains(player);
 	}

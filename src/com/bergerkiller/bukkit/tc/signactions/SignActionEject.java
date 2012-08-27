@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -16,79 +18,91 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 public class SignActionEject extends SignAction {
 
 	@Override
+	public void click(SignActionEvent info, Player player, Action action) {
+		if (!info.isType("eject")) {
+			return;
+		}
+		MinecartMember member = MinecartMember.get(player.getVehicle());
+		if (member == null) {
+			return;
+		}
+		info.setMember(member);
+		eject(info);
+	}
+
+	public void eject(SignActionEvent info) {
+		//read from the sign
+		String[] offsettext = info.getLine(2).split("/");
+		String[] angletext = info.getLine(3).split("/");
+		Vector offset = new Vector();
+		if (offsettext.length == 3) {
+			offset.setX(StringUtil.tryParse(offsettext[0], 0.0));
+			offset.setY(StringUtil.tryParse(offsettext[1], 0.0));
+			offset.setZ(StringUtil.tryParse(offsettext[2], 0.0));
+		} else if (offsettext.length == 1) {
+			offset.setY(StringUtil.tryParse(offsettext[0], 0.0));
+		}
+		if (offset.length() > TrainCarts.maxEjectDistance) {
+			offset.normalize().multiply(TrainCarts.maxEjectDistance);
+		}
+
+		float dyaw = 0F;
+		float dpitch = 0F;
+		if (angletext.length == 2) {
+			dyaw = (float) StringUtil.tryParse(angletext[0], 0.0);
+			dpitch = (float) StringUtil.tryParse(angletext[1], 0.0);
+		} else if (angletext.length == 1) {
+			dyaw = (float) StringUtil.tryParse(angletext[0], 0.0);
+		}
+		float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
+		dyaw += signyawoffset + 90F;
+		
+		//convert to sign-relative-space
+		offset = MathUtil.rotate(signyawoffset, 0F, offset);
+		
+		//actually eject
+		if (info.isTrainSign()) {
+			if (info.isRCSign()) {
+				for (MinecartGroup group : info.getRCTrainGroups()) {
+					for (MinecartMember mm : group) {
+						eject(mm, offset, dyaw, dpitch);
+					}
+				}
+			} else {
+				MinecartGroup group = info.getGroup();
+				if (group != null) {
+					for (MinecartMember mm : group) {
+						eject(mm, offset, dyaw, dpitch);
+					}
+				}
+			}
+		} else {
+			eject(info.getMember(), offset, dyaw, dpitch);
+		}
+	}
+
+	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("eject")) return;
-		final boolean isTrain;
 	    boolean isRemote = false;
 		if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
-			isTrain = false;
 		} else if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
-			isTrain = true;
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
 			isRemote = true;
-			isTrain = true;
 		} else {
 			return;
 		}
 		if (isRemote || (info.hasMember() && info.isPowered())) {
-			//read from the sign
-			String[] offsettext = info.getLine(2).split("/");
-			String[] angletext = info.getLine(3).split("/");
-			Vector offset = new Vector();
-			if (offsettext.length == 3) {
-				offset.setX(StringUtil.tryParse(offsettext[0], 0.0));
-				offset.setY(StringUtil.tryParse(offsettext[1], 0.0));
-				offset.setZ(StringUtil.tryParse(offsettext[2], 0.0));
-			} else if (offsettext.length == 1) {
-				offset.setY(StringUtil.tryParse(offsettext[0], 0.0));
-			}
-			if (offset.length() > TrainCarts.maxEjectDistance) {
-				offset.normalize().multiply(TrainCarts.maxEjectDistance);
-			}
-
-			float dyaw = 0F;
-			float dpitch = 0F;
-			if (angletext.length == 2) {
-				dyaw = (float) StringUtil.tryParse(angletext[0], 0.0);
-				dpitch = (float) StringUtil.tryParse(angletext[1], 0.0);
-			} else if (angletext.length == 1) {
-				dyaw = (float) StringUtil.tryParse(angletext[0], 0.0);
-			}
-			float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
-			dyaw += signyawoffset + 90F;
-			
-			//convert to sign-relative-space
-			offset = MathUtil.rotate(signyawoffset, 0F, offset);
-			
-			//actually eject
-			if (isTrain) {
-				if (isRemote) {
-					for (MinecartGroup group : info.getRCTrainGroups()) {
-						eject(group, offset, dyaw, dpitch);
-					}
-				} else {
-					MinecartGroup group = info.getGroup();
-					if (group != null) {
-						eject(group, offset, dyaw, dpitch);
-					}
-				}
-			} else {
-				Location loc = info.getRailLocation().add(offset);
-				loc.setYaw(dyaw);
-				loc.setPitch(dpitch);
-				info.getMember().eject(loc);
-			}
+			eject(info);
 		}
 	}
 
-	private void eject(MinecartGroup group, Vector offset, float dyaw, float dpitch) {
-		for (MinecartMember mm : group) {
-			Location loc = mm.getBlock().getLocation();
-			loc = loc.add(0.5, 1.5, 0.5).add(offset);
-			loc.setYaw(dyaw);
-			loc.setPitch(dpitch);
-			mm.eject(loc);
-		}
+	private void eject(MinecartMember mm, Vector offset, float dyaw, float dpitch) {
+		Location loc = mm.getBlock().getLocation();
+		loc = loc.add(0.5, 1.5, 0.5).add(offset);
+		loc.setYaw(dyaw);
+		loc.setPitch(dpitch);
+		mm.eject(loc);
 	}
 
 	@Override
