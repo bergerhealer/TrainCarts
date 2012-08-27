@@ -42,7 +42,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ShortcutMap;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 
 public class TrainCarts extends PluginBase {
 
@@ -244,22 +243,15 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
 		ConfigurationNode itemshort = config.getNode("itemShortcuts");
 		parsers.clear();
-		parsers.put("fuel", Util.getParsers(itemshort.get("fuel", "wood;coal;stick")));
+		String burnables = itemshort.get("fuel", "");
+		if (burnables.isEmpty()) {
+			burnables = Util.getFurnaceItemString(true, false);
+			itemshort.set("fuel", burnables);
+		}
+		parsers.put("fuel", Util.getParsers(burnables));
 		String heatables = itemshort.get("heatable", "");
 		if (heatables.isEmpty()) {
-			StringBuilder tmp = new StringBuilder();
-			for (int type : RecipeUtil.getHeatableItems()) {
-				if (tmp.length() > 0) {
-					tmp.append(';');
-				}
-				Material mat = Material.getMaterial(type);
-				if (mat == null) {
-					tmp.append(type);
-				} else {
-					tmp.append(mat.toString().toLowerCase());
-				}
-			}
-			heatables = tmp.toString();
+			heatables = Util.getFurnaceItemString(false, true);
 			itemshort.set("heatable", heatables);
 		}
 		parsers.put("heatable", Util.getParsers(heatables));

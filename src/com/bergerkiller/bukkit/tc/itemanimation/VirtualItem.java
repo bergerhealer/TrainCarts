@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.EntityHuman;
@@ -23,12 +24,13 @@ public class VirtualItem extends EntityItem {
 	}
 	public VirtualItem(World world, double x, double y, double z, net.minecraft.server.ItemStack itemstack) {
 		super(world, x, y, z, itemstack);
+		refresh();
 		WorldUtil.getTracker(world).track(this);
 	}
-	
+
 	@Override
 	public void b_(EntityHuman entityhuman) {};
-	
+
 	@Override
 	public void h_() {
 		this.lastX = this.locX;
@@ -37,11 +39,18 @@ public class VirtualItem extends EntityItem {
 		this.locX += this.motX;
 		this.locY += this.motY;
 		this.locZ += this.motZ;
+		refresh();
 	};
-	
+
+	public void refresh() {
+		this.al = true;
+		this.ah = MathUtil.locToChunk(this.locX);
+		this.ai = MathUtil.locToChunk(this.locY);
+		this.aj = MathUtil.locToChunk(this.locZ);
+	}
+
 	public void die() {
 		super.die();
 		WorldUtil.getTracker(world).untrackEntity(this);
 	}
-
 }

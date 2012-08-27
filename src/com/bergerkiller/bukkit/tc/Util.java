@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class Util {
@@ -114,7 +115,32 @@ public class Util {
 		}
 		return null;
 	}
-				
+
+	public static void addItemsToString(Collection<Integer> itemIds, StringBuilder builder) {
+		for (int type : itemIds) {
+			if (builder.length() > 0) {
+				builder.append(';');
+			}
+			Material mat = Material.getMaterial(type);
+			if (mat == null) {
+				builder.append(type);
+			} else {
+				builder.append(mat.toString().toLowerCase());
+			}
+		}
+	}
+
+	public static String getFurnaceItemString(boolean burnables, boolean heatables) {
+		StringBuilder tmp = new StringBuilder();
+		if (burnables) {
+			addItemsToString(RecipeUtil.getFuelTimes().keySet(), tmp);
+		}
+		if (heatables) {
+			addItemsToString(RecipeUtil.getHeatableItems(), tmp);
+		}
+		return tmp.toString();
+	}
+
 	public static ItemParser[] getParsers(String... items) {
 		StringBuilder total = new StringBuilder();
 		for (String item : items) {

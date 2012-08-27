@@ -31,27 +31,32 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 
 public class SignActionDeposit extends SignAction {
-
-	public void deposit(List<TileEntityFurnace> furnaces, ItemParser[] parsers, Inventory cartinv, MinecartMember m) {
-    	//put stuff from the inventory into the furnaces
-		if (furnaces.isEmpty()) return;
-		int limit;
-		Inventory furnaceinv;
-		
+	public void deposit(List<TileEntityFurnace> furnaces, String line2, String line3, Inventory cartinv, MinecartMember m) {
 		//split parsers into the burned and cooked items
 		List<ItemParser> cooked = new ArrayList<ItemParser>();
 		List<ItemParser> burned = new ArrayList<ItemParser>();
 		boolean useDefault = true;
-		for (ItemParser parser : parsers) {
+		for (ItemParser parser : Util.getParsers(line2)) {
 			useDefault = false;
 			if (!parser.hasType()) {
 				useDefault = true;
-				break;
+				continue;
+			}
+			if (RecipeUtil.getHeatableItems().contains(parser.getTypeId())) {
+				cooked.add(parser);
 			} else if (RecipeUtil.isFuelItem(parser.getTypeId())) {
-				//this item is fuel
 				burned.add(parser);
-			} else if (RecipeUtil.getFurnaceResult(parser.getTypeId()) != null) {
-				//this item is NOT
+			}
+		}
+		for (ItemParser parser : Util.getParsers(line3)) {
+			useDefault = false;
+			if (!parser.hasType()) {
+				useDefault = true;
+				continue;
+			}
+			if (RecipeUtil.isFuelItem(parser.getTypeId())) {
+				burned.add(parser);
+			} else if (RecipeUtil.getHeatableItems().contains(parser.getTypeId())) {
 				cooked.add(parser);
 			}
 		}
@@ -75,6 +80,14 @@ public class SignActionDeposit extends SignAction {
 				}
 			}
 		}
+		deposit(furnaces, cooked, burned, cartinv, m);
+	}
+
+	public void deposit(List<TileEntityFurnace> furnaces, List<ItemParser> cooked, List<ItemParser> burned, Inventory cartinv, MinecartMember m) {
+    	//put stuff from the inventory into the furnaces
+		if (furnaces.isEmpty()) return;
+		int limit;
+		Inventory furnaceinv;
 		
     	//transfer items
     	for (ItemParser p : cooked) {
@@ -221,7 +234,7 @@ public class SignActionDeposit extends SignAction {
 			}
 		}
 		if (!furnaces.isEmpty()) {
-			deposit(furnaces, parsers, cartinv, info.getMember());
+			deposit(furnaces, info.getLine(2), info.getLine(3), cartinv, info.getMember());
 		}
 	}
 
