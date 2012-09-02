@@ -54,6 +54,7 @@ public enum Permission implements IPermissionDefault {
 	BUILD_CRAFTER("train.build.crafter", PermissionDefault.OP, "The player can build item crafter signs"),
 	BUILD_TICKET("train.build.ticket", PermissionDefault.OP, "The player can build a sign that will charge money or ejects a player if he can't pay"),
 	BUILD_ANNOUNCER("train.build.announcer", PermissionDefault.OP, "The player can build a sign that sends a message to all the players in a train"),
+	BUILD_EFFECT("train.build.effect", PermissionDefault.OP, "The player can build a sign that can play an effect"),
 	
 	GENERAL_PLACE_MINECART("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts"),
 	GENERAL_PROPERTIES_DEFAULT("train.properties.default", PermissionDefault.NOT_OP, "Carts placed by this player get the default properties"),

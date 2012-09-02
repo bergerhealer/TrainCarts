@@ -40,6 +40,7 @@ public abstract class SignAction {
 		register(new SignActionElevator());
 		register(new SignActionTicket());
 		register(new SignActionAnnounce());
+		register(new SignActionEffect());
 	}
 	public static void deinit() {
 		actions = null;
