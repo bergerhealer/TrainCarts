@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class SignActionDestination extends SignAction {
-	
+
 	public void setDestination(CartProperties prop, SignActionEvent info) {
 		if (!info.isAction(SignActionType.REDSTONE_CHANGE)) {
 			if (!info.getLine(2).isEmpty() && prop.hasDestination()) {
@@ -25,7 +25,7 @@ public class SignActionDestination extends SignAction {
 		}
 		prop.setDestination(info.getLine(3));
 	}
-	
+
 	@Override
 	public void click(SignActionEvent info, Player player, Action action) {
 		if (!info.isType("destination")) {

@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -17,7 +19,7 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class GlobalCommands {
-	
+
 	public static boolean execute(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args[0].equals("removeall") || args[0].equals("destroyall")) {
 			Permission.COMMAND_DESTROYALL.handle(sender);
@@ -63,14 +65,24 @@ public class GlobalCommands {
 			sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
 			return true;
 		} else if (args[0].equals("list")) {
-			if (!(sender instanceof Player)) {
-				sender.sendMessage("Consoles don't own trains!");
-				return true;
+			int count = 0, moving = 0;
+			for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {
+				count++;
+				if (group.isMoving()) {
+					moving++;
+				}
 			}
-			if (args.length == 2 && StringUtil.isIn(args[1], "renamed", "rename", "ren", "name", "named")) {
-				list((Player) sender, true);
+			MessageBuilder builder = new MessageBuilder();
+			builder.green("There are ").yellow(count).green(" trains on this server (of which ");
+			builder.yellow(moving).green(" are moving)").send(sender);
+			if (sender instanceof Player) {
+				if (args.length == 2 && StringUtil.isIn(args[1], "renamed", "rename", "ren", "name", "named")) {
+					list((Player) sender, true);
+				} else {
+					list((Player) sender, false);
+				}
 			} else {
-				list((Player) sender, false);
+				sender.sendMessage("Consoles don't own trains!");
 			}
 			return true;
 		} else if (args[0].equals("edit")) {
@@ -100,7 +112,7 @@ public class GlobalCommands {
 		}
 		return false;
 	}
-	
+
 	public static void list(Player player, boolean named) {
 		MessageBuilder builder = new MessageBuilder();
 		builder.yellow("You are the proud owner of the following trains:");

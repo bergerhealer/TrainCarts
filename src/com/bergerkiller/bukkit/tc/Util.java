@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import net.minecraft.server.TileEntityFurnace;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -193,6 +195,15 @@ public class Util {
 		} catch (Exception ex) {
 			return def;
 		}
+	}
+	
+	public static boolean isFuel(int itemId) {
+		return getFuelTime(itemId) != null;
+	}
+	
+	public static Integer getFuelTime(int itemId) {
+		int fuel = TileEntityFurnace.fuelTime(new net.minecraft.server.ItemStack(itemId, 1, 0));
+		return fuel == 0 ? null : fuel;
 	}
 	
     public static boolean canDistractWire(Material type) {
