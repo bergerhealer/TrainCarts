@@ -201,7 +201,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 			return true;
 		} catch (Throwable t) {
-			TrainCarts.handleError(t);
+			TrainCarts.plugin.handle(t);
 			return false;
 		}
 	}

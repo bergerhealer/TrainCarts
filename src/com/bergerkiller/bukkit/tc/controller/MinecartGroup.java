@@ -745,7 +745,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + this.getProperties().getTrainName() + "':");
 			ex.printStackTrace();
 		} catch (Throwable t) {
-			TrainCarts.handleError(t);
+			TrainCarts.plugin.handle(t);
 		}
 	}
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {

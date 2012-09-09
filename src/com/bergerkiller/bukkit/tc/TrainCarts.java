@@ -11,7 +11,6 @@ import java.util.logging.Level;
 
 import net.minecraft.server.Entity;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -422,19 +421,6 @@ public class TrainCarts extends PluginBase {
 	@Override
 	public void permissions() {
 		this.loadPermissions(Permission.class);
-	}
-
-	public static void handleError(Throwable reason) {
-		if (reason instanceof Exception) {
-			reason.printStackTrace();
-		} else if (reason instanceof NoClassDefFoundError) {
-			plugin.log(Level.WARNING, "Class is missing (plugin was hot-swapped?): " + reason.getMessage());
-		} else {
-			plugin.log(Level.SEVERE, "TrainCarts encountered a critical error and had to be disabled.");
-			plugin.log(Level.SEVERE, "You may have to update TrainCarts or look for a newer CraftBukkit build.");
-			reason.printStackTrace();
-			Bukkit.getPluginManager().disablePlugin(plugin);
-		}
 	}
 	
 	public static boolean isWorldDisabled(BlockEvent event) {

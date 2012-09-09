@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -11,7 +11,6 @@ import net.minecraft.server.TileEntityChest;
 import net.minecraft.server.TileEntityDispenser;
 import net.minecraft.server.TileEntityFurnace;
 
-import org.bukkit.Material;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.Inventory;
@@ -22,6 +21,7 @@ import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -35,11 +35,8 @@ public class SignActionDeposit extends SignAction {
 		//split parsers into the burned and cooked items
 		List<ItemParser> cooked = new ArrayList<ItemParser>();
 		List<ItemParser> burned = new ArrayList<ItemParser>();
-		boolean useDefault = true;
 		for (ItemParser parser : Util.getParsers(line2)) {
-			useDefault = false;
 			if (!parser.hasType()) {
-				useDefault = true;
 				continue;
 			}
 			if (RecipeUtil.getHeatableItems().contains(parser.getTypeId())) {
@@ -49,9 +46,7 @@ public class SignActionDeposit extends SignAction {
 			}
 		}
 		for (ItemParser parser : Util.getParsers(line3)) {
-			useDefault = false;
 			if (!parser.hasType()) {
-				useDefault = true;
 				continue;
 			}
 			if (RecipeUtil.isFuelItem(parser.getTypeId())) {
@@ -60,9 +55,7 @@ public class SignActionDeposit extends SignAction {
 				cooked.add(parser);
 			}
 		}
-		if (useDefault) {
-			cooked.clear();
-			burned.clear();
+		if (cooked.isEmpty() && burned.isEmpty()) {
 			for (ItemParser p : TrainCarts.plugin.getParsers("heatable")) {
 				if (!p.hasType()) {
 					cooked.clear();
@@ -88,8 +81,8 @@ public class SignActionDeposit extends SignAction {
 		if (furnaces.isEmpty()) return;
 		int limit;
 		Inventory furnaceinv;
-		
-    	//transfer items
+
+    	//transfer cooked items
     	for (ItemParser p : cooked) {
     		limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
     		for (TileEntityFurnace f : furnaces) {
@@ -106,8 +99,8 @@ public class SignActionDeposit extends SignAction {
     			ItemUtil.setItem(furnaceinv, 0, item);
     		}
     	}
-    	    	
-    	//transfer coal (requires manual limiting if no amount is set)
+
+    	//transfer fuel (requires manual limiting if no amount is set)
 		for (ItemParser p : burned) {
 			if (p == null) continue;
 			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
@@ -150,6 +143,7 @@ public class SignActionDeposit extends SignAction {
 				limit -= ItemUtil.transfer(cartinv, fuel, p, itemcount);
 				ItemUtil.setItem(furnaceinv, 1, fuel);
 			}
+
 			//if an amount is set; top it off
 			if (p.hasAmount()) {
         		for (TileEntityFurnace f : furnaces) {
@@ -175,7 +169,7 @@ public class SignActionDeposit extends SignAction {
 		if (!info.hasRailedMember() || !info.isPowered()) return;
 		
 		//get the block types to collect and the radius (2nd line)
-		LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(info.getLine(1), "deposit");
+		Collection<InteractType> typesToCheck = InteractType.parse(info.getLine(1), "deposit");
 		if (typesToCheck.isEmpty()) return;
 		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
 		
@@ -185,27 +179,39 @@ public class SignActionDeposit extends SignAction {
 		
 		List<IInventory> invlist = new ArrayList<IInventory>();
 		List<TileEntityFurnace> furnaces = new ArrayList<TileEntityFurnace>();
-		for (Material mat : typesToCheck) {
-			if (mat == Material.CHEST) {
-				for (TileEntity tile : found) {
-					if (tile instanceof TileEntityChest) {
-						invlist.add((IInventory) tile);
+		for (InteractType type : typesToCheck) {
+			switch (type) {
+				case CHEST : {
+					for (TileEntity tile : found) {
+						if (tile instanceof TileEntityChest) {
+							invlist.add((IInventory) tile);
+						}
 					}
+					break;
 				}
-			} else if (mat == Material.FURNACE) {
-				for (TileEntity tile : found) {
-					if (tile instanceof TileEntityFurnace) {
-						furnaces.add((TileEntityFurnace) tile);
+				case FURNACE : {
+					for (TileEntity tile : found) {
+						if (tile instanceof TileEntityFurnace) {
+							furnaces.add((TileEntityFurnace) tile);
+						}
 					}
+					break;
 				}
-			} else if (mat == Material.DISPENSER) {
-				for (TileEntity tile : found) {
-					if (tile instanceof TileEntityDispenser) {
-						invlist.add((IInventory) tile);
+				case DISPENSER : {
+					for (TileEntity tile : found) {
+						if (tile instanceof TileEntityDispenser) {
+							invlist.add((IInventory) tile);
+						}
 					}
+					break;
+				}
+				case GROUNDITEM : {
+					//TODO: IMPLEMENT THIS!
+					break;
 				}
 			}
 		}
+
 		if (invlist.isEmpty() && furnaces.isEmpty()) return;
 
 		//parse the sign
@@ -241,11 +247,11 @@ public class SignActionDeposit extends SignAction {
 	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.getMode() != SignActionMode.NONE) {
-			LinkedHashSet<Material> typesToCheck = SignActionCollect.parseName(event.getLine(1), "deposit");
+			Collection<InteractType> typesToCheck = InteractType.parse(event.getLine(1), "deposit");
 			if (typesToCheck.isEmpty()) return false;
 			String[] types = new String[typesToCheck.size()];
 			int i = 0;
-			for (Material mat : typesToCheck) {
+			for (InteractType mat : typesToCheck) {
 				types[i] = mat.toString().toLowerCase() + "s";
 				i++;
 			}

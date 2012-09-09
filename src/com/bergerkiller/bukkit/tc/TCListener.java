@@ -256,7 +256,7 @@ public class TCListener implements Listener {
 				}
 			}
 		} catch (Throwable t) {
-			TrainCarts.handleError(t);
+			TrainCarts.plugin.handle(t);
 		}
 	}
 
@@ -325,7 +325,7 @@ public class TCListener implements Listener {
 				}
 			}
 		} catch (Throwable t) {
-			TrainCarts.handleError(t);
+			TrainCarts.plugin.handle(t);
 		}
 	}
 
@@ -341,7 +341,7 @@ public class TCListener implements Listener {
 				}
 			}
 		} catch (Throwable t) {
-			TrainCarts.handleError(t);
+			TrainCarts.plugin.handle(t);
 		}
 	}
 
