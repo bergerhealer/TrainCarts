@@ -134,7 +134,7 @@ public final class DetectorRegion {
 		World w = Bukkit.getServer().getWorld(this.world);
 		if (w != null) {
 			for (ChunkCoordinates coord : this.coordinates) {
-				MinecartMember mm = MinecartMember.getAt(w, coord, false);
+				MinecartMember mm = MinecartMember.getAt(w, coord);
 				if (mm != null && this.members.add(mm)) {
 					this.onEnter(mm);
 				}

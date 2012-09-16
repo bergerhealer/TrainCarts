@@ -4,15 +4,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import net.minecraft.server.ChunkCoordinates;
+import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 
@@ -47,12 +51,14 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 public class MinecartGroup extends MinecartGroupStore {
 	private static final long serialVersionUID = 3;
 
+	private Map<ChunkPosition, MinecartMember> memberBlockSpace = new HashMap<ChunkPosition, MinecartMember>();
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
+	protected boolean needsBlockUpdate = true;
 
 	protected MinecartGroup() {}
 
@@ -123,6 +129,9 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 	public GroupActionSizzle addActionSizzle() {
 		return this.addAction(new GroupActionSizzle(this));
+	}
+	public GroupActionRefill addActionRefill() {
+		return this.addAction(new GroupActionRefill(this));
 	}
 	public boolean isWaitAction() {
 		Action a = this.actions.peek();
@@ -675,6 +684,16 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 
 	/**
+	 * Gets the Member at the block position specified
+	 * 
+	 * @param position to get the member at
+	 * @return member at the position, or null if not found
+	 */
+	public MinecartMember getAt(ChunkCoordinates position) {
+		return this.memberBlockSpace.get(new ChunkPosition(position.x, position.y, position.z));
+	}
+
+	/**
 	 * Synchronizes all members' entity trackers, 
 	 * Makes them move nicely in-sync<br><br>
 	 * 
@@ -863,10 +882,38 @@ public class MinecartGroup extends MinecartGroupStore {
 				mm.checkChunks(canunload);
 			}
 
-			//Synchronize to clients
-			//this.sync();
-
 			//final updating
+			if (this.needsBlockUpdate) {
+				this.needsBlockUpdate = false;
+				this.memberBlockSpace.clear();
+				if (this.size() == 1) {
+					MinecartMember member = head();
+					this.memberBlockSpace.put(member.getBlockPos(), member);
+				} else if (this.size() > 1) {
+					for (int i = 0; i < this.size() - 1; i++) {
+						MinecartMember member = get(i);
+						ChunkPosition from = member.getBlockPos();
+						ChunkPosition to = get(i + 1).getBlockPos();
+						this.memberBlockSpace.put(from, member);
+						if (to.x > from.x + 1) {
+							this.memberBlockSpace.put(new ChunkPosition(from.x + 1, from.y, from.z), member);
+						} else if (to.x + 1 < from.x) {
+							this.memberBlockSpace.put(new ChunkPosition(from.x - 1, from.y, from.z), member);
+						}
+						if (to.y > from.y + 1) {
+							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y + 1, from.z), member);
+						} else if (to.y + 1 < from.y) {
+							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y - 1, from.z), member);
+						}
+						if (to.z > from.z + 1) {
+							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z + 1), member);
+						} else if (to.z + 1 < from.z) {
+							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z - 1), member);
+						}
+					}
+					this.memberBlockSpace.put(tail().getBlockPos(), tail());
+				}
+			}
 			if (this.needsUpdate) {
 				this.needsUpdate = false;
 				for (Block b : this.activeSigns) {
@@ -880,7 +927,6 @@ public class MinecartGroup extends MinecartGroupStore {
 					reg.update(this);
 				}
 			}
-
 			return true;
 		} catch (MemberDeadException ex) {
 			return false;

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions.detector;
 
 import net.minecraft.server.ChunkCoordinates;
 
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -30,6 +31,20 @@ public class DetectorSign extends OfflineSign {
 	@Override
 	public boolean validate(SignActionEvent event) {
 		return SignActionDetector.isValid(event);
+	}
+
+	@Override
+	public boolean isLoaded(World world) {
+		return world != null;
+	}
+
+	@Override
+	public SignActionEvent getSignEvent(World world) {
+		if (world == null) {
+			return null;
+		}
+		this.loadChunks(world);
+		return super.getSignEvent(world);
 	}
 
 	@Override

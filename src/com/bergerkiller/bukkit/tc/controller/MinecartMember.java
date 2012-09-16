@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.ChunkCoordinates;
+import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
@@ -64,7 +65,7 @@ public class MinecartMember extends MinecartMemberStore {
 	private BlockFace directionTo;
 	private BlockFace directionFrom;
 	MinecartGroup group;
-	private int blockx, blocky, blockz;
+	private ChunkPosition blockPos;
 	protected boolean died = false;
 	private boolean railsloped = false;
 	private boolean isDerailed = false;
@@ -79,9 +80,7 @@ public class MinecartMember extends MinecartMemberStore {
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.blockx = super.getBlockX();
-		this.blocky = super.getBlockY();
-		this.blockz = super.getBlockZ();
+		this.blockPos = new ChunkPosition(super.getBlockX(), super.getBlockY(), super.getBlockZ());
 		this.prevcx = MathUtil.locToChunk(this.locX);
 		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
@@ -209,22 +208,20 @@ public class MinecartMember extends MinecartMemberStore {
 		int x = super.getBlockX();
 		int y = super.getBlockY();
 		int z = super.getBlockZ();
-		boolean forced = Math.abs(this.blockx - x) > 128 || Math.abs(this.blocky - y) > 128 || Math.abs(this.blockz - z) > 128;
+		boolean forced = Math.abs(this.blockPos.x - x) > 128 || Math.abs(this.blockPos.y - y) > 128 || Math.abs(this.blockPos.z - z) > 128;
 		Block from = forced ? null : this.getBlock();
-		if (forced || x != this.blockx || z != this.blockz || y != (this.railsloped ? this.blocky : this.blocky + 1)) {
-			this.blockx = x;
-			this.blocky = y;
-			this.blockz = z;
+		if (forced || x != this.blockPos.x || z != this.blockPos.z || y != (this.railsloped ? this.blockPos.y : this.blockPos.y + 1)) {
+			getGroup().needsBlockUpdate = true;
 			//find the correct Y-value
 			this.railsloped = false;
 			this.isDerailed = false;
 			this.isFlying = false;
-						
-			int r = this.world.getTypeId(this.blockx, this.blocky - 1, this.blockz);
+
+			int r = this.world.getTypeId(x, y - 1, z);
 			if (Util.isRails(r)) {
-				--this.blocky;
+				--x;
 			} else {		
-				r = this.world.getTypeId(this.blockx, this.blocky, this.blockz);
+				r = this.world.getTypeId(x, y, z);
 				if (Util.isRails(r)) {
 					this.railsloped = true;
 				} else {
@@ -232,10 +229,11 @@ public class MinecartMember extends MinecartMemberStore {
 					if (r == 0) this.isFlying = true;
 				}
 			}
+			this.blockPos = new ChunkPosition(x, y, z);
 			if (!this.isDerailed && Util.isPressurePlate(r)) {
 				this.b(this.yaw, this.pitch = 0.0F);
 			}
-			
+
 			//Update from value if it was not set
 			Block to = this.getBlock();
 			if (from == null) from = to;
@@ -374,7 +372,7 @@ public class MinecartMember extends MinecartMemberStore {
  	 * Block functions
  	 */
  	public Block getBlock(int dx, int dy, int dz) {
- 		return this.world.getWorld().getBlockAt(this.blockx + dx, this.blocky + dy, this.blockz + dz);
+ 		return this.world.getWorld().getBlockAt(this.blockPos.x + dx, this.blockPos.y + dy, this.blockPos.z + dz);
  	}
 	public Block getBlock(BlockFace face) {
 		return this.getBlock(face.getModX(), face.getModY(), face.getModZ());
@@ -505,20 +503,23 @@ public class MinecartMember extends MinecartMemberStore {
 		double z = getZ() + 0.5;
 		return z - (int) z;
 	}
+	public ChunkPosition getBlockPos() {
+		return this.blockPos;
+	}
 	public int getBlockX() {
-		return this.blockx;
+		return this.blockPos.x;
 	}
 	public int getBlockY() {
-		return this.blocky;
+		return this.blockPos.y;
 	}
 	public int getBlockZ() {
-		return this.blockz;
+		return this.blockPos.z;
 	}
 	public int getChunkX() {
-		return this.blockx >> 4;
+		return this.blockPos.x >> 4;
 	}
 	public int getChunkZ() {
-		return this.blockz >> 4;
+		return this.blockPos.z >> 4;
 	}
 	public double getMovedX() {
 		return this.locX - this.lastX;
@@ -901,6 +902,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public void teleport(Location to) {
 		this.died = true;
 		EntityUtil.teleport(TrainCarts.plugin, this, to);
+		this.getTracker(); // load tracker
 		this.died = false;
 	}
 
@@ -1023,7 +1025,7 @@ public class MinecartMember extends MinecartMemberStore {
 		int newz = MathHelper.floor(this.locZ);
 		if ((newx >> 4) != prevcx || (newz >> 4) != prevcz) {
 			if (canunload) {
-				if (!this.world.areChunksLoaded(newx, this.blocky, newz, 32)) {
+				if (!this.world.areChunksLoaded(newx, this.getBlockY(), newz, 32)) {
 					OfflineGroupManager.hideGroup(this.getGroup());
 					throw new GroupUnloadedException();
 				}

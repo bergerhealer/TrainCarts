@@ -37,7 +37,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	public static boolean handleOccupied(Block start, BlockFace direction, MinecartMember ignore, int maxdistance) {
 		TrackIterator iter = new TrackIterator(start, direction);
 		while (iter.hasNext() && --maxdistance >= 0) {
-			MinecartMember mm = MinecartMember.getAt(iter.next(), true);
+			MinecartMember mm = MinecartMember.getAt(iter.next());
 			if (mm != null && mm.getGroup() != ignore.getGroup()) {
 				ignore.setIgnoreCollisions(true);
 				return true;

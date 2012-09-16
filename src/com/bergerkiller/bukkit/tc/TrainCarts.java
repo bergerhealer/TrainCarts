@@ -75,6 +75,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean slowDownEmptyCarts;
 	public static double slowDownMultiplierSlow;
 	public static double slowDownMultiplierNormal;
+	public static boolean refillAtStations;
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
 
@@ -185,7 +186,10 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("slowDownEmptyCarts", "\nWhether or not empty minecarts slow down faster than occupied minecarts");
 		slowDownEmptyCarts = config.get("slowDownEmptyCarts", false);
-		
+
+		config.setHeader("refillAtStations", "\nWhether storage minecarts get fuel when launching from stations");
+		refillAtStations = config.get("refillAtStations", true);
+
 		config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
 		config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");
 		config.addHeader("allowedBlockBreakTypes", "Others have to use one from this list");

@@ -27,7 +27,7 @@ public class SignActionStation extends SignAction {
 		if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
 			if (info.isTrainSign() || info.isCartSign()) {
 				if (info.isType("station") && info.hasRails()) {
-					MinecartGroup group = info.getGroup(true);
+					MinecartGroup group = info.getGroup();
 					if (group != null) {
 						if (info.isAction(SignActionType.GROUP_LEAVE)) {
 							info.setLevers(false);
@@ -117,7 +117,7 @@ public class SignActionStation extends SignAction {
 										}
 									}
 								}
-									
+
 								//What do we do?
 								if (instruction == BlockFace.UP) {
 									info.getGroup().clearActions();
@@ -141,6 +141,7 @@ public class SignActionStation extends SignAction {
 											} else if (group.head().getDirectionTo() != trainDirection) {
 												toAffect.addActionLaunch(info.getRailLocation(), 0);
 											}
+											if (TrainCarts.refillAtStations) group.addActionRefill();
 											toAffect.addActionLaunch(trainDirection, length, TrainCarts.launchForce);
 										} else {
 											toAffect.addActionLaunch(info.getRailLocation(), 0);
@@ -163,6 +164,7 @@ public class SignActionStation extends SignAction {
 										info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 									}
 									group.addActionWait(delayMS);
+									if (TrainCarts.refillAtStations) group.addActionRefill();
 									toAffect.addActionLaunch(instruction, length, TrainCarts.launchForce);
 								}
 							}

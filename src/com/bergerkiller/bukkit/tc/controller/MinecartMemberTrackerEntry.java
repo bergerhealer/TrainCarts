@@ -120,7 +120,11 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		this.zLoc = z;
 		setRotation(yaw, pitch);
 		this.ticksNoTeleport = 0;
-		this.broadcast(new Packet34EntityTeleport(this.tracker.id, x, y, z, (byte) yaw, (byte) pitch));
+		this.broadcast(getTeleportPacket());
+	}
+
+	private Packet getTeleportPacket() {
+		return new Packet34EntityTeleport(this.tracker.id, this.xLoc, this.yLoc, this.zLoc, (byte) this.xRot, (byte) this.yRot);
 	}
 
 	public boolean hasTrackerChanged() {
@@ -219,7 +223,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
 		entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
 		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
-		this.doTeleport();
+		entityplayer.netServerHandler.sendPacket(getTeleportPacket());
 		if (entityplayer == this.tracker.passenger) {
 			entityplayer.netServerHandler.sendPacket(new Packet39AttachEntity(entityplayer, this.tracker));
 		}

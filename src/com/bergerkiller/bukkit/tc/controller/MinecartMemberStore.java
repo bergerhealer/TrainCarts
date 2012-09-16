@@ -8,27 +8,21 @@ import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.ClassTemplate;
-import com.bergerkiller.bukkit.common.reflection.EntityTrackerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
-import net.minecraft.server.EntityTracker;
-import net.minecraft.server.EntityTrackerEntry;
 import net.minecraft.server.World;
 
 public class MinecartMemberStore extends NativeMinecartMember {
@@ -92,27 +86,17 @@ public class MinecartMemberStore extends NativeMinecartMember {
 
 		// swap the entity
 		MinecartSwapEvent.call(toreplace, with);
-		EntityTracker tracker = WorldUtil.getTracker(toreplace.world);
-		EntityTrackerEntry trackerEntry = (EntityTrackerEntry) tracker.trackedEntities.d(toreplace.id);
-		if (trackerEntry == null) {
-			// simple remove and add (this entity still has to spawn anyway)
-			toreplace.world.removeEntity(toreplace);
-			with.world.addEntity(with);
-		} else {
-			// hide tracker during swapping process to prevent destroy/create packets
-			Set<EntityTrackerEntry> trackerSet = EntityTrackerRef.trackerSet.get(tracker);
-			trackerSet.remove(trackerEntry);
-			toreplace.world.removeEntity(toreplace);
-			trackerEntry.tracker = with;
-			tracker.trackedEntities.a(with.id, trackerEntry);
-			trackerSet.add(trackerEntry);
-			with.world.addEntity(with);
-		}
+		toreplace.world.removeEntity(toreplace);
 
 		// swap the tracker
 		if (with instanceof MinecartMember) {
+			// Create MM tracker
 			((MinecartMember) with).getTracker();
+		} else {
+			// Create default tracker
+			WorldUtil.getTracker(with.world).trackedEntities.d(with.id);
 		}
+		with.world.addEntity(with);
 	}
 	private static EntityMinecart findByID(UUID uuid) {
 		EntityMinecart e;
@@ -198,32 +182,22 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		return mm;
 	}
 
-	public static MinecartMember getAt(Block railblock, boolean checkmoving) {
+	public static MinecartMember getAt(Block railblock) {
 		if (railblock == null) return null;
-		return getAt(WorldUtil.getNative(railblock.getWorld()), BlockUtil.getCoordinates(railblock), checkmoving);
+		return getAt(WorldUtil.getNative(railblock.getWorld()), BlockUtil.getCoordinates(railblock));
 	}
 
-	private static boolean isHeadingTo(MinecartMember mm, ChunkCoordinates to) {
-		if (mm == null) {
-			return false;
-		} else {
-			BlockFace dir = mm.getDirection();
-			if (dir.getModX() + mm.getBlockX() != to.x) return false;
-			if (dir.getModZ() + mm.getBlockZ() != to.z) return false;
-			return true;
-		}
-	}
-
-	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord, boolean checkmoving) {
-		return getAt(WorldUtil.getNative(world), coord, checkmoving);
+	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
+		return getAt(WorldUtil.getNative(world), coord);
 	}
 
 	@SuppressWarnings("rawtypes")
-	public static MinecartMember getAt(World world, ChunkCoordinates coord, boolean checkmoving) {
+	public static MinecartMember getAt(World world, ChunkCoordinates coord) {
 		net.minecraft.server.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
 		if (chunk != null) {
 			MinecartMember mm;
 			MinecartMember result = null;
+			// find member in chunk
 			for (List list : chunk.entitySlices) {
 				for (Object e : list) {
 					if (e instanceof MinecartMember) {
@@ -236,48 +210,13 @@ public class MinecartMemberStore extends NativeMinecartMember {
 					}
 				}
 			}
-			if (result == null && checkmoving) {
-				Block b = world.getWorld().getBlockAt(coord.x, coord.y, coord.z);
-				int id = b.getTypeId();
-				
-				//get the two connected rails to check
-				if (BlockUtil.isRails(id)) {
-					BlockFace[] possible = FaceUtil.getFaces(BlockUtil.getRails(b).getDirection());
-				    MinecartMember mm1 = getAt(Util.getRailsBlock(b.getRelative(possible[0])), false);
-				    MinecartMember mm2 = getAt(Util.getRailsBlock(b.getRelative(possible[1])), false);
-				    if (mm1 != null && mm2 != null && mm1.group == mm2.group) {
-				    	Location loc = b.getLocation();
-				    	return mm1.distance(loc) < mm2.distance(loc) ? mm1 : mm2;
-				    } else if (isHeadingTo(mm1, coord)) {
-				    	return mm1;
-				    } else if (isHeadingTo(mm2, coord)) {
-				    	return mm2;
-				    } else {
-				    	return null;
-				    }
-				} else if (Util.isPressurePlate(id)) {
-					//check all directions
-				    MinecartMember mm1 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.NORTH)), false);
-				    MinecartMember mm2 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.SOUTH)), false);
-				    MinecartMember mm3 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.EAST)), false);
-				    MinecartMember mm4 = getAt(Util.getRailsBlock(b.getRelative(BlockFace.WEST)), false);
-				    if (mm1 != null && mm2 != null && mm1.group == mm2.group) {
-				    	Location loc = b.getLocation();
-				    	return mm1.distance(loc) < mm2.distance(loc) ? mm1 : mm2;
-				    } else if (mm3 != null && mm4 != null && mm3.group == mm4.group) {
-				    	Location loc = b.getLocation();
-				    	return mm3.distance(loc) < mm4.distance(loc) ? mm3 : mm4;
-				    } else if (isHeadingTo(mm1, coord)) {
-				    	return mm1;
-				    } else if (isHeadingTo(mm2, coord)) {
-				    	return mm2;
-				    } else if (isHeadingTo(mm3, coord)) {
-				    	return mm3;
-				    } else if (isHeadingTo(mm4, coord)) {
-				    	return mm4;
-				    } else {
-				    	return null;
-				    }
+			if (result == null) {
+				// find member in all groups
+				for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {
+					mm = group.getAt(coord);
+					if (mm == null) continue;
+					result = mm;
+					if (result.isHeadingTo(coord)) return result;
 				}
 			}
 			return result;

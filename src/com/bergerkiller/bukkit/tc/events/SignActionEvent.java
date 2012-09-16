@@ -371,12 +371,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 
 	public MinecartMember getMember() {
-		return this.getMember(false);
-	}
-	public MinecartMember getMember(boolean checkMoving) {
 		if (this.member == null) {
 			if (!this.memberchecked) {
-				this.member = this.hasRails() ? MinecartMember.getAt(this.railsblock, checkMoving) : null;
+				this.member = this.hasRails() ? MinecartMember.getAt(this.railsblock) : null;
 				this.memberchecked = true;
 			}
 			if (this.group != null && !this.group.isEmpty()) {
@@ -408,13 +405,10 @@ public class SignActionEvent extends Event implements Cancellable {
 		}
 		return false;
 	}
-	
+
 	public MinecartGroup getGroup() {
-		return this.getGroup(false);
-	}
-	public MinecartGroup getGroup(boolean checkMoving) {
 		if (this.group != null) return this.group;
-		MinecartMember mm = this.getMember(checkMoving);
+		MinecartMember mm = this.getMember();
 		if (mm == null) return null;
 		return mm.getGroup();
 	}

@@ -11,12 +11,19 @@ public class SignActionEffect extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("effect") || !info.isPowered()) return;
-		if (info.isAction(SignActionType.MEMBER_MOVE)) {
-			return;
-		}
+		boolean move = info.isType("meffect");
+		if ((!info.isType("effect") && !move) || !info.isPowered()) return;
 		Effect eff = parse(info);
-		if (eff == null) {
+		if (info.isAction(SignActionType.MEMBER_MOVE)) {
+			if (move) {
+				if (info.isTrainSign()) {
+					for (MinecartMember member : info.getGroup()) {
+						eff.play(member.getLocation());
+					}
+				} else if (info.isCartSign()) {
+					eff.play(info.getMember().getLocation());
+				}
+			}
 			return;
 		}
 		if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.hasGroup()) {
@@ -44,9 +51,6 @@ public class SignActionEffect extends SignAction {
 		Effect eff = new Effect();
 		eff.parseEffect(event.getLine(2));
 		eff.parseEffect(event.getLine(3));
-		if (eff.effects.isEmpty()) {
-			return null;
-		}
 		String[] args = event.getLine(1).substring(event.getLine(1).indexOf(' ') + 1).split(" ", -1);
 		try {
 			if (args.length >= 1) {
@@ -66,13 +70,15 @@ public class SignActionEffect extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (event.isType("effect")) {
+		boolean move = event.isType("meffect");
+		if (move || event.isType("effect")) {
+			String app = move ? " while moving" : "";
 			if (event.isCartSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "cart destructor", "play an effect in the minecart");
+				return handleBuild(event, Permission.BUILD_EFFECT, "cart destructor", "play an effect in the minecart" + app);
 			} else if (event.isTrainSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "train destructor", "play an effect in all minecarts of the train");
+				return handleBuild(event, Permission.BUILD_EFFECT, "train destructor", "play an effect in all minecarts of the train" + app);
 			} else if (event.isRCSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "train destructor", "play an effect in all minecarts of the train");
+				return handleBuild(event, Permission.BUILD_EFFECT, "train destructor", "play an effect in all minecarts of the train" + app);
 			}
 		}
 		return false;
