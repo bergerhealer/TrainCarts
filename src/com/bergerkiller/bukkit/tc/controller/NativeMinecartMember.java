@@ -154,8 +154,10 @@ public class NativeMinecartMember extends EntityMinecart {
 	            this.h(10);
 	            this.K();
 				setDamage(getDamage() + i * 10);
-				if ((damagesource.getEntity() instanceof EntityHuman) && ((EntityHuman)damagesource.getEntity()).abilities.canInstantlyBuild) {
-					setDamage(100);
+				if (TrainCarts.instantCreativeDestroy) {
+					if ((damagesource.getEntity() instanceof EntityHuman) && ((EntityHuman)damagesource.getEntity()).abilities.canInstantlyBuild) {
+						setDamage(100);
+					}
 				}
 				if(getDamage() > 40) {
 					// CraftBukkit start

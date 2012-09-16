@@ -76,6 +76,7 @@ public class TrainCarts extends PluginBase {
 	public static double slowDownMultiplierSlow;
 	public static double slowDownMultiplierNormal;
 	public static boolean refillAtStations;
+	public static boolean instantCreativeDestroy;
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
 
@@ -189,6 +190,9 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("refillAtStations", "\nWhether storage minecarts get fuel when launching from stations");
 		refillAtStations = config.get("refillAtStations", true);
+
+		config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
+		instantCreativeDestroy = config.get("instantCreativeDestroy", false);
 
 		config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
 		config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");
