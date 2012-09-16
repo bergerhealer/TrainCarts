@@ -107,7 +107,7 @@ public class SignActionCollect extends SignAction {
 					break;
 				}
 				case GROUNDITEM : {
-					invlist.add(new GroundItemsInventory(info.getRailLocation(), radius));
+					invlist.add(new GroundItemsInventory(info.getRailLocation(), (double) radius + 0.5));
 					break;
 				}
 			}
@@ -116,14 +116,8 @@ public class SignActionCollect extends SignAction {
 
 		//convert inventories to watched inventories
 		if (TrainCarts.showTransferAnimations) {
-			for (int i = 0; i < invlist.size(); i++) {
-				IInventory inv = invlist.get(i);
-				invlist.set(i, new InventoryWatcher(info.getMember(), inv, inv));
-			}
-			for (int i = 0; i < furnacelist.size(); i++) {
-				IInventory inv = furnacelist.get(i);
-				furnacelist.set(i, new InventoryWatcher(info.getMember(), inv, inv));
-			}
+			InventoryWatcher.convertAll(invlist, info.getMember());
+			InventoryWatcher.convertAll(furnacelist, info.getMember());
 		}
 
 		//parse the sign

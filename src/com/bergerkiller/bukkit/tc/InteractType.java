@@ -38,7 +38,7 @@ public enum InteractType {
 				typesToCheck.add(FURNACE);
 			} else if (name.startsWith("smelt")) {
 				typesToCheck.add(FURNACE);
-			} else if (name.startsWith("drop items")) {
+			} else if (name.startsWith("drop items") || name.startsWith("dropitems")) {
 				typesToCheck.add(GROUNDITEM);
 			}
 		}

@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import net.minecraft.server.TileEntityFurnace;
-
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -196,46 +194,6 @@ public class Util {
 			return def;
 		}
 	}
-	
-	public static boolean isFuel(int itemId) {
-		return getFuelTime(itemId) != null;
-	}
-	
-	public static Integer getFuelTime(int itemId) {
-		int fuel = TileEntityFurnace.fuelTime(new net.minecraft.server.ItemStack(itemId, 1, 0));
-		return fuel == 0 ? null : fuel;
-	}
-	
-    public static boolean canDistractWire(Material type) {
-		switch (type) {
-		case REDSTONE_WIRE : return true;
-		case REDSTONE_TORCH_ON : return true;
-		case REDSTONE_TORCH_OFF : return true;
-		case LEVER : return true;
-		case WOOD_PLATE : return true;
-		case STONE_PLATE : return true;
-		case STONE_BUTTON : return true;
-		case DETECTOR_RAIL : return true;
-		}
-		return false;
-    }
-
-//    @SuppressWarnings("unchecked")
-//	public static void refreshItem(EntityItem item) {
-//    	System.out.println("RESPAWN");
-//		EntityTrackerEntry tracker = (EntityTrackerEntry) WorldUtil.getTracker(item.world).trackedEntities.d(item.id);
-//		if (tracker != null) {
-//			System.out.println("YES");
-//			Packet21PickupSpawn packet21pickupspawn = new Packet21PickupSpawn(item);
-//			item.locX = (double) packet21pickupspawn.b / 32D;
-//			item.locY = (double) packet21pickupspawn.c / 32D;
-//			item.locZ = (double) packet21pickupspawn.d / 32D;
-//			for (EntityPlayer ep : (Set<EntityPlayer>) tracker.trackedPlayers) {
-//				ep.netServerHandler.sendPacket(new Packet29DestroyEntity(new int[item.id]));
-//				ep.netServerHandler.sendPacket(packet21pickupspawn);
-//			}
-//		}
-//    }
 
 	public static boolean isRails(Block block) {
 		return block != null && isRails(block.getTypeId());

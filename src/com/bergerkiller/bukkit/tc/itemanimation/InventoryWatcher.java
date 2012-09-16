@@ -34,13 +34,27 @@ public class InventoryWatcher implements IInventory {
 		}
 	}
 	
-	public static Inventory convert(Object from, Object to, Inventory inventory) {
-		return convert(from, to, ((CraftInventory) inventory).getInventory());
+	public static Inventory convert(Object other, Object self, Inventory inventory) {
+		return convert(other, self, ((CraftInventory) inventory).getInventory());
 	}
-	public static Inventory convert(Object from, Object to, IInventory inventory) {
-		return new InventoryWatcher(from, to, inventory).getInventory();
+	public static Inventory convert(Object other, Object self, IInventory inventory) {
+		return new InventoryWatcher(other, self, inventory).getInventory();
 	}
-	
+
+	/**
+	 * Converts all the inventories into watched inventories<br>
+	 * The self object is the inventory
+	 * 
+	 * @param inventories to convert
+	 * @param other object that is interacted with
+	 */
+	public static void convertAll(List<IInventory> inventories, Object other) {
+		for (int i = 0; i < inventories.size(); i++) {
+			IInventory inv = inventories.get(i);
+			inventories.set(i, new InventoryWatcher(other, inv, inv));
+		}
+	}
+
 	public Inventory getInventory() {
 		return new CraftInventory(this);
 	}

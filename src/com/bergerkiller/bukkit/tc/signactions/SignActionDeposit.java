@@ -207,7 +207,7 @@ public class SignActionDeposit extends SignAction {
 					break;
 				}
 				case GROUNDITEM : {
-					invlist.add(new GroundItemsInventory(info.getRailLocation(), radius));
+					invlist.add(new GroundItemsInventory(info.getRailLocation(), (double) radius + 0.5));
 					break;
 				}
 			}
@@ -228,10 +228,17 @@ public class SignActionDeposit extends SignAction {
         } else {
         	cartinv = info.getGroup().getInventory();
         }
-        
-		ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
-		
+
+        //deposit into furnaces
+		if (!furnaces.isEmpty()) {
+			deposit(furnaces, info.getLine(2), info.getLine(3), cartinv, info.getMember());
+		}
+		//deposit into other inventories
 		if (!invlist.isEmpty()) {
+			if (TrainCarts.showTransferAnimations) {
+				InventoryWatcher.convertAll(invlist, info.getMember());
+			}
+			ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
 			int limit;
 			final Inventory to = MergedInventory.convert(invlist);
 			for (ItemParser p : parsers) {
@@ -239,9 +246,6 @@ public class SignActionDeposit extends SignAction {
 				limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
 				ItemUtil.transfer(cartinv, to, p, limit);
 			}
-		}
-		if (!furnaces.isEmpty()) {
-			deposit(furnaces, info.getLine(2), info.getLine(3), cartinv, info.getMember());
 		}
 	}
 

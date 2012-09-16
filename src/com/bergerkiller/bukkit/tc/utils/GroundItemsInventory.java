@@ -1,20 +1,15 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.entity.CraftHumanEntity;
-import org.bukkit.entity.HumanEntity;
-import org.bukkit.inventory.InventoryHolder;
 
-import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityItem;
-import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.World;
 
+import com.bergerkiller.bukkit.common.IInventoryBase;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -24,11 +19,10 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
  * Is of a dynamic size; the last item is always null<br>
  * If this item is set, a new item is spawned
  */
-public class GroundItemsInventory implements IInventory {
+public class GroundItemsInventory extends IInventoryBase {
 	private final List<EntityItem> items = new ArrayList<EntityItem>();
 	private final Location location;
 	private final World world;
-	private int maxstacksize = 64;
 
 	public GroundItemsInventory(Location location, double range) {
 		this.location = location;
@@ -118,62 +112,7 @@ public class GroundItemsInventory implements IInventory {
 	}
 
 	@Override
-	public boolean a(EntityHuman arg0) {
-		return false;
-	}
-
-	@Override
-	public void f() {
-	}
-
-	@Override
 	public String getName() {
 		return "Ground Items";
-	}
-
-	@Override
-	public InventoryHolder getOwner() {
-		return null;
-	}
-
-	@Override
-	public List<HumanEntity> getViewers() {
-		return Collections.emptyList();
-	}
-
-	@Override
-	public void onClose(CraftHumanEntity arg0) {
-	}
-
-	@Override
-	public void onOpen(CraftHumanEntity arg0) {
-	}
-
-	@Override
-	public int getMaxStackSize() {
-		return this.maxstacksize;
-	}
-
-	@Override
-	public void setMaxStackSize(int arg0) {
-		this.maxstacksize = arg0;
-	}
-
-	@Override
-	public ItemStack splitStack(int arg0, int arg1) {
-		return null;
-	}
-
-	@Override
-	public ItemStack splitWithoutUpdate(int arg0) {
-		return null;
-	}
-
-	@Override
-	public void startOpen() {
-	}
-
-	@Override
-	public void update() {
 	}
 }
