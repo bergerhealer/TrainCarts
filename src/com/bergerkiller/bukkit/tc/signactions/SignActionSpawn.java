@@ -63,32 +63,41 @@ public class SignActionSpawn extends SignAction {
 				}
 
 				if (types.isEmpty()) return;
-				BlockFace direction = info.getWatchedDirections()[0].getOppositeFace();
+				for (BlockFace direction : info.getWatchedDirections()) {
+					direction = direction.getOppositeFace();
 
-				Location[] locs = new Location[types.size()];
-				TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
-				for (int i = 0; i < types.size(); i++) {
-					if (!iter.hasNext()) return;
-					locs[i] = iter.next();
-					//not taken?
-					if (MinecartMember.getAt(locs[i]) != null) return;
-				}
-
-				// Prepare chunks
-				for (Location loc : locs) {
-					WorldUtil.loadChunks(loc, 2);
-				}
-
-				//Spawn
-				MinecartGroup group = MinecartGroup.create();
-				for (int i = 0; i < locs.length; i++) {
-					MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
-					group.add(mm);
-					if (force != 0 && i == 0) {
-						mm.addActionLaunch(direction, 2, force);
+					Location[] locs = new Location[types.size()];
+					TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
+					boolean occupied = false;
+					for (int i = 0; i < types.size(); i++) {
+						if (!iter.hasNext()) return;
+						locs[i] = iter.next();
+						//not taken?
+						if (MinecartMember.getAt(locs[i]) != null) {
+							occupied = true;
+							break;
+						}
 					}
+					if (occupied) {
+						continue;
+					}
+					
+					// Prepare chunks
+					for (Location loc : locs) {
+						WorldUtil.loadChunks(loc, 2);
+					}
+
+					//Spawn
+					MinecartGroup group = MinecartGroup.create();
+					for (int i = 0; i < locs.length; i++) {
+						MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
+						group.add(mm);
+						if (force != 0 && i == 0) {
+							mm.addActionLaunch(direction, 2, force);
+						}
+					}
+					GroupCreateEvent.call(group);
 				}
-				GroupCreateEvent.call(group);
 			}
 		}
 	}

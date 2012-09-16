@@ -68,9 +68,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			int idx = linez.indexOf(':');
 			if (idx == -1) {
 				//find out using the rails above and sign facing
-				if (this.railsblock == null) {
-					this.watchedDirections = new BlockFace[] {this.getFacing().getOppositeFace()};
-				} else {
+				if (this.hasRails()) {
 					BlockFace facing = this.getFacing();
 					if (this.isConnectedRails(facing)) {
 						this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
@@ -79,6 +77,8 @@ public class SignActionEvent extends Event implements Cancellable {
 					} else {
 						this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
 					}
+				} else {
+					this.watchedDirections = new BlockFace[] {this.getFacing().getOppositeFace()};
 				}
 			} else {
 				linez = linez.substring(idx + 1);
@@ -339,6 +339,13 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Sign getSign() {
 		return this.sign;
 	}
+
+	/**
+	 * Checks if rails at the offset specified are connected to the rails at this sign
+	 * 
+	 * @param direction to connect to
+	 * @return True if connected, False if not
+	 */
 	public boolean isConnectedRails(BlockFace direction) {
 		Block block = Util.getRailsBlock(this.railsblock.getRelative(direction));
 		if (block != null) {
