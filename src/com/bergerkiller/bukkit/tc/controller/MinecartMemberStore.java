@@ -9,16 +9,16 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.entity.CraftMinecart;
+import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.ClassTemplate;
+import com.bergerkiller.bukkit.common.reflection.EntityTrackerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -39,13 +39,11 @@ public class MinecartMemberStore extends NativeMinecartMember {
 
 	protected static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static boolean denyConversion = false;
-	private static SafeField<Set<EntityTrackerEntry>> trackers = new SafeField<Set<EntityTrackerEntry>>(EntityTracker.class, "b");
+	private static final ClassTemplate<EntityMinecart> MINECARTTEMPLATE = ClassTemplate.create(EntityMinecart.class);
 
 	public static boolean canConvert(Entity entity) {
 		return !denyConversion && get(entity) == null;
 	}
-
-	private static final SafeField<CraftMinecart> bukkitEntityField = new SafeField<CraftMinecart>(EntityMinecart.class, "bukkitEntity");
 
 	/**
 	 * Checks if the minecart is added to the world. If not, returns false and removes the minecart
@@ -74,49 +72,23 @@ public class MinecartMemberStore extends NativeMinecartMember {
 	}
 
 	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
-		with.yaw = toreplace.yaw;
-		with.pitch = toreplace.pitch;
-		with.lastX = toreplace.lastX;
-		with.lastY = toreplace.lastY;
-		with.lastZ = toreplace.lastZ;
-		with.locX = toreplace.locX;
-		with.locY = toreplace.locY;
-		with.locZ = toreplace.locZ;
-		with.motX = toreplace.motX;
-		with.motY = toreplace.motY;
-		with.motZ = toreplace.motZ;
-		with.b = toreplace.b;
-		with.c = toreplace.c;
-		with.fallDistance = toreplace.fallDistance;
-		with.ticksLived = toreplace.ticksLived;
-		with.uniqueId = toreplace.uniqueId;
-		with.setDamage(toreplace.getDamage());
-		ItemUtil.transfer(toreplace, with);
-		with.setDerailedVelocityMod(toreplace.getDerailedVelocityMod());
-		with.setFlyingVelocityMod(toreplace.getFlyingVelocityMod());
-		//force removal in chunk
-		with.dead = false;
-		toreplace.dead = true;
-		toreplace.ag = true;
-		// Set the chunk coordinates
-		if (toreplace.ah == 0 && toreplace.ai == 0 && toreplace.aj == 0) {
-			//System.out.println("FUUU!");
-		}
-		with.ah = toreplace.ah;
-		with.ai = toreplace.ai;
-		with.aj = toreplace.aj;
+		//transfer variables, excluding the id. (it has to be a new ID)
+		int id = with.id;
+		MINECARTTEMPLATE.transfer(toreplace, with);
+		with.id = id;
 
 		// preserve the Bukkit entity, simply swap the contents
-		CraftMinecart bukkitEntity = bukkitEntityField.get(toreplace);
-		if (bukkitEntity != null) {
-			bukkitEntity.setHandle(with);
-			bukkitEntityField.set(with, bukkitEntity);
-		}
+		((CraftEntity) with.getBukkitEntity()).setHandle(with);
 
 		// swap a possible passenger
 		if (toreplace.passenger != null) {
 			toreplace.passenger.setPassengerOf(with);
 		}
+
+		//force removal in chunk
+		with.dead = false;
+		toreplace.dead = true;
+		toreplace.ag = true;
 
 		// swap the entity
 		MinecartSwapEvent.call(toreplace, with);
@@ -128,13 +100,18 @@ public class MinecartMemberStore extends NativeMinecartMember {
 			with.world.addEntity(with);
 		} else {
 			// hide tracker during swapping process to prevent destroy/create packets
-			Set<EntityTrackerEntry> trackerSet = trackers.get(tracker);
+			Set<EntityTrackerEntry> trackerSet = EntityTrackerRef.trackerSet.get(tracker);
 			trackerSet.remove(trackerEntry);
 			toreplace.world.removeEntity(toreplace);
 			trackerEntry.tracker = with;
 			tracker.trackedEntities.a(with.id, trackerEntry);
 			trackerSet.add(trackerEntry);
 			with.world.addEntity(with);
+		}
+
+		// swap the tracker
+		if (with instanceof MinecartMember) {
+			((MinecartMember) with).getTracker();
 		}
 	}
 	private static EntityMinecart findByID(UUID uuid) {
