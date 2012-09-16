@@ -178,6 +178,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
+		mm.getTracker();
 		mm.world.addEntity(mm);
 		return mm;
 	}

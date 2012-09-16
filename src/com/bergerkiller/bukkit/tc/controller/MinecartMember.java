@@ -80,7 +80,7 @@ public class MinecartMember extends MinecartMemberStore {
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.blockPos = new ChunkPosition(super.getBlockX(), super.getBlockY(), super.getBlockZ());
+		this.blockPos = new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		this.prevcx = MathUtil.locToChunk(this.locX);
 		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
