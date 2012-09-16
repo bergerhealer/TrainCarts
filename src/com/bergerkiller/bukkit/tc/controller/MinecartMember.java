@@ -458,8 +458,8 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void setForce(double force, BlockFace direction) {
 		this.setYForce(force);
-		this.motX = -FaceUtil.cos(this.direction) * force;
-		this.motZ = -FaceUtil.sin(this.direction) * force;
+		this.motX = -FaceUtil.sin(this.direction) * force;
+		this.motZ = -FaceUtil.cos(this.direction) * force;
 	}
 	public void setForwardForce(double force) {
 		if (this.isMoving() && force > 0.01 && FaceUtil.getDirection(this.motX, this.motZ, false) == this.direction) {
@@ -614,20 +614,21 @@ public class MinecartMember extends MinecartMemberStore {
 			this.direction = FaceUtil.getDirection(movement);
 			this.directionFrom = this.directionTo;
 			this.directionTo = FaceUtil.getDirection(movement, false);
-		} else {
-			BlockFace raildirection = this.getRailDirection();
-			this.direction = FaceUtil.getRailsCartDirection(raildirection);
-			if (movement.getX() == 0 || movement.getZ() == 0) {
-				if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
-					this.direction = this.direction.getOppositeFace();
-				}
-			} else {
-				if (MathUtil.getAngleDifference(MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
-					this.direction = this.direction.getOppositeFace();
-				}
+			return;
+		}
+		BlockFace raildirection = this.getRailDirection();
+		this.direction = FaceUtil.getRailsCartDirection(raildirection);
+		if (movement.getX() == 0 || movement.getZ() == 0) {
+			if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
+				this.direction = this.direction.getOppositeFace();
 			}
-			//calculate from and to
-			switch (this.direction) {
+		} else {
+			if (MathUtil.getAngleDifference(MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
+				this.direction = this.direction.getOppositeFace();
+			}
+		}
+		//calculate from and to
+		switch (this.direction) {
 			case NORTH_WEST :
 				if (raildirection == BlockFace.NORTH_EAST) {
 					this.directionFrom = BlockFace.NORTH;
@@ -667,7 +668,6 @@ public class MinecartMember extends MinecartMemberStore {
 			default :
 				this.directionFrom = this.directionTo = direction;
 				break;
-			}
 		}
 	}
 	public void updateDirectionTo(MinecartMember member) {
