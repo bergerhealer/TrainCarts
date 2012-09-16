@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberTrackerEntry;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -291,6 +290,11 @@ public class TrainCarts extends PluginBase {
 		}
 	}
 
+	@Override
+	public int getMinimumLibVersion() {
+		return 1;
+	}
+
 	public void enable() {
 		plugin = this;
 
@@ -307,10 +311,7 @@ public class TrainCarts extends PluginBase {
 			Util.setItemMaxSize(Material.POWERED_MINECART, maxMinecartStackSize);
 			Util.setItemMaxSize(Material.STORAGE_MINECART, maxMinecartStackSize);
 		}
-		
-		//init reflection-made fields
-		MinecartMemberTrackerEntry.initFields();
-		
+
 		//init statements
 		Statement.init();
 		

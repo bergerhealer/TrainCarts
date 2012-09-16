@@ -2,58 +2,36 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
-import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.reflection.EntityTrackerEntryRef;
+import com.bergerkiller.bukkit.common.reflection.EntityTrackerRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 
 import net.minecraft.server.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
-
-	private static SafeField<Set> trackerSet;
-	private static SafeField<IntHashMap> trackerMap;
-	public static void failFields() {
-		trackerMap = null;
-		trackerSet = null;
-		TrainCarts.plugin.log(Level.WARNING, "Failed to initialize the entity tracker replacement:");
-		TrainCarts.plugin.log(Level.WARNING, "Train movement will not be smoothed!");
-	}
-
-	public static void initFields() {
-		trackerMap = new SafeField<IntHashMap>(EntityTracker.class, "trackedEntities");
-		trackerSet = new SafeField<Set>(EntityTracker.class, "b");
-		if (!trackerMap.isValid() || !trackerSet.isValid()) {
-			failFields();
-		}
-	}
-
 	public static MinecartMemberTrackerEntry get(MinecartMember member) {
 		EntityTracker tracker = WorldUtil.getTracker(member.world);
-		if (trackerMap != null) {
-			try {
-				IntHashMap map = trackerMap.get(tracker);
-				synchronized (tracker) {
-					Object entry = map.get(member.id);
-					if (entry == null) {
-						entry = new MinecartMemberTrackerEntry(member);
-					} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
-						entry = new MinecartMemberTrackerEntry((EntityTrackerEntry) entry);
-					} else {
-						return (MinecartMemberTrackerEntry) entry;
-					}
-					map.a(member.id, entry);
-					Set set = trackerSet.get(tracker);
-					set.remove(entry);
-					set.add(entry);
+		try {
+			synchronized (tracker) {
+				Object entry = tracker.trackedEntities.get(member.id);
+				if (entry == null) {
+					entry = new MinecartMemberTrackerEntry(member);
+				} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
+					entry = new MinecartMemberTrackerEntry((EntityTrackerEntry) entry);
+				} else {
 					return (MinecartMemberTrackerEntry) entry;
 				}
-			} catch (Throwable t) {
-				failFields();
+				tracker.trackedEntities.a(member.id, entry);
+				Set set = EntityTrackerRef.trackerSet.get(tracker);
+				set.remove(entry);
+				set.add(entry);
+				return (MinecartMemberTrackerEntry) entry;
 			}
+		} catch (Throwable t) {
+			t.printStackTrace();
 		}
 		return null;
 	}
@@ -66,13 +44,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public MinecartMemberTrackerEntry(EntityTrackerEntry source) {
 		super(source.tracker, 80, 3, true);
 		//copy important information over
-		this.xLoc = source.xLoc;
-		this.yLoc = source.yLoc;
-		this.zLoc = source.zLoc;
-		this.xRot = source.xRot;
-		this.yRot = source.yRot;
-		this.m = source.m;
-		this.trackedPlayers.addAll(source.trackedPlayers);
+		EntityTrackerEntryRef.TEMPLATE.transfer(source, this);
 		this.isRemoved = false;
 	}
 

@@ -26,7 +26,7 @@ public enum InteractType {
 				typesToCheck.add(DISPENSER);
 			} else if (name.startsWith("furnace out")) {
 				typesToCheck.add(FURNACE);
-			} else if (name.startsWith("ground out")) {
+			} else if (name.startsWith("pickup") || name.startsWith("pick up")) {
 				typesToCheck.add(GROUNDITEM);
 			}
 		} else if (root.equals("deposit")) {
@@ -38,12 +38,12 @@ public enum InteractType {
 				typesToCheck.add(FURNACE);
 			} else if (name.startsWith("smelt")) {
 				typesToCheck.add(FURNACE);
-			} else if (name.startsWith("ground in")) {
+			} else if (name.startsWith("drop items")) {
 				typesToCheck.add(GROUNDITEM);
 			}
 		}
 		if (name.startsWith(root + ' ')) {
-			String types = name.substring(8).toLowerCase();
+			String types = name.substring(root.length() + 1).toLowerCase();
 			if (types.startsWith("chest")) {
 				typesToCheck.add(CHEST);
 			} else if (types.startsWith("furn")) {

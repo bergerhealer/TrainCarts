@@ -27,6 +27,8 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.EntityTracker;
+import net.minecraft.server.EntityTrackerEntry;
 import net.minecraft.server.World;
 
 public class MinecartMemberStore extends NativeMinecartMember {
@@ -37,6 +39,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 
 	protected static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static boolean denyConversion = false;
+	private static SafeField<Set<EntityTrackerEntry>> trackers = new SafeField<Set<EntityTrackerEntry>>(EntityTracker.class, "b");
 
 	public static boolean canConvert(Entity entity) {
 		return !denyConversion && get(entity) == null;
@@ -62,7 +65,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 				minecart.ai = MathUtil.locToChunk(minecart.locY);
 				minecart.aj = MathUtil.locToChunk(minecart.locZ);
 				if (minecart.world.chunkProvider.isChunkLoaded(minecart.ah, minecart.aj)) {
-					minecart.world.getChunkAt(minecart.ah, minecart.aj).b(minecart);
+					minecart.world.chunkProvider.getChunkAt(minecart.ah, minecart.aj).b(minecart);
 				}
 				return false;
 			}
@@ -110,12 +113,29 @@ public class MinecartMemberStore extends NativeMinecartMember {
 			bukkitEntityField.set(with, bukkitEntity);
 		}
 
-		//swap
+		// swap a possible passenger
+		if (toreplace.passenger != null) {
+			toreplace.passenger.setPassengerOf(with);
+		}
+
+		// swap the entity
 		MinecartSwapEvent.call(toreplace, with);
-		WorldUtil.getTracker(toreplace.world).untrackEntity(toreplace);
-		toreplace.world.removeEntity(toreplace);
-		with.world.addEntity(with);
-		if (toreplace.passenger != null) toreplace.passenger.setPassengerOf(with);
+		EntityTracker tracker = WorldUtil.getTracker(toreplace.world);
+		EntityTrackerEntry trackerEntry = (EntityTrackerEntry) tracker.trackedEntities.d(toreplace.id);
+		if (trackerEntry == null) {
+			// simple remove and add (this entity still has to spawn anyway)
+			toreplace.world.removeEntity(toreplace);
+			with.world.addEntity(with);
+		} else {
+			// hide tracker during swapping process to prevent destroy/create packets
+			Set<EntityTrackerEntry> trackerSet = trackers.get(tracker);
+			trackerSet.remove(trackerEntry);
+			toreplace.world.removeEntity(toreplace);
+			trackerEntry.tracker = with;
+			tracker.trackedEntities.a(with.id, trackerEntry);
+			trackerSet.add(trackerEntry);
+			with.world.addEntity(with);
+		}
 	}
 	private static EntityMinecart findByID(UUID uuid) {
 		EntityMinecart e;

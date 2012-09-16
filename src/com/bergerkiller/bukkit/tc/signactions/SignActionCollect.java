@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
+import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
 public class SignActionCollect extends SignAction {
 
@@ -68,7 +69,7 @@ public class SignActionCollect extends SignAction {
 		
 		if (!info.hasRailedMember() || !info.isPowered()) return;
 		
-		Collection<InteractType> typesToCheck = InteractType.parse(info.getLine(1), "collect");
+		Collection<InteractType> typesToCheck = InteractType.parse("collect", info.getLine(1));
 		if (typesToCheck.isEmpty()) return;
 
 		//get the block types to collect and the radius (2nd line)
@@ -106,13 +107,13 @@ public class SignActionCollect extends SignAction {
 					break;
 				}
 				case GROUNDITEM : {
-					//TODO: Implement this!
+					invlist.add(new GroundItemsInventory(info.getRailLocation(), radius));
 					break;
 				}
 			}
 		}
 		if (invlist.isEmpty() && furnacelist.isEmpty()) return;
-		
+
 		//convert inventories to watched inventories
 		if (TrainCarts.showTransferAnimations) {
 			for (int i = 0; i < invlist.size(); i++) {
@@ -164,7 +165,7 @@ public class SignActionCollect extends SignAction {
 	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.getMode() != SignActionMode.NONE) {
-			Collection<InteractType> typesToCheck = InteractType.parse(event.getLine(1), "collect");
+			Collection<InteractType> typesToCheck = InteractType.parse("collect", event.getLine(1));
 			if (typesToCheck.isEmpty()) return false;
 			String[] types = new String[typesToCheck.size()];
 			int i = 0;
@@ -177,5 +178,4 @@ public class SignActionCollect extends SignAction {
 		}
 		return false;
 	}
-
 }

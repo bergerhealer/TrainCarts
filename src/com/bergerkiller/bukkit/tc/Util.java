@@ -68,7 +68,7 @@ public class Util {
 		}
 		return rval;
 	}
-			
+
 	public static Block getRailsFromSign(Block signblock) {
 		if (signblock == null) {
 			return null;
@@ -219,7 +219,24 @@ public class Util {
 		}
 		return false;
     }
-	
+
+//    @SuppressWarnings("unchecked")
+//	public static void refreshItem(EntityItem item) {
+//    	System.out.println("RESPAWN");
+//		EntityTrackerEntry tracker = (EntityTrackerEntry) WorldUtil.getTracker(item.world).trackedEntities.d(item.id);
+//		if (tracker != null) {
+//			System.out.println("YES");
+//			Packet21PickupSpawn packet21pickupspawn = new Packet21PickupSpawn(item);
+//			item.locX = (double) packet21pickupspawn.b / 32D;
+//			item.locY = (double) packet21pickupspawn.c / 32D;
+//			item.locZ = (double) packet21pickupspawn.d / 32D;
+//			for (EntityPlayer ep : (Set<EntityPlayer>) tracker.trackedPlayers) {
+//				ep.netServerHandler.sendPacket(new Packet29DestroyEntity(new int[item.id]));
+//				ep.netServerHandler.sendPacket(packet21pickupspawn);
+//			}
+//		}
+//    }
+
 	public static boolean isRails(Block block) {
 		return block != null && isRails(block.getTypeId());
 	}

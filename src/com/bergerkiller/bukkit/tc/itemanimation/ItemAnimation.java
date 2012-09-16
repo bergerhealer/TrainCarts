@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
 public class ItemAnimation {
 	
@@ -73,7 +74,7 @@ public class ItemAnimation {
 		Task.stop(task);
 		task = null;
 	}
-	
+
 	private final Object from;
 	private final Object to;
 	private final VirtualItem item;
@@ -88,11 +89,20 @@ public class ItemAnimation {
 		this.item = new VirtualItem(f, data);
 		this.item.motY += 0.1;
 	}
-		
+
+	/**
+	 * Fixes the location to be either a Location or an Entity
+	 * 
+	 * @param object to fix
+	 * @return fixed object
+	 */
 	private static Object fixObject(Object object) {
 		if (object instanceof TileEntity) {
 			TileEntity t = (TileEntity) object;
 			return new Location(BlockUtil.getWorld(t).getWorld(), t.x, t.y, t.z);
+		}
+		if (object instanceof GroundItemsInventory) {
+			return ((GroundItemsInventory) object).getLocation();
 		}
 		if (object instanceof BlockState) {
 			object = ((BlockState) object).getBlock();
@@ -105,14 +115,23 @@ public class ItemAnimation {
 		}
 		return object;
 	}
+
+	/**
+	 * Tries to find out the location for a given Object
+	 * 
+	 * @param object to find a location for
+	 * @return object location
+	 */
 	private static Location getLocation(Object object) {
 		if (object instanceof Entity) {
-			Entity e = (Entity) object;
-			return e.isDead() ? null : e.getLocation();
+			return ((Entity) object).getLocation();
 		}
-		return (Location) object;
+		if (object instanceof Location) {
+			return (Location) object;
+		}
+		throw new IllegalArgumentException("Unable to find the location of " + object.getClass().getName());
 	}
-	
+
 	public Location getTo() {
 		return getLocation(this.to);
 	}

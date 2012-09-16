@@ -12,18 +12,20 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
+import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
+
 public class InventoryWatcher implements IInventory {
 
 	public InventoryWatcher(Object from, Object to, Inventory inventory) {
 		this(from, to, ((CraftInventory) inventory).getInventory());
 	}
 	
-	private Object from, to;
+	private Object other, self;
 	private final IInventory source;
 	private final ItemStack[] original;
-	public InventoryWatcher(Object from, Object to, final IInventory inventory) {
-		this.from = from;
-		this.to = to;
+	public InventoryWatcher(Object other, Object self, final IInventory inventory) {
+		this.other = other;
+		this.self = self;
 		this.source = inventory;
 		this.original = new ItemStack[this.source.getSize()];
 		for (int i = 0; i < this.original.length; i++) {
@@ -42,39 +44,47 @@ public class InventoryWatcher implements IInventory {
 	public Inventory getInventory() {
 		return new CraftInventory(this);
 	}
-		
+
 	@Override
 	public void setItem(int index, ItemStack newitem) {
 		ItemStack olditem = this.original[index];
 		this.source.setItem(index, newitem);
+		Object self = this.getSelfAt(index);
 		this.original[index] = newitem == null ? null : newitem.cloneItemStack();
 		if (olditem == null) {
 			if (newitem != null) {
-				ItemAnimation.start(from, to, newitem);
+				ItemAnimation.start(other, self, newitem);
 			}
 		} else {
 			if (newitem == null) {
-				ItemAnimation.start(to, from, olditem);
+				ItemAnimation.start(self, other, olditem);
 			} else {
 				//same type?
 				if (newitem.id == olditem.id && newitem.getData() == olditem.getData()) {
 					ItemStack trans = newitem.cloneItemStack();
 					trans.count -= olditem.count;
 					if (trans.count > 0) {
-						ItemAnimation.start(from, to, trans);
+						ItemAnimation.start(other, self, trans);
 					} else if (trans.count < 0) {
 						trans.count = -trans.count;
-						ItemAnimation.start(to, from, trans);
+						ItemAnimation.start(self, other, trans);
 					}
 				} else {
 					//swap
-					ItemAnimation.start(to, from, olditem);
-					ItemAnimation.start(from, to, newitem);
+					ItemAnimation.start(self, other, olditem);
+					ItemAnimation.start(other, self, newitem);
 				}
 			}
 		}
 	}
-	
+
+	public Object getSelfAt(int index) {
+		if (this.source instanceof GroundItemsInventory) {
+			return ((GroundItemsInventory) this.source).getEntity(index);
+		}
+		return self;
+	}
+
 	public boolean a(EntityHuman arg0) {
 		return this.source.a(arg0);
 	}
