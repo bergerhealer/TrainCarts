@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -16,7 +16,7 @@ public class SignActionWait extends SignAction {
 		if (info.isType("wait")) {
 			if (info.isAction(SignActionType.GROUP_ENTER) && info.isPowered()) {
 				if (!info.hasRailedMember()) return;
-				int dist = Math.min(Util.parse(info.getLine(1), 100), TrainCarts.maxDetectorLength);				
+				int dist = Math.min(ParseUtil.parseInt(info.getLine(1), 100), TrainCarts.maxDetectorLength);				
 				
 				//allowed?
 				BlockFace dir = info.getMember().getDirectionTo();

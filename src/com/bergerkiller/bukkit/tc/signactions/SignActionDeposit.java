@@ -19,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
@@ -166,14 +167,14 @@ public class SignActionDeposit extends SignAction {
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
-		
+
 		if (!info.hasRailedMember() || !info.isPowered()) return;
-		
+
 		//get the block types to collect and the radius (2nd line)
 		Collection<InteractType> typesToCheck = InteractType.parse("deposit", info.getLine(1));
 		if (typesToCheck.isEmpty()) return;
-		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
-		
+		int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
+
 		//get the tile entities to deposit to
 		Set<TileEntity> found = SignActionCollect.getTileEntities(info, radius);
 		if (found.isEmpty()) return;

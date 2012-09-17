@@ -7,6 +7,7 @@ import org.bukkit.material.Directional;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -88,7 +89,7 @@ public class SignActionElevator extends SignAction {
 					forced = true;
 				}
 				//possible amounts to skip?
-				int elevatorCount = Util.parse(info.getLine(2), 1);
+				int elevatorCount = ParseUtil.parseInt(info.getLine(2), 1);
 				Block dest = findElevator(info.getRails(), mode, elevatorCount);
 				if (!forced && dest == null) {
 					dest = findElevator(info.getRails(), mode.getOppositeFace(), elevatorCount);

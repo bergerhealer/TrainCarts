@@ -169,13 +169,29 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (signblock == null) return false;
 		return setActiveSign(new SignActionEvent(signblock, null, this), active);
 	}
+
+	/**
+	 * Clears all the signs this group is currently in<br>
+	 * <b>This includes the signs individual members are in</b>
+	 */
 	public void clearActiveSigns() {
+		clearActiveSigns(true);
+	}
+
+	/**
+	 * Clears all the signs this group is currently in<br>
+	 * 
+	 * @param clearMembers state, True to clear member signs, False to keep them
+	 */
+	public void clearActiveSigns(boolean clearMembers) {
 		for (Block signblock : this.activeSigns) {
 			SignAction.executeAll(new SignActionEvent(signblock, null, this), SignActionType.GROUP_LEAVE);
 		}
 		this.activeSigns.clear();
-		for (MinecartMember mm : this) {
-			mm.clearActiveSigns();
+		if (clearMembers) {
+			for (MinecartMember mm : this) {
+				mm.clearActiveSigns();
+			}
 		}
 	}
 

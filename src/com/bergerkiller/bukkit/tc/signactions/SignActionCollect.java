@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.common.ItemParser;
 import com.bergerkiller.bukkit.common.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -73,7 +74,7 @@ public class SignActionCollect extends SignAction {
 		if (typesToCheck.isEmpty()) return;
 
 		//get the block types to collect and the radius (2nd line)
-		int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
+		int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
 		
 		//get the tile entities to collect
 		List<IInventory> invlist = new ArrayList<IInventory>();

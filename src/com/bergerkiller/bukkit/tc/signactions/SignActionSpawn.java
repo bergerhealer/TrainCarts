@@ -13,7 +13,7 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -47,7 +47,7 @@ public class SignActionSpawn extends SignAction {
 				int idx = info.getLine(1).lastIndexOf(" ");
 				double force = 0.0;
 				if (idx != -1) {
-					force = StringUtil.tryParse(info.getLine(1).substring(idx + 1), 0.0);
+					force = ParseUtil.parseDouble(info.getLine(1).substring(idx + 1), 0.0);
 				}
 
 				//Get the cart types to spawn

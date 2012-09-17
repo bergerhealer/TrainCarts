@@ -170,6 +170,10 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 				g2.getProperties().load(g1.getProperties());
 			}
 
+			//Clear targets and active signs
+			g1.clearActiveSigns(false);
+			g2.clearActiveSigns(false);
+
 			//Finally link
 			if (m1index == 0 && m2index == 0) {					
 				Collections.reverse(g1);
@@ -181,10 +185,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 			} else {
 				return false;
 			}
-
-			//Clear targets and active signs
-			g1.clearActiveSigns();
-			g2.clearActiveSigns();
 
 			//Re-activate the signs underneath the train
 			for (MinecartMember mm : g2) {

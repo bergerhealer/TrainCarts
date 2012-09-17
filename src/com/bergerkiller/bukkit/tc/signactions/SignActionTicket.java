@@ -6,7 +6,7 @@ import java.util.List;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TicketMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -41,7 +41,7 @@ public class SignActionTicket extends SignAction {
 				if (info.getLine(3).isEmpty()) {
 					money = 30.0;
 				} else {
-					money = StringUtil.tryParse(info.getLine(3), 0.0);
+					money = ParseUtil.parseDouble(info.getLine(3), 0.0);
 				}
 				TicketMode mode = TicketMode.parse(info.getLine(2));
 				List<MinecartMember> members;

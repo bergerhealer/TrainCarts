@@ -7,7 +7,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -36,11 +36,11 @@ public class SignActionEject extends SignAction {
 		String[] angletext = info.getLine(3).split("/");
 		Vector offset = new Vector();
 		if (offsettext.length == 3) {
-			offset.setX(StringUtil.tryParse(offsettext[0], 0.0));
-			offset.setY(StringUtil.tryParse(offsettext[1], 0.0));
-			offset.setZ(StringUtil.tryParse(offsettext[2], 0.0));
+			offset.setX(ParseUtil.parseDouble(offsettext[0], 0.0));
+			offset.setY(ParseUtil.parseDouble(offsettext[1], 0.0));
+			offset.setZ(ParseUtil.parseDouble(offsettext[2], 0.0));
 		} else if (offsettext.length == 1) {
-			offset.setY(StringUtil.tryParse(offsettext[0], 0.0));
+			offset.setY(ParseUtil.parseDouble(offsettext[0], 0.0));
 		}
 		if (offset.length() > TrainCarts.maxEjectDistance) {
 			offset.normalize().multiply(TrainCarts.maxEjectDistance);
@@ -49,10 +49,10 @@ public class SignActionEject extends SignAction {
 		float dyaw = 0F;
 		float dpitch = 0F;
 		if (angletext.length == 2) {
-			dyaw = (float) StringUtil.tryParse(angletext[0], 0.0);
-			dpitch = (float) StringUtil.tryParse(angletext[1], 0.0);
+			dyaw = (float) ParseUtil.parseDouble(angletext[0], 0.0);
+			dpitch = (float) ParseUtil.parseDouble(angletext[1], 0.0);
 		} else if (angletext.length == 1) {
-			dyaw = (float) StringUtil.tryParse(angletext[0], 0.0);
+			dyaw = (float) ParseUtil.parseDouble(angletext[0], 0.0);
 		}
 		float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
 		dyaw += signyawoffset + 90F;

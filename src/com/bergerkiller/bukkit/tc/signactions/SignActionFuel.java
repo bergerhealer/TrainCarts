@@ -9,9 +9,9 @@ import net.minecraft.server.TileEntityChest;
 
 import org.bukkit.Material;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -33,7 +33,7 @@ public class SignActionFuel extends SignAction {
 			if (!info.isPowered()) return;
 			
 			//get nearby chests
-			int radius = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
+			int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
 			
 			List<TileEntityChest> chests = new ArrayList<TileEntityChest>();
 			for (TileEntity tile : SignActionCollect.getTileEntities(info, radius)) {

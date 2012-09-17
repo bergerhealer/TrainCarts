@@ -8,6 +8,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -30,7 +31,7 @@ public class SignActionCraft extends SignAction {
 			if (!info.isPowered()) return;
 			
 			int radX, radY, radZ;
-			radX = radY = radZ = Util.parse(info.getLine(1), TrainCarts.defaultTransferRadius);
+			radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
 			BlockFace dir = info.getRailDirection();
 			if (dir == BlockFace.SOUTH) {
 				radX = 0;

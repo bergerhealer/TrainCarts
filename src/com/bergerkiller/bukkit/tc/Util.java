@@ -186,14 +186,6 @@ public class Util {
         }
         return parsers.toArray(new ItemParser[0]);
 	}
-	
-	public static int parse(String line, int def) {
-		try {
-			return Integer.parseInt(line.substring(line.lastIndexOf(' ') + 1));
-		} catch (Exception ex) {
-			return def;
-		}
-	}
 
 	public static boolean isRails(Block block) {
 		return block != null && isRails(block.getTypeId());

@@ -219,7 +219,7 @@ public class MinecartMember extends MinecartMemberStore {
 
 			int r = this.world.getTypeId(x, y - 1, z);
 			if (Util.isRails(r)) {
-				--x;
+				--y;
 			} else {		
 				r = this.world.getTypeId(x, y, z);
 				if (Util.isRails(r)) {
@@ -458,8 +458,8 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void setForce(double force, BlockFace direction) {
 		this.setYForce(force);
-		this.motX = -FaceUtil.sin(this.direction) * force;
-		this.motZ = -FaceUtil.cos(this.direction) * force;
+		this.motX = -FaceUtil.cos(direction) * force;
+		this.motZ = -FaceUtil.sin(direction) * force;
 	}
 	public void setForwardForce(double force) {
 		if (this.isMoving() && force > 0.01 && FaceUtil.getDirection(this.motX, this.motZ, false) == this.direction) {
