@@ -603,7 +603,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.pushMobs = node.get("pushAway.mobs", this.pushMobs);
 		this.pushPlayers = node.get("pushAway.players", this.pushPlayers);
 		this.pushMisc = node.get("pushAway.misc", this.pushMisc);
-		this.speedLimit = MathUtil.limit(node.get("speedLimit", this.speedLimit), 0, 20);
+		this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
 		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
@@ -630,7 +630,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.pushMobs = source.pushMobs;
 		this.pushPlayers = source.pushPlayers;
 		this.pushMisc = source.pushMisc;
-		this.speedLimit = MathUtil.limit(source.speedLimit, 0, 20);
+		this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.keepChunksLoaded = source.keepChunksLoaded;
 		this.clear();

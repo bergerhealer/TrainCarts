@@ -28,8 +28,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
-import com.bergerkiller.bukkit.common.ItemParser;
-import com.bergerkiller.bukkit.common.MergedInventory;
+import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.items.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberDeadException;
@@ -709,48 +709,6 @@ public class MinecartGroup extends MinecartGroupStore {
 		return this.memberBlockSpace.get(new ChunkPosition(position.x, position.y, position.z));
 	}
 
-	/**
-	 * Synchronizes all members' entity trackers, 
-	 * Makes them move nicely in-sync<br><br>
-	 * 
-	 * Called from within the head tracker entry
-	 */
-	protected void sync() {
-		if (this.isEmpty()) return;
-		MinecartMemberTrackerEntry headtracker = this.head().getTracker();
-		if (headtracker == null) return;
-		if (this.size() == 1) {
-			headtracker.sync();
-		} else {
-			boolean location = headtracker.needsLocationSync();
-			boolean teleport = headtracker.needsTeleport();
-			boolean velocity = false;
-			for (MinecartMember mm : this) {
-				MinecartMemberTrackerEntry tracker = mm.getTracker();
-				if (tracker == null) continue;
-				if (!location && tracker.tracker.al) {
-					location = true;
-				}
-				if (!velocity && tracker.tracker.velocityChanged) {
-					velocity = true;
-				}
-			}
-
-			for (MinecartMember mm : this) {
-				MinecartMemberTrackerEntry tracker = mm.getTracker();
-				if (tracker == null) continue;
-				tracker.tracked = false;
-				if (location) {
-					tracker.syncLocation(teleport);
-				}
-				if (velocity) {
-					tracker.syncVelocity();
-				}
-				tracker.syncMeta();
-			}
-		}
-	}
-
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -880,7 +838,7 @@ public class MinecartGroup extends MinecartGroupStore {
 						if (gnew != null) { 
 							//what time do we want to prevent them from colliding too soon?
 							//needs to travel 2 blocks in the meantime
-							int time = (int) MathUtil.limit(2 / gnew.head().getForce(), 20, 40);
+							int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
 							for (MinecartMember mm1 : gnew) {
 								for (MinecartMember mm2: this) {
 									mm1.ignoreCollision(mm2, time);

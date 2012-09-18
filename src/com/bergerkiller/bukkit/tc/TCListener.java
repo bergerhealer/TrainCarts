@@ -124,40 +124,44 @@ public class TCListener implements Listener {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {
 			Minecart m = (Minecart) event.getVehicle();
-			Location loc = m.getLocation();
-			loc.setYaw(m.getLocation().getYaw() + 180);
-			loc = MathUtil.move(loc, TrainCarts.exitOffset);
+			Location mloc = m.getLocation();
+			mloc.setYaw(m.getLocation().getYaw() + 180);
+			final Location loc = MathUtil.move(mloc, TrainCarts.exitOffset);
+			final Entity e = event.getExited();
 			//teleport
-			new Task(TrainCarts.plugin, event.getExited(), loc) {
+			new Task(TrainCarts.plugin) {
 				public void run() {
-					Entity e = arg(0, Entity.class);
 					if (e.isDead()) return;
-					Location loc = arg(1, Location.class);
 					loc.setYaw(e.getLocation().getYaw());
 					loc.setPitch(e.getLocation().getPitch());
 					e.teleport(loc);
 				}
-			}.start(0);
+			}.start();
 			MinecartMember mm = MinecartMember.get(m);
 			if (mm != null) mm.update();
 		}
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onVehicleCreate(VehicleCreateEvent event) {
+	public void onVehicleCreate(final VehicleCreateEvent event) {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 			if (lastPlayer != null && MinecartMember.canConvert(event.getVehicle())) {
-				// Replace minecart
-				MinecartMember mm = MinecartMember.convert(event.getVehicle());
-				if (mm != null) {
-					mm.getGroup().getProperties().setDefault(lastPlayer);
-					if (TrainCarts.setOwnerOnPlacement) {
-						mm.getProperties().setOwner(lastPlayer);
+				// Start at a tick delay, because the vehicle create event is called from within the minecart constructor
+				new Task(TrainCarts.plugin) {
+					public void run() {
+						// Replace minecart
+						MinecartMember mm = MinecartMember.convert(event.getVehicle());
+						if (mm != null) {
+							mm.getGroup().getProperties().setDefault(lastPlayer);
+							if (TrainCarts.setOwnerOnPlacement) {
+								mm.getProperties().setOwner(lastPlayer);
+							}
+							CartPropertiesStore.setEditing(lastPlayer, mm.getProperties());
+						}
+						lastPlayer = null;
 					}
-					CartPropertiesStore.setEditing(lastPlayer, mm.getProperties());
-				}
-				lastPlayer = null;
+				}.start();
 			}
 		}
 	}
@@ -237,7 +241,7 @@ public class TCListener implements Listener {
 							}
 							MinecartMember mm2 = MinecartMember.convert(event.getEntity());
 							MinecartGroup g2 = null;
-							if (mm2 == null || (g2 = mm2.getGroup()) == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
+							if (mm1 == mm2 || mm2 == null || (g2 = mm2.getGroup()) == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
 								event.setCancelled(true);
 							} else if (g2.isVelocityAction()) {
 								event.setCancelled(true);
@@ -359,6 +363,7 @@ public class TCListener implements Listener {
 				triggerRedstoneChange(down, event);
 			}
 		} else if (BlockUtil.isType(type, Material.SIGN_POST, Material.WALL_SIGN)) {
+			System.out.println("CHANGE ON T");
 			triggerRedstoneChange(event.getBlock(), event);
 		}
 	}

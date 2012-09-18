@@ -3,39 +3,13 @@ package com.bergerkiller.bukkit.tc.controller;
 import java.util.List;
 import java.util.Set;
 
-import com.bergerkiller.bukkit.common.reflection.EntityTrackerEntryRef;
-import com.bergerkiller.bukkit.common.reflection.EntityTrackerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
-	public static MinecartMemberTrackerEntry get(MinecartMember member) {
-		EntityTracker tracker = WorldUtil.getTracker(member.world);
-		try {
-			synchronized (tracker) {
-				Object entry = tracker.trackedEntities.get(member.id);
-				if (entry == null) {
-					entry = new MinecartMemberTrackerEntry(member);
-				} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
-					entry = new MinecartMemberTrackerEntry((EntityTrackerEntry) entry);
-				} else {
-					return (MinecartMemberTrackerEntry) entry;
-				}
-				tracker.trackedEntities.a(member.id, entry);
-				Set set = EntityTrackerRef.trackerSet.get(tracker);
-				set.remove(entry);
-				set.add(entry);
-				return (MinecartMemberTrackerEntry) entry;
-			}
-		} catch (Throwable t) {
-			t.printStackTrace();
-		}
-		return null;
-	}
-
 	private int ticksNoTeleport = 0;
 	public boolean isRemoved;
 	private double prevX, prevY, prevZ;
@@ -45,6 +19,14 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		super(source.tracker, 80, 3, true);
 		//copy important information over
 		EntityTrackerEntryRef.TEMPLATE.transfer(source, this);
+		this.prevX = EntityTrackerEntryRef.prevX.get(source);
+		this.prevY = EntityTrackerEntryRef.prevY.get(source);
+		this.prevZ = EntityTrackerEntryRef.prevZ.get(source);
+		if (!EntityTrackerEntryRef.synched.get(source)) {
+			this.prevX += 32.0;
+			this.prevY += 32.0;
+			this.prevZ += 32.0;
+		}
 		this.isRemoved = false;
 	}
 
@@ -54,6 +36,15 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		this.prevY = this.tracker.locY + 32;
 		this.prevZ = this.tracker.locZ + 32;
 		this.isRemoved = false;
+	}
+
+	/**
+	 * Reverts this entry to the default internal minecart entry
+	 */
+	public EntityTrackerEntry revert() {
+		EntityTrackerEntry entry = new EntityTrackerEntry(this.tracker, 80, 3, true);
+		EntityTrackerEntryRef.TEMPLATE.transfer(this, entry);
+		return entry;
 	}
 
 	@Override
@@ -80,9 +71,50 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		}
 
 		// All trackers updated, time to sync
-		group.sync();
+		syncAll();
 	}
 
+	/**
+	 * Synchronizes all members' entity trackers, 
+	 * Makes them move nicely in-sync<br><br>
+	 * 
+	 * Called from within the last tracked minecart in the group
+	 */
+	private void syncAll() {
+		MinecartGroup group = ((MinecartMember) this.tracker).getGroup();
+		MinecartMemberTrackerEntry headtracker = group.head().getTracker();
+		if (headtracker == null) return;
+		if (group.size() == 1) {
+			headtracker.sync();
+		} else {
+			boolean location = headtracker.needsLocationSync();
+			boolean teleport = headtracker.needsTeleport();
+			boolean velocity = false;
+			for (MinecartMember mm : group) {
+				MinecartMemberTrackerEntry tracker = mm.getTracker();
+				if (tracker == null) continue;
+				if (!location && tracker.tracker.al) {
+					location = true;
+				}
+				if (!velocity && tracker.tracker.velocityChanged) {
+					velocity = true;
+				}
+			}
+			for (MinecartMember mm : group) {
+				MinecartMemberTrackerEntry tracker = mm.getTracker();
+				if (tracker == null) continue;
+				tracker.tracked = false;
+				if (location) {
+					tracker.syncLocation(teleport);
+				}
+				if (velocity) {
+					tracker.syncVelocity();
+				}
+				tracker.syncMeta();
+			}
+		}
+	}
+	
 	public void sync() {
 		if (this.tracker.dead) return;
 		if (this.needsLocationSync() || this.hasTrackerChanged()) {
@@ -220,7 +252,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 
 	public void doSpawn(EntityPlayer entityplayer) {
 		//send spawn packet
-		int type = MathUtil.limit(((MinecartMember) this.tracker).type, 0, 2);
+		int type = MathUtil.clamp(((MinecartMember) this.tracker).type, 0, 2);
 		entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
 		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
 		entityplayer.netServerHandler.sendPacket(getTeleportPacket());

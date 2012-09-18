@@ -41,7 +41,7 @@ public class TrackIterator implements Iterator<Block> {
 	}
 	public static boolean canReach(Block rail, Block destination, BlockFace preferredFace, int stepcount) {
 		if (stepcount == 0) {
-			stepcount = BlockUtil.getBlockSteps(rail, destination, false);
+			stepcount = BlockUtil.getManhattanDistance(rail, destination, false);
 			if (stepcount < 2) stepcount = 2;
 		}
 		BlockFace dir;
@@ -68,7 +68,7 @@ public class TrackIterator implements Iterator<Block> {
 		if (!Util.isRails(rail)) return false;
 		if (!Util.isRails(destination)) return false;
 		if (stepcount == 0) {
-			stepcount = BlockUtil.getBlockSteps(rail, destination, false);
+			stepcount = BlockUtil.getManhattanDistance(rail, destination, false);
 			if (stepcount < 2) stepcount = 2;
 		}
 	    TrackIterator iter = new TrackIterator(rail, direction, stepcount, false);

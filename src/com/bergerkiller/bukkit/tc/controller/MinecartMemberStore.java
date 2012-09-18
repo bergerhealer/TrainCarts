@@ -13,7 +13,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.ClassTemplate;
+import com.bergerkiller.bukkit.common.reflection.ClassTemplate;
+import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -23,6 +24,8 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.EntityTrackerEntry;
+import net.minecraft.server.ItemStack;
 import net.minecraft.server.World;
 
 public class MinecartMemberStore extends NativeMinecartMember {
@@ -34,6 +37,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 	protected static Set<MinecartMember> replacedCarts = new HashSet<MinecartMember>();
 	private static boolean denyConversion = false;
 	private static final ClassTemplate<EntityMinecart> MINECARTTEMPLATE = ClassTemplate.create(EntityMinecart.class);
+	private static final SafeField<ItemStack[]> items = MINECARTTEMPLATE.getField("items");
 
 	public static boolean canConvert(Entity entity) {
 		return !denyConversion && get(entity) == null;
@@ -65,11 +69,27 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		return true;
 	}
 
-	public static void replaceMinecarts(EntityMinecart toreplace, EntityMinecart with) {
-		//transfer variables, excluding the id. (it has to be a new ID)
-		int id = with.id;
+	protected static void createTracker(MinecartMember member, EntityTrackerEntry entry) {
+		if (entry == null) {
+			WorldUtil.setTrackerEntry(member, entry = new MinecartMemberTrackerEntry(member));
+		} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
+			WorldUtil.setTrackerEntry(member, entry = new MinecartMemberTrackerEntry(entry));
+		}
+		member.tracker = (MinecartMemberTrackerEntry) entry;
+		member.tracker.tracker = member;
+	}
+
+	protected static void createTracker(MinecartMember member) {
+		createTracker(member, WorldUtil.getTrackerEntry(member));
+	}
+
+	public static void replaceMinecarts(EntityMinecart toreplace, final EntityMinecart with) {
+		//transfer variables
 		MINECARTTEMPLATE.transfer(toreplace, with);
-		with.id = id;
+
+		// prevent items being dropped
+		items.transfer(toreplace, with);
+		items.set(toreplace, new ItemStack[toreplace.getSize()]);
 
 		// preserve the Bukkit entity, simply swap the contents
 		((CraftEntity) with.getBukkitEntity()).setHandle(with);
@@ -79,25 +99,35 @@ public class MinecartMemberStore extends NativeMinecartMember {
 			toreplace.passenger.setPassengerOf(with);
 		}
 
-		//force removal in chunk
+		// force removal in chunk
 		with.dead = false;
 		toreplace.dead = true;
 		toreplace.ag = true;
 
+		// make sure the chunk is loaded prior to swapping
+		// this may cause the chunk unload to be delayed one tick
+		toreplace.world.chunkProvider.getChunkAt(toreplace.ah, toreplace.aj);
+
 		// swap the entity
 		MinecartSwapEvent.call(toreplace, with);
+		EntityTrackerEntry entry = WorldUtil.setTrackerEntry(toreplace, null);
 		toreplace.world.removeEntity(toreplace);
 
 		// swap the tracker
 		if (with instanceof MinecartMember) {
-			// Create MM tracker
-			((MinecartMember) with).getTracker();
+			// Create MM tracker using old as base
+			createTracker((MinecartMember) with, entry);
 		} else {
 			// Create default tracker
-			WorldUtil.getTracker(with.world).trackedEntities.d(with.id);
+			if (entry instanceof MinecartMemberTrackerEntry) {
+				entry = ((MinecartMemberTrackerEntry) entry).revert();
+				entry.tracker = with;
+				WorldUtil.setTrackerEntry(with, entry);
+			}
 		}
 		with.world.addEntity(with);
 	}
+
 	private static EntityMinecart findByID(UUID uuid) {
 		EntityMinecart e;
 		for (World world : WorldUtil.getWorlds()) {
@@ -178,7 +208,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
-		mm.getTracker();
+		createTracker(mm);
 		mm.world.addEntity(mm);
 		return mm;
 	}

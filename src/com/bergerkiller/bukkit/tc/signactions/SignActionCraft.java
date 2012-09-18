@@ -7,7 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
-import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;

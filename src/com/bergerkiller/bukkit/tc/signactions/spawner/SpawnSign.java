@@ -87,13 +87,12 @@ public class SpawnSign extends OfflineSign {
 
 	public void start() {
 		this.stop();
-		this.task = new Task(TrainCarts.plugin, this) {
+		final SpawnSign sign = this;
+		this.task = new Task(TrainCarts.plugin) {
 			public void run() {
 				// Start a new task which fires more often
-				SpawnSign sign = arg(0, SpawnSign.class);
-				sign.task = new Task(TrainCarts.plugin, sign) {
+				sign.task = new Task(TrainCarts.plugin) {
 					public void run() {
-						SpawnSign sign = arg(0, SpawnSign.class);
 						sign.updateSpawn();
 					}
 				}.start(0, 5);

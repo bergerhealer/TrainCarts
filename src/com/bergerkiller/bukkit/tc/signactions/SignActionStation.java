@@ -21,78 +21,74 @@ public class SignActionStation extends SignAction {
 	
 	@Override
 	public void execute(SignActionEvent info) {
-		if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
-			if (info.isTrainSign() || info.isCartSign()) {
-				if (info.isType("station") && info.hasRails()) {
-					MinecartGroup group = info.getGroup();
-					if (group != null) {
-						if (info.isAction(SignActionType.GROUP_LEAVE)) {
-							info.setLevers(false);
-						} else {
-							//Check if not already targeting
-							if (group != null) {	
-								Station station = new Station(info);
-								if (!station.isValid()) {
-									return;
-								}
+		if (!info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
+			return;
+		}
+		if ((!info.isTrainSign() && !info.isCartSign()) || !info.isType("station") || !info.hasRails() || !info.hasGroup()) {
+			return;
+		}
+		if (info.isAction(SignActionType.GROUP_LEAVE)) {
+			info.setLevers(false);
+			return;
+		}
+		//Check if not already targeting
+		MinecartGroup group = info.getGroup();
+		Station station = new Station(info);
+		if (!station.isValid()) {
+			return;
+		}
 
-								//What do we do?
-								if (station.getInstruction() == null) {
-									info.getGroup().clearActions();
-								} else if (station.getInstruction() == BlockFace.SELF) {
-									MinecartMember centerMember = station.getCenterCart();
-									// Do not allow redstone changes to center a launching train
-									if (info.isAction(SignActionType.REDSTONE_CHANGE) && info.getGroup().isVelocityAction()) {
-										return;
-									}
-
-									//Brake
-									//TODO: ADD CHECK?!
-									group.clearActions();		
-									BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), centerMember.getDirectionTo());
-									if (station.getNextDirection() == Direction.NONE || trainDirection != group.head().getDirectionTo()) {
-										centerMember.addActionLaunch(info.getRailLocation(), 0);
-									}
-									if (station.getNextDirection() != Direction.NONE) {
-										//Actual launching here
-										if (station.hasDelay()) {
-											centerMember.addActionLaunch(info.getRailLocation(), 0);
-											if (TrainCarts.playSoundAtStation) group.addActionSizzle();
-											info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-											group.addActionWait(station.getDelay());
-										} else if (group.head().getDirectionTo() != trainDirection) {
-											centerMember.addActionLaunch(info.getRailLocation(), 0);
-										}
-										if (TrainCarts.refillAtStations) group.addActionRefill();
-										centerMember.addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
-									} else {
-										centerMember.addActionLaunch(info.getRailLocation(), 0);
-										info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-										if (TrainCarts.playSoundAtStation) group.addActionSizzle();
-										group.addActionWaitForever();
-									}
-								} else {
-									//Launch
-									group.clearActions();
-									MinecartMember head = group.head();
-
-									if (station.hasDelay() || (head.isMoving() && head.getDirection() != station.getInstruction())) {
-										//Reversing or has delay, need to center it in the middle first
-										station.getCenterCart().addActionLaunch(info.getRailLocation(), 0);
-									}
-									if (station.hasDelay()) {
-										if (TrainCarts.playSoundAtStation) group.addActionSizzle();
-										info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-									}
-									group.addActionWait(station.getDelay());
-									if (TrainCarts.refillAtStations) group.addActionRefill();
-									station.getCenterCart().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
-								}
-							}
-						}
-					}
-				}
+		//What do we do?
+		if (station.getInstruction() == null) {
+			info.getGroup().clearActions();
+		} else if (station.getInstruction() == BlockFace.SELF) {
+			MinecartMember centerMember = station.getCenterCart();
+			// Do not allow redstone changes to center a launching train
+			if (info.isAction(SignActionType.REDSTONE_CHANGE) && info.getGroup().isVelocityAction()) {
+				return;
 			}
+
+			//Brake
+			//TODO: ADD CHECK?!
+			group.clearActions();		
+			BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), centerMember.getDirectionTo());
+			if (station.getNextDirection() == Direction.NONE || trainDirection != group.head().getDirectionTo()) {
+				centerMember.addActionLaunch(info.getRailLocation(), 0);
+			}
+			if (station.getNextDirection() != Direction.NONE) {
+				//Actual launching here
+				if (station.hasDelay()) {
+					centerMember.addActionLaunch(info.getRailLocation(), 0);
+					if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+					info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+					group.addActionWait(station.getDelay());
+				} else if (group.head().getDirectionTo() != trainDirection) {
+					centerMember.addActionLaunch(info.getRailLocation(), 0);
+				}
+				if (TrainCarts.refillAtStations) group.addActionRefill();
+				centerMember.addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
+			} else {
+				centerMember.addActionLaunch(info.getRailLocation(), 0);
+				info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+				if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+				group.addActionWaitForever();
+			}
+		} else {
+			//Launch
+			group.clearActions();
+			MinecartMember head = group.head();
+
+			if (station.hasDelay() || (head.isMoving() && head.getDirection() != station.getInstruction())) {
+				//Reversing or has delay, need to center it in the middle first
+				station.getCenterCart().addActionLaunch(info.getRailLocation(), 0);
+			}
+			if (station.hasDelay()) {
+				if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+				info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+			}
+			group.addActionWait(station.getDelay());
+			if (TrainCarts.refillAtStations) group.addActionRefill();
+			station.getCenterCart().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
 		}
 	}
 

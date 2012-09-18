@@ -121,7 +121,15 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
-		super(world, d0, d1, d2, i);
+		super(world);
+		setPosition(d0, d1 + (double) height, d2);
+		motX = 0.0D;
+		motY = 0.0D;
+		motZ = 0.0D;
+		lastX = d0;
+		lastY = d1;
+		lastZ = d2;
+		type = i;
 		this.locX = this.lastX;
 		this.locY = this.lastY;
 		this.locZ = this.lastZ;
@@ -446,8 +454,8 @@ public class NativeMinecartMember extends EntityMinecart {
 		speedFactor = MathUtil.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
 
-		motX = MathUtil.limit(motX, this.maxSpeed);
-		motZ = MathUtil.limit(motZ, this.maxSpeed);
+		motX = MathUtil.clamp(motX, this.maxSpeed);
+		motZ = MathUtil.clamp(motZ, this.maxSpeed);
 		motX *= speedFactor;
 		motZ *= speedFactor;
 
@@ -581,10 +589,10 @@ public class NativeMinecartMember extends EntityMinecart {
 			} else {
 				this.pitch = 0;
 			}
-			this.pitch = MathUtil.limit(this.pitch, 60F);
+			this.pitch = MathUtil.clamp(this.pitch, 60F);
 			float newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
 			if (MathUtil.getAngleDifference(this.yaw, newyaw) > 170) {
-				this.yaw = MathUtil.normalAngle(newyaw + 180);
+				this.yaw = MathUtil.wrapAngle(newyaw + 180);
 			} else {
 				this.yaw = newyaw;
 			}

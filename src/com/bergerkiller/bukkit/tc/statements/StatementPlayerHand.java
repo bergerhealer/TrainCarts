@@ -7,7 +7,7 @@ import org.bukkit.inventory.Inventory;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 
-import com.bergerkiller.bukkit.common.SimpleInventory;
+import com.bergerkiller.bukkit.common.items.SimpleInventory;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 

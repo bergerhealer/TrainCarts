@@ -129,7 +129,7 @@ public class TrackMap extends ArrayList<Block> {
 						guideindex++;
 					} else {
 						//Use a staged point to add the remaining distance
-						prev = MathUtil.stage(prev, guide[guideindex], towalk / tmpnext);
+						prev = MathUtil.lerp(prev, guide[guideindex], towalk / tmpnext);
 						break;
 					}
 				}

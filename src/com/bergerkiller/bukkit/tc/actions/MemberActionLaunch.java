@@ -22,7 +22,7 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 	}
 	
 	public void start() {
-		this.startvelocity = MathUtil.limit(this.getMember().getForce(), this.getMember().maxSpeed);
+		this.startvelocity = MathUtil.clamp(this.getMember().getForce(), this.getMember().maxSpeed);
 		if (this.startvelocity < minVelocity) this.startvelocity = minVelocity;
 	}
 	
@@ -67,9 +67,9 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 			return true;
 		} else {
 			//Get the velocity to set the carts to
-			double targetvel = MathUtil.limit(this.targetvelocity, this.getMember().maxSpeed);
+			double targetvel = MathUtil.clamp(this.targetvelocity, this.getMember().maxSpeed);
 			if (this.targetvelocity > 0 || (this.targetdistance - this.distance) < 5) {
-				targetvel = MathUtil.stage(this.startvelocity, targetvel, this.distance / this.targetdistance);
+				targetvel = MathUtil.clamp(this.startvelocity, targetvel, this.distance / this.targetdistance);
 			} else {
 				targetvel = this.startvelocity;
 			}

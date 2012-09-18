@@ -19,7 +19,7 @@ import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
@@ -183,7 +183,7 @@ public class TrainCarts extends PluginBase {
 		maxMinecartStackSize = config.get("maxMinecartStackSize", 64);
 		
 		config.setHeader("defaultTransferRadius", "\nThe default radius chest/furnace sign systems look for the needed blocks");
-		defaultTransferRadius = MathUtil.limit(config.get("defaultTransferRadius", 2), 1, 5);
+		defaultTransferRadius = MathUtil.clamp(config.get("defaultTransferRadius", 2), 1, 5);
 
 		config.setHeader("slowDownEmptyCarts", "\nWhether or not empty minecarts slow down faster than occupied minecarts");
 		slowDownEmptyCarts = config.get("slowDownEmptyCarts", false);

@@ -34,8 +34,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.ItemParser;
-import com.bergerkiller.bukkit.common.MergedInventory;
+import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.items.MergedInventory;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberDeadException;
@@ -75,9 +75,12 @@ public class MinecartMember extends MinecartMemberStore {
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
-	private MinecartMemberTrackerEntry tracker;
+	protected MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 
+	private static int counter = 0;
+	public int MMID;
+	
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.blockPos = new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
@@ -86,6 +89,7 @@ public class MinecartMember extends MinecartMemberStore {
 		this.direction = FaceUtil.yawToFace(this.yaw);
 		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
 		replacedCarts.add(this);
+		MMID = counter++;
 	}
 
 	/*
@@ -117,6 +121,9 @@ public class MinecartMember extends MinecartMemberStore {
 
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
+		if (this.hasPassenger() && this.isOnMinecartTrack) {
+			this.passenger.fallDistance = 0.0f;
+		}
 		this.validate();
 		if (this.getProperties().canPickup() && this.isStorageCart()) {
 			Inventory inv = this.getInventory();
@@ -739,7 +746,7 @@ public class MinecartMember extends MinecartMemberStore {
 		Block from = this.getRailsBlock();
 		if (from == null || track == null) return false;
 		if (BlockUtil.equals(from, track)) return true;
-		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getBlockSteps(from, track, false);
+		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getManhattanDistance(from, track, false);
 		TrackIterator iter = new TrackIterator(from, this.directionTo);
 		for (;maxstepcount > 0 && iter.hasNext(); --maxstepcount) {
 			if (BlockUtil.equals(iter.next(), track)) return true;
@@ -869,7 +876,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public void pushSideways(Entity entity, double force) {
 		float yaw = FaceUtil.faceToYaw(this.direction);
 		float lookat = MathUtil.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
-		lookat = MathUtil.normalAngle(lookat);
+		lookat = MathUtil.wrapAngle(lookat);
 		if (lookat > 0) {
 			yaw -= 180;
 		}
@@ -902,7 +909,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public void teleport(Location to) {
 		this.died = true;
 		EntityUtil.teleport(TrainCarts.plugin, this, to);
-		this.getTracker(); // load tracker
+		MinecartMemberStore.createTracker(this);
 		this.died = false;
 	}
 
@@ -930,15 +937,13 @@ public class MinecartMember extends MinecartMemberStore {
 	public void eject() {
 		this.getMinecart().eject();
 	}
-	public void eject(Location to) {
+	public void eject(final Location to) {
 		if (this.passenger != null) {
-			Entity passenger = this.passenger.getBukkitEntity();
+			final Entity passenger = this.passenger.getBukkitEntity();
 			this.passenger.setPassengerOf(null);
-			new Task(TrainCarts.plugin, passenger, to) {
+			new Task(TrainCarts.plugin) {
 				public void run() {
-					Entity e = arg(0, Entity.class);
-				    Location l = arg(1, Location.class);
-					e.teleport(l);
+					passenger.teleport(to);
 				}
 			}.start(0);
 		}
@@ -969,7 +974,7 @@ public class MinecartMember extends MinecartMemberStore {
 	 * Respawns the entity to the client (used to avoid teleport smoothing)
 	 */
 	public void respawn() {
-		if (this.getTracker() != null) {
+		if (this.tracker != null) {
 			this.tracker.doRespawn();
 		}
 	}
@@ -996,10 +1001,6 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	public MinecartMemberTrackerEntry getTracker() {
-		if (this.world == null) return null;
-		if (this.tracker == null || this.tracker.isRemoved) {
-			this.tracker = MinecartMemberTrackerEntry.get(this);
-		}
 		return this.tracker;
 	}
 
@@ -1008,6 +1009,7 @@ public class MinecartMember extends MinecartMemberStore {
 			super.die();
 		}
 		if (!died) {
+			super.die();
 			this.dead = false;
 			died = true;
 			replacedCarts.remove(this);

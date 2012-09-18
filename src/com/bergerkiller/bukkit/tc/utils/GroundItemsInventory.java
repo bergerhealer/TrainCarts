@@ -9,7 +9,7 @@ import net.minecraft.server.EntityItem;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.World;
 
-import com.bergerkiller.bukkit.common.IInventoryBase;
+import com.bergerkiller.bukkit.common.items.IInventoryBase;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;

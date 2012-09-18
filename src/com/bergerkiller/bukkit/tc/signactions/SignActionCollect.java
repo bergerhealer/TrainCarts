@@ -16,8 +16,8 @@ import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.ItemParser;
-import com.bergerkiller.bukkit.common.MergedInventory;
+import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.items.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;

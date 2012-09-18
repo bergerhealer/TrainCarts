@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.statements;
 
 import org.bukkit.inventory.Inventory;
 
-import com.bergerkiller.bukkit.common.ItemParser;
+import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
