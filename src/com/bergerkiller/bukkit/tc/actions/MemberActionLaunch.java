@@ -69,7 +69,7 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 			//Get the velocity to set the carts to
 			double targetvel = MathUtil.clamp(this.targetvelocity, this.getMember().maxSpeed);
 			if (this.targetvelocity > 0 || (this.targetdistance - this.distance) < 5) {
-				targetvel = MathUtil.clamp(this.startvelocity, targetvel, this.distance / this.targetdistance);
+				targetvel = MathUtil.lerp(this.startvelocity, targetvel, this.distance / this.targetdistance);
 			} else {
 				targetvel = this.startvelocity;
 			}

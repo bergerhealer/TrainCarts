@@ -15,6 +15,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -349,10 +350,39 @@ public class TCListener implements Listener {
 		}
 	}
 
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onBlockBreak(BlockBreakEvent event) {
+		if (!event.isCancelled()) {
+			if (BlockUtil.isSign(event.getBlock())) {
+				SignActionDetector.removeDetector(event.getBlock());
+				SignActionSpawn.remove(event.getBlock());
+				//invalidate this piece of track
+				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
+			} else if (BlockUtil.isRails(event.getBlock())) {
+				PathNode.remove(event.getBlock());
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.HIGHEST)
+	public void onSignChange(SignChangeEvent event) {
+		if (TrainCarts.isWorldDisabled(event)) return;
+		SignAction.handleBuild(event);
+	}
+
+	private static final BlockSet ignoredSigns = new BlockSet();
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onBlockPhysics(BlockPhysicsEvent event) {
+		if (!event.isCancelled() && !event.isAsynchronous() && BlockUtil.isType(event.getBlock(), Material.LEVER)) {
+			ignoreOutputLever(event.getBlock());
+		}
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
 		if (TrainCarts.isWorldDisabled(event)) return;
-		int type = event.getBlock().getTypeId();
+		Material type = event.getBlock().getType();
 		if (BlockUtil.isType(type, Material.LEVER)) {
 			Block up = event.getBlock().getRelative(BlockFace.UP);
 			Block down = event.getBlock().getRelative(BlockFace.DOWN);
@@ -362,9 +392,36 @@ public class TCListener implements Listener {
 			if (BlockUtil.isSign(down)) {
 				triggerRedstoneChange(down, event);
 			}
-		} else if (BlockUtil.isType(type, Material.SIGN_POST, Material.WALL_SIGN)) {
-			System.out.println("CHANGE ON T");
+			ignoreOutputLever(event.getBlock());
+		} else if (BlockUtil.isSign(type)) {
+			if (!ignoredSigns.isEmpty() && ignoredSigns.remove(event.getBlock())) {
+				return;
+			}
 			triggerRedstoneChange(event.getBlock(), event);
+		}
+	}
+
+	/**
+	 * Ignores signs of current-tick redstone changes caused by the lever
+	 * 
+	 * @param lever to ignore
+	 */
+	public void ignoreOutputLever(Block lever) {
+		// Ignore signs that are attached to the block the lever is attached to
+		Block att = BlockUtil.getAttachedBlock(lever);
+		for (BlockFace face : FaceUtil.attachedFaces) {
+			Block signblock = att.getRelative(face);
+			if (BlockUtil.isSign(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
+				if (ignoredSigns.isEmpty()) {
+					// start a new task the next tick to clear this
+					new Task(TrainCarts.plugin) {
+						public void run() {
+							ignoredSigns.clear();
+						}
+					}.start();
+				}
+				ignoredSigns.add(signblock);
+			}
 		}
 	}
 
@@ -386,25 +443,4 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onBlockBreak(BlockBreakEvent event) {
-		if (!event.isCancelled()) {
-			if (BlockUtil.isSign(event.getBlock())) {
-				SignActionDetector.removeDetector(event.getBlock());
-				SignActionSpawn.remove(event.getBlock());
-				//invalidate this piece of track
-				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
-			} else if (BlockUtil.isRails(event.getBlock())) {
-				PathNode.remove(event.getBlock());
-			}
-		}
-	}
-
-	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onSignChange(SignChangeEvent event) {
-		if (TrainCarts.isWorldDisabled(event)) return;
-		SignAction.handleBuild(event);
-	}
-
 }
