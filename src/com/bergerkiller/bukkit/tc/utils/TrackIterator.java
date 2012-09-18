@@ -71,11 +71,11 @@ public class TrackIterator implements Iterator<Block> {
 			stepcount = BlockUtil.getManhattanDistance(rail, destination, false);
 			if (stepcount < 2) stepcount = 2;
 		}
-	    TrackIterator iter = new TrackIterator(rail, direction, stepcount, false);
-	    while (iter.hasNext()) {
-	    	if (BlockUtil.equals(iter.next(), destination)) return true;
-	    }
-	    return false;
+		TrackIterator iter = new TrackIterator(rail, direction, stepcount, false);
+		while (iter.hasNext()) {
+			if (BlockUtil.equals(iter.next(), destination)) return true;
+		}
+		return false;
 	}
 	
 	public static Block getNextTrack(Block from, BlockFace direction) {

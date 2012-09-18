@@ -304,7 +304,7 @@ public class OfflineGroupManager {
 							wg.worldUUID = worldUID;
 							for (OfflineMember wm : wg.members) hiddenMinecarts.add(wm.entityUID);
 							man.groupmap.add(wg);
-						    containedTrains.add(wg.name);
+							containedTrains.add(wg.name);
 							totalmembers += wg.members.length;
 						}
 

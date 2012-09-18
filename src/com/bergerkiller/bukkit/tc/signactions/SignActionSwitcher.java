@@ -93,7 +93,7 @@ public class SignActionSwitcher extends SignAction {
 		} else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
 			info.setLevers(false);
 			return;
-	    } else {
+		} else {
 			return;
 		}
 		

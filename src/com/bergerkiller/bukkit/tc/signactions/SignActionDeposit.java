@@ -79,41 +79,41 @@ public class SignActionDeposit extends SignAction {
 	}
 
 	public void deposit(List<TileEntityFurnace> furnaces, List<ItemParser> cooked, List<ItemParser> burned, Inventory cartinv, MinecartMember m) {
-    	//put stuff from the inventory into the furnaces
+		//put stuff from the inventory into the furnaces
 		if (furnaces.isEmpty()) return;
 		int limit;
 		Inventory furnaceinv;
 
-    	//transfer cooked items
-    	for (ItemParser p : cooked) {
-    		limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-    		for (TileEntityFurnace f : furnaces) {
-    			if (TrainCarts.showTransferAnimations) {
-    				furnaceinv = InventoryWatcher.convert(m, f, f);
-    			} else {
-    				furnaceinv = new CraftInventory(f);
-    			}
-    			ItemStack item = furnaceinv.getItem(0);
-    			if (item == null) {
-    				item = new CraftItemStack(0, 0);
-    			}
-    			limit -= ItemUtil.transfer(cartinv, item, p, limit);
-    			ItemUtil.setItem(furnaceinv, 0, item);
-    		}
-    	}
+		// transfer cooked items
+		for (ItemParser p : cooked) {
+			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
+			for (TileEntityFurnace f : furnaces) {
+				if (TrainCarts.showTransferAnimations) {
+					furnaceinv = InventoryWatcher.convert(m, f, f);
+				} else {
+					furnaceinv = new CraftInventory(f);
+				}
+				ItemStack item = furnaceinv.getItem(0);
+				if (item == null) {
+					item = new CraftItemStack(0, 0);
+				}
+				limit -= ItemUtil.transfer(cartinv, item, p, limit);
+				ItemUtil.setItem(furnaceinv, 0, item);
+			}
+		}
 
-    	//transfer fuel (requires manual limiting if no amount is set)
+		//transfer fuel (requires manual limiting if no amount is set)
 		for (ItemParser p : burned) {
 			if (p == null) continue;
 			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
 			//first fill the amount needed
 			for (TileEntityFurnace f : furnaces) {
 				if (limit == 0) return;
-    			if (TrainCarts.showTransferAnimations) {
-    				furnaceinv = InventoryWatcher.convert(m, f, f);
-    			} else {
-    				furnaceinv = new CraftInventory(f);
-    			}
+				if (TrainCarts.showTransferAnimations) {
+					furnaceinv = InventoryWatcher.convert(m, f, f);
+				} else {
+					furnaceinv = new CraftInventory(f);
+				}
 				ItemStack cookeditem = furnaceinv.getItem(0);
 				if (cookeditem == null || cookeditem.getTypeId() == 0) continue;
 				int fuelNeeded = cookeditem.getAmount() * 200;
@@ -148,22 +148,22 @@ public class SignActionDeposit extends SignAction {
 
 			//if an amount is set; top it off
 			if (p.hasAmount()) {
-        		for (TileEntityFurnace f : furnaces) {
-        			if (TrainCarts.showTransferAnimations) {
-        				furnaceinv = InventoryWatcher.convert(m, f, f);
-        			} else {
-        				furnaceinv = new CraftInventory(f);
-        			}
-        			ItemStack item = furnaceinv.getItem(1);
-        			limit -= ItemUtil.transfer(cartinv, item, p, limit);
-        			ItemUtil.setItem(furnaceinv, 1, item);
-        		}
+				for (TileEntityFurnace f : furnaces) {
+					if (TrainCarts.showTransferAnimations) {
+						furnaceinv = InventoryWatcher.convert(m, f, f);
+					} else {
+						furnaceinv = new CraftInventory(f);
+					}
+					ItemStack item = furnaceinv.getItem(1);
+					limit -= ItemUtil.transfer(cartinv, item, p, limit);
+					ItemUtil.setItem(furnaceinv, 1, item);
+				}
 			}
 		}
 	}
 	
 	@Override
-	public void execute(SignActionEvent info) {		   
+	public void execute(SignActionEvent info) {
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
@@ -222,15 +222,15 @@ public class SignActionDeposit extends SignAction {
 		if (!docart && !dotrain) return;
 		
 		//get the inventory to transfer from
-        Inventory cartinv;
-        if (docart) {
-        	if (!info.getMember().isStorageCart()) return;
-        	cartinv = info.getMember().getInventory();
-        } else {
-        	cartinv = info.getGroup().getInventory();
-        }
+		Inventory cartinv;
+		if (docart) {
+			if (!info.getMember().isStorageCart()) return;
+			cartinv = info.getMember().getInventory();
+		} else {
+			cartinv = info.getGroup().getInventory();
+		}
 
-        //deposit into furnaces
+		//deposit into furnaces
 		if (!furnaces.isEmpty()) {
 			deposit(furnaces, info.getLine(2), info.getLine(3), cartinv, info.getMember());
 		}
@@ -266,5 +266,4 @@ public class SignActionDeposit extends SignAction {
 		}
 		return false;
 	}
-
 }

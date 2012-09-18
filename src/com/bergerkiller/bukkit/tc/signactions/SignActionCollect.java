@@ -50,20 +50,20 @@ public class SignActionCollect extends SignAction {
 		int limit;
 		Inventory furnaceinv;
 		for (ItemParser p : parsers) {
-    		limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-    		for (IInventory f : furnaces) {
-    			furnaceinv = new CraftInventory(f);
-    			ItemStack item = furnaceinv.getItem(2);
-    			if (item != null && item.getTypeId() != 0 && p.match(item)) {
-        			limit -= ItemUtil.transfer(item, cartinv, limit);
-        			ItemUtil.setItem(furnaceinv, 2, item);
-    			}
-    		}
+			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
+			for (IInventory f : furnaces) {
+				furnaceinv = new CraftInventory(f);
+				ItemStack item = furnaceinv.getItem(2);
+				if (item != null && item.getTypeId() != 0 && p.match(item)) {
+					limit -= ItemUtil.transfer(item, cartinv, limit);
+					ItemUtil.setItem(furnaceinv, 2, item);
+				}
+			}
 		}
 	}
 	
 	@Override
-	public void execute(SignActionEvent info) {		  
+	public void execute(SignActionEvent info) {
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
@@ -127,34 +127,36 @@ public class SignActionCollect extends SignAction {
 		if (!docart && !dotrain) return;
 		
 		//get the inventory to transfer to
-        Inventory to;
-        if (docart) {
-        	if (!info.getMember().isStorageCart()) return;
-        	to = info.getMember().getInventory();
-        } else {
-        	to = info.getGroup().getInventory();
-        }
-        
-		//get items to transfer
-        ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
-        
-        //collect from furnaces
-        if (!furnacelist.isEmpty()) {
-        	collect(furnacelist, parsers, to, info.getMember());
-        }
-        
-        if (!invlist.isEmpty()) {
-    		//get inventory
-    		Inventory from = MergedInventory.convert(invlist);
+		Inventory to;
+		if (docart) {
+			if (!info.getMember().isStorageCart())
+				return;
+			to = info.getMember().getInventory();
+		} else {
+			to = info.getGroup().getInventory();
+		}
 
-    		//actually transfer
-            int limit;
-    		for (ItemParser p : parsers) {
-    			if (p == null) continue;
-    			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-    			ItemUtil.transfer(from, to, p, limit);
-    		}
-        }
+		//get items to transfer
+		ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
+
+		// collect from furnaces
+		if (!furnacelist.isEmpty()) {
+			collect(furnacelist, parsers, to, info.getMember());
+		}
+
+		if (!invlist.isEmpty()) {
+			// get inventory
+			Inventory from = MergedInventory.convert(invlist);
+
+			// actually transfer
+			int limit;
+			for (ItemParser p : parsers) {
+				if (p == null)
+					continue;
+				limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
+				ItemUtil.transfer(from, to, p, limit);
+			}
+		}
 	}
 
 	@Override

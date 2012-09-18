@@ -7,13 +7,15 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberAddEvent extends MemberEvent {
-    private static final HandlerList handlers = new HandlerList();
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
+	private static final HandlerList handlers = new HandlerList();
+
+	public HandlerList getHandlers() {
+		return handlers;
+	}
+
+	public static HandlerList getHandlerList() {
+		return handlers;
+	}
 	
 	private final MinecartGroup toGroup;
 	public MemberAddEvent(final MinecartMember member, final MinecartGroup toGroup) {

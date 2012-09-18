@@ -308,7 +308,7 @@ public class PathNode {
 				for (PathNode node : nodes.values()) {
 					stream.writeInt(node.neighboursTo.size());
 					for (PathConnection conn : node.neighboursTo.values()) {
-					    conn.writeTo(stream);
+						conn.writeTo(stream);
 					}
 					stream.writeInt(node.connections.size() - node.neighboursTo.size());
 					for (PathConnection conn : node.connections.values()) {

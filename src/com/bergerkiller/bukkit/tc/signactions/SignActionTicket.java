@@ -63,7 +63,7 @@ public class SignActionTicket extends SignAction {
 						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You received " + money + " Dollars in your bank account!");
 					} else if (mode == TicketMode.CHECK) {
 						double getbal = account.balance();
-						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You currently have " + getbal + " Dollars  in your bank account!");
+						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You currently have " + getbal + " Dollars in your bank account!");
 					} else if (mode == TicketMode.BUY) {
 						if (account.hasUnder(money)) {
 							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.RED + " You can't afford a Ticket for " + money + " Dollars, sorry.");

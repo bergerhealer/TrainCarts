@@ -83,7 +83,7 @@ public class TrainCommands {
 			}
 			String msg = ChatColor.YELLOW + "Pushes away ";
 			if (cmd.equals("pushmobs")) {
-				if (secarg != null)  prop.pushMobs = StringUtil.getBool(secarg);
+				if (secarg != null) prop.pushMobs = StringUtil.getBool(secarg);
 				msg += "mobs: " + ChatColor.WHITE + " " + prop.pushMobs;
 			}
 			if (cmd.equals("pushplayers")) {
@@ -241,9 +241,9 @@ public class TrainCommands {
 				} else {
 					boolean asBreak = true;
 					boolean lastIsBool = StringUtil.isBool(args[args.length - 1]);
-				    if (lastIsBool) asBreak = StringUtil.getBool(args[args.length - 1]);
-				    int count = lastIsBool ? args.length - 1 : args.length;
-				    Set<Material> mats = new HashSet<Material>();
+					if (lastIsBool) asBreak = StringUtil.getBool(args[args.length - 1]);
+					int count = lastIsBool ? args.length - 1 : args.length;
+					Set<Material> mats = new HashSet<Material>();
 					for (int i = 0; i < count; i++) {
 						Material mat = EnumUtil.parseMaterial(args[i], null);
 						if (mat != null) {

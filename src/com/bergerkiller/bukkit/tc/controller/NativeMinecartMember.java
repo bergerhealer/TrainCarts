@@ -158,9 +158,9 @@ public class NativeMinecartMember extends EntityMinecart {
 				i = event.getDamage();
 				// CraftBukkit end
 
-	            this.i(-this.k());
-	            this.h(10);
-	            this.K();
+				this.i(-this.k());
+				this.h(10);
+				this.K();
 				setDamage(getDamage() + i * 10);
 				if (TrainCarts.instantCreativeDestroy) {
 					if ((damagesource.getEntity() instanceof EntityHuman) && ((EntityHuman)damagesource.getEntity()).abilities.canInstantlyBuild) {
@@ -272,19 +272,19 @@ public class NativeMinecartMember extends EntityMinecart {
 		// CraftBukkit end
 
 		//fire ticks decrease
-        if (this.j() > 0) {
-            this.h(this.j() - 1);
-        }
+		if (this.j() > 0) {
+			this.h(this.j() - 1);
+		}
 
-        //health regenerate
-        if (this.getDamage() > 0) {
-            this.setDamage(this.getDamage() - 1);
-        }
+		//health regenerate
+		if (this.getDamage() > 0) {
+			this.setDamage(this.getDamage() - 1);
+		}
 
-        // Kill entity if falling into the void
-        if (this.locY < -64.0D) {
-            this.C();
-        }
+		// Kill entity if falling into the void
+		if (this.locY < -64.0D) {
+			this.C();
+		}
 
 		//put coal into cart if needed
 		if (this.isPoweredCart()) {

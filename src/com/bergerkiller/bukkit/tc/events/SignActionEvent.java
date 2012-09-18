@@ -293,7 +293,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		return BlockUtil.getAttachedBlock(this.signblock);
 	}
 	public Block getRails() {
-		if (!this.railschecked)  {
+		if (!this.railschecked) {
 			this.railsblock = Util.getRailsFromSign(this.signblock);
 			this.railschecked = true;
 		}

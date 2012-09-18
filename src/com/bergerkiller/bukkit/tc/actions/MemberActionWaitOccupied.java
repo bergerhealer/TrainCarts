@@ -32,7 +32,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	}
 	
 	public boolean handleOccupied() {
-	    return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
+		return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
 	}
 	public static boolean handleOccupied(Block start, BlockFace direction, MinecartMember ignore, int maxdistance) {
 		TrackIterator iter = new TrackIterator(start, direction);

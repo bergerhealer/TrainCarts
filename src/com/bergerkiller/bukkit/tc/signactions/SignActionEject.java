@@ -84,7 +84,7 @@ public class SignActionEject extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isType("eject")) return;
-	    boolean isRemote = false;
+		boolean isRemote = false;
 		if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
 		} else if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {

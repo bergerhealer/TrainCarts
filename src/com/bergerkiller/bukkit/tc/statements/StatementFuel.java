@@ -7,7 +7,7 @@ public class StatementFuel extends Statement {
 
 	@Override
 	public boolean match(String text) {
-		return text.equals("coal") || text.equals("fuel")  || text.equals("fueled");
+		return text.equals("coal") || text.equals("fuel") || text.equals("fueled");
 	}
 	
 	@Override

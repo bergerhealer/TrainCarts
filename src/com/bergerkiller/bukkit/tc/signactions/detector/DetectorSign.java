@@ -17,7 +17,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineSign;
 public class DetectorSign extends OfflineSign {
 
 	public DetectorSign(DetectorSignPair detector, Block signBlock) {
-		this(detector,  BlockUtil.getCoordinates(signBlock));
+		this(detector, BlockUtil.getCoordinates(signBlock));
 	}
 
 	public DetectorSign(DetectorSignPair detector, ChunkCoordinates signLocation) {

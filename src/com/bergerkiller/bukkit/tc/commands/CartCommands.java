@@ -136,9 +136,9 @@ public class CartCommands {
 				} else {
 					boolean asBreak = true;
 					boolean lastIsBool = StringUtil.isBool(args[args.length - 1]);
-				    if (lastIsBool) asBreak = StringUtil.getBool(args[args.length - 1]);
-				    int count = lastIsBool ? args.length - 1 : args.length;
-				    Set<Material> mats = new HashSet<Material>();
+					if (lastIsBool) asBreak = StringUtil.getBool(args[args.length - 1]);
+					int count = lastIsBool ? args.length - 1 : args.length;
+					Set<Material> mats = new HashSet<Material>();
 					for (int i = 0; i < count; i++) {
 						Material mat = EnumUtil.parseMaterial(args[i], null);
 						if (mat != null) {

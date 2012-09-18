@@ -74,8 +74,8 @@ public class ArrivalSigns {
 	public static String getTimeString(long time) {
 		if (time == 0) return "00:00:00";
 		time /= 1000; // msec -> sec
-		String seconds = Integer.toString((int)(time % 60));  
-		String minutes = Integer.toString((int)((time % 3600) / 60));  
+		String seconds = Integer.toString((int)(time % 60));
+		String minutes = Integer.toString((int)((time % 3600) / 60));
 		String hours = Integer.toString((int)(time / 3600)); 
 		if (seconds.length() == 1) seconds = "0" + seconds;
 		if (minutes.length() == 1) minutes = "0" + minutes;
@@ -152,16 +152,16 @@ public class ArrivalSigns {
 	}
 	
 	public static void init(String filename) {
-	    FileConfiguration config = new FileConfiguration(filename);
-	    config.load();
-	    for (String key : config.getKeys()) {
-	    	String dur = config.get(key, String.class, null);
-	    	if (dur != null) {
-	    		TimeSign t = getTimer(key);
-	    		t.duration = getTime(dur);
-	    		t.startTime = System.currentTimeMillis();
-	    	} 	
-	    }
+		FileConfiguration config = new FileConfiguration(filename);
+		config.load();
+		for (String key : config.getKeys()) {
+			String dur = config.get(key, String.class, null);
+			if (dur != null) {
+				TimeSign t = getTimer(key);
+				t.duration = getTime(dur);
+				t.startTime = System.currentTimeMillis();
+			}
+		}
 	}
 	public static void deinit(String filename) {
 		FileConfiguration config = new FileConfiguration(filename);

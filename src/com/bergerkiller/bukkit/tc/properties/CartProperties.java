@@ -386,13 +386,13 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			node.set("isPublic", this.isPublic ? null : false);
 			node.set("pickUp", this.pickUp ? true : null);
 		} else {
-            node.set("owners", new ArrayList<String>(this.owners));
-            node.set("tags", new ArrayList<String>(this.tags));
-            node.set("allowPlayerEnter", this.allowPlayerEnter);
-            node.set("allowPlayerExit", this.allowPlayerExit);
-            node.set("allowMobsEnter", this.allowMobsEnter);
-            node.set("isPublic", this.isPublic);
-            node.set("pickUp", this.pickUp);
+			node.set("owners", new ArrayList<String>(this.owners));
+			node.set("tags", new ArrayList<String>(this.tags));
+			node.set("allowPlayerEnter", this.allowPlayerEnter);
+			node.set("allowPlayerExit", this.allowPlayerExit);
+			node.set("allowMobsEnter", this.allowMobsEnter);
+			node.set("isPublic", this.isPublic);
+			node.set("pickUp", this.pickUp);
 		}
 		if (!minimal || !this.blockBreakTypes.isEmpty()) {
 			List<String> items = node.getList("blockBreakTypes", String.class);

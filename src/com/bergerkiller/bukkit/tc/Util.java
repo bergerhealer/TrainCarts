@@ -152,39 +152,38 @@ public class Util {
 		}
 		return getParsers(total.toString());
 	}
+
 	public static ItemParser[] getParsers(final String items) {
-        List<ItemParser> parsers = new ArrayList<ItemParser>();
-        for (String type : items.split(";")) {
-            int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*");
-            Integer amount = null;
-        	if (idx > 0) {
-        		try {
-            		amount = Integer.parseInt(type.substring(0, idx));
-            		type = type.substring(idx + 1);
-        		} catch (Exception ex) {
-        		}
-        	}
-        	ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type);
-        	if (keyparsers.length != 0) {
-        		if (amount == null) {
-        			//add parsers directly
-        			for (ItemParser p : keyparsers) {
-        				parsers.add(p);
-        			}
-        		} else {
-        			//add parsers with set modifier amount
-        			//add parsers directly
-        			for (ItemParser p : keyparsers) {
-        				parsers.add(new ItemParser(
-        						(p.hasAmount() ? p.getAmount() : 1) * amount, 
-        						p.getType(), p.hasData() ? p.getData() : null));
-        			}
-        		}
-        	} else {
-        		parsers.add(ItemParser.parse(type, amount == null ? null : amount.toString()));
-        	}
-        }
-        return parsers.toArray(new ItemParser[0]);
+		List<ItemParser> parsers = new ArrayList<ItemParser>();
+		for (String type : items.split(";")) {
+			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*");
+			Integer amount = null;
+			if (idx > 0) {
+				try {
+					amount = Integer.parseInt(type.substring(0, idx));
+					type = type.substring(idx + 1);
+				} catch (Exception ex) {
+				}
+			}
+			ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type);
+			if (keyparsers.length != 0) {
+				if (amount == null) {
+					// add parsers directly
+					for (ItemParser p : keyparsers) {
+						parsers.add(p);
+					}
+				} else {
+					// add parsers with set modifier amount
+					// add parsers directly
+					for (ItemParser p : keyparsers) {
+						parsers.add(new ItemParser((p.hasAmount() ? p.getAmount() : 1) * amount, p.getType(), p.hasData() ? p.getData() : null));
+					}
+				}
+			} else {
+				parsers.add(ItemParser.parse(type, amount == null ? null : amount.toString()));
+			}
+		}
+		return parsers.toArray(new ItemParser[0]);
 	}
 
 	public static boolean isRails(Block block) {

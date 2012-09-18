@@ -78,9 +78,6 @@ public class MinecartMember extends MinecartMemberStore {
 	protected MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 
-	private static int counter = 0;
-	public int MMID;
-	
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
 		this.blockPos = new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
@@ -89,7 +86,6 @@ public class MinecartMember extends MinecartMemberStore {
 		this.direction = FaceUtil.yawToFace(this.yaw);
 		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
 		replacedCarts.add(this);
-		MMID = counter++;
 	}
 
 	/*
@@ -139,7 +135,7 @@ public class MinecartMember extends MinecartMemberStore {
 						if (distance < 0.7) {
 							ItemUtil.transfer(stack, inv, Integer.MAX_VALUE);
 							//this.world.playNote
-							this.world.getWorld().playEffect(this.getLocation(),  Effect.CLICK1, 0);
+							this.world.getWorld().playEffect(this.getLocation(), Effect.CLICK1, 0);
 							if (stack.getAmount() == 0) {
 								e.dead = true;
 								continue;
@@ -290,11 +286,11 @@ public class MinecartMember extends MinecartMemberStore {
  		return this.group;
  	}
  	public int getIndex() {
- 	    if (this.group == null) {
- 	    	return this.dead ? -1 : 0;
- 	    } else {
- 	    	return this.group.indexOf(this);
- 	    }
+ 		if (this.group == null) {
+ 			return this.dead ? -1 : 0;
+ 		} else {
+ 			return this.group.indexOf(this);
+ 		}
  	}
  	public MinecartMember getNeighbour(int offset) {
  		int index = this.getIndex();
@@ -796,7 +792,7 @@ public class MinecartMember extends MinecartMemberStore {
 		if (world != this.getWorld()) return false;
 		if (Math.abs(cx - (super.getBlockX() >> 4)) > 2) return false;
 		if (Math.abs(cz - (super.getBlockZ() >> 4)) > 2) return false;
-	    return true;
+		return true;
 	}
 	public boolean isRegularMinecart() {
 		return this.type == 0;

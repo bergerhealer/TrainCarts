@@ -54,21 +54,21 @@ public class SignActionCraft extends SignAction {
 			}
 			if (w != null) {
 				//get the inventory to transfer in
-		        Inventory inventory;
-		        if (docart) {
-		        	if (!info.getMember().isStorageCart()) return;
-		        	inventory = info.getMember().getInventory();
-		        } else {
-		        	inventory = info.getGroup().getInventory();
-		        }
-		        if (TrainCarts.showTransferAnimations) {
-		        	inventory = InventoryWatcher.convert(w, info.getMember(), inventory);
-		        }
-		        
-		        //craft
-		        for (ItemParser item : Util.getParsers(info.getLine(2), info.getLine(3))) {
-		        	RecipeUtil.craftItems(item, inventory);
-		        }
+				Inventory inventory;
+				if (docart) {
+					if (!info.getMember().isStorageCart()) return;
+					inventory = info.getMember().getInventory();
+				} else {
+					inventory = info.getGroup().getInventory();
+				}
+				if (TrainCarts.showTransferAnimations) {
+					inventory = InventoryWatcher.convert(w, info.getMember(), inventory);
+				}
+
+				// craft
+				for (ItemParser item : Util.getParsers(info.getLine(2), info.getLine(3))) {
+					RecipeUtil.craftItems(item, inventory);
+				}
 			}
 		}
 	}
