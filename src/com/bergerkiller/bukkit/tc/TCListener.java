@@ -18,6 +18,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
@@ -36,6 +37,7 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -398,6 +400,32 @@ public class TCListener implements Listener {
 				return;
 			}
 			triggerRedstoneChange(event.getBlock(), event);
+		}
+	}
+
+	/*
+	 * 	public boolean inBlock() {
+			for(int i = 0; i < 8; i++) {
+				float f = ((float)((i >> 0) % 2) - 0.5F) * width * 0.8F;
+				float f1 = ((float)((i >> 1) % 2) - 0.5F) * 0.1F;
+				float f2 = ((float)((i >> 2) % 2) - 0.5F) * width * 0.8F;
+				int j = MathHelper.floor(locX + (double)f);
+				int k = MathHelper.floor(locY + (double)getHeadHeight() + (double)f1);
+				int l = MathHelper.floor(locZ + (double)f2);
+				if(world.s(j, k, l))
+					return true;
+        	}
+			return false;
+        }
+	 */
+	@EventHandler(priority = EventPriority.LOWEST)
+	public void onEntityDamage(EntityDamageEvent event) {
+		if (event.isCancelled()) {
+			return;
+		}
+		net.minecraft.server.Entity e = EntityUtil.getNative(event.getEntity());
+		if (e.vehicle != null && e.vehicle instanceof MinecartMember && ((MinecartMember) e.vehicle).isTeleportImmune()) {
+			event.setCancelled(true);
 		}
 	}
 

@@ -67,6 +67,7 @@ public class MinecartMember extends MinecartMemberStore {
 	MinecartGroup group;
 	private ChunkPosition blockPos;
 	protected boolean died = false;
+	private int teleportImmunityTick = 0;
 	private boolean railsloped = false;
 	private boolean isDerailed = false;
 	private boolean isFlying = false;
@@ -112,13 +113,16 @@ public class MinecartMember extends MinecartMemberStore {
 		while (times.hasNext()) {			
 			if (times.next().decrementAndGet() <= 0) times.remove();
 		}
+		if (this.teleportImmunityTick > 0) {
+			this.teleportImmunityTick--;
+		}
 		return super.preUpdate(stepcount);
 	}
 
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
-		if (this.hasPassenger() && this.isOnMinecartTrack) {
-			this.passenger.fallDistance = 0.0f;
+		if (this.isOnMinecartTrack) {
+			this.fallDistance = 0.0f; // reset fall distance
 		}
 		this.validate();
 		if (this.getProperties().canPickup() && this.isStorageCart()) {
@@ -906,7 +910,17 @@ public class MinecartMember extends MinecartMemberStore {
 		this.died = true;
 		EntityUtil.teleport(TrainCarts.plugin, this, to);
 		MinecartMemberStore.createTracker(this);
+		this.teleportImmunityTick = 10;
 		this.died = false;
+	}
+
+	/**
+	 * Gets whether this Minecart and the passenger has immunity as a result of teleportation
+	 * 
+	 * @return True if it is immune, False if not
+	 */
+	public boolean isTeleportImmune() {
+		return this.teleportImmunityTick > 0;
 	}
 
 	public boolean isCollisionIgnored(Entity entity) {
