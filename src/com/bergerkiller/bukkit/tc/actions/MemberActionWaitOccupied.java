@@ -7,20 +7,23 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
-
 	private BlockFace direction;
 	private Block start;
 	private final int maxsize;
+	private final long delay;
+	private final double launchDistance;
 	private double launchforce;
 	private int counter = 20;
 	private boolean breakCode = false;
-	public MemberActionWaitOccupied(final MinecartMember head, final int maxsize) {
+	public MemberActionWaitOccupied(final MinecartMember head, final int maxsize, final long delay, final double launchDistance) {
 		super(head);
 		this.maxsize = maxsize;
 		this.direction = head.getDirectionTo();
 		this.start = head.getRailsBlock();
+		this.delay = delay;
+		this.launchDistance = launchDistance;
 	}
-	
+
 	@Override
 	public void start() {
 		if (this.handleOccupied()) {
@@ -30,7 +33,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 			breakCode = true;
 		}
 	}
-	
+
 	public boolean handleOccupied() {
 		return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
 	}
@@ -46,14 +49,17 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 		ignore.setIgnoreCollisions(false);
 		return false;
 	}
-		
+
 	@Override
 	public boolean update() {
 		if (breakCode) return true;
 		if (counter++ >= 20) {
 			if (!this.handleOccupied()) {
 				//launch
-				this.getMember().addActionLaunch(this.direction, 2, this.launchforce);
+				if (this.delay > 0) {
+					this.getGroup().addActionWait(this.delay);
+				}
+				this.getMember().addActionLaunch(this.direction, this.launchDistance, this.launchforce);
 				return true;
 			} else {
 				//this.wasoccupied = this.handleOccupied();
@@ -67,5 +73,4 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	public boolean isVelocityChangesSuppressed() {
 		return true;
 	}
-
 }

@@ -54,7 +54,7 @@ public class ArrivalSigns {
 			}
 		}
 		TimeSign t = getTimer(name);
-		t.duration = getTime(duration);
+		t.duration = Util.parseTime(duration);
 		if (t.duration == 0) {
 			timeCalcStart(sign.getBlock().getLocation(), mm);
 		} else {
@@ -81,35 +81,6 @@ public class ArrivalSigns {
 		if (minutes.length() == 1) minutes = "0" + minutes;
 		if (hours.length() == 1) hours = "0" + hours;
 		return hours + ":" + minutes + ":" + seconds;
-	}
-	public static long getTime(String timestring) {
-		long rval = 0;
-		try {
-			if (timestring != null && !timestring.equals("")) {
-				String[] parts = timestring.split(":");
-				if (parts.length == 1) {
-					//Seconds display only
-					rval = Long.parseLong(parts[0]) * 1000;
-				} else if (parts.length == 2) {
-					//Min:Sec
-					rval = Long.parseLong(parts[0]) * 60000;
-					rval += Long.parseLong(parts[1]) * 1000;
-				} else if (parts.length == 3) {
-					//Hour:Min:Sec (ow come on -,-)
-					rval = Long.parseLong(parts[0]) * 3600000;
-					rval += Long.parseLong(parts[1]) * 60000;
-					rval += Long.parseLong(parts[2]) * 1000;
-				} else {
-					return 0;
-				}
-			} else {
-				return 0;
-			}
-		} catch (Exception ex) {
-			//D'aw, failed. Start a timer for auto-update here...
-			return 0;
-		}
-		return rval;
 	}
 	
 	public static class TimeSign {
@@ -158,7 +129,7 @@ public class ArrivalSigns {
 			String dur = config.get(key, String.class, null);
 			if (dur != null) {
 				TimeSign t = getTimer(key);
-				t.duration = getTime(dur);
+				t.duration = Util.parseTime(dur);
 				t.startTime = System.currentTimeMillis();
 			}
 		}

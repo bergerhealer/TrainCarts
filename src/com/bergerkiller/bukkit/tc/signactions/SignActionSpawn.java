@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
@@ -108,7 +109,7 @@ public class SignActionSpawn extends SignAction {
 			String[] bits = line.substring(6).split(" ");
 			if (bits.length > 0) {
 				if (bits.length > 1 || bits[0].contains(":")) {
-					return ArrivalSigns.getTime(bits[0]);
+					return Util.parseTime(bits[0]);
 				}
 			}
 		}

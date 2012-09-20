@@ -77,6 +77,7 @@ public class TrainCarts extends PluginBase {
 	public static double slowDownMultiplierNormal;
 	public static boolean refillAtStations;
 	public static boolean instantCreativeDestroy;
+	private static String currencyFormat;
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
 
@@ -193,6 +194,9 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
 		instantCreativeDestroy = config.get("instantCreativeDestroy", false);
+
+		config.setHeader("currencyFormat", "\nThe currency Ticket signs will display in messages, %value% represents the displayed value");
+		currencyFormat = config.get("currencyFormat", "%value% Dollars");
 
 		config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
 		config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");
@@ -431,7 +435,17 @@ public class TrainCarts extends PluginBase {
 	public void permissions() {
 		this.loadPermissions(Permission.class);
 	}
-	
+
+	/**
+	 * Gets the Currency text to display a currency value
+	 * 
+	 * @param value to display
+	 * @return currency text
+	 */
+	public static String getCurrencyText(double value) {
+		return currencyFormat.replace("%value%", Double.toString(value));
+	}
+
 	public static boolean isWorldDisabled(BlockEvent event) {
 		return isWorldDisabled(event.getBlock().getWorld());
 	}

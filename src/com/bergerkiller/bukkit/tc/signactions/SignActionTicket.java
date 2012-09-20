@@ -16,6 +16,8 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.earth2me.essentials.register.payment.*;
 import com.earth2me.essentials.register.payment.Method.MethodAccount;
 
+import static com.bergerkiller.bukkit.tc.TrainCarts.getCurrencyText;
+
 /**
  * @author reeZZer
  * Me (Bergerkiller) gives a big thank-you to him for writing the economics for this feature :)
@@ -57,20 +59,20 @@ public class SignActionTicket extends SignAction {
 					if (!method.hasAccount(player.getName())) continue;
 					//actually perform something with it here
 					MethodAccount account = method.getAccount(player.getName());
-					
+
 					if (mode == TicketMode.ADD) {
 						account.add(money);
-						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You received " + money + " Dollars in your bank account!");
+						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You received " + getCurrencyText(money) + " in your bank account!");
 					} else if (mode == TicketMode.CHECK) {
 						double getbal = account.balance();
-						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You currently have " + getbal + " Dollars in your bank account!");
+						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You currently have " + getCurrencyText(getbal) + " in your bank account!");
 					} else if (mode == TicketMode.BUY) {
 						if (account.hasUnder(money)) {
-							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.RED + " You can't afford a Ticket for " + money + " Dollars, sorry.");
+							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.RED + " You can't afford a Ticket for " + getCurrencyText(money) + " , sorry.");
 							member.eject();
 						} else {
 							account.subtract(money);
-							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You bought a Ticket for " + money + " Dollars.");
+							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You bought a Ticket for " + getCurrencyText(money) + " .");
 						}
 					}
 						

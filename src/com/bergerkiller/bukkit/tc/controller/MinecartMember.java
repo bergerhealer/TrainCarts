@@ -436,8 +436,8 @@ public class MinecartMember extends MinecartMemberStore {
 	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
 		return this.addAction(new MemberActionLaunchDirection(this, targetdistance, targetvelocity, direction));
 	}
-	public MemberActionWaitOccupied addActionWaitOccupied(int maxsize) {
-		return this.addAction(new MemberActionWaitOccupied(this, maxsize));
+	public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance) {
+		return this.addAction(new MemberActionWaitOccupied(this, maxsize, launchDelay, launchDistance));
 	}
 
 	/*

@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
@@ -24,7 +25,34 @@ public class Util {
 	public static void setItemMaxSize(net.minecraft.server.Item item, int maxstacksize) {
 		SafeField.set(item, "maxStackSize", maxstacksize);
 	}
-	
+
+	/**
+	 * Parses a time value from a String
+	 * 
+	 * @param timestring to parse
+	 * @return time in miliseconds
+	 */
+	public static long parseTime(String timestring) {
+		long rval = 0;
+		if (timestring != null && !timestring.isEmpty()) {
+			String[] parts = timestring.split(":");
+			if (parts.length == 1) {
+				//Seconds display only
+				rval = (long) (ParseUtil.parseDouble(parts[0], 0.0) * 1000);
+			} else if (parts.length == 2) {
+				//Min:Sec
+				rval = ParseUtil.parseLong(parts[0], 0) * 60000;
+				rval += ParseUtil.parseLong(parts[1], 0) * 1000;
+			} else if (parts.length == 3) {
+				//Hour:Min:Sec (ow come on -,-)
+				rval = ParseUtil.parseLong(parts[0], 0) * 3600000;
+				rval += ParseUtil.parseLong(parts[1], 0) * 60000;
+				rval += ParseUtil.parseLong(parts[2], 0) * 1000;
+			}
+		}
+		return rval;
+	}
+
 	public static boolean hasAttachedSigns(final Block middle) {
 		return addAttachedSigns(middle, null);
 	}
