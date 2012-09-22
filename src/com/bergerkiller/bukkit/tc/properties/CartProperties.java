@@ -117,13 +117,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		if (owner) {
 			this.owners.add(player);
 		} else {
-			this.owners.add(player);
+			this.owners.remove(player);
 		}
 	}
 	public void setOwner(Player player) {
 		this.setOwner(player, true);
 	}
 	public void setOwner(Player player, boolean owner) {
+		if (player == null) {
+			return;
+		}
 		this.setOwner(player.getName().toLowerCase(), owner);
 	}
 	public Set<String> getOwners() {

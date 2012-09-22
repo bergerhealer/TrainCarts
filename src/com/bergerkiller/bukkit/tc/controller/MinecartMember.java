@@ -66,6 +66,7 @@ public class MinecartMember extends MinecartMemberStore {
 	private BlockFace directionFrom;
 	MinecartGroup group;
 	private ChunkPosition blockPos;
+	private boolean forcedBlockUpdate = true;
 	protected boolean died = false;
 	private int teleportImmunityTick = 0;
 	private boolean railsloped = false;
@@ -81,7 +82,7 @@ public class MinecartMember extends MinecartMemberStore {
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.blockPos = new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+		this.blockPos = new ChunkPosition(super.getBlockX(), super.getBlockY(), super.getBlockZ());
 		this.prevcx = MathUtil.locToChunk(this.locX);
 		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
@@ -215,7 +216,7 @@ public class MinecartMember extends MinecartMemberStore {
 		int x = super.getBlockX();
 		int y = super.getBlockY();
 		int z = super.getBlockZ();
-		boolean forced = Math.abs(this.blockPos.x - x) > 128 || Math.abs(this.blockPos.y - y) > 128 || Math.abs(this.blockPos.z - z) > 128;
+		boolean forced = forcedBlockUpdate || Math.abs(this.blockPos.x - x) > 128 || Math.abs(this.blockPos.y - y) > 128 || Math.abs(this.blockPos.z - z) > 128;
 		Block from = forced ? null : this.getBlock();
 		if (forced || x != this.blockPos.x || z != this.blockPos.z || y != (this.railsloped ? this.blockPos.y : this.blockPos.y + 1)) {
 			getGroup().needsBlockUpdate = true;
@@ -223,6 +224,7 @@ public class MinecartMember extends MinecartMemberStore {
 			this.railsloped = false;
 			this.isDerailed = false;
 			this.isFlying = false;
+			this.forcedBlockUpdate = false;
 
 			int r = this.world.getTypeId(x, y - 1, z);
 			if (Util.isRails(r)) {
@@ -244,7 +246,7 @@ public class MinecartMember extends MinecartMemberStore {
 			//Update from value if it was not set
 			Block to = this.getBlock();
 			if (from == null) from = to;
-			
+
 			//update active signs
 			this.clearActiveSigns();
 			if (!this.isDerailed) {
@@ -335,10 +337,7 @@ public class MinecartMember extends MinecartMemberStore {
 			SignActionEvent info = new SignActionEvent(signblock, this);
 			SignAction.executeAll(info, SignActionType.MEMBER_ENTER);
 			if (this.dead) return true;
-			MinecartGroup g = this.getGroup();
-			if (g.size() == 1 || g.tail() != this) {
-				this.getGroup().setActiveSign(info, true);
-			}
+			this.getGroup().setActiveSign(info, true);
 			return true;
 		} else {
 			return false;
