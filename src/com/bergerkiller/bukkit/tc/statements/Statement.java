@@ -75,6 +75,7 @@ public abstract class Statement {
 		register(new StatementPlayerHand());
 		register(new StatementMob());
 		register(new StatementRedstone());
+		register(new StatementPermission());
 		register(new StatementTag()); //register lastly!
 	}
 

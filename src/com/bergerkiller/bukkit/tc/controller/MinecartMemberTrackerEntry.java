@@ -256,8 +256,8 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
 		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
 		entityplayer.netServerHandler.sendPacket(getTeleportPacket());
-		if (entityplayer == this.tracker.passenger) {
-			entityplayer.netServerHandler.sendPacket(new Packet39AttachEntity(entityplayer, this.tracker));
+		if (this.tracker.passenger != null) {
+			entityplayer.netServerHandler.sendPacket(new Packet39AttachEntity(this.tracker.passenger, this.tracker));
 		}
 	}
 

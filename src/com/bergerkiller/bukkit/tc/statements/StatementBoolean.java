@@ -10,17 +10,17 @@ public class StatementBoolean extends Statement {
 	public boolean match(String text) {
 		return text.equals("true") || text.equals("false");
 	}
-		
+
 	@Override
 	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
 		return text.equalsIgnoreCase("true");
 	}
-	
+
 	@Override
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		return text.equalsIgnoreCase("true");
 	}
-	
+
 	@Override
 	public boolean matchArray(String text) {
 		return false;
