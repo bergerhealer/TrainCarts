@@ -44,7 +44,7 @@ public class SignActionStation extends SignAction {
 		} else if (station.getInstruction() == BlockFace.SELF) {
 			MinecartMember centerMember = station.getCenterCart();
 			// Do not allow redstone changes to center a launching train
-			if (info.isAction(SignActionType.REDSTONE_CHANGE) && info.getGroup().isVelocityAction()) {
+			if (info.isAction(SignActionType.REDSTONE_CHANGE) && (info.getGroup().isVelocityAction() || info.getGroup().isMoving())) {
 				return;
 			}
 

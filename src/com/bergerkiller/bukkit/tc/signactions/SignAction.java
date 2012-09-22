@@ -62,7 +62,16 @@ public abstract class SignAction {
 	public abstract void execute(SignActionEvent info);
 	public abstract boolean build(SignChangeActionEvent info);
 
-	public void click(SignActionEvent info, Player player, Action action) {
+	/**
+	 * Handles a player clicking this action sign
+	 * 
+	 * @param info related to the event
+	 * @param player that clicked
+	 * @param action that was performed
+	 * @return True if handled, False if not
+	 */
+	public boolean click(SignActionEvent info, Player player, Action action) {
+		return false;
 	}
 
 	private static List<SignAction> actions;
@@ -85,7 +94,9 @@ public abstract class SignAction {
 			return;
 		}
 		for (SignAction action : actions) {
-			action.click(info, event.getPlayer(), event.getAction());
+			if (action.click(info, event.getPlayer(), event.getAction())) {
+				event.setCancelled(true); // Prevent block placement
+			}
 			if (info.isCancelled()) break;
 		}
 	}

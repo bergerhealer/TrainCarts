@@ -18,16 +18,17 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 public class SignActionEject extends SignAction {
 
 	@Override
-	public void click(SignActionEvent info, Player player, Action action) {
+	public boolean click(SignActionEvent info, Player player, Action action) {
 		if (!info.isType("eject")) {
-			return;
+			return false;
 		}
 		MinecartMember member = MinecartMember.get(player.getVehicle());
 		if (member == null) {
-			return;
+			return true;
 		}
 		info.setMember(member);
 		eject(info);
+		return true;
 	}
 
 	public void eject(SignActionEvent info) {

@@ -27,9 +27,9 @@ public class SignActionDestination extends SignAction {
 	}
 
 	@Override
-	public void click(SignActionEvent info, Player player, Action action) {
+	public boolean click(SignActionEvent info, Player player, Action action) {
 		if (!info.isType("destination")) {
-			return;
+			return false;
 		}
 
 		//get the train this player is editing
@@ -40,7 +40,7 @@ public class SignActionDestination extends SignAction {
 			} else {
 				player.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
 			}
-			return;
+			return true;
 		}
 		IProperties prop;
 		if (info.isTrainSign()) {
@@ -48,7 +48,7 @@ public class SignActionDestination extends SignAction {
 		} else if (info.isCartSign()) {
 			prop = mm.getProperties();
 		} else {
-			return;
+			return false;
 		}
 		if (!prop.isOwner(player)) {
 			player.sendMessage(ChatColor.RED + "You don't own this train!");
@@ -57,6 +57,7 @@ public class SignActionDestination extends SignAction {
 			prop.setDestination(dest);
 			player.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
 		}
+		return true;
 	}
 	
 	@Override
