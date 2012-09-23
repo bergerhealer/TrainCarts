@@ -14,6 +14,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public boolean isRemoved;
 	private double prevX, prevY, prevZ;
 	protected boolean tracked = false;
+	public static final long MIN_SYNC_INTERVAL = 5;
 
 	public MinecartMemberTrackerEntry(EntityTrackerEntry source) {
 		super(source.tracker, 80, 3, true);
@@ -70,8 +71,14 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			}
 		}
 
-		// All trackers updated, time to sync
-		syncAll();
+		// Allowed?
+		long time = System.currentTimeMillis();
+		if (group.lastSync == Long.MIN_VALUE || (time - group.lastSync) > MIN_SYNC_INTERVAL) {
+			group.lastSync = time;
+
+			// All trackers updated, time to sync
+			syncAll();
+		}
 	}
 
 	/**
@@ -127,7 +134,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public boolean needsTeleport() {
-		return ++this.ticksNoTeleport > 100; // was 400, but to reduce de-synching times, it is now 5 seconds
+		return ++this.ticksNoTeleport > 400;
 	}
 
 	public boolean needsLocationSync() {

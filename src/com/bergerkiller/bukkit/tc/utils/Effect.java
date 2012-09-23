@@ -80,12 +80,12 @@ public class Effect {
 			org.bukkit.Effect effect = EnumUtil.parse(org.bukkit.Effect.values(), name, null);
 			if (effect != null) {
 				world.playEffect(location, effect, 0);
-				return;
+				continue;
 			}
 			Sound sound = EnumUtil.parse(Sound.values(), name, null);
 			if (sound != null) {
 				world.playSound(location, sound, pitch, volume);
-				return;
+				continue;
 			}
 		}
 	}

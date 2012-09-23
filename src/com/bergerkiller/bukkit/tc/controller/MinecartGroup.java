@@ -59,6 +59,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
 	protected boolean needsBlockUpdate = true;
+	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
 
