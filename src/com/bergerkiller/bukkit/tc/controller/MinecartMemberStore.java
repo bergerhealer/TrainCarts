@@ -11,12 +11,14 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
@@ -49,6 +51,8 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		MinecartMember with = new MinecartMember(source.world, source.lastX, source.lastY, source.lastZ, source.type);
 		//transfer variables
 		EntityMinecartRef.TEMPLATE.transfer(source, with);
+		//unloaded?
+		with.unloaded = OfflineGroupManager.containsMinecart(with.uniqueId);
 
 		MinecartSwapEvent.call(source, with);
 		// swap the tracker
@@ -91,34 +95,39 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		return true;
 	}
 
-	private static EntityMinecart findByID(UUID uuid) {
-		EntityMinecart e;
+	/**
+	 * Tries to find a minecart member by UUID
+	 * 
+	 * @param uuid of the minecart
+	 * @return Minecart Member, or null if not found
+	 */
+	public static MinecartMember getFromUID(UUID uuid) {
 		for (World world : WorldUtil.getWorlds()) {
-			for (Object o : world.entityList) {
-				if (o instanceof EntityMinecart) {
-					e = (EntityMinecart) o;
-					if (e.uniqueId.equals(uuid)) {
-						return e;
-					}
-				}
+			MinecartMember member = CommonUtil.tryCast(EntityUtil.getEntity(world, uuid), MinecartMember.class);
+			if (member != null) {
+				return member;
 			}
 		}
 		return null;
 	}
+
 	public static MinecartMember get(Object o) {
-		if (o == null) return null;
+		if (o == null) {
+			return null;
+		}
 		if (o instanceof UUID) {
-			o = findByID((UUID) o);
-			if (o == null) return null;
+			return getFromUID((UUID) o);
 		}
 		if (o instanceof Minecart) {
 			o = EntityUtil.getNative((Minecart) o);
 		}
 		if (o instanceof MinecartMember) {
-			return (MinecartMember) o;
-		} else {
-			return null;
+			MinecartMember member = (MinecartMember) o;
+			if (!member.isUnloaded()) {
+				return member;
+			}
 		}
+		return null;
 	}
 	public static MinecartMember[] getAll(Object... objects) {
 		MinecartMember[] rval = new MinecartMember[objects.length];

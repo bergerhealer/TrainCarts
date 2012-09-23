@@ -63,7 +63,7 @@ public class MinecartMember extends MinecartMemberStore {
 	private BlockFace direction;
 	private BlockFace directionTo;
 	private BlockFace directionFrom;
-	MinecartGroup group;
+	protected MinecartGroup group;
 	private ChunkPosition blockPos;
 	private boolean forcedBlockUpdate = true;
 	protected boolean died = false;
@@ -78,6 +78,7 @@ public class MinecartMember extends MinecartMemberStore {
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
 	protected MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
+	protected boolean unloaded = false;
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
@@ -93,8 +94,11 @@ public class MinecartMember extends MinecartMemberStore {
 	 */
 	@Override
 	public void h_() {
+		if (this.isUnloaded()) {
+			return;
+		}
 		MinecartGroup g = this.getGroup();
-		if (g == null || g.unloaded) return;
+		if (g == null) return;
 		if (this.dead) {
 			//remove self
 			g.remove(this);
@@ -283,18 +287,46 @@ public class MinecartMember extends MinecartMemberStore {
 	public Minecart getMinecart() {
 		return (Minecart) this.getBukkitEntity();
 	}
+
+	/**
+	 * Sets the group of this Minecart, removing this member from the previous group<br>
+	 * Only called by internal methods (as it relies on group adding)
+	 * 
+	 * @param group to set to
+	 */
 	protected void setGroup(MinecartGroup group) {
 		if (this.group != null && this.group != group) {
 			this.group.removeSilent(this);
 		}
+		this.unloaded = false;
 		this.group = group;
 	}
+
+	/**
+	 * Gets the Minecart Group of this Minecart<br>
+	 * If this Minecart is unloaded, a runtime exception is thrown<br>
+	 * If no group was previously set, a group is created
+	 * 
+	 * @return group of this Minecart
+	 */
  	public MinecartGroup getGroup() {
+ 		if (this.isUnloaded()) {
+ 			throw new RuntimeException("Unloaded members do not have groups!");
+ 		}
  		if (this.group == null) {
- 			this.group = MinecartGroup.create(this);
+ 			MinecartGroup.create(this);
  		}
  		return this.group;
  	}
+
+ 	/**
+ 	 * Removes this Minecart from it's current group<br>
+ 	 * Upon the next call of getGroup() a new group is created
+ 	 */
+ 	public void clearGroup() {
+ 		this.setGroup(null);
+ 	}
+ 
  	public int getIndex() {
  		if (this.group == null) {
  			return this.dead ? -1 : 0;
@@ -789,6 +821,9 @@ public class MinecartMember extends MinecartMemberStore {
 		return true;
 	}
 
+	public boolean isUnloaded() {
+		return this.unloaded;
+	}
 	public boolean isOnSlope() {
 		return this.railsloped;
 	}

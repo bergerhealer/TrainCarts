@@ -11,19 +11,14 @@ import java.util.logging.Level;
 
 import net.minecraft.server.ChunkProviderServer;
 
-import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.util.LongHash;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Minecart;
 
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 
 /**
  * A class containing an array of Minecart Members
@@ -89,19 +84,7 @@ public class OfflineGroup {
 		ArrayList<MinecartMember> rval = new ArrayList<MinecartMember>();
 		int missingNo = 0;
 		for (OfflineMember member : members) {
-			//first try to find it in the chunk
-			Chunk c = w.getChunkAt(member.cx, member.cz);
-			Minecart m = null;
-			for (Entity e : c.getEntities()) {
-				if (e instanceof Minecart && e.getUniqueId().equals(member.entityUID)) {
-					m = (Minecart) e;
-					break;
-				}
-			}
-			if (m == null) {
-				m = EntityUtil.getEntity(w, member.entityUID, Minecart.class);
-			}
-			MinecartMember mm = MinecartMemberStore.get(m);
+			MinecartMember mm = member.create(w);
 			if (mm != null) {
 				mm.motX = member.motX;
 				mm.motZ = member.motZ;
@@ -117,10 +100,7 @@ public class OfflineGroup {
 			return null;
 		}
 		// Is a new group needed?
-		
-		MinecartGroup group = MinecartGroup.create(this.name, rval.toArray(new MinecartMember[0]));
-		group.getAverageForce(); // update group direction
-		return group;
+		return MinecartGroup.create(this.name, rval.toArray(new MinecartMember[0]));
 	}
 
 	/*

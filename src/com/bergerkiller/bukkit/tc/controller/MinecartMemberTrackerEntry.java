@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 import net.minecraft.server.*;
 
@@ -50,34 +52,42 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 
 	@Override
 	public void track(List list) { 
-		if (this.tracker.dead) {
-			super.track(list);
-			return;
-		}
-
-		//update players
-		if (this.tracker.e(this.prevX, this.prevY, this.prevZ) > 16.0) {
-			this.prevX = this.tracker.locX;
-			this.prevY = this.tracker.locY;
-			this.prevZ = this.tracker.locZ;
-			this.scanPlayers(list);
-		}
-
-		this.tracked = true;
-		MinecartGroup group = ((MinecartMember) this.tracker).getGroup();
-		for (MinecartMember member : group) {
-			if (!member.getTracker().tracked) {
+		try {
+			if (this.tracker.dead) {
+				super.track(list);
 				return;
 			}
-		}
 
-		// Allowed?
-		long time = System.currentTimeMillis();
-		if (group.lastSync == Long.MIN_VALUE || (time - group.lastSync) > MIN_SYNC_INTERVAL) {
-			group.lastSync = time;
+			//update players
+			if (this.tracker.e(this.prevX, this.prevY, this.prevZ) > 16.0) {
+				this.prevX = this.tracker.locX;
+				this.prevY = this.tracker.locY;
+				this.prevZ = this.tracker.locZ;
+				this.scanPlayers(list);
+			}
+			this.tracked = true;
+			if (((MinecartMember) this.tracker).isUnloaded()) {
+				this.sync();
+				return;
+			}
+			MinecartGroup group = ((MinecartMember) this.tracker).getGroup();
+			for (MinecartMember member : group) {
+				if (!member.getTracker().tracked) {
+					return;
+				}
+			}
 
-			// All trackers updated, time to sync
-			syncAll();
+			// Allowed?
+			long time = System.currentTimeMillis();
+			if (group.lastSync == Long.MIN_VALUE || (time - group.lastSync) > MIN_SYNC_INTERVAL) {
+				group.lastSync = time;
+
+				// All trackers updated, time to sync
+				syncAll();
+			}
+		} catch (Throwable t) {
+			TrainCarts.plugin.log(Level.SEVERE, "An exception occurred while tracking a minecart:");
+			TrainCarts.plugin.handle(t);
 		}
 	}
 

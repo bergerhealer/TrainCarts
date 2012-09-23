@@ -936,14 +936,20 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Returns if this entity is allowed to collide with another entity
 	 */
 	private boolean canCollide(Entity e) {
-		if (this.member().isCollisionIgnored(e)) return false;
+		MinecartMember mm1 = this.member();
+		if (mm1.isUnloaded()) {
+			System.out.println("IGNORE!");
+		}
+		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded()) return false;
 		if (e.dead || this.dead) return false;
 		if (this.group().isVelocityAction()) return false;
 		if (e instanceof MinecartMember) {
 			//colliding with a member in the group, or not?
-			MinecartMember mm1 = this.member();
 			MinecartMember mm2 = (MinecartMember) e;
-			if (mm1.getGroup() == mm2.getGroup()) {
+			if (mm2.isUnloaded()) {
+				// The minecart is unloaded - ignore it
+				return false;
+			} else if (mm1.getGroup() == mm2.getGroup()) {
 				//Same group, but do prevent penetration
 				if (mm1.distance(mm2) > 0.5) {
 					return false;

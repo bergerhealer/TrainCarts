@@ -402,15 +402,13 @@ public class OfflineGroupManager {
 	}
 
 	/**
-	 * Check if this minecart is in a buffered group
+	 * Check if a minecart is in an offline group<br>
 	 * Used to check if a minecart can be linked
-	 * @param m - The minecart to check
+	 * 
+	 * @param uniqueId of the Minecart
 	 */
-	public static boolean wasInGroup(Entity minecartentity) {
-		return wasInGroup(minecartentity.getUniqueId());
-	}
-	public static boolean wasInGroup(UUID minecartUniqueID) {
-		return hiddenMinecarts.contains(minecartUniqueID);
+	public static boolean containsMinecart(UUID uniqueId) {
+		return hiddenMinecarts.contains(uniqueId);
 	}
 
 	public static boolean contains(String trainname) {

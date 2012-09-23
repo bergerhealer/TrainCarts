@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class MinecartGroupStore extends ArrayList<MinecartMember> {
@@ -44,9 +43,10 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 				g.add(member);
 			}
 		}
+		g.updateDirection();
+		g.getAverageForce();
 		if (!g.isValid()) return null;
 		groups.add(g);
-		g.unloaded = false;
 		GroupCreateEvent.call(g);
 		return g;
 	}
@@ -124,14 +124,12 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 	}
 	public static boolean link(MinecartMember m1, MinecartMember m2) {
 		if (m1 == null || m2 == null || m1 == m2) return false;
-		if (m1.dead || m2.dead) return false;
+		if (m1.dead || m2.dead || m1.isUnloaded() || m2.isUnloaded()) return false;
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
 		//max links per update
 		if (g1 != g2) {
 			if (m1.isDerailed() || m2.isDerailed()) return false;
-			if (OfflineGroupManager.wasInGroup(m1.uniqueId)) return false;
-			if (OfflineGroupManager.wasInGroup(m2.uniqueId)) return false;
 			//Can the two groups bind?
 			TrainProperties prop1 = g1.getProperties();
 			TrainProperties prop2 = g2.getProperties();

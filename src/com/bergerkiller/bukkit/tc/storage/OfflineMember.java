@@ -5,8 +5,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.bukkit.Chunk;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -31,6 +36,17 @@ public class OfflineMember {
 		Vector vel = new Vector(this.motX, 0.0, this.motZ).normalize().multiply(velocity);
 		this.motX = vel.getX();
 		this.motZ = vel.getZ();
+	}
+	public MinecartMember create(World world) {
+		// first try to find it in the chunk
+		Chunk c = world.getChunkAt(cx, cz);
+		for (Entity e : c.getEntities()) {
+			if (e instanceof Minecart && e.getUniqueId().equals(entityUID)) {
+				return EntityUtil.getNative(e, MinecartMember.class);
+			}
+		}
+		// try to find it in the world
+		return EntityUtil.getNative(EntityUtil.getEntity(world, entityUID), MinecartMember.class);
 	}
 	public void writeTo(DataOutputStream stream) throws IOException {
 		stream.writeLong(entityUID.getMostSignificantBits());

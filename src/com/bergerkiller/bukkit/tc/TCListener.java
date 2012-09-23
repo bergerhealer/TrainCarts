@@ -71,9 +71,6 @@ public class TCListener implements Listener {
 		synchronized (this.expectUnload) {
 			this.expectUnload.clear();
 			for (MinecartGroup mg : MinecartGroup.getGroupsUnsafe()) {
-				if (mg.isRemoved()) {
-					return;
-				}
 				if (mg.isInChunk(event.getChunk())) {
 					if (mg.canUnload()) {
 						this.expectUnload.add(mg);
@@ -243,44 +240,39 @@ public class TCListener implements Listener {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				if (OfflineGroupManager.wasInGroup(event.getVehicle())) {
+				MinecartMember mm1 = EntityUtil.getNative(event.getVehicle(), MinecartMember.class);
+				if (mm1 == null) {
+					return;
+				}
+				if (mm1.isUnloaded()) {
 					event.setCancelled(true);
 					return;
 				}
-				MinecartMember mm1 = MinecartMember.get(event.getVehicle());
-				if (mm1 != null) {
-					MinecartGroup g1 = mm1.getGroup();
-					if (g1 == null) {
+				MinecartGroup g1 = mm1.getGroup();
+				if (g1 == null || g1.isVelocityAction() || mm1.isCollisionIgnored(event.getEntity())) {
+					event.setCancelled(true);
+					return;
+				}
+				TrainProperties prop = g1.getProperties();
+				if (event.getEntity() instanceof Minecart) {
+					MinecartMember mm2 = MinecartMember.get(event.getEntity());
+					if (mm2 == null || mm1 == mm2) {
 						event.setCancelled(true);
-					} else if (g1.isVelocityAction()) {
-						event.setCancelled(true);
-					} else if (mm1.isCollisionIgnored(event.getEntity())) {
-						event.setCancelled(true);
-					} else {
-						TrainProperties prop = g1.getProperties();
-						if (event.getEntity() instanceof Minecart) {
-							if (OfflineGroupManager.wasInGroup(event.getEntity())) {
-								event.setCancelled(true);
-								return;
-							}
-							MinecartMember mm2 = MinecartMember.get(event.getEntity());
-							MinecartGroup g2 = null;
-							if (mm1 == mm2 || mm2 == null || (g2 = mm2.getGroup()) == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
-								event.setCancelled(true);
-							} else if (g2.isVelocityAction()) {
-								event.setCancelled(true);
-							} else if (!g2.getProperties().canCollide(mm1)) {
-								event.setCancelled(true);
-							} else if (!g1.getProperties().canCollide(mm2)) {
-								event.setCancelled(true);
-							}
-						} else if (prop.canPushAway(event.getEntity())) {
-							mm1.pushSideways(event.getEntity());
-							event.setCancelled(true);
-						} else if (!prop.canCollide(event.getEntity())) {
-							event.setCancelled(true);
-						}
+						return;
 					}
+					MinecartGroup g2 = mm2.getGroup();
+					if (g1 == g2 || MinecartGroup.link(mm1, mm2)) {
+						event.setCancelled(true);
+					} else if (g2.isVelocityAction()) {
+						event.setCancelled(true);
+					} else if (!g2.getProperties().canCollide(mm1) || !g1.getProperties().canCollide(mm2)) {
+						event.setCancelled(true);
+					}
+				} else if (prop.canPushAway(event.getEntity())) {
+					mm1.pushSideways(event.getEntity());
+					event.setCancelled(true);
+				} else if (!prop.canCollide(event.getEntity())) {
+					event.setCancelled(true);
 				}
 			}
 		} catch (Throwable t) {

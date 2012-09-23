@@ -59,7 +59,6 @@ public class MinecartGroup extends MinecartGroupStore {
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
 	protected boolean needsBlockUpdate = true;
-	protected boolean unloaded = false;
 	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
@@ -242,40 +241,42 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 	}
 	public void add(int index, MinecartMember member) {
+		super.add(index, member);
 		MemberAddEvent.call(member, this);
 		member.setGroup(this);
 		this.getProperties().add(member);
-		super.add(index, member);
 		this.addMemberSigns(member);
 	}
 	public boolean add(MinecartMember member) {
+		super.add(member);
 		MemberAddEvent.call(member, this);
 		member.setGroup(this);
 		this.getProperties().add(member);
-		super.add(member);
 		this.addMemberSigns(member);
 		return true;
 	}
 	public boolean addAll(int index, Collection<? extends MinecartMember> members) {
-		for (MinecartMember m : members) {
+		super.addAll(index, members);
+		MinecartMember[] memberArr = members.toArray(new MinecartMember[0]);
+		for (MinecartMember m : memberArr) {
 			MemberAddEvent.call(m, this);
 			m.setGroup(this);
 			this.getProperties().add(m);
 		}
-		super.addAll(index, members);
-		for (MinecartMember member : members) {
+		for (MinecartMember member : memberArr) {
 			this.addMemberSigns(member);
 		}
 		return true;
 	}
 	public boolean addAll(Collection<? extends MinecartMember> members) {
-		for (MinecartMember m : members) {
+		super.addAll(members);
+		MinecartMember[] memberArr = members.toArray(new MinecartMember[0]);
+		for (MinecartMember m : memberArr) {
 			MemberAddEvent.call(m, this);
 			m.setGroup(this);
 			this.getProperties().add(m);
 		}
-		super.addAll(members);
-		for (MinecartMember member : members) {
+		for (MinecartMember member : memberArr) {
 			this.addMemberSigns(member);
 		}
 		return true;
@@ -408,7 +409,6 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.prop = null;
 		}
 		groups.remove(this);
-		this.unloaded = true;
 	}
 	public void destroy() {
 		for (MinecartMember mm : this) {
@@ -420,7 +420,10 @@ public class MinecartGroup extends MinecartGroupStore {
 		GroupUnloadEvent.call(this);
 		this.stop(true);
 		groups.remove(this);
-		this.unloaded = true;
+		for (MinecartMember member : this) {
+			member.group = null;
+			member.unloaded = true;
+		}
 	}
 
 	/**
@@ -607,21 +610,29 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (this.size() == 0) return false;
 		return this.head().isMoving();
 	}
+
+	/**
+	 * Checks if this Minecart Group can unload, or if chunks are kept loaded instead<br>
+	 * The keepChunksLoaded property is read, as well the moving state if configured<br>
+	 * If a player is inside the train, it will keep the chunks loaded as well
+	 * 
+	 * @return True if it can unload, False if it keeps chunks loaded
+	 */
 	public boolean canUnload() {
-		if (TrainCarts.keepChunksLoadedOnlyWhenMoving && !this.isMoving()) {
-			return true;
+		if (this.getProperties().isKeepingChunksLoaded()) {
+			if (!TrainCarts.keepChunksLoadedOnlyWhenMoving || this.isMoving()) {
+				return false;
+			}
 		}
-		return !this.getProperties().isKeepingChunksLoaded();
-	}
-	public boolean isRemoved() {
-		if (!this.unloaded) {
-			for (MinecartMember member : this) {
-				if (!member.dead) {
-					return false;
-				}
+		for (MinecartMember member : this) {
+			if (member.hasPlayerPassenger()) {
+				return false;
 			}
 		}
 		return true;
+	}
+	public boolean isRemoved() {
+		return groups.contains(this);
 	}
 
 	public Inventory getInventory() {
