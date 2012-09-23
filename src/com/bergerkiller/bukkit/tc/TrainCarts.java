@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -361,13 +360,6 @@ public class TrainCarts extends PluginBase {
 				OfflineGroupManager.removeBuggedMinecarts();
 			}
 		}.start(1);
-		
-		//Start member removal task
-		cleanupTask = new Task(this) {
-			public void run() {
-				MinecartMember.cleanUpDeadCarts();
-			}
-		}.start(0, 10);
 	}
 	public void disable() {
 		//Stop tasks

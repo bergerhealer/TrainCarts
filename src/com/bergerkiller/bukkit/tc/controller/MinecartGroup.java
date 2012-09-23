@@ -59,6 +59,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
 	protected boolean needsBlockUpdate = true;
+	protected boolean unloaded = false;
 	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
@@ -242,14 +243,14 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 	public void add(int index, MinecartMember member) {
 		MemberAddEvent.call(member, this);
-		member.group = this;
+		member.setGroup(this);
 		this.getProperties().add(member);
 		super.add(index, member);
 		this.addMemberSigns(member);
 	}
 	public boolean add(MinecartMember member) {
 		MemberAddEvent.call(member, this);
-		member.group = this;
+		member.setGroup(this);
 		this.getProperties().add(member);
 		super.add(member);
 		this.addMemberSigns(member);
@@ -258,22 +259,26 @@ public class MinecartGroup extends MinecartGroupStore {
 	public boolean addAll(int index, Collection<? extends MinecartMember> members) {
 		for (MinecartMember m : members) {
 			MemberAddEvent.call(m, this);
-			m.group = this;
+			m.setGroup(this);
 			this.getProperties().add(m);
 		}
 		super.addAll(index, members);
-		for (MinecartMember member : members) this.addMemberSigns(member);
-				return true;
+		for (MinecartMember member : members) {
+			this.addMemberSigns(member);
+		}
+		return true;
 	}
 	public boolean addAll(Collection<? extends MinecartMember> members) {
 		for (MinecartMember m : members) {
 			MemberAddEvent.call(m, this);
-			m.group = this;
+			m.setGroup(this);
 			this.getProperties().add(m);
 		}
 		super.addAll(members);
-		for (MinecartMember member : members) this.addMemberSigns(member);
-				return true;
+		for (MinecartMember member : members) {
+			this.addMemberSigns(member);
+		}
+		return true;
 	}
 
 	public boolean contains(Object o) {
@@ -316,6 +321,23 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 	}
 
+	/**
+	 * Removes a member without splitting the train or causing link effects
+	 * 
+	 * @param member to remove
+	 * @return True if removed, False if not
+	 */
+	public boolean removeSilent(MinecartMember member) {
+		int index = this.indexOf(member);
+		if (index == -1) {
+			return false;
+		}
+		this.removeMember(index);
+		if (this.isEmpty()) {
+			this.remove();
+		}
+		return true;
+	}
 	public boolean remove(Object o) {
 		int index = this.indexOf(o);
 		if (index == -1) return false;
@@ -386,6 +408,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.prop = null;
 		}
 		groups.remove(this);
+		this.unloaded = true;
 	}
 	public void destroy() {
 		for (MinecartMember mm : this) {
@@ -396,10 +419,8 @@ public class MinecartGroup extends MinecartGroupStore {
 	public void unload() {
 		GroupUnloadEvent.call(this);
 		this.stop(true);
-		for (MinecartMember mm : this.toArray()) {
-			MinecartMember.undoReplacement(mm);
-		}
 		groups.remove(this);
+		this.unloaded = true;
 	}
 
 	/**
@@ -593,7 +614,14 @@ public class MinecartGroup extends MinecartGroupStore {
 		return !this.getProperties().isKeepingChunksLoaded();
 	}
 	public boolean isRemoved() {
-		return this.isEmpty() || !groups.contains(this);
+		if (!this.unloaded) {
+			for (MinecartMember member : this) {
+				if (!member.dead) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	public Inventory getInventory() {

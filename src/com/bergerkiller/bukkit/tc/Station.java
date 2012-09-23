@@ -22,7 +22,7 @@ public class Station {
 	private final boolean valid;
 
 	public Station(SignActionEvent info) {
-		this.delay = Util.parseTime(info.getLine(2));
+		this.delay = ParseUtil.parseTime(info.getLine(2));
 		this.nextDirection = Direction.parse(info.getLine(3));
 		this.centerCart = info.isCartSign() ? info.getMember() : info.getGroup().middle();
 

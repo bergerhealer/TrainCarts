@@ -14,7 +14,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	public boolean isRemoved;
 	private double prevX, prevY, prevZ;
 	protected boolean tracked = false;
-	public static final long MIN_SYNC_INTERVAL = 5;
+	public static final long MIN_SYNC_INTERVAL = 10;
 
 	public MinecartMemberTrackerEntry(EntityTrackerEntry source) {
 		super(source.tracker, 80, 3, true);

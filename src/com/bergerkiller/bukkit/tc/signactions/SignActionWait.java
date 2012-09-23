@@ -5,7 +5,6 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -18,7 +17,7 @@ public class SignActionWait extends SignAction {
 			if (info.isAction(SignActionType.GROUP_ENTER) && info.isPowered()) {
 				if (!info.hasRailedMember()) return;
 				int dist = Math.min(ParseUtil.parseInt(info.getLine(1), 100), TrainCarts.maxDetectorLength);
-				long delay = Util.parseTime(info.getLine(2));
+				long delay = ParseUtil.parseTime(info.getLine(2));
 				double launchDistance = ParseUtil.parseDouble(info.getLine(3), 2.0);
 
 				//allowed?

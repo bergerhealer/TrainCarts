@@ -30,16 +30,11 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		groups.add(g);
 		return g;
 	}
-	public static MinecartGroup create(Entity... members) {
-		return create(null, MinecartMember.convertAll(members));
-	}
 	public static MinecartGroup create(MinecartMember... members) {
 		return create(null, members);
 	}
-	public static MinecartGroup create(String name, Entity... members) {
-		return create(name, MinecartMember.convertAll(members));
-	}
 	public static MinecartGroup create(String name, MinecartMember... members) {
+		// There is not a group with this name already?
 		MinecartGroup g = new MinecartGroup();
 		if (name != null) {
 			g.setProperties(TrainProperties.get(name));
@@ -51,6 +46,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		}
 		if (!g.isValid()) return null;
 		groups.add(g);
+		g.unloaded = false;
 		GroupCreateEvent.call(g);
 		return g;
 	}
@@ -124,7 +120,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		if (m1 == m2) return false;
 		if (m1.isDead()) return false;
 		if (m2.isDead()) return false;
-		return link(MinecartMember.convert(m1), MinecartMember.convert(m2));
+		return link(MinecartMember.get(m1), MinecartMember.get(m2));
 	}
 	public static boolean link(MinecartMember m1, MinecartMember m2) {
 		if (m1 == null || m2 == null || m1 == m2) return false;

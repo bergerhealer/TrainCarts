@@ -13,11 +13,11 @@ import net.minecraft.server.ChunkProviderServer;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
@@ -50,19 +50,22 @@ public class OfflineGroup {
 	public OfflineMember[] members;
 	public String name;
 	public final Set<Long> chunks = new HashSet<Long>();
-	public int chunkCounter;
+	public final Set<Long> loadedChunks = new HashSet<Long>();
 	public UUID worldUUID;
-	
+
 	public boolean testFullyLoaded() {
-		return this.chunkCounter == this.chunks.size();
+		return this.loadedChunks.size() == this.chunks.size();
 	}
 	public boolean updateLoadedChunks(World world) {
 		ChunkProviderServer cps = WorldUtil.getNative(world).chunkProviderServer;
-		this.chunkCounter = 0;
+		this.loadedChunks.clear();
 		for (long chunk : this.chunks) {
 			if (cps.chunks.containsKey(chunk)) {
-				this.chunkCounter++;
+				this.loadedChunks.add(chunk);
 			}
+		}
+		if (OfflineGroupManager.lastUnloadChunk != null) {
+			this.loadedChunks.remove(OfflineGroupManager.lastUnloadChunk);
 		}
 		return this.testFullyLoaded();
 	}
@@ -70,11 +73,11 @@ public class OfflineGroup {
 		for (OfflineMember wm : this.members) {
 			for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
 				for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
-					this.chunks.add(MathUtil.toLong(x, z));
+					this.chunks.add(LongHash.toLong(x, z));
 				}
 			}
 		}
-		this.chunkCounter = 0;
+		this.loadedChunks.clear();
 	}
 	
 	/**
@@ -98,7 +101,7 @@ public class OfflineGroup {
 			if (m == null) {
 				m = EntityUtil.getEntity(w, member.entityUID, Minecart.class);
 			}
-			MinecartMember mm = MinecartMemberStore.convert(m);
+			MinecartMember mm = MinecartMemberStore.get(m);
 			if (mm != null) {
 				mm.motX = member.motX;
 				mm.motZ = member.motZ;
@@ -113,6 +116,8 @@ public class OfflineGroup {
 		if (rval.isEmpty()) {
 			return null;
 		}
+		// Is a new group needed?
+		
 		MinecartGroup group = MinecartGroup.create(this.name, rval.toArray(new MinecartMember[0]));
 		group.getAverageForce(); // update group direction
 		return group;

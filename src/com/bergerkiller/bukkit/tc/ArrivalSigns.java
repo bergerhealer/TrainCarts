@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class ArrivalSigns {
 	private static HashMap<String, TimeSign> timerSigns = new HashMap<String, TimeSign>();
@@ -54,7 +55,7 @@ public class ArrivalSigns {
 			}
 		}
 		TimeSign t = getTimer(name);
-		t.duration = Util.parseTime(duration);
+		t.duration = ParseUtil.parseTime(duration);
 		if (t.duration == 0) {
 			timeCalcStart(sign.getBlock().getLocation(), mm);
 		} else {
@@ -129,7 +130,7 @@ public class ArrivalSigns {
 			String dur = config.get(key, String.class, null);
 			if (dur != null) {
 				TimeSign t = getTimer(key);
-				t.duration = Util.parseTime(dur);
+				t.duration = ParseUtil.parseTime(dur);
 				t.startTime = System.currentTimeMillis();
 			}
 		}

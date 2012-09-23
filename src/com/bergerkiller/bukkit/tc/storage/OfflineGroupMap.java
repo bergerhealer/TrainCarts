@@ -5,9 +5,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.bukkit.Chunk;
+import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.craftbukkit.util.LongObjectHashMap;
-
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	
@@ -30,14 +29,16 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	public void add(OfflineGroup group) {
 		this.groups.add(group);
 		for (long chunk : group.chunks) {
-			getOrCreate(chunk).add(group);
+			if (!group.loadedChunks.contains(chunk)) {
+				getOrCreate(chunk).add(group);
+			}
 		}
 	}
-	
+
 	public void remove(OfflineGroup group) {
 		remove(group, false);
 	}
-		
+
 	public void remove(OfflineGroup group, boolean onlyFromMap) {
 		if (!onlyFromMap) {
 			this.groups.remove(group);
@@ -58,13 +59,15 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	}
 	
 	public Set<OfflineGroup> remove(int x, int z) {
-		return remove(MathUtil.toLong(x, z));
+		return remove(LongHash.toLong(x, z));
 	}
 	
 	public Set<OfflineGroup> remove(long chunk) {
-		Set<OfflineGroup> rval = get(chunk);
+		Set<OfflineGroup> rval = this.groupmap.remove(chunk);
 		if (rval != null) {
-			this.groupmap.remove(chunk);
+			for (OfflineGroup group : rval) {
+				group.loadedChunks.add(chunk);
+			}
 		}
 		return rval;
 	}
@@ -74,7 +77,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	}
 	
 	public Set<OfflineGroup> get(int x, int z) {
-		return this.get(MathUtil.toLong(x, z));
+		return this.get(LongHash.toLong(x, z));
 	}
 	
 	public Set<OfflineGroup> get(long chunk) {

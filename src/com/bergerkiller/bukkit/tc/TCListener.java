@@ -2,11 +2,14 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
 
+import net.minecraft.server.EntityMinecart;
+
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -36,12 +39,15 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.events.EntityAddEvent;
+import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -65,6 +71,9 @@ public class TCListener implements Listener {
 		synchronized (this.expectUnload) {
 			this.expectUnload.clear();
 			for (MinecartGroup mg : MinecartGroup.getGroupsUnsafe()) {
+				if (mg.isRemoved()) {
+					return;
+				}
 				if (mg.isInChunk(event.getChunk())) {
 					if (mg.canUnload()) {
 						this.expectUnload.add(mg);
@@ -79,7 +88,9 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
-			OfflineGroupManager.unloadChunk(event.getChunk());
+			// This chunk is still referenced, ensure that it is really gone
+			OfflineGroupManager.lastUnloadChunk = LongHash.toLong(event.getChunk().getX(), event.getChunk().getZ());
+			// Unload groups
 			synchronized (this.expectUnload) {
 				for (MinecartGroup mg : this.expectUnload) {
 					if (mg.isInChunk(event.getChunk())) {
@@ -87,6 +98,8 @@ public class TCListener implements Listener {
 					}
 				}
 			}
+			OfflineGroupManager.unloadChunk(event.getChunk());
+			OfflineGroupManager.lastUnloadChunk = null;
 		}
 	}
 
@@ -145,27 +158,34 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onVehicleCreate(final VehicleCreateEvent event) {
-		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
-		if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-			if (lastPlayer != null && MinecartMember.canConvert(event.getVehicle())) {
-				final Player last = lastPlayer;
-				lastPlayer = null;
-				// Start at a tick delay, because the vehicle create event is called from within the minecart constructor
-				new Task(TrainCarts.plugin) {
-					public void run() {
-						// Replace minecart
-						MinecartMember mm = MinecartMember.convert(event.getVehicle());
-						if (mm != null) {
-							mm.getGroup().getProperties().setDefault(last);
-							if (TrainCarts.setOwnerOnPlacement) {
-								mm.getProperties().setOwner(last);
-							}
-							CartPropertiesStore.setEditing(last, mm.getProperties());
-						}
-					}
-				}.start();
+	@EventHandler(priority = EventPriority.LOWEST)
+	public void onEntityAdd(EntityAddEvent event) {
+		net.minecraft.server.Entity entity = EntityUtil.getNative(event.getEntity());
+		if (entity.dead || !(entity instanceof EntityMinecart)) {
+			return;
+		}
+		MinecartMember member = MinecartMemberStore.convert((EntityMinecart) entity);
+		if (member != null && lastPlayer != null) {
+			// A player just placed a minecart - set defaults and ownership
+			member.getGroup().getProperties().setDefault(lastPlayer);
+			if (TrainCarts.setOwnerOnPlacement) {
+				member.getProperties().setOwner(lastPlayer);
+			}
+			CartPropertiesStore.setEditing(lastPlayer, member.getProperties());
+			lastPlayer = null;
+		}
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onEntityRemove(EntityRemoveEvent event) {
+		if (event.getEntity() instanceof Minecart) {
+			MinecartMember member = MinecartMember.get(event.getEntity());
+			if (member == null) {
+				return;
+			}
+			MinecartGroup group = member.getGroup();
+			if (group != null && group.size() == 1) {
+				group.unload();
 			}
 		}
 	}
@@ -227,7 +247,7 @@ public class TCListener implements Listener {
 					event.setCancelled(true);
 					return;
 				}
-				MinecartMember mm1 = MinecartMember.convert(event.getVehicle());
+				MinecartMember mm1 = MinecartMember.get(event.getVehicle());
 				if (mm1 != null) {
 					MinecartGroup g1 = mm1.getGroup();
 					if (g1 == null) {
@@ -243,7 +263,7 @@ public class TCListener implements Listener {
 								event.setCancelled(true);
 								return;
 							}
-							MinecartMember mm2 = MinecartMember.convert(event.getEntity());
+							MinecartMember mm2 = MinecartMember.get(event.getEntity());
 							MinecartGroup g2 = null;
 							if (mm1 == mm2 || mm2 == null || (g2 = mm2.getGroup()) == null || mm1.getGroup() == g2 || MinecartGroup.link(mm1, mm2)) {
 								event.setCancelled(true);

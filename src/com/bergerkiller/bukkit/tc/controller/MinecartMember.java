@@ -15,7 +15,6 @@ import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
-import net.minecraft.server.MathHelper;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
 
@@ -87,7 +86,6 @@ public class MinecartMember extends MinecartMemberStore {
 		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
 		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
-		replacedCarts.add(this);
 	}
 
 	/*
@@ -96,7 +94,7 @@ public class MinecartMember extends MinecartMemberStore {
 	@Override
 	public void h_() {
 		MinecartGroup g = this.getGroup();
-		if (g == null) return;
+		if (g == null || g.unloaded) return;
 		if (this.dead) {
 			//remove self
 			g.remove(this);
@@ -284,6 +282,12 @@ public class MinecartMember extends MinecartMemberStore {
  	}
 	public Minecart getMinecart() {
 		return (Minecart) this.getBukkitEntity();
+	}
+	protected void setGroup(MinecartGroup group) {
+		if (this.group != null && this.group != group) {
+			this.group.removeSilent(this);
+		}
+		this.group = group;
 	}
  	public MinecartGroup getGroup() {
  		if (this.group == null) {
@@ -906,9 +910,13 @@ public class MinecartMember extends MinecartMemberStore {
 		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
 	}
 	public void teleport(Location to) {
+		boolean changedWorld = to.getWorld() != this.getWorld();
 		this.died = true;
-		EntityUtil.teleport(TrainCarts.plugin, this, to);
-		MinecartMemberStore.createTracker(this);
+		EntityUtil.teleport(this, to);
+		if (changedWorld) {
+			this.tracker = new MinecartMemberTrackerEntry(this);
+			WorldUtil.setTrackerEntry(this, this.tracker);
+		}
 		this.teleportImmunityTick = 10;
 		this.died = false;
 	}
@@ -1021,7 +1029,6 @@ public class MinecartMember extends MinecartMemberStore {
 			super.die();
 			this.dead = false;
 			died = true;
-			replacedCarts.remove(this);
 			this.clearActiveSigns();
 			DetectorRegion.handleLeave(this, this.getBlock());
 			if (this.passenger != null) this.passenger.setPassengerOf(null);
@@ -1032,11 +1039,13 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	private int prevcx, prevcz;
 	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
-		int newx = MathHelper.floor(this.locX);
-		int newz = MathHelper.floor(this.locZ);
-		if ((newx >> 4) != prevcx || (newz >> 4) != prevcz) {
+		int newcx = MathUtil.locToChunk(this.locX);
+		int newcz = MathUtil.locToChunk(this.locZ);
+		if (newcx != prevcx || newcz != prevcz) {
+			prevcx = newcx;
+			prevcz = newcz;
 			if (canunload) {
-				if (!this.world.areChunksLoaded(newx, this.getBlockY(), newz, 32)) {
+				if (!this.world.areChunksLoaded(newcx << 4, this.getBlockY(), newcz << 4, 32)) {
 					OfflineGroupManager.hideGroup(this.getGroup());
 					throw new GroupUnloadedException();
 				}

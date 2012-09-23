@@ -18,6 +18,7 @@ import net.minecraft.server.WorldServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
@@ -32,6 +33,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class OfflineGroupManager {
+	public static Long lastUnloadChunk = null;
 	private static boolean chunkLoadReq = false;
 	private static boolean ignoreChunkLoad = false;
 	private static Set<String> containedTrains = new HashSet<String>();
@@ -47,7 +49,7 @@ public class OfflineGroupManager {
 	}
 	public static OfflineGroupManager get(World world) {
 		return get(world.getUID());
-	}		
+	}
 	public static void loadChunk(Chunk chunk) {
 		chunkLoadReq = true;
 		if (ignoreChunkLoad) return;
@@ -60,16 +62,6 @@ public class OfflineGroupManager {
 					Set<OfflineGroup> groups = man.groupmap.remove(chunk);
 					if (groups != null) {
 						for (OfflineGroup group : groups) {
-							if (group.chunkCounter == 0) {
-								// First chunk being loaded, verify?
-								group.updateLoadedChunks(chunk.getWorld());
-							} else {
-								group.chunkCounter++;
-								if (group.chunkCounter == group.chunks.size() - 1) {
-									// Just in case we missed a chunk, refresh
-									group.updateLoadedChunks(chunk.getWorld());
-								}
-							}
 							if (group.testFullyLoaded()) {
 								//a participant to be restored
 								if (group.updateLoadedChunks(chunk.getWorld())) {
@@ -97,7 +89,7 @@ public class OfflineGroupManager {
 					Set<OfflineGroup> groupset = man.groupmap.get(chunk);
 					if (groupset != null) {
 						for (OfflineGroup group : groupset) {
-							group.chunkCounter--;
+							group.loadedChunks.remove(LongHash.toLong(chunk.getX(), chunk.getZ()));
 						}
 					}
 				}
