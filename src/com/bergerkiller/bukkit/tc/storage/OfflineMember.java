@@ -24,8 +24,8 @@ public class OfflineMember {
 		this.motX = instance.motX;
 		this.motZ = instance.motZ;
 		this.entityUID = instance.uniqueId;
-		this.cx = MathUtil.locToChunk(instance.locX);
-		this.cz = MathUtil.locToChunk(instance.locZ);
+		this.cx = MathUtil.locToChunk(instance.lastX);
+		this.cz = MathUtil.locToChunk(instance.lastZ);
 		this.group = group;
 	}
 	public double motX, motZ;

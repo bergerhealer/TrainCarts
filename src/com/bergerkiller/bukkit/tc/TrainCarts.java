@@ -303,7 +303,7 @@ public class TrainCarts extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 1;
+		return 2;
 	}
 
 	public void enable() {
@@ -413,10 +413,8 @@ public class TrainCarts extends PluginBase {
 		OfflineGroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
 
 		SignAction.deinit();
-		
-		ItemAnimation.deinit();
 
-		plugin = null;
+		ItemAnimation.deinit();
 	}
 
 	public boolean command(CommandSender sender, String cmd, String[] args) {
