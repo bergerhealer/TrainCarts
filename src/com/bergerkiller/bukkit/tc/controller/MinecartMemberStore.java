@@ -100,7 +100,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 	public static MinecartMember getFromUID(UUID uuid) {
 		for (World world : WorldUtil.getWorlds()) {
 			MinecartMember member = CommonUtil.tryCast(EntityUtil.getEntity(world, uuid), MinecartMember.class);
-			if (member != null) {
+			if (member != null && !member.isUnloaded()) {
 				return member;
 			}
 		}
