@@ -38,7 +38,6 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.BlockSet;
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -142,14 +141,14 @@ public class TCListener implements Listener {
 			final Location loc = MathUtil.move(mloc, TrainCarts.exitOffset);
 			final Entity e = event.getExited();
 			//teleport
-			new Task(TrainCarts.plugin) {
+			CommonUtil.nextTick(new Runnable() {
 				public void run() {
 					if (e.isDead()) return;
 					loc.setYaw(e.getLocation().getYaw());
 					loc.setPitch(e.getLocation().getPitch());
 					e.teleport(loc);
 				}
-			}.start();
+			});
 			MinecartMember mm = MinecartMember.get(m);
 			if (mm != null) mm.update();
 		}
@@ -244,7 +243,7 @@ public class TCListener implements Listener {
 				if (mm1 == null) {
 					return;
 				}
-				if (mm1.isUnloaded()) {
+				if (mm1.isUnloaded() || !MinecartMemberStore.validateMinecart(mm1)) {
 					event.setCancelled(true);
 					return;
 				}
@@ -257,6 +256,10 @@ public class TCListener implements Listener {
 				if (event.getEntity() instanceof Minecart) {
 					MinecartMember mm2 = MinecartMember.get(event.getEntity());
 					if (mm2 == null || mm1 == mm2) {
+						event.setCancelled(true);
+						return;
+					}
+					if (mm2.isUnloaded() || !MinecartMemberStore.validateMinecart(mm2)) {
 						event.setCancelled(true);
 						return;
 					}
@@ -454,12 +457,12 @@ public class TCListener implements Listener {
 			Block signblock = att.getRelative(face);
 			if (BlockUtil.isSign(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
 				if (ignoredSigns.isEmpty()) {
-					// start a new task the next tick to clear this
-					new Task(TrainCarts.plugin) {
+					// clear this the next tick
+					CommonUtil.nextTick(new Runnable() {
 						public void run() {
 							ignoredSigns.clear();
 						}
-					}.start();
+					});
 				}
 				ignoredSigns.add(signblock);
 			}

@@ -13,7 +13,6 @@ import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
@@ -83,9 +82,6 @@ public class MinecartMemberStore extends NativeMinecartMember {
 				//bugged minecart - kill it!
 				minecart.dead = true;
 				minecart.world.removeEntity(minecart);
-				minecart.ah = MathUtil.locToChunk(minecart.locX);
-				minecart.ai = MathUtil.locToChunk(minecart.locY);
-				minecart.aj = MathUtil.locToChunk(minecart.locZ);
 				if (minecart.world.chunkProvider.isChunkLoaded(minecart.ah, minecart.aj)) {
 					minecart.world.chunkProvider.getChunkAt(minecart.ah, minecart.aj).b(minecart);
 				}

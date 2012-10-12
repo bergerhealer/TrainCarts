@@ -35,7 +35,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.items.MergedInventory;
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberDeadException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -51,6 +50,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -135,7 +135,7 @@ public class MinecartMember extends MinecartMemberStore {
 			for (net.minecraft.server.Entity e : this.getNearbyEntities(2)) {
 				if (e instanceof EntityItem) {
 					item = (Item) e.getBukkitEntity();
-					if (ItemUtil.isIgnored(item)) continue;
+					if (EntityUtil.isIgnored(item)) continue;
 					stack = item.getItemStack();
 					double distance = this.distance(e);
 					if (ItemUtil.testTransfer(stack, inv) == stack.getAmount()) {
@@ -993,11 +993,11 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.passenger != null) {
 			final Entity passenger = this.passenger.getBukkitEntity();
 			this.passenger.setPassengerOf(null);
-			new Task(TrainCarts.plugin) {
+			CommonUtil.nextTick(new Runnable() {
 				public void run() {
 					passenger.teleport(to);
 				}
-			}.start(0);
+			});
 		}
 	}
 	public boolean connect(MinecartMember with) {

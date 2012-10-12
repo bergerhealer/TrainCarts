@@ -64,6 +64,11 @@ public class GlobalCommands {
 			TrainCarts.plugin.loadConfig();
 			sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
 			return true;
+		} else if (args[0].equals("fixbugged")) {
+			Permission.COMMAND_FIXBUGGED.handle(sender);
+			OfflineGroupManager.removeBuggedMinecarts();
+			sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
+			return true;
 		} else if (args[0].equals("list")) {
 			int count = 0, moving = 0;
 			for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {

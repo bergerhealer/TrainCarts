@@ -12,6 +12,7 @@ public enum Permission implements IPermissionDefault {
 	COMMAND_PROPERTIES("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of carts he owns"),
 	COMMAND_DESTROY("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands"),
 	COMMAND_DESTROYALL("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server"),
+	COMMAND_FIXBUGGED("train.command.fixbugged", PermissionDefault.OP, "The player can destroy all bugged minecarts on the server"),
 	COMMAND_REROUTE("train.command.reroute", PermissionDefault.OP, "The player can force path finding to re-calculate"),
 	COMMAND_RELOAD("train.command.reload", PermissionDefault.OP, "The player can reload the configuration"),
 	COMMAND_BREAKBLOCK("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list"),

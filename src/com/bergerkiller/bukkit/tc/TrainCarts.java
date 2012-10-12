@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
@@ -354,12 +355,11 @@ public class TrainCarts extends PluginBase {
 		OfflineGroupManager.refresh();
 				
 		//Properly dispose of partly-referenced carts
-		new Task(this) {
-			@Override
+		CommonUtil.nextTick(new Runnable() {
 			public void run() {
 				OfflineGroupManager.removeBuggedMinecarts();
 			}
-		}.start(1);
+		});
 	}
 	public void disable() {
 		//Stop tasks

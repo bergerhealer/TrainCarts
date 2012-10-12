@@ -13,13 +13,13 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.BlockMap;
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSignPair;
@@ -64,11 +64,11 @@ public class SignActionDetector extends SignAction {
 						final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
 						detectors.put(startsign, detector);
 						detectors.put(endsign, detector);
-						new Task(TrainCarts.plugin) {
+						CommonUtil.nextTick(new Runnable() {
 							public void run() {
 								DetectorRegion.create(map).register(detector);
 							}
-						}.start();
+						});
 						return true;
 					}
 				}
