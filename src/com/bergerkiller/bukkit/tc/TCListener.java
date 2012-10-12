@@ -18,7 +18,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -389,13 +388,6 @@ public class TCListener implements Listener {
 	}
 
 	private static final BlockSet ignoredSigns = new BlockSet();
-
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onBlockPhysics(BlockPhysicsEvent event) {
-		if (!event.isCancelled() && !event.isAsynchronous() && BlockUtil.isType(event.getBlock(), Material.LEVER)) {
-			ignoreOutputLever(event.getBlock());
-		}
-	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {

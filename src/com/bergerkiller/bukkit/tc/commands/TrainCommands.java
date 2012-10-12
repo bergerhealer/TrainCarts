@@ -149,7 +149,7 @@ public class TrainCommands {
 					p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
 				}
 			}
-		} else if (cmd.equals("displayname") || cmd.equals("display") || cmd.equals("dname") || cmd.equals("setdisplayname")) {
+		} else if (cmd.equals("displayname") || cmd.equals("display") || cmd.equals("dname") || cmd.equals("setdname") || cmd.equals("setdisplayname")) {
 			Permission.COMMAND_DISPLAYNAME.handle(p);
 			if (args.length == 0) {
 				p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");

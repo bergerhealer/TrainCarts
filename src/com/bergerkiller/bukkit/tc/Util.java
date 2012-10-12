@@ -211,8 +211,26 @@ public class Util {
 	public static boolean isRails(Block block, BlockFace direction) {
 		return getRailsBlock(block.getRelative(direction)) != null;
 	}
-	
-	/*
+
+	/**
+	 * Parses a long time value to a readable time String
+	 * 
+	 * @param time to parse
+	 * @return time in the hh:mm:ss format
+	 */
+	public static String getTimeString(long time) {
+		if (time == 0) return "00:00:00";
+		time /= 1000; // msec -> sec
+		String seconds = Integer.toString((int)(time % 60));
+		String minutes = Integer.toString((int)((time % 3600) / 60));
+		String hours = Integer.toString((int)(time / 3600)); 
+		if (seconds.length() == 1) seconds = "0" + seconds;
+		if (minutes.length() == 1) minutes = "0" + minutes;
+		if (hours.length() == 1) hours = "0" + hours;
+		return hours + ":" + minutes + ":" + seconds;
+	}
+
+	/**
 	 * This will return:
 	 * South or west if it's a straight piece
 	 * Self if it is a cross-intersection

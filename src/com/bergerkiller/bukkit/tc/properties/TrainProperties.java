@@ -133,12 +133,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	/**
-	 * Sets the Display Name for these properties
+	 * Sets the Display Name for these properties<br>
+	 * If a null or empty String is passed in as argument, the display name is set to 
+	 * the train name. (it is reset)
 	 * 
 	 * @param displayName to set to
 	 */
 	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
+		if (displayName == null || displayName.isEmpty()) {
+			this.displayName = this.trainname;
+		} else {
+			this.displayName = displayName;
+		}
 	}
 
 	/**
@@ -596,7 +602,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
 	@Override
 	public void load(ConfigurationNode node) {
-		this.displayName = node.get("displayName", this.displayName);
+		this.setDisplayName(node.get("displayName", this.displayName));
 		this.allowLinking = node.get("allowLinking", this.allowLinking);
 		this.trainCollision = node.get("trainCollision", this.trainCollision);
 		this.slowDown = node.get("slowDown", this.slowDown);

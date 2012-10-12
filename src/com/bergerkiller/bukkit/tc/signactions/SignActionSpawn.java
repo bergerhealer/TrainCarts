@@ -15,8 +15,8 @@ import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
@@ -128,7 +128,7 @@ public class SignActionSpawn extends SignAction {
 			if (handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) {
 				long interval = getSpawnTime(event);
 				if (interval > 0) {
-					event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + ArrivalSigns.getTimeString(interval) + " while powered");
+					event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
 					SpawnSign sign = new SpawnSign(event.getBlock(), interval);
 					spawnSigns.put(event.getBlock(), sign);
 					sign.start();

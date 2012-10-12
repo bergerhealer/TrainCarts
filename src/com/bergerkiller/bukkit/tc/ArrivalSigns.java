@@ -1,15 +1,13 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.io.File;
 import java.util.HashMap;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -19,71 +17,30 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class ArrivalSigns {
 	private static HashMap<String, TimeSign> timerSigns = new HashMap<String, TimeSign>();
-	
-	public static TimeSign getTimer(String name) {
-		TimeSign t = timerSigns.get(name);
-		if (t == null) {
-			t = new TimeSign();
-			t.name = name;
-			timerSigns.put(name, t);
-		}
-		return t;
-	}
-	
-	public static boolean isTrigger(Sign sign) {
-		if (sign != null) {
-			if (sign.getLine(0).equalsIgnoreCase("[train]")) {
-				if (sign.getLine(1).equalsIgnoreCase("trigger")) {
-					return true;
+	private static BlockMap<TimeCalculation> timeCalculations = new BlockMap<TimeCalculation>();
+	private static Task updateTask;
+
+	private static class TimeCalculation {
+		public long startTime;
+		public Block signblock;
+		public MinecartMember member = null;
+		public void setTime() {
+			long duration = System.currentTimeMillis() - startTime;
+			if (BlockUtil.isSign(this.signblock)) {
+				Sign sign = BlockUtil.getSign(this.signblock);
+				String dur = Util.getTimeString(duration);
+				sign.setLine(3, dur);
+				sign.update(true);
+				//Message
+				for (Player player : sign.getWorld().getPlayers()) {
+					if (player.hasPermission("train.build.trigger")) {
+						player.sendMessage(ChatColor.YELLOW + "[Train Carts] Trigger time of '" + sign.getLine(2) + "' set to " + dur);
+					}
 				}
 			}
 		}
-		return false;
 	}
-	
-	public static void trigger(Sign sign, MinecartMember mm) {
-		if (!TrainCarts.SignLinkEnabled) return;
-		String name = sign.getLine(2);
-		String duration = sign.getLine(3);
-		if (name == null || name.equals("")) return;
-		if (mm != null) {
-			Variables.get(name + 'N').set(mm.getGroup().getProperties().getDisplayName());
-			if (mm.getProperties().hasDestination()) {
-				Variables.get(name + 'D').set(mm.getProperties().getDestination());
-			} else {
-				Variables.get(name + 'D').set("Unknown");
-			}
-		}
-		TimeSign t = getTimer(name);
-		t.duration = ParseUtil.parseTime(duration);
-		if (t.duration == 0) {
-			timeCalcStart(sign.getBlock().getLocation(), mm);
-		} else {
-			t.trigger();
-			t.update();
-		}
-	}
-		
-	public static void updateAll() {
-		for (TimeSign t : timerSigns.values()) {
-			if (!t.update()) {
-				return;
-			}
-		}
-	}
-	
-	public static String getTimeString(long time) {
-		if (time == 0) return "00:00:00";
-		time /= 1000; // msec -> sec
-		String seconds = Integer.toString((int)(time % 60));
-		String minutes = Integer.toString((int)((time % 3600) / 60));
-		String hours = Integer.toString((int)(time / 3600)); 
-		if (seconds.length() == 1) seconds = "0" + seconds;
-		if (minutes.length() == 1) minutes = "0" + minutes;
-		if (hours.length() == 1) hours = "0" + hours;
-		return hours + ":" + minutes + ":" + seconds;
-	}
-	
+
 	public static class TimeSign {
 		private String name;
 		public long startTime = -1;
@@ -101,7 +58,7 @@ public class ArrivalSigns {
 			long elapsed = System.currentTimeMillis() - this.startTime;
 			long remaining = duration - elapsed;
 			if (remaining < 0) remaining = 0;
-			return getTimeString(remaining);
+			return Util.getTimeString(remaining);
 		}
 		
 		public boolean update() {
@@ -119,10 +76,58 @@ public class ArrivalSigns {
 		}
 	}
 
-	public static String getFile(World w) {
-		return TrainCarts.plugin.getDataFolder() + File.separator + "ArrivalSigns" + File.separator + w.getName() + ".txt";
+	public static TimeSign getTimer(String name) {
+		TimeSign t = timerSigns.get(name);
+		if (t == null) {
+			t = new TimeSign();
+			t.name = name;
+			timerSigns.put(name, t);
+		}
+		return t;
 	}
-	
+
+	public static boolean isTrigger(Sign sign) {
+		if (sign != null) {
+			if (sign.getLine(0).equalsIgnoreCase("[train]")) {
+				if (sign.getLine(1).equalsIgnoreCase("trigger")) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public static void trigger(Sign sign, MinecartMember mm) {
+		if (!TrainCarts.SignLinkEnabled) return;
+		String name = sign.getLine(2);
+		String duration = sign.getLine(3);
+		if (name == null || name.equals("")) return;
+		if (mm != null) {
+			Variables.get(name + 'N').set(mm.getGroup().getProperties().getDisplayName());
+			if (mm.getProperties().hasDestination()) {
+				Variables.get(name + 'D').set(mm.getProperties().getDestination());
+			} else {
+				Variables.get(name + 'D').set("Unknown");
+			}
+		}
+		TimeSign t = getTimer(name);
+		t.duration = ParseUtil.parseTime(duration);
+		if (t.duration == 0) {
+			timeCalcStart(sign.getBlock(), mm);
+		} else {
+			t.trigger();
+			t.update();
+		}
+	}
+
+	public static void updateAll() {
+		for (TimeSign t : timerSigns.values()) {
+			if (!t.update()) {
+				return;
+			}
+		}
+	}
+
 	public static void init(String filename) {
 		FileConfiguration config = new FileConfiguration(filename);
 		config.load();
@@ -143,17 +148,15 @@ public class ArrivalSigns {
 		config.save();
 		timerSigns.clear();
 		timerSigns = null;
-		timeCalcStart.clear();
-		timeCalcStart = null;
-		if (updateThread != null && updateThread.isRunning()) {
-			updateThread.stop();
+		timeCalculations.clear();
+		timeCalculations = null;
+		if (updateTask != null && updateTask.isRunning()) {
+			updateTask.stop();
 		}
-		updateThread = null;
+		updateTask = null;
 	}
-	
-	private static HashMap<Location, TimeCalculation> timeCalcStart = new HashMap<Location, TimeCalculation>();
-	private static Task updateThread;
-	public static void timeCalcStart(Location signblock, MinecartMember member) {
+
+	public static void timeCalcStart(Block signblock, MinecartMember member) {
 		TimeCalculation calc = new TimeCalculation();
 		calc.startTime = System.currentTimeMillis();
 		calc.signblock = signblock;
@@ -167,61 +170,33 @@ public class ArrivalSigns {
 				}
 			}
 		}
-		timeCalcStart(calc);
-	}
-	private static void timeCalcStart(TimeCalculation calc) {
-		timeCalcStart.put(calc.signblock, calc);
-		if (updateThread == null) {
-			updateThread = new Task(TrainCarts.plugin) {
+		timeCalculations.put(calc.signblock, calc);
+		if (updateTask == null) {
+			updateTask = new Task(TrainCarts.plugin) {
 				public void run() {
-					if (timeCalcStart.size() == 0) {
+					if (timeCalculations.isEmpty()) {
 						this.stop();
+						updateTask = null;
 					}
-					for (TimeCalculation calc : timeCalcStart.values()) {
+					for (TimeCalculation calc : timeCalculations.values()) {
 						if (calc.member != null) {
 							if (calc.member.dead || !calc.member.isMoving()) {
 								calc.setTime();
-								timeCalcStart.remove(calc.signblock);
+								timeCalculations.remove(calc.signblock);
 								return;
 							}
 						}
 					}
 				}
-			};
-		}
-		if (!updateThread.isRunning()) {
-			updateThread.start(0, 1);
+			}.start(0, 1);
 		}
 	}
-	
-	private static class TimeCalculation {
-		public long startTime;
-		public Location signblock;
-		public MinecartMember member = null;
-		public void setTime() {
-			long duration = System.currentTimeMillis() - startTime;
-			Block block = signblock.getBlock();
-			if (BlockUtil.isSign(block)) {
-				Sign sign = BlockUtil.getSign(block);
-				String dur = getTimeString(duration);
-				sign.setLine(3, dur);
-				sign.update(true);
-				//Message
-				for (Player player : sign.getWorld().getPlayers()) {
-					if (player.hasPermission("train.build.trigger")) {
-						player.sendMessage(ChatColor.YELLOW + "[Train Carts] Trigger time of '" + sign.getLine(2) + "' set to " + dur);
-					}
-				}
-			}
-		}
-	}
-	
-	
-	public static void timeCalcStop(Location signblock) {
-		TimeCalculation calc = timeCalcStart.get(signblock);
+
+	public static void timeCalcStop(Block signblock) {
+		TimeCalculation calc = timeCalculations.get(signblock);
 		if (calc != null && calc.member == null) {
 			calc.setTime();
-			timeCalcStart.remove(signblock);
+			timeCalculations.remove(signblock);
 		}
 	}
 }

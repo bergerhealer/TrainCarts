@@ -15,7 +15,7 @@ public class SignActionTrigger extends SignAction {
 					if (info.isPowered()) {
 						ArrivalSigns.trigger(info.getSign(), info.getMember());
 					} else if (info.isAction(SignActionType.REDSTONE_OFF)) {
-						ArrivalSigns.timeCalcStop(info.getLocation());
+						ArrivalSigns.timeCalcStop(info.getBlock());
 					}
 				}
 			}
