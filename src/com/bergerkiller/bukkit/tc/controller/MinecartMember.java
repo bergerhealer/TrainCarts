@@ -423,7 +423,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.getBlock(0, 0, 0);
 	}
 	public Block getBlockRelative(BlockFace direction) {
-		return this.getBlock(FaceUtil.offset(direction, this.getDirection()));
+		return this.getBlock(FaceUtil.add(direction, this.getDirection()));
 	}
  	public Block getRailsBlock() {
 		if (this.isDerailed) return null;

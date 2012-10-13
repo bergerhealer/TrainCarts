@@ -154,7 +154,7 @@ public class TrainCommands {
 			if (args.length == 0) {
 				p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
 			} else {
-				prop.setDisplayName(StringUtil.combine(" ", args));
+				prop.setDisplayName(StringUtil.ampToColor(StringUtil.combine(" ", args)));
 				p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.getDisplayName() + ChatColor.YELLOW + "!");
 			}
 		} else if (cmd.equals("addtags") || cmd.equals("addtag")) {

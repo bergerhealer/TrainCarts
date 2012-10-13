@@ -2,10 +2,10 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -30,7 +30,7 @@ public class SignActionAnnounce extends SignAction {
 		return getMessage(info.getLine(2) + info.getLine(3));
 	}
 	public static String getMessage(String msg) {
-		return Util.replaceColors(TrainCarts.messageShortcuts.replace(msg));
+		return StringUtil.ampToColor(TrainCarts.messageShortcuts.replace(msg));
 	}
 	public static void sendMessage(String msg, Player player) {
 		if (TrainCarts.SignLinkEnabled) {

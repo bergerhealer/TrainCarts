@@ -127,7 +127,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public void setRailsRelative(BlockFace direction) {
 		BlockFace main = this.getFacing().getOppositeFace();
-		setRails(FaceUtil.offset(main, direction));
+		setRails(FaceUtil.add(main, direction));
 	}
 
 	public void setRailsFromTo(BlockFace from, BlockFace to) {
@@ -172,29 +172,29 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public void setRailsLeft(BlockFace from) {
 		//is a track present at this direction?
-		BlockFace main = FaceUtil.offset(from.getOppositeFace(), BlockFace.WEST);
+		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
 		if (!Util.isRails(this.getRails().getRelative(main))) {
-			main = FaceUtil.offset(from.getOppositeFace(), BlockFace.NORTH);
+			main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
 		}
 		//Set it
 		this.setRailsFromTo(from, main);
 	}
 	public void setRailsRight(BlockFace from) {
 		//is a track present at this direction?
-		BlockFace main = FaceUtil.offset(from.getOppositeFace(), BlockFace.EAST);
+		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
 		if (!Util.isRails(this.getRails().getRelative(main))) {
-			main = FaceUtil.offset(from.getOppositeFace(), BlockFace.NORTH);
+			main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
 		}
 		//Set it
 		this.setRailsFromTo(from, main);
 	}
 	public void setRailsForward(BlockFace from) {
 		//is a track present at this direction?
-		BlockFace main = FaceUtil.offset(from.getOppositeFace(), BlockFace.NORTH);
+		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
 		if (!Util.isRails(this.getRails().getRelative(main))) {
-			main = FaceUtil.offset(from.getOppositeFace(), BlockFace.EAST);
+			main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
 			if (!BlockUtil.isRails(this.getRails().getRelative(main))) {
-				main = FaceUtil.offset(from.getOppositeFace(), BlockFace.WEST);
+				main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
 			}
 		}
 		//Set it
