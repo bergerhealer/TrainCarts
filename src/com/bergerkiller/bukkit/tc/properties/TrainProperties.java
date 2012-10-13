@@ -403,8 +403,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 */
 	public CollisionMode getCollisionMode(Entity entity) {
 		if (entity instanceof Player) {
-			if (TrainCarts.pushAwayIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
-				if (TrainCarts.pushAwayIgnoreGlobalOwners) {
+			if (TrainCarts.collisionIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
+				if (TrainCarts.collisionIgnoreGlobalOwners) {
 					if (CartProperties.hasGlobalOwnership((Player) entity)) {
 						return CollisionMode.DEFAULT;
 					}

@@ -61,8 +61,8 @@ public class TrainCarts extends PluginBase {
 	public static Vector exitOffset;
 	public static double pushAwayForce;
 	public static double launchForce;
-	public static boolean pushAwayIgnoreGlobalOwners;
-	public static boolean pushAwayIgnoreOwners;
+	public static boolean collisionIgnoreGlobalOwners;
+	public static boolean collisionIgnoreOwners;
 	public static boolean useCoalFromStorageCart;
 	public static boolean setOwnerOnPlacement;
 	public static boolean keepChunksLoadedOnlyWhenMoving;
@@ -158,13 +158,25 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("launchForce", "\nThe amount of velocity stations give when launching trains");
 		launchForce = config.get("launchForce", 10.0);
 
+		// Deprecation backwards compatibility
+		if (config.contains("pushAway")) {
+			config.set("collision.ignoreOwners", config.get("pushAway.ignoreOwners", true));
+			config.set("collision.ignoreGlobalOwners", config.get("pushAway.ignoreGlobalOwners", false));
+			config.set("collision.pushAwayForce", config.get("pushAway.force", 0.2));
+			config.remove("pushAway");
+		}
+
 		config.setHeader("pushAway", "\nSettings used when carts push away/aside others (if enabled)");
-		config.setHeader("pushAway.force", "The amount of force at which minecarts push away others");
 		config.setHeader("pushAway.ignoreOwners", "If train owners are ignored");
 		config.setHeader("pushAway.ignoreGlobalOwners", "If global train owners are ignored");
-		pushAwayForce = config.get("pushAway.force", 0.2);
-		pushAwayIgnoreOwners = config.get("pushAway.ignoreOwners", true);
-		pushAwayIgnoreGlobalOwners = config.get("pushAway.ignoreGlobalOwners", false);
+
+		config.setHeader("collision", "\nSettings used when carts collide with entities");
+		config.setHeader("collision.ignoreOwners", "If train owners are ignored");
+		config.setHeader("collision.ignoreGlobalOwners", "If global train owners are ignored");
+		config.setHeader("collision.pushAwayForce", "The amount of force at which minecarts push away others");
+		collisionIgnoreOwners = config.get("collision.ignoreOwners", true);
+		collisionIgnoreGlobalOwners = config.get("collision.ignoreGlobalOwners", false);
+		pushAwayForce = config.get("collision.pushAwayForce", 0.2);
 
 		config.setHeader("useCoalFromStorageCart", "\nWhether or not powered minecarts obtain their coal from attached storage minecarts");
 		useCoalFromStorageCart = config.get("useCoalFromStorageCart", false);

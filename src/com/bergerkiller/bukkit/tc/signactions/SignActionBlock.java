@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.actions.Action;
@@ -20,7 +21,7 @@ public class SignActionBlock extends SignAction {
 				// Remove the wait state when the train leaves or the sign lost power to block
 				Action action = info.getGroup().getCurrentAction();
 				if (action != null && action instanceof GroupActionWaitState) {
-					info.getGroup().clearActions();
+					((GroupActionWaitState) action).stop();
 				}
 			} else if (info.isPowered() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
 				// Set the next direction based on the sign
@@ -28,9 +29,13 @@ public class SignActionBlock extends SignAction {
 				if (!info.isAction(SignActionType.MEMBER_MOVE)) {
 					Direction direction = Direction.parse(info.getLine(3));
 					if (direction != Direction.NONE) {
+						long delay = ParseUtil.parseTime(info.getLine(2));
 						BlockFace trainDirection = direction.getDirection(info.getFacing(), info.getCartDirection());
 						info.getGroup().clearActions();
 						info.getGroup().addActionWaitState();
+						if (delay > 0) {
+							info.getGroup().addActionWait(delay);
+						}
 						info.getMember().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());
 					}
 				}

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -31,8 +32,14 @@ public enum CollisionMode {
 			case CANCEL :
 				return false;
 			case KILL :
-				if (member.isHeadingTo(entity)) {
-					entity.remove();
+				if (member.isMoving() && member.isHeadingTo(entity)) {
+					if (entity instanceof LivingEntity) {
+						boolean old = Util.setInvulnerable(entity, false);
+						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getBukkitEntity());
+						Util.setInvulnerable(entity, old);
+					} else {
+						entity.remove();
+					}
 				}
 				return false;
 			default :

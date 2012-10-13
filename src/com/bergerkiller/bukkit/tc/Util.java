@@ -4,17 +4,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import net.minecraft.server.EntityHuman;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
@@ -214,6 +218,23 @@ public class Util {
 	}
 	public static boolean isRails(Block block, BlockFace direction) {
 		return getRailsBlock(block.getRelative(direction)) != null;
+	}
+
+	/**
+	 * Sets the invulerability state of an Entity
+	 * 
+	 * @param entity to set it for
+	 * @param state to set to
+	 * @return old invulnerability state
+	 */
+	public static boolean setInvulnerable(Entity entity, boolean state) {
+		if (entity instanceof HumanEntity) {
+			EntityHuman human = EntityUtil.getNative(entity, EntityHuman.class);
+			boolean old = human.abilities.isInvulnerable;
+			human.abilities.isInvulnerable = state;
+			return old;
+		}
+		return false;
 	}
 
 	/**
