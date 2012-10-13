@@ -186,7 +186,7 @@ public class TCListener implements Listener {
 					} else {
 						event.setCancelled(true);
 					}
-				} else if (!prop.getMobsEnter()) {
+				} else if (member.getGroup().getProperties().mobCollision != CollisionMode.ENTER) {
 					event.setCancelled(true);
 				}
 				member.update();
@@ -232,6 +232,10 @@ public class TCListener implements Listener {
 					return;
 				}
 				TrainProperties prop = g1.getProperties();
+				if (!prop.canCollide(event.getEntity())) {
+					event.setCancelled(true);
+					return;
+				}
 				if (event.getEntity() instanceof Minecart) {
 					MinecartMember mm2 = MinecartMember.get(event.getEntity());
 					if (mm2 == null || mm1 == mm2) {
@@ -243,17 +247,16 @@ public class TCListener implements Listener {
 						return;
 					}
 					MinecartGroup g2 = mm2.getGroup();
+					if (!g2.getProperties().canCollide(g1)) {
+						event.setCancelled(true);
+						return;
+					}
 					if (g1 == g2 || MinecartGroup.link(mm1, mm2)) {
 						event.setCancelled(true);
 					} else if (g2.isVelocityAction()) {
 						event.setCancelled(true);
-					} else if (!g2.getProperties().canCollide(mm1) || !g1.getProperties().canCollide(mm2)) {
-						event.setCancelled(true);
 					}
-				} else if (prop.canPushAway(event.getEntity())) {
-					mm1.pushSideways(event.getEntity());
-					event.setCancelled(true);
-				} else if (!prop.canCollide(event.getEntity())) {
+				} else if (!prop.getCollisionMode(event.getEntity()).execute(mm1, event.getEntity())) {
 					event.setCancelled(true);
 				}
 			}

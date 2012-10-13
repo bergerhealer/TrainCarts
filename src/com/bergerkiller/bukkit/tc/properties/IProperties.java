@@ -90,20 +90,6 @@ public interface IProperties {
 	public void setPublic(boolean state);
 
 	/**
-	 * Gets whether mobs can enter
-	 * 
-	 * @return True or False
-	 */
-	public boolean getMobsEnter();
-
-	/**
-	 * Sets whether mobs can enter
-	 * 
-	 * @param state to set to
-	 */
-	public void setMobsEnter(boolean state);
-
-	/**
 	 * Gets whether players can enter
 	 * 
 	 * @return True or False

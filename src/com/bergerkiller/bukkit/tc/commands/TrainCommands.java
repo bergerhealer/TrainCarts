@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -77,37 +78,31 @@ public class TrainCommands {
 			}
 		} else if (cmd.equals("pushmobs") || cmd.equals("pushplayers") || cmd.equals("pushmisc")) {
 			Permission.COMMAND_PUSHING.handle(p);
-			String secarg = null;
+			// Parse a new collision mode to set to
+			CollisionMode newState = null;
 			if (args.length == 1) {
-				secarg = args[0];
+				newState = CollisionMode.fromPushing(StringUtil.getBool(args[0]));
 			}
 			String msg = ChatColor.YELLOW + "Pushes away ";
 			if (cmd.equals("pushmobs")) {
-				if (secarg != null) prop.pushMobs = StringUtil.getBool(secarg);
-				msg += "mobs: " + ChatColor.WHITE + " " + prop.pushMobs;
+				if (newState != null) {
+					prop.mobCollision = newState;
+				}
+				msg += "mobs: " + ChatColor.WHITE + " " + (prop.mobCollision == CollisionMode.PUSH);
 			}
 			if (cmd.equals("pushplayers")) {
-				if (secarg != null) prop.pushPlayers = StringUtil.getBool(secarg);
-				msg += "players: " + ChatColor.WHITE + " " + prop.pushPlayers;
+				if (newState != null) {
+					prop.playerCollision = newState;
+				}
+				msg += "players: " + ChatColor.WHITE + " " + (prop.playerCollision == CollisionMode.PUSH);
 			}
 			if (cmd.equals("pushmisc")) {
-				if (secarg != null) prop.pushMisc = StringUtil.getBool(secarg);
-				msg += "misc. entities: " + ChatColor.WHITE + " " + prop.pushMisc;
+				if (newState != null) {
+					prop.miscCollision = newState;
+				}
+				msg += "misc. entities: " + ChatColor.WHITE + " " + (prop.miscCollision == CollisionMode.PUSH);
 			}
 			p.sendMessage(msg);
-		} else if (cmd.equals("pushplayers")) {
-			Permission.COMMAND_PUSHING.handle(p);
-			if (args.length == 1) {
-				prop.pushPlayers = StringUtil.getBool(args[0]);
-			}
-			p.sendMessage(ChatColor.YELLOW + "Pushes away players: " + ChatColor.WHITE + " " + prop.pushPlayers);
-		} else if (cmd.equals("pushmisc")) {
-			Permission.COMMAND_PUSHING.handle(p);
-			if (args.length == 1) {
-				prop.pushMisc = StringUtil.getBool(args[0]);
-			}
-			p.sendMessage(ChatColor.YELLOW + "Pushes away misc. entities: " + ChatColor.WHITE + " " + prop.pushMisc);
-			//==================================================================
 		} else if (cmd.equals("slowdown") || cmd.equals("slow") || cmd.equals("setslow") || cmd.equals("setslowdown")) {
 			Permission.COMMAND_SLOWDOWN.handle(p);
 			if (args.length == 1) {
@@ -116,10 +111,37 @@ public class TrainCommands {
 			p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.isSlowingDown());
 		} else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
 			Permission.COMMAND_SETCOLLIDE.handle(p);
-			if (args.length == 1) {
-				prop.setColliding(StringUtil.getBool(args[0]));
+			if (args.length == 2) {
+				CollisionMode mode = CollisionMode.parse(args[1]);
+				if (mode != null) {
+					String typeName = args[0].toLowerCase();
+					if (typeName.contains("mob")) {
+						prop.mobCollision = mode;
+						p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.mobCollision.getOperationName() + " mobs");
+					} else if (typeName.contains("player")) {
+						prop.playerCollision = mode;
+						p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.playerCollision.getOperationName() + " players");
+					} else if (typeName.contains("misc")) {
+						prop.miscCollision = mode;
+						p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.miscCollision.getOperationName() + " misc entities");
+					} else {
+						p.sendMessage(ChatColor.RED + "Unknown collidable type: " + args[0]);
+						p.sendMessage(ChatColor.YELLOW + "Allowed types: mob, player or misc");
+					}
+				} else {
+					p.sendMessage(ChatColor.RED + "Unknown collision mode: " + args[1]);
+					ArrayList<String> modes = new ArrayList<String>();
+					for (CollisionMode cmode : CollisionMode.values()) {
+						modes.add(cmode.toString().toLowerCase());
+					}
+					p.sendMessage(ChatColor.YELLOW + "Allowed modes: " + StringUtil.combineNames(modes));
+				}
+			} else {
+				if (args.length == 1) {
+					prop.setColliding(StringUtil.getBool(args[0]));
+				}
+				p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.getColliding());
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.getColliding());
 		} else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
 			Permission.COMMAND_SETSPEEDLIMIT.handle(p);
 			if (args.length == 1) {
@@ -302,16 +324,15 @@ public class TrainCommands {
 		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
 		p.sendMessage(ChatColor.YELLOW + "Slow down over time: " + ChatColor.WHITE + prop.isSlowingDown());
 		p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.getColliding());
-		//push away
-		ArrayList<String> pushlist = new ArrayList<String>();
-		if (prop.pushMobs) pushlist.add("Mobs");
-		if (prop.pushPlayers) pushlist.add("Players");
-		if (prop.pushMisc) pushlist.add("Misc");
-		if (pushlist.size() == 0) {
-			p.sendMessage(ChatColor.YELLOW + "This train will never push anything.");
-		} else {
-			p.sendMessage(ChatColor.YELLOW + "Is pushing away " + ChatColor.WHITE + StringUtil.combineNames(pushlist));
-		}
+
+		// Collision states
+		MessageBuilder builder = new MessageBuilder();
+		builder.yellow("When colliding this train ");
+		builder.red(prop.mobCollision.getOperationName()).yellow(" mobs, ");
+		builder.red(prop.playerCollision.getOperationName()).yellow(" players and ");
+		builder.red(prop.miscCollision.getOperationName()).yellow(" misc entities");
+		builder.send(p);
+
 		p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
 		if (prop.hasOwners()) {
 			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + " " + StringUtil.combineNames(prop.getOwners()));

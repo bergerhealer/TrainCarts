@@ -22,12 +22,6 @@ public class CartCommands {
 	public static boolean execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
 		if (cmd.equals("info") || cmd.equals("i")) {
 			info(p, prop);
-		} else if (cmd.equals("mobenter") || cmd.equals("mobsenter")) {
-			Permission.COMMAND_MOBENTER.handle(p);
-			if (args.length == 1) {
-				prop.setMobsEnter(StringUtil.getBool(args[0]));
-			}
-			p.sendMessage(ChatColor.YELLOW + "Can be entered by mobs: " + ChatColor.WHITE + " " + prop.getMobsEnter());
 		} else if (cmd.equals("playerenter")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYERENTER.handle(p);

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.statements;
 
 import java.util.ArrayList;
 
+import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -64,7 +65,7 @@ public class StatementProperty extends Statement {
 		} else if (match(playerExit, lower)) {
 			return prop.getPlayersExit();
 		} else if (match(mobEnter, lower)) {
-			return prop.getMobsEnter();
+			return prop.mobCollision == CollisionMode.ENTER;
 		}
 
 		// Perform checks on cart properties
@@ -79,8 +80,6 @@ public class StatementProperty extends Statement {
 			return prop.getPlayersEnter();
 		} else if (match(playerExit, lower)) {
 			return prop.getPlayersExit();
-		} else if (match(mobEnter, lower)) {
-			return prop.getMobsEnter();
 		}
 		return false;
 	}

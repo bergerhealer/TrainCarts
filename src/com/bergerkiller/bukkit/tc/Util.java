@@ -8,11 +8,15 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
@@ -249,15 +253,6 @@ public class Util {
 		}
 	}
 
-	private static double getValue(String text, int offset) {
-		text = text.replace("$", "").replace(',', '.');
-		try {
-			return Double.parseDouble(text.substring(offset).trim());
-		} catch (NumberFormatException ex) {
-			return 0.0;
-		}
-	}
-
 	public static int getOperatorIndex(String text) {
 		for (int i = 0; i < text.length(); i++) {
 			if (isOperator(text.charAt(i))) {
@@ -268,13 +263,17 @@ public class Util {
 	}
 
 	public static boolean isOperator(char character) {
-		final char[] characters = new char[] {'!', '=', '<', '>'};
-		for (char c : characters) {
-			if (c == character) {
-				return true;
-			}
-		}
-		return false;
+		return CommonUtil.containsChar(character, '!', '=', '<', '>');
+	}
+
+	/**
+	 * Gets if a given Entity can be a passenger of a Minecart
+	 * 
+	 * @param entity to check
+	 * @return True if it can be a passenger, False if not
+	 */
+	public static boolean canBePassenger(Entity entity) {
+		return entity instanceof LivingEntity;
 	}
 
 	public static boolean matchText(Collection<String> textValues, String expression) {
@@ -340,19 +339,19 @@ public class Util {
 			text = text.substring(idx);
 		}
 		if (text.startsWith(">=") || text.startsWith("=>")) {
-			return value >= getValue(text, 2);
+			return value >= ParseUtil.parseDouble(text.substring(2), 0.0);
 		} else if (text.startsWith("<=") || text.startsWith("=<")) {
-			return value <= getValue(text, 2);
+			return value <= ParseUtil.parseDouble(text.substring(2), 0.0);
 		} else if (text.startsWith("==")) {
-			return value == getValue(text, 2);
+			return value == ParseUtil.parseDouble(text.substring(2), 0.0);
 		} else if (text.startsWith("!=") || text.startsWith("<>") || text.startsWith("><")) {
-			return value != getValue(text, 2);
+			return value != ParseUtil.parseDouble(text.substring(2), 0.0);
 		} else if (text.startsWith(">")) {
-			return value > getValue(text, 1);
+			return value > ParseUtil.parseDouble(text.substring(1), 0.0);
 		} else if (text.startsWith("<")) {
-			return value < getValue(text, 1);
+			return value < ParseUtil.parseDouble(text.substring(1), 0.0);
 		} else if (text.startsWith("=")) {
-			return value == getValue(text, 1);
+			return value == ParseUtil.parseDouble(text.substring(1), 0.0);
 		} else {
 			return false;
 		}

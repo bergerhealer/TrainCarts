@@ -72,16 +72,10 @@ public class Commands {
 		if (prop.hasDestination()) {
 			p.sendMessage(ChatColor.YELLOW + "This minecart will attempt to reach: " + ChatColor.WHITE + prop.getDestination());
 		}
-		if (prop.getMobsEnter()) {
-			if (prop.getPlayersEnter()) {
-				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs and Players");
-			} else {
-				p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Mobs");
-			}
-		} else if (prop.getPlayersEnter()) {
-			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.WHITE + " Players");
+		if (prop.getPlayersEnter()) {
+			p.sendMessage(ChatColor.YELLOW + "Players entering trains: " + ChatColor.WHITE + "Allowed");
 		} else {
-			p.sendMessage(ChatColor.YELLOW + "Can be entered by: " + ChatColor.RED + " No one");
+			p.sendMessage(ChatColor.YELLOW + "Players entering trains: " + ChatColor.WHITE + "Denied");
 		}
 		p.sendMessage(ChatColor.YELLOW + "Can be exited by players: " + ChatColor.WHITE + prop.getPlayersExit());
 		BlockLocation loc = prop.getLocation();

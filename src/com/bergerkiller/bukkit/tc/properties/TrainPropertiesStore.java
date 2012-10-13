@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
@@ -148,11 +149,41 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		loadDefaults();
 		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		config.load();
+		if (fixDeprecation(config)) {
+			config.save();
+		}
 		for (ConfigurationNode node : config.getNodes()) {
 			TrainProperties prop = new TrainProperties(node.getName());
 			prop.load(node);
 			trainProperties.put(prop.trainname, prop);
 		}
+	}
+
+	/**
+	 * Fixes deprecated properties from all nodes in a File configuration
+	 * 
+	 * @param node to fix
+	 * @return True if changes occurred, False if not
+	 */
+	private static boolean fixDeprecation(FileConfiguration config) {
+		boolean changed = false;
+		for (ConfigurationNode node : config.getNodes()) {
+			if (node.contains("pushAway")) {
+				node.set("collision.mobs", CollisionMode.fromPushing(node.get("pushAway.mobs", false)).toString());
+				node.set("collision.players", CollisionMode.fromPushing(node.get("pushAway.players", false)).toString());
+				node.set("collision.misc", CollisionMode.fromPushing(node.get("pushAway.misc", true)).toString());
+				node.remove("pushAway");
+				changed = true;
+			}
+			if (node.contains("allowMobsEnter")) {
+				if (node.get("allowMobsEnter", false)) {
+					node.set("collision.mobs", CollisionMode.ENTER.toString());
+				}
+				node.remove("allowMobsEnter");
+				changed = true;
+			}
+		}
+		return changed;
 	}
 
 	/**
@@ -172,6 +203,9 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 			ConfigurationNode node = defconfig.getNode("admin");
 			TrainProperties.EMPTY.save(node, false);
 			CartProperties.EMPTY.save(node, false);
+			changed = true;
+		}
+		if (fixDeprecation(defconfig)) {
 			changed = true;
 		}
 		if (changed) defconfig.save();

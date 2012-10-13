@@ -39,7 +39,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private final Set<String> owners = new HashSet<String>();
 	private final Set<String> tags = new HashSet<String>();
 	private final Set<Material> blockBreakTypes = new HashSet<Material>();
-	private boolean allowMobsEnter = true;
 	private boolean allowPlayerExit = true;
 	private boolean allowPlayerEnter = true;
 	private String enterMessage = null;
@@ -319,8 +318,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			this.setDestination(arg);
 		} else if (key.equals("remtag")) {
 			this.removeTags(arg);
-		} else if (key.equals("mobenter") || key.equals("mobsenter")) {
-			this.setMobsEnter(StringUtil.getBool(arg));
 		} else if (key.equals("playerenter")) {
 			this.setPlayersEnter(StringUtil.getBool(arg));
 		} else if (key.equals("playerexit")) {
@@ -352,7 +349,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.owners.addAll(from.owners);
 		this.tags.clear();
 		this.tags.addAll(from.tags);
-		this.allowMobsEnter = from.allowMobsEnter;
 		this.allowPlayerEnter = from.allowPlayerEnter;
 		this.allowPlayerExit = from.allowPlayerExit;
 	}
@@ -366,7 +362,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			this.tags.add(tag);
 		}
 		this.destination = node.get("destination", this.destination);
-		this.allowMobsEnter = node.get("allowMobsEnter", this.allowMobsEnter);
 		this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
 		this.isPublic = node.get("isPublic", this.isPublic);
@@ -384,7 +379,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
 			node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
 			node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
-			node.set("allowMobsEnter", this.allowMobsEnter ? null : false);
 			node.set("isPublic", this.isPublic ? null : false);
 			node.set("pickUp", this.pickUp ? true : null);
 		} else {
@@ -392,7 +386,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			node.set("tags", new ArrayList<String>(this.tags));
 			node.set("allowPlayerEnter", this.allowPlayerEnter);
 			node.set("allowPlayerExit", this.allowPlayerExit);
-			node.set("allowMobsEnter", this.allowMobsEnter);
 			node.set("isPublic", this.isPublic);
 			node.set("pickUp", this.pickUp);
 		}
@@ -406,16 +399,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		}
 		node.set("destination", this.hasDestination() ? this.destination : null);
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
-	}
-
-	@Override
-	public boolean getMobsEnter() {
-		return this.allowMobsEnter;
-	}
-
-	@Override
-	public void setMobsEnter(boolean state) {
-		this.allowMobsEnter = state;
 	}
 
 	@Override

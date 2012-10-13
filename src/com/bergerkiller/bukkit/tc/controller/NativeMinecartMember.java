@@ -21,7 +21,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
@@ -942,9 +941,6 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	private boolean canCollide(Entity e) {
 		MinecartMember mm1 = this.member();
-		if (mm1.isUnloaded()) {
-			System.out.println("IGNORE!");
-		}
 		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded()) return false;
 		if (e.dead || this.dead) return false;
 		if (this.group().isVelocityAction()) return false;
@@ -974,16 +970,14 @@ public class NativeMinecartMember extends EntityMinecart {
 			//Ignore passenger collisions
 			return false;
 		} else {
-			//Use push-away?
 			TrainProperties prop = this.group().getProperties();
+			// Is it picking up this item?
 			if (e instanceof EntityItem && this.member().getProperties().canPickup()) {
 				return false;
-			} else if (prop.canPushAway(e.getBukkitEntity())) {
-				this.member().pushSideways(e.getBukkitEntity());
-				return false;
 			}
+
+			//No collision is allowed? (Owners override)
 			if (!prop.getColliding()) {
-				//No collision is allowed? (Owners override)
 				if (e instanceof EntityPlayer) {
 					Player p = (Player) e.getBukkitEntity();
 					if (!prop.isOwner(p)) {
@@ -992,8 +986,10 @@ public class NativeMinecartMember extends EntityMinecart {
 				} else {
 					return false;
 				}
-			} else if (this.passenger == null && this.canBeRidden() && EntityUtil.isMob(e.getBukkitEntity()) && this.member().getProperties().getMobsEnter()) {
-				e.setPassengerOf(this);
+			}
+
+			// Collision modes
+			if (!prop.getCollisionMode(e.getBukkitEntity()).execute(this.member(), e.getBukkitEntity())) {
 				return false;
 			}
 		}
