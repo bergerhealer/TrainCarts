@@ -680,8 +680,13 @@ public class MinecartGroup extends MinecartGroupStore {
 		return false;
 	}
 
-	/*
-	 * Splits this train, the index is the first cart for the new group
+	/**
+	 * Splits this train, the index is the first cart for the new group<br><br>
+	 * 
+	 * For example, this Group has a total cart count of 5<br>
+	 * If you then split at index 2, it will result in:<br>
+	 * - This group becomes a group of 2 carts<br>
+	 * - A new group of 3 carts is created
 	 */
 	public MinecartGroup split(int at) {
 		if (at <= 0) return this;
@@ -690,7 +695,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		MinecartGroup gnew = new MinecartGroup();
 		int count = this.size();
 		for (int i = at; i < count; i++) {
-			gnew.add(this.removeMember(0));
+			gnew.add(this.removeMember(this.size() - 1));
 		}
 		//Remove this train if now empty
 		if (!this.isValid()) this.remove();

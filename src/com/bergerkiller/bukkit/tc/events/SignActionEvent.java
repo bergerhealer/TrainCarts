@@ -134,6 +134,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (!this.hasMember()) return;
 		BlockUtil.setRails(this.getRails(), from, to);
 		if (this.member.getDirection().getOppositeFace() == to){
+			// Break this cart from the train if needed
+			this.member.getGroup().split(this.member.getIndex());
+			// Launch in the other direction
 			double force = this.member.getForce();
 			this.getGroup().stop();
 			this.getGroup().clearActions();
