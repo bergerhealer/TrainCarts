@@ -867,7 +867,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 			//===========================================================================
-			
+
 			d9 = locX - d3;
 			d10 = locZ - d4;
 			if (positionChanged) {
@@ -884,6 +884,11 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
 				world.getServer().getPluginManager().callEvent(event);
+				//========TrainCarts edit: Stop entire train ============
+				if (!this.isOnMinecartTrack || !this.member().isTurned()) {
+					this.group().stop();
+				}
+				//=======================================================
 			}
 			int l;
 			int i1;

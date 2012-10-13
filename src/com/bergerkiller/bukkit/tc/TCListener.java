@@ -23,10 +23,8 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
-import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
@@ -59,7 +57,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
-
+	private static final BlockSet ignoredSigns = new BlockSet();
 	private BlockSet poweredBlocks = new BlockSet();
 	public static Player lastPlayer = null;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
@@ -80,6 +78,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
@@ -119,17 +118,6 @@ public class TCListener implements Listener {
 		OfflineGroupManager.loadChunk(event.getChunk());
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
-	public void onVehicleBlockCollision(VehicleBlockCollisionEvent event) {
-		MinecartMember mm = MinecartMember.get(event.getVehicle());
-		if (mm != null) {
-			//direct hit or not?
-			if (!mm.isTurned()) {
-				mm.getGroup().stop();
-			}
-		}
-	}
-
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
@@ -156,7 +144,7 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityAdd(EntityAddEvent event) {
 		net.minecraft.server.Entity entity = EntityUtil.getNative(event.getEntity());
-		if (entity.dead || !(entity instanceof EntityMinecart)) {
+		if (!(entity instanceof EntityMinecart)) {
 			return;
 		}
 		MinecartMember member = MinecartMemberStore.convert((EntityMinecart) entity);
@@ -223,19 +211,11 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onVehicleDestroy(VehicleDestroyEvent event) {
-		if (!event.isCancelled()) {
-			MinecartMember mm = MinecartMember.get(event.getVehicle());
-			if (mm != null) {
-				mm.die();
-			}
-		}
-	}
-
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
-		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
+		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) {
+			return;
+		}
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
 				MinecartMember mm1 = EntityUtil.getNative(event.getVehicle(), MinecartMember.class);
@@ -387,8 +367,6 @@ public class TCListener implements Listener {
 		SignAction.handleBuild(event);
 	}
 
-	private static final BlockSet ignoredSigns = new BlockSet();
-
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
 		if (TrainCarts.isWorldDisabled(event)) return;
@@ -411,21 +389,6 @@ public class TCListener implements Listener {
 		}
 	}
 
-	/*
-	 * 	public boolean inBlock() {
-			for(int i = 0; i < 8; i++) {
-				float f = ((float)((i >> 0) % 2) - 0.5F) * width * 0.8F;
-				float f1 = ((float)((i >> 1) % 2) - 0.5F) * 0.1F;
-				float f2 = ((float)((i >> 2) % 2) - 0.5F) * width * 0.8F;
-				int j = MathHelper.floor(locX + (double)f);
-				int k = MathHelper.floor(locY + (double)getHeadHeight() + (double)f1);
-				int l = MathHelper.floor(locZ + (double)f2);
-				if(world.s(j, k, l))
-					return true;
-        	}
-			return false;
-        }
-	 */
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityDamage(EntityDamageEvent event) {
 		if (event.isCancelled()) {

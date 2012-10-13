@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -313,10 +314,10 @@ public class TrainCarts extends PluginBase {
 		//registering
 		this.register(TCListener.class);
 		this.register("train", "cart");
-		
+
 		//Load configuration
 		loadConfig();
-				
+
 		//update max item stack
 		if (maxMinecartStackSize != 1) {
 			Util.setItemMaxSize(Material.MINECART, maxMinecartStackSize);
@@ -326,22 +327,25 @@ public class TrainCarts extends PluginBase {
 
 		//init statements
 		Statement.init();
-		
+
 		//Init signs
 		SignAction.init();
 
 		//Load properties
 		TrainProperties.load();
 
+		//Convert Minecarts
+		MinecartMemberStore.convertAll();
+
 		//Load groups
 		OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
 		//Load destinations
 		PathNode.init(getDataFolder() + File.separator + "destinations.dat");
-		
+
 		//Load arrival times
 		ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
-		
+
 		//Load detector regions
 		DetectorRegion.init(getDataFolder() + File.separator + "detectorregions.dat");	
 
@@ -353,7 +357,7 @@ public class TrainCarts extends PluginBase {
 
 		//Restore carts where possible
 		OfflineGroupManager.refresh();
-				
+
 		//Properly dispose of partly-referenced carts
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
@@ -361,6 +365,7 @@ public class TrainCarts extends PluginBase {
 			}
 		});
 	}
+
 	public void disable() {
 		//Stop tasks
 		Task.stop(signtask);

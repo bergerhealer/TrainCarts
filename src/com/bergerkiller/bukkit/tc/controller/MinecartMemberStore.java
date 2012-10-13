@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,11 +24,34 @@ import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityTrackerEntry;
 import net.minecraft.server.World;
+import net.minecraft.server.WorldServer;
 
 public class MinecartMemberStore extends NativeMinecartMember {
 
 	public MinecartMemberStore(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
+	}
+
+	/**
+	 * Converts all Minecarts on all enabled worlds into Minecart Members
+	 */
+	public static void convertAll() {
+		List<EntityMinecart> minecarts = new ArrayList<EntityMinecart>();
+		for (WorldServer world : WorldUtil.getWorlds()) {
+			if (TrainCarts.isWorldDisabled(world.getWorld())) {
+				continue;
+			}
+			for (net.minecraft.server.Entity entity : WorldUtil.getEntities(world)) {
+				if (entity.getClass().equals(EntityMinecart.class)) {
+					minecarts.add((EntityMinecart) entity);
+				}
+			}
+			// Convert
+			for (EntityMinecart em : minecarts) {
+				convert(em);
+			}
+			minecarts.clear();
+		}
 	}
 
 	/**
@@ -38,6 +62,9 @@ public class MinecartMemberStore extends NativeMinecartMember {
 	 * @return Minecart Member conversion
 	 */
 	public static MinecartMember convert(EntityMinecart source) {
+		if (source.dead) {
+			return null;
+		}
 		if (source instanceof MinecartMember) {
 			return (MinecartMember) source;
 		}
