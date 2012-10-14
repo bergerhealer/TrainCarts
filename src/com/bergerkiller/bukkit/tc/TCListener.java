@@ -21,6 +21,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
@@ -60,7 +61,15 @@ public class TCListener implements Listener {
 	private static final BlockSet ignoredSigns = new BlockSet();
 	private BlockSet poweredBlocks = new BlockSet();
 	public static Player lastPlayer = null;
+	public static boolean cancelNextDrops = false;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
+
+	@EventHandler(priority = EventPriority.LOWEST)
+	public void onItemSpawn(ItemSpawnEvent event) {
+		if (cancelNextDrops) {
+			event.setCancelled(true);
+		}
+	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onChunkUnloadLow(ChunkUnloadEvent event) {
@@ -256,6 +265,8 @@ public class TCListener implements Listener {
 					} else if (g2.isVelocityAction()) {
 						event.setCancelled(true);
 					}
+				} else if (event.getEntity().getVehicle() instanceof Minecart) {
+					event.setCancelled(true);
 				} else if (!prop.getCollisionMode(event.getEntity()).execute(mm1, event.getEntity())) {
 					event.setCancelled(true);
 				}

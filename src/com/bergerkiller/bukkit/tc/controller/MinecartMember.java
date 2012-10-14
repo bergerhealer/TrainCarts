@@ -15,6 +15,7 @@ import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
+import net.minecraft.server.LocaleI18n;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityItem;
 
@@ -183,6 +184,15 @@ public class MinecartMember extends MinecartMemberStore {
 			return this.getCoalFromNeighbours();
 		}
 		return event.refill();
+	}
+
+	@Override
+	public String getLocalizedName() {
+		if (this.group == null || this.group.size() == 1) {
+			return LocaleI18n.get("entity.Minecart.name");
+		} else {
+			return "Train";
+		}
 	}
 
 	public boolean getCoalFromNeighbours() {

@@ -1,8 +1,12 @@
 package com.bergerkiller.bukkit.tc;
 
+import net.minecraft.server.EntityDamageSource;
+import net.minecraft.server.EntityLiving;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -10,7 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * A collision mode between a Minecart and a non-minecart Entity
  */
 public enum CollisionMode {
-	DEFAULT, PUSH, CANCEL, KILL, ENTER;
+	DEFAULT, PUSH, CANCEL, KILL, KILLNODROPS, ENTER;
 
 	/**
 	 * Executes this collision mode
@@ -31,14 +35,22 @@ public enum CollisionMode {
 				return false;
 			case CANCEL :
 				return false;
+			case KILLNODROPS :
 			case KILL :
 				if (member.isMoving() && member.isHeadingTo(entity)) {
+					if (this == KILLNODROPS) {
+						TCListener.cancelNextDrops = true;
+					}
 					if (entity instanceof LivingEntity) {
 						boolean old = Util.setInvulnerable(entity, false);
-						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getBukkitEntity());
+						EntityLiving living = EntityUtil.getNative(entity, EntityLiving.class);
+						living.damageEntity(new EntityDamageSource("mob", member), Short.MAX_VALUE);
 						Util.setInvulnerable(entity, old);
 					} else {
 						entity.remove();
+					}
+					if (this == KILLNODROPS) {
+						TCListener.cancelNextDrops = false;
 					}
 				}
 				return false;
@@ -60,6 +72,8 @@ public enum CollisionMode {
 				return "ignores";
 			case KILL :
 				return "kills";
+			case KILLNODROPS :
+				return "kills without drops";
 			case ENTER :
 				return "takes in";
 			default :
