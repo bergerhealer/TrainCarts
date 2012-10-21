@@ -856,7 +856,9 @@ public class MinecartGroup extends MinecartGroupStore {
 								threshold = TrainCarts.cartDistance;
 								forcer = TrainCarts.cartDistanceForcer;
 							}
-							if (distance < threshold) forcer *= TrainCarts.nearCartDistanceFactor;
+							if (distance < threshold) {
+								forcer *= TrainCarts.nearCartDistanceFactor;
+							}
 							member.postUpdate(1 + (forcer * (threshold - distance)));
 						}
 						if (this.breakPhysics) return true;

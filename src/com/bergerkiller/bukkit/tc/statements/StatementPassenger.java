@@ -35,7 +35,7 @@ public class StatementPassenger extends Statement {
 	public boolean matchArray(String text) {
 		return text.equals("p");
 	}
-	
+
 	@Override
 	public boolean handleArray(MinecartMember member, String[] names, SignActionEvent event) {
 		if (member.hasPlayerPassenger()) {

@@ -62,6 +62,7 @@ public abstract class Statement {
 	public static void init() {
 		register(new StatementDestination());
 		register(new StatementBoolean());
+		register(new StatementRandom());
 		register(new StatementProperty());
 		register(new StatementName());
 		register(new StatementEmpty());

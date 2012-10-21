@@ -265,13 +265,7 @@ public class TCListener implements Listener {
 						return;
 					}
 					MinecartGroup g2 = mm2.getGroup();
-					if (!g2.getProperties().canCollide(g1)) {
-						event.setCancelled(true);
-						return;
-					}
-					if (g1 == g2 || MinecartGroup.link(mm1, mm2)) {
-						event.setCancelled(true);
-					} else if (g2.isVelocityAction()) {
+					if (g1 == g2 || !g2.getProperties().canCollide(g1) || MinecartGroup.link(mm1, mm2) || g2.isVelocityAction()) {
 						event.setCancelled(true);
 					}
 				} else if (event.getEntity().getVehicle() instanceof Minecart) {
