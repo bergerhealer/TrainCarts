@@ -119,58 +119,93 @@ public class SignActionEvent extends Event implements Cancellable {
 	private final boolean powerinv;
 	private final boolean poweron;
 
+	/**
+	 * Sets whether levers connected to this Sign are toggled
+	 * 
+	 * @param down state to set to
+	 */
 	public void setLevers(boolean down) {
 		BlockUtil.setLeversAroundBlock(this.getAttachedBlock(), down);
 	}
-	public void setRails(BlockFace to) {
-		BlockUtil.setRails(this.getRails(), this.getFacing(), to);
-	}
-	public void setRailsRelative(BlockFace direction) {
-		BlockFace main = this.getFacing().getOppositeFace();
-		setRails(FaceUtil.add(main, direction));
+
+	/**
+	 * Gets the direction a minecart has above the rails of this Sign
+	 * 
+	 * @return cart direction
+	 */
+	public BlockFace getCartDirection() {
+		if (this.hasMember()) {
+			return this.member.getDirectionTo();
+		}
+		return this.getFacing().getOppositeFace();
 	}
 
-	public void setRailsFromTo(BlockFace from, BlockFace to) {
-		if (!this.hasMember()) return;
-		BlockUtil.setRails(this.getRails(), from, to);
-		if (this.member.getDirection().getOppositeFace() == to){
-			// Break this cart from the train if needed
-			this.member.getGroup().split(this.member.getIndex());
-			// Launch in the other direction
-			double force = this.member.getForce();
-			this.getGroup().stop();
-			this.getGroup().clearActions();
-			this.member.addActionLaunch(to, 1, force);
-		}
-	}
-	
-	public BlockFace getCartDirection() {
-		if (!this.hasMember()) return BlockFace.NORTH;
-		return this.member.getDirectionTo();
-	}
-	
 	/**
-	 * Sets rail of current event in given direction, coming from direction the minecart is coming from.
-	 * This will go straight if trying to go into the direction the cart is coming from.
-	 * This function requires a MinecartMember to work!
-	 * @param to Absolute direction to go to.
+	 * Sets the rails direction above this sign
+	 * 
+	 * @param from direction
+	 * @param to direction
 	 */
-	public void setRailsFromCart(BlockFace to) {
-		if (!this.hasMember()) return;
-		BlockFace from = this.member.getDirectionTo().getOppositeFace();
-		//set the rails
-		this.setRailsFromTo(from, to);
+	public void setRails(BlockFace from, BlockFace to) {
+		BlockUtil.setRails(this.getRails(), from, to);
 	}
-	public void setRails(BlockFace from, boolean left, boolean right) {
-		if (right) {
-			setRailsRight(from);
-		} else if (left) {
-			setRailsLeft(from);
-		} else {
-			setRailsForward(from);
+
+	/**
+	 * Sets the rails above this sign to connect with the from and to directions<br>
+	 * If the cart has to be reversed, that is done
+	 * 
+	 * @param from direction
+	 * @param to direction
+	 */
+	public void setRailsFromTo(BlockFace from, BlockFace to) {
+		if (this.hasRails()) {
+			setRails(from, to);
+			if (this.hasMember() && this.member.getDirection().getOppositeFace() == to) {
+				// Break this cart from the train if needed
+				this.member.getGroup().split(this.member.getIndex());
+				// Launch in the other direction
+				double force = this.member.getForce();
+				this.getGroup().stop();
+				this.getGroup().clearActions();
+				this.member.addActionLaunch(to, 1, force);
+			}
 		}
 	}
-	public void setRailsLeft(BlockFace from) {
+
+	/**
+	 * Sets the rails above this sign to lead from the minecart direction to the direction specified
+	 * 
+	 * @param to direction
+	 */
+	public void setRailsTo(BlockFace to) {
+		setRails(getCartDirection().getOppositeFace(), to);
+	}
+
+	/**
+	 * Sets the rails above this sign to lead from the minecart direction into a direction specified<br>
+	 * Left, right and forward are handled separately from setRailsTo!
+	 * 
+	 * @param direction to set the rails to
+	 */
+	public void setRailsTo(Direction direction) {
+		switch (direction) {
+			case LEFT :
+				setRailsLeft();
+				break;
+			case RIGHT :
+				setRailsRight();
+				break;
+			case FORWARD :
+				setRailsForward();
+				break;
+			default :
+				this.setRailsTo(direction.getDirection(this.getFacing()));
+				break;
+		}
+	}
+
+	public void setRailsLeft() {
+		BlockFace from = this.getCartDirection().getOppositeFace();
 		//is a track present at this direction?
 		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
 		if (!Util.isRails(this.getRails().getRelative(main))) {
@@ -179,7 +214,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		//Set it
 		this.setRailsFromTo(from, main);
 	}
-	public void setRailsRight(BlockFace from) {
+
+	public void setRailsRight() {
+		BlockFace from = this.getCartDirection().getOppositeFace();
 		//is a track present at this direction?
 		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
 		if (!Util.isRails(this.getRails().getRelative(main))) {
@@ -188,7 +225,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		//Set it
 		this.setRailsFromTo(from, main);
 	}
-	public void setRailsForward(BlockFace from) {
+
+	public void setRailsForward() {
+		BlockFace from = this.getCartDirection().getOppositeFace();
 		//is a track present at this direction?
 		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
 		if (!Util.isRails(this.getRails().getRelative(main))) {

@@ -7,7 +7,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -94,7 +94,7 @@ public enum CollisionMode {
 		} else if (text.startsWith("deny") || text.startsWith("denied") || text.startsWith("disable")) {
 			return CANCEL;
 		}
-		return EnumUtil.parse(CollisionMode.class, text, null);
+		return ParseUtil.parseEnum(CollisionMode.class, text, null);
 	}
 
 	/**

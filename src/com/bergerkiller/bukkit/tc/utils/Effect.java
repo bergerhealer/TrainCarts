@@ -10,7 +10,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class Effect {
 	private static final Map<String, BlockFace> DIR_NAMES = new HashMap<String, BlockFace>();
@@ -77,12 +77,12 @@ public class Effect {
 				world.playEffect(location, org.bukkit.Effect.SMOKE, data);
 				continue;
 			}
-			org.bukkit.Effect effect = EnumUtil.parse(org.bukkit.Effect.values(), name, null);
+			org.bukkit.Effect effect = ParseUtil.parseEnum(org.bukkit.Effect.class, name, null);
 			if (effect != null) {
 				world.playEffect(location, effect, 0);
 				continue;
 			}
-			Sound sound = EnumUtil.parse(Sound.values(), name, null);
+			Sound sound = ParseUtil.parseEnum(Sound.class, name, null);
 			if (sound != null) {
 				world.playSound(location, sound, pitch, volume);
 				continue;

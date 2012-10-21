@@ -16,8 +16,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -319,9 +318,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		} else if (key.equals("remtag")) {
 			this.removeTags(arg);
 		} else if (key.equals("playerenter")) {
-			this.setPlayersEnter(StringUtil.getBool(arg));
+			this.setPlayersEnter(ParseUtil.parseBool(arg));
 		} else if (key.equals("playerexit")) {
-			this.setPlayersExit(StringUtil.getBool(arg));
+			this.setPlayersExit(ParseUtil.parseBool(arg));
 		} else if (key.equals("setowner")) {
 			arg = arg.toLowerCase();
 			this.getOwners().clear();
@@ -367,7 +366,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.isPublic = node.get("isPublic", this.isPublic);
 		this.pickUp = node.get("pickUp", this.pickUp);
 		for (String blocktype : node.getList("blockBreakTypes", String.class)) {
-			Material mat = EnumUtil.parseMaterial(blocktype, null);
+			Material mat = ParseUtil.parseMaterial(blocktype, null);
 			if (mat != null) this.blockBreakTypes.add(mat);
 		}
 	}

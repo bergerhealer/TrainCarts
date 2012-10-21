@@ -13,7 +13,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
@@ -31,49 +30,9 @@ public class SignActionSwitcher extends SignAction {
 		return i;
 	}
 
-	public void handleRails(SignActionEvent info, boolean left, boolean right) {
-		boolean down = false;
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER, 
-				SignActionType.GROUP_UPDATE, SignActionType.MEMBER_UPDATE)) {
-			down = left || right;
-			BlockFace from = info.getFacing();
-			if (Util.getRailsBlock(info.getRails().getRelative(from)) == null) {
-				from = from.getOppositeFace();
-			}
-			if (info.isPowered()) info.setRails(from, left, right);
-		}
-		info.setLevers(down);
-	}
-
 	@Override
 	public boolean overrideFacing() {
 		return true;
-	}
-
-	public boolean handleCounter(SignActionEvent info, String l, String r) {
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
-			try {
-				boolean left = false;
-				boolean right = false;
-				int lcount = Integer.parseInt(l);
-				int rcount = Integer.parseInt(r);
-				AtomicInteger i = getSwitchedTimes(info.getBlock());
-				int count = i.get();
-				if (count < lcount) {
-					left = true;
-					i.incrementAndGet();
-				} else if (count >= lcount + rcount - 1) {
-					right = true;
-					i.set(0);
-				} else {
-					right = true;
-					i.incrementAndGet();
-				}
-				handleRails(info, left, right);
-				return true;
-			} catch (NumberFormatException ex) {}
-		}
-		return false;
 	}
 
 	@Override
@@ -156,7 +115,7 @@ public class SignActionSwitcher extends SignAction {
 			info.setLevers(dir != Direction.NONE);
 			if (dir != Direction.NONE && info.isPowered()) {
 				//handle this direction
-				info.setRailsFromCart(dir.getDirection(info.getFacing()));
+				info.setRailsTo(dir);
 				return; //don't do destination stuff
 			}
 		}
@@ -172,7 +131,7 @@ public class SignActionSwitcher extends SignAction {
 					conn = node.findConnection(info.getGroup().getProperties().getDestination());
 				}
 				if (conn != null) {
-					info.setRailsFromCart(conn.direction);
+					info.setRailsTo(conn.direction);
 					return;
 				}
 			}

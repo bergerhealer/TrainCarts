@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 
 public class GlobalCommands {
 
@@ -81,7 +81,7 @@ public class GlobalCommands {
 			builder.green("There are ").yellow(count).green(" trains on this server (of which ");
 			builder.yellow(moving).green(" are moving)").send(sender);
 			if (sender instanceof Player) {
-				if (args.length == 2 && StringUtil.isIn(args[1], "renamed", "rename", "ren", "name", "named")) {
+				if (args.length == 2 && LogicUtil.contains(args[1], "renamed", "rename", "ren", "name", "named")) {
 					list((Player) sender, true);
 				} else {
 					list((Player) sender, false);

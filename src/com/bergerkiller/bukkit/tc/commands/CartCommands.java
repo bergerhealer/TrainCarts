@@ -8,7 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -25,13 +25,13 @@ public class CartCommands {
 		} else if (cmd.equals("playerenter")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYERENTER.handle(p);
-				prop.setPlayersEnter(StringUtil.getBool(args[0]));
+				prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "Players can enter this minecart: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
 		} else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYEREXIT.handle(p);
-				prop.setPlayersExit(StringUtil.getBool(args[0]));
+				prop.setPlayersExit(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "Players can exit this minecart: " + ChatColor.WHITE + " " + prop.getPlayersExit());
 		} else if (cmd.equals("claim")) {
@@ -100,7 +100,7 @@ public class CartCommands {
 			if (args.length == 0) {
 				prop.setPublic(true);
 			} else {
-				prop.setPublic(StringUtil.getBool(args[0]));
+				prop.setPublic(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "The selected minecart can be used by everyone: " + ChatColor.WHITE + prop.isPublic());
 		} else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
@@ -108,7 +108,7 @@ public class CartCommands {
 			if (args.length == 0) {
 				prop.setPublic(false);
 			} else {
-				prop.setPublic(!StringUtil.getBool(args[0]));
+				prop.setPublic(!ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be used by you: " + ChatColor.WHITE + !prop.isPublic());
 		} else if (cmd.equals("pickup")) {
@@ -116,7 +116,7 @@ public class CartCommands {
 			if (args.length == 0) {
 				prop.setPickup(true);
 			} else {
-				prop.setPickup(StringUtil.getBool(args[0]));
+				prop.setPickup(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "The selected minecart picks up nearby items: " + ChatColor.WHITE + prop.canPickup());
 		} else if (cmd.equals("break")) {
@@ -124,17 +124,17 @@ public class CartCommands {
 			if (args.length == 0) {
 				p.sendMessage(ChatColor.YELLOW + "This cart breaks: " + ChatColor.WHITE + StringUtil.combineNames(prop.getBlockBreakTypes()));
 			} else {
-				if (StringUtil.isBool(args[0]) && !StringUtil.getBool(args[0])) {
+				if (ParseUtil.isBool(args[0]) && !ParseUtil.parseBool(args[0])) {
 					prop.clearBlockBreakTypes();
 					p.sendMessage(ChatColor.YELLOW + "Block break types have been cleared!");
 				} else {
 					boolean asBreak = true;
-					boolean lastIsBool = StringUtil.isBool(args[args.length - 1]);
-					if (lastIsBool) asBreak = StringUtil.getBool(args[args.length - 1]);
+					boolean lastIsBool = ParseUtil.isBool(args[args.length - 1]);
+					if (lastIsBool) asBreak = ParseUtil.parseBool(args[args.length - 1]);
 					int count = lastIsBool ? args.length - 1 : args.length;
 					Set<Material> mats = new HashSet<Material>();
 					for (int i = 0; i < count; i++) {
-						Material mat = EnumUtil.parseMaterial(args[i], null);
+						Material mat = ParseUtil.parseMaterial(args[i], null);
 						if (mat != null) {
 							if (p.hasPermission("train.command.break.admin") || TrainCarts.canBreak(mat)) {
 								mats.add(mat);

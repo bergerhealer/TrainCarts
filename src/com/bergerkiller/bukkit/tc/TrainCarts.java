@@ -39,8 +39,8 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class TrainCarts extends PluginBase {
 
@@ -217,7 +217,7 @@ public class TrainCarts extends PluginBase {
 		allowedBlockBreakTypes.clear();
 		if (config.contains("allowedBlockBreakTypes")) {
 			for (String value : config.getList("allowedBlockBreakTypes", String.class)) {
-				Material type = EnumUtil.parseMaterial(value, null);
+				Material type = ParseUtil.parseMaterial(value, null);
 				if (type != null) allowedBlockBreakTypes.add(type);
 			}
 		} else {
@@ -317,7 +317,7 @@ public class TrainCarts extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 4;
+		return 5;
 	}
 
 	public void enable() {

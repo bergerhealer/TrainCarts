@@ -17,9 +17,9 @@ import org.bukkit.entity.LivingEntity;
 import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -284,7 +284,7 @@ public class Util {
 	}
 
 	public static boolean isOperator(char character) {
-		return CommonUtil.containsChar(character, '!', '=', '<', '>');
+		return LogicUtil.containsChar(character, '!', '=', '<', '>');
 	}
 
 	/**

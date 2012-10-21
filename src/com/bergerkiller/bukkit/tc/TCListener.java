@@ -41,6 +41,7 @@ import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -287,7 +288,7 @@ public class TCListener implements Listener {
 					ItemStack item = event.getPlayer().getItemInHand();
 					Material itemmat = item == null ? null : item.getType();
 
-					if (CommonUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
+					if (LogicUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
 						//Placing a minecart on the tracks
 						if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
 							//Not already a minecart at this spot?
