@@ -41,7 +41,7 @@ public class StatementPassenger extends Statement {
 		if (member.hasPlayerPassenger()) {
 			String pname = ((Player) member.passenger.getBukkitEntity()).getName();
 			for (String name : names) {
-				if (pname.equalsIgnoreCase(name)) {
+				if (Util.matchText(pname, name)) {
 					return true;
 				}
 			}
