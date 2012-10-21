@@ -35,6 +35,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	private boolean slowDown = true;
 	private double speedLimit = 0.4;
 	private boolean keepChunksLoaded = false;
+	private boolean allowManualMovement = false;
 	public CollisionMode mobCollision = CollisionMode.DEFAULT;
 	public CollisionMode playerCollision = CollisionMode.DEFAULT;
 	public CollisionMode miscCollision = CollisionMode.DEFAULT;
@@ -456,6 +457,24 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return this;
 	}
 
+	/**
+	 * Gets whether minecart passengers can manually move the train they are in
+	 * 
+	 * @return True if manual movement is allowed, False if not
+	 */
+	public boolean isManualMovementAllowed() {
+		return this.allowManualMovement;
+	}
+
+	/**
+	 * Sets whether minecart passengers can manually move the train they are in
+	 * 
+	 * @param allow state to set to
+	 */
+	public void setManualMovementAllowed(boolean allow) {
+		this.allowManualMovement = allow;
+	}
+
 	public boolean isTrainRenamed() {
 		if (this.trainname.startsWith("train")) {
 			try {
@@ -544,6 +563,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.playerCollision = this.mobCollision = this.miscCollision = mode;
 		} else if (key.equals("speedlimit") || key.equals("maxspeed")) {
 			this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
+		} else if (key.equals("allowmanual") || key.equals("manualmove") || key.equals("manual")) {
+			this.allowManualMovement = ParseUtil.parseBool(arg);
 		} else if (key.equals("keepcloaded") || key.equals("loadchunks") || key.equals("keeploaded")) {
 			this.keepChunksLoaded = ParseUtil.parseBool(arg);
 		} else if (key.equals("addtag")) {
@@ -607,6 +628,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, 20);
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
+		this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
 		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
 			try {
 				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()), this);
@@ -634,6 +656,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.keepChunksLoaded = source.keepChunksLoaded;
+		this.allowManualMovement = source.allowManualMovement;
 		this.clear();
 		this.addAll(source);
 	}
@@ -648,6 +671,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
 			node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
 			node.set("slowDown", this.slowDown ? null : false);
+			node.set("allowManualMovement",allowManualMovement ? true : null);
 			if (this.mobCollision != CollisionMode.DEFAULT) {
 				node.set("collision.mobs", this.mobCollision);
 			}
@@ -665,6 +689,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			node.set("keepChunksLoaded", this.keepChunksLoaded);
 			node.set("speedLimit", this.speedLimit);
 			node.set("slowDown", this.slowDown);
+			node.set("allowManualMovement", this.allowManualMovement);
 			node.set("collision.mobs", this.mobCollision);
 			node.set("collision.players", this.playerCollision);
 			node.set("collision.misc", this.miscCollision);

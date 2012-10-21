@@ -79,6 +79,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean refillAtStations;
 	public static boolean instantCreativeDestroy;
 	private static String currencyFormat;
+	public static double manualMovementSpeed;
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
 
@@ -206,7 +207,11 @@ public class TrainCarts extends PluginBase {
 		refillAtStations = config.get("refillAtStations", true);
 
 		config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
+		config.addHeader("instantCreativeDestroy", "Note that manual minecart movement is not possible for creative players with this enabled");
 		instantCreativeDestroy = config.get("instantCreativeDestroy", false);
+
+		config.setHeader("manualMovementSpeed", "\nWhat velocity to set when a player tries to manually move a train (by damaging it)");
+		manualMovementSpeed = config.get("manualMovementSpeed", 12.0);
 
 		config.setHeader("currencyFormat", "\nThe currency Ticket signs will display in messages, %value% represents the displayed value");
 		currencyFormat = config.get("currencyFormat", "%value% Dollars");

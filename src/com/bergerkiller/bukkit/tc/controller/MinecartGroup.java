@@ -722,6 +722,9 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 	}
 
+	/**
+	 * Aborts any physics routines going on in this tick
+	 */
 	public void breakPhysics() {
 		this.breakPhysics = true;
 	}

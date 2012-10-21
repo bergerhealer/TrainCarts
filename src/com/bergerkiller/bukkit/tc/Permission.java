@@ -37,6 +37,7 @@ public enum Permission implements IPermissionDefault {
 	COMMAND_DEFAULT("train.command.default", PermissionDefault.OP, "The player can apply default settings to his owned trains"),
 	COMMAND_RENAME("train.command.rename", PermissionDefault.TRUE, "The player can rename his owned trains"),
 	COMMAND_DISPLAYNAME("train.command.displayname", PermissionDefault.TRUE, "The player can change the display name of his owned trains"),
+	COMMAND_MANUALMOVE("train.command.manualmove", PermissionDefault.TRUE, "Whether the player can change if trains can be moved by damaging them"),
 	BUILD_STATION("train.build.station", PermissionDefault.OP, "The player can build train stations"),
 	BUILD_SPAWNER("train.build.spawner", PermissionDefault.OP, "The player can build train spawners"),
 	BUILD_TRIGGER("train.build.trigger", PermissionDefault.OP, "The player can build train triggers"),

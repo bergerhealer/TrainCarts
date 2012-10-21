@@ -38,6 +38,12 @@ public class TrainCommands {
 				prop.setKeepChunksLoaded(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
+		} else if (cmd.equals("manualmove") || cmd.equals("allowmanual") || cmd.equals("manual") || cmd.equals("allowmanualmovement")) {
+			if (args.length == 1) {
+				Permission.COMMAND_MANUALMOVE.handle(p);
+				prop.setManualMovementAllowed(ParseUtil.parseBool(args[0]));
+			}
+			p.sendMessage(ChatColor.YELLOW + "Players can move carts by damaging them: " + ChatColor.WHITE + prop.isManualMovementAllowed());
 		} else if (cmd.equals("claim") || cmd.equals("addowner") || cmd.equals("setowner") || cmd.equals("addowners") || cmd.equals("setowners")) {
 			Permission.COMMAND_SETOWNERS.handle(p);
 			//claim as many carts as possible
