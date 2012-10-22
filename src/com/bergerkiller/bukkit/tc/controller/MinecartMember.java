@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.ChunkPosition;
+import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 import net.minecraft.server.ItemStack;
@@ -50,6 +51,7 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -80,6 +82,11 @@ public class MinecartMember extends MinecartMemberStore {
 	protected MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	protected boolean unloaded = false;
+
+	protected MinecartMember(EntityMinecart source) {
+		this(source.world, source.lastX, source.lastY, source.lastZ, source.type);
+		EntityMinecartRef.TEMPLATE.transfer(source, this);
+	}
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
@@ -539,6 +546,15 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public Vector getVelocity() {
 		return new Vector(this.motX, this.motY, this.motZ);
+	}
+	public Vector getLimitedVelocity() {
+		double max;
+		if (this.isUnloaded()) {
+			max = this.maxSpeed;
+		} else {
+			max = this.getGroup().getProperties().getSpeedLimit();
+		}
+		return new Vector(MathUtil.clamp(this.motX, max), MathUtil.clamp(this.motY, max), MathUtil.clamp(this.motZ, max));
 	}
 	public TrackMap makeTrackMap(int size) {
 		return new TrackMap(this.getRailsBlock(), this.direction, size);

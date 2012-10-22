@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -228,18 +230,20 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		this.setTrackerChanged(false);
 
 		//motion packets
-		double motDiff = MathUtil.distanceSquared(this.tracker.motX, this.tracker.motY, this.tracker.motZ, this.j, this.k, this.l);
-		if (motDiff > 0.0004 || (motDiff > 0 && this.tracker.motX == 0 && this.tracker.motY == 0 && this.tracker.motZ == 0)) {
-			this.j = this.tracker.motX;
-			this.k = this.tracker.motY;
-			this.l = this.tracker.motZ;
+		Vector velocity = ((MinecartMember) this.tracker).getLimitedVelocity();
+		double motDiff = MathUtil.distanceSquared(velocity.getX(), velocity.getY(), velocity.getZ(), this.j, this.k, this.l);
+		if (motDiff > 0.0004 || (motDiff > 0 && velocity.lengthSquared() == 0.0)) {
+			this.j = velocity.getX();
+			this.k = velocity.getY();
+			this.l = velocity.getZ();
 			this.broadcast(new Packet28EntityVelocity(this.tracker.id, this.j, this.k, this.l));
 		}
 	}
 
 	public void syncVelocity() {
 		if (this.tracker.dead) return;
-		this.broadcast(new Packet28EntityVelocity(this.tracker));
+		Vector velocity = ((MinecartMember) this.tracker).getLimitedVelocity();
+		this.broadcast(new Packet28EntityVelocity(this.tracker.id, velocity.getX(), velocity.getY(), velocity.getZ()));
 		this.tracker.velocityChanged = false;
 	}
 
@@ -268,9 +272,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public void doSpawn(EntityPlayer entityplayer) {
-		//send spawn packet
-		int type = MathUtil.clamp(((MinecartMember) this.tracker).type, 0, 2);
-		entityplayer.netServerHandler.sendPacket(new Packet23VehicleSpawn(this.tracker, 10 + type));
+		entityplayer.netServerHandler.sendPacket(((MinecartMember) this.tracker).getSpawnPacket());
 		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
 		entityplayer.netServerHandler.sendPacket(getTeleportPacket());
 		if (this.tracker.passenger != null) {

@@ -10,13 +10,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.events.MinecartSwapEvent;
+import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
+import com.bergerkiller.bukkit.tc.events.MemberConvertEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
@@ -74,13 +74,16 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		if (TrainCarts.isWorldDisabled(source.world.getWorld())) {
 			return null;
 		}
-		MinecartMember with = new MinecartMember(source.world, source.lastX, source.lastY, source.lastZ, source.type);
-		//transfer variables
-		EntityMinecartRef.TEMPLATE.transfer(source, with);
+		MinecartMember with = new MinecartMember(source);
 		//unloaded?
 		with.unloaded = OfflineGroupManager.containsMinecart(with.uniqueId);
 
-		MinecartSwapEvent.call(source, with);
+		// Call the conversion event
+		MemberConvertEvent event = MemberConvertEvent.call(source, with);
+		if (event.isCancelled()) {
+			return null;
+		}
+		with = event.getMember();
 		// swap the tracker
 		EntityTrackerEntry entry = WorldUtil.getTrackerEntry(source);
 		// Create MM tracker using old as base
@@ -172,6 +175,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
+		mm = MemberSpawnEvent.call(mm).getMember();
 		mm.tracker = new MinecartMemberTrackerEntry(mm);
 		WorldUtil.setTrackerEntry(mm, mm.tracker);
 		mm.world.addEntity(mm);

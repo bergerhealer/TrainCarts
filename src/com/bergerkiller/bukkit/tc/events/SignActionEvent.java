@@ -134,7 +134,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @return cart direction
 	 */
 	public BlockFace getCartDirection() {
-		if (this.hasMember()) {
+		if (this.hasMember() && this.member.isMoving()) {
 			return this.member.getDirectionTo();
 		}
 		return this.getFacing().getOppositeFace();

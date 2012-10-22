@@ -42,6 +42,8 @@ import net.minecraft.server.Item;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.MathHelper;
 import net.minecraft.server.NBTTagCompound;
+import net.minecraft.server.Packet;
+import net.minecraft.server.Packet23VehicleSpawn;
 import net.minecraft.server.Vec3D;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityMinecart;
@@ -169,28 +171,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				if(getDamage() > 40) {
 					// CraftBukkit start
 					List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
-					if (TrainCarts.spawnItemDrops) {
-						if (TrainCarts.breakCombinedCarts) {
-							drops.add(new CraftItemStack(Item.MINECART.id, 1));
-							if (type == 1) {
-								drops.add(new CraftItemStack(Block.CHEST.id, 1));
-							} else if(type == 2) {
-								drops.add(new CraftItemStack(Block.FURNACE.id, 1));
-							}
-						} else {
-							switch (this.type) {
-								case 0:
-									drops.add(new CraftItemStack(Item.MINECART.id, 1));
-									break;
-								case 1:
-									drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
-									break;
-								case 2:
-									drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
-									break;
-							}
-						}
-					}
+					drops.addAll(this.getDrops());
 
 					VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
 					if(CommonUtil.callEvent(destroyEvent).isCancelled()) {
@@ -216,7 +197,38 @@ public class NativeMinecartMember extends EntityMinecart {
 			return false;
 		}
 	}
-	
+
+	/**
+	 * Gets all the drops to spawn when this minecart is broken
+	 * 
+	 * @return items to spawn
+	 */
+	public List<org.bukkit.inventory.ItemStack> getDrops() {
+		ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>(2);
+		if (TrainCarts.breakCombinedCarts) {
+			drops.add(new CraftItemStack(Item.MINECART.id, 1));
+			if (this.isStorageCart()) {
+				drops.add(new CraftItemStack(Block.CHEST.id, 1));
+			} else if (this.isPoweredCart()) {
+				drops.add(new CraftItemStack(Block.FURNACE.id, 1));
+			}
+			return drops;
+		} else {
+			switch (this.type) {
+				case 0:
+					drops.add(new CraftItemStack(Item.MINECART.id, 1));
+					break;
+				case 1:
+					drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
+					break;
+				case 2:
+					drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
+					break;
+			}
+		}
+		return drops;
+	}
+
 	/*
 	 * Stores physics information (since functions are now pretty much scattered around)
 	 */
@@ -1018,6 +1030,15 @@ public class NativeMinecartMember extends EntityMinecart {
 		} catch (ConcurrentModificationException ex) {
 			TrainCarts.plugin.log(Level.WARNING, "Another plugin is interacting with the world entity list from another thread, please check your plugins!");
 		}
+	}
+
+	/**
+	 * Gets the packet to spawn this Minecart Member
+	 * 
+	 * @return spawn packet
+	 */
+	public Packet getSpawnPacket() {
+		return new Packet23VehicleSpawn(this, 10 + this.type);
 	}
 
 	public boolean canBeRidden() { return this.type == 0; }

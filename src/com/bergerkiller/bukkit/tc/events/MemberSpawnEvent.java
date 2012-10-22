@@ -5,7 +5,7 @@ import org.bukkit.event.HandlerList;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-public class MemberRemoveEvent extends MemberEvent {
+public class MemberSpawnEvent extends MemberEvent {
 	private static final HandlerList handlers = new HandlerList();
 
 	public HandlerList getHandlers() {
@@ -16,11 +16,15 @@ public class MemberRemoveEvent extends MemberEvent {
 		return handlers;
 	}
 
-	public MemberRemoveEvent(final MinecartMember member) {
+	public MemberSpawnEvent(MinecartMember member) {
 		super(member);
 	}
-	
-	public static void call(final MinecartMember member) {
-		CommonUtil.callEvent(new MemberRemoveEvent(member));
+
+	public void setMember(MinecartMember member) {
+		this.member = member;
+	}
+
+	public static MemberSpawnEvent call(MinecartMember member) {
+		return CommonUtil.callEvent(new MemberSpawnEvent(member));
 	}
 }
