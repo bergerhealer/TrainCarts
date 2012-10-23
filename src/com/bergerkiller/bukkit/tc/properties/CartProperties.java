@@ -372,29 +372,36 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 
 	@Override
-	public void save(ConfigurationNode node, boolean minimal) {
-		if (minimal) {
-			node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
-			node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
-			node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
-			node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
-			node.set("isPublic", this.isPublic ? null : false);
-			node.set("pickUp", this.pickUp ? true : null);
-		} else {
-			node.set("owners", new ArrayList<String>(this.owners));
-			node.set("tags", new ArrayList<String>(this.tags));
-			node.set("allowPlayerEnter", this.allowPlayerEnter);
-			node.set("allowPlayerExit", this.allowPlayerExit);
-			node.set("isPublic", this.isPublic);
-			node.set("pickUp", this.pickUp);
+	public void saveAsDefault(ConfigurationNode node) {
+		node.set("owners", new ArrayList<String>(this.owners));
+		node.set("tags", new ArrayList<String>(this.tags));
+		node.set("allowPlayerEnter", this.allowPlayerEnter);
+		node.set("allowPlayerExit", this.allowPlayerExit);
+		node.set("isPublic", this.isPublic);
+		node.set("pickUp", this.pickUp);
+		List<String> items = node.getList("blockBreakTypes", String.class);
+		for (Material mat : this.blockBreakTypes) {
+			items.add(mat.toString());
 		}
-		if (!minimal || !this.blockBreakTypes.isEmpty()) {
+		node.set("destination", this.hasDestination() ? this.destination : "");
+		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : "");
+	}
+
+	@Override
+	public void save(ConfigurationNode node) {
+		node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
+		node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
+		node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
+		node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
+		node.set("isPublic", this.isPublic ? null : false);
+		node.set("pickUp", this.pickUp ? true : null);
+		if (this.blockBreakTypes.isEmpty()) {
+			node.remove("blockBreakTypes");
+		} else {
 			List<String> items = node.getList("blockBreakTypes", String.class);
 			for (Material mat : this.blockBreakTypes) {
 				items.add(mat.toString());
 			}
-		} else {
-			node.remove("blockBreakTypes");
 		}
 		node.set("destination", this.hasDestination() ? this.destination : null);
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);

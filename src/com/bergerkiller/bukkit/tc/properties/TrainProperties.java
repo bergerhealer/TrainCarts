@@ -26,7 +26,12 @@ import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
 	private static final long serialVersionUID = 1L;
-	public static final TrainProperties EMPTY = new TrainProperties("");
+	public static final TrainProperties EMPTY;
+
+	static {
+		EMPTY = new TrainProperties("");
+		EMPTY.add(CartProperties.EMPTY);
+	}
 
 	protected String trainname;	
 	private String displayName;
@@ -38,7 +43,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	private boolean allowManualMovement = false;
 	public CollisionMode mobCollision = CollisionMode.DEFAULT;
 	public CollisionMode playerCollision = CollisionMode.DEFAULT;
-	public CollisionMode miscCollision = CollisionMode.DEFAULT;
+	public CollisionMode miscCollision = CollisionMode.PUSH;
 	public boolean requirePoweredMinecart = false;
 	private SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
 
@@ -629,13 +634,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
 		this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
 		this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
-		for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
-			try {
-				CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()), this);
-				this.add(prop);
-				prop.load(cart);
-			} catch (Exception ex) {
-				ex.printStackTrace();
+		if (node.isNode("carts")) {
+			for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
+				try {
+					CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()), this);
+					this.add(prop);
+					prop.load(cart);
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
 			}
 		}
 	}
@@ -662,43 +669,48 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	@Override
-	public void save(ConfigurationNode node, boolean minimal) {	
-		if (minimal) {
-			node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
-			node.set("allowLinking", this.allowLinking ? null : false);
-			node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
-			node.set("trainCollision", this.trainCollision ? null : false);
-			node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
-			node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
-			node.set("slowDown", this.slowDown ? null : false);
-			node.set("allowManualMovement",allowManualMovement ? true : null);
-			if (this.mobCollision != CollisionMode.DEFAULT) {
-				node.set("collision.mobs", this.mobCollision);
-			}
-			if (this.playerCollision != CollisionMode.DEFAULT) {
-				node.set("collision.players", this.playerCollision);
-			}
-			if (this.miscCollision != CollisionMode.DEFAULT) {
-				node.set("collision.misc", this.miscCollision);
-			}
-		} else {
-			node.set("displayName", this.displayName);
-			node.set("allowLinking", this.allowLinking);
-			node.set("requirePoweredMinecart", this.requirePoweredMinecart);
-			node.set("trainCollision", this.trainCollision);
-			node.set("keepChunksLoaded", this.keepChunksLoaded);
-			node.set("speedLimit", this.speedLimit);
-			node.set("slowDown", this.slowDown);
-			node.set("allowManualMovement", this.allowManualMovement);
+	public void saveAsDefault(ConfigurationNode node) {
+		node.set("displayName", this.displayName);
+		node.set("allowLinking", this.allowLinking);
+		node.set("requirePoweredMinecart", this.requirePoweredMinecart);
+		node.set("trainCollision", this.trainCollision);
+		node.set("keepChunksLoaded", this.keepChunksLoaded);
+		node.set("speedLimit", this.speedLimit);
+		node.set("slowDown", this.slowDown);
+		node.set("allowManualMovement", this.allowManualMovement);
+		node.set("collision.mobs", this.mobCollision);
+		node.set("collision.players", this.playerCollision);
+		node.set("collision.misc", this.miscCollision);
+		for (CartProperties prop : this) {
+			prop.saveAsDefault(node);
+			break;
+		}
+	}
+
+	@Override
+	public void save(ConfigurationNode node) {	
+		node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
+		node.set("allowLinking", this.allowLinking ? null : false);
+		node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
+		node.set("trainCollision", this.trainCollision ? null : false);
+		node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
+		node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+		node.set("slowDown", this.slowDown ? null : false);
+		node.set("allowManualMovement",allowManualMovement ? true : null);
+		if (this.mobCollision != CollisionMode.DEFAULT) {
 			node.set("collision.mobs", this.mobCollision);
+		}
+		if (this.playerCollision != CollisionMode.DEFAULT) {
 			node.set("collision.players", this.playerCollision);
+		}
+		if (this.miscCollision != CollisionMode.DEFAULT) {
 			node.set("collision.misc", this.miscCollision);
 		}
 		if (!this.isEmpty()) {
 			ConfigurationNode carts = node.getNode("carts");
 			for (CartProperties prop : this) {
 				ConfigurationNode cart = carts.getNode(prop.getUUID().toString());
-				prop.save(cart, minimal);
+				prop.save(cart);
 				if (cart.getKeys().isEmpty()) carts.remove(cart.getName());
 			}
 		}

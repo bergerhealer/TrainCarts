@@ -173,10 +173,18 @@ public interface IProperties {
 	public void load(ConfigurationNode node);
 
 	/**
-	 * Saves the information to the Configuration Node specified
+	 * Saves the information to the Configuration Node specified as a means of default<br>
+	 * The full information is written
 	 * 
 	 * @param node to save to
-	 * @param minimal True to only save changed values, False to save everything
 	 */
-	public void save(ConfigurationNode node, boolean minimal);
+	public void saveAsDefault(ConfigurationNode node);
+
+	/**
+	 * Saves the information to the Configuration Node specified as a means of state saving<br>
+	 * Only changed information is written
+	 * 
+	 * @param node to save to
+	 */
+	public void save(ConfigurationNode node);
 }

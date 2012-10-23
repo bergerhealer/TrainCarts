@@ -195,14 +195,12 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		boolean changed = false;
 		if (!defconfig.contains("default")) {
 			ConfigurationNode node = defconfig.getNode("default");
-			TrainProperties.EMPTY.save(node, false);
-			CartProperties.EMPTY.save(node, false);
+			TrainProperties.EMPTY.saveAsDefault(node);
 			changed = true;
 		}
 		if (!defconfig.contains("admin")) {
 			ConfigurationNode node = defconfig.getNode("admin");
-			TrainProperties.EMPTY.save(node, false);
-			CartProperties.EMPTY.save(node, false);
+			TrainProperties.EMPTY.saveAsDefault(node);
 			changed = true;
 		}
 		if (fixDeprecation(defconfig)) {
@@ -220,8 +218,8 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 			//does this train even exist?!
 			if (OfflineGroupManager.contains(prop.getTrainName())) {
 				ConfigurationNode train = config.getNode(prop.getTrainName());
-				prop.save(train, true);
-				if (train.getKeys().isEmpty()) {
+				prop.save(train);
+				if (train.isEmpty()) {
 					config.remove(prop.getTrainName());
 				}
 			} else {
