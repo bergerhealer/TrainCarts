@@ -412,6 +412,8 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 	public void destroy() {
 		for (MinecartMember mm : this) {
+			mm.clearActiveSigns();
+			mm.clearActiveDetectors();
 			mm.dead = true;
 		}
 		this.remove();

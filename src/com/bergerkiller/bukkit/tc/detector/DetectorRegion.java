@@ -42,8 +42,8 @@ public final class DetectorRegion {
 			if (list != null) {
 				ChunkCoordinates toCoords = BlockUtil.getCoordinates(to);
 				for (DetectorRegion region : list) {
-					if (!region.coordinates.contains(toCoords) && region.members.remove(mm)) {
-						region.onLeave(mm);
+					if (!region.coordinates.contains(toCoords)) {
+						region.remove(mm);
 					}
 				}
 			}
@@ -55,9 +55,7 @@ public final class DetectorRegion {
 		List<DetectorRegion> list = regions.get(block);
 		if (list != null) {
 			for (DetectorRegion region : list) {
-				if (region.members.remove(mm)) {
-					region.onLeave(mm);
-				}
+				region.remove(mm);
 			}
 		}
 		return list;
@@ -66,9 +64,7 @@ public final class DetectorRegion {
 		List<DetectorRegion> list = regions.get(block);
 		if (list != null) {
 			for (DetectorRegion region : list) {
-				if (region.members.add(mm)) {
-					region.onEnter(mm);
-				}
+				region.add(mm);
 			}
 		}
 		return list;
@@ -205,6 +201,16 @@ public final class DetectorRegion {
 		}
 		for (DetectorListener listener : listenerBuffer) {
 			listener.onEnter(mm.getGroup());
+		}
+	}
+	public void remove(MinecartMember mm) {
+		if (this.members.remove(mm)) {
+			this.onLeave(mm);
+		}
+	}
+	public void add(MinecartMember mm) {
+		if (this.members.add(mm)) {
+			this.onEnter(mm);
 		}
 	}
 	private void setListenerBuffer() {

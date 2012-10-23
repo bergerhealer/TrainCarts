@@ -222,7 +222,6 @@ public class MinecartMember extends MinecartMemberStore {
 	private void updateBlock() throws MemberDeadException, GroupUnloadedException {
 		if (this.locY < 0) {
 			this.dead = true;
-			throw new MemberDeadException();
 		}
 		this.validate();
 		if (!this.activeSigns.isEmpty()) {
@@ -268,9 +267,11 @@ public class MinecartMember extends MinecartMemberStore {
 
 			//update active signs
 			this.clearActiveSigns();
+			this.validate();
 			if (!this.isDerailed) {
 				for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
 					this.addActiveSign(sign);
+					this.validate();
 				}
 				
 				//destroy blocks
@@ -286,9 +287,11 @@ public class MinecartMember extends MinecartMemberStore {
 			if (newregions != null) {
 				this.activeDetectorRegions.addAll(newregions);
 			}
+			this.validate();
 								
 			//event
 			MemberBlockChangeEvent.call(this, from, to);
+			this.validate();
 		}
 	}
 
@@ -415,6 +418,12 @@ public class MinecartMember extends MinecartMemberStore {
 			}
 		}
 		this.activeSigns.clear();
+	}
+	public void clearActiveDetectors() {
+		for (DetectorRegion region : this.activeDetectorRegions) {
+			region.remove(this);
+		}
+		this.activeDetectorRegions.clear();
 	}
 	public Set<Block> getActiveSigns() {
 		return this.activeSigns;
@@ -1082,16 +1091,14 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.tracker;
 	}
 
+	@Override
 	public void die() {
-		if (!this.dead) {
-			super.die();
-		}
-		if (!died) {
+		if (!this.died) {
 			super.die();
 			this.dead = false;
-			died = true;
+			this.died = true;
 			this.clearActiveSigns();
-			DetectorRegion.handleLeave(this, this.getBlock());
+			this.clearActiveDetectors();
 			if (this.passenger != null) this.passenger.setPassengerOf(null);
 			if (this.group != null) this.group.remove(this);
 			CartPropertiesStore.remove(this.uniqueId);
