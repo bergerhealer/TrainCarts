@@ -25,7 +25,6 @@ import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class Util {
-	
 	public static void setItemMaxSize(Material material, int maxstacksize) {
 		setItemMaxSize(net.minecraft.server.Item.byId[material.getId()], maxstacksize);
 	}
@@ -201,11 +200,15 @@ public class Util {
 		return isRails(type.getId());
 	}
 	public static boolean isRails(int id) {
-		return BlockUtil.isRails(id) || isPressurePlate(id);
+		return BlockUtil.isRails(id) || isPressurePlate(id) || isVerticalRail(id);
 	}
-	
+
+	public static boolean isVerticalRail(int id) {
+		return BlockUtil.isType(id, Material.LADDER);
+	}
+
 	public static boolean isPressurePlate(int id) {
-		return BlockUtil.isType(id, Material.WOOD_PLATE.getId(), Material.STONE_PLATE.getId());
+		return BlockUtil.isType(id, Material.WOOD_PLATE, Material.STONE_PLATE);
 	}
 	
 	public static Block getRailsBlock(Block from) {
@@ -271,6 +274,37 @@ public class Util {
 			return BlockFace.SOUTH;
 		} else {
 			return BlockFace.SELF;
+		}
+	}
+
+	/**
+	 * Checks if a given rail is sloped
+	 * 
+	 * @param railsData of the rails
+	 * @return True if sloped, False if not
+	 */
+	public static boolean isSloped(int railsData) {
+		railsData &= 0x7;
+		return railsData >= 0x2 && railsData <= 0x5;
+	}
+
+	/**
+	 * Gets the direction a vertical rail pushes the minecart (the wall side)
+	 * 
+	 * @param raildata of the vertical rail
+	 * @return the direction the minecart is pushed
+	 */
+	public static BlockFace getVerticalRailDirection(int raildata) {
+		switch (raildata) {
+			case 0x2:
+				return BlockFace.WEST;
+			case 0x3:
+				return BlockFace.EAST;
+			case 0x4:
+				return BlockFace.SOUTH;
+			default:
+			case 0x5:
+				return BlockFace.NORTH;
 		}
 	}
 

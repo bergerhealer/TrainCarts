@@ -18,6 +18,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -34,6 +36,7 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
@@ -376,6 +379,44 @@ public class TCListener implements Listener {
 				PathNode.remove(event.getBlock());
 			}
 		}
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onBlockPlace(BlockPlaceEvent event) {
+		if (!event.isCancelled()) {
+			updateRails(event.getBlockPlaced());
+		}
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onBlockPhysics(BlockPhysicsEvent event) {
+		if (!event.isCancelled()) {
+			updateRails(event.getBlock());
+		}
+	}
+
+	public void updateRails(final Block below) {
+		if (!BlockUtil.isRails(below)) {
+			return;
+		}
+		// Obtain the vertical rail and the rail below it, if possible
+		final Block vertRail = below.getRelative(BlockFace.UP);
+		if (!Util.isVerticalRail(vertRail.getTypeId())) {
+			return;
+		}
+		// Possible match, work with it
+		CommonUtil.nextTick(new Runnable() {
+			public void run() {
+				Rails rails = BlockUtil.getRails(below);
+				if (rails == null || rails.isCurve()) {
+					return;
+				}
+				// Direction transfer
+				BlockFace dir = Util.getVerticalRailDirection(vertRail.getData());
+				rails.setDirection(dir, true);
+				below.setData(rails.getData());
+			}
+		});
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

@@ -80,6 +80,19 @@ public class TrackIterator implements Iterator<Block> {
 	
 	public static Block getNextTrack(Block from, BlockFace direction) {
 		Block next = from.getRelative(direction);
+		if (direction == BlockFace.UP) {
+			if (Util.isVerticalRail(next.getTypeId())) {
+				return next;
+			} else {
+				// Maybe a slope to go to?
+				BlockFace dir = Util.getVerticalRailDirection(from.getData());
+				next = next.getRelative(dir);
+				if (BlockUtil.isRails(next) && Util.isSloped(next.getData())) {
+					return next;
+				}
+			}
+			return null;
+		}
 		if (!Util.isRails(next)) {
 			next = next.getRelative(BlockFace.UP);
 			if (!Util.isRails(next)) {
@@ -154,15 +167,20 @@ public class TrackIterator implements Iterator<Block> {
 		this.next = getNextTrack(this.current, this.currentdirection);
 		if (this.next == null) return false;
 		if (!this.coordinates.add(BlockUtil.getCoordinates(this.next))) return false;
-		
+
 		//Next direction?
 		Rails rails = BlockUtil.getRails(this.next);
 		if (rails == null) {
 			//handle non-rails blocks
-			this.nextdirection = this.currentdirection;
+			int type = this.next.getTypeId();
+			if (Util.isPressurePlate(type)) {
+				this.nextdirection = this.currentdirection;
+			} else if (Util.isVerticalRail(type)) {
+				this.nextdirection = BlockFace.UP;
+			}
 			return true;
 		}
-		
+
 		//Get a set of possible directions to go
 		BlockFace[] possible = FaceUtil.getFaces(rails.getDirection().getOppositeFace());
 		
