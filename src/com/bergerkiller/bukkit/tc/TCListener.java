@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import net.minecraft.server.EntityMinecart;
 
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -26,7 +25,6 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
@@ -290,77 +288,66 @@ public class TCListener implements Listener {
 		try {
 			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 				int id = event.getClickedBlock().getTypeId();
-				boolean isplate = Util.isPressurePlate(id);
-				if (isplate || BlockUtil.isRails(id)) {
-					// Track map debugging logic
-					if (DEBUG_DO_TRACKTEST) {
-						// Track map test
-						TrackMap map = new TrackMap(event.getClickedBlock(), FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
-						while (map.hasNext()) {
-							map.next();
+				if (!Util.isRails(id)) {
+					return;
+				}
+				ItemStack item = event.getPlayer().getItemInHand();
+				if (item == null || !LogicUtil.contains(item.getType(), Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
+					return;
+				}
+
+				// handle permission
+				if (!Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
+					event.setCancelled(true);
+					return;
+				}
+
+				// Track map debugging logic
+				if (DEBUG_DO_TRACKTEST) {
+					// Track map test
+					TrackMap map = new TrackMap(event.getClickedBlock(), FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
+					while (map.hasNext()) {
+						map.next();
+					}
+					byte data = 0;
+					for (Block block : map) {
+						block.setTypeIdAndData(Material.WOOL.getId(), data, false);
+						data++;
+						if (data == 16) {
+							data = 0;
 						}
-						byte data = 0;
-						for (Block block : map) {
-							block.setTypeIdAndData(Material.WOOL.getId(), data, false);
-							data++;
-							if (data == 16) {
-								data = 0;
-							}
-						}
-						event.setCancelled(true);
-						return;
+					}
+					event.setCancelled(true);
+					return;
+				}
+
+				Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
+
+				// No minecart blocking it?
+				if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
+					event.setCancelled(true);
+					return;
+				}
+
+				// Place logic
+				lastPlayer = event.getPlayer();
+				if (BlockUtil.isRails(id)) {
+					return;
+				} else if (Util.isPressurePlate(id)) {
+					//perform a manual Minecart spawn
+					BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
+					if (dir == BlockFace.SELF) {
+						dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
 					}
 
-					ItemStack item = event.getPlayer().getItemInHand();
-					Material itemmat = item == null ? null : item.getType();
-
-					if (LogicUtil.contains(itemmat, Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
-						//Placing a minecart on the tracks
-						if (Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
-							//Not already a minecart at this spot?
-							Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
-							if (MinecartMember.getAt(at, null, 0.5) == null) {
-								lastPlayer = event.getPlayer();
-								if (isplate) {
-									//perform a manual Minecart spawn
-									BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
-									if (dir == BlockFace.SELF) {
-										dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
-									}
-									//get spawn location
-									Location loc = event.getClickedBlock().getLocation().add(0.5, 0.0, 0.5);
-									if (dir == BlockFace.SOUTH || dir == BlockFace.NORTH) {
-										loc.setYaw(0.0F);
-									} else {
-										loc.setYaw(90.0F);
-									}
-
-									//get type of minecart
-									int type;
-									switch (itemmat) {
-									case STORAGE_MINECART : type = 1; break;
-									case POWERED_MINECART : type = 2; break;
-									default : type = 0; break;
-									}
-
-									//subtract item
-									if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
-										item.setAmount(item.getAmount() - 1);
-										if (item.getAmount() == 0) {
-											event.getPlayer().setItemInHand(null);
-										}
-									}
-
-									//event
-									MinecartMember member = MinecartMember.spawn(loc, type);
-									CommonUtil.callEvent(new VehicleCreateEvent(member.getMinecart()));
-								}
-								return;
-							}
-						}
-						event.setCancelled(true);
+					//get spawn location
+					if (dir == BlockFace.SOUTH || dir == BlockFace.NORTH) {
+						at.setYaw(0.0F);
+					} else {
+						at.setYaw(90.0F);
 					}
 				}
+				MinecartMemberStore.spawnBy(at, event.getPlayer());
 			}
 			if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
 				if (BlockUtil.isSign(event.getClickedBlock())) {

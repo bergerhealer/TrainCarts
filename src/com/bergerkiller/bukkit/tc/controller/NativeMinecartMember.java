@@ -247,11 +247,6 @@ public class NativeMinecartMember extends EntityMinecart {
 	private final MoveInfo moveinfo = new MoveInfo((MinecartMember) this);
 	private class MoveInfo {
 		public final MinecartMember owner;
-		public double prevX;
-		public double prevY;
-		public double prevZ;
-		public float prevYaw;
-		public float prevPitch;
 		public MoveDirection moveDirection;
 		public int blockX;
 		public int blockY;
@@ -261,7 +256,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		public BlockFace prevRailDirecton = BlockFace.NORTH;
 		public BlockFace railDirection;
 		public boolean isSloped;
-		public Vec3D vec3d;
 		public boolean slopeToVert, vertToSlope;
 
 		public MoveInfo(MinecartMember owner) {
@@ -269,10 +263,6 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.blockX = owner.getLiveBlockX();
 			this.blockY = owner.getLiveBlockY();
 			this.blockZ = owner.getLiveBlockZ();
-		}
-
-		public Location getPrevLoc() {
-			return new Location(owner.world.getWorld(), prevX, prevY, prevZ, prevYaw, prevPitch);
 		}
 
 		public void updateBlock() {
@@ -284,12 +274,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 
 		public void updateBlock(int railtype, int raildata) {
+			// Update rail type and sloped state
 			this.railType = RailType.get(railtype, raildata);
 			this.isSloped = this.railType.isTrack() && Util.isSloped(raildata);
-			calcDirection(owner, railtype, raildata);
-		}
-
-		private void calcDirection(MinecartMember owner, int railtype, int raildata) {
+			// Update direction
 			if (this.railType == RailType.BRAKE || this.railType == RailType.BOOST || this.railType == RailType.DETECTOR) {
 				raildata &= 0x7;
 			}
@@ -300,15 +288,15 @@ public class NativeMinecartMember extends EntityMinecart {
 					this.railDirection = ((Rails) data).getDirection();
 				}
 			} else if (this.railType == RailType.PRESSUREPLATE) {
-				//driving on top of a pressure plate
+				// driving on top of a pressure plate
 				Block curr = world.getWorld().getBlockAt(blockX, blockY, blockZ);
 				BlockFace dir = Util.getPlateDirection(curr);
 				if (dir == BlockFace.SELF) {
 					//set track direction based on direction of this cart (0 or 1)
 					if (Math.abs(owner.motX) > Math.abs(owner.motZ)) {
-						this.railDirection = BlockFace.WEST;
-					} else {
 						this.railDirection = BlockFace.SOUTH;
+					} else {
+						this.railDirection = BlockFace.WEST;
 					}
 				} else {
 					this.railDirection = dir;
@@ -324,17 +312,16 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.blockZ = MathHelper.floor(owner.locZ);
 			this.slopeToVert = this.vertToSlope = false;
 
-			{
-				int railtype = world.getTypeId(blockX, blockY - 1, blockZ);
-				if (BlockUtil.isRails(railtype) || Util.isPressurePlate(railtype)) {
-					this.blockY--;
-				} else if (Util.isVerticalRail(railtype) && this.prevRailType != RailType.VERTICAL) {
-					this.blockY--;
-				} else {
-					railtype = world.getTypeId(blockX, blockY, blockZ);
-				}
-				this.updateBlock(railtype);
+			// Find the rail - first step
+			int railtype = world.getTypeId(blockX, blockY - 1, blockZ);
+			if (BlockUtil.isRails(railtype) || Util.isPressurePlate(railtype)) {
+				this.blockY--;
+			} else if (Util.isVerticalRail(railtype) && this.prevRailType != RailType.VERTICAL) {
+				this.blockY--;
+			} else {
+				railtype = world.getTypeId(blockX, blockY, blockZ);
 			}
+			this.updateBlock(railtype);
 
 			// Snap to slope
 			if (this.railType == RailType.NONE && this.prevRailType == RailType.VERTICAL && owner.motY > 0) {
@@ -398,11 +385,11 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.motZ = MathUtil.fixNaN(this.motZ);
 
 		// CraftBukkit start
-		moveinfo.prevX = this.locX;
-		moveinfo.prevY = this.locY;
-		moveinfo.prevZ = this.locZ;
-		moveinfo.prevYaw = this.yaw;
-		moveinfo.prevPitch = this.pitch;
+		this.lastX = this.locX;
+		this.lastY = this.locY;
+		this.lastZ = this.locZ;
+		this.lastYaw = this.yaw;
+		this.lastPitch = this.pitch;
 		// CraftBukkit end
 
 		//fire ticks decrease
@@ -435,9 +422,6 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 
-		this.lastX = this.locX;
-		this.lastY = this.locY;
-		this.lastZ = this.locZ;
 		this.motY -= 0.04 * (1 / stepcount);
 		this.wasOnMinecartTrack = this.isOnMinecartTrack;
 		moveinfo.fillRailsData();
@@ -454,8 +438,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		double slopedMotion = this.ignoreForces() ? 0 : 0.0078125; //forward movement on slopes
 
 		if (moveinfo.railType != RailType.NONE) {
-			moveinfo.vec3d = this.a(this.locX, this.locY, this.locZ);
-
 			if (moveinfo.isSloped) {
 				// Velocity modifier for sloped tracks
 				if (this.group().getProperties().isSlowingDown()) {
@@ -561,22 +543,27 @@ public class NativeMinecartMember extends EntityMinecart {
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
 		double motX = MathUtil.fixNaN(this.motX);
+		double motY = MathUtil.fixNaN(this.motY);
 		double motZ = MathUtil.fixNaN(this.motZ);
-		double motY = 0;
-		if (moveinfo.railType == RailType.VERTICAL) {
-			motY = MathUtil.clamp(this.motY, 0.4);
+
+		// No vertical motion if stuck to the rails
+		if (moveinfo.railType != RailType.VERTICAL && moveinfo.railType != RailType.NONE) {
+			motY = 0.0;
 		}
 
-		speedFactor = MathUtil.fixNaN(speedFactor, 1);
-		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
+		// Modify speed factor to stay within bounds
+		speedFactor = MathUtil.clamp(MathUtil.fixNaN(speedFactor, 1), 0.1, 10);
 
-		motX = MathUtil.clamp(motX, this.maxSpeed);
-		motZ = MathUtil.clamp(motZ, this.maxSpeed);
-		motX *= speedFactor;
-		motZ *= speedFactor;
+		// Apply speed factor to maxed values
+		motX = speedFactor * MathUtil.clamp(motX, this.maxSpeed);
+		motY = speedFactor * MathUtil.clamp(motY, this.maxSpeed);
+		motZ = speedFactor * MathUtil.clamp(motZ, this.maxSpeed);
 
+		// Move using set motion
+		this.move(motX, motY, motZ);
+
+		// Post-move logic
 		if (moveinfo.railType != RailType.NONE) {
-			this.move(motX, motY, motZ);
 			if (moveinfo.railType != RailType.VERTICAL) {
 				// Snap to rails vertically
 				for (Vector mov : moveinfo.moveDirection.raw) {
@@ -624,24 +611,23 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 			//==================================================
 
-			Vec3D vec3d1 = this.a(this.locX, this.locY, this.locZ);
-
+			// Slope physics and snap to rails logic
 			double motLength;
-
-			//x and z motion slowed down on slopes
-			if (moveinfo.isSloped && vec3d1 != null && moveinfo.vec3d != null) {
+			Vec3D startVector = this.a(this.lastX, this.lastY, this.lastZ);
+			Vec3D endVector = this.a(this.locX, this.locY, this.locZ);
+			if (moveinfo.isSloped && endVector != null && startVector != null) {
 				if (this.group().getProperties().isSlowingDown()) {
 					motLength = this.getForce();
 					if (motLength > 0) {
-						double slopeSlowDown = (moveinfo.vec3d.b - vec3d1.b) * 0.05 / motLength + 1;
+						double slopeSlowDown = (startVector.b - endVector.b) * 0.05 / motLength + 1;
 						this.motX *= slopeSlowDown;
 						this.motZ *= slopeSlowDown;
 					}
 				}
-				this.setPosition(this.locX, vec3d1.b, this.locZ);
+				this.setPosition(this.locX, endVector.b, this.locZ);
 			}
 
-			//update motion based on changed location
+			// Update motion direction based on changed location
 			int newBlockX = MathHelper.floor(this.locX);
 			int newBlockZ = MathHelper.floor(this.locZ);
 			if (newBlockX != moveinfo.blockX || newBlockZ != moveinfo.blockZ) {
@@ -653,7 +639,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			//PushX and PushZ updated for Powered Minecarts
 			if (this.isPoweredCart()) {
 				motLength = MathUtil.length(this.b, this.c);
-				if (motLength > 0.01 && this.motX * this.motX + this.motZ * this.motZ > 0.001) {
+				if (motLength > 0.01 && this.getForceSquared() > 0.001) {
 					this.b /= motLength;
 					this.c /= motLength;
 					if (this.b * this.motX + this.c * this.motZ < 0) {
@@ -690,8 +676,6 @@ public class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 			}
-		} else {
-			this.move(motX, this.motY, motZ);
 		}
 
 		// Update rotation
@@ -699,7 +683,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.b(this.yaw, this.pitch);
 
 		// CraftBukkit start
-		Location from = moveinfo.getPrevLoc();
+		Location from = new Location(this.world.getWorld(), this.lastX, this.lastY, this.lastZ, this.lastYaw, this.lastPitch);
 		Location to = this.getLocation();
 		Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 
@@ -710,6 +694,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 		// CraftBukkit end
 
+		// Minecart collisions
 		List<Entity> list = this.world.getEntities(this, this.boundingBox.grow(0.2, 0, 0.2));
 		if (list != null && !list.isEmpty()) {
 			for (Entity entity : list) {
@@ -719,26 +704,29 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 
+		// Ensure that null or dead passengers are cleared
 		if (this.passenger != null && this.passenger.dead) {
 			this.passenger.vehicle = null; // CraftBukkit
 			this.passenger = null;
 		}
 
-		if (this.fuel > 0 && this.isPoweredCart()) {
-			this.fuel--;
-			if (this.fuel == 0) {
-				//TrainCarts - Actions to be done when empty
-				if (this.onCoalUsed()) {
-					this.addFuel(FUEL_PER_COAL); //Refill
+		// Fuel update routines
+		if (this.isPoweredCart()) {
+			if (this.fuel > 0) {
+				this.fuel--;
+				if (this.fuel == 0) {
+					//TrainCarts - Actions to be done when empty
+					if (this.onCoalUsed()) {
+						this.addFuel(FUEL_PER_COAL); //Refill
+					}
 				}
 			}
+			if (this.fuel <= 0) {
+				this.fuel = 0;
+				this.b = this.c = 0.0;
+			}
+			this.d(this.hasFuel());
 		}
-		if (this.fuel <= 0) {
-			this.fuel = 0;
-			this.b = this.c = 0.0;
-		}
-
-		this.d(this.hasFuel());
 	}
 
 	private void setAngleSafe(float newyaw, float pitch, boolean mode) {

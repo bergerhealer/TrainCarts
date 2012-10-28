@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -171,6 +174,39 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		return cp == null ? null : cp.getMember();
 	}
 
+	/**
+	 * Spawns a minecart as being placed by a player
+	 * 
+	 * @param at location to spawn
+	 * @param player that placed something
+	 * @return the spawned Minecart Member, or null if it failed
+	 */
+	public static MinecartMember spawnBy(Location at, Player player) {
+		ItemStack item = player.getItemInHand();
+		if (item == null) {
+			return null;
+		}
+		//get type of minecart
+		int type;
+		switch (item.getType()) {
+		case STORAGE_MINECART : type = 1; break;
+		case POWERED_MINECART : type = 2; break;
+		case MINECART : type = 0; break;
+		default : return null;
+		}
+
+		// subtract held item
+		if (player.getGameMode() != GameMode.CREATIVE) {
+			item.setAmount(item.getAmount() - 1);
+			if (item.getAmount() == 0) {
+				player.getPlayer().setItemInHand(null);
+			}
+		}
+
+		// spawn and fire event
+		return MinecartMember.spawn(at, type);
+	}
+
 	public static MinecartMember spawn(Location at, int type) {
 		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
@@ -179,6 +215,7 @@ public class MinecartMemberStore extends NativeMinecartMember {
 		mm.tracker = new MinecartMemberTrackerEntry(mm);
 		WorldUtil.setTrackerEntry(mm, mm.tracker);
 		mm.world.addEntity(mm);
+		CommonUtil.callEvent(new VehicleCreateEvent(mm.getMinecart()));
 		return mm;
 	}
 
