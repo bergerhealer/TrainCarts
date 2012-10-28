@@ -59,6 +59,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
@@ -67,6 +68,7 @@ public class TCListener implements Listener {
 	public static Player lastPlayer = null;
 	public static boolean cancelNextDrops = false;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
+	private static final boolean DEBUG_DO_TRACKTEST = false;
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
@@ -290,6 +292,25 @@ public class TCListener implements Listener {
 				int id = event.getClickedBlock().getTypeId();
 				boolean isplate = Util.isPressurePlate(id);
 				if (isplate || BlockUtil.isRails(id)) {
+					// Track map debugging logic
+					if (DEBUG_DO_TRACKTEST) {
+						// Track map test
+						TrackMap map = new TrackMap(event.getClickedBlock(), FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
+						while (map.hasNext()) {
+							map.next();
+						}
+						byte data = 0;
+						for (Block block : map) {
+							block.setTypeIdAndData(Material.WOOL.getId(), data, false);
+							data++;
+							if (data == 16) {
+								data = 0;
+							}
+						}
+						event.setCancelled(true);
+						return;
+					}
+
 					ItemStack item = event.getPlayer().getItemInHand();
 					Material itemmat = item == null ? null : item.getType();
 
@@ -380,7 +401,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-
+	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if (!event.isCancelled()) {

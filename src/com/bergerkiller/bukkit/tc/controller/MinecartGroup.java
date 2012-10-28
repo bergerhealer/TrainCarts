@@ -805,7 +805,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				mm.validate();
 				mm.maxSpeed = this.getProperties().getSpeedLimit() / (double) stepcount;
 			}
-			
+
 			//pre-update
 			this.updateDirection();
 			this.updateAction();
@@ -836,7 +836,7 @@ public class MinecartGroup extends MinecartGroupStore {
 					//update force
 					for (MinecartMember m : this) {
 						m.setForwardForce(force);
-					}							
+					}
 				}
 
 				//Apply force factors to carts from last cart and perform post positional updates
@@ -847,22 +847,18 @@ public class MinecartGroup extends MinecartGroupStore {
 					MinecartMember after;
 					for (MinecartMember member : this) {
 						after = this.get(i);
-						distance = member.distanceXZ(after);
-						if (member.isFlying()) {
-							member.postUpdate(1);
+						distance = member.distance(after);
+						if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
+							threshold = TrainCarts.turnedCartDistance;
+							forcer = TrainCarts.turnedCartDistanceForcer;
 						} else {
-							if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
-								threshold = TrainCarts.turnedCartDistance;
-								forcer = TrainCarts.turnedCartDistanceForcer;
-							} else {
-								threshold = TrainCarts.cartDistance;
-								forcer = TrainCarts.cartDistanceForcer;
-							}
-							if (distance < threshold) {
-								forcer *= TrainCarts.nearCartDistanceFactor;
-							}
-							member.postUpdate(1 + (forcer * (threshold - distance)));
+							threshold = TrainCarts.cartDistance;
+							forcer = TrainCarts.cartDistanceForcer;
 						}
+						if (distance < threshold) {
+							forcer *= TrainCarts.nearCartDistanceFactor;
+						}
+						member.postUpdate(1 + (forcer * (threshold - distance)));
 						if (this.breakPhysics) return true;
 						if (i++ == this.size() - 1) {
 							this.tail().postUpdate(1);

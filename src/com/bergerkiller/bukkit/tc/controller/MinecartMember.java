@@ -67,13 +67,10 @@ public class MinecartMember extends MinecartMemberStore {
 	private BlockFace directionTo;
 	private BlockFace directionFrom;
 	protected MinecartGroup group;
-	private ChunkPosition blockPos;
+	private ChunkPosition prevBlockPos = new ChunkPosition(0, 0, 0);
 	private boolean forcedBlockUpdate = true;
 	protected boolean died = false;
 	private int teleportImmunityTick = 0;
-	private boolean railsloped = false;
-	private boolean isDerailed = false;
-	private boolean isFlying = false;
 	private boolean needsUpdate = false;
 	private boolean ignoreAllCollisions = false;
 	private CartProperties properties;
@@ -90,7 +87,6 @@ public class MinecartMember extends MinecartMemberStore {
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.blockPos = new ChunkPosition(super.getBlockX(), super.getBlockY(), super.getBlockZ());
 		this.prevcx = MathUtil.locToChunk(this.locX);
 		this.prevcz = MathUtil.locToChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
@@ -231,35 +227,16 @@ public class MinecartMember extends MinecartMemberStore {
 				SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
 			}
 		}
-		int x = super.getBlockX();
-		int y = super.getBlockY();
-		int z = super.getBlockZ();
-		boolean forced = forcedBlockUpdate || Math.abs(this.blockPos.x - x) > 128 || Math.abs(this.blockPos.y - y) > 128 || Math.abs(this.blockPos.z - z) > 128;
+		int x = super.getLiveBlockX();
+		int y = super.getLiveBlockY();
+		int z = super.getLiveBlockZ();
+		boolean forced = forcedBlockUpdate || Math.abs(this.prevBlockPos.x - x) > 128 || Math.abs(this.prevBlockPos.y - y) > 128 || Math.abs(this.prevBlockPos.z - z) > 128;
 		Block from = forced ? null : this.getBlock();
-		if (forced || x != this.blockPos.x || z != this.blockPos.z || y != (this.railsloped ? this.blockPos.y : this.blockPos.y + 1)) {
+		if (forced || x != this.prevBlockPos.x || z != this.prevBlockPos.z || y != this.prevBlockPos.y) {
 			getGroup().needsBlockUpdate = true;
 			//find the correct Y-value
-			this.railsloped = false;
-			this.isDerailed = false;
-			this.isFlying = false;
 			this.forcedBlockUpdate = false;
-
-			int r = this.world.getTypeId(x, y - 1, z);
-			if (Util.isRails(r)) {
-				--y;
-			} else {		
-				r = this.world.getTypeId(x, y, z);
-				if (Util.isRails(r)) {
-					this.railsloped = true;
-				} else {
-					this.isDerailed = true;
-					if (r == 0) this.isFlying = true;
-				}
-			}
-			this.blockPos = new ChunkPosition(x, y, z);
-			if (!this.isDerailed && Util.isPressurePlate(r)) {
-				this.b(this.yaw, this.pitch = 0.0F);
-			}
+			this.prevBlockPos = new ChunkPosition(x, y, z);
 
 			//Update from value if it was not set
 			Block to = this.getBlock();
@@ -268,7 +245,7 @@ public class MinecartMember extends MinecartMemberStore {
 			//update active signs
 			this.clearActiveSigns();
 			this.validate();
-			if (!this.isDerailed) {
+			if (!this.isDerailed()) {
 				for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
 					this.addActiveSign(sign);
 					this.validate();
@@ -440,7 +417,7 @@ public class MinecartMember extends MinecartMemberStore {
  	 * Block functions
  	 */
  	public Block getBlock(int dx, int dy, int dz) {
- 		return this.world.getWorld().getBlockAt(this.blockPos.x + dx, this.blockPos.y + dy, this.blockPos.z + dz);
+ 		return this.world.getWorld().getBlockAt(this.getBlockX() + dx, this.getBlockY() + dy, this.getBlockZ() + dz);
  	}
 	public Block getBlock(BlockFace face) {
 		return this.getBlock(face.getModX(), face.getModY(), face.getModZ());
@@ -452,17 +429,19 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.getBlock(FaceUtil.add(direction, this.getDirection()));
 	}
  	public Block getRailsBlock() {
-		if (this.isDerailed) return null;
+		if (this.isDerailed()) return null;
 		Block b = this.getBlock();
 		if (Util.isRails(b)) {
 			return b;
 		} else {
-			this.isDerailed = true;
 			return null;
 		}
 	}
+ 	public Rails getRails() {
+ 		return BlockUtil.getRails(this.getRailsBlock());
+ 	}
 	public BlockFace getRailDirection() {
-		Rails r = BlockUtil.getRails(this.getRailsBlock());
+		Rails r = getRails();
 		if (r == null) return this.getDirection();
 		return r.getDirection();
 	}
@@ -504,7 +483,19 @@ public class MinecartMember extends MinecartMemberStore {
 	/*
 	 * Velocity functions
 	 */
+	public double getForceSquared() {
+		if (this.isMovingVertical()) {
+			return this.motY * this.motY;
+		}
+		return MathUtil.lengthSquared(this.motX, this.motZ);
+	}
+	public double getForce() {
+		return Math.sqrt(getForceSquared());
+	}
 	public double getForwardForce() {
+		if (this.isMovingVertical()) {
+			return this.motY * this.direction.getModY();
+		}
 		return -FaceUtil.sin(this.direction) * this.motZ - FaceUtil.cos(this.direction) * this.motX; 
 	}
 	public void setForceFactor(final double factor) {
@@ -514,7 +505,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	private void setYForce(double force) {
-		if (this.railsloped) {
+		if (this.isOnSlope()) {
 			//calculate upwards or downwards force
 			BlockFace raildir = this.getRailDirection();
 			if (direction == raildir) {
@@ -525,19 +516,26 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 	public void setForce(double force, BlockFace direction) {
-		this.setYForce(force);
-		this.motX = -FaceUtil.cos(direction) * force;
-		this.motZ = -FaceUtil.sin(direction) * force;
+		if (this.isMovingVertical()) {
+			this.motY = (double) direction.getModY() * force;
+			this.motX = this.motZ = 0.0;
+		} else {
+			this.setYForce(force);
+			this.motX = -FaceUtil.cos(direction) * force;
+			this.motZ = -FaceUtil.sin(direction) * force;
+		}
 	}
 	public void setForwardForce(double force) {
-		if (this.isMoving() && force > 0.01 && FaceUtil.getDirection(this.motX, this.motZ, false) == this.direction) {
-			this.setYForce(force);
-			force /= this.getForce();
-			this.motX *= force;
-			this.motZ *= force;
-		} else {
-			this.setForce(force, this.direction);
+		if (this.isMoving() && force > 0.01 && !this.isOnVertical()) {
+			if (FaceUtil.getDirection(this.motX, this.motZ, false) == this.direction) {
+				this.setYForce(force);
+				force /= this.getForce();
+				this.motX *= force;
+				this.motZ *= force;
+				return;
+			}
 		}
+		this.setForce(force, this.direction);
 	}
 	public void limitSpeed() {
 		//Limits the velocity to the maximum
@@ -580,23 +578,12 @@ public class MinecartMember extends MinecartMemberStore {
 		double z = getZ() + 0.5;
 		return z - (int) z;
 	}
-	public ChunkPosition getBlockPos() {
-		return this.blockPos;
-	}
-	public int getBlockX() {
-		return this.blockPos.x;
-	}
-	public int getBlockY() {
-		return this.blockPos.y;
-	}
-	public int getBlockZ() {
-		return this.blockPos.z;
-	}
+
 	public int getChunkX() {
-		return this.blockPos.x >> 4;
+		return this.getBlockX() >> 4;
 	}
 	public int getChunkZ() {
-		return this.blockPos.z >> 4;
+		return this.getBlockZ() >> 4;
 	}
 	public double getMovedX() {
 		return this.locX - this.lastX;
@@ -687,13 +674,35 @@ public class MinecartMember extends MinecartMemberStore {
 		this.updateDirection(this.getVelocity());
 	}
 	public void updateDirection(Vector movement) {
-		if (this.isDerailed) {
+		if (this.isOnVertical() || (this.isFlying() && Math.abs(this.motX) < 0.001 && Math.abs(this.motZ) < 0.001)) {
+			if (movement.getY() >= 0) {
+				this.direction = BlockFace.UP;
+			} else {
+				this.direction = BlockFace.DOWN;
+			}
+			this.directionFrom = this.directionTo = this.direction;
+			return;
+		}
+		if (this.isDerailed()) {
 			this.direction = FaceUtil.getDirection(movement);
 			this.directionFrom = this.directionTo;
 			this.directionTo = FaceUtil.getDirection(movement, false);
 			return;
 		}
-		BlockFace raildirection = this.getRailDirection();
+		Rails rails = this.getRails();
+		if (rails == null) {
+			return;
+		}
+		BlockFace raildirection = rails.getDirection();
+		if (this.directionTo == BlockFace.DOWN && rails.isOnSlope()) {
+			// Going from vertical down to a slope
+			this.direction = this.directionTo = this.directionFrom = raildirection.getOppositeFace();
+			return;
+		} else if (this.directionTo == BlockFace.UP && rails.isOnSlope()) {
+			// Going from vertical up to a sloped rail
+			this.direction = this.directionTo = this.directionFrom = raildirection;
+			return;
+		}
 		this.direction = FaceUtil.getRailsCartDirection(raildirection);
 		if (movement.getX() == 0 || movement.getZ() == 0) {
 			if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
@@ -786,12 +795,6 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isTurned() {
 		return FaceUtil.isSubCardinal(this.direction);
 	}
-	public boolean isDerailed() {
-		return this.isDerailed;
-	}
-	public boolean isFlying() {
-		return this.isFlying;
-	}
 	public boolean isHeadingTo(net.minecraft.server.Entity entity) {
 		return this.isHeadingTo(entity.getBukkitEntity());
 	}
@@ -812,7 +815,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.isHeadingToTrack(track, 0);
 	}
 	public boolean isHeadingToTrack(Block track, int maxstepcount) {
-		if (this.isDerailed) return false;
+		if (this.isDerailed()) return false;
 		Block from = this.getRailsBlock();
 		if (from == null || track == null) return false;
 		if (BlockUtil.equals(from, track)) return true;
@@ -826,7 +829,10 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isFollowingOnTrack(MinecartMember member) {
 		//checks if this member is able to follow the specified member on the tracks
 		if (!this.isNearOf(member)) return false;
-		if (this.isDerailed || member.isDerailed) return true; //if derailed keep train alive
+		if (this.isDerailed() || member.isDerailed()) return true; //if derailed keep train alive
+		if (this.isOnVertical() || member.isOnVertical()) {
+			return true; //TEMP HAX
+		}
 		if (this.isMoving()) {
 			Block memberrail = member.getRailsBlock();
 			if (memberrail == null) return true; //derailed
@@ -856,19 +862,19 @@ public class MinecartMember extends MinecartMemberStore {
 		return true;
 	}
 
+	public boolean isMovingVertical() {
+		return super.isOnVertical() || this.direction == BlockFace.UP || this.direction == BlockFace.DOWN;
+	}
 	public boolean isUnloaded() {
 		return this.unloaded;
-	}
-	public boolean isOnSlope() {
-		return this.railsloped;
 	}
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
 	}
 	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
 		if (world != this.getWorld()) return false;
-		if (Math.abs(cx - (super.getBlockX() >> 4)) > 2) return false;
-		if (Math.abs(cz - (super.getBlockZ() >> 4)) > 2) return false;
+		if (Math.abs(cx - (super.getLiveBlockX() >> 4)) > 2) return false;
+		if (Math.abs(cz - (super.getLiveBlockZ() >> 4)) > 2) return false;
 		return true;
 	}
 	public boolean isRegularMinecart() {
@@ -974,7 +980,7 @@ public class MinecartMember extends MinecartMemberStore {
 	 * Teleportation
 	 */
 	public void loadChunks() {
-		WorldUtil.loadChunks(this.getWorld(), super.getBlockX() >> 4, super.getBlockZ() >> 4, 2);
+		WorldUtil.loadChunks(this.getWorld(), super.getLiveBlockX() >> 4, super.getLiveBlockZ() >> 4, 2);
 	}
 	public void teleport(Block railsblock) {
 		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
@@ -1113,7 +1119,7 @@ public class MinecartMember extends MinecartMemberStore {
 			prevcx = newcx;
 			prevcz = newcz;
 			if (canunload) {
-				if (!this.world.areChunksLoaded(newcx << 4, this.getBlockY(), newcz << 4, 32)) {
+				if (!this.world.areChunksLoaded(newcx << 4, this.getLiveBlockY(), newcz << 4, 32)) {
 					OfflineGroupManager.hideGroup(this.getGroup());
 					throw new GroupUnloadedException();
 				}

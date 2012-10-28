@@ -202,9 +202,9 @@ public class MinecartMemberStore extends NativeMinecartMember {
 				for (Object e : list) {
 					if (e instanceof MinecartMember) {
 						mm = (MinecartMember) e;
-						if (mm.getBlockX() != coord.x) continue;
-						if (mm.getBlockY() != coord.y) continue;
-						if (mm.getBlockZ() != coord.z) continue;
+						if (mm.getLiveBlockX() != coord.x) continue;
+						if (mm.getLiveBlockY() != coord.y) continue;
+						if (mm.getLiveBlockZ() != coord.z) continue;
 						result = mm;
 						if (result.isHeadingTo(coord)) return result;
 					}

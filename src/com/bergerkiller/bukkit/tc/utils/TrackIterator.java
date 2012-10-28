@@ -91,13 +91,19 @@ public class TrackIterator implements Iterator<Block> {
 					return next;
 				}
 			}
-			return null;
 		}
 		if (!Util.isRails(next)) {
 			next = next.getRelative(BlockFace.UP);
 			if (!Util.isRails(next)) {
 				next = next.getRelative(0, -2, 0);
 				if (!Util.isRails(next)) {
+					// Maybe current block is a slope, go to vertical?
+					if (BlockUtil.isRails(from) && Util.isSloped(from.getData())) {
+						next = from.getRelative(BlockFace.UP); 
+						if (Util.isVerticalRail(next.getTypeId())) {
+							return next;
+						}
+					}
 					return null;
 				}
 			}
@@ -176,9 +182,19 @@ public class TrackIterator implements Iterator<Block> {
 			if (Util.isPressurePlate(type)) {
 				this.nextdirection = this.currentdirection;
 			} else if (Util.isVerticalRail(type)) {
-				this.nextdirection = BlockFace.UP;
+				if (next.getY() > current.getY()) {
+					this.nextdirection = BlockFace.UP;
+				} else {
+					this.nextdirection = BlockFace.DOWN;
+				}
 			}
 			return true;
+		} else if (this.currentdirection == BlockFace.DOWN) {
+			// Moving to a slope?
+			if (rails.isOnSlope()) {
+				this.nextdirection = rails.getDirection().getOppositeFace();
+				return true;
+			}
 		}
 
 		//Get a set of possible directions to go

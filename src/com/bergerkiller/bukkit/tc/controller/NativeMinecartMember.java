@@ -36,6 +36,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 import net.minecraft.server.AxisAlignedBB;
+import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.DamageSource;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityHuman;
@@ -71,11 +72,11 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	public double getForceSquared() {
+	private double getForceSquared() {
 		return MathUtil.lengthSquared(this.motX, this.motZ);
 	}
-	public double getForce() {
-		return MathUtil.length(this.motX, this.motZ);
+	private double getForce() {
+		return Math.sqrt(getForceSquared());
 	}
 	public double getX() {
 		return this.locX;
@@ -86,14 +87,26 @@ public class NativeMinecartMember extends EntityMinecart {
 	public double getZ() {
 		return this.locZ;
 	}
-	public int getBlockX() {
+	public int getLiveBlockX() {
 		return MathHelper.floor(this.getX());
 	}
-	public int getBlockY() {
+	public int getLiveBlockY() {
 		return MathHelper.floor(this.getY());
 	}
-	public int getBlockZ() {
+	public int getLiveBlockZ() {
 		return MathHelper.floor(this.getZ());
+	}
+	public int getBlockX() {
+		return moveinfo.blockX;
+	}
+	public int getBlockY() {
+		return moveinfo.blockY;
+	}
+	public int getBlockZ() {
+		return moveinfo.blockZ;
+	}
+	public ChunkPosition getBlockPos() {
+		return new ChunkPosition(getBlockX(), getBlockY(), getBlockZ());
 	}
 	public org.bukkit.World getWorld() {
 		return world.getWorld();
@@ -253,6 +266,9 @@ public class NativeMinecartMember extends EntityMinecart {
 
 		public MoveInfo(MinecartMember owner) {
 			this.owner = owner;
+			this.blockX = owner.getLiveBlockX();
+			this.blockY = owner.getLiveBlockY();
+			this.blockZ = owner.getLiveBlockZ();
 		}
 
 		public Location getPrevLoc() {
@@ -465,7 +481,6 @@ public class NativeMinecartMember extends EntityMinecart {
 				this.motZ = 0.0;
 				// Position update
 				this.locX = moveinfo.blockX + 0.5;
-				this.locY += MathUtil.clamp(this.motY, 0.4);
 				this.locZ = moveinfo.blockZ + 0.5;
 			} else {
 				//snap locY to tracks
@@ -547,6 +562,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.validate();
 		double motX = MathUtil.fixNaN(this.motX);
 		double motZ = MathUtil.fixNaN(this.motZ);
+		double motY = 0;
+		if (moveinfo.railType == RailType.VERTICAL) {
+			motY = MathUtil.clamp(this.motY, 0.4);
+		}
 
 		speedFactor = MathUtil.fixNaN(speedFactor, 1);
 		if (speedFactor > 10) speedFactor = 10; //>10 is ridiculous!
@@ -557,7 +576,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		motZ *= speedFactor;
 
 		if (moveinfo.railType != RailType.NONE) {
-			this.move(motX, 0.0, motZ);
+			this.move(motX, motY, motZ);
 			if (moveinfo.railType != RailType.VERTICAL) {
 				// Snap to rails vertically
 				for (Vector mov : moveinfo.moveDirection.raw) {
@@ -722,10 +741,10 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.d(this.hasFuel());
 	}
 
-	private void setAngleSafe(float newyaw, float pitch) {
+	private void setAngleSafe(float newyaw, float pitch, boolean mode) {
 		if (MathUtil.getAngleDifference(this.yaw, newyaw) > 170) {
 			this.yaw = MathUtil.wrapAngle(newyaw + 180);
-			this.pitch = pitch - 180f;
+			this.pitch = mode ? -pitch : (pitch - 180f);
 		} else {
 			this.yaw = newyaw;
 			this.pitch = pitch;
@@ -736,31 +755,15 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Performs rotation updates for yaw and pitch
 	 */
 	public void updateRotation() {
-		if (moveinfo.railType == RailType.VERTICAL) {
-			switch (moveinfo.railDirection) {
-				case NORTH :
-					setAngleSafe(0, -90);
-					break;
-				case EAST :
-					setAngleSafe(90, -90);
-					break;
-				case SOUTH :
-					setAngleSafe(180, -90);
-					break;
-				case WEST :
-					setAngleSafe(-270, 90);
-					break;
-			}
-			return;
-		}
 		//Update yaw and pitch based on motion
 		double movedX = this.lastX - this.locX;
 		double movedY = this.lastY - this.locY;
 		double movedZ = this.lastZ - this.locZ;
-		float newyaw = this.yaw;
+		boolean movedXZ = MathUtil.lengthSquared(movedX, movedZ) > 0.001;
+		float newyaw = movedXZ ? MathUtil.getLookAtYaw(movedX, movedZ) : this.yaw;
 		float newpitch = this.pitch;
+		boolean mode = true;
 		if (this.onGround) {
-			newyaw = 0;
 			if (Math.abs(newpitch) > 0.1) {
 				newpitch *= 0.1;
 			} else {
@@ -772,18 +775,18 @@ public class NativeMinecartMember extends EntityMinecart {
 			if (moveinfo.railDirection == BlockFace.WEST) {
 				newpitch = 90;
 			}
+			mode = false;
 		} else if (moveinfo.railType == RailType.PRESSUREPLATE) {
 			newpitch = 0.0F; //prevent weird pitch angles on pressure plates
-		} else if (MathUtil.lengthSquared(movedX, movedZ) > 0.001) {
+		} else if (movedXZ) {
 			if (this.moveinfo.railType.isTrack()) {
-				newpitch = 0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
-				newpitch = MathUtil.clamp(newpitch, 60F);
+				newpitch = -0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 			} else {
-				newpitch = -0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
-				newpitch = MathUtil.clamp(newpitch, 60F);
+				newpitch = 0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 			}
+			newpitch = MathUtil.clamp(newpitch, 60F);
 		}
-		setAngleSafe(newyaw, newpitch);
+		setAngleSafe(newyaw, newpitch, mode);
 	}
 
 	/*
@@ -1025,7 +1028,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				world.getServer().getPluginManager().callEvent(event);
 				//========TrainCarts edit: Stop entire train ============
 				if (!this.isOnMinecartTrack || !this.member().isTurned()) {
-					//this.group().stop();
+					this.group().stop();
 				}
 				//=======================================================
 			}
@@ -1143,9 +1146,9 @@ public class NativeMinecartMember extends EntityMinecart {
 		if (Util.isVerticalRail(block.getTypeId())) {
 			return false;
 		} else if (this.isOnMinecartTrack) {
-			// Check if the collided block has a rails
+			// Check if the collided block has vertical rails
 			BlockFace dir = FaceUtil.getDirection(this.locX - block.getX() - 0.5, this.locZ - block.getZ() - 0.5, false);
-			if (Util.isVerticalRail(block.getRelative(dir).getTypeId())) {
+			if (dir != BlockFace.UP && dir != BlockFace.DOWN && Util.isVerticalRail(block.getRelative(dir).getTypeId())) {
 				return false;
 			}
 		}
@@ -1192,6 +1195,22 @@ public class NativeMinecartMember extends EntityMinecart {
 	 */
 	public Packet getSpawnPacket() {
 		return new Packet23VehicleSpawn(this, 10 + this.type);
+	}
+
+	public boolean isOnVertical() {
+		return this.moveinfo.railType == RailType.VERTICAL;
+	}
+
+	public boolean isDerailed() {
+		return this.moveinfo.railType == RailType.NONE;
+	}
+
+	public boolean isOnSlope() {
+		return this.moveinfo.isSloped;
+	}
+
+	public boolean isFlying() {
+		return this.moveinfo.railType == RailType.NONE && !this.onGround;
 	}
 
 	public boolean canBeRidden() { return this.type == 0; }
