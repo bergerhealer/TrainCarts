@@ -82,7 +82,10 @@ public class SignActionSpawn extends SignAction {
 					TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
 					boolean occupied = false;
 					for (int i = 0; i < types.size(); i++) {
-						if (!iter.hasNext()) return;
+						if (!iter.hasNext()) {
+							occupied = true;
+							break;
+						}
 						locs[i] = iter.next();
 						//not taken?
 						if (MinecartMember.getAt(locs[i]) != null) {
@@ -93,7 +96,7 @@ public class SignActionSpawn extends SignAction {
 					if (occupied) {
 						continue;
 					}
-					
+
 					// Prepare chunks
 					for (Location loc : locs) {
 						WorldUtil.loadChunks(loc, 2);

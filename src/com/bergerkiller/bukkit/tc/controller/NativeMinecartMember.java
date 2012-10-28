@@ -96,6 +96,15 @@ public class NativeMinecartMember extends EntityMinecart {
 	public int getLiveBlockZ() {
 		return MathHelper.floor(this.getZ());
 	}
+	public int getLastBlockX() {
+		return moveinfo.lastBlockX;
+	}
+	public int getLastBlockY() {
+		return moveinfo.lastBlockY;
+	}
+	public int getLastBlockZ() {
+		return moveinfo.lastBlockZ;
+	}
 	public int getBlockX() {
 		return moveinfo.blockX;
 	}
@@ -248,9 +257,8 @@ public class NativeMinecartMember extends EntityMinecart {
 	private class MoveInfo {
 		public final MinecartMember owner;
 		public MoveDirection moveDirection;
-		public int blockX;
-		public int blockY;
-		public int blockZ;
+		public int blockX, blockY, blockZ;
+		public int lastBlockX, lastBlockY, lastBlockZ;
 		public RailType railType;
 		public RailType prevRailType = RailType.NONE;
 		public BlockFace prevRailDirecton = BlockFace.NORTH;
@@ -260,9 +268,13 @@ public class NativeMinecartMember extends EntityMinecart {
 
 		public MoveInfo(MinecartMember owner) {
 			this.owner = owner;
-			this.blockX = owner.getLiveBlockX();
-			this.blockY = owner.getLiveBlockY();
-			this.blockZ = owner.getLiveBlockZ();
+			this.lastBlockX = this.blockX = owner.getLiveBlockX();
+			this.lastBlockY = this.blockY = owner.getLiveBlockY();
+			this.lastBlockZ = this.blockZ = owner.getLiveBlockZ();
+		}
+
+		public boolean blockChanged() {
+			return blockX != lastBlockX || blockY != lastBlockY || blockZ != lastBlockZ;
 		}
 
 		public void updateBlock() {
@@ -307,6 +319,9 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 
 		public void fillRailsData() {
+			this.lastBlockX = this.blockX;
+			this.lastBlockY = this.blockY;
+			this.lastBlockZ = this.blockZ;
 			this.blockX = MathHelper.floor(owner.locX);
 			this.blockY = MathHelper.floor(owner.locY);
 			this.blockZ = MathHelper.floor(owner.locZ);
@@ -325,31 +340,37 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			// Snap to slope
 			if (this.railType == RailType.NONE && this.prevRailType == RailType.VERTICAL && owner.motY > 0) {
-				BlockFace dir = this.prevRailDirecton;
-				blockX += dir.getModX();
-				blockZ += dir.getModZ();
-				this.updateBlock();
-				this.vertToSlope = true;
-				// Snap minecart to middle of rail
-				owner.locX = blockX + 0.5 + 0.25 * dir.getModX();
-				owner.locZ = blockZ + 0.5 + 0.25 * dir.getModZ();
-				// Y offset
-				owner.locY = blockY + 0.5;
+				Block next = owner.world.getWorld().getBlockAt(blockX + this.prevRailDirecton.getModX(), blockY, blockZ + this.prevRailDirecton.getModZ());
+				Rails rails = BlockUtil.getRails(next);
+				if (rails != null && rails.isOnSlope()) {
+					if (rails.getDirection() == this.prevRailDirecton) {
+						// Move the minecart to the slope
+						blockX = next.getX();
+						blockZ = next.getZ();
+						this.updateBlock();
+						this.vertToSlope = true;
+						owner.locX = blockX + 0.5 - 0.49 * this.prevRailDirecton.getModX();
+						owner.locZ = blockZ + 0.5 - 0.49 * this.prevRailDirecton.getModZ();
+						// Y offset
+						owner.locY = blockY + 0.8;
+					}
+				}
 			}
 
-			// Vertical rail finding
+			// Snap from sloped rail to vertical rail
 			if (this.isSloped) {
 				int aboveType = world.getTypeId(blockX, blockY + 1, blockZ);
 				if (Util.isVerticalRail(aboveType)) {
-					// And only if the minecart is heading towards the vertical rail
-					if ((this.prevRailType == RailType.VERTICAL || owner.getDirectionTo() == this.railDirection) && owner.motY >= -0.1) {
+					// Is this minecart moving towards the up-side of the slope?
+					if (owner.motY > 0 || owner.isHeadingTo(this.railDirection)) {
 						blockY++;
 						this.updateBlock(aboveType);
 						this.railType = RailType.VERTICAL;
 						this.isSloped = false;
 						this.slopeToVert = true;
+					} else if (this.blockChanged()) {
+						this.vertToSlope = true;
 					}
-					this.vertToSlope = !this.slopeToVert;
 				} else if (this.prevRailType == RailType.VERTICAL) {
 					this.vertToSlope = true;
 				}
@@ -760,9 +781,6 @@ public class NativeMinecartMember extends EntityMinecart {
 		} else if (moveinfo.railType == RailType.VERTICAL) {
 			newyaw = FaceUtil.faceToYaw(moveinfo.railDirection);
 			newpitch = -90;
-			if (moveinfo.railDirection == BlockFace.WEST) {
-				newpitch = 90;
-			}
 			mode = false;
 		} else if (moveinfo.railType == RailType.PRESSUREPLATE) {
 			newpitch = 0.0F; //prevent weird pitch angles on pressure plates

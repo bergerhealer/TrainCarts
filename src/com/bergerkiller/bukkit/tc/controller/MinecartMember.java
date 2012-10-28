@@ -11,7 +11,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.ChunkCoordinates;
-import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
@@ -67,7 +66,6 @@ public class MinecartMember extends MinecartMemberStore {
 	private BlockFace directionTo;
 	private BlockFace directionFrom;
 	protected MinecartGroup group;
-	private ChunkPosition prevBlockPos = new ChunkPosition(0, 0, 0);
 	private boolean forcedBlockUpdate = true;
 	protected boolean died = false;
 	private int teleportImmunityTick = 0;
@@ -230,13 +228,15 @@ public class MinecartMember extends MinecartMemberStore {
 		int x = super.getLiveBlockX();
 		int y = super.getLiveBlockY();
 		int z = super.getLiveBlockZ();
-		boolean forced = forcedBlockUpdate || Math.abs(this.prevBlockPos.x - x) > 128 || Math.abs(this.prevBlockPos.y - y) > 128 || Math.abs(this.prevBlockPos.z - z) > 128;
+		int prevX = this.getLastBlockX();
+		int prevY = this.getLastBlockY();
+		int prevZ = this.getLastBlockZ();
+		boolean forced = forcedBlockUpdate || Math.abs(prevX - x) > 128 || Math.abs(prevY - y) > 128 || Math.abs(prevZ - z) > 128;
 		Block from = forced ? null : this.getBlock();
-		if (forced || x != this.prevBlockPos.x || z != this.prevBlockPos.z || y != this.prevBlockPos.y) {
+		if (forced || x != prevX || z != prevZ || y != prevY) {
 			getGroup().needsBlockUpdate = true;
 			//find the correct Y-value
 			this.forcedBlockUpdate = false;
-			this.prevBlockPos = new ChunkPosition(x, y, z);
 
 			//Update from value if it was not set
 			Block to = this.getBlock();
@@ -514,6 +514,9 @@ public class MinecartMember extends MinecartMemberStore {
 				this.motY = -MathUtil.halfRootOfTwo * force;
 			}
 		}
+	}
+	public void setForce(double force) {
+		setForceFactor(force / this.getForce());
 	}
 	public void setForce(double force, BlockFace direction) {
 		if (this.isMovingVertical()) {

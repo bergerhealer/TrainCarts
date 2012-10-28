@@ -49,58 +49,81 @@ public class Util {
 		}
 		return found;
 	}
-	
+
+	private static BlockFace[] possibleFaces = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
 	private static List<Block> blockbuff = new ArrayList<Block>();
 	public static List<Block> getSignsFromRails(Block railsblock) {
 		return getSignsFromRails(blockbuff, railsblock);
 	}
 	public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
 		rval.clear();
-		//ignore mid-sections
-		railsblock = railsblock.getRelative(BlockFace.DOWN);
-		addAttachedSigns(railsblock, rval);
-		railsblock = railsblock.getRelative(BlockFace.DOWN);
-		//loop downwards
-		while (true) {
-			if (railsblock.getTypeId() == Material.SIGN_POST.getId()) {
-				rval.add(railsblock);
-				railsblock = railsblock.getRelative(BlockFace.DOWN);
-			} else if (addAttachedSigns(railsblock, rval)) {
-				railsblock = railsblock.getRelative(BlockFace.DOWN);
-			} else {
-				break;
+		if (isVerticalRail(railsblock.getTypeId())) {
+			BlockFace dir = getVerticalRailDirection(railsblock.getData());
+			railsblock = railsblock.getRelative(dir);
+			// Loop into the direction to find signs
+			while (true) {
+				if (addAttachedSigns(railsblock, rval)) {
+					railsblock = railsblock.getRelative(dir);
+				} else {
+					break;
+				}
+			}
+		} else {
+			//ignore mid-sections
+			railsblock = railsblock.getRelative(BlockFace.DOWN);
+			addAttachedSigns(railsblock, rval);
+			railsblock = railsblock.getRelative(BlockFace.DOWN);
+			//loop downwards
+			while (true) {
+				if (railsblock.getTypeId() == Material.SIGN_POST.getId()) {
+					rval.add(railsblock);
+					railsblock = railsblock.getRelative(BlockFace.DOWN);
+				} else if (addAttachedSigns(railsblock, rval)) {
+					railsblock = railsblock.getRelative(BlockFace.DOWN);
+				} else {
+					break;
+				}
 			}
 		}
 		return rval;
 	}
 
 	public static Block getRailsFromSign(Block signblock) {
+		int id;
 		if (signblock == null) {
 			return null;
-		} else if (signblock.getTypeId() == Material.SIGN_POST.getId()) {
-		} else if (signblock.getTypeId() == Material.WALL_SIGN.getId()) {
-			signblock = BlockUtil.getAttachedBlock(signblock);
 		} else {
-			return null;
+			id = signblock.getTypeId();
+			if (id == Material.WALL_SIGN.getId()) {
+				signblock = BlockUtil.getAttachedBlock(signblock);
+			} else if (id != Material.SIGN_POST.getId()) {
+				return null;
+			}
 		}
-		signblock = signblock.getRelative(BlockFace.UP);
-		if (isRails(signblock)) return signblock;
-		while (true) {
+		Block mainBlock = signblock;
+		for (BlockFace dir : possibleFaces) {
+			signblock = mainBlock.getRelative(dir);
 			if (isRails(signblock)) {
 				return signblock;
-			} else if (hasAttachedSigns(signblock)) {
-				signblock = signblock.getRelative(BlockFace.UP);					
-			} else {
-				signblock = signblock.getRelative(BlockFace.UP);	
+			}
+			while (true) {
 				if (isRails(signblock)) {
 					return signblock;
+				} else if (hasAttachedSigns(signblock)) {
+					signblock = signblock.getRelative(dir);
 				} else {
-					return null;
+					signblock = signblock.getRelative(dir);
+					if (isRails(signblock)) {
+						return signblock;
+					} else {
+						break;
+					}
 				}
 			}
 		}
+		return null;
 	}
-	
+
 	public static Block findRailsVertical(Block from, BlockFace mode) {
 		int sy = from.getY();
 		int x = from.getX();

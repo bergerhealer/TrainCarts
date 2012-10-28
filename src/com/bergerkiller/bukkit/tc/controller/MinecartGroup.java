@@ -835,7 +835,13 @@ public class MinecartGroup extends MinecartGroupStore {
 				if (performUpdate) {
 					//update force
 					for (MinecartMember m : this) {
-						m.setForwardForce(force);
+						if (m.isFlying()) {
+							if (force > 0.01) {
+								m.setForce(force);
+							}
+						} else {
+							m.setForwardForce(force);
+						}
 					}
 				}
 
