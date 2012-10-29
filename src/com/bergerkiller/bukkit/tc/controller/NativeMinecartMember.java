@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.tc.MoveDirection;
 import com.bergerkiller.bukkit.tc.RailType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 import net.minecraft.server.AxisAlignedBB;
@@ -54,14 +55,13 @@ import net.minecraft.server.Vec3D;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityMinecart;
 
-public class NativeMinecartMember extends EntityMinecart {
+public abstract class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Values taken over from source to use in the m_ function, see attached source links
 	 */
 	public int fuel;
 	private int fuelCheckCounter = 0;
-	public boolean isOnMinecartTrack = true;
-	public boolean wasOnMinecartTrack = true;
+	private boolean forcedBlockUpdate = true;
 
 	public static final int FUEL_PER_COAL = 3600;
 	private static final double HOR_VERT_TRADEOFF = 2.0;
@@ -476,9 +476,12 @@ public class NativeMinecartMember extends EntityMinecart {
 			this.motY -= 0.04;
 		}
 
-		this.wasOnMinecartTrack = this.isOnMinecartTrack;
 		moveinfo.fillRailsData();
-		this.isOnMinecartTrack = moveinfo.railType.isTrack();
+
+		// reset fall distance
+		if (this.moveinfo.railType != RailType.NONE) {
+			this.fallDistance = 0.0f;
+		}
 
 		// Ignore forced: Make powered or brake rail act as a regular rail
 		if (this.ignoreForces()) {
@@ -511,7 +514,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				// Horizontal rail force to motY
 				if (moveinfo.slopeToVert) {
 					this.motY += MathUtil.length(this.motX, this.motZ) * HOR_VERT_TRADEOFF;
-					this.locY = MathUtil.clamp(this.locY, moveinfo.blockY + 0.5, Double.MAX_VALUE);
+					this.locY = MathUtil.clamp(this.locY, moveinfo.blockY + 0.7, Double.MAX_VALUE);
 				} else {
 					this.motY -= MathUtil.length(this.motX, this.motZ) * HOR_VERT_TRADEOFF;
 				}
@@ -735,7 +738,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 
 		// Update rotation
-		this.updateRotation();
+		this.onRotationUpdate();
 		this.b(this.yaw, this.pitch);
 
 		// CraftBukkit start
@@ -783,6 +786,19 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 			this.e(this.hasFuel());
 		}
+
+		// Handle block changes
+		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
+			this.validate();
+			this.forcedBlockUpdate = false;
+			Block oldBlock = this.getWorld().getBlockAt(moveinfo.lastBlockX, moveinfo.lastBlockY, moveinfo.lastBlockZ);
+			Block newBlock = this.getWorld().getBlockAt(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ);
+			// Perform events and logic - validate along the way
+			this.validate();
+			MemberBlockChangeEvent.call(this.member(), oldBlock, newBlock);
+			this.validate();
+			this.onBlockChange(oldBlock, newBlock);
+		}
 	}
 
 	private void setAngleSafe(float newyaw, float pitch, boolean mode) {
@@ -796,9 +812,17 @@ public class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/**
+	 * Called when the blocks below this minecart change block coordinates
+	 * 
+	 * @param from block - the old block
+	 * @param to block - the new block
+	 */
+	public abstract void onBlockChange(Block from, Block to);
+
+	/**
 	 * Performs rotation updates for yaw and pitch
 	 */
-	public void updateRotation() {
+	public void onRotationUpdate() {
 		//Update yaw and pitch based on motion
 		double movedX = this.lastX - this.locX;
 		double movedY = this.lastY - this.locY;
@@ -872,13 +896,12 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	/*
-	 * To be overridden by MinecartMember
-	 * Returns if the fuel should be refilled
+	/**
+	 * Checks if new coal can be used
+	 * 
+	 * @return True if new coal can be put into the powered minecart, False if not
 	 */
-	public boolean onCoalUsed() {
-		return false;
-	}
+	public abstract boolean onCoalUsed();
 
 	/**
 	 * Cloned move function and updated to prevent collisions. For source, see:
@@ -1067,11 +1090,6 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
 				world.getServer().getPluginManager().callEvent(event);
-				//========TrainCarts edit: Stop entire train ============
-				if (!this.isOnMinecartTrack || !this.member().isTurned()) {
-					this.group().stop();
-				}
-				//=======================================================
 			}
 
 			if (this.f_() && this.vehicle == null) {
@@ -1208,6 +1226,10 @@ public class NativeMinecartMember extends EntityMinecart {
 				return false;
 			}
 		}
+		// Handle collision
+		if (!this.member().isTurned() && hitFace.getOppositeFace() == this.member().getDirectionTo()) {
+			this.group().stop();
+		}
 		return true;
 	}
 
@@ -1277,6 +1299,14 @@ public class NativeMinecartMember extends EntityMinecart {
 
 	public boolean isOnSlope() {
 		return this.moveinfo.isSloped;
+	}
+
+	public boolean wasOnNormalTracks() {
+		return this.moveinfo.prevRailType.isTrack();
+	}
+
+	public boolean isOnNormalTracks() {
+		return this.moveinfo.railType.isTrack();
 	}
 
 	public boolean isFlying() {

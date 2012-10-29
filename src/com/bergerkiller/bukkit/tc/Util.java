@@ -27,7 +27,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class Util {
 	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(Material.RAILS, Material.POWERED_RAIL, Material.DETECTOR_RAIL, 
-			Material.LADDER, Material.STONE_PLATE, Material.WOOD_SPADE);
+			Material.LADDER, Material.STONE_PLATE, Material.WOOD_PLATE);
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {

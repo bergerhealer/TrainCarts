@@ -202,7 +202,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 				if (moved) {
 					//moving to derailed track?
 					MinecartMember mm = (MinecartMember) this.tracker;
-					if (mm.wasOnMinecartTrack && !mm.isOnMinecartTrack) {
+					if (mm.wasOnNormalTracks() && !mm.isOnNormalTracks()) {
 						teleport = true;
 					}
 				}

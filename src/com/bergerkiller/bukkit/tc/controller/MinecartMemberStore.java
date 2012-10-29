@@ -30,7 +30,7 @@ import net.minecraft.server.EntityTrackerEntry;
 import net.minecraft.server.World;
 import net.minecraft.server.WorldServer;
 
-public class MinecartMemberStore extends NativeMinecartMember {
+public abstract class MinecartMemberStore extends NativeMinecartMember {
 
 	public MinecartMemberStore(World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);

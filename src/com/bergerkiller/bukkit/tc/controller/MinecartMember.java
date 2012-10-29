@@ -42,7 +42,6 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -62,11 +61,11 @@ import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
 public class MinecartMember extends MinecartMemberStore {
+	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private BlockFace direction;
 	private BlockFace directionTo;
 	private BlockFace directionFrom;
 	protected MinecartGroup group;
-	private boolean forcedBlockUpdate = true;
 	protected boolean died = false;
 	private int teleportImmunityTick = 0;
 	private boolean needsUpdate = false;
@@ -109,6 +108,7 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 
+	@Override
 	public boolean preUpdate(int stepcount) {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
@@ -121,11 +121,9 @@ public class MinecartMember extends MinecartMemberStore {
 		return super.preUpdate(stepcount);
 	}
 
+	@Override
 	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.postUpdate(speedFactor);
-		if (this.isOnMinecartTrack) {
-			this.fallDistance = 0.0f; // reset fall distance
-		}
 		this.validate();
 		if (this.getProperties().canPickup() && this.isStorageCart()) {
 			Inventory inv = this.getInventory();
@@ -163,7 +161,6 @@ public class MinecartMember extends MinecartMemberStore {
 				}
 			}
 		}
-		this.updateBlock();
 		if (this.needsUpdate) {
 			this.needsUpdate = false;
 			for (Block b : this.activeSigns) {
@@ -209,63 +206,30 @@ public class MinecartMember extends MinecartMemberStore {
 		return false;
 	}
 
-	private static List<Block> tmpblockbuff = new ArrayList<Block>();
-	private void updateBlock() throws MemberDeadException, GroupUnloadedException {
-		if (this.locY < 0) {
-			this.dead = true;
-		}
+
+	@Override
+	public void onBlockChange(Block from, Block to) {
+		//update active signs
+		this.clearActiveSigns();
 		this.validate();
-		if (!this.activeSigns.isEmpty()) {
-			SignActionEvent info;
-			for (Block sign : this.activeSigns) {
-				info = new SignActionEvent(sign, this);
-				SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
+		if (!this.isDerailed()) {
+			for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
+				this.addActiveSign(sign);
+				this.validate();
 			}
+
+			//destroy blocks
+			Block left = this.getBlockRelative(BlockFace.WEST);
+			Block right = this.getBlockRelative(BlockFace.EAST);
+			if (this.getProperties().canBreak(left)) BlockUtil.breakBlock(left);
+			if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
 		}
-		int x = this.getBlockX();
-		int y = this.getBlockY();
-		int z = this.getBlockZ();
-		int prevX = this.getLastBlockX();
-		int prevY = this.getLastBlockY();
-		int prevZ = this.getLastBlockZ();
-		boolean forced = forcedBlockUpdate || Math.abs(prevX - x) > 128 || Math.abs(prevY - y) > 128 || Math.abs(prevZ - z) > 128;
-		Block from = forced ? null : this.getBlock();
-		if (forced || x != prevX || z != prevZ || y != prevY) {
-			getGroup().needsBlockUpdate = true;
-			//find the correct Y-value
-			this.forcedBlockUpdate = false;
 
-			//Update from value if it was not set
-			Block to = this.getBlock();
-			if (from == null) from = to;
-
-			//update active signs
-			this.clearActiveSigns();
-			this.validate();
-			if (!this.isDerailed()) {
-				for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
-					this.addActiveSign(sign);
-					this.validate();
-				}
-				
-				//destroy blocks
-				Block left = this.getBlockRelative(BlockFace.WEST);
-				Block right = this.getBlockRelative(BlockFace.EAST);
-				if (this.getProperties().canBreak(left)) BlockUtil.breakBlock(left);
-				if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
-			}
-			
-			//Detector regions
-			List<DetectorRegion> newregions = DetectorRegion.handleMove(this, from, to);
-			this.activeDetectorRegions.clear();
-			if (newregions != null) {
-				this.activeDetectorRegions.addAll(newregions);
-			}
-			this.validate();
-								
-			//event
-			MemberBlockChangeEvent.call(this, from, to);
-			this.validate();
+		//Detector regions
+		List<DetectorRegion> newregions = DetectorRegion.handleMove(this, from, to);
+		this.activeDetectorRegions.clear();
+		if (newregions != null) {
+			this.activeDetectorRegions.addAll(newregions);
 		}
 	}
 
@@ -427,12 +391,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
  	public Block getRailsBlock() {
 		if (this.isDerailed()) return null;
-		Block b = this.getBlock();
-		if (Util.ISVERTRAIL.get(b)) {
-			return b;
-		} else {
-			return null;
-		}
+		return this.getBlock();
 	}
  	public Rails getRails() {
  		return BlockUtil.getRails(this.getRailsBlock());
