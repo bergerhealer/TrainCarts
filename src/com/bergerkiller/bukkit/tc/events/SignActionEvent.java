@@ -57,6 +57,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.railsblock = railsblock;
 		this.railschecked = this.railsblock != null;
 		this.railschecked = this.railsblock != null;
+		this.verticalRail = this.railsblock != null && Util.isVerticalRail(this.railsblock.getTypeId());
 		if (this.sign == null) {
 			this.powerinv = false;
 			this.poweron = false;
@@ -105,6 +106,7 @@ public class SignActionEvent extends Event implements Cancellable {
 
 	private final Block signblock;
 	private Block railsblock;
+	private boolean verticalRail;
 	private final SignActionMode mode;
 	private SignActionType actionType;
 	private BlockFace facing = null;
@@ -337,6 +339,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Block getRails() {
 		if (!this.railschecked) {
 			this.railsblock = Util.getRailsFromSign(this.signblock);
+			this.verticalRail = this.railsblock != null && Util.isVerticalRail(this.railsblock.getTypeId());
 			this.railschecked = true;
 		}
 		return this.railsblock;
@@ -346,6 +349,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean hasRails() {
 		return this.getRails() != null;
+	}
+	public boolean isVerticalRails() {
+		return this.verticalRail;
 	}
 	public BlockFace getRailDirection() {
 		if (!this.hasRails()) return null;

@@ -53,7 +53,7 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 		}
 		
 		//Increment distance
-		this.distance += this.getMember().getMovedDistanceXZ();
+		this.distance += this.getMember().getMovedDistance();
 		
 		//Reached the target distance?
 		if (this.distance > this.targetdistance - 0.2) {

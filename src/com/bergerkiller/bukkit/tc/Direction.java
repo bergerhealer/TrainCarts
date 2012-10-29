@@ -9,6 +9,8 @@ public enum Direction {
 	WEST("w", "west"), LEFT("l", "left"), RIGHT("r", "right"), 
 	FORWARD("f", "front", "forward", "forwards", "continue"), 
 	BACKWARD("b", "back", "backward", "backwards", "reverse"), 
+	UP("u", "up", "upwards", "above"),
+	DOWN("d", "down", "downwards", "below"),
 	NONE("", "n", "none");
 
 	private final String[] aliases;

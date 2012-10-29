@@ -225,9 +225,9 @@ public class MinecartMember extends MinecartMemberStore {
 				SignAction.executeAll(info, SignActionType.MEMBER_MOVE);
 			}
 		}
-		int x = super.getLiveBlockX();
-		int y = super.getLiveBlockY();
-		int z = super.getLiveBlockZ();
+		int x = this.getBlockX();
+		int y = this.getBlockY();
+		int z = this.getBlockZ();
 		int prevX = this.getLastBlockX();
 		int prevY = this.getLastBlockY();
 		int prevZ = this.getLastBlockZ();
@@ -678,7 +678,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void updateDirection(Vector movement) {
 		if (this.isOnVertical() || (this.isFlying() && Math.abs(this.motX) < 0.001 && Math.abs(this.motZ) < 0.001)) {
-			if (movement.getY() >= 0) {
+			if (movement.getY() > 0) {
 				this.direction = BlockFace.UP;
 			} else {
 				this.direction = BlockFace.DOWN;

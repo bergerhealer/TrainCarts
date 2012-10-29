@@ -82,7 +82,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 * @param limit in blocks/tick
 	 */
 	public void setSpeedLimit(double limit) {
-		this.speedLimit = Math.min(limit, TrainCarts.maxVelocity);
+		this.speedLimit = MathUtil.clamp(limit, 0, TrainCarts.maxVelocity);
 	}
 
 	/**

@@ -12,7 +12,7 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection impl
 		super(member, member.distance(target), targetvelocity, member.getDirection());
 		this.target = target.clone();
 	}
-		
+
 	public void start() {
 		//update direction to launch at
 		super.setDirection(FaceUtil.getDirection(this.getMember().getLocation(), this.target, false));
@@ -21,5 +21,4 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection impl
 		super.setTargetDistance(d);
 		super.start();
 	}
-	
 }

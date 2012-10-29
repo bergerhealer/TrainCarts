@@ -443,7 +443,10 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 
-		this.motY -= 0.04 * (1 / stepcount);
+		if (!this.ignoreForces()) {
+			this.motY -= 0.04;
+		}
+
 		this.wasOnMinecartTrack = this.isOnMinecartTrack;
 		moveinfo.fillRailsData();
 		this.isOnMinecartTrack = moveinfo.railType.isTrack();
@@ -476,9 +479,12 @@ public class NativeMinecartMember extends EntityMinecart {
 			}
 
 			if (moveinfo.railType == RailType.VERTICAL) {
-				// Vertical rail force to motY
+				// Horizontal rail force to motY
 				if (moveinfo.slopeToVert) {
 					this.motY += MathUtil.length(this.motX, this.motZ) * HOR_VERT_TRADEOFF;
+					this.locY = MathUtil.clamp(this.locY, moveinfo.blockY + 0.5, Double.MAX_VALUE);
+				} else {
+					this.motY -= MathUtil.length(this.motX, this.motZ) * HOR_VERT_TRADEOFF;
 				}
 				this.motX = 0.0;
 				this.motZ = 0.0;
@@ -1148,13 +1154,13 @@ public class NativeMinecartMember extends EntityMinecart {
 	/*
 	 * Checks if collision with a given block is allowed
 	 */
-	private boolean canCollide(Block block) {
+	private boolean canCollide(Block block, BlockFace hitFace) {
 		if (Util.isVerticalRail(block.getTypeId())) {
 			return false;
-		} else if (this.isOnMinecartTrack) {
+		}
+		if (moveinfo.railType == RailType.VERTICAL && hitFace != BlockFace.UP && hitFace != BlockFace.DOWN) {
 			// Check if the collided block has vertical rails
-			BlockFace dir = FaceUtil.getDirection(this.locX - block.getX() - 0.5, this.locZ - block.getZ() - 0.5, false);
-			if (dir != BlockFace.UP && dir != BlockFace.DOWN && Util.isVerticalRail(block.getRelative(dir).getTypeId())) {
+			if (Util.isVerticalRail(block.getRelative(hitFace).getTypeId())) {
 				return false;
 			}
 		}
@@ -1167,11 +1173,17 @@ public class NativeMinecartMember extends EntityMinecart {
 	@SuppressWarnings("unchecked")
 	private void filterCollisionList(List<AxisAlignedBB> list) {		
 		try {
+			// Shortcut to prevent unneeded logic
+			if (list.isEmpty()) {
+				return;
+			}
 			List<Entity> entityList = this.world.entityList;
 
 			Iterator<AxisAlignedBB> iter = list.iterator();
 			AxisAlignedBB a;
 			boolean isBlock;
+			double dx, dy, dz;
+			BlockFace dir;
 			while (iter.hasNext()) {
 				a = iter.next();
 				isBlock = true;
@@ -1184,7 +1196,15 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				if (isBlock) {
 					Block block = this.world.getWorld().getBlockAt(MathHelper.floor(a.a), MathHelper.floor(a.b), MathHelper.floor(a.c));
-					if (!this.canCollide(block)) {
+					dx = this.locX - block.getX() - 0.5;
+					dy = this.locY - block.getY() - 0.5;
+					dz = this.locZ - block.getZ() - 0.5;
+					if (Math.abs(dx) < 0.1 && Math.abs(dz) < 0.1) {
+						dir = dy >= 0.0 ? BlockFace.UP : BlockFace.DOWN;
+					} else {
+						dir = FaceUtil.getDirection(dx, dz, false);
+					}
+					if (!this.canCollide(block, dir)) {
 						iter.remove();
 					}
 				}
