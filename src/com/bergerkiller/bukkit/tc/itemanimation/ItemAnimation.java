@@ -158,7 +158,7 @@ public class ItemAnimation {
 			this.item.motY = MathUtil.useOld(this.item.motY, dir.getY(), 0.1);
 			this.item.motZ = dir.getZ() + Math.random() * 0.02 - 0.01;
 			this.item.velocityChanged = true;
-			this.item.h_();
+			this.item.j_();
 		} else {
 			return true;
 		}

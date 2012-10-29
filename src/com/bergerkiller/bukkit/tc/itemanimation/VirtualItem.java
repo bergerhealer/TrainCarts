@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -32,7 +33,7 @@ public class VirtualItem extends EntityItem {
 	public void b_(EntityHuman entityhuman) {};
 
 	@Override
-	public void h_() {
+	public void j_() {
 		this.lastX = this.locX;
 		this.lastY = this.locY;
 		this.lastZ = this.locZ;
@@ -44,9 +45,9 @@ public class VirtualItem extends EntityItem {
 
 	public void refresh() {
 		this.al = true;
-		this.ah = MathUtil.locToChunk(this.locX);
-		this.ai = MathUtil.locToChunk(this.locY);
-		this.aj = MathUtil.locToChunk(this.locZ);
+		EntityRef.chunkX.set(this, MathUtil.locToChunk(this.locX));
+		EntityRef.chunkY.set(this, MathUtil.locToChunk(this.locY));
+		EntityRef.chunkZ.set(this, MathUtil.locToChunk(this.locZ));
 	}
 
 	public void die() {

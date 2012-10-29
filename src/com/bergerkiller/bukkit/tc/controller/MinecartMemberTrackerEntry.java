@@ -111,25 +111,23 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 			boolean velocity = false;
 			for (MinecartMember mm : group) {
 				MinecartMemberTrackerEntry tracker = mm.getTracker();
-				if (tracker == null) continue;
-				if (!location && tracker.tracker.al) {
-					location = true;
-				}
-				if (!velocity && tracker.tracker.velocityChanged) {
-					velocity = true;
+				if (tracker != null) {
+					location |= tracker.hasTrackerChanged();
+					velocity |= tracker.tracker.velocityChanged;
 				}
 			}
 			for (MinecartMember mm : group) {
 				MinecartMemberTrackerEntry tracker = mm.getTracker();
-				if (tracker == null) continue;
-				tracker.tracked = false;
-				if (location) {
-					tracker.syncLocation(teleport);
+				if (tracker != null) {
+					tracker.tracked = false;
+					if (location) {
+						tracker.syncLocation(teleport);
+					}
+					if (velocity) {
+						tracker.syncVelocity();
+					}
+					tracker.syncMeta();
 				}
-				if (velocity) {
-					tracker.syncVelocity();
-				}
-				tracker.syncMeta();
 			}
 		}
 	}
@@ -161,9 +159,9 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public void doTeleport() {
-		int x = tracker.am.a(this.tracker.locX);
+		int x = tracker.ar.a(this.tracker.locX);
 		int y = MathHelper.floor(this.tracker.locY * 32);
-		int z = tracker.am.a(this.tracker.locZ);
+		int z = tracker.ar.a(this.tracker.locZ);
 		int yaw = MathHelper.d(this.tracker.yaw * 256 / 360);
 		int pitch = MathHelper.d(this.tracker.pitch * 256 / 360);
 		this.xLoc = x;
@@ -179,18 +177,18 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public boolean hasTrackerChanged() {
-		return this.tracker.al;
+		return this.tracker.am;
 	}
 
 	public void setTrackerChanged(boolean changed) {
-		this.tracker.al = changed;
+		this.tracker.am = changed;
 	}
 
 	public void syncLocation(boolean teleport) {
 		if (!teleport) {
-			int newXLoc = this.tracker.am.a(this.tracker.locX);
+			int newXLoc = this.tracker.ar.a(this.tracker.locX);
 			int newYLoc = MathHelper.floor(this.tracker.locY * 32);
-			int newZLoc = this.tracker.am.a(this.tracker.locZ);
+			int newZLoc = this.tracker.ar.a(this.tracker.locZ);
 			int xDiff = newXLoc - this.xLoc;
 			int yDiff = newYLoc - this.yLoc;
 			int zDiff = newZLoc - this.zLoc;
@@ -252,7 +250,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 		//meta data packets (used for effects like smoke toggling)
 		DataWatcher datawatcher = this.tracker.getDataWatcher();
 		if (datawatcher.a()) {
-			this.broadcastIncludingSelf(new Packet40EntityMetadata(this.tracker.id, datawatcher));
+			this.broadcastIncludingSelf(new Packet40EntityMetadata(this.tracker.id, datawatcher, false));
 		}
 	}
 

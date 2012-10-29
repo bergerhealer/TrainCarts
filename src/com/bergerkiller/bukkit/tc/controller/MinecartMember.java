@@ -91,11 +91,8 @@ public class MinecartMember extends MinecartMemberStore {
 		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
 	}
 
-	/*
-	 * Overridden Minecart functions
-	 */
 	@Override
-	public void h_() {
+	public void onTick() {
 		if (this.isUnloaded()) {
 			return;
 		}
@@ -106,7 +103,7 @@ public class MinecartMember extends MinecartMemberStore {
 			g.remove(this);
 		} else if (g.isEmpty()) {
 			g.remove();
-			super.h_();
+			super.onTick();
 		} else if (g.tail() == this) {
 			g.doPhysics();
 		}

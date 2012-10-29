@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -115,8 +116,10 @@ public class MinecartMemberStore extends NativeMinecartMember {
 				//bugged minecart - kill it!
 				minecart.dead = true;
 				minecart.world.removeEntity(minecart);
-				if (minecart.world.chunkProvider.isChunkLoaded(minecart.ah, minecart.aj)) {
-					minecart.world.chunkProvider.getChunkAt(minecart.ah, minecart.aj).b(minecart);
+				int cX = EntityRef.chunkX.get(minecart);
+				int cZ = EntityRef.chunkZ.get(minecart);
+				if (minecart.world.chunkProvider.isChunkLoaded(cX, cZ)) {
+					minecart.world.chunkProvider.getChunkAt(cX, cZ).b(minecart);
 				}
 				return false;
 			}

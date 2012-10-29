@@ -394,6 +394,29 @@ public class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
+	@Override
+	public void j_() {
+		try {
+			this.onTick();
+		} catch (Throwable t) {
+			TrainCarts.plugin.log(Level.SEVERE, "An error occurred while performing minecart physics:");
+			t.printStackTrace();
+		}
+	}
+
+	/**
+	 * Executed when the entity tick logic is performed<br>
+	 * When calling super.onTick(), it will perform the internal minecart logic
+	 */
+	public void onTick() {
+		try {
+			super.j_();
+		} catch (Throwable t) {
+			System.out.println("An error occurred while performing native minecart physics:");
+			t.printStackTrace();
+		}
+	}
+
 	/*
 	 * Executes the pre-velocity and location updates
 	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
@@ -413,12 +436,12 @@ public class NativeMinecartMember extends EntityMinecart {
 		this.lastPitch = this.pitch;
 		// CraftBukkit end
 
-		//fire ticks decrease
+		// fire ticks decrease
 		if (this.j() > 0) {
 			this.h(this.j() - 1);
 		}
 
-		//health regenerate
+		// health regenerate
 		if (this.getDamage() > 0) {
 			this.setDamage(this.getDamage() - 1);
 		}
@@ -426,6 +449,11 @@ public class NativeMinecartMember extends EntityMinecart {
 		// Kill entity if falling into the void
 		if (this.locY < -64.0D) {
 			this.C();
+		}
+
+		// Smoke particles for powered carts
+		if (this.h() && this.random.nextInt(4) == 0) {
+			this.world.addParticle("largesmoke", this.locX, this.locY + 0.8D, this.locZ, 0.0D, 0.0D, 0.0D);
 		}
 
 		//put coal into cart if needed
@@ -587,7 +615,7 @@ public class NativeMinecartMember extends EntityMinecart {
 		motZ = speedFactor * MathUtil.clamp(motZ, this.maxSpeed);
 
 		// Move using set motion
-		this.move(motX, motY, motZ);
+		this.onMove(motX, motY, motZ);
 
 		// Post-move logic
 		if (moveinfo.railType != RailType.NONE) {
@@ -646,12 +674,12 @@ public class NativeMinecartMember extends EntityMinecart {
 				if (this.group().getProperties().isSlowingDown()) {
 					motLength = this.getForce();
 					if (motLength > 0) {
-						double slopeSlowDown = (startVector.b - endVector.b) * 0.05 / motLength + 1;
+						double slopeSlowDown = (startVector.d - endVector.d) * 0.05 / motLength + 1;
 						this.motX *= slopeSlowDown;
 						this.motZ *= slopeSlowDown;
 					}
 				}
-				this.setPosition(this.locX, endVector.b, this.locZ);
+				this.setPosition(this.locX, endVector.d, this.locZ);
 			}
 
 			// Update motion direction based on changed location
@@ -752,7 +780,7 @@ public class NativeMinecartMember extends EntityMinecart {
 				this.fuel = 0;
 				this.b = this.c = 0.0;
 			}
-			this.d(this.hasFuel());
+			this.e(this.hasFuel());
 		}
 	}
 
@@ -851,36 +879,36 @@ public class NativeMinecartMember extends EntityMinecart {
 		return false;
 	}
 
-	/*
-	 * Cloned and updated to prevent collisions. For source, see:
+	/**
+	 * Cloned move function and updated to prevent collisions. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/Entity.java
 	 */
-	@Override
 	@SuppressWarnings("unchecked")
-	public void move(double d0, double d1, double d2) {
-		if (this.X) {
-			boundingBox.d(d0, d1, d2);
-			locX = (boundingBox.a + boundingBox.d) / 2.0D;
-			locY = (boundingBox.b + (double) this.height) - (double) this.V;
-			locZ = (boundingBox.c + boundingBox.f) / 2.0D;
+	public void onMove(double d0, double d1, double d2) {
+		if (this.Y) {
+			this.boundingBox.d(d0, d1, d2);
+			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
+			this.locY = (this.boundingBox.b + (double) this.height) - (double) this.W;
+			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
 		} else {
-			this.V *= 0.4F;
-			double d3 = locX;
-			double d4 = locZ;
-			if(this.J) {
+			this.W *= 0.4F;
+			double d3 = this.locX;
+			double d4 = this.locY;
+			double d5 = this.locZ;
+			if (this.J) {
 				this.J = false;
 				d0 *= 0.25D;
 				d1 *= 0.05D;
 				d2 *= 0.25D;
-				motX = 0.0D;
-				motY = 0.0D;
-				motZ = 0.0D;
+				this.motX = 0.0D;
+				this.motY = 0.0D;
+				this.motZ = 0.0D;
 			}
-			double d5 = d0;
-			double d6 = d1;
-			double d7 = d2;
-			AxisAlignedBB axisalignedbb = boundingBox.clone();
-			List<AxisAlignedBB> list = world.getCubes(this, boundingBox.a(d0, d1, d2));
+			double d6 = d0;
+			double d7 = d1;
+			double d8 = d2;
+			AxisAlignedBB axisalignedbb = this.boundingBox.clone();
+			List<AxisAlignedBB> list = this.world.getCubes(this, boundingBox.a(d0, d1, d2));
 
 			//================================================
 			filterCollisionList(list);
@@ -888,22 +916,22 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			// Collision testing using Y
 			for (AxisAlignedBB aabb : list) {
-				d1 = aabb.b(boundingBox, d1);
+				d1 = aabb.b(this.boundingBox, d1);
 			}
-			boundingBox.d(0.0D, d1, 0.0D);
-			if(!this.K && d6 != d1) {
+			this.boundingBox.d(0.0D, d1, 0.0D);
+			if(!this.K && d7 != d1) {
 				d2 = 0.0D;
 				d1 = 0.0D;
 				d0 = 0.0D;
 			}
 
 			// Collision testing using X
-			boolean flag1 = onGround || d6 != d1 && d6 < 0.0D;
+			boolean flag1 = this.onGround || d7 != d1 && d7 < 0.0D;
 			for (AxisAlignedBB aabb : list) {
-				d0 = aabb.a(boundingBox, d0);
+				d0 = aabb.a(this.boundingBox, d0);
 			}
-			boundingBox.d(d0, 0.0D, 0.0D);
-			if(!this.K && d5 != d0) {
+			this.boundingBox.d(d0, 0.0D, 0.0D);
+			if(!this.K && d6 != d0) {
 				d2 = 0.0D;
 				d1 = 0.0D;
 				d0 = 0.0D;
@@ -911,129 +939,129 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			// Collision testing using Z
 			for (AxisAlignedBB aabb : list) {
-				d2 = aabb.c(boundingBox, d2);
+				d2 = aabb.c(this.boundingBox, d2);
 			}
-			boundingBox.d(0.0D, 0.0D, d2);
-			if(!this.K && d7 != d2) {
+			this.boundingBox.d(0.0D, 0.0D, d2);
+			if (!this.K && d8 != d2) {
 				d2 = 0.0D;
 				d1 = 0.0D;
 				d0 = 0.0D;
 			}
 
-			double d9;
 			double d10;
-			int k;
-			if(this.W > 0.0F && flag1 && this.V < 0.05F && (d5 != d0 || d7 != d2)) {
-				d9 = d0;
-				d10 = d1;
-				double d11 = d2;
-				d0 = d5;
-				d1 = (double) this.W;
-				d2 = d7;
+			double d11;
+			double d12;
 
-				AxisAlignedBB axisalignedbb1 = boundingBox.clone();
-				boundingBox.c(axisalignedbb);
+			if(this.X > 0.0F && flag1 && this.W < 0.05F && (d6 != d0 || d8 != d2)) {
+				d10 = d0;
+				d11 = d1;
+				d12 = d2;
+				d0 = d6;
+				d1 = (double) this.X;
+				d2 = d8;
 
-				list = world.getCubes(this, boundingBox.a(d5, d1, d7));
+				AxisAlignedBB axisalignedbb1 = this.boundingBox.clone();
+				this.boundingBox.c(axisalignedbb);
+
+				list = world.getCubes(this, this.boundingBox.a(d6, d1, d8));
 
 				//================================================
 				filterCollisionList(list);
 				//================================================
 
 				for (AxisAlignedBB aabb : list) {
-					d1 = aabb.b(boundingBox, d1);
+					d1 = aabb.b(this.boundingBox, d1);
 				}
-				boundingBox.d(0.0D, d1, 0.0D);
-				if(!this.K && d6 != d1)
-				{
+				this.boundingBox.d(0.0D, d1, 0.0D);
+				if(!this.K && d7 != d1) {
 					d2 = 0.0D;
 					d1 = 0.0D;
 					d0 = 0.0D;
 				}
 
 				for (AxisAlignedBB aabb : list) {
-					d0 = aabb.a(boundingBox, d0);
+					d0 = aabb.a(this.boundingBox, d0);
 				}
-				boundingBox.d(d0, 0.0D, 0.0D);
-				if(!this.K && d5 != d0)
-				{
+				this.boundingBox.d(d0, 0.0D, 0.0D);
+				if (!this.K && d6 != d0) {
 					d2 = 0.0D;
 					d1 = 0.0D;
 					d0 = 0.0D;
 				}
 
 				for (AxisAlignedBB aabb : list) {
-					d2 = aabb.c(boundingBox, d2);
+					d2 = aabb.c(this.boundingBox, d2);
 				}
-				boundingBox.d(0.0D, 0.0D, d2);
-				if(!this.K && d7 != d2) {
+				this.boundingBox.d(0.0D, 0.0D, d2);
+				if (!this.K && d8 != d2) {
 					d2 = 0.0D;
 					d1 = 0.0D;
 					d0 = 0.0D;
 				}
-				
-				if(!this.K && d6 != d1) {
+
+				if (!this.K && d7 != d1) {
 					d2 = 0.0D;
 					d1 = 0.0D;
 					d0 = 0.0D;
 				} else {
-					d1 = (double) -this.W;
-					for(k = 0; k < list.size(); k++) {
-						d1 = ((AxisAlignedBB)list.get(k)).b(boundingBox, d1);
+					d1 = (double) -this.X;
+					for (int k = 0; k < list.size(); k++) {
+						d1 = list.get(k).b(this.boundingBox, d1);
 					}
-					boundingBox.d(0.0D, d1, 0.0D);
+					this.boundingBox.d(0.0D, d1, 0.0D);
 				}
-				if (d9 * d9 + d11 * d11 >= d0 * d0 + d2 * d2) {
-					d0 = d9;
-					d1 = d10;
-					d2 = d11;
-					boundingBox.c(axisalignedbb1);
+				if (d10 * d10 + d12 * d12 >= d0 * d0 + d2 * d2) {
+					d0 = d10;
+					d1 = d11;
+					d2 = d12;
+					this.boundingBox.c(axisalignedbb1);
 				} else {
-					double d12 = boundingBox.b - (double)(int) boundingBox.b;
-					if (d12 > 0.0D) {
-						this.V = (float)((double) this.V + d12 + 0.01D);
+					double d13 = this.boundingBox.b - (double)(int) this.boundingBox.b;
+					if (d13 > 0.0D) {
+						this.W = (float)((double) this.W + d13 + 0.01D);
 					}
 				}
 			}
 
-			locX = (boundingBox.a + boundingBox.d) / 2D;
-			locY = (boundingBox.b + (double) this.height) - (double) this.V;
-			locZ = (boundingBox.c + boundingBox.f) / 2D;
-			positionChanged = d5 != d0 || d7 != d2;
-			this.G = d6 != d1;
-			onGround = d6 != d1 && d6 < 0.0D;
+			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2D;
+			this.locY = (this.boundingBox.b + (double) this.height) - (double) this.W;
+			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2D;
+			this.positionChanged = d6 != d0 || d8 != d2;
+			this.G = d7 != d1;
+			this.onGround = d7 != d1 && d7 < 0.0D;
 			this.H = positionChanged || this.G;
-			a(d1, onGround);
+			a(d1, this.onGround);
 
-			if (d6 != d1) {
-				motY = 0.0D;
+			if (d7 != d1) {
+				this.motY = 0.0D;
 			}
 
 			//========TrainCarts edit: Math.abs check to prevent collision slowdown=====
-			if (d5 != d0) {
+			if (d6 != d0) {
 				if (Math.abs(motX) > Math.abs(motZ)) {
-					motX = 0.0D;
+					this.motX = 0.0D;
 				}
 			}
-			if (d7 != d2) {
+			if (d8 != d2) {
 				if (Math.abs(motZ) > Math.abs(motX)) {
-					motZ = 0.0D;
+					this.motZ = 0.0D;
 				}
 			}
 			//===========================================================================
 
-			d9 = locX - d3;
-			d10 = locZ - d4;
+			d10 = this.locX - d3;
+			d11 = this.locY - d4;
+			d12 = this.locZ - d5;
 			if (positionChanged) {
 				Vehicle vehicle = (Vehicle)getBukkitEntity();
 				Block block = world.getWorld().getBlockAt(MathHelper.floor(locX), MathHelper.floor(locY - (double)height), MathHelper.floor(locZ));
-				if (d5 > d0) {
+				if (d6 > d0) {
 					block = block.getRelative(BlockFace.SOUTH);
-				} else if (d5 < d0) {
+				} else if (d6 < d0) {
 					block = block.getRelative(BlockFace.NORTH);
-				} else if (d7 > d2) {
+				} else if (d8 > d2) {
 					block = block.getRelative(BlockFace.WEST);
-				} else if (d7 < d2) {
+				} else if (d8 < d2) {
 					block = block.getRelative(BlockFace.EAST);
 				}
 				VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
@@ -1044,22 +1072,37 @@ public class NativeMinecartMember extends EntityMinecart {
 				}
 				//=======================================================
 			}
-			int l;
-			int i1;
-			int j1;
-			if (this.e_() && this.vehicle == null) {
-				this.Q = (float) ((double) this.Q + MathUtil.length(d9, d10) * 0.6D);
-				l = MathHelper.floor(locX);
-				i1 = MathHelper.floor(locY - 0.2D - (double) height);
-				j1 = MathHelper.floor(locZ);
-				k = world.getTypeId(l, i1, j1);
-				if (k == 0 && world.getTypeId(l, i1 - 1, j1) == Material.FENCE.getId()) {
-					k = world.getTypeId(l, i1 - 1, j1);
-				}
-				if (this.Q > (float) b && k > 0) {
-					b = (int) this.Q + 1;
-					a(l, i1, j1, k);
-					net.minecraft.server.Block.byId[k].b(world, l, i1, j1, this);
+
+			if (this.f_() && this.vehicle == null) {
+                int i = MathHelper.floor(this.locX);
+                int j = MathHelper.floor(this.locY - 0.2D - (double) this.height);
+                int k = MathHelper.floor(this.locZ);
+                int l = this.world.getTypeId(i, j, k);
+
+                if (l == 0 && this.world.getTypeId(i, j - 1, k) == Material.FENCE.getId()) {
+                    l = this.world.getTypeId(i, j - 1, k);
+                }
+
+                if (l != Material.LADDER.getId()) {
+                    d11 = 0.0D;
+                }
+
+                this.Q = (float) ((double) this.Q + (double) MathHelper.sqrt(d10 * d10 + d12 * d12) * 0.6D);
+                this.R = (float) ((double) this.R + (double) MathHelper.sqrt(d10 * d10 + d11 * d11 + d12 * d12) * 0.6D);
+                if (this.R > (float) this.c && l > 0) {
+                    this.c = (int) this.R + 1;
+                    if (this.H()) {
+                        float f = MathHelper.sqrt(this.motX * this.motX * 0.20000000298023224D + this.motY * this.motY + this.motZ * this.motZ * 0.20000000298023224D) * 0.35F;
+
+                        if (f > 1.0F) {
+                            f = 1.0F;
+                        }
+
+                        this.world.makeSound(this, "liquid.swim", f, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+                    }
+
+                    this.a(i, j, k, l);
+					net.minecraft.server.Block.byId[k].b(this.world, i, j, k, this);
 				}
 			}
 
@@ -1067,14 +1110,14 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			// Fire tick calculation (check using block collision)
 			boolean flag2 = this.G();
-			if (world.e(boundingBox.shrink(0.001D, 0.001D, 0.001D))) {
+			if (this.world.e(boundingBox.shrink(0.001D, 0.001D, 0.001D))) {
 				this.burn(1);
 				if(!flag2) {
 					this.fireTicks++;
 					if(this.fireTicks <= 0) {
 						EntityCombustEvent event = new EntityCombustEvent(getBukkitEntity(), 8);
 						this.world.getServer().getPluginManager().callEvent(event);
-						if(!event.isCancelled()) {
+						if (!event.isCancelled()) {
 							this.setOnFire(event.getDuration());
 						}
 					} else {
