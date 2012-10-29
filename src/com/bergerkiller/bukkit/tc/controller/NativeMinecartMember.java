@@ -26,6 +26,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberDeadException;
@@ -329,9 +330,9 @@ public class NativeMinecartMember extends EntityMinecart {
 
 			// Find the rail - first step
 			int railtype = world.getTypeId(blockX, blockY - 1, blockZ);
-			if (BlockUtil.isRails(railtype) || Util.isPressurePlate(railtype)) {
+			if (MaterialUtil.ISRAILS.get(railtype) || MaterialUtil.ISPRESSUREPLATE.get(railtype)) {
 				this.blockY--;
-			} else if (Util.isVerticalRail(railtype) && this.prevRailType != RailType.VERTICAL) {
+			} else if (Util.ISVERTRAIL.get(railtype) && this.prevRailType != RailType.VERTICAL) {
 				this.blockY--;
 			} else {
 				railtype = world.getTypeId(blockX, blockY, blockZ);
@@ -360,7 +361,7 @@ public class NativeMinecartMember extends EntityMinecart {
 			// Snap from sloped rail to vertical rail
 			if (this.isSloped) {
 				int aboveType = world.getTypeId(blockX, blockY + 1, blockZ);
-				if (Util.isVerticalRail(aboveType)) {
+				if (Util.ISVERTRAIL.get(aboveType)) {
 					// Is this minecart moving towards the up-side of the slope?
 					if (owner.motY > 0 || owner.isHeadingTo(this.railDirection)) {
 						blockY++;
@@ -1198,12 +1199,12 @@ public class NativeMinecartMember extends EntityMinecart {
 	 * Checks if collision with a given block is allowed
 	 */
 	private boolean canCollide(Block block, BlockFace hitFace) {
-		if (Util.isVerticalRail(block.getTypeId())) {
+		if (Util.ISVERTRAIL.get(block)) {
 			return false;
 		}
 		if (moveinfo.railType == RailType.VERTICAL && hitFace != BlockFace.UP && hitFace != BlockFace.DOWN) {
 			// Check if the collided block has vertical rails
-			if (Util.isVerticalRail(block.getRelative(hitFace).getTypeId())) {
+			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
 				return false;
 			}
 		}

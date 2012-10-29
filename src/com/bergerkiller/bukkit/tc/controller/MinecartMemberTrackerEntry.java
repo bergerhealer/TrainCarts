@@ -6,6 +6,7 @@ import java.util.logging.Level;
 
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -177,11 +178,11 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public boolean hasTrackerChanged() {
-		return this.tracker.am;
+		return EntityRef.positionChanged.get(this.tracker);
 	}
 
 	public void setTrackerChanged(boolean changed) {
-		this.tracker.am = changed;
+		EntityRef.positionChanged.set(this.tracker, changed);
 	}
 
 	public void syncLocation(boolean teleport) {

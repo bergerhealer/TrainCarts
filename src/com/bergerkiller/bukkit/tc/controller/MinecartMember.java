@@ -428,7 +428,7 @@ public class MinecartMember extends MinecartMemberStore {
  	public Block getRailsBlock() {
 		if (this.isDerailed()) return null;
 		Block b = this.getBlock();
-		if (Util.isRails(b)) {
+		if (Util.ISVERTRAIL.get(b)) {
 			return b;
 		} else {
 			return null;

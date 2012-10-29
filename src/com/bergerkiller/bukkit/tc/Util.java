@@ -14,6 +14,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 
+import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -25,6 +26,10 @@ import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class Util {
+	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(Material.RAILS, Material.POWERED_RAIL, Material.DETECTOR_RAIL, 
+			Material.LADDER, Material.STONE_PLATE, Material.WOOD_SPADE);
+	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
+
 	public static void setItemMaxSize(Material material, int maxstacksize) {
 		setItemMaxSize(net.minecraft.server.Item.byId[material.getId()], maxstacksize);
 	}
@@ -57,7 +62,7 @@ public class Util {
 	}
 	public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
 		rval.clear();
-		if (isVerticalRail(railsblock.getTypeId())) {
+		if (ISVERTRAIL.get(railsblock)) {
 			BlockFace dir = getVerticalRailDirection(railsblock.getData());
 			railsblock = railsblock.getRelative(dir);
 			// Loop into the direction to find signs
@@ -103,17 +108,17 @@ public class Util {
 		Block mainBlock = signblock;
 		for (BlockFace dir : possibleFaces) {
 			signblock = mainBlock.getRelative(dir);
-			if (isRails(signblock)) {
+			if (ISTCRAIL.get(signblock)) {
 				return signblock;
 			}
 			while (true) {
-				if (isRails(signblock)) {
+				if (ISTCRAIL.get(signblock)) {
 					return signblock;
 				} else if (hasAttachedSigns(signblock)) {
 					signblock = signblock.getRelative(dir);
 				} else {
 					signblock = signblock.getRelative(dir);
-					if (isRails(signblock)) {
+					if (ISTCRAIL.get(signblock)) {
 						return signblock;
 					} else {
 						break;
@@ -131,14 +136,14 @@ public class Util {
 		World world = from.getWorld();
 		if (mode == BlockFace.DOWN) {
 			for (int y = sy - 1; y > 0; --y) {
-				if (Util.isRails(world.getBlockTypeIdAt(x, y, z))) {
+				if (ISTCRAIL.get(world.getBlockTypeIdAt(x, y, z))) {
 					return world.getBlockAt(x, y, z);
 				}
 			}
 		} else if (mode == BlockFace.UP) {
 			int height = world.getMaxHeight();
 			for (int y = sy + 1; y < height; y++) {
-				if (Util.isRails(world.getBlockTypeIdAt(x, y, z))) {
+				if (ISTCRAIL.get(world.getBlockTypeIdAt(x, y, z))) {
 					return world.getBlockAt(x, y, z);
 				}
 			}
@@ -216,30 +221,12 @@ public class Util {
 		return parsers.toArray(new ItemParser[0]);
 	}
 
-	public static boolean isRails(Block block) {
-		return block != null && isRails(block.getTypeId());
-	}
-	public static boolean isRails(Material type) {
-		return isRails(type.getId());
-	}
-	public static boolean isRails(int id) {
-		return BlockUtil.isRails(id) || isPressurePlate(id) || isVerticalRail(id);
-	}
-
-	public static boolean isVerticalRail(int id) {
-		return BlockUtil.isType(id, Material.LADDER);
-	}
-
-	public static boolean isPressurePlate(int id) {
-		return BlockUtil.isType(id, Material.WOOD_PLATE, Material.STONE_PLATE);
-	}
-	
 	public static Block getRailsBlock(Block from) {
-		if (isRails(from)) {
+		if (ISTCRAIL.get(from)) {
 			return from;
 		} else {
 			from = from.getRelative(BlockFace.DOWN);
-			return isRails(from) ? from : null;
+			return ISTCRAIL.get(from) ? from : null;
 		}
 	}
 	public static boolean isRails(Block block, BlockFace direction) {

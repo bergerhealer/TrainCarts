@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class ArrivalSigns {
@@ -26,7 +27,7 @@ public class ArrivalSigns {
 		public MinecartMember member = null;
 		public void setTime() {
 			long duration = System.currentTimeMillis() - startTime;
-			if (BlockUtil.isSign(this.signblock)) {
+			if (MaterialUtil.ISSIGN.get(this.signblock)) {
 				Sign sign = BlockUtil.getSign(this.signblock);
 				String dur = Util.getTimeString(duration);
 				sign.setLine(3, dur);

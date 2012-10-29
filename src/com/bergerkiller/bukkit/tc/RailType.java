@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc;
 
 import org.bukkit.Material;
 
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+
 /**
  * The type of rails below a minecart
  */
@@ -28,9 +30,9 @@ public enum RailType {
 			return DETECTOR;
 		} else if (typeId == Material.RAILS.getId()) {
 			return REGULAR;
-		} else if (Util.isPressurePlate(typeId)) {
+		} else if (MaterialUtil.ISPRESSUREPLATE.get(typeId)) {
 			return PRESSUREPLATE;
-		} else if (Util.isVerticalRail(typeId)) {
+		} else if (Util.ISVERTRAIL.get(typeId)) {
 			return VERTICAL;
 		} else {
 			return NONE;

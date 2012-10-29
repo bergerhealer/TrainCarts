@@ -4,6 +4,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -49,7 +50,7 @@ public abstract class OfflineSign {
 	public SignActionEvent getSignEvent(World world) {
 		if (this.isLoaded(world)) {
 			Block signblock = BlockUtil.getBlock(world, this.location);
-			if (BlockUtil.isSign(signblock)) {
+			if (MaterialUtil.ISSIGN.get(signblock)) {
 				SignActionEvent event = new SignActionEvent(signblock);
 				if (this.validate(event)) {
 					return event;

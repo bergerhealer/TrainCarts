@@ -43,6 +43,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -288,7 +289,7 @@ public class TCListener implements Listener {
 		try {
 			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 				int id = event.getClickedBlock().getTypeId();
-				if (!Util.isRails(id)) {
+				if (!Util.ISTCRAIL.get(id)) {
 					return;
 				}
 				ItemStack item = event.getPlayer().getItemInHand();
@@ -331,9 +332,9 @@ public class TCListener implements Listener {
 
 				// Place logic
 				lastPlayer = event.getPlayer();
-				if (BlockUtil.isRails(id)) {
+				if (MaterialUtil.ISRAILS.get(id)) {
 					return;
-				} else if (Util.isPressurePlate(id)) {
+				} else if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
 					//perform a manual Minecart spawn
 					BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
 					if (dir == BlockFace.SELF) {
@@ -350,7 +351,7 @@ public class TCListener implements Listener {
 				MinecartMemberStore.spawnBy(at, event.getPlayer());
 			}
 			if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
-				if (BlockUtil.isSign(event.getClickedBlock())) {
+				if (MaterialUtil.ISSIGN.get(event.getClickedBlock())) {
 					SignAction.handleClick(event);
 				}
 			}
@@ -378,12 +379,12 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (!event.isCancelled()) {
-			if (BlockUtil.isSign(event.getBlock())) {
+			if (MaterialUtil.ISSIGN.get(event.getBlock())) {
 				SignActionDetector.removeDetector(event.getBlock());
 				SignActionSpawn.remove(event.getBlock());
 				//invalidate this piece of track
 				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
-			} else if (BlockUtil.isRails(event.getBlock())) {
+			} else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
 				PathNode.remove(event.getBlock());
 			}
 		}
@@ -404,12 +405,12 @@ public class TCListener implements Listener {
 	}
 
 	public void updateRails(final Block below) {
-		if (!BlockUtil.isRails(below)) {
+		if (!MaterialUtil.ISRAILS.get(below)) {
 			return;
 		}
 		// Obtain the vertical rail and the rail below it, if possible
 		final Block vertRail = below.getRelative(BlockFace.UP);
-		if (!Util.isVerticalRail(vertRail.getTypeId())) {
+		if (!Util.ISVERTRAIL.get(vertRail)) {
 			return;
 		}
 		// Possible match, work with it
@@ -440,14 +441,14 @@ public class TCListener implements Listener {
 		if (BlockUtil.isType(type, Material.LEVER)) {
 			Block up = event.getBlock().getRelative(BlockFace.UP);
 			Block down = event.getBlock().getRelative(BlockFace.DOWN);
-			if (BlockUtil.isSign(up)) {
+			if (MaterialUtil.ISSIGN.get(up)) {
 				triggerRedstoneChange(up, event);
 			}
-			if (BlockUtil.isSign(down)) {
+			if (MaterialUtil.ISSIGN.get(down)) {
 				triggerRedstoneChange(down, event);
 			}
 			ignoreOutputLever(event.getBlock());
-		} else if (BlockUtil.isSign(type)) {
+		} else if (MaterialUtil.ISSIGN.get(type)) {
 			if (!ignoredSigns.isEmpty() && ignoredSigns.remove(event.getBlock())) {
 				return;
 			}
@@ -476,7 +477,7 @@ public class TCListener implements Listener {
 		Block att = BlockUtil.getAttachedBlock(lever);
 		for (BlockFace face : FaceUtil.attachedFaces) {
 			Block signblock = att.getRelative(face);
-			if (BlockUtil.isSign(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
+			if (MaterialUtil.ISSIGN.get(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
 				if (ignoredSigns.isEmpty()) {
 					// clear this the next tick
 					CommonUtil.nextTick(new Runnable() {

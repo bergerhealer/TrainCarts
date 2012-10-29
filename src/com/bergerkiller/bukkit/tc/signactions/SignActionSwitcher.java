@@ -10,6 +10,7 @@ import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -63,7 +64,7 @@ public class SignActionSwitcher extends SignAction {
 			statements.add(new DirectionStatement(info.getLine(3), Direction.RIGHT));
 			//other signs below this sign we could parse?
 			Block signblock = info.getBlock();
-			while (BlockUtil.isSign(signblock = signblock.getRelative(BlockFace.DOWN))) {
+			while (MaterialUtil.ISSIGN.get(signblock = signblock.getRelative(BlockFace.DOWN))) {
 				Sign sign = BlockUtil.getSign(signblock);
 				if (sign == null) break;
 				boolean valid = true;

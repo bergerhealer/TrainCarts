@@ -8,6 +8,7 @@ import org.bukkit.material.MaterialData;
 import org.bukkit.material.Redstone;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public enum PowerState {
 	ON, OFF, NONE;
@@ -15,11 +16,11 @@ public enum PowerState {
 	private static boolean isDistractingColumn(Block main, BlockFace face) {
 		Block side = main.getRelative(face);
 		Material type = side.getType();
-		if (BlockUtil.isPowerSource(type)) {
+		if (MaterialUtil.ISPOWERSOURCE.get(type)) {
 			return true;
 		} else if (type == Material.AIR) {
 			//check level below
-			if (BlockUtil.isPowerSource(side.getRelative(BlockFace.DOWN).getType())) {
+			if (MaterialUtil.ISPOWERSOURCE.get(side.getRelative(BlockFace.DOWN))) {
 				return true;
 			}
 		} else if (type == Material.DIODE_BLOCK_ON || type == Material.DIODE_BLOCK_OFF) {
@@ -29,7 +30,7 @@ public enum PowerState {
 		}
 		if (main.getRelative(BlockFace.UP).getType() == Material.AIR) {
 			//check level on top
-			return BlockUtil.isPowerSource(side.getRelative(BlockFace.UP).getType());
+			return MaterialUtil.ISPOWERSOURCE.get(side.getRelative(BlockFace.UP));
 		} else {
 			return false;
 		}

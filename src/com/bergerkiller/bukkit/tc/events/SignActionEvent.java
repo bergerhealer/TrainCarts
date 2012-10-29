@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
@@ -57,7 +58,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.railsblock = railsblock;
 		this.railschecked = this.railsblock != null;
 		this.railschecked = this.railsblock != null;
-		this.verticalRail = this.railsblock != null && Util.isVerticalRail(this.railsblock.getTypeId());
+		this.verticalRail = Util.ISVERTRAIL.get(this.railsblock);
 		if (this.sign == null) {
 			this.powerinv = false;
 			this.poweron = false;
@@ -210,7 +211,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		BlockFace from = this.getCartDirection().getOppositeFace();
 		//is a track present at this direction?
 		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
-		if (!Util.isRails(this.getRails().getRelative(main))) {
+		if (!Util.ISTCRAIL.get(this.getRails().getRelative(main))) {
 			main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
 		}
 		//Set it
@@ -221,7 +222,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		BlockFace from = this.getCartDirection().getOppositeFace();
 		//is a track present at this direction?
 		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
-		if (!Util.isRails(this.getRails().getRelative(main))) {
+		if (!Util.ISTCRAIL.get(this.getRails().getRelative(main))) {
 			main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
 		}
 		//Set it
@@ -232,9 +233,9 @@ public class SignActionEvent extends Event implements Cancellable {
 		BlockFace from = this.getCartDirection().getOppositeFace();
 		//is a track present at this direction?
 		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
-		if (!Util.isRails(this.getRails().getRelative(main))) {
+		if (!Util.ISTCRAIL.get(this.getRails().getRelative(main))) {
 			main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
-			if (!BlockUtil.isRails(this.getRails().getRelative(main))) {
+			if (!MaterialUtil.ISRAILS.get(this.getRails().getRelative(main))) {
 				main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
 			}
 		}
@@ -339,7 +340,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Block getRails() {
 		if (!this.railschecked) {
 			this.railsblock = Util.getRailsFromSign(this.signblock);
-			this.verticalRail = this.railsblock != null && Util.isVerticalRail(this.railsblock.getTypeId());
+			this.verticalRail = this.railsblock != null && Util.ISVERTRAIL.get(this.railsblock);
 			this.railschecked = true;
 		}
 		return this.railsblock;
@@ -356,9 +357,9 @@ public class SignActionEvent extends Event implements Cancellable {
 	public BlockFace getRailDirection() {
 		if (!this.hasRails()) return null;
 		if (this.raildirection == null) {
-			if (BlockUtil.isRails(this.railsblock)) {
+			if (MaterialUtil.ISRAILS.get(this.railsblock)) {
 				this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
-			} else if (Util.isPressurePlate(this.railsblock.getTypeId())) {
+			} else if (MaterialUtil.ISPRESSUREPLATE.get(this.railsblock)) {
 				this.raildirection = Util.getPlateDirection(this.railsblock);
 			}
 		}

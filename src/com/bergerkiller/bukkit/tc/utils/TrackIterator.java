@@ -12,6 +12,7 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
 public class TrackIterator implements Iterator<Block> {
@@ -26,8 +27,8 @@ public class TrackIterator implements Iterator<Block> {
 		return isConnected(rail1, rail2, bothways, 0);
 	}
 	public static boolean isConnected(Block rail1, Block rail2, boolean bothways, int stepcount) {
-		if (!Util.isRails(rail1)) return false;
-		if (!Util.isRails(rail2)) return false;
+		if (!Util.ISTCRAIL.get(rail1)) return false;
+		if (!Util.ISTCRAIL.get(rail2)) return false;
 		if (BlockUtil.equals(rail1, rail2)) return true;
 		BlockFace direction = FaceUtil.getDirection(rail1, rail2, false);
 		if (bothways) {
@@ -45,9 +46,9 @@ public class TrackIterator implements Iterator<Block> {
 			if (stepcount < 2) stepcount = 2;
 		}
 		BlockFace dir;
-		if (BlockUtil.isRails(rail)) {
+		if (MaterialUtil.ISRAILS.get(rail)) {
 			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
-		} else if (Util.isPressurePlate(rail.getTypeId())) {
+		} else if (MaterialUtil.ISPRESSUREPLATE.get(rail)) {
 			dir = Util.getPlateDirection(rail).getOppositeFace();
 			if (dir == BlockFace.SELF) dir = preferredFace; 
 		} else {
@@ -65,8 +66,8 @@ public class TrackIterator implements Iterator<Block> {
 	}
 	public static boolean canReach(Block rail, BlockFace direction, Block destination, int stepcount) {
 		if (BlockUtil.equals(rail, destination)) return true;
-		if (!Util.isRails(rail)) return false;
-		if (!Util.isRails(destination)) return false;
+		if (!Util.ISTCRAIL.get(rail)) return false;
+		if (!Util.ISTCRAIL.get(destination)) return false;
 		if (stepcount == 0) {
 			stepcount = BlockUtil.getManhattanDistance(rail, destination, false);
 			if (stepcount < 2) stepcount = 2;
@@ -81,26 +82,26 @@ public class TrackIterator implements Iterator<Block> {
 	public static Block getNextTrack(Block from, BlockFace direction) {
 		Block next = from.getRelative(direction);
 		if (direction == BlockFace.UP) {
-			if (Util.isVerticalRail(next.getTypeId())) {
+			if (Util.ISVERTRAIL.get(next)) {
 				return next;
 			} else {
 				// Maybe a slope to go to?
 				BlockFace dir = Util.getVerticalRailDirection(from.getData());
 				next = next.getRelative(dir);
-				if (BlockUtil.isRails(next) && Util.isSloped(next.getData())) {
+				if (MaterialUtil.ISRAILS.get(next) && Util.isSloped(next.getData())) {
 					return next;
 				}
 			}
 		}
-		if (!Util.isRails(next)) {
+		if (!Util.ISTCRAIL.get(next)) {
 			next = next.getRelative(BlockFace.UP);
-			if (!Util.isRails(next)) {
+			if (!Util.ISTCRAIL.get(next)) {
 				next = next.getRelative(0, -2, 0);
-				if (!Util.isRails(next)) {
+				if (!Util.ISTCRAIL.get(next)) {
 					// Maybe current block is a slope, go to vertical?
-					if (BlockUtil.isRails(from) && Util.isSloped(from.getData())) {
+					if (MaterialUtil.ISRAILS.get(from) && Util.isSloped(from.getData())) {
 						next = from.getRelative(BlockFace.UP); 
-						if (Util.isVerticalRail(next.getTypeId())) {
+						if (Util.ISVERTRAIL.get(next)) {
 							return next;
 						}
 					}
@@ -179,9 +180,9 @@ public class TrackIterator implements Iterator<Block> {
 		if (rails == null) {
 			//handle non-rails blocks
 			int type = this.next.getTypeId();
-			if (Util.isPressurePlate(type)) {
+			if (MaterialUtil.ISPRESSUREPLATE.get(type)) {
 				this.nextdirection = this.currentdirection;
-			} else if (Util.isVerticalRail(type)) {
+			} else if (Util.ISVERTRAIL.get(type)) {
 				if (next.getY() > current.getY()) {
 					this.nextdirection = BlockFace.UP;
 				} else {

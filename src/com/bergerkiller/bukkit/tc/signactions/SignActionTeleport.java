@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public class SignActionTeleport extends SignAction {
 
@@ -33,15 +34,15 @@ public class SignActionTeleport extends SignAction {
 						//Teleport the ENTIRE train to the destination...
 						Block sign = dest.getBlock();
 						sign.getChunk(); //load the chunk
-						if (BlockUtil.isSign(sign)) {
+						if (MaterialUtil.ISSIGN.get(sign)) {
 							BlockFace facing = BlockUtil.getFacing(sign);
 							BlockFace direction = facing;
 							Block destinationRail = Util.getRailsFromSign(sign);
 							if (destinationRail == null) {
 								return;
 							}
-							boolean isPlate = Util.isPressurePlate(destinationRail.getTypeId());
-							if (isPlate || BlockUtil.isRails(destinationRail)) {
+							boolean isPlate = MaterialUtil.ISPRESSUREPLATE.get(destinationRail);
+							if (isPlate || MaterialUtil.ISRAILS.get(destinationRail)) {
 								//rail aligned at sign?
 								if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
 								if (facing == BlockFace.EAST) facing = BlockFace.WEST;
