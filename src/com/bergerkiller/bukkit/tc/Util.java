@@ -37,6 +37,27 @@ public class Util {
 		SafeField.set(item, "maxStackSize", maxstacksize);
 	}
 
+	/**
+	 * Turns a value negative or keeps it positive based on a boolean input
+	 * 
+	 * @param value to work with
+	 * @param negative - True to invert, False to keep the old value
+	 * @return the value or inverted (-value)
+	 */
+	public static double invert(double value, boolean negative) {
+		return negative ? -value : value;
+	}
+
+	/**
+	 * Gets the BlockFace.UP or BlockFace.DOWN based on a boolean input
+	 * 
+	 * @param up - True to get UP, False to get DOWN
+	 * @return UP or DOWN
+	 */
+	public static BlockFace getVerticalFace(boolean up) {
+		return up ? BlockFace.UP : BlockFace.DOWN;
+	}
+
 	public static boolean hasAttachedSigns(final Block middle) {
 		return addAttachedSigns(middle, null);
 	}

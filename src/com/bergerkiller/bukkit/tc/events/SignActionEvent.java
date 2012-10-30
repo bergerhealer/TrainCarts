@@ -71,13 +71,17 @@ public class SignActionEvent extends Event implements Cancellable {
 			if (idx == -1) {
 				//find out using the rails above and sign facing
 				if (this.hasRails()) {
-					BlockFace facing = this.getFacing();
-					if (this.isConnectedRails(facing)) {
-						this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
-					} else if (this.isConnectedRails(facing.getOppositeFace())) {
-						this.watchedDirections = new BlockFace[] {facing};
+					if (this.isVerticalRails()) {
+						this.watchedDirections = new BlockFace[] {BlockFace.UP, BlockFace.DOWN};
 					} else {
-						this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
+						BlockFace facing = this.getFacing();
+						if (this.isConnectedRails(facing)) {
+							this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
+						} else if (this.isConnectedRails(facing.getOppositeFace())) {
+							this.watchedDirections = new BlockFace[] {facing};
+						} else {
+							this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
+						}
 					}
 				} else {
 					this.watchedDirections = new BlockFace[] {this.getFacing().getOppositeFace()};

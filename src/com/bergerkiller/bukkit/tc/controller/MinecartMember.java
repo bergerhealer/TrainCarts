@@ -61,6 +61,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
 public class MinecartMember extends MinecartMemberStore {
+	private static final double MIN_VEL_FOR_SLOPE = 0.05;
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private BlockFace direction;
 	private BlockFace directionTo;
@@ -382,20 +383,12 @@ public class MinecartMember extends MinecartMemberStore {
 	public Block getBlock(BlockFace face) {
 		return this.getBlock(face.getModX(), face.getModY(), face.getModZ());
 	}
-	public Block getBlock() {
-		return this.getBlock(0, 0, 0);
-	}
 	public Block getBlockRelative(BlockFace direction) {
 		return this.getBlock(FaceUtil.add(direction, this.getDirection()));
 	}
  	public Rails getRails() {
  		return BlockUtil.getRails(this.getBlock());
  	}
-	public BlockFace getRailDirection() {
-		Rails r = getRails();
-		if (r == null) return this.getDirection();
-		return r.getDirection();
-	}
 	public Block getGroundBlock() {
 		return this.getBlock(0, -1, 0);
 	}
@@ -499,14 +492,6 @@ public class MinecartMember extends MinecartMemberStore {
 			this.motX *= factor;
 			this.motZ *= factor;
 		}
-	}
-	public void setVelocity(Vector velocity) {
-		this.motX = velocity.getX();
-		this.motZ = velocity.getZ();
-		this.motY = velocity.getY();
-	}
-	public Vector getVelocity() {
-		return new Vector(this.motX, this.motY, this.motZ);
 	}
 	public Vector getLimitedVelocity() {
 		double max;
@@ -629,10 +614,15 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void updateDirection(Vector movement) {
 		if (this.isOnVertical() || (this.isFlying() && Math.abs(this.motX) < 0.001 && Math.abs(this.motZ) < 0.001)) {
-			if (movement.getY() > 0) {
-				this.direction = BlockFace.UP;
+			double dY = movement.getY();
+			if (this.isOnSlope()) {
+				// On slope moving vertically, add X/Z to movement Y
+				// Moving up or down slope?
+				final boolean downSlope = FaceUtil.getDirection(movement, false) != this.getRailDirection();
+				dY += Util.invert(MathUtil.length(movement.getX(), movement.getZ()), downSlope);
+				this.direction = Util.getVerticalFace(dY > MIN_VEL_FOR_SLOPE);
 			} else {
-				this.direction = BlockFace.DOWN;
+				this.direction = Util.getVerticalFace(dY > 0.0);
 			}
 			this.directionFrom = this.directionTo = this.direction;
 			return;
@@ -643,16 +633,12 @@ public class MinecartMember extends MinecartMemberStore {
 			this.directionTo = FaceUtil.getDirection(movement, false);
 			return;
 		}
-		Rails rails = this.getRails();
-		if (rails == null) {
-			return;
-		}
-		BlockFace raildirection = rails.getDirection();
-		if (this.directionTo == BlockFace.DOWN && rails.isOnSlope()) {
+		BlockFace raildirection = this.getRailDirection();
+		if (this.directionTo == BlockFace.DOWN && this.isOnSlope()) {
 			// Going from vertical down to a slope
 			this.direction = this.directionTo = this.directionFrom = raildirection.getOppositeFace();
 			return;
-		} else if (this.directionTo == BlockFace.UP && rails.isOnSlope()) {
+		} else if (this.directionTo == BlockFace.UP && this.isOnSlope()) {
 			// Going from vertical up to a sloped rail
 			this.direction = this.directionTo = this.directionFrom = raildirection;
 			return;

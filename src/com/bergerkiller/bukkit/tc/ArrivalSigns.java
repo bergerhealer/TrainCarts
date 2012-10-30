@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class ArrivalSigns {
@@ -110,6 +111,7 @@ public class ArrivalSigns {
 			} else {
 				Variables.get(name + 'D').set("Unknown");
 			}
+			Variables.get(name + 'V').set(Double.toString(MathUtil.round(mm.getForce(), 2)));
 		}
 		TimeSign t = getTimer(name);
 		t.duration = ParseUtil.parseTime(duration);

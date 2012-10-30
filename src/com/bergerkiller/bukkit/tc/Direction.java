@@ -28,6 +28,8 @@ public enum Direction {
 		case EAST : return BlockFace.EAST;
 		case SOUTH : return BlockFace.SOUTH;
 		case WEST : return BlockFace.WEST;
+		case DOWN : return BlockFace.DOWN;
+		case UP : return BlockFace.UP;
 		case LEFT : return FaceUtil.rotate(signfacing, 2);
 		case RIGHT : return FaceUtil.rotate(signfacing, -2);
 		case FORWARD : return cartdirection;
