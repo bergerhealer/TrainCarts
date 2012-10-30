@@ -543,7 +543,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					newLocX += moveinfo.moveDirection.dx * (this.locX - moveinfo.blockX);
 				} else {
 					// Curve
-					double factor = 2.0 * (moveinfo.moveDirection.dx * (this.locX - newLocX) + moveinfo.moveDirection.dz * (this.locZ - newLocX));
+					double factor = 2.0 * (moveinfo.moveDirection.dx * (this.locX - newLocX) + moveinfo.moveDirection.dz * (this.locZ - newLocZ));
 					newLocX += factor * moveinfo.moveDirection.dx;
 					newLocZ += factor * moveinfo.moveDirection.dz;
 				}
@@ -1224,7 +1224,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 			// Stop the entire train
 			this.group().stop();
-			System.out.println("STOPPED");
 		}
 		return true;
 	}
