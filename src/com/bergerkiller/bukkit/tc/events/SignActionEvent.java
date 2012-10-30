@@ -36,7 +36,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 
 	public SignActionEvent(Block signblock, MinecartMember member) {
-		this(signblock, member.isDerailed() ? null : member.getRailsBlock());
+		this(signblock, member.isDerailed() ? null : member.getBlock());
 		this.member = member;
 		this.memberchecked = true;
 	}

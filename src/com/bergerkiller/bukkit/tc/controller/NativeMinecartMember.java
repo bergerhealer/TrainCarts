@@ -126,7 +126,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public boolean isMoving() {
-		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001;
+		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001 || Math.abs(this.motY) > 0.001;
 	}
 	public boolean hasFuel() {
 		return this.fuel > 0;
@@ -472,7 +472,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 
-		if (!this.ignoreForces()) {
+		if (!this.ignoreForces() && (moveinfo.railType == RailType.VERTICAL || moveinfo.railType == RailType.NONE)) {
 			this.motY -= 0.04;
 		}
 
@@ -1153,10 +1153,13 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	/*
-	 * Returns if this entity is allowed to collide with another entity
+	/**
+	 * Handles the collision of this minecart with another Entity
+	 * 
+	 * @param e entity with which is collided
+	 * @return True if collision is allowed, False if it is ignored
 	 */
-	private boolean canCollide(Entity e) {
+	public boolean onEntityCollision(Entity e) {
 		MinecartMember mm1 = this.member();
 		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded()) return false;
 		if (e.dead || this.dead) return false;
@@ -1213,10 +1216,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return MinecartMemberStore.validateMinecart(e);
 	}
 
-	/*
-	 * Checks if collision with a given block is allowed
+	/**
+	 * Handles the collision of this minecart with a Block
+	 * 
+	 * @param block with which this minecart collided
+	 * @param hitFace of the block that the minecart hit
+	 * @return True if collision is allowed, False if it is ignored
 	 */
-	private boolean canCollide(Block block, BlockFace hitFace) {
+	public boolean onBlockCollision(Block block, BlockFace hitFace) {
 		if (Util.ISVERTRAIL.get(block)) {
 			return false;
 		}
@@ -1227,7 +1234,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 		}
 		// Handle collision
-		if (!this.member().isTurned() && hitFace.getOppositeFace() == this.member().getDirectionTo()) {
+		if (!this.member().isTurned() && hitFace.getOppositeFace() == this.member().getDirectionTo() && !this.isDerailed()) {
+			// Cancel collisions with blocks at the heading of sloped rails
+			if (this.moveinfo.isSloped && hitFace == moveinfo.railDirection.getOppositeFace()) {
+				return false;
+			}
+			// Stop the entire train
 			this.group().stop();
 		}
 		return true;
@@ -1255,7 +1267,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				isBlock = true;
 				for (Entity e : entityList) {
 					if (e.boundingBox == a) {
-						if (!canCollide(e)) iter.remove();
+						if (!onEntityCollision(e)) iter.remove();
 						isBlock = false;
 						break;
 					}
@@ -1270,7 +1282,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					} else {
 						dir = FaceUtil.getDirection(dx, dz, false);
 					}
-					if (!this.canCollide(block, dir)) {
+					if (!this.onBlockCollision(block, dir)) {
 						iter.remove();
 					}
 				}

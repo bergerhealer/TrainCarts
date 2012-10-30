@@ -13,42 +13,62 @@ import org.bukkit.material.Rails;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
 public class TrackIterator implements Iterator<Block> {
-	
-	public static boolean canReach(Block rail, BlockFace direction, Block destination) {
-		return canReach(rail, direction, destination, 0);
+	private static int getStepCount(Block from, Block to) {
+		return MathUtil.clamp(BlockUtil.getManhattanDistance(from, to, true), 2, 15);
 	}
-	public static boolean canReach(Block rail, Block destination) {
-		return canReach(rail, destination, 0);
-	}
+
 	public static boolean isConnected(Block rail1, Block rail2, boolean bothways) {
-		return isConnected(rail1, rail2, bothways, 0);
-	}
-	public static boolean isConnected(Block rail1, Block rail2, boolean bothways, int stepcount) {
-		if (!Util.ISTCRAIL.get(rail1)) return false;
-		if (!Util.ISTCRAIL.get(rail2)) return false;
-		if (BlockUtil.equals(rail1, rail2)) return true;
-		BlockFace direction = FaceUtil.getDirection(rail1, rail2, false);
-		if (bothways) {
-			return canReach(rail1, rail2, direction, stepcount) && canReach(rail2, rail1, direction.getOppositeFace(), stepcount);
+		// Initial conditions
+		if (rail1 == null || rail2 == null) {
+			return false;
+		} else if (BlockUtil.equals(rail1, rail2)) {
+			return true;
+		}
+		// Use types to find out the directions to look
+		int rail1type = rail1.getTypeId();
+		int rail2type = rail2.getTypeId();
+		if (!Util.ISTCRAIL.get(rail1type) || !Util.ISTCRAIL.get(rail2type)) {
+			return false;
+		}
+		BlockFace dir1, dir2;
+		if (Util.ISVERTRAIL.get(rail1type)) {
+			dir1 = rail2.getY() > rail1.getY() ? BlockFace.UP : BlockFace.DOWN;
 		} else {
-			return canReach(rail1, rail2, direction, stepcount) || canReach(rail2, rail1, direction.getOppositeFace(), stepcount);
+			dir1 = FaceUtil.getDirection(rail1, rail2, false);
+		}
+		if (Util.ISVERTRAIL.get(rail2type)) {
+			dir2 = rail1.getY() > rail2.getY() ? BlockFace.UP : BlockFace.DOWN;
+		} else {
+			dir2 = FaceUtil.getDirection(rail2, rail1, false);
+		}
+		// Step count
+		int stepcount = getStepCount(rail1, rail2);
+		// Find rails
+		if (bothways) {
+			return canReach(rail1, rail2, dir1, stepcount) && canReach(rail2, rail1, dir2, stepcount);
+		} else {
+			return canReach(rail1, rail2, dir1, stepcount) || canReach(rail2, rail1, dir2, stepcount);
 		}
 	}
-	public static boolean canReach(Block rail, Block destination, int stepcount) {
-		return canReach(rail, destination, null, stepcount);
-	}
-	public static boolean canReach(Block rail, Block destination, BlockFace preferredFace, int stepcount) {
-		if (stepcount == 0) {
-			stepcount = BlockUtil.getManhattanDistance(rail, destination, false);
-			if (stepcount < 2) stepcount = 2;
+
+	private static boolean canReach(Block rail, Block destination, BlockFace preferredFace, int stepcount) {
+		// Initial conditions
+		if (rail == null || destination == null || !Util.ISTCRAIL.get(destination)) {
+			return false;
+		} else if (BlockUtil.equals(rail, destination)) {
+			return true;
 		}
 		BlockFace dir;
-		if (MaterialUtil.ISRAILS.get(rail)) {
+		int railType = rail.getTypeId();
+		if (MaterialUtil.ISRAILS.get(railType)) {
 			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
-		} else if (MaterialUtil.ISPRESSUREPLATE.get(rail)) {
+		} else if (Util.ISVERTRAIL.get(railType)) {
+			dir = BlockFace.UP;
+		} else if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
 			dir = Util.getPlateDirection(rail).getOppositeFace();
 			if (dir == BlockFace.SELF) dir = preferredFace; 
 		} else {
@@ -65,12 +85,8 @@ public class TrackIterator implements Iterator<Block> {
 		return false;
 	}
 	public static boolean canReach(Block rail, BlockFace direction, Block destination, int stepcount) {
-		if (BlockUtil.equals(rail, destination)) return true;
-		if (!Util.ISTCRAIL.get(rail)) return false;
-		if (!Util.ISTCRAIL.get(destination)) return false;
 		if (stepcount == 0) {
-			stepcount = BlockUtil.getManhattanDistance(rail, destination, false);
-			if (stepcount < 2) stepcount = 2;
+			stepcount = getStepCount(rail, destination);
 		}
 		TrackIterator iter = new TrackIterator(rail, direction, stepcount, false);
 		while (iter.hasNext()) {

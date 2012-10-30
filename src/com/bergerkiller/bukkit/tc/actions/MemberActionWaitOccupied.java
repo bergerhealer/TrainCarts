@@ -19,7 +19,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 		super(head);
 		this.maxsize = maxsize;
 		this.direction = head.getDirectionTo();
-		this.start = head.getRailsBlock();
+		this.start = head.getBlock();
 		this.delay = delay;
 		this.launchDistance = launchDistance;
 	}

@@ -206,7 +206,6 @@ public class MinecartMember extends MinecartMemberStore {
 		return false;
 	}
 
-
 	@Override
 	public void onBlockChange(Block from, Block to) {
 		//update active signs
@@ -389,12 +388,8 @@ public class MinecartMember extends MinecartMemberStore {
 	public Block getBlockRelative(BlockFace direction) {
 		return this.getBlock(FaceUtil.add(direction, this.getDirection()));
 	}
- 	public Block getRailsBlock() {
-		if (this.isDerailed()) return null;
-		return this.getBlock();
-	}
  	public Rails getRails() {
- 		return BlockUtil.getRails(this.getRailsBlock());
+ 		return BlockUtil.getRails(this.getBlock());
  	}
 	public BlockFace getRailDirection() {
 		Rails r = getRails();
@@ -523,7 +518,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return new Vector(MathUtil.clamp(this.motX, max), MathUtil.clamp(this.motY, max), MathUtil.clamp(this.motZ, max));
 	}
 	public TrackMap makeTrackMap(int size) {
-		return new TrackMap(this.getRailsBlock(), this.direction, size);
+		return new TrackMap(this.getBlock(), this.direction, size);
 	}
 
 	/*
@@ -586,7 +581,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isNearOf(MinecartMember member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
 		if (this.distanceXZSquared(member) > max) return false;
-		if (this.isDerailed() || member.isDerailed()) {
+		if (this.isDerailed() || this.isOnVertical() || member.isDerailed() || member.isOnVertical()) {
 			return Math.abs(this.getY() - member.getY()) <= max;
 		}
 		return true;
@@ -774,9 +769,8 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.isHeadingToTrack(track, 0);
 	}
 	public boolean isHeadingToTrack(Block track, int maxstepcount) {
-		if (this.isDerailed()) return false;
-		Block from = this.getRailsBlock();
-		if (from == null || track == null) return false;
+		if (this.isDerailed() || track == null) return false;
+		Block from = this.getBlock();
 		if (BlockUtil.equals(from, track)) return true;
 		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getManhattanDistance(from, track, false);
 		TrackIterator iter = new TrackIterator(from, this.directionTo);
@@ -790,18 +784,17 @@ public class MinecartMember extends MinecartMemberStore {
 		if (!this.isNearOf(member)) return false;
 		if (this.isDerailed() || member.isDerailed()) return true; //if derailed keep train alive
 		if (this.isOnVertical() || member.isOnVertical()) {
-			return true; //TEMP HAX
+			//return true; //TEMP HAX
 		}
 		if (this.isMoving()) {
-			Block memberrail = member.getRailsBlock();
-			if (memberrail == null) return true; //derailed
+			Block memberrail = member.getBlock();
 			if (this.isHeadingToTrack(memberrail)) {
 				return true;
 			} else {
-				return TrackIterator.isConnected(this.getRailsBlock(), memberrail, true);
+				return TrackIterator.isConnected(this.getBlock(), memberrail, true);
 			}
 		} else {
-			return TrackIterator.isConnected(this.getRailsBlock(), member.getRailsBlock(), false);
+			return TrackIterator.isConnected(this.getBlock(), member.getBlock(), false);
 		}
 	}	
 	public static boolean isTrackConnected(MinecartMember m1, MinecartMember m2) {
@@ -816,7 +809,7 @@ public class MinecartMember extends MinecartMemberStore {
 			if (!m2.isFollowingOnTrack(m1)) return false;
 		} else {
 			if (!m1.isNearOf(m2)) return false;
-			if (!TrackIterator.isConnected(m1.getRailsBlock(), m2.getRailsBlock(), false)) return false;
+			if (!TrackIterator.isConnected(m1.getBlock(), m2.getBlock(), false)) return false;
 		}
 		return true;
 	}
