@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
+import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -11,6 +12,7 @@ public class RailLogicAir extends RailLogic {
 	public static final RailLogicAir INSTANCE = new RailLogicAir();
 
 	private RailLogicAir() {
+		super(BlockFace.SELF);
 	}
 
 	@Override

@@ -13,10 +13,8 @@ public class RailLogicVertical extends RailLogic {
 		}
 	}
 
-	private final BlockFace direction;
-
 	private RailLogicVertical(BlockFace direction) {
-		this.direction = direction;
+		super(direction);
 	}
 
 	@Override
@@ -27,7 +25,7 @@ public class RailLogicVertical extends RailLogic {
 	/**
 	 * Gets the vertical rail logic for the direction specified
 	 * 
-	 * @param direction of the ral
+	 * @param direction of the rail
 	 * @return Rail Logic
 	 */
 	public static RailLogicVertical get(BlockFace direction) {

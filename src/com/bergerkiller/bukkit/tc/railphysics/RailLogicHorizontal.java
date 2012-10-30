@@ -19,6 +19,7 @@ public class RailLogicHorizontal extends RailLogic {
 	private final double dx, dz;
 
 	private RailLogicHorizontal(BlockFace direction) {
+		super(direction);
 		this.dx = 0.5 * direction.getModX();
 		this.dz = 0.5 * direction.getModZ();
 	}
