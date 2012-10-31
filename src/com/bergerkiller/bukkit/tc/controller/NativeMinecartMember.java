@@ -363,11 +363,9 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 	/*
 	 * Executes the pre-velocity and location updates
-	 * Returns whether or not any velocity updates were done. (if the cart is NOT static)
 	 */
-	public boolean preUpdate(int stepcount) {
+	public void preUpdate(int stepcount) {
 		//Some fixed
-		if (this.dead) return false;
 		this.motX = MathUtil.fixNaN(this.motX);
 		this.motY = MathUtil.fixNaN(this.motY);
 		this.motZ = MathUtil.fixNaN(this.motZ);
@@ -428,7 +426,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				this.motZ /= 2;
 			}
 		}
-		return true;
 	}
 
 	/*

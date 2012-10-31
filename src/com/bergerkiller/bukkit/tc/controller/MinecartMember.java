@@ -110,7 +110,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	@Override
-	public boolean preUpdate(int stepcount) {
+	public void preUpdate(int stepcount) {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
 		while (times.hasNext()) {			
@@ -119,7 +119,7 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.teleportImmunityTick > 0) {
 			this.teleportImmunityTick--;
 		}
-		return super.preUpdate(stepcount);
+		super.preUpdate(stepcount);
 	}
 
 	@Override

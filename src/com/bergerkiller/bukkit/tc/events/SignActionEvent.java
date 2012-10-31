@@ -305,9 +305,10 @@ public class SignActionEvent extends Event implements Cancellable {
 				if (BlockUtil.isType(attblock.getRelative(face), Material.LEVER)) {
 					//check EVERYTHING
 					for (BlockFace alter : FaceUtil.attachedFacesDown) {
-						if (alter == face) continue;
-						if (PowerState.get(attblock, alter, false) == PowerState.ON) {
-							return !invert;
+						if (alter != face) {
+							if (PowerState.get(attblock, alter, false) == PowerState.ON) {
+								return !invert;
+							}
 						}
 					}
 					found = true;
