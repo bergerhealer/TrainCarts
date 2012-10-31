@@ -473,12 +473,22 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 	public void setForwardForce(double force) {
-		if (this.isMoving() && force > 0.01 && !this.isOnVertical()) {
-			if (FaceUtil.getDirection(this.motX, this.motZ, false) == this.direction) {
+		if (this.isFlying() && force > 0.01) {
+			this.setForce(force);
+			return;
+		} else if (this.isMoving() && !this.isOnVertical()) {
+			BlockFace mdir = FaceUtil.getDirection(this.motX, this.motZ, false);
+			if (mdir == this.direction) {
 				this.setYForce(force);
 				force /= this.getForce();
 				this.motX *= force;
 				this.motZ *= force;
+				return;
+			} else if (mdir == this.direction.getOppositeFace()) {
+				this.setYForce(force);
+				force /= this.getForce();
+				this.motX *= -force;
+				this.motZ *= -force;
 				return;
 			}
 		}
@@ -551,6 +561,9 @@ public class MinecartMember extends MinecartMemberStore {
 	public double distanceXZ(Location l) {
 		return MathUtil.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
 	}
+	public double distanceXZ(Block block) {
+		return MathUtil.distance(this.getX(), this.getZ(), 0.5 + block.getX(), 0.5 + block.getZ());
+	}
 	public double distanceSquared(net.minecraft.server.Entity e) {
 		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
 	}
@@ -562,6 +575,9 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public double distanceXZSquared(Location l) {
 		return MathUtil.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
+	}
+	public double distanceXZSquared(Block block) {
+		return MathUtil.distanceSquared(this.getX(), this.getZ(), 0.5 + block.getX(), 0.5 + block.getZ());
 	}
 	public boolean isNearOf(MinecartMember member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;

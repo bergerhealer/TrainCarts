@@ -199,29 +199,20 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 				int newYRot = MathHelper.d(this.tracker.pitch * 256 / 360);
 				boolean looked = Math.abs(newXRot - this.xRot) >= 4 || Math.abs(newYRot - this.yRot) >= 4;
 				boolean moved = Math.abs(xDiff) >= 4 || Math.abs(yDiff) >= 4 || Math.abs(zDiff) >= 4;
-				if (moved) {
-					//moving to derailed track?
-					MinecartMember mm = (MinecartMember) this.tracker;
-					if (mm.wasOnNormalTracks() && !mm.isOnNormalTracks()) {
-						teleport = true;
-					}
+				if (moved && looked) {
+					this.broadcast(new Packet33RelEntityMoveLook(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff, (byte) newXRot, (byte) newYRot));
+				} else if (moved) {
+					this.broadcast(new Packet31RelEntityMove(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff));
+				} else if (looked) {
+					this.broadcast(new Packet32EntityLook(this.tracker.id, (byte) newXRot, (byte) newYRot));
 				}
-				if (!teleport) {
-					if (moved && looked) {
-						this.broadcast(new Packet33RelEntityMoveLook(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff, (byte) newXRot, (byte) newYRot));
-					} else if (moved) {
-						this.broadcast(new Packet31RelEntityMove(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff));
-					} else if (looked) {
-						this.broadcast(new Packet32EntityLook(this.tracker.id, (byte) newXRot, (byte) newYRot));
-					}
-					if (moved) {
-						this.xLoc = newXLoc;
-						this.yLoc = newYLoc;
-						this.zLoc = newZLoc;
-					}
-					if (looked) {
-						setRotation(newXRot, newYRot);
-					}
+				if (moved) {
+					this.xLoc = newXLoc;
+					this.yLoc = newYLoc;
+					this.zLoc = newZLoc;
+				}
+				if (looked) {
+					setRotation(newXRot, newYRot);
 				}
 			}
 		}

@@ -8,15 +8,15 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
  * The type of rails below a minecart
  */
 public enum RailType {
-	PRESSUREPLATE(false), REGULAR(true), BRAKE(true), BOOST(true), DETECTOR(true), VERTICAL(false), NONE(false);
+	PRESSUREPLATE(true), REGULAR(true), BRAKE(true), BOOST(true), DETECTOR(true), VERTICAL(false), NONE(false);
 
-	private boolean track;
-	private RailType(boolean isTrack) {
-		this.track = isTrack;
+	private boolean horizontal;
+	private RailType(boolean isHorizontal) {
+		this.horizontal = isHorizontal;
 	}
 
-	public boolean isTrack() {
-		return this.track;
+	public boolean isHorizontal() {
+		return this.horizontal;
 	}
 
 	public static RailType get(int typeId, int data) {

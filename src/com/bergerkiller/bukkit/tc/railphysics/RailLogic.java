@@ -28,6 +28,15 @@ public abstract class RailLogic {
 	}
 
 	/**
+	 * Checks if this type of Rail Logic is for sloped tracks
+	 * 
+	 * @return True if sloped, False if not
+	 */
+	public boolean isSloped() {
+		return false;
+	}
+
+	/**
 	 * Updates the velocity and positioning of a minecart
 	 * 
 	 * @param member to update
@@ -46,8 +55,20 @@ public abstract class RailLogic {
 		if (MaterialUtil.ISRAILS.get(typeId)) {
 			BlockFace direction = BlockUtil.getRails(rails).getDirection();
 			if (Util.isSloped(rails.getData())) {
+				boolean wasVertical = false;
+				if (Util.ISVERTRAIL.get(rails.getRelative(BlockFace.UP))) {
+					// Is this minecart moving towards the up-side of the slope?
+					if (member.motY > 0 || member.isHeadingTo(direction)) {
+						// Show information of the rail above, but keep old blockY
+						return RailLogicVertical.get(direction, true);
+					} else if (member.hasBlockChanged()) {
+						wasVertical = true;
+					}
+				} else if (member.getPrevRailLogic() instanceof RailLogicVertical) {
+					wasVertical = true;
+				}
 				// Sloped logic
-				return RailLogicSloped.get(direction);
+				return RailLogicSloped.get(direction, wasVertical);
 			} else {
 				// Horizontal logic
 				return RailLogicHorizontal.get(direction);
@@ -65,7 +86,7 @@ public abstract class RailLogic {
 			}
 			return RailLogicHorizontal.get(dir);
 		} else if (Util.ISVERTRAIL.get(typeId)) {
-			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()));
+			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()), false);
 		}
 		// Final two no-rail logic types
 		if (member.isFlying()) {

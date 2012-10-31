@@ -19,7 +19,6 @@ import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
-import org.bukkit.material.MaterialData;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
@@ -30,12 +29,14 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberDeadException;
-import com.bergerkiller.bukkit.tc.MoveDirection;
 import com.bergerkiller.bukkit.tc.RailType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicGround;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.ChunkPosition;
@@ -62,10 +63,13 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public int fuel;
 	private int fuelCheckCounter = 0;
 	private boolean forcedBlockUpdate = true;
+	public boolean vertToSlope = false;
 
 	public static final int FUEL_PER_COAL = 3600;
 	public static final double GRAVITY_MULTIPLIER = 0.04;
-	private static final double HOR_VERT_TRADEOFF = 2.0;
+	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
+	public static final double HOR_VERT_TRADEOFF = 2.0;
+	public static final double POWERED_RAIL_START_BOOST = 0.02;
 
 	public void validate() throws MemberDeadException {
 		if (this.dead) {
@@ -74,10 +78,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	private double getXZForceSquared() {
+	public double getXZForceSquared() {
 		return MathUtil.lengthSquared(this.motX, this.motZ);
 	}
-	private double getXZForce() {
+	public double getXZForce() {
 		return MathUtil.length(this.motX, this.motZ);
 	}
 	public double getX() {
@@ -122,10 +126,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 	public boolean hasFuel() {
 		return this.fuel > 0;
-	}
-
-	private boolean ignoreForces() {
-		return group().isVelocityAction();
 	}
 
 	private MinecartMember member() {
@@ -249,15 +249,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	private final MoveInfo moveinfo = new MoveInfo((MinecartMember) this);
 	private class MoveInfo {
 		public final MinecartMember owner;
-		public MoveDirection moveDirection;
 		public int blockX, blockY, blockZ;
 		public Block lastBlock, block;
 		public RailType railType;
 		public RailType prevRailType = RailType.NONE;
-		public BlockFace prevRailDirecton = BlockFace.NORTH;
-		public BlockFace railDirection = BlockFace.NORTH;
-		public boolean isSloped;
-		public boolean slopeToVert, vertToSlope;
+		public RailLogic railLogic = RailLogicGround.INSTANCE;
+		public RailLogic prevRailLogic = RailLogicGround.INSTANCE;
 
 		public MoveInfo(MinecartMember owner) {
 			this.owner = owner;
@@ -282,34 +279,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			int raildata = owner.world.getData(blockX, blockY, blockZ);
 			// Update rail type and sloped state
 			this.railType = RailType.get(railtype, raildata);
-			this.isSloped = this.railType.isTrack() && Util.isSloped(raildata);
-			// Update direction
-			if (this.railType == RailType.BRAKE || this.railType == RailType.BOOST || this.railType == RailType.DETECTOR) {
-				raildata &= 0x7;
-			}
-			this.railDirection = BlockFace.DOWN;
-			if (this.railType.isTrack()) {
-				MaterialData data = Material.getMaterial(railtype).getNewData((byte) raildata);
-				if (data instanceof Rails) {
-					this.railDirection = ((Rails) data).getDirection();
-				}
-			} else if (this.railType == RailType.PRESSUREPLATE) {
-				// driving on top of a pressure plate
-				Block curr = world.getWorld().getBlockAt(blockX, blockY, blockZ);
-				BlockFace dir = Util.getPlateDirection(curr);
-				if (dir == BlockFace.SELF) {
-					//set track direction based on direction of this cart (0 or 1)
-					if (Math.abs(owner.motX) > Math.abs(owner.motZ)) {
-						this.railDirection = BlockFace.SOUTH;
-					} else {
-						this.railDirection = BlockFace.WEST;
-					}
-				} else {
-					this.railDirection = dir;
-				}
-			} else if (this.railType == RailType.VERTICAL) {
-				this.railDirection = Util.getVerticalRailDirection(raildata);
-			}
 		}
 
 		public void fillRailsData() {
@@ -317,7 +286,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			this.blockX = owner.getLiveBlockX();
 			this.blockY = owner.getLiveBlockY();
 			this.blockZ = owner.getLiveBlockZ();
-			this.slopeToVert = this.vertToSlope = false;
+			owner.vertToSlope = false;
 
 			// Find the rail - first step
 			int railtype = world.getTypeId(blockX, blockY - 1, blockZ);
@@ -332,43 +301,29 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 			// Snap to slope
 			if (this.railType == RailType.NONE && this.prevRailType == RailType.VERTICAL && owner.motY > 0) {
-				Block next = owner.world.getWorld().getBlockAt(blockX + this.prevRailDirecton.getModX(), blockY, blockZ + this.prevRailDirecton.getModZ());
+				Block next = owner.world.getWorld().getBlockAt(blockX + this.prevRailLogic.getDirection().getModX(), blockY, blockZ + this.prevRailLogic.getDirection().getModZ());
 				Rails rails = BlockUtil.getRails(next);
 				if (rails != null && rails.isOnSlope()) {
-					if (rails.getDirection() == this.prevRailDirecton) {
+					if (rails.getDirection() == this.prevRailLogic.getDirection()) {
 						// Move the minecart to the slope
 						blockX = next.getX();
 						blockZ = next.getZ();
 						this.updateBlock();
-						this.vertToSlope = true;
-						owner.locX = blockX + 0.5 - 0.49 * this.prevRailDirecton.getModX();
-						owner.locZ = blockZ + 0.5 - 0.49 * this.prevRailDirecton.getModZ();
+						owner.locX = blockX + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModX();
+						owner.locZ = blockZ + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModZ();
 						// Y offset
 						owner.locY = blockY + 0.8;
 					}
 				}
 			}
 
-			// Snap from sloped rail to vertical rail
-			if (this.isSloped) {
-				if (Util.ISVERTRAIL.get(world.getTypeId(blockX, blockY + 1, blockZ))) {
-					// Is this minecart moving towards the up-side of the slope?
-					if (owner.motY > 0 || owner.isHeadingTo(this.railDirection)) {
-						// Show information of the rail above, but keep old blockY
-						this.railType = RailType.VERTICAL;
-						this.slopeToVert = true;
-					} else if (this.blockChanged()) {
-						this.vertToSlope = true;
-					}
-				} else if (this.prevRailType == RailType.VERTICAL) {
-					this.vertToSlope = true;
-				}
-			}
-
 			// Calculate the move matrix
-			this.moveDirection = MoveDirection.getDirection(this.railDirection, this.isSloped);
+			this.railLogic = RailLogic.get(this.owner);
+			if (this.railLogic instanceof RailLogicVertical) {
+				this.railType = RailType.VERTICAL;
+			}
 			this.prevRailType = this.railType;
-			this.prevRailDirecton = this.railDirection;
+			this.prevRailLogic = this.railLogic;
 		}
 	}
 
@@ -440,129 +395,38 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			this.C();
 		}
 
-		// Smoke particles for powered carts
-		if (this.h() && this.random.nextInt(4) == 0) {
-			this.world.addParticle("largesmoke", this.locX, this.locY + 0.8D, this.locZ, 0.0D, 0.0D, 0.0D);
-		}
-
-		//put coal into cart if needed
-		if (this.isPoweredCart()) {
-			if (this.fuel <= 0) {
-				if (fuelCheckCounter++ % 20 == 0 && TrainCarts.useCoalFromStorageCart && this.member().getCoalFromNeighbours()) {
-					this.addFuel(FUEL_PER_COAL);
-				}
-			} else {
-				this.fuelCheckCounter = 0;
-				if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
-					this.b = this.motX;
-					this.c = this.motZ;
-				}
-			}
-		}
-
-		// Perform gravity
-		if (moveinfo.railType == RailType.VERTICAL) {
-			if (!this.ignoreForces() && this.group().getProperties().isSlowingDown()) {
-				this.motY -= GRAVITY_MULTIPLIER;
-			}
-		} else if (!this.ignoreForces()) {
-			this.motY -= GRAVITY_MULTIPLIER;
-		}
-
 		moveinfo.fillRailsData();
 
+		// Perform gravity
+		if (!group().isVelocityAction()) {
+			if (!moveinfo.railType.isHorizontal()) {
+				if (moveinfo.railType != RailType.VERTICAL || this.group().getProperties().isSlowingDown()) {
+					this.motY -= GRAVITY_MULTIPLIER;
+				}
+			}
+		}
+
 		// reset fall distance
-		if (this.moveinfo.railType != RailType.NONE) {
+		if (!this.isDerailed()) {
 			this.fallDistance = 0.0f;
 		}
 
-		// Ignore forced: Make powered or brake rail act as a regular rail
-		if (this.ignoreForces()) {
-			if (moveinfo.railType == RailType.BOOST || moveinfo.railType == RailType.BRAKE) {
-				moveinfo.railType = RailType.REGULAR;
-			}
-		}
+		// Perform rails logic
+		moveinfo.railLogic.update(this.member());
+		this.setPosition(this.locX, this.locY, this.locZ);
 
-		// If not derailed, start rail physics
-		if (!this.isDerailed()) {
-			if (moveinfo.isSloped) {
-				// Velocity modifier for sloped tracks
-				if (this.group().getProperties().isSlowingDown()) {
-					// Disable sloped motion if requested
-					final double slopedMotion = this.ignoreForces() ? 0 : 0.0078125;
-					this.motX -= moveinfo.railDirection.getModX() * slopedMotion;
-					this.motZ -= moveinfo.railDirection.getModZ() * slopedMotion;
-				}
-			}
-
-			// Turn vertical velocity into horizontal velocity
-			if (moveinfo.vertToSlope) {
-				double force = this.motY / HOR_VERT_TRADEOFF;
-				this.motX += force * moveinfo.railDirection.getModX();
-				this.motZ += force * moveinfo.railDirection.getModZ();
-				this.motY = 0.0;
-			}
-
-			// Slows down minecarts on unpowered booster tracks
-			if (moveinfo.railType == RailType.BRAKE) {
-				if (this.getXZForceSquared() < 0.0009D) {
-					this.motX = 0;
-					this.motY = 0;
-					this.motZ = 0;
-				} else {
-					this.motX /= 2;
-					this.motY = 0;
-					this.motZ /= 2;
-				}
-			}
-
-			// Perform location updating: Snap to rails
-			double newLocX, newLocY, newLocZ;
-			Vector newVelocity = this.getVelocity();
-			if (moveinfo.railType == RailType.VERTICAL) {
-				// Horizontal rail force to motY
-				newVelocity.setY(newVelocity.getY() + Util.invert(this.getXZForce() * HOR_VERT_TRADEOFF, !moveinfo.slopeToVert));
-				newVelocity.setX(0.0).setZ(0.0);
-				// Position update
-				newLocX = moveinfo.blockX + 0.5;
-				newLocY = this.locY;
-				newLocZ = moveinfo.blockZ + 0.5;
+		// Slow down on unpowered booster tracks
+		// Note: HAS to be in PreUpdate, otherwise glitches occur!
+		if (moveinfo.railType == RailType.BRAKE && !group().isVelocityAction()) {
+			if (this.getXZForceSquared() < 0.0009D) {
+				this.motX = 0;
+				this.motY = 0;
+				this.motZ = 0;
 			} else {
-				// Apply velocity modifiers
-				moveinfo.moveDirection.applyVelocity(newVelocity);
-
-				//location is updated to follow the tracks
-				newLocX = (double) moveinfo.blockX + 0.5 + moveinfo.moveDirection.x1;
-				newLocY = (double) moveinfo.blockY + (double) this.height;
-				newLocZ = (double) moveinfo.blockZ + 0.5 + moveinfo.moveDirection.z1;
-				if (moveinfo.moveDirection.isAlongX) {
-					// Moving along the X-axis
-					newLocZ += moveinfo.moveDirection.dz * (this.locZ - moveinfo.blockZ);
-				} else if (moveinfo.moveDirection.isAlongZ) {
-					// Moving along the Z-axis
-					newLocX += moveinfo.moveDirection.dx * (this.locX - moveinfo.blockX);
-				} else {
-					// Curve
-					double factor = 2.0 * (moveinfo.moveDirection.dx * (this.locX - newLocX) + moveinfo.moveDirection.dz * (this.locZ - newLocZ));
-					newLocX += factor * moveinfo.moveDirection.dx;
-					newLocZ += factor * moveinfo.moveDirection.dz;
-				}
-				if (moveinfo.isSloped) {
-					newLocY += 1.0;
-				}
+				this.motX /= 2;
+				this.motY = 0;
+				this.motZ /= 2;
 			}
-			this.setPosition(newLocX, newLocY, newLocZ);
-			this.setVelocity(newVelocity);
-		} else {
-			Vector der;
-			if (this.onGround) {
-				der = this.getDerailedVelocityMod();
-			} else {
-				der = this.getFlyingVelocityMod();
-			}
-			this.motX *= der.getX();
-			this.motY *= der.getY();
-			this.motZ *= der.getZ();
 		}
 		return true;
 	}
@@ -595,57 +459,20 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		this.validate();
 
 		// Post-move logic
-		if (moveinfo.railType != RailType.NONE) {
-			if (moveinfo.railType != RailType.VERTICAL) {
-				// Snap to rails vertically
-				final double movedX = 0.5 * (MathHelper.floor(this.locX) - moveinfo.blockX);
-				final double movedZ = 0.5 * (MathHelper.floor(this.locZ) - moveinfo.blockZ);
-				for (Vector mov : moveinfo.moveDirection.raw) {
-					if (mov.getY() != 0.0 && movedX == mov.getX() && movedZ == mov.getZ()) {
-						this.setPosition(this.locX, this.locY + mov.getY(), this.locZ);
-						break;
-					}
-				}
-			}
-
-			// Powered cart velocity boost
-			if (this.isPoweredCart() && !ignoreForces()) {
-				double fuelPower;
-				if (this.hasFuel() && (fuelPower = MathUtil.length(this.b, this.c)) > 0) {
-					this.b /= fuelPower;
-					this.c /= fuelPower;
-					double boost = 0.04 + TrainCarts.poweredCartBoost;
-
-					this.motX *= 0.8;
-					this.motZ *= 0.8;
-					this.motX += this.b * boost;
-					this.motZ += this.c * boost;
-				} else {
-					if (this.group().getProperties().isSlowingDown()) {
-						this.motX *= 0.9;
-						this.motZ *= 0.9;
-					}
-				}
-			}
-			if (this.group().getProperties().isSlowingDown()) {
-				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
-					this.motX *= TrainCarts.slowDownMultiplierNormal;
-					this.motZ *= TrainCarts.slowDownMultiplierNormal;
-				} else {
-					this.motX *= TrainCarts.slowDownMultiplierSlow;
-					this.motZ *= TrainCarts.slowDownMultiplierSlow;
-				}
-			}
-
-			// Prevent vertical motion buildup
-			if (moveinfo.railType != RailType.VERTICAL) {
-				this.motY = 0.0;
-			}
-
-			// Slope physics and snap to rails logic
+		if (!this.isDerailed()) {
 			double motLength;
-			if (moveinfo.isSloped) {
-				// Note: The below two Vec3D-producing functions are the same as the last part in preUpdate
+
+			// If the block changes, update locY accordingly
+			if (this.isOnSlope()) {
+				int dx = moveinfo.blockX - MathHelper.floor(this.locX);
+				int dz = moveinfo.blockZ - MathHelper.floor(this.locZ);
+				if (dx == this.getRailDirection().getModX() && dz == this.getRailDirection().getModZ()) {
+					this.locY--;
+				}
+
+				// Slope physics and snap to rails logic
+
+				// The below two Vec3D-producing functions are the same as the last part in preUpdate
 				// It calculates the exact location a minecart should be on the rails
 
 				// Note to self: For new rail types, this needs a rewrite to use a common function!
@@ -671,17 +498,9 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 
-			// Update motion direction based on changed location
-			int newBlockX = MathHelper.floor(this.locX);
-			int newBlockZ = MathHelper.floor(this.locZ);
-			if (newBlockX != moveinfo.blockX || newBlockZ != moveinfo.blockZ) {
-				motLength = this.getXZForce();
-				this.motX = motLength * (double) (newBlockX - moveinfo.blockX);
-				this.motZ = motLength * (double) (newBlockZ - moveinfo.blockZ);
-			}
-
-			//PushX and PushZ updated for Powered Minecarts
+			// Powered minecart physics section
 			if (this.isPoweredCart()) {
+				//PushX and PushZ are updated
 				motLength = MathUtil.length(this.b, this.c);
 				if (motLength > 0.01 && this.getXZForceSquared() > 0.001) {
 					this.b /= motLength;
@@ -694,29 +513,75 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 						this.c = this.motZ;
 					}
 				}
+				// Velocity boost is applied
+				if (!group().isVelocityAction()) {
+					double fuelPower;
+					if (this.hasFuel() && (fuelPower = MathUtil.length(this.b, this.c)) > 0) {
+						this.b /= fuelPower;
+						this.c /= fuelPower;
+						double boost = 0.04 + TrainCarts.poweredCartBoost;
+
+						this.motX *= 0.8;
+						this.motZ *= 0.8;
+						this.motX += this.b * boost;
+						this.motZ += this.c * boost;
+					} else {
+						if (this.group().getProperties().isSlowingDown()) {
+							this.motX *= 0.9;
+							this.motZ *= 0.9;
+						}
+					}
+				}
 			}
 
-			//Launch on powered rails
-			if (moveinfo.railType == RailType.BOOST) {
+			// Slowing down of minecarts
+			if (this.group().getProperties().isSlowingDown()) {
+				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
+					this.motX *= TrainCarts.slowDownMultiplierNormal;
+					this.motZ *= TrainCarts.slowDownMultiplierNormal;
+				} else {
+					this.motX *= TrainCarts.slowDownMultiplierSlow;
+					this.motZ *= TrainCarts.slowDownMultiplierSlow;
+				}
+			}
+
+			// Prevent vertical motion buildup
+			if (moveinfo.railType != RailType.VERTICAL) {
+				this.motY = 0.0;
+			}
+
+			// Update motion direction based on changed location
+			int newBlockX = MathHelper.floor(this.locX);
+			int newBlockZ = MathHelper.floor(this.locZ);
+			if (newBlockX != moveinfo.blockX || newBlockZ != moveinfo.blockZ) {
+				motLength = this.getXZForce();
+				this.motX = motLength * (double) (newBlockX - moveinfo.blockX);
+				this.motZ = motLength * (double) (newBlockZ - moveinfo.blockZ);
+			}
+
+			// Launching on powered booster tracks
+			if (moveinfo.railType == RailType.BOOST && !group().isVelocityAction()) {
 				motLength = this.getXZForce();
 				if (motLength > 0.01) {
-					//simple motion boosting when already moving
+					// Simple motion boosting when already moving
 					double launchFactor = 0.06D / motLength;
 					this.motX += this.motX * launchFactor;
 					this.motZ += this.motZ * launchFactor;
-				} else if (moveinfo.railDirection == BlockFace.SOUTH) {
-					//launch at x-axis
-					if (this.world.s(moveinfo.blockX - 1, moveinfo.blockY, moveinfo.blockZ)) {
-						this.motX = 0.02;
-					} else if (this.world.s(moveinfo.blockX + 1, moveinfo.blockY, moveinfo.blockZ)) {
-						this.motX = -0.02;
-					}
-				} else if (moveinfo.railDirection == BlockFace.WEST) {
-					//launch at z-axis
-					if (this.world.s(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ - 1)) {
-						this.motZ = 0.02;
-					} else if (this.world.s(moveinfo.blockX, moveinfo.blockY, moveinfo.blockZ + 1)) {
-						this.motZ = -0.02;
+				} else {
+					// Launch away from a suffocating block
+					BlockFace dir = this.getRailDirection();
+					Block block = this.getBlock();
+					boolean pushFrom1 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir.getOppositeFace()));
+					boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
+					// If pushing from both directions, block all movement
+					if (pushFrom1 && pushFrom2) {
+						this.motX = 0.0;
+						this.motZ = 0.0;
+					} else if (pushFrom1 != pushFrom2) {
+						// Boosting to the open spot
+						final double boost = Util.invert(POWERED_RAIL_START_BOOST, pushFrom2);
+						this.motX = boost * dir.getModX();
+						this.motZ = boost * dir.getModZ();
 					}
 				}
 			}
@@ -765,11 +630,28 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 			}
+			// Put coal into cart if needed
+			if (this.fuel <= 0) {
+				if (fuelCheckCounter++ % 20 == 0 && TrainCarts.useCoalFromStorageCart && this.member().getCoalFromNeighbours()) {
+					this.addFuel(FUEL_PER_COAL);
+				}
+			} else {
+				this.fuelCheckCounter = 0;
+				if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
+					this.b = this.motX;
+					this.c = this.motZ;
+				}
+			}
 			if (this.fuel <= 0) {
 				this.fuel = 0;
 				this.b = this.c = 0.0;
 			}
 			this.e(this.hasFuel());
+		}
+
+		// Smoke particles for carts that have this data set
+		if (this.h() && this.random.nextInt(4) == 0) {
+			this.world.addParticle("largesmoke", this.locX, this.locY + 0.8D, this.locZ, 0.0D, 0.0D, 0.0D);
 		}
 
 		// Handle block changes
@@ -821,13 +703,13 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				newpitch = 0;
 			}
 		} else if (moveinfo.railType == RailType.VERTICAL) {
-			newyaw = FaceUtil.faceToYaw(moveinfo.railDirection);
+			newyaw = FaceUtil.faceToYaw(this.getRailDirection());
 			newpitch = -90;
 			mode = false;
 		} else if (moveinfo.railType == RailType.PRESSUREPLATE) {
 			newpitch = 0.0F; //prevent weird pitch angles on pressure plates
 		} else if (movedXZ) {
-			if (this.moveinfo.railType.isTrack()) {
+			if (this.moveinfo.railType.isHorizontal()) {
 				newpitch = -0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 			} else {
 				newpitch = 0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
@@ -1196,7 +1078,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				return false;
 			}
 		}
-		return MinecartMemberStore.validateMinecart(e);
+		if (!MinecartMemberStore.validateMinecart(e)) {
+			return false;
+		}
+		// Collision occurred, collided head-on? Stop the entire train
+		if (this.member().isHeadingTo(e)) {
+			this.group().stop();
+		}
+		return true;
 	}
 	
 	/**
@@ -1219,10 +1108,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// Handle collision
 		if (!this.member().isTurned() && hitFace.getOppositeFace() == this.member().getDirectionTo() && !this.isDerailed()) {
 			// Cancel collisions with blocks at the heading of sloped rails
-			if (this.moveinfo.isSloped && hitFace == moveinfo.railDirection.getOppositeFace()) {
+			if (this.isOnSlope() && hitFace == this.getRailDirection().getOppositeFace()) {
 				return false;
 			}
-			// Stop the entire train
+			// Stop the train
 			this.group().stop();
 		}
 		return true;
@@ -1285,7 +1174,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public BlockFace getRailDirection() {
-		return moveinfo.railDirection;
+		return moveinfo.railLogic.getDirection();
 	}
 
 	public void setVelocity(Vector velocity) {
@@ -1311,20 +1200,24 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return this.moveinfo.railType == RailType.VERTICAL;
 	}
 
+	public RailLogic getPrevRailLogic() {
+		return moveinfo.prevRailLogic;
+	}
+
+	public RailLogic getRailLogic() {
+		return moveinfo.railLogic;
+	}
+
+	public boolean hasBlockChanged() {
+		return moveinfo.blockChanged();
+	}
+
 	public boolean isDerailed() {
 		return this.moveinfo.railType == RailType.NONE;
 	}
 
 	public boolean isOnSlope() {
-		return this.moveinfo.isSloped;
-	}
-
-	public boolean wasOnNormalTracks() {
-		return this.moveinfo.prevRailType.isTrack();
-	}
-
-	public boolean isOnNormalTracks() {
-		return this.moveinfo.railType.isTrack();
+		return this.moveinfo.railLogic.isSloped();
 	}
 
 	public boolean isFlying() {

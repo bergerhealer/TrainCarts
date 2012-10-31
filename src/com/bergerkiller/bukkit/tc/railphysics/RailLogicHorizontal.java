@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.railphysics;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -11,22 +13,60 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 public class RailLogicHorizontal extends RailLogic {
 	private static final RailLogicHorizontal[] values = new RailLogicHorizontal[8];
 	static {
-		for (int i = 0; i < values.length; i++) {
+		for (int i = 0; i < 8; i++) {
 			values[i] = new RailLogicHorizontal(FaceUtil.notchToFace(i));
 		}
 	}
 
 	private final double dx, dz;
+	private final double x1, z1, x2, z2;
+	private final boolean alongX, alongZ;
 
 	private RailLogicHorizontal(BlockFace direction) {
 		super(direction);
-		this.dx = 0.5 * direction.getModX();
-		this.dz = 0.5 * direction.getModZ();
+		// Fix north/east, they are non-existent
+		if (direction == BlockFace.NORTH || direction == BlockFace.EAST) {
+			direction = direction.getOppositeFace();
+		}
+		// Generate movement offset data
+		BlockFace[] faces = FaceUtil.getFaces(direction);
+		this.x1 = -0.5 * faces[0].getModX();
+		this.z1 = -0.5 * faces[0].getModZ();
+		this.x2 = -0.5 * faces[1].getModX();
+		this.z2 = -0.5 * faces[1].getModZ();
+		this.dx = this.x2 - this.x1;
+		this.dz = this.z2 - this.z1;
+		this.alongX = (this.dx == 0.0);
+		this.alongZ = (this.dz == 0.0);
 	}
 
 	@Override
 	public void update(MinecartMember member) {
-		//TODO: Implement this!
+		// Apply velocity modifiers
+		boolean invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;
+		double railFactor = Util.invert(MathUtil.normalize(dx, dz, member.motX, member.motZ), invert);
+		member.motX = railFactor * this.dx;
+		member.motZ = railFactor * this.dz;
+
+		//location is updated to follow the tracks
+		double newLocX = (double) member.getBlockX() + 0.5 + this.x1;
+		double newLocY = (double) member.getBlockY() + (double) member.height;
+		double newLocZ = (double) member.getBlockZ() + 0.5 + this.z1;
+		if (this.alongX) {
+			// Moving along the X-axis
+			newLocZ += this.dz * (member.locZ - member.getBlockZ());
+		} else if (this.alongZ) {
+			// Moving along the Z-axis
+			newLocX += this.dx * (member.locX - member.getBlockX());
+		} else {
+			// Curve
+			double factor = 2.0 * (this.dx * (member.locX - newLocX) + this.dz * (member.locZ - newLocZ));
+			newLocX += factor * this.dx;
+			newLocZ += factor * this.dz;
+		}
+		member.locX = newLocX;
+		member.locY = newLocY;
+		member.locZ = newLocZ;
 	}
 
 	/**
