@@ -320,6 +320,18 @@ public class Util {
 	}
 
 	/**
+	 * Checks if a given rails block has a vertical rail above facing the direction specified
+	 * 
+	 * @param rails to check
+	 * @param direction of the vertical rail
+	 * @return True if a vertical rail is above, False if not
+	 */
+	public static boolean isVerticalAbove(Block rails, BlockFace direction) {
+		Block above = rails.getRelative(BlockFace.UP);
+		return Util.ISVERTRAIL.get(above) && getVerticalRailDirection(above.getData()) == direction;
+	}
+
+	/**
 	 * Gets the direction a vertical rail pushes the minecart (the wall side)
 	 * 
 	 * @param raildata of the vertical rail

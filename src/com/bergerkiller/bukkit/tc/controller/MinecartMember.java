@@ -768,25 +768,22 @@ public class MinecartMember extends MinecartMemberStore {
 		return MathUtil.isHeadingTo(direction, this.getVelocity());
 	}
 	public boolean isHeadingToTrack(Block track) {
-		return this.isHeadingToTrack(track, 0);
-	}
-	public boolean isHeadingToTrack(Block track, int maxstepcount) {
-		if (this.isDerailed() || track == null) return false;
-		Block from = this.getBlock();
-		if (BlockUtil.equals(from, track)) return true;
-		if (maxstepcount == 0) maxstepcount = 1 + 2 * BlockUtil.getManhattanDistance(from, track, false);
-		TrackIterator iter = new TrackIterator(from, this.directionTo);
-		for (;maxstepcount > 0 && iter.hasNext(); --maxstepcount) {
-			if (BlockUtil.equals(iter.next(), track)) return true;
+		if (this.isDerailed() || track == null) {
+			return false;
+		} else if (BlockUtil.equals(this.getBlock(), track)) {
+			return true;
+		} else {
+			return TrackIterator.canReach(this.getBlock(), this.getDirectionTo(), track);
 		}
-		return false;
 	}
 	public boolean isFollowingOnTrack(MinecartMember member) {
-		//checks if this member is able to follow the specified member on the tracks
-		if (!this.isNearOf(member)) return false;
-		if (this.isDerailed() || member.isDerailed()) return true; //if derailed keep train alive
-		if (this.isOnVertical() || member.isOnVertical()) {
-			//return true; //TEMP HAX
+		// Checks if this member is able to follow the specified member on the tracks
+		if (!this.isNearOf(member)) {
+			return false;
+		}
+		// If derailed keep train alive
+		if (this.isDerailed() || member.isDerailed()) {
+			return true;
 		}
 		if (this.isMoving()) {
 			Block memberrail = member.getBlock();
@@ -798,7 +795,7 @@ public class MinecartMember extends MinecartMemberStore {
 		} else {
 			return TrackIterator.isConnected(this.getBlock(), member.getBlock(), false);
 		}
-	}	
+	}
 	public static boolean isTrackConnected(MinecartMember m1, MinecartMember m2) {
 		//Can the minecart reach the other?
 		boolean m1moving = m1.isMoving();

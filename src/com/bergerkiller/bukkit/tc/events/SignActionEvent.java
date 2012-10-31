@@ -74,13 +74,18 @@ public class SignActionEvent extends Event implements Cancellable {
 					if (this.isVerticalRails()) {
 						this.watchedDirections = new BlockFace[] {BlockFace.UP, BlockFace.DOWN};
 					} else {
-						BlockFace facing = this.getFacing();
-						if (this.isConnectedRails(facing)) {
-							this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
-						} else if (this.isConnectedRails(facing.getOppositeFace())) {
-							this.watchedDirections = new BlockFace[] {facing};
+						Rails rails = BlockUtil.getRails(this.getRails());
+						if (rails != null && rails.isOnSlope() && Util.isVerticalAbove(this.getRails(), rails.getDirection())) {
+							this.watchedDirections = new BlockFace[] {BlockFace.UP, rails.getDirection().getOppositeFace()};
 						} else {
-							this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
+							BlockFace facing = this.getFacing();
+							if (this.isConnectedRails(facing)) {
+								this.watchedDirections = new BlockFace[] {facing.getOppositeFace()};
+							} else if (this.isConnectedRails(facing.getOppositeFace())) {
+								this.watchedDirections = new BlockFace[] {facing};
+							} else {
+								this.watchedDirections = new BlockFace[] {FaceUtil.rotate(facing, -2), FaceUtil.rotate(facing, 2)};
+							}
 						}
 					}
 				} else {

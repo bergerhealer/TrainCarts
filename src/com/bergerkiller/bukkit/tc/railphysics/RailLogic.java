@@ -56,7 +56,7 @@ public abstract class RailLogic {
 			BlockFace direction = BlockUtil.getRails(rails).getDirection();
 			if (Util.isSloped(rails.getData())) {
 				boolean wasVertical = false;
-				if (Util.ISVERTRAIL.get(rails.getRelative(BlockFace.UP))) {
+				if (Util.isVerticalAbove(rails, direction)) {
 					// Is this minecart moving towards the up-side of the slope?
 					if (member.motY > 0 || member.isHeadingTo(direction)) {
 						// Show information of the rail above, but keep old blockY

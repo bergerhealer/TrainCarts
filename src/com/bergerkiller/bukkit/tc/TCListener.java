@@ -416,14 +416,28 @@ public class TCListener implements Listener {
 		// Possible match, work with it
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
+				// Find and validate rails - only regular types are allowed
 				Rails rails = BlockUtil.getRails(below);
-				if (rails == null || rails.isCurve()) {
+				if (rails == null || rails.isCurve() || rails.isOnSlope()) {
 					return;
 				}
-				// Direction transfer
+				BlockFace railDir = rails.getDirection();
 				BlockFace dir = Util.getVerticalRailDirection(vertRail.getData());
-				rails.setDirection(dir, true);
-				below.setData(rails.getData());
+				// No other directions going on for this rail?
+				if (railDir != dir && railDir != dir.getOppositeFace()) {
+					if (Util.getRailsBlock(below.getRelative(railDir)) != null) {
+						return;
+					}
+					if (Util.getRailsBlock(below.getRelative(railDir.getOppositeFace())) != null) {
+						return;
+					}
+				}
+
+				// Direction we are about to connect is supported?
+				if (MaterialUtil.SUFFOCATES.get(below.getRelative(dir))) {
+					rails.setDirection(dir, true);
+					below.setData(rails.getData());
+				}
 			}
 		});
 	}

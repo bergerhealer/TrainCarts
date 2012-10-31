@@ -17,6 +17,14 @@ public class RailLogicAir extends RailLogic {
 
 	@Override
 	public void update(MinecartMember member) {
+		// Only do this logic if the head is is not moving vertically
+		// Or if this member is the head, of course
+		if (member.isMovingVertical()) {
+			MinecartMember head = member.getGroup().head();
+			if (member != head && head.isMovingVertical()) {
+				return;
+			}
+		}
 		Vector friction = member.getFlyingVelocityMod();
 		member.motX *= friction.getX();
 		member.motY *= friction.getY();
