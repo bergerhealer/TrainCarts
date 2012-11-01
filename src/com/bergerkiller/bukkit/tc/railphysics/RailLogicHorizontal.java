@@ -41,7 +41,7 @@ public class RailLogicHorizontal extends RailLogic {
 	}
 
 	@Override
-	public void update(MinecartMember member) {
+	public void onPreMove(MinecartMember member) {
 		// Apply velocity modifiers
 		boolean invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;
 		double railFactor = Util.invert(MathUtil.normalize(dx, dz, member.motX, member.motZ), invert);

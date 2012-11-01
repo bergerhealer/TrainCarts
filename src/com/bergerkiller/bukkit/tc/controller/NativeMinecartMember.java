@@ -52,7 +52,6 @@ import net.minecraft.server.MathHelper;
 import net.minecraft.server.NBTTagCompound;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet23VehicleSpawn;
-import net.minecraft.server.Vec3D;
 import net.minecraft.server.World;
 import net.minecraft.server.EntityMinecart;
 
@@ -361,10 +360,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	/*
-	 * Executes the pre-velocity and location updates
+	/**
+	 * Executes the pre-movement calculations and rail logic, which handles logic prior to actual movement occurs
 	 */
-	public void preUpdate(int stepcount) {
+	public void onPreMove() {
 		//Some fixed
 		this.motX = MathUtil.fixNaN(this.motX);
 		this.motY = MathUtil.fixNaN(this.motY);
@@ -410,7 +409,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 
 		// Perform rails logic
-		moveinfo.railLogic.update(this.member());
+		moveinfo.railLogic.onPreMove(this.member());
 		this.setPosition(this.locX, this.locY, this.locZ);
 
 		// Slow down on unpowered booster tracks
@@ -428,11 +427,15 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	/*
-	 * Executes the post-velocity and positioning updates
+	/**
+	 * Moves the minecart and performs post-movement logic such as events, onBlockChanged and other (rail) logic
+	 * 
+	 * @param speedFactor to apply when moving
+	 * @throws MemberDeadException - thrown when the minecart is dead or dies
+	 * @throws GroupUnloadedException - thrown when the group is no longer loaded
 	 */
 	@SuppressWarnings("unchecked")
-	public void postUpdate(double speedFactor) throws MemberDeadException, GroupUnloadedException {
+	public void onPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.validate();
 		double motX = MathUtil.fixNaN(this.motX);
 		double motY = MathUtil.fixNaN(this.motY);
@@ -451,49 +454,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		motY = speedFactor * MathUtil.clamp(motY, this.maxSpeed);
 		motZ = speedFactor * MathUtil.clamp(motZ, this.maxSpeed);
 
-		// Move using set motion
+		// Move using set motion, and perform post-move rail logic
 		this.onMove(motX, motY, motZ);
 		this.validate();
+		this.moveinfo.railLogic.onPostMove(this.member());
 
 		// Post-move logic
 		if (!this.isDerailed()) {
 			double motLength;
-
-			// If the block changes, update locY accordingly
-			if (this.isOnSlope()) {
-				int dx = moveinfo.blockX - MathHelper.floor(this.locX);
-				int dz = moveinfo.blockZ - MathHelper.floor(this.locZ);
-				if (dx == this.getRailDirection().getModX() && dz == this.getRailDirection().getModZ()) {
-					this.locY--;
-				}
-
-				// Slope physics and snap to rails logic
-
-				// The below two Vec3D-producing functions are the same as the last part in preUpdate
-				// It calculates the exact location a minecart should be on the rails
-
-				// Note to self: For new rail types, this needs a rewrite to use a common function!
-				// See the preUpdate trailing part...no locY adjustment is done there
-				Vec3D startVector = this.a(this.lastX, this.lastY, this.lastZ);
-				if (startVector != null) {
-					Vec3D endVector = this.a(this.locX, this.locY, this.locZ);
-					if (endVector != null) {
-						if (this.group().getProperties().isSlowingDown()) {
-							motLength = this.getXZForce();
-							if (motLength > 0) {
-								double slopeSlowDown = (startVector.d - endVector.d) * 0.05 / motLength + 1;
-								this.motX *= slopeSlowDown;
-								this.motZ *= slopeSlowDown;
-							}
-						}
-						if (moveinfo.railType == RailType.VERTICAL) {
-							this.setPosition(this.locX, MathUtil.clamp(this.locY, endVector.d, Double.MAX_VALUE), this.locZ);
-						} else {
-							this.setPosition(this.locX, endVector.d, this.locZ);
-						}
-					}
-				}
-			}
 
 			// Powered minecart physics section
 			if (this.isPoweredCart()) {

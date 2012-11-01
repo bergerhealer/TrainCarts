@@ -1,10 +1,14 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
+import net.minecraft.server.MathHelper;
+import net.minecraft.server.Vec3D;
+
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -36,7 +40,43 @@ public class RailLogicSloped extends RailLogic {
 	}
 
 	@Override
-	public void update(MinecartMember member) {
+	public void onPostMove(MinecartMember member) {
+		int dx = member.getBlockX() - MathHelper.floor(member.locX);
+		int dz = member.getBlockZ() - MathHelper.floor(member.locZ);
+		if (dx == member.getRailDirection().getModX() && dz == member.getRailDirection().getModZ()) {
+			member.locY--;
+		}
+
+		// Slope physics and snap to rails logic
+
+		// The below two Vec3D-producing functions are the same as the last part in preUpdate
+		// It calculates the exact location a minecart should be on the rails
+
+		// Note to self: For new rail types, this needs a rewrite to use a common function!
+		// See the preUpdate trailing part...no locY adjustment is done there
+		Vec3D startVector = member.a(member.lastX, member.lastY, member.lastZ);
+		if (startVector != null) {
+			Vec3D endVector = member.a(member.locX, member.locY, member.locZ);
+			if (endVector != null) {
+				if (member.getGroup().getProperties().isSlowingDown()) {
+					double motLength = member.getXZForce();
+					if (motLength > 0) {
+						double slopeSlowDown = (startVector.d - endVector.d) * 0.05 / motLength + 1;
+						member.motX *= slopeSlowDown;
+						member.motZ *= slopeSlowDown;
+					}
+				}
+				if (member.isOnVertical()) {
+					member.setPosition(member.locX, MathUtil.clamp(member.locY, endVector.d, Double.MAX_VALUE), member.locZ);
+				} else {
+					member.setPosition(member.locX, endVector.d, member.locZ);
+				}
+			}
+		}
+	}
+
+	@Override
+	public void onPreMove(MinecartMember member) {
 		MinecartGroup group = member.getGroup();
 		// Velocity modifier for sloped tracks
 		if (group.getProperties().isSlowingDown() && !group.isVelocityAction()) {
@@ -65,7 +105,7 @@ public class RailLogicSloped extends RailLogic {
 		}
 
 		// Perform remaining positioning updates
-		horLogic.update(member);
+		horLogic.onPreMove(member);
 		member.locY += 1.0;
 	}
 

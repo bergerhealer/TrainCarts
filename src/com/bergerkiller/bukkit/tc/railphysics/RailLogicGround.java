@@ -16,7 +16,7 @@ public class RailLogicGround extends RailLogic {
 	}
 
 	@Override
-	public void update(MinecartMember member) {
+	public void onPreMove(MinecartMember member) {
 		Vector friction = member.getDerailedVelocityMod();
 		member.motX *= friction.getX();
 		member.motY *= friction.getY();

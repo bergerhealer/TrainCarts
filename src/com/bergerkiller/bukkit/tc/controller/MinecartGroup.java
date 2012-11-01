@@ -799,7 +799,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				this.remove();
 				throw new GroupUnloadedException();
 			}
-			
+
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
 				mm.validate();
@@ -810,13 +810,13 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.updateDirection();
 			this.updateAction();
 			for (MinecartMember m : this) {
-				m.preUpdate(stepcount);
+				m.onPreMove();
 			}
 
 			if (this.size() == 1) {
 				//Simplified calculation for single carts
 				this.updateDirection();
-				this.head().postUpdate(1);
+				this.head().onPostMove(1);
 				this.updateDirection();
 			} else {
 				//Get the average forwarding force of all carts
@@ -858,10 +858,10 @@ public class MinecartGroup extends MinecartGroupStore {
 						if (distance < threshold) {
 							forcer *= TrainCarts.nearCartDistanceFactor;
 						}
-						member.postUpdate(1 + (forcer * (threshold - distance)));
+						member.onPostMove(1 + (forcer * (threshold - distance)));
 						if (this.breakPhysics) return true;
 						if (i++ == this.size() - 1) {
-							this.tail().postUpdate(1);
+							this.tail().onPostMove(1);
 							if (this.breakPhysics) return true;
 							break;
 						}

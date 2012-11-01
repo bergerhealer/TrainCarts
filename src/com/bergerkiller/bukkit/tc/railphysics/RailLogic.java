@@ -37,11 +37,25 @@ public abstract class RailLogic {
 	}
 
 	/**
-	 * Updates the velocity and positioning of a minecart
+	 * Is called right before the minecart will perform the movement updates<br>
+	 * This event is called before the onPostMove event<br><br>
+	 * 
+	 * Velocity changes and positional fixes that influence the final movement should occur here
 	 * 
 	 * @param member to update
 	 */
-	public abstract void update(MinecartMember member);
+	public abstract void onPreMove(MinecartMember member);
+
+	/**
+	 * Is called after the minecart performed the movement updates<br>
+	 * This event is called after the onPreMove event<br><br>
+	 * 
+	 * Final positioning updates and velocity changes for the next tick should occur here
+	 * 
+	 * @param member that moved
+	 */
+	public void onPostMove(MinecartMember member) {
+	}
 
 	/**
 	 * Tries to find out the rail logic for the minecart specified
