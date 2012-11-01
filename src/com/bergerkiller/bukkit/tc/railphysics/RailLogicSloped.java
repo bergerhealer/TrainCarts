@@ -8,7 +8,6 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -53,24 +52,24 @@ public class RailLogicSloped extends RailLogic {
 		// It calculates the exact location a minecart should be on the rails
 
 		// Note to self: For new rail types, this needs a rewrite to use a common function!
-		// See the preUpdate trailing part...no locY adjustment is done there
+		// See the RailLogicHorizontal.onPreMove trailing part...no locY adjustment is done there
 		Vec3D startVector = member.a(member.lastX, member.lastY, member.lastZ);
 		if (startVector != null) {
 			Vec3D endVector = member.a(member.locX, member.locY, member.locZ);
 			if (endVector != null) {
 				if (member.getGroup().getProperties().isSlowingDown()) {
-					double motLength = member.getXZForce();
+					final double motLength = member.getXZForce();
 					if (motLength > 0) {
-						double slopeSlowDown = (startVector.d - endVector.d) * 0.05 / motLength + 1;
+						final double slopeSlowDown = (startVector.d - endVector.d) * 0.05 / motLength + 1.0;
 						member.motX *= slopeSlowDown;
 						member.motZ *= slopeSlowDown;
 					}
 				}
+				double newLocY = endVector.d;
 				if (member.isOnVertical()) {
-					member.setPosition(member.locX, MathUtil.clamp(member.locY, endVector.d, Double.MAX_VALUE), member.locZ);
-				} else {
-					member.setPosition(member.locX, endVector.d, member.locZ);
+					newLocY = Math.max(member.locY, newLocY);
 				}
+				member.setPosition(member.locX, newLocY, member.locZ);
 			}
 		}
 	}
@@ -80,7 +79,6 @@ public class RailLogicSloped extends RailLogic {
 		MinecartGroup group = member.getGroup();
 		// Velocity modifier for sloped tracks
 		if (group.getProperties().isSlowingDown() && !group.isVelocityAction()) {
-			// Disable sloped motion if requested
 			member.motX -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * member.getRailDirection().getModX();
 			member.motZ -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * member.getRailDirection().getModZ();
 		}
@@ -93,15 +91,21 @@ public class RailLogicSloped extends RailLogic {
 			member.motY = 0.0;
 		}
 
-		// Stop movement if colliding downwards (fixes cart-in block bug)
+		// Stop movement if colliding with a block at the slope
+		double blockedDistance = Double.MAX_VALUE;
+		Block heading = member.getBlock(this.getDirection().getOppositeFace());
 		if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
-			Block heading = member.getBlock(this.getDirection().getOppositeFace());
 			if (MaterialUtil.SUFFOCATES.get(heading)) {
-				double minDist = (member.distanceXZ(heading) - 1.0);
-				if (member.getXZForce() > minDist) {
-					member.getGroup().setForwardForce(minDist);
-				}
+				blockedDistance = member.distanceXZ(heading) - 1.0;
 			}
+		} else if (member.isHeadingTo(this.getDirection())) {
+			Block above = member.getBlock(BlockFace.UP);
+			if (MaterialUtil.SUFFOCATES.get(above)) {
+				blockedDistance = member.distanceXZ(above);
+			}
+		}
+		if (member.getXZForce() > blockedDistance) {
+			member.getGroup().setForwardForce(blockedDistance);
 		}
 
 		// Perform remaining positioning updates

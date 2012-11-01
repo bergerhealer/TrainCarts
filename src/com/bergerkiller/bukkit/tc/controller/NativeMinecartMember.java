@@ -511,7 +511,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 
 			// Prevent vertical motion buildup
-			if (moveinfo.railType != RailType.VERTICAL) {
+			if (!this.isOnVertical()) {
 				this.motY = 0.0;
 			}
 

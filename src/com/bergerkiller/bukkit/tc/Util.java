@@ -58,6 +58,35 @@ public class Util {
 		return up ? BlockFace.UP : BlockFace.DOWN;
 	}
 
+	/**
+	 * Snaps a block face to one of the 8 possible radial block faces (NESW/NE/etc.)
+	 * 
+	 * @param face to snap to a nearby valid face
+	 * @return Snapped block face
+	 */
+	public static BlockFace snapFace(BlockFace face) {
+		switch (face) {
+			case NORTH_NORTH_EAST:
+				return BlockFace.NORTH_EAST;
+			case EAST_NORTH_EAST:
+				return BlockFace.EAST;
+			case EAST_SOUTH_EAST:
+				return BlockFace.SOUTH_EAST;
+			case SOUTH_SOUTH_EAST:
+				return BlockFace.SOUTH;
+			case SOUTH_SOUTH_WEST:
+				return BlockFace.SOUTH_WEST;
+			case WEST_SOUTH_WEST:
+				return BlockFace.WEST;
+			case WEST_NORTH_WEST:
+				return BlockFace.NORTH_WEST;
+			case NORTH_NORTH_WEST:
+				return BlockFace.NORTH;
+			default: 
+				return face;
+		}
+	}
+
 	public static boolean hasAttachedSigns(final Block middle) {
 		return addAttachedSigns(middle, null);
 	}

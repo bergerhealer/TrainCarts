@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
@@ -140,27 +141,9 @@ public abstract class SignAction {
 			if (event.isCancelled()) return;
 		}
 		if (info.getMode() != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
-			//snap to fixed 90-degree angle
+			//snap to fixed 45-degree angle
 			BlockFace facing = BlockUtil.getFacing(event.getBlock());
-			switch (facing) {
-			case EAST_NORTH_EAST:
-			case EAST_SOUTH_EAST:
-			case NORTH_EAST:
-				facing = BlockFace.EAST; break;
-			case NORTH_NORTH_EAST:
-			case NORTH_NORTH_WEST:
-			case NORTH_WEST:
-				facing = BlockFace.NORTH; break;
-			case SOUTH_SOUTH_EAST:
-			case SOUTH_SOUTH_WEST:
-			case SOUTH_EAST:
-				facing = BlockFace.SOUTH; break;
-			case WEST_NORTH_WEST:
-			case WEST_SOUTH_WEST:
-			case SOUTH_WEST:
-				facing = BlockFace.WEST; break;
-			}
-			BlockUtil.setFacing(event.getBlock(), facing);
+			BlockUtil.setFacing(event.getBlock(), Util.snapFace(facing));
 		}
 	}
 	public static final void executeAll(SignActionEvent info, SignActionType actiontype) {
