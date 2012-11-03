@@ -58,7 +58,6 @@ public class MinecartGroup extends MinecartGroupStore {
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
-	protected boolean needsBlockUpdate = true;
 	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
@@ -235,24 +234,23 @@ public class MinecartGroup extends MinecartGroupStore {
 		return super.indexOf(mm);
 	}
 
-	private void addMemberSigns(MinecartMember member) {
+	private void addMember(MinecartMember member) {
+		member.setGroup(this);
 		for (Block sign : member.getActiveSigns()) {
 			this.setActiveSign(sign, true);
 		}
+		this.updateBlockSpace();
+		this.getProperties().add(member);
 	}
 	public void add(int index, MinecartMember member) {
 		super.add(index, member);
 		MemberAddEvent.call(member, this);
-		member.setGroup(this);
-		this.getProperties().add(member);
-		this.addMemberSigns(member);
+		this.addMember(member);
 	}
 	public boolean add(MinecartMember member) {
 		super.add(member);
 		MemberAddEvent.call(member, this);
-		member.setGroup(this);
-		this.getProperties().add(member);
-		this.addMemberSigns(member);
+		this.addMember(member);
 		return true;
 	}
 	public boolean addAll(int index, Collection<? extends MinecartMember> members) {
@@ -260,11 +258,9 @@ public class MinecartGroup extends MinecartGroupStore {
 		MinecartMember[] memberArr = members.toArray(new MinecartMember[0]);
 		for (MinecartMember m : memberArr) {
 			MemberAddEvent.call(m, this);
-			m.setGroup(this);
-			this.getProperties().add(m);
 		}
 		for (MinecartMember member : memberArr) {
-			this.addMemberSigns(member);
+			this.addMember(member);
 		}
 		return true;
 	}
@@ -273,11 +269,9 @@ public class MinecartGroup extends MinecartGroupStore {
 		MinecartMember[] memberArr = members.toArray(new MinecartMember[0]);
 		for (MinecartMember m : memberArr) {
 			MemberAddEvent.call(m, this);
-			m.setGroup(this);
-			this.getProperties().add(m);
 		}
 		for (MinecartMember member : memberArr) {
-			this.addMemberSigns(member);
+			this.addMember(member);
 		}
 		return true;
 	}
@@ -363,6 +357,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 		super.remove(index);
 		this.getProperties().remove(member);
+		this.updateBlockSpace();
 		Action a;
 		for (Iterator<Action> actionit = this.actions.iterator(); actionit.hasNext();) {
 			a = actionit.next();
@@ -759,6 +754,41 @@ public class MinecartGroup extends MinecartGroupStore {
 		return this.memberBlockSpace.get(new ChunkPosition(position.x, position.y, position.z));
 	}
 
+	/**
+	 * Updates the member block space mapping of this group
+	 */
+	public void updateBlockSpace() {
+		// Update block space of minecarts in this group
+		this.memberBlockSpace.clear();
+		if (this.size() == 1) {
+			MinecartMember member = head();
+			this.memberBlockSpace.put(member.getBlockPos(), member);
+		} else if (this.size() > 1) {
+			for (int i = 0; i < this.size() - 1; i++) {
+				MinecartMember member = get(i);
+				ChunkPosition from = member.getBlockPos();
+				ChunkPosition to = get(i + 1).getBlockPos();
+				this.memberBlockSpace.put(from, member);
+				if (to.x > from.x + 1) {
+					this.memberBlockSpace.put(new ChunkPosition(from.x + 1, from.y, from.z), member);
+				} else if (to.x + 1 < from.x) {
+					this.memberBlockSpace.put(new ChunkPosition(from.x - 1, from.y, from.z), member);
+				}
+				if (to.y > from.y + 1) {
+					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y + 1, from.z), member);
+				} else if (to.y + 1 < from.y) {
+					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y - 1, from.z), member);
+				}
+				if (to.z > from.z + 1) {
+					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z + 1), member);
+				} else if (to.z + 1 < from.z) {
+					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z - 1), member);
+				}
+			}
+			this.memberBlockSpace.put(tail().getBlockPos(), tail());
+		}
+	}
+	
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -802,15 +832,22 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
-				mm.validate();
+				mm.checkDead();
 				mm.maxSpeed = this.getProperties().getSpeedLimit() / (double) stepcount;
 			}
 
-			//pre-update
+			// Update direction and executed actions prior to updates
 			this.updateDirection();
 			this.updateAction();
+
+			// Perform pre-update and block updates prior to moving
+			boolean blockChanged = false;
 			for (MinecartMember m : this) {
 				m.onPreMove();
+				blockChanged |= m.hasBlockChanged();
+			}
+			if (blockChanged) {
+				this.updateBlockSpace();
 			}
 
 			if (this.size() == 1) {
@@ -904,38 +941,6 @@ public class MinecartGroup extends MinecartGroupStore {
 				mm.checkChunks(canunload);
 			}
 
-			//final updating
-			if (this.needsBlockUpdate) {
-				this.needsBlockUpdate = false;
-				this.memberBlockSpace.clear();
-				if (this.size() == 1) {
-					MinecartMember member = head();
-					this.memberBlockSpace.put(member.getBlockPos(), member);
-				} else if (this.size() > 1) {
-					for (int i = 0; i < this.size() - 1; i++) {
-						MinecartMember member = get(i);
-						ChunkPosition from = member.getBlockPos();
-						ChunkPosition to = get(i + 1).getBlockPos();
-						this.memberBlockSpace.put(from, member);
-						if (to.x > from.x + 1) {
-							this.memberBlockSpace.put(new ChunkPosition(from.x + 1, from.y, from.z), member);
-						} else if (to.x + 1 < from.x) {
-							this.memberBlockSpace.put(new ChunkPosition(from.x - 1, from.y, from.z), member);
-						}
-						if (to.y > from.y + 1) {
-							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y + 1, from.z), member);
-						} else if (to.y + 1 < from.y) {
-							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y - 1, from.z), member);
-						}
-						if (to.z > from.z + 1) {
-							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z + 1), member);
-						} else if (to.z + 1 < from.z) {
-							this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z - 1), member);
-						}
-					}
-					this.memberBlockSpace.put(tail().getBlockPos(), tail());
-				}
-			}
 			if (this.needsUpdate) {
 				this.needsUpdate = false;
 				for (Block b : this.activeSigns) {

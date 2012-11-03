@@ -69,7 +69,7 @@ public class SignActionStation extends SignAction {
 				centerMember.addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
 			} else {
 				centerMember.addActionLaunch(info.getRailLocation(), 0);
-				info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+				group.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 				if (TrainCarts.playSoundAtStation) group.addActionSizzle();
 				group.addActionWaitForever();
 			}
@@ -84,9 +84,9 @@ public class SignActionStation extends SignAction {
 			}
 			if (station.hasDelay()) {
 				if (TrainCarts.playSoundAtStation) group.addActionSizzle();
-				info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+				group.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+				group.addActionWait(station.getDelay());
 			}
-			group.addActionWait(station.getDelay());
 			if (TrainCarts.refillAtStations) group.addActionRefill();
 			station.getCenterCart().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
 		}

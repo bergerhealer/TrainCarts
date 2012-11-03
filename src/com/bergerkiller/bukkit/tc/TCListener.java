@@ -389,7 +389,7 @@ public class TCListener implements Listener {
 			}
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if (!event.isCancelled()) {

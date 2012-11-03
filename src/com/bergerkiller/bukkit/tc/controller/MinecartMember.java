@@ -125,7 +125,7 @@ public class MinecartMember extends MinecartMemberStore {
 	@Override
 	public void onPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		super.onPostMove(speedFactor);
-		this.validate();
+		this.checkDead();
 		if (this.getProperties().canPickup() && this.isStorageCart()) {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
@@ -211,11 +211,11 @@ public class MinecartMember extends MinecartMemberStore {
 	public void onBlockChange(Block from, Block to) {
 		//update active signs
 		this.clearActiveSigns();
-		this.validate();
+		this.checkDead();
 		if (!this.isDerailed()) {
 			for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
 				this.addActiveSign(sign);
-				this.validate();
+				this.checkDead();
 			}
 
 			//destroy blocks

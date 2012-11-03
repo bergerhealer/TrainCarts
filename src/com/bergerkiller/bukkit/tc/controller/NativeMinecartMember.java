@@ -56,21 +56,34 @@ import net.minecraft.server.World;
 import net.minecraft.server.EntityMinecart;
 
 public abstract class NativeMinecartMember extends EntityMinecart {
-	/*
-	 * Values taken over from source to use in the m_ function, see attached source links
-	 */
-	public int fuel;
-	private int fuelCheckCounter = 0;
-	private boolean forcedBlockUpdate = true;
-	public boolean vertToSlope = false;
-
 	public static final int FUEL_PER_COAL = 3600;
 	public static final double GRAVITY_MULTIPLIER = 0.04;
 	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
 	public static final double HOR_VERT_TRADEOFF = 2.0;
 	public static final double POWERED_RAIL_START_BOOST = 0.02;
+	public int fuel;
+	private int fuelCheckCounter = 0;
+	private boolean forcedBlockUpdate = true;
+	public boolean vertToSlope = false;
 
-	public void validate() throws MemberDeadException {
+	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
+		super(world);
+		setPosition(d0, d1 + (double) height, d2);
+		this.type = i;
+		this.lastX = this.locX;
+		this.lastY = this.locY;
+		this.lastZ = this.locZ;
+		this.motX = 0.0D;
+		this.motY = 0.0D;
+		this.motZ = 0.0D;
+	}
+
+	/**
+	 * Checks if this minecart is dead, and throws an exception if it is
+	 * 
+	 * @throws MemberDeadException
+	 */
+	public void checkDead() throws MemberDeadException {
 		if (this.dead) {
 			this.die();
 			throw new MemberDeadException();
@@ -134,20 +147,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return member().getGroup();
 	}
 
-	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
-		super(world);
-		setPosition(d0, d1 + (double) height, d2);
-		motX = 0.0D;
-		motY = 0.0D;
-		motZ = 0.0D;
-		lastX = d0;
-		lastY = d1;
-		lastZ = d2;
-		type = i;
-		this.locX = this.lastX;
-		this.locY = this.lastY;
-		this.locZ = this.lastZ;
-	}
 
 	/*
 	 * Replaced standard droppings based on TrainCarts settings. For source, see:
@@ -436,7 +435,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 */
 	@SuppressWarnings("unchecked")
 	public void onPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
-		this.validate();
+		this.checkDead();
 		double motX = MathUtil.fixNaN(this.motX);
 		double motY = MathUtil.fixNaN(this.motY);
 		double motZ = MathUtil.fixNaN(this.motZ);
@@ -456,7 +455,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 		// Move using set motion, and perform post-move rail logic
 		this.onMove(motX, motY, motZ);
-		this.validate();
+		this.checkDead();
 		this.moveinfo.railLogic.onPostMove(this.member());
 
 		// Post-move logic
@@ -621,12 +620,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 		// Handle block changes
 		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
-			this.validate();
+			this.checkDead();
 			this.forcedBlockUpdate = false;
 			// Perform events and logic - validate along the way
-			this.validate();
+			this.checkDead();
 			MemberBlockChangeEvent.call(this.member(), moveinfo.lastBlock, moveinfo.block);
-			this.validate();
+			this.checkDead();
 			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
 		}
 	}

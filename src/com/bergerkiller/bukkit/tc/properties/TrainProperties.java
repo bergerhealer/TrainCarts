@@ -432,12 +432,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return this.canCollide(with.getGroup());
 	}
 	public boolean canCollide(MinecartGroup with) {
-		return this.trainCollision && with.getProperties().trainCollision;
+		return this.trainCollision && with != null && with.getProperties().trainCollision;
 	}
 	public boolean canCollide(Entity with) {
 		MinecartMember mm = MinecartMember.get(with);
-		if (mm == null) {
-			if (this.trainCollision) return true;
+		if (mm == null || mm.dead) {
+			if (this.trainCollision) {
+				return true;
+			}
 			if (with instanceof Player) {
 				return this.isOwner((Player) with);
 			} else {
