@@ -74,11 +74,11 @@ public class SignActionEffect extends SignAction {
 		if (move || event.isType("effect")) {
 			String app = move ? " while moving" : "";
 			if (event.isCartSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "cart destructor", "play an effect in the minecart" + app);
+				return handleBuild(event, Permission.BUILD_EFFECT, "cart effect player", "play an effect in the minecart" + app);
 			} else if (event.isTrainSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "train destructor", "play an effect in all minecarts of the train" + app);
+				return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
 			} else if (event.isRCSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "train destructor", "play an effect in all minecarts of the train" + app);
+				return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
 			}
 		}
 		return false;

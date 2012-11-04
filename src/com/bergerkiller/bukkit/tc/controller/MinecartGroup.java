@@ -850,6 +850,13 @@ public class MinecartGroup extends MinecartGroupStore {
 				this.updateBlockSpace();
 			}
 
+			this.updateDirection();
+
+			// Perform velocity updates
+			for (MinecartMember m : this) {
+				m.onPreVelocity();
+			}
+
 			if (this.size() == 1) {
 				//Simplified calculation for single carts
 				this.updateDirection();

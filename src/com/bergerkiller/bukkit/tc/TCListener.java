@@ -506,7 +506,7 @@ public class TCListener implements Listener {
 	}
 
 	public void triggerRedstoneChange(Block signblock, BlockRedstoneEvent event) {
-		boolean powered = poweredBlocks.contains(event.getBlock());
+		boolean powered = poweredBlocks.contains(signblock);
 		SignActionEvent info = new SignActionEvent(signblock);
 		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 		if (powered) {

@@ -55,6 +55,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
@@ -350,7 +351,9 @@ public class MinecartMember extends MinecartMemberStore {
 					break;
 				}
 			}
-			if (found) continue;
+			if (found) {
+				continue;
+			}
 			if (this.getGroup().tail() == this) {
 				this.getGroup().setActiveSign(signblock, false);
 			}
@@ -649,7 +652,8 @@ public class MinecartMember extends MinecartMemberStore {
 			this.directionTo = FaceUtil.getDirection(movement, false);
 			return;
 		}
-		BlockFace raildirection = this.getRailDirection();
+		final BlockFace raildirection = this.getRailDirection();
+		//final BlockFace raildirection = this.getRailDirection();
 		if (this.directionTo == BlockFace.DOWN && this.isOnSlope()) {
 			// Going from vertical down to a slope
 			this.direction = this.directionTo = this.directionFrom = raildirection.getOppositeFace();
@@ -670,6 +674,8 @@ public class MinecartMember extends MinecartMemberStore {
 			}
 		}
 		//calculate from and to
+		final BlockFace oldFrom = this.directionFrom;
+		final BlockFace oldTo = this.directionTo;
 		switch (this.direction) {
 			case NORTH_WEST :
 				if (raildirection == BlockFace.NORTH_EAST) {
@@ -710,6 +716,13 @@ public class MinecartMember extends MinecartMemberStore {
 			default :
 				this.directionFrom = this.directionTo = direction;
 				break;
+		}
+		// Correct from direction in unique circumstances
+		BlockFace[] railDirs = FaceUtil.getFaces(raildirection);
+		if (FaceUtil.isSubCardinal(raildirection) && !LogicUtil.contains(this.directionFrom.getOppositeFace(), railDirs)) {
+			this.directionFrom = oldFrom;
+		} else if (this.hasBlockChanged() && !LogicUtil.contains(oldFrom.getOppositeFace(), railDirs)) {
+			this.directionFrom = oldTo;
 		}
 	}
 	public void updateDirectionTo(MinecartMember member) {
@@ -946,6 +959,7 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 		this.teleportImmunityTick = 10;
 		this.died = false;
+		this.refreshBlockInformation();
 	}
 
 	/**
@@ -1052,14 +1066,16 @@ public class MinecartMember extends MinecartMemberStore {
 	public void die() {
 		if (!this.died) {
 			super.die();
-			this.dead = false;
 			this.died = true;
-			this.clearActiveSigns();
-			this.clearActiveDetectors();
-			if (this.passenger != null) this.passenger.setPassengerOf(null);
-			if (this.group != null) this.group.remove(this);
-			CartPropertiesStore.remove(this.uniqueId);
-			this.dead = true;
+			if (!this.isUnloaded()) {
+				this.dead = false;
+				this.clearActiveSigns();
+				this.clearActiveDetectors();
+				if (this.passenger != null) this.passenger.setPassengerOf(null);
+				if (this.group != null) this.group.remove(this);
+				CartPropertiesStore.remove(this.uniqueId);
+				this.dead = true;
+			}
 		}
 	}
 	private int prevcx, prevcz;

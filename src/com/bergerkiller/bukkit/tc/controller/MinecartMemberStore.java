@@ -46,7 +46,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 				continue;
 			}
 			for (net.minecraft.server.Entity entity : WorldUtil.getEntities(world)) {
-				if (entity.getClass().equals(EntityMinecart.class)) {
+				if (canConvert(entity)) {
 					minecarts.add((EntityMinecart) entity);
 				}
 			}
@@ -56,6 +56,29 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			}
 			minecarts.clear();
 		}
+	}
+
+	/**
+	 * Checks if a given minecart can be converted to a minecart member<br>
+	 * - Returns false if the minecart null or already a minecart member<br>
+	 * - Returns true if the class equals the Entity Minecart<br>
+	 * - Returns false if the class is another extended version of the Entity Minecart<br>
+	 * - Returns true if the class name equals the minecart member name (a forgotten minecart)<br>
+	 * - Returns false if the world the entity is in is not enabled in TrainCarts
+	 * 
+	 * @param minecart to check
+	 * @return True if the minecart can be converted, False if not
+	 */
+	public static boolean canConvert(net.minecraft.server.Entity minecart) {
+		if (minecart != null && !(minecart instanceof MinecartMember)) {
+			Class<?> clazz = minecart.getClass();
+			if (clazz.equals(EntityMinecart.class) || clazz.getName().equals("com.bergerkiller.bukkit.tc.controller.MinecartMember")) {
+				if (!TrainCarts.isWorldDisabled(minecart.world.getWorld())) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -72,10 +95,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 		if (source instanceof MinecartMember) {
 			return (MinecartMember) source;
 		}
-		if (!source.getClass().equals(EntityMinecart.class)) {
-			return null;
-		}
-		if (TrainCarts.isWorldDisabled(source.world.getWorld())) {
+		if (!canConvert(source)) {
 			return null;
 		}
 		MinecartMember with = new MinecartMember(source);

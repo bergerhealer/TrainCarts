@@ -177,19 +177,15 @@ public class SignActionEvent extends Event implements Cancellable {
 	 */
 	public BlockFace getCartDirection() {
 		if (this.hasMember() && this.member.isMoving()) {
-			return this.member.getDirectionTo();
+			return this.member.getDirectionFrom();
+		}
+		if (this.hasRails()) {
+			return FaceUtil.getFaces(this.getRailDirection())[0];
+		}
+		if (this.watchedDirections.length > 0) {
+			return this.watchedDirections[0];
 		}
 		return this.getFacing().getOppositeFace();
-	}
-
-	/**
-	 * Sets the rails direction above this sign
-	 * 
-	 * @param from direction
-	 * @param to direction
-	 */
-	public void setRails(BlockFace from, BlockFace to) {
-		BlockUtil.setRails(this.getRails(), from, to);
 	}
 
 	/**
@@ -201,8 +197,17 @@ public class SignActionEvent extends Event implements Cancellable {
 	 */
 	public void setRailsFromTo(BlockFace from, BlockFace to) {
 		if (this.hasRails()) {
-			setRails(from, to);
-			if (this.hasMember() && this.member.getDirection().getOppositeFace() == to) {
+			if (from == to) {
+				// Try to find out a better from direction
+				for (BlockFace face : FaceUtil.getFaces(this.getRailDirection())) {
+					if (face != to) {
+						from = face;
+						break;
+					}
+				}
+			}
+			BlockUtil.setRails(this.getRails(), from, to);
+			if (this.hasMember() && this.member.getDirectionFrom().getOppositeFace() == to) {
 				// Break this cart from the train if needed
 				this.member.getGroup().split(this.member.getIndex());
 				// Launch in the other direction
@@ -220,7 +225,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @param to direction
 	 */
 	public void setRailsTo(BlockFace to) {
-		setRails(getCartDirection().getOppositeFace(), to);
+		setRailsFromTo(getCartDirection().getOppositeFace(), to);
 	}
 
 	/**

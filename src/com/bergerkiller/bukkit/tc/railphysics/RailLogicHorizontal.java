@@ -21,6 +21,7 @@ public class RailLogicHorizontal extends RailLogic {
 	private final double dx, dz;
 	private final double x1, z1, x2, z2;
 	private final boolean alongX, alongZ;
+	private final boolean isCurved;
 
 	private RailLogicHorizontal(BlockFace direction) {
 		super(direction);
@@ -38,13 +39,21 @@ public class RailLogicHorizontal extends RailLogic {
 		this.dz = this.z2 - this.z1;
 		this.alongX = (this.dx == 0.0);
 		this.alongZ = (this.dz == 0.0);
+		this.isCurved = !this.alongX && !this.alongZ;
 	}
 
 	@Override
 	public void onPreMove(MinecartMember member) {
 		// Apply velocity modifiers
-		boolean invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;
-		double railFactor = Util.invert(MathUtil.normalize(dx, dz, member.motX, member.motZ), invert);
+		boolean invert = false;
+		if (this.isCurved) {
+			// Invert only if the delta z is inverted
+			invert = member.getDirectionFrom() == (this.dz > 0 ? BlockFace.EAST : BlockFace.WEST);
+		} else {
+			// Invert only if the direction is inverted relative to cart velocity
+			invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;
+		}
+		double railFactor = Util.invert(MathUtil.normalize(this.dx, this.dz, member.motX, member.motZ), invert);
 		member.motX = railFactor * this.dx;
 		member.motZ = railFactor * this.dz;
 

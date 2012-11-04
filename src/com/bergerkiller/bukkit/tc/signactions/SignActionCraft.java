@@ -29,7 +29,7 @@ public class SignActionCraft extends SignAction {
 			if (!docart && !dotrain) return;
 			if (!info.hasRailedMember()) return;
 			if (!info.isPowered()) return;
-			
+
 			int radX, radY, radZ;
 			radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
 			BlockFace dir = info.getRailDirection();

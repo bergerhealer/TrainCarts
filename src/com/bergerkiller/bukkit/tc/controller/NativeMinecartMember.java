@@ -33,10 +33,13 @@ import com.bergerkiller.bukkit.tc.RailType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicGround;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.ChunkPosition;
@@ -153,55 +156,54 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
 	 */
 	@Override
-	public boolean damageEntity(DamageSource damagesource, int i)
-	{
+	public boolean damageEntity(DamageSource damagesource, int i) {
+		if (this.dead) {
+			return true;
+		}
 		try {
-			if(!this.dead)
-			{
+			// CraftBukkit start
+			Vehicle vehicle = (Vehicle) this.getBukkitEntity();
+			org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
+
+			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
+
+			if (CommonUtil.callEvent(event).isCancelled()) {
+				return true;
+			}
+
+			i = event.getDamage();
+			// CraftBukkit end
+
+			this.i(-this.k());
+			this.h(10);
+			this.K();
+			setDamage(getDamage() + i * 10);
+			if (TrainCarts.instantCreativeDestroy) {
+				if ((damagesource.getEntity() instanceof EntityHuman) && ((EntityHuman) damagesource.getEntity()).abilities.canInstantlyBuild) {
+					setDamage(100);
+				}
+			}
+			if (getDamage() > 40) {
 				// CraftBukkit start
-				Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-				org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
+				List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
+				drops.addAll(this.getDrops());
 
-				VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
-
-				if (CommonUtil.callEvent(event).isCancelled()) {
+				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
+				if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
+					setDamage(40);
 					return true;
 				}
-
-				i = event.getDamage();
 				// CraftBukkit end
 
-				this.i(-this.k());
-				this.h(10);
-				this.K();
-				setDamage(getDamage() + i * 10);
-				if (TrainCarts.instantCreativeDestroy) {
-					if ((damagesource.getEntity() instanceof EntityHuman) && ((EntityHuman)damagesource.getEntity()).abilities.canInstantlyBuild) {
-						setDamage(100);
-					}
+				if (this.passenger != null) {
+					this.passenger.mount(this);
 				}
-				if(getDamage() > 40) {
-					// CraftBukkit start
-					List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
-					drops.addAll(this.getDrops());
 
-					VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
-					if(CommonUtil.callEvent(destroyEvent).isCancelled()) {
-						setDamage(40);
-						return true;
-					}
-					// CraftBukkit end
-
-					if(this.passenger != null) {
-						this.passenger.mount(this);
-					}
-
-					for (org.bukkit.inventory.ItemStack stack : drops) {
-						this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
-					}
-					
-					this.die();
+				for (org.bukkit.inventory.ItemStack stack : drops) {
+					this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
 				}
+
+				this.die();
 			}
 			return true;
 		} catch (Throwable t) {
@@ -253,6 +255,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		public RailType prevRailType = RailType.NONE;
 		public RailLogic railLogic = RailLogicGround.INSTANCE;
 		public RailLogic prevRailLogic = RailLogicGround.INSTANCE;
+		public boolean railLogicSnapshotted = false;
 
 		public MoveInfo(MinecartMember owner) {
 			this.owner = owner;
@@ -277,6 +280,16 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			int raildata = owner.world.getData(blockX, blockY, blockZ);
 			// Update rail type and sloped state
 			this.railType = RailType.get(railtype, raildata);
+		}
+
+		public void updateRailLogic() {
+			this.prevRailType = this.railType;
+			this.prevRailLogic = this.railLogic;
+			this.railLogic = RailLogic.get(this.owner);
+			if (this.railLogic instanceof RailLogicVertical) {
+				this.railType = RailType.VERTICAL;
+			}
+			this.railLogicSnapshotted = true;
 		}
 
 		public void fillRailsData() {
@@ -314,15 +327,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 			}
-
-			// Calculate the move matrix
-			this.railLogic = RailLogic.get(this.owner);
-			if (this.railLogic instanceof RailLogicVertical) {
-				this.railType = RailType.VERTICAL;
-			}
-			this.prevRailType = this.railType;
-			this.prevRailLogic = this.railLogic;
 		}
+	}
+
+	/**
+	 * Refreshes the rail information of this minecart
+	 */
+	protected void refreshBlockInformation() {
+		moveinfo.fillRailsData();
 	}
 
 	public void addFuel(int fuel) {
@@ -360,7 +372,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/**
-	 * Executes the pre-movement calculations and rail logic, which handles logic prior to actual movement occurs
+	 * Executes the block and pre-movement calculations, which handles rail information updates
 	 */
 	public void onPreMove() {
 		//Some fixed
@@ -376,6 +388,27 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		this.lastPitch = this.pitch;
 		// CraftBukkit end
 
+		this.refreshBlockInformation();
+	}
+
+	/**
+	 * Executes the velocity and pre-movement calculations, which handles logic prior to actual movement occurs<br>
+	 * Executes the block change event prior to all other velocity calculations
+	 */
+	public void onPreVelocity() {
+		// Handle block changes
+		this.checkDead();
+		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
+			this.forcedBlockUpdate = false;
+			// Perform events and logic - validate along the way
+			MemberBlockChangeEvent.call(this.member(), moveinfo.lastBlock, moveinfo.block);
+			this.checkDead();
+			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
+			this.checkDead();
+		}
+
+		moveinfo.updateRailLogic();
+
 		// fire ticks decrease
 		if (this.j() > 0) {
 			this.h(this.j() - 1);
@@ -390,8 +423,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		if (this.locY < -64.0D) {
 			this.C();
 		}
-
-		moveinfo.fillRailsData();
 
 		// Perform gravity
 		if (!group().isVelocityAction()) {
@@ -555,6 +586,9 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		this.onRotationUpdate();
 		this.b(this.yaw, this.pitch);
 
+		// Invalidate volatile information
+		moveinfo.railLogicSnapshotted = false;
+
 		// CraftBukkit start
 		Location from = new Location(this.world.getWorld(), this.lastX, this.lastY, this.lastZ, this.lastYaw, this.lastPitch);
 		Location to = this.getLocation();
@@ -563,7 +597,11 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
 
 		if (!from.equals(to)) {
+			// Execute move events
 			CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
+			for (Block sign : this.member().getActiveSigns()) {
+				SignAction.executeAll(new SignActionEvent(sign, this.member()), SignActionType.MEMBER_MOVE);
+			}
 		}
 		// CraftBukkit end
 
@@ -616,17 +654,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// Smoke particles for carts that have this data set
 		if (this.h() && this.random.nextInt(4) == 0) {
 			this.world.addParticle("largesmoke", this.locX, this.locY + 0.8D, this.locZ, 0.0D, 0.0D, 0.0D);
-		}
-
-		// Handle block changes
-		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
-			this.checkDead();
-			this.forcedBlockUpdate = false;
-			// Perform events and logic - validate along the way
-			this.checkDead();
-			MemberBlockChangeEvent.call(this.member(), moveinfo.lastBlock, moveinfo.block);
-			this.checkDead();
-			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
 		}
 	}
 
@@ -1138,7 +1165,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public BlockFace getRailDirection() {
-		return moveinfo.railLogic.getDirection();
+		return this.getRailLogic().getDirection();
 	}
 
 	public void setVelocity(Vector velocity) {
@@ -1169,7 +1196,11 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public RailLogic getRailLogic() {
-		return moveinfo.railLogic;
+		if (moveinfo.railLogicSnapshotted) {
+			return moveinfo.railLogic;
+		} else {
+			return RailLogic.get(this.member());
+		}
 	}
 
 	public boolean hasBlockChanged() {
@@ -1181,7 +1212,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public boolean isOnSlope() {
-		return this.moveinfo.railLogic.isSloped();
+		return this.getRailLogic().isSloped();
 	}
 
 	public boolean isFlying() {

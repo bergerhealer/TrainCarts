@@ -82,7 +82,7 @@ public enum PowerState {
 			return NONE;
 		}
 		// Power source read-out
-		if (from != BlockFace.DOWN && MaterialUtil.ISPOWERSOURCE.get(type)) {
+		if (MaterialUtil.ISPOWERSOURCE.get(type)) {
 			MaterialData dat = type.getNewData(block.getData());
 			if (dat instanceof Redstone) {
 				return ((Redstone) dat).isPowered() ? ON : OFF;
