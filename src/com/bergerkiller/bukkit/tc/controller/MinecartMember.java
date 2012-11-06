@@ -451,26 +451,15 @@ public class MinecartMember extends MinecartMemberStore {
 		this.motZ *= factor;
 	}
 
-	private void setYForce(double force) {
-		if (this.isOnSlope()) {
-			//calculate upwards or downwards force
-			BlockFace raildir = this.getRailDirection();
-			if (direction == raildir) {
-				this.motY = MathUtil.halfRootOfTwo * force;
-			} else if (direction == raildir.getOppositeFace()) {
-				this.motY = -MathUtil.halfRootOfTwo * force;
-			}
-		}
-	}
 	public void setForce(double force) {
 		setForceFactor(force / this.getForce());
 	}
 	public void setForce(double force, BlockFace direction) {
-		if (this.isMovingVertical()) {
+		if (direction == BlockFace.UP || direction == BlockFace.DOWN) {
 			this.motY = (double) direction.getModY() * force;
 			this.motX = this.motZ = 0.0;
 		} else {
-			this.setYForce(force);
+			this.motY = 0.0;
 			this.motX = -FaceUtil.cos(direction) * force;
 			this.motZ = -FaceUtil.sin(direction) * force;
 		}
@@ -479,16 +468,20 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.isFlying() && force > 0.01) {
 			this.setForce(force);
 			return;
-		} else if (this.isMoving() && !this.isOnVertical()) {
+		} else if (this.isMovingVertical()) {
+			if (this.isOnSlope() && (this.direction == BlockFace.DOWN || this.motY < 0.001)) {
+				this.direction = this.getRailDirection().getOppositeFace();
+			}
+		} else if (this.isMoving()) {
 			BlockFace mdir = FaceUtil.getDirection(this.motX, this.motZ, false);
 			if (mdir == this.direction) {
-				this.setYForce(force);
+				this.motY = 0.0;
 				force /= this.getForce();
 				this.motX *= force;
 				this.motZ *= force;
 				return;
 			} else if (mdir == this.direction.getOppositeFace()) {
-				this.setYForce(force);
+				this.motY = 0.0;
 				force /= this.getForce();
 				this.motX *= -force;
 				this.motZ *= -force;

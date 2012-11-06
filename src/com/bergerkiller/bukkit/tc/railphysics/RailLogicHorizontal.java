@@ -22,6 +22,7 @@ public class RailLogicHorizontal extends RailLogic {
 	private final double x1, z1, x2, z2;
 	private final boolean alongX, alongZ;
 	private final boolean isCurved;
+	private final BlockFace[] faces;
 
 	private RailLogicHorizontal(BlockFace direction) {
 		super(direction);
@@ -29,8 +30,8 @@ public class RailLogicHorizontal extends RailLogic {
 		if (direction == BlockFace.NORTH || direction == BlockFace.EAST) {
 			direction = direction.getOppositeFace();
 		}
-		// Generate movement offset data
-		BlockFace[] faces = FaceUtil.getFaces(direction);
+		// Generate faces and movement offset data
+		this.faces = FaceUtil.getFaces(direction);
 		this.x1 = -0.5 * faces[0].getModX();
 		this.z1 = -0.5 * faces[0].getModZ();
 		this.x2 = -0.5 * faces[1].getModX();
@@ -40,6 +41,12 @@ public class RailLogicHorizontal extends RailLogic {
 		this.alongX = (this.dx == 0.0);
 		this.alongZ = (this.dz == 0.0);
 		this.isCurved = !this.alongX && !this.alongZ;
+		// Invert north and south (is for some reason needed)
+		for (int i = 0; i < this.faces.length; i++) {
+			if (this.faces[i] == BlockFace.NORTH || this.faces[i] == BlockFace.SOUTH) {
+				this.faces[i] = this.faces[i].getOppositeFace();
+			}
+		}
 	}
 
 	@Override
@@ -48,7 +55,8 @@ public class RailLogicHorizontal extends RailLogic {
 		boolean invert = false;
 		if (this.isCurved) {
 			// Invert only if the delta z is inverted
-			invert = member.getDirectionFrom() == (this.dz > 0 ? BlockFace.EAST : BlockFace.WEST);
+			BlockFace from = FaceUtil.getDirection(member.motX, member.motZ, false);
+			invert = from == this.faces[0] || from == this.faces[1];
 		} else {
 			// Invert only if the direction is inverted relative to cart velocity
 			invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;

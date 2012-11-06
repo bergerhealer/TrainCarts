@@ -533,14 +533,16 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			if (this.group().getProperties().isSlowingDown()) {
 				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
 					this.motX *= TrainCarts.slowDownMultiplierNormal;
+					this.motY *= TrainCarts.slowDownMultiplierNormal;
 					this.motZ *= TrainCarts.slowDownMultiplierNormal;
 				} else {
 					this.motX *= TrainCarts.slowDownMultiplierSlow;
+					this.motY *= TrainCarts.slowDownMultiplierSlow;
 					this.motZ *= TrainCarts.slowDownMultiplierSlow;
 				}
 			}
 
-			// Prevent vertical motion buildup
+			// Horizontal rails don't have y velocity
 			if (!this.isOnVertical()) {
 				this.motY = 0.0;
 			}
@@ -1041,7 +1043,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				//Is this train targeting?
 				return false;
 			}
-			return false;
+			return true;
 		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {
 			//Ignore passenger collisions
 			return false;

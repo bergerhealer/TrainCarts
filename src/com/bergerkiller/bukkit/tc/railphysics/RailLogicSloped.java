@@ -86,8 +86,8 @@ public class RailLogicSloped extends RailLogic {
 		// Transfer vertical velocity
 		if (this.wasVertical) {
 			double force = member.motY / MinecartMember.HOR_VERT_TRADEOFF;
-			member.motX += force * member.getRailDirection().getModX();
-			member.motZ += force * member.getRailDirection().getModZ();
+			member.motX += force * this.getDirection().getModX();
+			member.motZ += force * this.getDirection().getModZ();
 			member.motY = 0.0;
 		}
 
