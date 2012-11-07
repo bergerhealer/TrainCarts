@@ -1104,7 +1104,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		if (!this.member().isTurned() && hitFace.getOppositeFace() == this.member().getDirectionTo() && !this.isDerailed()) {
 			// Cancel collisions with blocks at the heading of sloped rails
 			if (this.isOnSlope() && hitFace == this.getRailDirection().getOppositeFace()) {
-				return false;
+				// Vertical rail above?
+				if (Util.isVerticalAbove(this.getBlock(), this.getRailDirection())) {
+					return false;
+				}
 			}
 			// Stop the train
 			this.group().stop();
