@@ -31,12 +31,19 @@ public class RailLogicVertical extends RailLogic {
 	@Override
 	public void onPreMove(MinecartMember member) {
 		// Horizontal rail force to motY
-		member.motY += Util.invert(member.getXZForce() * MinecartMember.HOR_VERT_TRADEOFF, !this.upSlope);
+		member.motY += Util.invert(member.getXZForce(), !this.upSlope);
 		member.motX = 0.0;
 		member.motZ = 0.0;
 		// Position update
 		member.locX = (double) member.getBlockX() + 0.5;
 		member.locZ = (double) member.getBlockZ() + 0.5;
+	}
+
+	@Override
+	public void onPostMove(MinecartMember member) {
+		if (this.upSlope) {
+			RailLogicSloped.get(this.getDirection(), false).onPostMove(member);
+		}
 	}
 
 	/**

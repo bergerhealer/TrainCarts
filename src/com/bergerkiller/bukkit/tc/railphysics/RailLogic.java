@@ -36,6 +36,11 @@ public abstract class RailLogic {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return this.getClass().getSimpleName() + "@" + this.getDirection();
+	}
+
 	/**
 	 * Is called right before the minecart will perform the movement updates<br>
 	 * This event is called before the onPostMove event<br><br>

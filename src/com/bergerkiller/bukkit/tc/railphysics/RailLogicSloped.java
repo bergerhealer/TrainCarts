@@ -42,8 +42,8 @@ public class RailLogicSloped extends RailLogic {
 	public void onPostMove(MinecartMember member) {
 		int dx = member.getBlockX() - MathHelper.floor(member.locX);
 		int dz = member.getBlockZ() - MathHelper.floor(member.locZ);
-		if (dx == member.getRailDirection().getModX() && dz == member.getRailDirection().getModZ()) {
-			member.locY--;
+		if (dx == this.getDirection().getModX() && dz == this.getDirection().getModZ()) {
+			member.locY -= 1.0;
 		}
 
 		// Slope physics and snap to rails logic
@@ -85,7 +85,7 @@ public class RailLogicSloped extends RailLogic {
 
 		// Transfer vertical velocity
 		if (this.wasVertical) {
-			double force = member.motY / MinecartMember.HOR_VERT_TRADEOFF;
+			double force = member.motY;
 			member.motX += force * this.getDirection().getModX();
 			member.motZ += force * this.getDirection().getModZ();
 			member.motY = 0.0;

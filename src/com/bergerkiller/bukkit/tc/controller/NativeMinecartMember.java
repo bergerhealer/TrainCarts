@@ -61,8 +61,8 @@ import net.minecraft.server.EntityMinecart;
 public abstract class NativeMinecartMember extends EntityMinecart {
 	public static final int FUEL_PER_COAL = 3600;
 	public static final double GRAVITY_MULTIPLIER = 0.04;
+	public static final double VERTRAIL_MULTIPLIER = 0.02;
 	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
-	public static final double HOR_VERT_TRADEOFF = 2.0;
 	public static final double POWERED_RAIL_START_BOOST = 0.02;
 	public int fuel;
 	private int fuelCheckCounter = 0;
@@ -427,7 +427,9 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// Perform gravity
 		if (!group().isVelocityAction()) {
 			if (!moveinfo.railType.isHorizontal()) {
-				if (moveinfo.railType != RailType.VERTICAL || this.group().getProperties().isSlowingDown()) {
+				if (moveinfo.railType == RailType.VERTICAL) {
+					this.motY -= VERTRAIL_MULTIPLIER;
+				} else if (this.group().getProperties().isSlowingDown()) {
 					this.motY -= GRAVITY_MULTIPLIER;
 				}
 			}
@@ -441,7 +443,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// Perform rails logic
 		moveinfo.railLogic.onPreMove(this.member());
 		this.setPosition(this.locX, this.locY, this.locZ);
-
+		
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
 		if (moveinfo.railType == RailType.BRAKE && !group().isVelocityAction()) {
