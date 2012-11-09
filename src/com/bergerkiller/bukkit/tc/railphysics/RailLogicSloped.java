@@ -14,23 +14,16 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 /**
  * Handles minecart movement on sloped rails
  */
-public class RailLogicSloped extends RailLogic {
+public class RailLogicSloped extends RailLogicHorizontal {
 	private static final RailLogicSloped [] values = new RailLogicSloped[4];
-	private static final RailLogicSloped [] vertValues = new RailLogicSloped[4];
 	static {
 		for (int i = 0; i < 4; i++) {
-			values[i] = new RailLogicSloped(FaceUtil.notchToFace(i << 1), false);
-			vertValues[i] = new RailLogicSloped(FaceUtil.notchToFace(i << 1), true);
+			values[i] = new RailLogicSloped(FaceUtil.notchToFace(i << 1));
 		}
 	}
 
-	private final RailLogicHorizontal horLogic;
-	private final boolean wasVertical;
-
-	private RailLogicSloped(BlockFace direction, boolean wasVertical) {
+	protected RailLogicSloped(BlockFace direction) {
 		super(direction);
-		this.horLogic = RailLogicHorizontal.get(direction);
-		this.wasVertical = wasVertical;
 	}
 
 	@Override
@@ -65,11 +58,7 @@ public class RailLogicSloped extends RailLogic {
 						member.motZ *= slopeSlowDown;
 					}
 				}
-				double newLocY = endVector.d;
-				if (member.isOnVertical()) {
-					newLocY = Math.max(member.locY, newLocY);
-				}
-				member.setPosition(member.locX, newLocY, member.locZ);
+				member.setPosition(member.locX, endVector.d, member.locZ);
 			}
 		}
 	}
@@ -79,17 +68,12 @@ public class RailLogicSloped extends RailLogic {
 		MinecartGroup group = member.getGroup();
 		// Velocity modifier for sloped tracks
 		if (group.getProperties().isSlowingDown() && !group.isVelocityAction()) {
-			member.motX -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * member.getRailDirection().getModX();
-			member.motZ -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * member.getRailDirection().getModZ();
+			member.motX -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModX();
+			member.motZ -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModZ();
 		}
-
-		// Transfer vertical velocity
-		if (this.wasVertical) {
-			double force = member.motY;
-			member.motX += force * this.getDirection().getModX();
-			member.motZ += force * this.getDirection().getModZ();
-			member.motY = 0.0;
-		}
+		member.motX += member.motY * this.getDirection().getModX();
+		member.motZ += member.motY * this.getDirection().getModZ();
+		member.motY = 0.0;
 
 		// Stop movement if colliding with a block at the slope
 		double blockedDistance = Double.MAX_VALUE;
@@ -109,7 +93,7 @@ public class RailLogicSloped extends RailLogic {
 		}
 
 		// Perform remaining positioning updates
-		horLogic.onPreMove(member);
+		super.onPreMove(member);
 		member.locY += 1.0;
 	}
 
@@ -120,11 +104,7 @@ public class RailLogicSloped extends RailLogic {
 	 * @param wasVertical, whether it was a change from vertical to sloped
 	 * @return Rail Logic
 	 */
-	public static RailLogicSloped get(BlockFace direction, boolean wasVertical) {
-		if (wasVertical) {
-			return vertValues[FaceUtil.faceToNotch(direction) >> 1];
-		} else {
-			return values[FaceUtil.faceToNotch(direction) >> 1];
-		}
+	public static RailLogicSloped get(BlockFace direction) {
+		return values[FaceUtil.faceToNotch(direction) >> 1];
 	}
 }

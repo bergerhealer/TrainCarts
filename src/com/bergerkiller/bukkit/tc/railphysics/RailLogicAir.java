@@ -16,12 +16,17 @@ public class RailLogicAir extends RailLogic {
 	}
 
 	@Override
+	public boolean hasVerticalMovement() {
+		return true;
+	}
+
+	@Override
 	public void onPreMove(MinecartMember member) {
 		// Only do this logic if the head is is not moving vertically
 		// Or if this member is the head, of course
-		if (member.isMovingVertical()) {
+		if (member.isMovingVerticalOnly()) {
 			MinecartMember head = member.getGroup().head();
-			if (member != head && head.isMovingVertical()) {
+			if (member != head && head.isMovingVerticalOnly()) {
 				return;
 			}
 		}

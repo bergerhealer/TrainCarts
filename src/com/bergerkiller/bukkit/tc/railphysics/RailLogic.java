@@ -4,6 +4,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -13,9 +14,14 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  */
 public abstract class RailLogic {
 	private final BlockFace horizontalDir;
+	protected final boolean alongX, alongZ, alongY, curved;
 
 	public RailLogic(BlockFace horizontalDirection) {
 		this.horizontalDir = horizontalDirection;
+		this.alongX = horizontalDirection == BlockFace.EAST || horizontalDirection == BlockFace.WEST;
+		this.alongZ = horizontalDirection == BlockFace.NORTH || horizontalDirection == BlockFace.SOUTH;
+		this.alongY = horizontalDirection == BlockFace.UP || horizontalDirection == BlockFace.DOWN;
+		this.curved = !alongX && !alongY && !alongZ;
 	}
 
 	/**
@@ -36,9 +42,53 @@ public abstract class RailLogic {
 		return false;
 	}
 
+	/**
+	 * Gets whether vertical movement is performed by this rail logic
+	 * 
+	 * @return True if vertical movement is performed, False if not
+	 */
+	public boolean hasVerticalMovement() {
+		return false;
+	}
+
+	/**
+	 * Gets the vertical motion factor caused by gravity
+	 * 
+	 * @return gravity multiplier
+	 */
+	public double getGravityMultiplier(MinecartMember member) {
+		return this.hasVerticalMovement() ? MinecartMember.GRAVITY_MULTIPLIER : 0.0;
+	}
+
 	@Override
 	public String toString() {
 		return this.getClass().getSimpleName() + "@" + this.getDirection();
+	}
+
+	/**
+	 * Gets the minecart forward velocity on this type of Rail Logic
+	 * 
+	 * @param member to get the velocity of
+	 * @return Forwards velocity of the minecart
+	 */
+	public double getForwardVelocity(MinecartMember member) {
+		BlockFace direction = member.getDirection();
+		return member.motY * direction.getModY() + -FaceUtil.sin(direction) * member.motZ - FaceUtil.cos(direction) * member.motX; 
+	}
+
+	/**
+	 * Sets the minecart forward velocity to go to a given direction on this type of Rail Logic
+	 * 
+	 * @param member to set the velocity for
+	 * @param force to set to, negative to reverse
+	 */
+	public void setForwardVelocity(MinecartMember member, double force) {
+		if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
+			member.motX = force * -FaceUtil.cos(member.getDirection());
+			member.motZ = force * -FaceUtil.sin(member.getDirection());
+		} else {
+			member.motY = force * member.getDirection().getModY();
+		}
 	}
 
 	/**
@@ -74,20 +124,13 @@ public abstract class RailLogic {
 		if (MaterialUtil.ISRAILS.get(typeId)) {
 			BlockFace direction = BlockUtil.getRails(rails).getDirection();
 			if (Util.isSloped(rails.getData())) {
-				boolean wasVertical = false;
 				if (Util.isVerticalAbove(rails, direction)) {
-					// Is this minecart moving towards the up-side of the slope?
-					if (member.motY > 0 || member.isHeadingTo(direction)) {
-						// Show information of the rail above, but keep old blockY
-						return RailLogicVertical.get(direction, true);
-					} else if (member.hasBlockChanged()) {
-						wasVertical = true;
-					}
-				} else if (member.getPrevRailLogic() instanceof RailLogicVertical) {
-					wasVertical = true;
+					// Slope-vertical logic
+					return RailLogicVerticalSlope.get(direction);
+				} else {
+					// Sloped logic
+					return RailLogicSloped.get(direction);
 				}
-				// Sloped logic
-				return RailLogicSloped.get(direction, wasVertical);
 			} else {
 				// Horizontal logic
 				return RailLogicHorizontal.get(direction);
@@ -105,7 +148,8 @@ public abstract class RailLogic {
 			}
 			return RailLogicHorizontal.get(dir);
 		} else if (Util.ISVERTRAIL.get(typeId)) {
-			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()), false);
+			// Vertical logic
+			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()));
 		}
 		// Final two no-rail logic types
 		if (member.isFlying()) {

@@ -55,18 +55,17 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
 public class MinecartMember extends MinecartMemberStore {
-	private static final double MIN_VEL_FOR_SLOPE = 0.05;
+	public static final double MIN_VEL_FOR_SLOPE = 0.05;
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private BlockFace direction;
 	private BlockFace directionTo;
-	private BlockFace directionFrom;
+	private BlockFace directionFrom = BlockFace.SELF;
 	protected MinecartGroup group;
 	protected boolean died = false;
 	private int teleportImmunityTick = 0;
@@ -210,6 +209,13 @@ public class MinecartMember extends MinecartMemberStore {
 
 	@Override
 	public void onBlockChange(Block from, Block to) {
+		//update from direction
+		if (BlockUtil.getManhattanDistance(from, to, true) > 3) {
+			this.directionFrom = BlockFace.SELF;
+		} else {
+			this.directionFrom = this.directionTo;
+		}
+
 		//update active signs
 		this.clearActiveSigns();
 		this.checkDead();
@@ -431,64 +437,24 @@ public class MinecartMember extends MinecartMemberStore {
 	 * Velocity functions
 	 */
 	public double getForceSquared() {
-		if (this.isMovingVertical()) {
-			return this.motY * this.motY;
+		if (this.onGround) {
+			return MathUtil.lengthSquared(this.motX, this.motZ);
 		}
-		return MathUtil.lengthSquared(this.motX, this.motZ);
+		return MathUtil.lengthSquared(this.motX, this.motY, this.motZ);
 	}
 	public double getForce() {
-		return Math.sqrt(getForceSquared());
+		return Math.sqrt(this.getForceSquared());
 	}
 	public double getForwardForce() {
-		if (this.isMovingVertical()) {
-			return this.motY * this.direction.getModY();
-		}
-		return -FaceUtil.sin(this.direction) * this.motZ - FaceUtil.cos(this.direction) * this.motX; 
+		return this.getRailLogic().getForwardVelocity(this);
 	}
 	public void setForceFactor(final double factor) {
 		this.motX *= factor;
 		this.motY *= factor;
 		this.motZ *= factor;
 	}
-
-	public void setForce(double force) {
-		setForceFactor(force / this.getForce());
-	}
-	public void setForce(double force, BlockFace direction) {
-		if (direction == BlockFace.UP || direction == BlockFace.DOWN) {
-			this.motY = (double) direction.getModY() * force;
-			this.motX = this.motZ = 0.0;
-		} else {
-			this.motY = 0.0;
-			this.motX = -FaceUtil.cos(direction) * force;
-			this.motZ = -FaceUtil.sin(direction) * force;
-		}
-	}
 	public void setForwardForce(double force) {
-		if (this.isFlying() && force > 0.01) {
-			this.setForce(force);
-			return;
-		} else if (this.isMovingVertical()) {
-			if (this.isOnSlope() && (this.direction == BlockFace.DOWN || this.motY < 0.001)) {
-				this.direction = this.getRailDirection().getOppositeFace();
-			}
-		} else if (this.isMoving()) {
-			BlockFace mdir = FaceUtil.getDirection(this.motX, this.motZ, false);
-			if (mdir == this.direction) {
-				this.motY = 0.0;
-				force /= this.getForce();
-				this.motX *= force;
-				this.motZ *= force;
-				return;
-			} else if (mdir == this.direction.getOppositeFace()) {
-				this.motY = 0.0;
-				force /= this.getForce();
-				this.motX *= -force;
-				this.motZ *= -force;
-				return;
-			}
-		}
-		this.setForce(force, this.direction);
+		this.getRailLogic().setForwardVelocity(this, force);
 	}
 	public void limitSpeed() {
 		//Limits the velocity to the maximum
@@ -625,97 +591,51 @@ public class MinecartMember extends MinecartMemberStore {
 		this.updateDirection(this.getVelocity());
 	}
 	public void updateDirection(Vector movement) {
-		if (this.isOnVertical() || (this.isFlying() && Math.abs(this.motX) < 0.001 && Math.abs(this.motZ) < 0.001)) {
-			double dY = movement.getY();
-			if (this.isOnSlope()) {
-				// On slope moving vertically, add X/Z to movement Y
-				// Moving up or down slope?
-				final boolean downSlope = FaceUtil.getDirection(movement, false) != this.getRailDirection();
-				dY += Util.invert(MathUtil.length(movement.getX(), movement.getZ()), downSlope);
-				this.direction = Util.getVerticalFace(dY > MIN_VEL_FOR_SLOPE);
-			} else {
-				this.direction = Util.getVerticalFace(dY > 0.0);
-			}
-			this.directionFrom = this.directionTo = this.direction;
-			return;
-		}
-		if (this.isDerailed()) {
+		if (this.isOnVertical()) {
+			this.directionTo = this.direction = Util.getVerticalFace(movement.getY() > 0.0);
+		} else if (this.isFlying() && this.isMovingVerticalOnly()) {
+			this.directionTo = this.direction = Util.getVerticalFace(movement.getY() > 0.0);
+		} else if (this.isDerailed()) {
 			this.direction = FaceUtil.getDirection(movement);
-			this.directionFrom = this.directionTo;
 			this.directionTo = FaceUtil.getDirection(movement, false);
-			return;
-		}
-		final BlockFace raildirection = this.getRailDirection();
-		//final BlockFace raildirection = this.getRailDirection();
-		if (this.directionTo == BlockFace.DOWN && this.isOnSlope()) {
-			// Going from vertical down to a slope
-			this.direction = this.directionTo = this.directionFrom = raildirection.getOppositeFace();
-			return;
-		} else if (this.directionTo == BlockFace.UP && this.isOnSlope()) {
-			// Going from vertical up to a sloped rail
-			this.direction = this.directionTo = this.directionFrom = raildirection;
-			return;
-		}
-		this.direction = FaceUtil.getRailsCartDirection(raildirection);
-		if (movement.getX() == 0 || movement.getZ() == 0) {
-			if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
-				this.direction = this.direction.getOppositeFace();
-			}
 		} else {
-			if (MathUtil.getAngleDifference(MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
-				this.direction = this.direction.getOppositeFace();
+			final BlockFace raildirection = this.getRailDirection();
+			if (this.isOnSlope() && Math.abs(movement.getX()) < 0.001 && Math.abs(movement.getZ()) < 0.001 && Math.abs(movement.getY()) > 0.001) {
+				// Going from vertical down to a slope
+				if (movement.getY() > 0.0) {
+					this.direction = raildirection;
+				} else {
+					this.direction = raildirection.getOppositeFace();
+				}
+				this.directionTo = this.direction;
+			} else {
+				this.direction = FaceUtil.getRailsCartDirection(raildirection);
+				if (movement.getX() == 0 || movement.getZ() == 0) {
+					if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
+						this.direction = this.direction.getOppositeFace();
+					}
+				} else {
+					if (MathUtil.getAngleDifference(MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
+						this.direction = this.direction.getOppositeFace();
+					}
+				}
+				// The to direction using the rail direction and movement direction
+				if (this.direction == BlockFace.NORTH_WEST) {
+					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
+				} else if (this.direction == BlockFace.NORTH_EAST) {
+					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
+				} else if (this.direction == BlockFace.NORTH_WEST) {
+					this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
+				} else if (this.direction == BlockFace.SOUTH_WEST) {
+					this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.SOUTH : BlockFace.WEST;
+				} else {
+					this.directionTo = this.direction;
+				}
 			}
 		}
-		//calculate from and to
-		final BlockFace oldFrom = this.directionFrom;
-		final BlockFace oldTo = this.directionTo;
-		switch (this.direction) {
-			case NORTH_WEST :
-				if (raildirection == BlockFace.NORTH_EAST) {
-					this.directionFrom = BlockFace.NORTH;
-					this.directionTo = BlockFace.WEST;
-				} else {
-					this.directionFrom = BlockFace.WEST;
-					this.directionTo = BlockFace.NORTH;
-				}
-				break;
-			case SOUTH_EAST :
-				if (raildirection == BlockFace.NORTH_EAST) {
-					this.directionFrom = BlockFace.EAST;
-					this.directionTo = BlockFace.SOUTH;
-				} else {
-					this.directionFrom = BlockFace.SOUTH;
-					this.directionTo = BlockFace.EAST;
-				}
-				break;
-			case NORTH_EAST :
-				if (raildirection == BlockFace.NORTH_WEST) {
-					this.directionFrom = BlockFace.NORTH;
-					this.directionTo = BlockFace.EAST;
-				} else {
-					this.directionFrom = BlockFace.EAST;
-					this.directionTo = BlockFace.NORTH;
-				}
-				break;
-			case SOUTH_WEST :
-				if (raildirection == BlockFace.NORTH_WEST) {
-					this.directionFrom = BlockFace.WEST;
-					this.directionTo = BlockFace.SOUTH;
-				} else {
-					this.directionFrom = BlockFace.SOUTH;
-					this.directionTo = BlockFace.WEST;
-				}
-				break;
-			default :
-				this.directionFrom = this.directionTo = direction;
-				break;
-		}
-		// Correct from direction in unique circumstances
-		BlockFace[] railDirs = FaceUtil.getFaces(raildirection);
-		if (FaceUtil.isSubCardinal(raildirection) && !LogicUtil.contains(this.directionFrom.getOppositeFace(), railDirs)) {
-			this.directionFrom = oldFrom;
-		} else if (this.hasBlockChanged() && !LogicUtil.contains(oldFrom.getOppositeFace(), railDirs)) {
-			this.directionFrom = oldTo;
+		// Force-update the from direction if it is invalidated
+		if (this.directionFrom == BlockFace.SELF) {
+			this.directionFrom = this.directionTo;
 		}
 	}
 	public void updateDirectionTo(MinecartMember member) {
@@ -773,15 +693,6 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isHeadingTo(BlockFace direction) {
 		return MathUtil.isHeadingTo(direction, this.getVelocity());
 	}
-	public boolean isHeadingToTrack(Block track) {
-		if (this.isDerailed() || track == null) {
-			return false;
-		} else if (BlockUtil.equals(this.getBlock(), track)) {
-			return true;
-		} else {
-			return TrackIterator.canReach(this.getBlock(), this.getDirectionTo(), track);
-		}
-	}
 	public boolean isFollowingOnTrack(MinecartMember member) {
 		// Checks if this member is able to follow the specified member on the tracks
 		if (!this.isNearOf(member)) {
@@ -791,17 +702,32 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.isDerailed() || member.isDerailed()) {
 			return true;
 		}
+
+		// Same block?
+		Block memberrail = member.getBlock();
+		if (BlockUtil.equals(this.getBlock(), memberrail)) {
+			return true;
+		}
+
+		// If moving, use current direction, otherwise be flexible and allow both directions
 		if (this.isMoving()) {
-			Block memberrail = member.getBlock();
-			if (this.isHeadingToTrack(memberrail)) {
+			// Check if the current direction allows this minecart to reach the other rail
+			if (TrackIterator.canReach(this.getBlock(), this.getDirectionTo(), memberrail)) {
 				return true;
-			} else {
-				return TrackIterator.isConnected(this.getBlock(), memberrail, true);
+			}
+			// Check both ways (just in case this direction is invalid)
+			if (TrackIterator.isConnected(this.getBlock(), memberrail, true)) {
+				return true;
 			}
 		} else {
-			return TrackIterator.isConnected(this.getBlock(), member.getBlock(), false);
+			if (TrackIterator.isConnected(this.getBlock(), memberrail, false)) {
+				return true;
+			}
 		}
+
+		return false;
 	}
+
 	public static boolean isTrackConnected(MinecartMember m1, MinecartMember m2) {
 		//Can the minecart reach the other?
 		boolean m1moving = m1.isMoving();
@@ -819,9 +745,6 @@ public class MinecartMember extends MinecartMemberStore {
 		return true;
 	}
 
-	public boolean isMovingVertical() {
-		return super.isOnVertical() || this.direction == BlockFace.UP || this.direction == BlockFace.DOWN;
-	}
 	public boolean isUnloaded() {
 		return this.unloaded;
 	}

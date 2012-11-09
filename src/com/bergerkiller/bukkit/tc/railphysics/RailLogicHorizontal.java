@@ -20,11 +20,9 @@ public class RailLogicHorizontal extends RailLogic {
 
 	private final double dx, dz;
 	private final double x1, z1, x2, z2;
-	private final boolean alongX, alongZ;
-	private final boolean isCurved;
 	private final BlockFace[] faces;
 
-	private RailLogicHorizontal(BlockFace direction) {
+	protected RailLogicHorizontal(BlockFace direction) {
 		super(direction);
 		// Fix north/east, they are non-existent
 		if (direction == BlockFace.NORTH || direction == BlockFace.EAST) {
@@ -38,9 +36,6 @@ public class RailLogicHorizontal extends RailLogic {
 		this.z2 = -0.5 * faces[1].getModZ();
 		this.dx = this.x2 - this.x1;
 		this.dz = this.z2 - this.z1;
-		this.alongX = (this.dx == 0.0);
-		this.alongZ = (this.dz == 0.0);
-		this.isCurved = !this.alongX && !this.alongZ;
 		// Invert north and south (is for some reason needed)
 		for (int i = 0; i < this.faces.length; i++) {
 			if (this.faces[i] == BlockFace.NORTH || this.faces[i] == BlockFace.SOUTH) {
@@ -50,10 +45,22 @@ public class RailLogicHorizontal extends RailLogic {
 	}
 
 	@Override
+	public double getForwardVelocity(MinecartMember member) {
+		BlockFace direction = member.getDirection();
+		return -FaceUtil.sin(direction) * member.motZ - FaceUtil.cos(direction) * member.motX; 
+	}
+
+	@Override
+	public void setForwardVelocity(MinecartMember member, double force) {
+		member.motX = -FaceUtil.cos(member.getDirection()) * force;
+		member.motZ = -FaceUtil.sin(member.getDirection()) * force;
+	}
+
+	@Override
 	public void onPreMove(MinecartMember member) {
 		// Apply velocity modifiers
 		boolean invert = false;
-		if (this.isCurved) {
+		if (this.curved) {
 			// Invert only if the delta z is inverted
 			BlockFace from = FaceUtil.getDirection(member.motX, member.motZ, false);
 			invert = from == this.faces[0] || from == this.faces[1];
@@ -64,6 +71,7 @@ public class RailLogicHorizontal extends RailLogic {
 		double railFactor = Util.invert(MathUtil.normalize(this.dx, this.dz, member.motX, member.motZ), invert);
 		member.motX = railFactor * this.dx;
 		member.motZ = railFactor * this.dz;
+		member.motY = 0.0;
 
 		//location is updated to follow the tracks
 		double newLocX = (double) member.getBlockX() + 0.5 + this.x1;

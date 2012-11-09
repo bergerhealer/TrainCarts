@@ -125,14 +125,22 @@ public class TrackIterator implements Iterator<Block> {
 		this.distance = 0;
 		//adjust direction if moving into a curve
 		Rails rails = BlockUtil.getRails(this.next);
-		if (rails != null && rails.isCurve()) {
-			BlockFace[] p = FaceUtil.getFaces(rails.getDirection().getOppositeFace());
-			if (p[0] != this.nextdirection && p[1] != this.nextdirection) {
-				BlockFace from = this.nextdirection.getOppositeFace();
-				if (p[0] == from) {
-					this.nextdirection = p[1];
-				} else if (p[1] == from) {
-					this.nextdirection = p[0];
+		if (rails != null) {
+			if (rails.isCurve()) {
+				// Make sure curve directions are properly adjusted
+				BlockFace[] p = FaceUtil.getFaces(rails.getDirection().getOppositeFace());
+				if (p[0] != this.nextdirection && p[1] != this.nextdirection) {
+					BlockFace from = this.nextdirection.getOppositeFace();
+					if (p[0] == from) {
+						this.nextdirection = p[1];
+					} else if (p[1] == from) {
+						this.nextdirection = p[0];
+					}
+				}
+			} else if (rails.isOnSlope() && direction == rails.getDirection()) {
+				// Vertical rail above - check
+				if (Util.isVerticalAbove(startblock, direction)) {
+					this.nextdirection = BlockFace.UP;
 				}
 			}
 		}

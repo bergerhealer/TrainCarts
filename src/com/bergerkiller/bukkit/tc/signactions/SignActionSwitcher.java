@@ -42,10 +42,8 @@ public class SignActionSwitcher extends SignAction {
 		boolean doCart = false;
 		boolean doTrain = false;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
-			if (!info.hasRailedMember()) return;
 			doTrain = true;
 		} else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
-			if (!info.hasRailedMember()) return;
 			doCart = true;
 		} else if (info.isAction(SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
 			info.setLevers(false);
@@ -56,7 +54,9 @@ public class SignActionSwitcher extends SignAction {
 		} else {
 			return;
 		}
-		
+		if (!info.hasRailedMember()) {
+			return;
+		}
 		if ((doCart || doTrain) && info.isFacing()) {
 			//find out what statements to parse
 			List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
@@ -122,13 +122,13 @@ public class SignActionSwitcher extends SignAction {
 		}
 
 		//handle destination alternatively
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && !info.getMember().dead) {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {
 				PathConnection conn = null;
-				if (doCart) {
+				if (doCart && info.hasMember()) {
 					conn = node.findConnection(info.getMember().getProperties().getDestination());
-				} else if (doTrain) {
+				} else if (doTrain && info.hasGroup()) {
 					conn = node.findConnection(info.getGroup().getProperties().getDestination());
 				}
 				if (conn != null) {

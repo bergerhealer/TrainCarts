@@ -16,6 +16,11 @@ public class RailLogicGround extends RailLogic {
 	}
 
 	@Override
+	public boolean hasVerticalMovement() {
+		return true;
+	}
+
+	@Override
 	public void onPreMove(MinecartMember member) {
 		Vector friction = member.getDerailedVelocityMod();
 		member.motX *= friction.getX();

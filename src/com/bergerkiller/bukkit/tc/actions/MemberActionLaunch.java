@@ -45,6 +45,11 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 	}
 	
 	public boolean update() {	
+		//Derailed?
+		if (this.getMember().isDerailed()) {
+			return true;
+		}
+
 		//Did any of the carts in the group stop?
 		if (this.distance != 0) {
 			for (MinecartMember mm : this.getGroup()) {

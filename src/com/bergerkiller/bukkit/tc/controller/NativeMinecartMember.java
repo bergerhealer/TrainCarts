@@ -38,6 +38,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicGround;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlope;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
@@ -62,6 +63,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public static final int FUEL_PER_COAL = 3600;
 	public static final double GRAVITY_MULTIPLIER = 0.04;
 	public static final double VERTRAIL_MULTIPLIER = 0.02;
+	public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
 	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
 	public static final double POWERED_RAIL_START_BOOST = 0.02;
 	public int fuel;
@@ -311,19 +313,25 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			this.updateBlock(railtype);
 
 			// Snap to slope
-			if (this.railType == RailType.NONE && this.prevRailType == RailType.VERTICAL && owner.motY > 0) {
+			if (this.railType == RailType.NONE && this.prevRailType == RailType.VERTICAL && owner.motY > VERT_TO_SLOPE_MIN_VEL) {
 				Block next = owner.world.getWorld().getBlockAt(blockX + this.prevRailLogic.getDirection().getModX(), blockY, blockZ + this.prevRailLogic.getDirection().getModZ());
 				Rails rails = BlockUtil.getRails(next);
 				if (rails != null && rails.isOnSlope()) {
 					if (rails.getDirection() == this.prevRailLogic.getDirection()) {
 						// Move the minecart to the slope
-						blockX = next.getX();
-						blockZ = next.getZ();
+						this.blockX = next.getX();
+						this.blockZ = next.getZ();
 						this.updateBlock();
-						owner.locX = blockX + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModX();
-						owner.locZ = blockZ + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModZ();
+						owner.locX = this.blockX + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModX();
+						owner.locZ = this.blockZ + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModZ();
 						// Y offset
-						owner.locY = blockY + 0.8;
+						final double transOffset = 0.9; // How high above the slope to teleport to
+						owner.locY = this.blockY + transOffset;
+						if (owner.getGroup().getProperties().isSlowingDown()) {
+							// Subtract gravity from the moved period
+							double skippedMovement = Math.min(owner.motY, owner.maxSpeed);
+							owner.motY -= GRAVITY_MULTIPLIER * Math.ceil(transOffset / skippedMovement);
+						}
 					}
 				}
 			}
@@ -426,13 +434,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 		// Perform gravity
 		if (!group().isVelocityAction()) {
-			if (!moveinfo.railType.isHorizontal()) {
-				if (moveinfo.railType == RailType.VERTICAL) {
-					this.motY -= VERTRAIL_MULTIPLIER;
-				} else if (this.group().getProperties().isSlowingDown()) {
-					this.motY -= GRAVITY_MULTIPLIER;
-				}
-			}
+			this.motY -= this.moveinfo.railLogic.getGravityMultiplier(this.member());
 		}
 
 		// reset fall distance
@@ -443,7 +445,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// Perform rails logic
 		moveinfo.railLogic.onPreMove(this.member());
 		this.setPosition(this.locX, this.locY, this.locZ);
-		
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
 		if (moveinfo.railType == RailType.BRAKE && !group().isVelocityAction()) {
@@ -474,7 +475,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		double motZ = MathUtil.fixNaN(this.motZ);
 
 		// No vertical motion if stuck to the rails
-		if (moveinfo.railType != RailType.VERTICAL && moveinfo.railType != RailType.NONE) {
+		if (!moveinfo.railLogic.hasVerticalMovement()) {
 			motY = 0.0;
 		}
 
@@ -542,20 +543,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					this.motY *= TrainCarts.slowDownMultiplierSlow;
 					this.motZ *= TrainCarts.slowDownMultiplierSlow;
 				}
-			}
-
-			// Horizontal rails don't have y velocity
-			if (!this.isOnVertical()) {
-				this.motY = 0.0;
-			}
-
-			// Update motion direction based on changed location
-			int newBlockX = MathHelper.floor(this.locX);
-			int newBlockZ = MathHelper.floor(this.locZ);
-			if (newBlockX != moveinfo.blockX || newBlockZ != moveinfo.blockZ) {
-				motLength = this.getXZForce();
-				this.motX = motLength * (double) (newBlockX - moveinfo.blockX);
-				this.motZ = motLength * (double) (newBlockZ - moveinfo.blockZ);
 			}
 
 			// Launching on powered booster tracks
@@ -1045,6 +1032,18 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				//Is this train targeting?
 				return false;
 			}
+			// Check if both minecarts are on the same vertical column
+			RailLogic logic1 = mm1.getRailLogic();
+			if (logic1 instanceof RailLogicVerticalSlope) {
+				RailLogic logic2 = mm2.getRailLogic();
+				if (logic2 instanceof RailLogicVerticalSlope) {
+					Block b1 = mm1.getBlock(logic1.getDirection());
+					Block b2 = mm2.getBlock(logic2.getDirection());
+					if (BlockUtil.equals(b1, b2)) {
+						return false;
+					}
+				}
+			}
 			return true;
 		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {
 			//Ignore passenger collisions
@@ -1144,11 +1143,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 				if (isBlock) {
 					Block block = this.world.getWorld().getBlockAt(MathHelper.floor(a.a), MathHelper.floor(a.b), MathHelper.floor(a.c));
+					
 					dx = this.locX - block.getX() - 0.5;
 					dy = this.locY - block.getY() - 0.5;
 					dz = this.locZ - block.getZ() - 0.5;
 					if (Math.abs(dx) < 0.1 && Math.abs(dz) < 0.1) {
-						dir = dy >= 0.0 ? BlockFace.UP : BlockFace.DOWN;
+						dir = Util.getVerticalFace(dy >= 0.0);
 					} else {
 						dir = FaceUtil.getDirection(dx, dz, false);
 					}
@@ -1195,7 +1195,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public boolean isOnVertical() {
-		return this.moveinfo.railType == RailType.VERTICAL;
+		return this.getRailLogic() instanceof RailLogicVertical;
 	}
 
 	public RailLogic getPrevRailLogic() {
@@ -1224,6 +1224,18 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 	public boolean isFlying() {
 		return this.moveinfo.railType == RailType.NONE && !this.onGround;
+	}
+
+	public boolean isMovingVerticalOnly() {
+		return this.isMovingVertically() && !this.isMovingHorizontally();
+	}
+
+	public boolean isMovingVertically() {
+		return this.motY > 0.001 || (this.motY < -0.001 && !this.onGround);
+	}
+
+	public boolean isMovingHorizontally() {
+		return Math.abs(this.motX) >= 0.001 || Math.abs(this.motZ) >= 0.001;
 	}
 
 	public boolean canBeRidden() { return this.type == 0; }
