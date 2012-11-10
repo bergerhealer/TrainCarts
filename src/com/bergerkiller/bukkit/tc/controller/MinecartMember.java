@@ -110,7 +110,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	@Override
-	public void onPreMove() {
+	public void onPhysicsStart() {
 		//subtract times
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
 		while (times.hasNext()) {			
@@ -119,12 +119,12 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.teleportImmunityTick > 0) {
 			this.teleportImmunityTick--;
 		}
-		super.onPreMove();
+		super.onPhysicsStart();
 	}
 
 	@Override
-	public void onPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
-		super.onPostMove(speedFactor);
+	public void onPhysicsPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
+		super.onPhysicsPostMove(speedFactor);
 		this.checkDead();
 		if (this.getProperties().canPickup() && this.isStorageCart()) {
 			Inventory inv = this.getInventory();

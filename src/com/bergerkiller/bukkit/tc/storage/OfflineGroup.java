@@ -9,8 +9,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
-import net.minecraft.server.ChunkProviderServer;
-
 import org.bukkit.World;
 import org.bukkit.craftbukkit.util.LongHash;
 
@@ -52,10 +50,9 @@ public class OfflineGroup {
 		return this.loadedChunks.size() == this.chunks.size();
 	}
 	public boolean updateLoadedChunks(World world) {
-		ChunkProviderServer cps = WorldUtil.getNative(world).chunkProviderServer;
 		this.loadedChunks.clear();
 		for (long chunk : this.chunks) {
-			if (cps.chunks.containsKey(chunk)) {
+			if (WorldUtil.isLoaded(world, LongHash.msw(chunk), LongHash.lsw(chunk))) {
 				this.loadedChunks.add(chunk);
 			}
 		}

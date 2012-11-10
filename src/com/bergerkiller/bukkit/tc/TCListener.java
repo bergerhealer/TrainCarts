@@ -162,7 +162,7 @@ public class TCListener implements Listener {
 			return;
 		}
 		MinecartMember member = MinecartMemberStore.convert((EntityMinecart) entity);
-		if (member != null && lastPlayer != null) {
+		if (member != null && !member.isUnloaded() && lastPlayer != null) {
 			// A player just placed a minecart - set defaults and ownership
 			member.getGroup().getProperties().setDefault(lastPlayer);
 			if (TrainCarts.setOwnerOnPlacement) {
@@ -177,7 +177,7 @@ public class TCListener implements Listener {
 	public void onEntityRemove(EntityRemoveEvent event) {
 		if (event.getEntity() instanceof Minecart) {
 			MinecartMember member = MinecartMember.get(event.getEntity());
-			if (member == null) {
+			if (member == null || member.isUnloaded()) {
 				return;
 			}
 			MinecartGroup group = member.getGroup();
@@ -391,55 +391,57 @@ public class TCListener implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	public void onBlockPlace(BlockPlaceEvent event) {
-		if (!event.isCancelled()) {
-			updateRails(event.getBlockPlaced());
+	public void onBlockPlace(final BlockPlaceEvent event) {
+		if (!event.isCancelled() && MaterialUtil.ISRAILS.get(event.getBlockPlaced())) {
+			CommonUtil.nextTick(new Runnable() {
+				public void run() {
+					updateRails(event.getBlockPlaced());
+				}
+			});
 		}
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
 		if (!event.isCancelled()) {
-			updateRails(event.getBlock());
+			if (updateRails(event.getBlock())) {
+				event.setCancelled(true);
+			}
 		}
 	}
 
-	public void updateRails(final Block below) {
+	public boolean updateRails(final Block below) {
 		if (!MaterialUtil.ISRAILS.get(below)) {
-			return;
+			return false;
 		}
 		// Obtain the vertical rail and the rail below it, if possible
 		final Block vertRail = below.getRelative(BlockFace.UP);
-		if (!Util.ISVERTRAIL.get(vertRail)) {
-			return;
-		}
-		// Possible match, work with it
-		CommonUtil.nextTick(new Runnable() {
-			public void run() {
-				// Find and validate rails - only regular types are allowed
-				Rails rails = BlockUtil.getRails(below);
-				if (rails == null || rails.isCurve() || rails.isOnSlope()) {
-					return;
+		if (Util.ISVERTRAIL.get(vertRail)) {
+			// Find and validate rails - only regular types are allowed
+			Rails rails = BlockUtil.getRails(below);
+			if (rails == null || rails.isCurve() || rails.isOnSlope()) {
+				return false;
+			}
+			BlockFace railDir = rails.getDirection();
+			BlockFace dir = Util.getVerticalRailDirection(vertRail.getData());
+			// No other directions going on for this rail?
+			if (railDir != dir && railDir != dir.getOppositeFace()) {
+				if (Util.getRailsBlock(below.getRelative(railDir)) != null) {
+					return false;
 				}
-				BlockFace railDir = rails.getDirection();
-				BlockFace dir = Util.getVerticalRailDirection(vertRail.getData());
-				// No other directions going on for this rail?
-				if (railDir != dir && railDir != dir.getOppositeFace()) {
-					if (Util.getRailsBlock(below.getRelative(railDir)) != null) {
-						return;
-					}
-					if (Util.getRailsBlock(below.getRelative(railDir.getOppositeFace())) != null) {
-						return;
-					}
-				}
-
-				// Direction we are about to connect is supported?
-				if (MaterialUtil.SUFFOCATES.get(below.getRelative(dir))) {
-					rails.setDirection(dir, true);
-					below.setData(rails.getData());
+				if (Util.getRailsBlock(below.getRelative(railDir.getOppositeFace())) != null) {
+					return false;
 				}
 			}
-		});
+
+			// Direction we are about to connect is supported?
+			if (MaterialUtil.SUFFOCATES.get(below.getRelative(dir))) {
+				rails.setDirection(dir, true);
+				below.setData(rails.getData());
+			}
+			return true;
+		}
+		return false;
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

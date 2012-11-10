@@ -380,9 +380,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/**
-	 * Executes the block and pre-movement calculations, which handles rail information updates
+	 * Executes the block and pre-movement calculations, which handles rail information updates<br>
+	 * Physics stage: <b>1</b>
 	 */
-	public void onPreMove() {
+	public void onPhysicsStart() {
 		//Some fixed
 		this.motX = MathUtil.fixNaN(this.motX);
 		this.motY = MathUtil.fixNaN(this.motY);
@@ -400,10 +401,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/**
-	 * Executes the velocity and pre-movement calculations, which handles logic prior to actual movement occurs<br>
-	 * Executes the block change event prior to all other velocity calculations
+	 * Executes the block change events<br>
+	 * Physics stage: <b>2</b>
 	 */
-	public void onPreVelocity() {
+	public void onPhysicsBlockChange() {
 		// Handle block changes
 		this.checkDead();
 		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
@@ -414,9 +415,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
 			this.checkDead();
 		}
-
 		moveinfo.updateRailLogic();
-
+	}
+	
+	/**
+	 * Executes the velocity and pre-movement calculations, which handles logic prior to actual movement occurs<br>
+	 * Physics stage: <b>3</b>
+	 */
+	public void onPhysicsPreMove() {
 		// fire ticks decrease
 		if (this.j() > 0) {
 			this.h(this.j() - 1);
@@ -462,13 +468,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 	/**
 	 * Moves the minecart and performs post-movement logic such as events, onBlockChanged and other (rail) logic
+	 * Physics stage: <b>4</b>
 	 * 
 	 * @param speedFactor to apply when moving
 	 * @throws MemberDeadException - thrown when the minecart is dead or dies
 	 * @throws GroupUnloadedException - thrown when the group is no longer loaded
 	 */
 	@SuppressWarnings("unchecked")
-	public void onPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
+	public void onPhysicsPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.checkDead();
 		double motX = MathUtil.fixNaN(this.motX);
 		double motY = MathUtil.fixNaN(this.motY);
@@ -684,7 +691,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			} else {
 				newpitch = 0;
 			}
-		} else if (moveinfo.railType == RailType.VERTICAL) {
+		} else if (this.isOnVertical()) {
 			newyaw = FaceUtil.faceToYaw(this.getRailDirection());
 			newpitch = -90;
 			mode = false;

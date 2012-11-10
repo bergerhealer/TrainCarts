@@ -6,6 +6,8 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -20,16 +22,18 @@ public class Station {
 	private final Direction nextDirection;
 	private final MinecartMember centerCart;
 	private final boolean valid;
+	private final BlockFace railDirection;
+	private final Block railsBlock;
 
 	public Station(SignActionEvent info) {
 		this.delay = ParseUtil.parseTime(info.getLine(2));
 		this.nextDirection = Direction.parse(info.getLine(3));
 		this.centerCart = info.isCartSign() ? info.getMember() : info.getGroup().middle();
+		this.railsBlock = info.getRails();
 
-		BlockFace dir;
 		// Vertical or horizontal rail logic
 		if (info.isVerticalRails()) {
-			dir = BlockFace.DOWN;
+			this.railDirection = BlockFace.DOWN;
 			// Up, down or center based on redstone power
 			boolean up = info.isPowered(BlockFace.UP);
 			boolean down = info.isPowered(BlockFace.DOWN);
@@ -43,37 +47,53 @@ public class Station {
 				this.instruction = null;
 			}
 		} else {
-			dir = info.getRailDirection();
-			// Which directions to move, or brake?
-			if (dir == BlockFace.WEST) {
-				boolean west = info.isPowered(BlockFace.WEST);
-				boolean east = info.isPowered(BlockFace.EAST);
-				if (west && !east) {
-					this.instruction = BlockFace.WEST;
-				} else if (east && !west) {
-					this.instruction = BlockFace.EAST;
-				} else if (info.isPowered()) {
-					this.instruction = BlockFace.SELF;
-				} else {
-					this.instruction = null;
-				}
-			} else if (dir == BlockFace.SOUTH) {
-				boolean north = info.isPowered(BlockFace.NORTH);
-				boolean south = info.isPowered(BlockFace.SOUTH);
-				if (north && !south) {
-					this.instruction = BlockFace.NORTH;
-				} else if (south && !north) {
-					this.instruction = BlockFace.SOUTH;
+			this.railDirection = info.getRailDirection();
+			if (FaceUtil.isSubCardinal(this.railDirection) && FaceUtil.isSubCardinal(info.getFacing())) {				
+				// Sub-cardinal checks: Both directions have two possible powered sides
+				BlockFace[] faces = FaceUtil.getFaces(this.railDirection);
+				boolean pow1 = info.isPowered(faces[0]) || info.isPowered(faces[1].getOppositeFace());
+				boolean pow2 = info.isPowered(faces[1]) || info.isPowered(faces[0].getOppositeFace());
+				if (pow1 && !pow2) {
+					this.instruction = FaceUtil.combine(faces[0], faces[1].getOppositeFace());
+				} else if (!pow1 && pow2) {
+					this.instruction = FaceUtil.combine(faces[0].getOppositeFace(), faces[1]);
 				} else if (info.isPowered()) {
 					this.instruction = BlockFace.SELF;
 				} else {
 					this.instruction = null;
 				}
 			} else {
-				this.length = 0.0;
-				this.instruction = null;
-				this.valid = false;
-				return;
+				// Which directions to move, or brake?
+				if (this.railDirection == BlockFace.WEST) {
+					boolean west = info.isPowered(BlockFace.WEST);
+					boolean east = info.isPowered(BlockFace.EAST);
+					if (west && !east) {
+						this.instruction = BlockFace.WEST;
+					} else if (east && !west) {
+						this.instruction = BlockFace.EAST;
+					} else if (info.isPowered()) {
+						this.instruction = BlockFace.SELF;
+					} else {
+						this.instruction = null;
+					}
+				} else if (this.railDirection == BlockFace.SOUTH) {
+					boolean north = info.isPowered(BlockFace.NORTH);
+					boolean south = info.isPowered(BlockFace.SOUTH);
+					if (north && !south) {
+						this.instruction = BlockFace.NORTH;
+					} else if (south && !north) {
+						this.instruction = BlockFace.SOUTH;
+					} else if (info.isPowered()) {
+						this.instruction = BlockFace.SELF;
+					} else {
+						this.instruction = null;
+					}
+				} else {
+					this.length = 0.0;
+					this.instruction = null;
+					this.valid = false;
+					return;
+				}
 			}
 		}
 
@@ -82,45 +102,130 @@ public class Station {
 		if (length == 0.0 && this.instruction != null) {
 			// Manually calculate the length
 			// Use the amount of straight blocks
-			BlockFace[] toCheck;
-			if (this.instruction == BlockFace.SELF) {
-				toCheck = FaceUtil.getFaces(dir);
+			if (info.isVerticalRails()) {
+				length = this.calcVerticalLength();
+			} else if (FaceUtil.isSubCardinal(this.railDirection)) {
+				length = this.calcDiagonalLength();
 			} else {
-				toCheck = new BlockFace[] {this.instruction};
+				length = this.calcHorizontalLength();
 			}
-
-			for (BlockFace face : toCheck) {
-				int tlength = 0;
-				// Get the type of rail required
-				BlockFace checkface = face;
-				if (checkface == BlockFace.NORTH)
-					checkface = BlockFace.SOUTH;
-				if (checkface == BlockFace.EAST)
-					checkface = BlockFace.WEST;
-
-				Block b = info.getRails();
-				int maxlength = 20;
-				while (true) {
-					// Next until invalid
-					b = b.getRelative(face);
-					Rails rr = BlockUtil.getRails(b);
-					if (rr == null || rr.getDirection() != checkface)
-						break;
-					tlength++;
-
-					// Prevent inf. loop or long processing
-					maxlength--;
-					if (maxlength <= 0) break;
-				}
-				// Update the length
-				if (length == 0 || tlength < length) length = tlength;
-				if (length == 0) {
-					length++;
-				}
+			if (length == 0.0) {
+				length++;
 			}
 		}
 		this.length = length;
 		this.valid = true;
+	}
+
+	private double calcDiagonalLength() {
+		double length = 0.0;
+		// Count the amount of zig-zagging curved tracks
+		final BlockFace[] toCheck;
+		if (this.instruction == BlockFace.SELF) {
+			toCheck = new BlockFace[] {FaceUtil.rotate(this.railDirection, -2), FaceUtil.rotate(this.railDirection, 2)};
+		} else {
+			toCheck = new BlockFace[] {this.instruction};
+		}
+		for (BlockFace direction : toCheck) {
+			double tlength = 0.0;
+			// Find out the starting offset
+			final BlockFace[] dirs = FaceUtil.getFaces(direction);
+			BlockFace[] railDirs = FaceUtil.getFaces(this.railDirection);
+			BlockFace railDirection = this.railDirection;
+
+			Block b = this.railsBlock;
+			for (int i = 0; i < 20; i++) {
+				// Invert the direction
+				railDirection = railDirection.getOppositeFace();
+				railDirs[0] = railDirs[0].getOppositeFace();
+				railDirs[1] = railDirs[1].getOppositeFace();
+				// Obtain the new offset
+				final BlockFace offset;
+				if (LogicUtil.contains(railDirs[0], dirs)) {
+					offset = railDirs[0];
+				} else {
+					offset = railDirs[1];
+				}
+				// Check if the new block is the expected curve direction
+				b = b.getRelative(offset);
+				Rails rr = BlockUtil.getRails(b);
+				if (rr == null || rr.getDirection() != railDirection) {
+					break;
+				}
+				tlength += MathUtil.halfRootOfTwo;
+			}
+
+			// Update the length
+			if (tlength > length) {
+				length = tlength;
+			}
+		}
+		return length;
+	}
+	
+	private double calcVerticalLength() {
+		double length = 0.0;
+		// Count the amount of vertical tracks
+		final BlockFace[] toCheck;
+		if (this.instruction == BlockFace.SELF) {
+			toCheck = new BlockFace[] {BlockFace.DOWN, BlockFace.UP};
+		} else {
+			toCheck = new BlockFace[] {this.instruction};
+		}
+		for (BlockFace face : toCheck) {
+			int tlength = 0;
+			// Get the type of rail required
+			Block b = this.railsBlock;
+			for (int i = 0; i < 20; i++) {
+				// Next until invalid
+				b = b.getRelative(face);
+				if (!Util.ISVERTRAIL.get(b)) {
+					break;
+				}
+				tlength++;
+			}
+			// Update the length
+			if (tlength > length) {
+				length = tlength;
+			}
+		}
+		return length;
+	}
+	
+	private double calcHorizontalLength() {
+		double length = 0.0;
+		// Count the amount of horizontal tracks
+		final BlockFace[] toCheck;
+		if (this.instruction == BlockFace.SELF) {
+			toCheck = FaceUtil.getFaces(this.railDirection);
+		} else {
+			toCheck = new BlockFace[] {this.instruction};
+		}
+		for (BlockFace face : toCheck) {
+			int tlength = 0;
+			// Get the type of rail required
+			BlockFace checkface = face;
+			if (checkface == BlockFace.NORTH)
+				checkface = BlockFace.SOUTH;
+			if (checkface == BlockFace.EAST)
+				checkface = BlockFace.WEST;
+
+			Block b = this.railsBlock;
+			for (int i = 0; i < 20; i++) {
+				// Next until invalid
+				b = b.getRelative(face);
+				Rails rr = BlockUtil.getRails(b);
+				if (rr == null || rr.getDirection() != checkface) {
+					break;
+				}
+				tlength++;
+			}
+			// Update the length
+			if (tlength > length) {
+				length = tlength;
+			}
+		}
+		return length;
 	}
 
 	/**

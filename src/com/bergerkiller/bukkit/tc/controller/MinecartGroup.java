@@ -840,27 +840,30 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.updateDirection();
 			this.updateAction();
 
-			// Perform pre-update and block updates prior to moving
+			// Perform block updates prior to doing the movement calculations
 			boolean blockChanged = false;
 			for (MinecartMember m : this) {
-				m.onPreMove();
+				m.onPhysicsStart();
 				blockChanged |= m.hasBlockChanged();
 			}
 			if (blockChanged) {
 				this.updateBlockSpace();
+			}
+			for (MinecartMember m : this) {
+				m.onPhysicsBlockChange();
 			}
 
 			this.updateDirection();
 
 			// Perform velocity updates
 			for (MinecartMember m : this) {
-				m.onPreVelocity();
+				m.onPhysicsPreMove();
 			}
 
 			if (this.size() == 1) {
 				//Simplified calculation for single carts
 				this.updateDirection();
-				this.head().onPostMove(1);
+				this.head().onPhysicsPostMove(1);
 				this.updateDirection();
 			} else {
 				//Get the average forwarding force of all carts
@@ -902,10 +905,10 @@ public class MinecartGroup extends MinecartGroupStore {
 						if (distance < threshold) {
 							forcer *= TrainCarts.nearCartDistanceFactor;
 						}
-						member.onPostMove(1 + (forcer * (threshold - distance)));
+						member.onPhysicsPostMove(1 + (forcer * (threshold - distance)));
 						if (this.breakPhysics) return true;
 						if (i++ == this.size() - 1) {
-							this.tail().onPostMove(1);
+							this.tail().onPhysicsPostMove(1);
 							if (this.breakPhysics) return true;
 							break;
 						}

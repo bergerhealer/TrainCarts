@@ -19,7 +19,7 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements V
 	public boolean update() {
 		if (super.update()) return true;
 		if (super.getDistance() < 1) {
-			if (this.getMember().getDirectionTo() == this.direction.getOppositeFace()) {
+			if (this.getMember().getDirection() == this.direction.getOppositeFace()) {
 				this.getGroup().reverse();
 			}
 		}
