@@ -58,7 +58,6 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.mode = SignActionMode.fromSign(this.sign);
 		this.railsblock = railsblock;
 		this.railschecked = this.railsblock != null;
-		this.railschecked = this.railsblock != null;
 		this.verticalRail = Util.ISVERTRAIL.get(this.railsblock);
 		String mainLine;
 		if (this.sign == null) {
@@ -176,7 +175,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @return cart direction
 	 */
 	public BlockFace getCartDirection() {
-		if (this.hasMember() && this.member.isMoving()) {
+		if (this.hasMember()) {
 			return this.member.getDirectionFrom();
 		}
 		if (this.hasRails()) {
@@ -230,61 +229,12 @@ public class SignActionEvent extends Event implements Cancellable {
 
 	/**
 	 * Sets the rails above this sign to lead from the minecart direction into a direction specified<br>
-	 * Left, right and forward are handled separately from setRailsTo!
+	 * Relative directions, like left and right, are relative to the sign direction
 	 * 
 	 * @param direction to set the rails to
 	 */
 	public void setRailsTo(Direction direction) {
-		switch (direction) {
-			case LEFT :
-				setRailsLeft();
-				break;
-			case RIGHT :
-				setRailsRight();
-				break;
-			case FORWARD :
-				setRailsForward();
-				break;
-			default :
-				this.setRailsTo(direction.getDirection(this.getFacing()));
-				break;
-		}
-	}
-
-	public void setRailsLeft() {
-		BlockFace from = this.getCartDirection().getOppositeFace();
-		//is a track present at this direction?
-		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
-		if (!Util.ISTCRAIL.get(this.getRails().getRelative(main))) {
-			main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
-		}
-		//Set it
-		this.setRailsFromTo(from, main);
-	}
-
-	public void setRailsRight() {
-		BlockFace from = this.getCartDirection().getOppositeFace();
-		//is a track present at this direction?
-		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
-		if (!Util.ISTCRAIL.get(this.getRails().getRelative(main))) {
-			main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
-		}
-		//Set it
-		this.setRailsFromTo(from, main);
-	}
-
-	public void setRailsForward() {
-		BlockFace from = this.getCartDirection().getOppositeFace();
-		//is a track present at this direction?
-		BlockFace main = FaceUtil.add(from.getOppositeFace(), BlockFace.NORTH);
-		if (!Util.ISTCRAIL.get(this.getRails().getRelative(main))) {
-			main = FaceUtil.add(from.getOppositeFace(), BlockFace.EAST);
-			if (!MaterialUtil.ISRAILS.get(this.getRails().getRelative(main))) {
-				main = FaceUtil.add(from.getOppositeFace(), BlockFace.WEST);
-			}
-		}
-		//Set it
-		this.setRailsFromTo(from, main);
+		this.setRailsTo(direction.getDirection(this.getFacing()));
 	}
 
 	public SignActionType getAction() {
@@ -436,13 +386,39 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @return True if connected, False if not
 	 */
 	public boolean isConnectedRails(BlockFace direction) {
-		Block block = Util.getRailsBlock(this.railsblock.getRelative(direction));
-		if (block != null) {
-			Rails rails = BlockUtil.getRails(block);
-			if (rails == null) {
-				return true; //pressure plate
+		if (!this.hasRails()) {
+			return false;
+		}
+		// Slope upwards? Then offset the rails block
+		Block railsBlock = this.railsblock;
+		if (MaterialUtil.ISRAILS.get(railsBlock)) {
+			Rails rails = BlockUtil.getRails(railsBlock);
+			if (rails.isOnSlope() && rails.getDirection() == direction) {
+				railsBlock = railsBlock.getRelative(BlockFace.UP);
 			}
-			return LogicUtil.contains(direction, FaceUtil.getFaces(rails.getDirection()));
+		}
+		// Check the connection
+		Block block = Util.getRailsBlock(railsBlock.getRelative(direction));
+		if (block != null) {
+			int id = block.getTypeId();
+			if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
+				// Connection if on the same level
+				return block.getY() == railsBlock.getY();
+			} else if (Util.ISVERTRAIL.get(id)) {
+				// Never a vertical connection
+				return false;
+			} else if (MaterialUtil.ISRAILS.get(id)) {
+				Rails rails = BlockUtil.getRails(block);
+				if (rails.isOnSlope()) {
+					if (block.getY() < railsBlock.getY()) {
+						return rails.getDirection() == direction.getOppositeFace();
+					} else {
+						return rails.getDirection() == direction;
+					}
+				} else {
+					return LogicUtil.contains(direction, FaceUtil.getFaces(rails.getDirection()));
+				}
+			}
 		}
 		return false;
 	}

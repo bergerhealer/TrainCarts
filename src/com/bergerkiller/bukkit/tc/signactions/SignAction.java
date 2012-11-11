@@ -19,7 +19,20 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public abstract class SignAction {
+	/**
+	 * Whether the remote control format is supported for this sign
+	 */
+	public boolean canSupportRC() {
+		return false;
+	}
+	/**
+	 * Whether this sign overrides the internal facing check
+	 */
+	public boolean overrideFacing() {
+		return false;
+	}
 
+	private static List<SignAction> actions;
 	public static void init() {
 		actions = new ArrayList<SignAction>();
 		register(new SignActionStation());
@@ -46,20 +59,7 @@ public abstract class SignAction {
 	public static void deinit() {
 		actions = null;
 	}
-		
-	/**
-	 * Whether the remote control format is supported for this sign
-	 */
-	public boolean canSupportRC() {
-		return false;
-	}
-	/**
-	 * Whether this sign overrides the internal facing check
-	 */
-	public boolean overrideFacing() {
-		return false;
-	}
-	
+
 	public abstract void execute(SignActionEvent info);
 	public abstract boolean build(SignChangeActionEvent info);
 
@@ -75,7 +75,6 @@ public abstract class SignAction {
 		return false;
 	}
 
-	private static List<SignAction> actions;
 	public static final <T extends SignAction> T register(T action) {
 		if (actions == null) return action;
 		actions.add(action);
@@ -88,7 +87,7 @@ public abstract class SignAction {
 		if (actions == null) return;
 		actions.remove(action);
 	}
-	
+
 	public static void handleClick(PlayerInteractEvent event) {
 		SignActionEvent info = new SignActionEvent(event.getClickedBlock());
 		if (info.getSign() == null) {

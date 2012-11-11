@@ -27,7 +27,11 @@ import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
-	public static final CartProperties EMPTY = new CartProperties(null, TrainProperties.EMPTY);
+	public static final CartProperties EMPTY;
+	static {
+		EMPTY = new CartProperties(UUID.randomUUID(), TrainProperties.EMPTY);
+		TrainProperties.EMPTY.add(EMPTY);
+	}
 
 	protected CartProperties(UUID uuid, TrainProperties group) {
 		this.uuid = uuid;

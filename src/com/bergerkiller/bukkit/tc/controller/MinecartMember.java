@@ -620,14 +620,14 @@ public class MinecartMember extends MinecartMemberStore {
 					}
 				}
 				// The to direction using the rail direction and movement direction
-				if (this.direction == BlockFace.NORTH_WEST) {
-					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
-				} else if (this.direction == BlockFace.NORTH_EAST) {
-					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
-				} else if (this.direction == BlockFace.NORTH_WEST) {
+				if (this.direction == BlockFace.NORTH_EAST) {
 					this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
+				} else if (this.direction == BlockFace.SOUTH_EAST) {
+					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
 				} else if (this.direction == BlockFace.SOUTH_WEST) {
 					this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.SOUTH : BlockFace.WEST;
+				} else if (this.direction == BlockFace.NORTH_WEST) {
+					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
 				} else {
 					this.directionTo = this.direction;
 				}
