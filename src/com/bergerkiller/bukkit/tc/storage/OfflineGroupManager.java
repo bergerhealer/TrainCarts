@@ -411,6 +411,10 @@ public class OfflineGroupManager {
 		return hiddenMinecarts.contains(uniqueId);
 	}
 
+	public static int getStoredCount() {
+		return containedTrains.size();
+	}
+
 	public static boolean contains(String trainname) {
 		return containedTrains.contains(trainname);
 	}

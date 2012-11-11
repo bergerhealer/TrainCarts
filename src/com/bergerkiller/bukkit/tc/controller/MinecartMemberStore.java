@@ -21,7 +21,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.events.MemberConvertEvent;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
 import net.minecraft.server.ChunkCoordinates;
@@ -187,14 +186,6 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			rval[i] = get(objects[i]);
 		}
 		return rval;
-	}
-
-	public static MinecartMember getEditing(Player player) {
-		return getEditing(player.getName());
-	}
-	public static MinecartMember getEditing(String playername) {
-		CartProperties cp = CartProperties.getEditing(playername);
-		return cp == null ? null : cp.getMember();
 	}
 
 	/**

@@ -119,6 +119,14 @@ public abstract class RailLogic {
 	 * @return Rail Logic
 	 */
 	public static RailLogic get(MinecartMember member) {
+		if (member.isDerailed()) {
+			// Two no-rail logic types
+			if (member.isFlying()) {
+				return RailLogicAir.INSTANCE;
+			} else {
+				return RailLogicGround.INSTANCE;
+			}
+		}
 		Block rails = member.getBlock();
 		int typeId = rails.getTypeId();
 		if (MaterialUtil.ISRAILS.get(typeId)) {
@@ -151,11 +159,7 @@ public abstract class RailLogic {
 			// Vertical logic
 			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()));
 		}
-		// Final two no-rail logic types
-		if (member.isFlying()) {
-			return RailLogicAir.INSTANCE;
-		} else {
-			return RailLogicGround.INSTANCE;
-		}
+		// Default, this should never be reached
+		return RailLogicGround.INSTANCE;
 	}
 }

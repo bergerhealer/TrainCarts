@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -31,8 +30,8 @@ public class Commands {
 			//editing?
 			if (!(sender instanceof Player)) return false;
 			Player player = (Player) sender;
-			MinecartMember mm = MinecartMember.getEditing(player);
-			if (mm == null) {
+			CartProperties cprop = CartProperties.getEditing(player);
+			if (cprop == null) {
 				if (CartProperties.canHaveOwnership(player)) {
 					player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
 				} else {
@@ -43,7 +42,7 @@ public class Commands {
 			String cmd = args[0];
 			args = StringUtil.remove(args, 0);
 			if (command.equalsIgnoreCase("train")) {
-				TrainProperties prop = mm.getGroup().getProperties();
+				TrainProperties prop = cprop.getTrainProperties();
 				if (prop.hasOwnership(player)) {
 					return TrainCommands.execute(player, prop, cmd, args);
 				} else {
@@ -51,7 +50,7 @@ public class Commands {
 					return true;
 				}
 			} else if (command.equalsIgnoreCase("cart")) {
-				CartProperties prop = mm.getProperties();
+				CartProperties prop = cprop;
 				if (prop.hasOwnership(player)) {
 					return CartCommands.execute(player, prop, cmd, args);
 				} else {

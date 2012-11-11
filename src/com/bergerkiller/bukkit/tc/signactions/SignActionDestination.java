@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -33,8 +32,8 @@ public class SignActionDestination extends SignAction {
 		}
 
 		//get the train this player is editing
-		MinecartMember mm = MinecartMember.getEditing(player);
-		if (mm == null) {
+		CartProperties cprop = CartProperties.getEditing(player);
+		if (cprop == null) {
 			if (CartProperties.canHaveOwnership(player)) {
 				player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
 			} else {
@@ -44,9 +43,9 @@ public class SignActionDestination extends SignAction {
 		}
 		IProperties prop;
 		if (info.isTrainSign()) {
-			prop = mm.getGroup().getProperties();
+			prop = cprop.getTrainProperties();
 		} else if (info.isCartSign()) {
-			prop = mm.getProperties();
+			prop = cprop;
 		} else {
 			return false;
 		}

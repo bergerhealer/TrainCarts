@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import org.bukkit.entity.Player;
@@ -76,7 +77,17 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	 * @param trainName of the properties to remove
 	 */
 	public static void remove(String trainName) {
-		trainProperties.remove(trainName);
+		TrainProperties prop = trainProperties.remove(trainName);
+		if (prop != null) {
+			Iterator<CartProperties> iter = prop.iterator();
+			while (iter.hasNext()) {
+				CartProperties cprop = iter.next();
+				iter.remove();
+				if (cprop.getTrainProperties() == prop) {
+					CartPropertiesStore.remove(cprop.getUUID());
+				}
+			}
+		}
 	}
 
 	/**
@@ -140,6 +151,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	 */
 	public static void clearAll() {
 		trainProperties.clear();
+		CartPropertiesStore.clearAllCarts();
 	}
 
 	/**

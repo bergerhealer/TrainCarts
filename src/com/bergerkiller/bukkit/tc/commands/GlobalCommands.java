@@ -77,6 +77,7 @@ public class GlobalCommands {
 					moving++;
 				}
 			}
+			count += OfflineGroupManager.getStoredCount();
 			MessageBuilder builder = new MessageBuilder();
 			builder.green("There are ").yellow(count).green(" trains on this server (of which ");
 			builder.yellow(moving).green(" are moving)").send(sender);

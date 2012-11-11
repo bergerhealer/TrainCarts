@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
@@ -13,6 +14,16 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 public class CartPropertiesStore {
 	private static HashMap<UUID, CartProperties> properties = new HashMap<UUID, CartProperties>();
 	private static HashMap<String, CartProperties> editing = new HashMap<String, CartProperties>();
+
+	/**
+	 * Gets the properties of the Minecart the specified player is currently editing
+	 * 
+	 * @param player
+	 * @return the Cart Properties the player is editing
+	 */
+	public static CartProperties getEditing(Player player) {
+		return getEditing(player.getName());
+	}
 
 	/**
 	 * Gets the properties of the Minecart the specified player is currently editing
@@ -54,7 +65,24 @@ public class CartPropertiesStore {
 	 * @param uuid of the Minecart
 	 */
 	public static void remove(UUID uuid) {
-		properties.remove(uuid);
+		CartProperties prop = properties.remove(uuid);
+		if (prop != null) {
+			Iterator<CartProperties> iter = editing.values().iterator();
+			while (iter.hasNext()) {
+				if (iter.next() == prop) {
+					iter.remove();
+				}
+			}
+			TrainProperties tprop = prop.getTrainProperties();
+			if (tprop.contains(prop)) {
+				tprop.remove(prop);
+			}
+		}
+	}
+
+	protected static void clearAllCarts() {
+		properties.clear();
+		editing.clear();
 	}
 
 	/**
