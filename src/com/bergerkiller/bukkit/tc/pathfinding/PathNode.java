@@ -67,6 +67,16 @@ public class PathNode {
 			//get this destination name
 			return getOrCreate(event.getLine(2), event.getRails());
 		} else {
+			//check if the current train or cart has a destination
+			if (event.isCartSign()) {
+				if (!event.hasMember() || !event.getMember().getProperties().hasDestination()) {
+					return null;
+				}
+			} else if (event.isTrainSign()) {
+				if (!event.hasGroup() || !event.getGroup().getProperties().hasDestination()) {
+					return null;
+				}
+			}
 			//create from location
 			return getOrCreate(event.getRails());
 		}
