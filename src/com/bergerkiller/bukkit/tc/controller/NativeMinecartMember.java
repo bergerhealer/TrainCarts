@@ -110,6 +110,15 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public double getZ() {
 		return this.locZ;
 	}
+	public int getLiveChunkX() {
+		return MathUtil.locToChunk(this.locX);
+	}
+	public int getLiveChunkY() {
+		return MathUtil.locToChunk(this.locY);
+	}
+	public int getLiveChunkZ() {
+		return MathUtil.locToChunk(this.locZ);
+	}
 	public int getLiveBlockX() {
 		return MathHelper.floor(this.getX());
 	}

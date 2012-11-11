@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class CartCommands {
@@ -91,6 +92,7 @@ public class CartCommands {
 			MinecartMember mm = prop.getMember();
 			if (mm == null) {
 				CartPropertiesStore.remove(prop.getUUID());
+				OfflineGroupManager.removeMember(prop.getUUID());
 			} else {
 				mm.die();
 			}
@@ -177,6 +179,7 @@ public class CartCommands {
 	}
 
 	public static void info(Player p, CartProperties prop) {
+		p.sendMessage(" ");
 		//warning message not taken
 		if (!prop.hasOwners()) {
 			p.sendMessage(ChatColor.YELLOW + "Note: This minecart is not owned, claim it using /cart claim!");
@@ -190,6 +193,12 @@ public class CartCommands {
 
 		// Remaining common info
 		Commands.info(p, prop);
+
+		// Loaded?
+		if (prop.getMember() == null) {
+			p.sendMessage(ChatColor.RED + "The train of this cart is unloaded! To keep it loaded, use:");
+			p.sendMessage(ChatColor.YELLOW + "   /train keepchunksloaded true");
+		}
 	}
 	
 }

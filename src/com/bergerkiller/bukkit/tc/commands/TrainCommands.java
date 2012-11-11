@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class TrainCommands {
@@ -214,10 +215,10 @@ public class TrainCommands {
 			}
 		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
 			Permission.COMMAND_DESTROY.handle(p);
-			Commands.permission(p, "train.command.destroy");
 			MinecartGroup group = prop.getGroup();
 			if (group == null) {
 				TrainPropertiesStore.remove(prop.getTrainName());
+				OfflineGroupManager.removeGroup(prop.getTrainName());
 			} else {
 				group.destroy();
 			}
@@ -320,6 +321,7 @@ public class TrainCommands {
 	}
 		
 	public static void info(Player p, TrainProperties prop) {
+		p.sendMessage(" ");
 		if (!prop.isDirectOwner(p)) {
 			if (!prop.hasOwners()) {
 				p.sendMessage(ChatColor.YELLOW + "Note: This train is not owned, claim it using /train claim!");
@@ -348,6 +350,12 @@ public class TrainCommands {
 
 		// Remaining common info
 		Commands.info(p, prop);
+
+		// Loaded message
+		if (prop.getGroup() == null) {
+			p.sendMessage(ChatColor.RED + "This train is unloaded! To keep it loaded, use:");
+			p.sendMessage(ChatColor.YELLOW + "   /train keepchunksloaded true");
+		}
 	}
 	
 }

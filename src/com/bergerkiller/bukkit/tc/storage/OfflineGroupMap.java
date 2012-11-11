@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.storage;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.Chunk;
 import org.bukkit.craftbukkit.util.LongHash;
@@ -33,6 +35,38 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 				getOrCreate(chunk).add(group);
 			}
 		}
+	}
+
+	public boolean removeCart(UUID memberUUID) {
+		for (OfflineGroup group : groups) {
+			for (OfflineMember member : group.members) {
+				if (member.entityUID.equals(memberUUID)) {
+					// Remove this member from the group
+					ArrayList<OfflineMember> members = new ArrayList<OfflineMember>();
+					for (OfflineMember m : group.members) {
+						if (!m.entityUID.equals(memberUUID)) {
+							members.add(m);
+						}
+					}
+					// Update the group with the missing minecart and new chunks
+					group.members = members.toArray(new OfflineMember[0]);
+					group.genChunks();
+					// Finished
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public OfflineGroup remove(String groupName) {
+		for (OfflineGroup group : groups) {
+			if (group.name.equals(groupName)) {
+				remove(group);
+				return group;
+			}
+		}
+		return null;
 	}
 
 	public void remove(OfflineGroup group) {

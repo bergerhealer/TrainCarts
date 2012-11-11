@@ -54,9 +54,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	public MinecartMember getMember() {
 		MinecartMember member = this.member.get();
 		if (member == null || member.dead || member.isUnloaded() || !member.uniqueId.equals(this.uuid)) {
-			member = this.member.set(MinecartMember.get(this.uuid));
+			return this.member.set(MinecartMember.get(this.uuid));
+		} else {
+			return member;
 		}
-		return member;
 	}
 	public MinecartGroup getGroup() {
 		MinecartMember member = this.getMember();

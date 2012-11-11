@@ -434,6 +434,33 @@ public class OfflineGroupManager {
 		}
 	}
 
+	public static void removeMember(UUID memberUUID) {
+		synchronized (managers) {
+			if (hiddenMinecarts.remove(memberUUID)) {
+				for (OfflineGroupManager manager : managers.values()) {
+					if (manager.groupmap.removeCart(memberUUID)) {
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	public static void removeGroup(String groupName) {
+		synchronized (managers) {
+			containedTrains.remove(groupName);
+			for (OfflineGroupManager manager : managers.values()) {
+				OfflineGroup group = manager.groupmap.remove(groupName);
+				if (group != null) {
+					for (OfflineMember member : group.members) {
+						hiddenMinecarts.remove(member.entityUID);
+					}
+					break;
+				}
+			}
+		}
+	}
+
 	public static OfflineGroup findGroup(String groupName) {
 		synchronized (managers) {
 			for (OfflineGroupManager manager : managers.values()) {

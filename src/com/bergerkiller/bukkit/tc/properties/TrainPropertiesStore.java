@@ -78,14 +78,12 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	 */
 	public static void remove(String trainName) {
 		TrainProperties prop = trainProperties.remove(trainName);
-		if (prop != null) {
+		if (prop != null && !prop.isEmpty()) {
 			Iterator<CartProperties> iter = prop.iterator();
 			while (iter.hasNext()) {
 				CartProperties cprop = iter.next();
 				iter.remove();
-				if (cprop.getTrainProperties() == prop) {
-					CartPropertiesStore.remove(cprop.getUUID());
-				}
+				CartPropertiesStore.remove(cprop.getUUID());
 			}
 		}
 	}

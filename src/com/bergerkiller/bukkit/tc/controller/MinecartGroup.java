@@ -42,6 +42,7 @@ import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -68,6 +69,9 @@ public class MinecartGroup extends MinecartGroupStore {
 	public TrainProperties getProperties() {
 		if (this.prop == null) {
 			this.prop = TrainPropertiesStore.create();
+			for (MinecartMember member : this) {
+				this.prop.add(member);
+			}
 		}
 		return this.prop;
 	}
@@ -386,6 +390,11 @@ public class MinecartGroup extends MinecartGroupStore {
 		this.clearActiveSigns();
 		this.clearActions();
 		for (MinecartMember mm : this) {
+			for (CartProperties prop : this.getProperties().toArray(new CartProperties[0])) {
+				if (prop.getTrainProperties() == this.getProperties()) {
+					CartProperties.remove(prop.getUUID());
+				}
+			}
 			this.getProperties().remove(mm);
 			if (mm.group == this) {
 				mm.group = null;
@@ -629,7 +638,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		return true;
 	}
 	public boolean isRemoved() {
-		return groups.contains(this);
+		return !groups.contains(this);
 	}
 
 	public Inventory getInventory() {

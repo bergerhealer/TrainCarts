@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Ghast;
@@ -22,6 +25,8 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
@@ -178,6 +183,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 * @param state to set to
 	 */
 	public void setKeepChunksLoaded(boolean state) {
+		if (state && !this.keepChunksLoaded && this.getGroup() == null) {
+			// Load all the chunks of this group to trigger a restore
+			OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
+			if (group != null) {
+				World world = Bukkit.getWorld(group.worldUUID);
+				if (world != null) {
+					for (long chunk : group.chunks) {
+						world.getChunkAt(LongHash.msw(chunk), LongHash.lsw(chunk));
+					}
+				}
+			}
+		}
 		this.keepChunksLoaded = state;
 	}
 	

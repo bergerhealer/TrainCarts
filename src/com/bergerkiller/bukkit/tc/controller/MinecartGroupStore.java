@@ -45,7 +45,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		}
 		g.updateDirection();
 		g.getAverageForce();
-		if (!g.isValid()) return null;
 		groups.add(g);
 		GroupCreateEvent.call(g);
 		return g;

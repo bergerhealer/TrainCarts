@@ -12,7 +12,6 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -24,8 +23,8 @@ public class OfflineMember {
 		this.motX = instance.motX;
 		this.motZ = instance.motZ;
 		this.entityUID = instance.uniqueId;
-		this.cx = MathUtil.locToChunk(instance.lastX);
-		this.cz = MathUtil.locToChunk(instance.lastZ);
+		this.cx = instance.getLiveChunkX();
+		this.cz = instance.getLiveChunkZ();
 		this.group = group;
 	}
 	public double motX, motZ;

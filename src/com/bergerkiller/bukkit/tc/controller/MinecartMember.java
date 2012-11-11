@@ -994,10 +994,11 @@ public class MinecartMember extends MinecartMemberStore {
 			}
 		}
 	}
+
 	private int prevcx, prevcz;
 	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
-		int newcx = MathUtil.locToChunk(this.lastX);
-		int newcz = MathUtil.locToChunk(this.lastZ);
+		int newcx = this.getLiveChunkX();
+		int newcz = this.getLiveChunkZ();
 		if (newcx != prevcx || newcz != prevcz) {
 			prevcx = newcx;
 			prevcz = newcz;

@@ -61,7 +61,8 @@ public class OfflineGroup {
 		}
 		return this.testFullyLoaded();
 	}
-	private void genChunks() {
+	public void genChunks() {
+		this.chunks.clear();
 		for (OfflineMember wm : this.members) {
 			for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
 				for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
@@ -69,7 +70,6 @@ public class OfflineGroup {
 				}
 			}
 		}
-		this.loadedChunks.clear();
 	}
 	
 	/**

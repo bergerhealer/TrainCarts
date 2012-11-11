@@ -81,6 +81,5 @@ public class Commands {
 		if (loc != null) {
 			p.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
 		}
-		p.sendMessage(" ");
 	}
 }
