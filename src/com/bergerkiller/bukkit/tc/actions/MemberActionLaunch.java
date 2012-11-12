@@ -78,7 +78,7 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 			} else {
 				targetvel = this.startvelocity;
 			}
-			if (targetvel < minVelocity) targetvel = minVelocity;
+			targetvel = Math.max(targetvel, minVelocity);
 			this.getGroup().setForwardForce(targetvel);
 			return false;
 		}

@@ -448,11 +448,6 @@ public class MinecartMember extends MinecartMemberStore {
 	public double getForwardForce() {
 		return this.getRailLogic().getForwardVelocity(this);
 	}
-	public void setForceFactor(final double factor) {
-		this.motX *= factor;
-		this.motY *= factor;
-		this.motZ *= factor;
-	}
 	public void setForwardForce(double force) {
 		this.getRailLogic().setForwardVelocity(this, force);
 	}

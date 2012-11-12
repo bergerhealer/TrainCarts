@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -51,13 +53,13 @@ public class SignActionEffect extends SignAction {
 		Effect eff = new Effect();
 		eff.parseEffect(event.getLine(2));
 		eff.parseEffect(event.getLine(3));
-		String[] args = event.getLine(1).substring(event.getLine(1).indexOf(' ') + 1).split(" ", -1);
+		String[] args = StringUtil.getAfter(event.getLine(1), " ").trim().split(" ", -1);
 		try {
 			if (args.length >= 1) {
-				eff.pitch = Float.parseFloat(args[0]);
+				eff.pitch = (float) ParseUtil.parseDouble(args[0], 1.0);
 			}
 			if (args.length == 2) {
-				eff.volume = Float.parseFloat(args[1]);
+				eff.volume = (float) ParseUtil.parseDouble(args[1], 1.0);
 			}
 		} catch (NumberFormatException ex) {}
 		return eff;

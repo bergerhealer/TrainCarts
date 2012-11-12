@@ -613,8 +613,11 @@ public class MinecartGroup extends MinecartGroupStore {
 		return false;
 	}
 	public boolean isMoving() {
-		if (this.size() == 0) return false;
-		return this.head().isMoving();
+		if (this.isEmpty()) {
+			return false;
+		} else {
+			return this.head().isMoving();
+		}
 	}
 
 	/**

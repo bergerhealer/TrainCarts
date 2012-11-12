@@ -58,6 +58,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean breakCombinedCarts;
 	public static boolean spawnItemDrops;
 	public static double poweredCartBoost;
+	public static double poweredRailBoost;
 	public static Vector exitOffset;
 	public static double pushAwayForce;
 	public static double launchForce;
@@ -139,6 +140,9 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("poweredCartBoost", "\nA performance boost to give to powered minecarts (0 = normal speed)");
 		poweredCartBoost = config.get("poweredCartBoost", 0.1);
+
+		config.setHeader("poweredRailBoost", "\nThe boosting factor of powered rails (default = 0.06)");
+		poweredRailBoost = config.get("poweredRailBoost", 0.06);
 
 		config.setHeader("maxVelocity", "\nThe maximum velocity (blocks/tick) a minecart can possibly have set");
 		maxVelocity = config.get("maxVelocity", 5.0);

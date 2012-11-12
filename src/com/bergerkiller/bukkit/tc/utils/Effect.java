@@ -84,7 +84,7 @@ public class Effect {
 			}
 			Sound sound = ParseUtil.parseEnum(Sound.class, name, null);
 			if (sound != null) {
-				world.playSound(location, sound, pitch, volume);
+				world.playSound(location, sound, volume, pitch);
 				continue;
 			}
 		}

@@ -41,6 +41,8 @@ import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlope;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
+import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.ChunkPosition;
@@ -70,6 +72,8 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	private int fuelCheckCounter = 0;
 	private boolean forcedBlockUpdate = true;
 	public boolean vertToSlope = false;
+	private BlockFace pushDirection = BlockFace.SELF;
+	private final SoundLoop soundLoop;
 
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
 		super(world);
@@ -81,6 +85,11 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		this.motX = 0.0D;
 		this.motY = 0.0D;
 		this.motZ = 0.0D;
+		if (this.isPoweredCart()) {
+			this.soundLoop = new PoweredCartSoundLoop(this.member());
+		} else {
+			this.soundLoop = new SoundLoop(this.member());
+		}
 	}
 
 	/**
@@ -358,10 +367,9 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		this.fuel += fuel;
 		if (this.fuel <= 0) {
 			this.fuel = 0;
-			this.b = this.c = 0.0;
-		} else if (this.b == 0.0 && this.c == 0.0) {
-			this.b = this.motX;
-			this.c = this.motZ;
+			this.pushDirection = BlockFace.SELF;
+		} else if (this.pushDirection == BlockFace.SELF) {
+			this.pushDirection = this.member().getDirection();
 		}
 	}
 
@@ -463,14 +471,10 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
 		if (moveinfo.railType == RailType.BRAKE && !group().isVelocityAction()) {
-			if (this.getXZForceSquared() < 0.0009D) {
-				this.motX = 0;
-				this.motY = 0;
-				this.motZ = 0;
+			if (this.getXZForceSquared() < 0.0009) {
+				this.setForceFactor(0.0);
 			} else {
-				this.motX /= 2;
-				this.motY = 0;
-				this.motZ /= 2;
+				this.setForceFactor(0.5);
 			}
 		}
 	}
@@ -486,22 +490,19 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	@SuppressWarnings("unchecked")
 	public void onPhysicsPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
 		this.checkDead();
-		double motX = MathUtil.fixNaN(this.motX);
-		double motY = MathUtil.fixNaN(this.motY);
-		double motZ = MathUtil.fixNaN(this.motZ);
-
-		// No vertical motion if stuck to the rails
-		if (!moveinfo.railLogic.hasVerticalMovement()) {
-			motY = 0.0;
-		}
 
 		// Modify speed factor to stay within bounds
 		speedFactor = MathUtil.clamp(MathUtil.fixNaN(speedFactor, 1), 0.1, 10);
 
-		// Apply speed factor to maxed values
-		motX = speedFactor * MathUtil.clamp(motX, this.maxSpeed);
-		motY = speedFactor * MathUtil.clamp(motY, this.maxSpeed);
-		motZ = speedFactor * MathUtil.clamp(motZ, this.maxSpeed);
+		// Apply speed factor to maxed and not-a-number-fixed values
+		double motX = speedFactor * MathUtil.clamp(MathUtil.fixNaN(this.motX), this.maxSpeed);
+		double motY = speedFactor * MathUtil.clamp(MathUtil.fixNaN(this.motY), this.maxSpeed);
+		double motZ = speedFactor * MathUtil.clamp(MathUtil.fixNaN(this.motZ), this.maxSpeed);
+
+		// No vertical motion if stuck to the rails that way
+		if (!moveinfo.railLogic.hasVerticalMovement()) {
+			motY = 0.0;
+		}
 
 		// Move using set motion, and perform post-move rail logic
 		this.onMove(motX, motY, motZ);
@@ -510,39 +511,35 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 		// Post-move logic
 		if (!this.isDerailed()) {
-			double motLength;
-
 			// Powered minecart physics section
 			if (this.isPoweredCart()) {
-				//PushX and PushZ are updated
-				motLength = MathUtil.length(this.b, this.c);
-				if (motLength > 0.01 && this.getXZForceSquared() > 0.001) {
-					this.b /= motLength;
-					this.c /= motLength;
-					if (this.b * this.motX + this.c * this.motZ < 0) {
-						this.b = 0;
-						this.c = 0;
-					} else {
-						this.b = this.motX;
-						this.c = this.motZ;
-					}
-				}
 				// Velocity boost is applied
 				if (!group().isVelocityAction()) {
-					double fuelPower;
-					if (this.hasFuel() && (fuelPower = MathUtil.length(this.b, this.c)) > 0) {
-						this.b /= fuelPower;
-						this.c /= fuelPower;
+					if (this.pushDirection != BlockFace.SELF) {
 						double boost = 0.04 + TrainCarts.poweredCartBoost;
-
-						this.motX *= 0.8;
-						this.motZ *= 0.8;
-						this.motX += this.b * boost;
-						this.motZ += this.c * boost;
+						this.setForceFactor(0.8);
+						this.motX += boost * -FaceUtil.cos(this.pushDirection);
+						this.motY += boost * this.pushDirection.getModY();
+						this.motZ += boost * -FaceUtil.sin(this.pushDirection);
 					} else {
 						if (this.group().getProperties().isSlowingDown()) {
-							this.motX *= 0.9;
-							this.motZ *= 0.9;
+							this.setForceFactor(0.9);
+						}
+					}
+				}
+
+				// Update pushing direction
+				if (this.pushDirection != BlockFace.SELF) {
+					BlockFace dir = this.member().getDirection();
+					if (this.isMovingHorizontally()) {
+						//BlockFace dir = FaceUtil.getDirection(this.motX, this.motZ, true);
+						if (FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
+							this.pushDirection = dir;
+						}
+					} else if (this.isMovingVertically()) {
+						//BlockFace dir = Util.getVerticalFace(this.motY > 0.0);
+						if (dir != this.pushDirection.getOppositeFace()) {
+							this.pushDirection = dir;
 						}
 					}
 				}
@@ -551,22 +548,18 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			// Slowing down of minecarts
 			if (this.group().getProperties().isSlowingDown()) {
 				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
-					this.motX *= TrainCarts.slowDownMultiplierNormal;
-					this.motY *= TrainCarts.slowDownMultiplierNormal;
-					this.motZ *= TrainCarts.slowDownMultiplierNormal;
+					this.setForceFactor(TrainCarts.slowDownMultiplierNormal);
 				} else {
-					this.motX *= TrainCarts.slowDownMultiplierSlow;
-					this.motY *= TrainCarts.slowDownMultiplierSlow;
-					this.motZ *= TrainCarts.slowDownMultiplierSlow;
+					this.setForceFactor(TrainCarts.slowDownMultiplierSlow);
 				}
 			}
 
 			// Launching on powered booster tracks
 			if (moveinfo.railType == RailType.BOOST && !group().isVelocityAction()) {
-				motLength = this.getXZForce();
+				double motLength = this.getXZForce();
 				if (motLength > 0.01) {
 					// Simple motion boosting when already moving
-					double launchFactor = 0.06D / motLength;
+					double launchFactor = TrainCarts.poweredRailBoost / motLength;
 					this.motX += this.motX * launchFactor;
 					this.motZ += this.motZ * launchFactor;
 				} else {
@@ -577,8 +570,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
 					// If pushing from both directions, block all movement
 					if (pushFrom1 && pushFrom2) {
-						this.motX = 0.0;
-						this.motZ = 0.0;
+						this.setForceFactor(0.0);
 					} else if (pushFrom1 != pushFrom2) {
 						// Boosting to the open spot
 						final double boost = Util.invert(POWERED_RAIL_START_BOOST, pushFrom2);
@@ -646,21 +638,15 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 			} else {
 				this.fuelCheckCounter = 0;
-				if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
-					this.b = this.motX;
-					this.c = this.motZ;
-				}
 			}
 			if (this.fuel <= 0) {
 				this.fuel = 0;
-				this.b = this.c = 0.0;
+				this.pushDirection = BlockFace.SELF;
 			}
 			this.e(this.hasFuel());
-		}
 
-		// Smoke particles for carts that have this data set
-		if (this.h() && this.random.nextInt(4) == 0) {
-			this.world.addParticle("largesmoke", this.locX, this.locY + 0.8D, this.locZ, 0.0D, 0.0D, 0.0D);
+			// Play additional sound effects
+			this.soundLoop.onTick();
 		}
 	}
 
@@ -717,7 +703,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		setAngleSafe(newyaw, newpitch, mode);
 	}
 
-	/*
+	/**
 	 * Overridden function used to let players interact with this minecart
 	 * Changes: use my own fuel and changes direction of all attached carts
 	 */
@@ -731,11 +717,13 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 				this.addFuel(3600);
 			}
-			this.b = this.locX - entityhuman.locX;
-			this.c = this.locZ - entityhuman.locZ;	
-			BlockFace dir = FaceUtil.getDirection(this.b, this.c, false);
+			if (this.isOnVertical()) {
+				this.pushDirection = Util.getVerticalFace((this.locY - entityhuman.locY) > 0.0);
+			} else {
+				this.pushDirection = FaceUtil.getDirection(this.locX - entityhuman.locX, this.locZ - entityhuman.locZ, true);
+			}
 			if (this.group().isMoving()) {
-				if (dir == this.member().getDirectionTo().getOppositeFace()) {
+				if (this.pushDirection == this.member().getDirectionTo().getOppositeFace()) {
 					this.group().reverse();
 				}
 			}
@@ -745,8 +733,8 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	/*
-	 * Overridden to make it save properly (id was faulty)
+	/**
+	 * Main saving function - overridden to make it save properly (id was faulty)
 	 */
 	@Override
 	public boolean c(NBTTagCompound nbttagcompound) {
@@ -756,6 +744,40 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			return true;
 		} else {
 			return false;
+		}
+	}
+
+	/**
+	 * Loading function - overridden to load powered minecart pushing direction
+	 * and fuel properly (allow vertical)
+	 */
+	@Override
+	public void a(NBTTagCompound nbttagcompound) {
+		super.a(nbttagcompound);
+		if (this.isPoweredCart()) {
+			this.fuel = nbttagcompound.getShort("Fuel");
+			double dy = nbttagcompound.getDouble("PushY");
+			if (dy == 0.0) {
+				// Note: b and c are loaded by the super function
+				this.pushDirection = FaceUtil.getDirection(this.b, this.c, true);
+			} else {
+				this.pushDirection = Util.getVerticalFace(dy > 0.0);
+			}
+		}
+	}
+
+	/**
+	 * Saving function - overridden to save powered minecart pushing 
+	 * direction and fuel properly (allow vertical)
+	 */
+	@Override
+	public void b(NBTTagCompound nbttagcompound) {
+		super.b(nbttagcompound);
+		if (this.isPoweredCart()) {
+			nbttagcompound.setShort("Fuel", (short) this.fuel);
+			nbttagcompound.setDouble("PushX", this.pushDirection.getModX());
+			nbttagcompound.setDouble("PushY", this.pushDirection.getModY());
+			nbttagcompound.setDouble("PushZ", this.pushDirection.getModZ());
 		}
 	}
 
@@ -1199,6 +1221,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 	public Vector getVelocity() {
 		return new Vector(this.motX, this.motY, this.motZ);
+	}
+
+	public void setForceFactor(final double factor) {
+		this.motX *= factor;
+		this.motY *= factor;
+		this.motZ *= factor;
 	}
 
 	/**

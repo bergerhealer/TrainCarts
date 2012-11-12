@@ -122,7 +122,7 @@ public class SignActionSwitcher extends SignAction {
 		}
 
 		//handle destination alternatively
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && !info.getMember().dead) {
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.hasMember()) {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {
 				PathConnection conn = null;

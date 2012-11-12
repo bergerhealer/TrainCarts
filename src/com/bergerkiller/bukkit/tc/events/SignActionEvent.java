@@ -453,7 +453,9 @@ public class SignActionEvent extends Event implements Cancellable {
 				}
 			}
 		}
-		if (this.member == null || this.member.dead) return null; 
+		if (this.member == null || this.member.dead || this.member.isUnloaded()) {
+			return null; 
+		}
 		return this.member;
 	}
 	public boolean hasMember() {
