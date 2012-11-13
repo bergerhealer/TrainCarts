@@ -345,10 +345,12 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 	public void clearActiveSigns() {
+		if (this.isUnloaded()) {
+			return;
+		}
 		boolean found;
 		for (Block signblock : this.activeSigns) {
 			SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.MEMBER_LEAVE);
-			if (this.getGroup() == null) return; 
 			//this sign is not present in other members of the group?
 			found = false;
 			for (MinecartMember mm : this.getGroup()) {
@@ -357,11 +359,10 @@ public class MinecartMember extends MinecartMemberStore {
 					break;
 				}
 			}
-			if (found) {
-				continue;
-			}
-			if (this.getGroup().tail() == this) {
-				this.getGroup().setActiveSign(signblock, false);
+			if (!found) {
+				if (this.getGroup().tail() == this) {
+					this.getGroup().setActiveSign(signblock, false);
+				}
 			}
 		}
 		this.activeSigns.clear();
@@ -979,13 +980,21 @@ public class MinecartMember extends MinecartMemberStore {
 			super.die();
 			this.died = true;
 			if (!this.isUnloaded()) {
-				this.dead = false;
-				this.clearActiveSigns();
-				this.clearActiveDetectors();
-				if (this.passenger != null) this.passenger.setPassengerOf(null);
-				if (this.group != null) this.group.remove(this);
+				// Note: No getGroup() calls are allowed here!
+				// They may create new groups!
+				if (this.group != null) {
+					this.dead = false;
+					this.clearActiveSigns();
+					this.clearActiveDetectors();
+					this.dead = true;
+				}
+				if (this.passenger != null) {
+					this.passenger.setPassengerOf(null);
+				}
+				if (this.group != null) {
+					this.group.remove(this);
+				}
 				CartPropertiesStore.remove(this.uniqueId);
-				this.dead = true;
 			}
 		}
 	}

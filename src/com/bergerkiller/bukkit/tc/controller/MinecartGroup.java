@@ -42,7 +42,6 @@ import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -389,35 +388,30 @@ public class MinecartGroup extends MinecartGroupStore {
 	public void clear() {
 		this.clearActiveSigns();
 		this.clearActions();
-		for (MinecartMember mm : this) {
-			for (CartProperties prop : this.getProperties().toArray(new CartProperties[0])) {
-				if (prop.getTrainProperties() == this.getProperties()) {
-					CartProperties.remove(prop.getUUID());
-				}
-			}
+		for (MinecartMember mm : this.toArray()) {
 			this.getProperties().remove(mm);
-			if (mm.group == this) {
+			if (mm.dead) {
+				mm.die();
+			} else {
 				mm.group = null;
-				if (!mm.dead) {
-					mm.getGroup().getProperties().load(this.getProperties());
-				}
+				mm.getGroup().getProperties().load(this.getProperties());
 			}
 		}
 		super.clear();
 	}
 	public void remove() {
+		if (!groups.remove(this)) {
+			return; // Already removed
+		}
 		GroupRemoveEvent.call(this);
 		this.clear();
 		if (this.prop != null) {
 			TrainPropertiesStore.remove(this.prop.getTrainName());
 			this.prop = null;
 		}
-		groups.remove(this);
 	}
 	public void destroy() {
 		for (MinecartMember mm : this) {
-			mm.clearActiveSigns();
-			mm.clearActiveDetectors();
 			mm.dead = true;
 		}
 		this.remove();

@@ -244,10 +244,9 @@ public class Util {
 			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*");
 			Integer amount = null;
 			if (idx > 0) {
-				try {
-					amount = Integer.parseInt(type.substring(0, idx));
+				amount = ParseUtil.parseInt(type.substring(0, idx), null);
+				if (amount != null) {
 					type = type.substring(idx + 1);
-				} catch (Exception ex) {
 				}
 			}
 			ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type);
@@ -261,7 +260,7 @@ public class Util {
 					// add parsers with set modifier amount
 					// add parsers directly
 					for (ItemParser p : keyparsers) {
-						parsers.add(new ItemParser((p.hasAmount() ? p.getAmount() : 1) * amount, p.getType(), p.hasData() ? p.getData() : null));
+						parsers.add(p.multiplyAmount(amount.intValue()));
 					}
 				}
 			} else {

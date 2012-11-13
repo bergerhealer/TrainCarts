@@ -326,7 +326,7 @@ public class TrainCarts extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 7;
+		return 9;
 	}
 
 	public void enable() {

@@ -177,7 +177,7 @@ public class TCListener implements Listener {
 	public void onEntityRemove(EntityRemoveEvent event) {
 		if (event.getEntity() instanceof Minecart) {
 			MinecartMember member = MinecartMember.get(event.getEntity());
-			if (member == null || member.isUnloaded()) {
+			if (member == null || member.isUnloaded() || member.dead) {
 				return;
 			}
 			MinecartGroup group = member.getGroup();

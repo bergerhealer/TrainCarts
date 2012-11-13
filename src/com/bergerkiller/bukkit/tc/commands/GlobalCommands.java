@@ -71,7 +71,7 @@ public class GlobalCommands {
 			return true;
 		} else if (args[0].equals("list")) {
 			int count = 0, moving = 0;
-			for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {
+			for (MinecartGroup group : MinecartGroupStore.getGroups()) {
 				count++;
 				if (group.isMoving()) {
 					moving++;
