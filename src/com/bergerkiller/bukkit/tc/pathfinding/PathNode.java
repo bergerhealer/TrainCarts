@@ -295,7 +295,7 @@ public class PathNode {
 			}
 		}.read();
 	}
-	public static void deinit(String filename) {
+	public static void save(String filename) {
 		new CompressedDataWriter(filename) {
 			public void write(DataOutputStream stream) throws IOException {
 				stream.writeInt(nodes.size());
@@ -328,6 +328,8 @@ public class PathNode {
 				}
 			}
 		}.write();
+	}
+	public static void deinit() {
 		clearAll();
 	}
 	

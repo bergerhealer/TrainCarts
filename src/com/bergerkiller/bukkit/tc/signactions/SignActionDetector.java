@@ -125,8 +125,7 @@ public class SignActionDetector extends SignAction {
 			}
 		}.read();
 	}
-
-	public static void deinit(String filename) {
+	public static void save(String filename) {
 		new DataWriter(filename) {
 			public void write(DataOutputStream stream) throws IOException {
 				Set<DetectorSignPair> detectorset = new HashSet<DetectorSignPair>(detectors.size() / 2);

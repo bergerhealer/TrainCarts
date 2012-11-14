@@ -81,6 +81,10 @@ public class MinecartMember extends MinecartMemberStore {
 	protected MinecartMember(EntityMinecart source) {
 		this(source.world, source.lastX, source.lastY, source.lastZ, source.type);
 		EntityMinecartRef.TEMPLATE.transfer(source, this);
+		if (this.isPoweredCart()) {
+			this.fuel = EntityMinecartRef.fuel.get(this);
+			this.pushDirection = FaceUtil.getDirection(this.b, this.c, true);
+		}
 	}
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
@@ -965,8 +969,7 @@ public class MinecartMember extends MinecartMemberStore {
 		this.motX *= -1;
 		this.motY *= -1;
 		this.motZ *= -1;
-		this.b *= -1;
-		this.c *= -1;
+		this.pushDirection = this.pushDirection.getOppositeFace();
 		this.direction = this.direction.getOppositeFace();
 	}
 

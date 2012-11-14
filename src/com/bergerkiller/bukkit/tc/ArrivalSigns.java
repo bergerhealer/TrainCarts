@@ -143,12 +143,15 @@ public class ArrivalSigns {
 			}
 		}
 	}
-	public static void deinit(String filename) {
+
+	public static void save(String filename) {
 		FileConfiguration config = new FileConfiguration(filename);
 		for (TimeSign sign : timerSigns.values()) {
 			config.set(sign.name, sign.getDuration());
 		}
 		config.save();
+	}
+	public static void deinit() {
 		timerSigns.clear();
 		timerSigns = null;
 		timeCalculations.clear();

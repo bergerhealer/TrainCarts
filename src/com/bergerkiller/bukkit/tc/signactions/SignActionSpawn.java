@@ -178,14 +178,17 @@ public class SignActionSpawn extends SignAction {
 			}
 		}.read();
 	}
-
-	public static void deinit(String filename) {
+	public static void deinit() {
+		for (SpawnSign sign : spawnSigns.values()) {
+			sign.stop();
+		}
+	}
+	public static void save(String filename) {
 		new DataWriter(filename) {
 			public void write(DataOutputStream stream) throws IOException {
 				stream.writeInt(spawnSigns.size());
 				for (SpawnSign sign : spawnSigns.values()) {
 					sign.write(stream);
-					sign.stop();
 				}
 			}
 		}.write();

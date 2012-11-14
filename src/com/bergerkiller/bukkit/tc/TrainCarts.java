@@ -387,6 +387,32 @@ public class TrainCarts extends PluginBase {
 		});
 	}
 
+	/**
+	 * Saves all traincarts related information to file
+	 */
+	public void save() {
+		//Save properties
+		TrainProperties.save();
+
+		//Save destinations
+		PathNode.save(getDataFolder() + File.separator + "destinations.dat");
+
+		//Save arrival times
+		ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
+
+		//Save spawn sign locations
+		SignActionSpawn.save(getDataFolder() + File.separator + "spawnsigns.dat");
+
+		//Save detector sign locations
+		SignActionDetector.save(getDataFolder() + File.separator + "detectorsigns.dat");
+
+		//Save detector regions
+		DetectorRegion.save(getDataFolder() + File.separator + "detectorregions.dat");
+
+		// Save train information
+		OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
+	}
+
 	public void disable() {
 		//Stop tasks
 		Task.stop(signtask);
@@ -404,27 +430,6 @@ public class TrainCarts extends PluginBase {
 			OfflineGroupManager.hideGroup(mg);
 		}
 
-		//Save properties
-		TrainProperties.save();
-
-		//Save destinations
-		PathNode.deinit(getDataFolder() + File.separator + "destinations.dat");
-
-		//Save arrival times
-		ArrivalSigns.deinit(getDataFolder() + File.separator + "arrivaltimes.txt");
-
-		//Save spawn sign locations
-		SignActionSpawn.deinit(getDataFolder() + File.separator + "spawnsigns.dat");
-
-		//Save detector sign locations
-		SignActionDetector.deinit(getDataFolder() + File.separator + "detectorsigns.dat");
-
-		//Save detector regions
-		DetectorRegion.deinit(getDataFolder() + File.separator + "detectorregions.dat");	
-		
-		//clear statements
-		Statement.deinit();
-
 		//entities left behind?
 		new Operation() {
 			public void run() {
@@ -435,12 +440,16 @@ public class TrainCarts extends PluginBase {
 			}
 		};
 
-		//Save for next load
-		OfflineGroupManager.deinit(getDataFolder() + File.separator + "trains.groupdata");
+		save();
 
+		// Deinit classes
+		PathNode.deinit();
+		ArrivalSigns.deinit();
+		SignActionSpawn.deinit();
+		Statement.deinit();
 		SignAction.deinit();
-
 		ItemAnimation.deinit();
+		OfflineGroupManager.deinit();
 	}
 
 	public boolean command(CommandSender sender, String cmd, String[] args) {

@@ -245,7 +245,6 @@ public final class DetectorRegion {
 			}
 		}
 	}
-	
 	public static void init(String filename) {
 		regionsById.clear();
 		regions.clear();
@@ -273,7 +272,7 @@ public final class DetectorRegion {
 			}
 		}.read();
 	}
-	public static void deinit(String filename) {
+	public static void save(String filename) {
 		new DataWriter(filename) {
 			public void write(DataOutputStream stream) throws IOException {
 				stream.writeInt(regionsById.size());
@@ -288,5 +287,4 @@ public final class DetectorRegion {
 			}
 		}.write();
 	}
-	
 }

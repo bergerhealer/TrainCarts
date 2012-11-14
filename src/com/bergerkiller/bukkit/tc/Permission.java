@@ -33,11 +33,11 @@ public enum Permission implements IPermissionDefault {
 	COMMAND_SETSPEEDLIMIT("train.command.setspeedlimit", PermissionDefault.TRUE, "The player can set the maximum speed for his trains"),
 	COMMAND_SETPOWERCARTREQ("train.command.setpoweredcartrequirement", PermissionDefault.TRUE, 
 			"The player can set if a powered minecart is needed for his train to stay alive"),
-			
 	COMMAND_DEFAULT("train.command.default", PermissionDefault.OP, "The player can apply default settings to his owned trains"),
 	COMMAND_RENAME("train.command.rename", PermissionDefault.TRUE, "The player can rename his owned trains"),
 	COMMAND_DISPLAYNAME("train.command.displayname", PermissionDefault.TRUE, "The player can change the display name of his owned trains"),
 	COMMAND_MANUALMOVE("train.command.manualmove", PermissionDefault.TRUE, "Whether the player can change if trains can be moved by damaging them"),
+	COMMAND_SAVEALL("train.command.saveall", PermissionDefault.OP, "Whether the player can save all TrainCarts stored information to file"),
 	BUILD_STATION("train.build.station", PermissionDefault.OP, "The player can build train stations"),
 	BUILD_SPAWNER("train.build.spawner", PermissionDefault.OP, "The player can build train spawners"),
 	BUILD_TRIGGER("train.build.trigger", PermissionDefault.OP, "The player can build train triggers"),

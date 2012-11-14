@@ -72,7 +72,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	private int fuelCheckCounter = 0;
 	private boolean forcedBlockUpdate = true;
 	public boolean vertToSlope = false;
-	private BlockFace pushDirection = BlockFace.SELF;
+	protected BlockFace pushDirection = BlockFace.SELF;
 	private final SoundLoop soundLoop;
 
 	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
@@ -748,25 +748,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	/**
-	 * Loading function - overridden to load powered minecart pushing direction
-	 * and fuel properly (allow vertical)
-	 */
-	@Override
-	public void a(NBTTagCompound nbttagcompound) {
-		super.a(nbttagcompound);
-		if (this.isPoweredCart()) {
-			this.fuel = nbttagcompound.getShort("Fuel");
-			double dy = nbttagcompound.getDouble("PushY");
-			if (dy == 0.0) {
-				// Note: b and c are loaded by the super function
-				this.pushDirection = FaceUtil.getDirection(this.b, this.c, true);
-			} else {
-				this.pushDirection = Util.getVerticalFace(dy > 0.0);
-			}
-		}
-	}
-
-	/**
 	 * Saving function - overridden to save powered minecart pushing 
 	 * direction and fuel properly (allow vertical)
 	 */
@@ -776,7 +757,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		if (this.isPoweredCart()) {
 			nbttagcompound.setShort("Fuel", (short) this.fuel);
 			nbttagcompound.setDouble("PushX", this.pushDirection.getModX());
-			nbttagcompound.setDouble("PushY", this.pushDirection.getModY());
 			nbttagcompound.setDouble("PushZ", this.pushDirection.getModZ());
 		}
 	}

@@ -64,6 +64,11 @@ public class GlobalCommands {
 			TrainCarts.plugin.loadConfig();
 			sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
 			return true;
+		} else if (args[0].equals("saveall")) {
+			Permission.COMMAND_SAVEALL.handle(sender);
+			TrainCarts.plugin.save();
+			sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
+			return true;
 		} else if (args[0].equals("fixbugged")) {
 			Permission.COMMAND_FIXBUGGED.handle(sender);
 			OfflineGroupManager.removeBuggedMinecarts();

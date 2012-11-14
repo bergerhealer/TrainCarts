@@ -269,7 +269,7 @@ public class OfflineGroupManager {
 		};
 	}
 	
-	private static void deinit() {
+	public static void deinit() {
 		managers.clear();
 		hiddenMinecarts.clear();
 		containedTrains.clear();
@@ -349,7 +349,7 @@ public class OfflineGroupManager {
 	 * Saves the buffered groups to file
 	 * @param filename - The groupdata file to write to
 	 */
-	public static void deinit(String filename) {
+	public static void save(String filename) {
 		synchronized (managers) {
 			new DataWriter(filename) {
 				public void write(DataOutputStream stream) throws IOException {
@@ -371,7 +371,6 @@ public class OfflineGroupManager {
 					}
 				}
 			}.write();
-			deinit();
 		}
 	}
 
