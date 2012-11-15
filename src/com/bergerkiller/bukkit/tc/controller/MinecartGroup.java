@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberDeadException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
@@ -58,6 +59,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
+	private boolean needsSignRefresh = true;
 	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
@@ -171,6 +173,19 @@ public class MinecartGroup extends MinecartGroupStore {
 	public boolean setActiveSign(Block signblock, boolean active) {
 		if (signblock == null) return false;
 		return setActiveSign(new SignActionEvent(signblock, null, this), active);
+	}
+	public void updateActiveSigns() {
+		this.needsSignRefresh = false;
+		World world = this.getWorld();
+		for (Map.Entry<ChunkPosition, MinecartMember> entry : this.memberBlockSpace.entrySet()) {
+			ChunkPosition p = entry.getKey();
+			Block block = world.getBlockAt(p.x, p.y, p.z);
+			if (Util.ISTCRAIL.get(block)) {
+				for (Block sign : Util.getSignsFromRails(block)) {
+					entry.getValue().addActiveSign(sign);
+				}
+			}
+		}
 	}
 
 	/**
@@ -379,10 +394,55 @@ public class MinecartGroup extends MinecartGroupStore {
 			//Remove empty group as a result
 			this.remove();
 		} else {
+			//Split the train at the index
 			removed.playLinkEffect();
 			this.split(index);
 		}
 		return removed;
+	}
+
+	/**
+	 * Splits this train, the index is the first cart for the new group<br><br>
+	 * 
+	 * For example, this Group has a total cart count of 5<br>
+	 * If you then split at index 2, it will result in:<br>
+	 * - This group becomes a group of 2 carts<br>
+	 * - A new group of 3 carts is created
+	 */
+	public MinecartGroup split(int at) {
+		if (at <= 0) return this;
+		if (at >= this.size()) return null;
+		//transfer the new removed carts
+		MinecartGroup gnew = new MinecartGroup();
+		int count = this.size();
+		for (int i = at; i < count; i++) {
+			gnew.add(this.removeMember(this.size() - 1));
+		}
+		//Remove this train if now empty
+		if (!this.isValid()) {
+			this.remove();
+		}
+		//Remove if empty or not allowed, else add
+		if (gnew.isValid()) {
+			//Add the group
+			groups.add(gnew);
+
+			//Set the new active signs
+			for (MinecartMember mm : gnew) {
+				for (Block sign : mm.getActiveSigns()) {
+					gnew.setActiveSign(sign, true);
+				}
+			}
+
+			//Set the new group properties
+			gnew.getProperties().load(this.getProperties());
+
+			GroupCreateEvent.call(gnew);
+			return gnew;
+		} else {
+			gnew.clear();
+			return null;
+		}
 	}
 
 	public void clear() {
@@ -482,6 +542,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (locations == null || locations.length == 0 || locations.length != this.size()) {
 			return;
 		}
+		this.needsSignRefresh = true;
 		boolean needAvoidSmoothing = locations[0].getWorld() == this.getWorld();
 		this.clearActiveSigns();
 		this.breakPhysics();
@@ -684,48 +745,6 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 
 	/**
-	 * Splits this train, the index is the first cart for the new group<br><br>
-	 * 
-	 * For example, this Group has a total cart count of 5<br>
-	 * If you then split at index 2, it will result in:<br>
-	 * - This group becomes a group of 2 carts<br>
-	 * - A new group of 3 carts is created
-	 */
-	public MinecartGroup split(int at) {
-		if (at <= 0) return this;
-		if (at >= this.size()) return null;
-		//transfer the new removed carts
-		MinecartGroup gnew = new MinecartGroup();
-		int count = this.size();
-		for (int i = at; i < count; i++) {
-			gnew.add(this.removeMember(this.size() - 1));
-		}
-		//Remove this train if now empty
-		if (!this.isValid()) this.remove();
-		//Remove if empty or not allowed, else add
-		if (gnew.isValid()) {
-			//Add the group
-			groups.add(gnew);
-			GroupCreateEvent.call(gnew);
-
-			//Set the new active signs
-			for (MinecartMember mm : gnew) {
-				for (Block sign : mm.getActiveSigns()) {
-					gnew.setActiveSign(sign, true);
-				}
-			}
-
-			//Set the new group properties
-			gnew.getProperties().load(this.getProperties());
-
-			return gnew;
-		} else {
-			gnew.clear();
-			return null;
-		}
-	}
-
-	/**
 	 * Aborts any physics routines going on in this tick
 	 */
 	public void breakPhysics() {
@@ -857,6 +876,9 @@ public class MinecartGroup extends MinecartGroupStore {
 			}
 			for (MinecartMember m : this) {
 				m.onPhysicsBlockChange();
+			}
+			if (this.needsSignRefresh) {
+				this.updateActiveSigns();
 			}
 
 			this.updateDirection();

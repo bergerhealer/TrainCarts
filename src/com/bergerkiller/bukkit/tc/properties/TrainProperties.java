@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,11 +43,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public CollisionMode playerCollision = CollisionMode.DEFAULT;
 	public CollisionMode miscCollision = CollisionMode.PUSH;
 	public boolean requirePoweredMinecart = false;
-	private SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
+	private final SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
 
 	protected TrainProperties(String trainname) {
 		this.displayName = this.trainname = trainname;
-		this.setDefault();
 	}
 
 	/**
@@ -200,8 +197,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.add(member.getProperties());
 	}
 
-	public void remove(MinecartMember member) {
-		this.remove(member.getProperties());
+	@Override
+	public boolean remove(Object o) {
+		if (o instanceof MinecartMember) {
+			return super.remove(((MinecartMember) o).getProperties());
+		} else {
+			return super.remove(o);
+		}
 	}
 
 	@Override
@@ -312,7 +314,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
 	@Override
 	public Collection<String> getTags() {
-		List<String> tags = new ArrayList<String>();
+		Set<String> tags = new HashSet<String>();
 		for (CartProperties prop : this) {
 			tags.addAll(prop.getTags());
 		}
@@ -662,7 +664,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	/**
-	 * Loads the properties from the TrainProperties source specified
+	 * Loads the properties from the TrainProperties source specified<br>
+	 * Cart properties are not transferred or cleared!
 	 * 
 	 * @param source to load from
 	 */
@@ -678,8 +681,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.requirePoweredMinecart = source.requirePoweredMinecart;
 		this.keepChunksLoaded = source.keepChunksLoaded;
 		this.allowManualMovement = source.allowManualMovement;
-		this.clear();
-		this.addAll(source);
 	}
 
 	@Override

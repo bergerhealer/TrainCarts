@@ -107,17 +107,20 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			return null;
 		}
 		with = event.getMember();
-		// swap the tracker
-		EntityTrackerEntry entry = WorldUtil.getTrackerEntry(source);
-		// Create MM tracker using old as base
-		if (entry == null) {
-			entry = new MinecartMemberTrackerEntry(with);
-		} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
-			entry = new MinecartMemberTrackerEntry(entry);
+		// Replace entity
+		synchronized (WorldUtil.getTracker(source.world)) {
+			// swap the tracker
+			EntityTrackerEntry entry = WorldUtil.getTrackerEntry(source);
+			// Create MM tracker using old as base
+			if (entry == null) {
+				entry = new MinecartMemberTrackerEntry(with);
+			} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
+				entry = new MinecartMemberTrackerEntry(entry);
+			}
+			with.tracker = (MinecartMemberTrackerEntry) entry;
+			// And set the entity
+			EntityUtil.setEntity(source, with, entry);
 		}
-		with.tracker = (MinecartMemberTrackerEntry) entry;
-		// And set the entity
-		EntityUtil.setEntity(source, with, entry);
 		return with;
 	}
 

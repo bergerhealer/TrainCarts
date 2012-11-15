@@ -100,6 +100,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		TrainProperties prop = trainProperties.get(trainname);
 		if (prop == null) {
 			prop = new TrainProperties(trainname);
+			prop.setDefault();
 			trainProperties.put(trainname, prop);
 		}
 		return prop;
@@ -116,12 +117,13 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 			name = "train" + i;
 			if (!exists(name)) {
 				TrainProperties prop = new TrainProperties(name);
+				prop.setDefault();
 				trainProperties.put(name, prop);
 				return prop;
 			}
 		}
 		// this should never fire...
-		return new TrainProperties("randname" + (int) (Math.random() * 100000));
+		return get("randname" + (int) (Math.random() * 100000));
 	}
 
 	/**
@@ -132,15 +134,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	 */
 	public static boolean exists(String trainname) {
 		if (trainProperties == null) return false;
-		if (trainProperties.containsKey(trainname)) {
-			if (OfflineGroupManager.contains(trainname)) {
-				return true;
-			} else {
-				//doesn't link to a train!
-				trainProperties.remove(trainname);
-			}
-		}
-		return false;
+		return trainProperties.containsKey(trainname);
 	}
 
 	/**
@@ -165,7 +159,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		for (ConfigurationNode node : config.getNodes()) {
 			TrainProperties prop = new TrainProperties(node.getName());
 			prop.load(node);
-			trainProperties.put(prop.trainname, prop);
+			trainProperties.put(prop.getTrainName(), prop);
 		}
 	}
 

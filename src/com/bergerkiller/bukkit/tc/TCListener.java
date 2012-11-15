@@ -139,6 +139,7 @@ public class TCListener implements Listener {
 			Minecart m = (Minecart) event.getVehicle();
 			Location mloc = m.getLocation();
 			mloc.setYaw(m.getLocation().getYaw() + 180);
+			mloc.setPitch(0.0f);
 			final Location loc = MathUtil.move(mloc, TrainCarts.exitOffset);
 			final Entity e = event.getExited();
 			//teleport
