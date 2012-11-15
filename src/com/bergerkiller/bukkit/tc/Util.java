@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -237,25 +238,19 @@ public class Util {
 	}
 
 	public static ItemParser[] getParsers(String... items) {
-		StringBuilder total = new StringBuilder();
-		for (String item : items) {
-			if (item == null) continue;
-			item = item.trim();
-			if (item.length() == 0) continue;
-			if (total.length() > 0) total.append(';');
-			total.append(item);
-		}
-		return getParsers(total.toString());
+		return getParsers(StringUtil.combine(";", items));
 	}
 
 	public static ItemParser[] getParsers(final String items) {
 		List<ItemParser> parsers = new ArrayList<ItemParser>();
 		for (String type : items.split(";")) {
-			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*");
+			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*", "_");
+			boolean groupedMult = false;
 			Integer amount = null;
 			if (idx > 0) {
 				amount = ParseUtil.parseInt(type.substring(0, idx), null);
 				if (amount != null) {
+					groupedMult = type.charAt(idx) == '_';
 					type = type.substring(idx + 1);
 				}
 			}
@@ -263,12 +258,19 @@ public class Util {
 			if (keyparsers.length != 0) {
 				if (amount == null) {
 					// add parsers directly
-					for (ItemParser p : keyparsers) {
-						parsers.add(p);
+					parsers.addAll(Arrays.asList(keyparsers));
+				} else if (groupedMult) {
+					// add parsers one by one
+					for (int i = 0; i < amount; i++) {
+						for (ItemParser p : keyparsers) {
+							Integer a = p.hasAmount() ? p.getAmount() : 1;
+							Material t = p.hasType() ? p.getType() : null;
+							Byte d = p.hasData() ? p.getData() : null;
+							parsers.add(new ItemParser(a, t, d));
+						}
 					}
 				} else {
 					// add parsers with set modifier amount
-					// add parsers directly
 					for (ItemParser p : keyparsers) {
 						parsers.add(p.multiplyAmount(amount.intValue()));
 					}
