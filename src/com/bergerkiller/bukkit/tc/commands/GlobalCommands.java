@@ -1,5 +1,9 @@
 package com.bergerkiller.bukkit.tc.commands;
 
+import net.minecraft.server.Entity;
+import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.WorldServer;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -17,6 +21,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class GlobalCommands {
 
@@ -83,9 +88,19 @@ public class GlobalCommands {
 				}
 			}
 			count += OfflineGroupManager.getStoredCount();
+			int minecartCount = 0;
+			for (WorldServer world : WorldUtil.getWorlds()) {
+				for (Entity e : WorldUtil.getEntities(world)) {
+					if (e instanceof EntityMinecart) {
+						minecartCount++;
+					}
+				}
+			}
 			MessageBuilder builder = new MessageBuilder();
 			builder.green("There are ").yellow(count).green(" trains on this server (of which ");
-			builder.yellow(moving).green(" are moving)").send(sender);
+			builder.yellow(moving).green(" are moving)");
+			builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
+			builder.send(sender);
 			if (sender instanceof Player) {
 				if (args.length == 2 && LogicUtil.contains(args[1], "renamed", "rename", "ren", "name", "named")) {
 					list((Player) sender, true);

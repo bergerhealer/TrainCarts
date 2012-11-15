@@ -513,6 +513,20 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		if (!this.isDerailed()) {
 			// Powered minecart physics section
 			if (this.isPoweredCart()) {
+				// Update pushing direction
+				if (this.pushDirection != BlockFace.SELF) {
+					BlockFace dir = this.member().getDirection();
+					if (this.isMovingHorizontally()) {
+						if (Util.isVertical(this.pushDirection) || FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
+							this.pushDirection = dir;
+						}
+					} else if (this.isOnVertical()) {
+						if (dir != this.pushDirection.getOppositeFace()) {
+							this.pushDirection = dir;
+						}
+					}
+				}
+				
 				// Velocity boost is applied
 				if (!group().isVelocityAction()) {
 					if (this.pushDirection != BlockFace.SELF) {
@@ -524,22 +538,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					} else {
 						if (this.group().getProperties().isSlowingDown()) {
 							this.setForceFactor(0.9);
-						}
-					}
-				}
-
-				// Update pushing direction
-				if (this.pushDirection != BlockFace.SELF) {
-					BlockFace dir = this.member().getDirection();
-					if (this.isMovingHorizontally()) {
-						//BlockFace dir = FaceUtil.getDirection(this.motX, this.motZ, true);
-						if (FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
-							this.pushDirection = dir;
-						}
-					} else if (this.isMovingVertically()) {
-						//BlockFace dir = Util.getVerticalFace(this.motY > 0.0);
-						if (dir != this.pushDirection.getOppositeFace()) {
-							this.pushDirection = dir;
 						}
 					}
 				}
@@ -720,11 +718,18 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			if (this.isOnVertical()) {
 				this.pushDirection = Util.getVerticalFace((this.locY - entityhuman.locY) > 0.0);
 			} else {
-				this.pushDirection = FaceUtil.getDirection(this.locX - entityhuman.locX, this.locZ - entityhuman.locZ, true);
+				BlockFace dir = FaceUtil.getRailsCartDirection(this.getRailDirection());
+				if (MathUtil.isHeadingTo(dir, new Vector(this.locX - entityhuman.locX, 0.0, this.locZ - entityhuman.locZ))) {
+					this.pushDirection = dir;
+				} else {
+					this.pushDirection = dir.getOppositeFace();
+				}
 			}
 			if (this.group().isMoving()) {
-				if (this.pushDirection == this.member().getDirectionTo().getOppositeFace()) {
+				if (this.pushDirection == this.member().getDirection().getOppositeFace()) {
 					this.group().reverse();
+					// Prevent push direction being inverted
+					this.pushDirection = this.pushDirection.getOppositeFace();
 				}
 			}
 			return true;

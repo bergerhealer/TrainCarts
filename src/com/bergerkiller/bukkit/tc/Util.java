@@ -87,6 +87,16 @@ public class Util {
 		}
 	}
 
+	/**
+	 * Checks whether a face is up or down
+	 * 
+	 * @param face to check
+	 * @return True if it is UP or DOWN
+	 */
+	public static boolean isVertical(BlockFace face) {
+		return face == BlockFace.UP || face == BlockFace.DOWN;
+	}
+
 	public static boolean hasAttachedSigns(final Block middle) {
 		return addAttachedSigns(middle, null);
 	}
