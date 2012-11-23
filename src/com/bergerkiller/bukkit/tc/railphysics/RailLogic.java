@@ -134,7 +134,7 @@ public abstract class RailLogic {
 			if (Util.isSloped(rails.getData())) {
 				if (Util.isVerticalAbove(rails, direction)) {
 					// Slope-vertical logic
-					return RailLogicVerticalSlope.get(direction);
+					return RailLogicVerticalSlopeDown.get(direction);
 				} else {
 					// Sloped logic
 					return RailLogicSloped.get(direction);
@@ -158,6 +158,18 @@ public abstract class RailLogic {
 		} else if (Util.ISVERTRAIL.get(typeId)) {
 			// Vertical logic
 			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()));
+		} else {
+			/*
+			// Vertical to slope?
+			Block below = rails.getRelative(BlockFace.DOWN);
+			if (Util.ISVERTRAIL.get(below)) {
+				BlockFace dir = Util.getVerticalRailDirection(below.getData());
+				Rails r = BlockUtil.getRails(rails.getRelative(dir));
+				if (r != null && r.isOnSlope() && r.getDirection() == dir) {
+					return RailLogicVerticalSlopeUp.get(dir);
+				}
+			}
+			*/
 		}
 		// Default, this should never be reached
 		return RailLogicGround.INSTANCE;

@@ -30,7 +30,7 @@ public class VirtualItem extends EntityItem {
 	}
 
 	@Override
-	public void b_(EntityHuman entityhuman) {};
+	public void c_(EntityHuman entityhuman) {};
 
 	@Override
 	public void j_() {

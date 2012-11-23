@@ -99,8 +99,8 @@ public class InventoryWatcher implements IInventory {
 		return self;
 	}
 
-	public boolean a(EntityHuman arg0) {
-		return this.source.a(arg0);
+	public boolean a_(EntityHuman arg0) {
+		return this.source.a_(arg0);
 	}
 	public void f() {
 		this.source.f();

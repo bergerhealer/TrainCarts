@@ -83,7 +83,11 @@ public class MinecartMember extends MinecartMemberStore {
 		EntityMinecartRef.TEMPLATE.transfer(source, this);
 		if (this.isPoweredCart()) {
 			this.fuel = EntityMinecartRef.fuel.get(this);
-			this.pushDirection = FaceUtil.getDirection(this.b, this.c, true);
+			if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
+				this.pushDirection = BlockFace.SELF;
+			} else {
+				this.pushDirection = FaceUtil.getDirection(this.b, this.c, true);
+			}
 		}
 	}
 

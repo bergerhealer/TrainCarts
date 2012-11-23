@@ -9,15 +9,15 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 /**
  * Handles the rail logic of a sloped rail with a vertical rail above
  */
-public class RailLogicVerticalSlope extends RailLogicSloped {
-	private static final RailLogicVerticalSlope[] values = new RailLogicVerticalSlope[4];
+public class RailLogicVerticalSlopeDown extends RailLogicSloped {
+	private static final RailLogicVerticalSlopeDown[] values = new RailLogicVerticalSlopeDown[4];
 	static {
 		for (int i = 0; i < 4; i++) {
-			values[i] = new RailLogicVerticalSlope(FaceUtil.notchToFace(i << 1));
+			values[i] = new RailLogicVerticalSlopeDown(FaceUtil.notchToFace(i << 1));
 		}
 	}
 
-	private RailLogicVerticalSlope(BlockFace direction) {
+	private RailLogicVerticalSlopeDown(BlockFace direction) {
 		super(direction);
 	}
 
@@ -54,7 +54,7 @@ public class RailLogicVerticalSlope extends RailLogicSloped {
 	 * @param direction of the sloped rail
 	 * @return Rail Logic
 	 */
-	public static RailLogicVerticalSlope get(BlockFace direction) {
+	public static RailLogicVerticalSlopeDown get(BlockFace direction) {
 		return values[FaceUtil.faceToNotch(direction) >> 1];
 	}
 }
