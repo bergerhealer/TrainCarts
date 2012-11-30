@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.events;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -377,6 +378,19 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public Sign getSign() {
 		return this.sign;
+	}
+	public Sign[] findSignsBelow() {
+		ArrayList<Sign> below = new ArrayList<Sign>(1);
+		//other signs below this sign we could parse?
+		Block signblock = this.getBlock();
+		while (MaterialUtil.ISSIGN.get(signblock = signblock.getRelative(BlockFace.DOWN))) {
+			Sign sign = BlockUtil.getSign(signblock);
+			if (sign == null || BlockUtil.getFacing(signblock) != this.getFacing()) {
+				break;
+			}
+			below.add(sign);
+		}
+		return below.toArray(new Sign[0]);
 	}
 
 	/**

@@ -63,6 +63,21 @@ public class SignActionSwitcher extends SignAction {
 			statements.add(new DirectionStatement(info.getLine(2), Direction.LEFT));
 			statements.add(new DirectionStatement(info.getLine(3), Direction.RIGHT));
 			//other signs below this sign we could parse?
+			for (Sign sign : info.findSignsBelow()) {
+				boolean valid = true;
+				for (String line : sign.getLines()) {
+					DirectionStatement stat = new DirectionStatement(line);
+					if (stat.direction == Direction.NONE) {
+						valid = false;
+						break;
+					} else {
+						statements.add(stat);
+					}
+				}
+				if (!valid) {
+					break;
+				}
+			}
 			Block signblock = info.getBlock();
 			while (MaterialUtil.ISSIGN.get(signblock = signblock.getRelative(BlockFace.DOWN))) {
 				Sign sign = BlockUtil.getSign(signblock);

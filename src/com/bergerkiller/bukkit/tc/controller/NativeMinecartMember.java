@@ -28,7 +28,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberDeadException;
+import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.RailType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -95,12 +95,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	/**
 	 * Checks if this minecart is dead, and throws an exception if it is
 	 * 
-	 * @throws MemberDeadException
+	 * @throws MemberMissingException
 	 */
-	public void checkDead() throws MemberDeadException {
+	public void checkMissing() throws MemberMissingException {
 		if (this.dead) {
 			this.die();
-			throw new MemberDeadException();
+			throw new MemberMissingException();
+		} else if (this.member().isUnloaded()) {
+			throw new MemberMissingException();
 		}
 	}
 
@@ -425,14 +427,14 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 */
 	public void onPhysicsBlockChange() {
 		// Handle block changes
-		this.checkDead();
+		this.checkMissing();
 		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
 			this.forcedBlockUpdate = false;
 			// Perform events and logic - validate along the way
 			MemberBlockChangeEvent.call(this.member(), moveinfo.lastBlock, moveinfo.block);
-			this.checkDead();
+			this.checkMissing();
 			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
-			this.checkDead();
+			this.checkMissing();
 		}
 		moveinfo.updateRailLogic();
 	}
@@ -487,12 +489,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * Physics stage: <b>4</b>
 	 * 
 	 * @param speedFactor to apply when moving
-	 * @throws MemberDeadException - thrown when the minecart is dead or dies
+	 * @throws MemberMissingException - thrown when the minecart is dead or dies
 	 * @throws GroupUnloadedException - thrown when the group is no longer loaded
 	 */
 	@SuppressWarnings("unchecked")
-	public void onPhysicsPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
-		this.checkDead();
+	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+		this.checkMissing();
 
 		// Modify speed factor to stay within bounds
 		speedFactor = MathUtil.clamp(MathUtil.fixNaN(speedFactor, 1), 0.1, 10);
@@ -509,7 +511,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 		// Move using set motion, and perform post-move rail logic
 		this.onMove(motX, motY, motZ);
-		this.checkDead();
+		this.checkMissing();
 		this.moveinfo.railLogic.onPostMove(this.member());
 
 		// Post-move logic

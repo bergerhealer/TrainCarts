@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -26,8 +27,22 @@ public class SignActionAnnounce extends SignAction {
 		Player player = (Player) member.getPassenger();
 		sendMessage(getMessage(info), player);
 	}
+	private static void appendWithSpace(StringBuilder builder, String part) {
+		if (!part.startsWith(" ") && builder.length() > 0 && builder.charAt(builder.length() - 1) != ' ') {
+			builder.append(' ');
+		}
+		builder.append(part);
+	}
 	public static String getMessage(SignActionEvent info) {
-		return getMessage(info.getLine(2) + info.getLine(3));
+		StringBuilder message = new StringBuilder(32);
+		appendWithSpace(message, info.getLine(2));
+		appendWithSpace(message, info.getLine(3));
+		for (Sign sign : info.findSignsBelow()) {
+			for (String line : sign.getLines()) {
+				appendWithSpace(message, line);
+			}
+		}
+		return getMessage(message.toString());
 	}
 	public static String getMessage(String msg) {
 		return StringUtil.ampToColor(TrainCarts.messageShortcuts.replace(msg));

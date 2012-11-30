@@ -243,7 +243,7 @@ public class Util {
 
 	public static ItemParser[] getParsers(final String items) {
 		List<ItemParser> parsers = new ArrayList<ItemParser>();
-		for (String type : items.split(";", -1)) {
+		for (String type : items.split(";")) {
 			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*", "_");
 			boolean groupedMult = false;
 			Integer amount = null;
@@ -278,6 +278,9 @@ public class Util {
 			} else {
 				parsers.add(ItemParser.parse(type, amount == null ? null : amount.toString()));
 			}
+		}
+		if (parsers.isEmpty()) {
+			parsers.add(new ItemParser(null, null));
 		}
 		return parsers.toArray(new ItemParser[0]);
 	}

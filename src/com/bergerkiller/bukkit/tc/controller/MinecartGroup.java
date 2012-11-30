@@ -32,7 +32,7 @@ import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.items.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberDeadException;
+import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
@@ -857,7 +857,7 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			//validate members and set max speed
 			for (MinecartMember mm : this) {
-				mm.checkDead();
+				mm.checkMissing();
 				mm.maxSpeed = this.getProperties().getSpeedLimit() / (double) stepcount;
 			}
 
@@ -993,7 +993,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				}
 			}
 			return true;
-		} catch (MemberDeadException ex) {
+		} catch (MemberMissingException ex) {
 			return false;
 		}
 	}

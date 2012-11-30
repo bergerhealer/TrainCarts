@@ -37,7 +37,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.items.ItemParser;
 import com.bergerkiller.bukkit.common.items.MergedInventory;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberDeadException;
+import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
@@ -131,9 +131,9 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	@Override
-	public void onPhysicsPostMove(double speedFactor) throws MemberDeadException, GroupUnloadedException {
+	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
 		super.onPhysicsPostMove(speedFactor);
-		this.checkDead();
+		this.checkMissing();
 		if (this.getProperties().canPickup() && this.isStorageCart()) {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
@@ -226,11 +226,11 @@ public class MinecartMember extends MinecartMemberStore {
 
 		//update active signs
 		this.clearActiveSigns();
-		this.checkDead();
+		this.checkMissing();
 		if (!this.isDerailed()) {
 			for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
 				this.addActiveSign(sign);
-				this.checkDead();
+				this.checkMissing();
 			}
 
 			//destroy blocks
@@ -872,7 +872,11 @@ public class MinecartMember extends MinecartMemberStore {
 	public void teleport(Location to) {
 		boolean changedWorld = to.getWorld() != this.getWorld();
 		this.died = true;
+		// === Teleport - set unloaded to true and false again to prevent group unloading ===
+		this.unloaded = true;
 		EntityUtil.teleport(this, to);
+		this.unloaded = false;
+		// =======================
 		if (changedWorld) {
 			this.tracker = new MinecartMemberTrackerEntry(this);
 			WorldUtil.setTrackerEntry(this, this.tracker);
