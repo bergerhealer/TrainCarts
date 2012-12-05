@@ -526,7 +526,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 							this.pushDirection = dir;
 						}
 					} else {
-						if (Util.isVertical(this.pushDirection) || FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
+						if (FaceUtil.isVertical(this.pushDirection) || FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
 							this.pushDirection = dir;
 						}
 					}
@@ -576,7 +576,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 						this.setForceFactor(0.0);
 					} else if (pushFrom1 != pushFrom2) {
 						// Boosting to the open spot
-						final double boost = Util.invert(POWERED_RAIL_START_BOOST, pushFrom2);
+						final double boost = MathUtil.invert(POWERED_RAIL_START_BOOST, pushFrom2);
 						this.motX = boost * dir.getModX();
 						this.motZ = boost * dir.getModZ();
 					}

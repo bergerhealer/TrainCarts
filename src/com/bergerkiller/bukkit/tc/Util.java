@@ -39,17 +39,6 @@ public class Util {
 	}
 
 	/**
-	 * Turns a value negative or keeps it positive based on a boolean input
-	 * 
-	 * @param value to work with
-	 * @param negative - True to invert, False to keep the old value
-	 * @return the value or inverted (-value)
-	 */
-	public static double invert(double value, boolean negative) {
-		return negative ? -value : value;
-	}
-
-	/**
 	 * Gets the BlockFace.UP or BlockFace.DOWN based on a boolean input
 	 * 
 	 * @param up - True to get UP, False to get DOWN
@@ -86,16 +75,6 @@ public class Util {
 			default: 
 				return face;
 		}
-	}
-
-	/**
-	 * Checks whether a face is up or down
-	 * 
-	 * @param face to check
-	 * @return True if it is UP or DOWN
-	 */
-	public static boolean isVertical(BlockFace face) {
-		return face == BlockFace.UP || face == BlockFace.DOWN;
 	}
 
 	public static boolean hasAttachedSigns(final Block middle) {
@@ -266,7 +245,7 @@ public class Util {
 							Integer a = p.hasAmount() ? p.getAmount() : 1;
 							Material t = p.hasType() ? p.getType() : null;
 							Byte d = p.hasData() ? p.getData() : null;
-							parsers.add(new ItemParser(a, t, d));
+							parsers.add(new ItemParser(t, a, d));
 						}
 					}
 				} else {

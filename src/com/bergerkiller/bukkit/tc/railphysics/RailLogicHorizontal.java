@@ -4,7 +4,6 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -68,7 +67,7 @@ public class RailLogicHorizontal extends RailLogic {
 			// Invert only if the direction is inverted relative to cart velocity
 			invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;
 		}
-		double railFactor = Util.invert(MathUtil.normalize(this.dx, this.dz, member.motX, member.motZ), invert);
+		double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, member.motX, member.motZ), invert);
 		member.motX = railFactor * this.dx;
 		member.motZ = railFactor * this.dz;
 		member.motY = 0.0;
