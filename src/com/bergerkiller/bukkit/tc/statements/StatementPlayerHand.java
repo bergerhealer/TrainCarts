@@ -7,7 +7,7 @@ import org.bukkit.inventory.Inventory;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.ItemStack;
 
-import com.bergerkiller.bukkit.common.items.SimpleInventory;
+import com.bergerkiller.bukkit.common.natives.IInventoryBaseImpl;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -30,9 +30,9 @@ public class StatementPlayerHand extends StatementItems {
 			item = ((EntityPlayer) member.passenger).inventory.getItemInHand();
 		}
 		if (item == null) {
-			return new SimpleInventory(new ItemStack[0]).getInventory();
+			return new IInventoryBaseImpl(new ItemStack[0]).getInventory();
 		} else {
-			return new SimpleInventory(item).getInventory();
+			return new IInventoryBaseImpl(item).getInventory();
 		}
 	}
 	
@@ -47,6 +47,6 @@ public class StatementPlayerHand extends StatementItems {
 				}
 			}
 		}
-		return new SimpleInventory(items).getInventory();
+		return new IInventoryBaseImpl(items).getInventory();
 	}
 }

@@ -4,11 +4,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import net.minecraft.server.ChunkCoordinates;
-
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorListener;
@@ -21,7 +19,7 @@ public class DetectorSignPair implements DetectorListener {
 		this.sign2 = new DetectorSign(this, sign2);
 	}
 
-	public DetectorSignPair(ChunkCoordinates sign1, ChunkCoordinates sign2) {
+	public DetectorSignPair(IntVector3 sign1, IntVector3 sign2) {
 		this.sign1 = new DetectorSign(this, sign1);
 		this.sign2 = new DetectorSign(this, sign2);
 	}
@@ -30,8 +28,8 @@ public class DetectorSignPair implements DetectorListener {
 	public DetectorRegion region;
 
 	public static DetectorSignPair read(DataInputStream stream) throws IOException {
-		ChunkCoordinates sign1 = StreamUtil.readCoordinates(stream);
-		ChunkCoordinates sign2 = StreamUtil.readCoordinates(stream);
+		IntVector3 sign1 = IntVector3.read(stream);
+		IntVector3 sign2 = IntVector3.read(stream);
 		DetectorSignPair detector = new DetectorSignPair(sign1, sign2);
 		detector.sign1.wasDown = stream.readBoolean();
 		detector.sign2.wasDown = stream.readBoolean();
@@ -39,8 +37,8 @@ public class DetectorSignPair implements DetectorListener {
 	}
 
 	public void write(DataOutputStream stream) throws IOException {
-		StreamUtil.writeCoordinates(stream, this.sign1.getLocation());
-		StreamUtil.writeCoordinates(stream, this.sign2.getLocation());
+		this.sign1.getLocation().write(stream);
+		this.sign2.getLocation().write(stream);
 		stream.writeBoolean(this.sign1.wasDown);
 		stream.writeBoolean(this.sign2.wasDown);
 	}

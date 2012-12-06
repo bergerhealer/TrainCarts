@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import net.minecraft.server.Entity;
-
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -20,7 +18,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.items.ItemParser;
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.Task;
@@ -41,6 +38,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class TrainCarts extends PluginBase {
 
@@ -431,14 +429,11 @@ public class TrainCarts extends PluginBase {
 		}
 
 		//entities left behind?
-		new Operation() {
-			public void run() {
-				this.doEntities();
-			}
-			public void handle(Entity entity) {
+		for (World world : WorldUtil.getWorlds()) {
+			for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
 				OfflineGroupManager.hideGroup(entity);
 			}
-		};
+		}
 
 		save();
 

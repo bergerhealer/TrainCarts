@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.minecraft.server.ChunkCoordinates;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
@@ -34,8 +33,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.items.ItemParser;
-import com.bergerkiller.bukkit.common.items.MergedInventory;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -49,6 +48,7 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.common.natives.IInventoryMerged;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -56,6 +56,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -560,7 +561,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public List<net.minecraft.server.Entity> getNearbyEntities(double x, double y, double z) {
 		return this.world.getEntities(this, this.boundingBox.grow(x, y, z));
 	}
-	public Vector getOffset(ChunkCoordinates to) {
+	public Vector getOffset(IntVector3 to) {
 		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());
 	}
 	public Vector getOffset(Entity to) {
@@ -687,7 +688,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isHeadingTo(Entity entity) {
 		return this.isHeadingTo(entity.getLocation());
 	}
-	public boolean isHeadingTo(ChunkCoordinates location) {
+	public boolean isHeadingTo(IntVector3 location) {
 		return MathUtil.isHeadingTo(this.getOffset(location), this.getVelocity());
 		
 	}
@@ -780,7 +781,7 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.hasPlayerPassenger()) {
 			return new CraftInventoryPlayer(((EntityPlayer) this.passenger).inventory);
 		} else {
-			return new CraftInventory(new MergedInventory(new IInventory[0]));
+			return new CraftInventory(new IInventoryMerged(new IInventory[0]));
 		}
 	}
 	public boolean hasPlayerPassenger() {
@@ -896,7 +897,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	public boolean isCollisionIgnored(Entity entity) {
-		return isCollisionIgnored(EntityUtil.getNative(entity));
+		return isCollisionIgnored(NativeUtil.getNative(entity));
 	}
 	public boolean isCollisionIgnored(net.minecraft.server.Entity entity) {
 		if (entity instanceof MinecartMember) {
@@ -911,7 +912,7 @@ public class MinecartMember extends MinecartMemberStore {
 				member.collisionIgnoreTimes.containsKey(this.uniqueId);
 	}
 	public void ignoreCollision(Entity entity, int ticktime) {
-		this.ignoreCollision(EntityUtil.getNative(entity), ticktime);
+		this.ignoreCollision(NativeUtil.getNative(entity), ticktime);
 	}
 	public void ignoreCollision(net.minecraft.server.Entity entity, int ticktime) {
 		collisionIgnoreTimes.put(entity.uniqueId, new AtomicInteger(ticktime));

@@ -17,7 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.items.ItemParser;
-import com.bergerkiller.bukkit.common.items.MergedInventory;
+import com.bergerkiller.bukkit.common.natives.IInventoryMerged;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
@@ -241,7 +241,7 @@ public class SignActionDeposit extends SignAction {
 			}
 			ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
 			int limit;
-			final Inventory to = MergedInventory.convert(invlist);
+			final Inventory to = IInventoryMerged.convert(invlist);
 			for (ItemParser p : parsers) {
 				if (p == null) continue;
 				limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;

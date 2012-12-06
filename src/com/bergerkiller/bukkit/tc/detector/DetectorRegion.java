@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -73,23 +74,23 @@ public final class DetectorRegion {
 	public static DetectorRegion create(Collection<Block> blocks) {
 		if (blocks.isEmpty()) return null;
 		World world = null;
-		Set<ChunkCoordinates> coords = new HashSet<ChunkCoordinates>(blocks.size());
+		Set<IntVector3> coords = new HashSet<IntVector3>(blocks.size());
 		for (Block b : blocks) {
 			if (world == null) {
 				world = b.getWorld();
 			} else if (world != b.getWorld()) {
 				continue;
 			}
-			coords.add(BlockUtil.getCoordinates(b));
+			coords.add(new IntVector3(b));
 		}
 		return create(world, coords);
 	}
-	public static DetectorRegion create(World world, final Set<ChunkCoordinates> coordinates) {
+	public static DetectorRegion create(World world, final Set<IntVector3> coordinates) {
 		return create(world.getName(), coordinates);
 	}
-	public static DetectorRegion create(final String world, final Set<ChunkCoordinates> coordinates) {
+	public static DetectorRegion create(final String world, final Set<IntVector3> coordinates) {
 		//first check if this region is not already defined
-		for (ChunkCoordinates coord : coordinates) {
+		for (IntVector3 coord : coordinates) {
 			List<DetectorRegion> list = regions.get(world, coord);
 			if (list != null) {
 				for (DetectorRegion region : list) {
@@ -113,12 +114,12 @@ public final class DetectorRegion {
 	public static DetectorRegion getRegion(UUID uniqueId) {
 		return regionsById.get(uniqueId);
 	}
-	private DetectorRegion(final UUID uniqueId, final String world, final Set<ChunkCoordinates> coordinates) {
+	private DetectorRegion(final UUID uniqueId, final String world, final Set<IntVector3> coordinates) {
 		this.world = world;
 		this.id = uniqueId;
 		this.coordinates = coordinates;
 		regionsById.put(this.id, this);
-		for (ChunkCoordinates coord : this.coordinates) {
+		for (IntVector3 coord : this.coordinates) {
 			List<DetectorRegion> list = regions.get(world, coord);
 			if (list == null) {
 				list = new ArrayList<DetectorRegion>(1);
@@ -129,7 +130,7 @@ public final class DetectorRegion {
 		//load members
 		World w = Bukkit.getServer().getWorld(this.world);
 		if (w != null) {
-			for (ChunkCoordinates coord : this.coordinates) {
+			for (IntVector3 coord : this.coordinates) {
 				MinecartMember mm = MinecartMember.getAt(w, coord);
 				if (mm != null && this.members.add(mm)) {
 					this.onEnter(mm);
@@ -139,13 +140,13 @@ public final class DetectorRegion {
 	}
 	private final UUID id;
 	private final String world;
-	private final Set<ChunkCoordinates> coordinates;
+	private final Set<IntVector3> coordinates;
 	private final Set<MinecartMember> members = new HashSet<MinecartMember>();
 	private final List<DetectorListener> listeners = new ArrayList<DetectorListener>(1);
 	public String getWorldName() {
 		return this.world;
 	}
-	public Set<ChunkCoordinates> getCoordinates() {
+	public Set<IntVector3> getCoordinates() {
 		return this.coordinates;
 	}
 	public Set<MinecartMember> getMembers() {
@@ -236,7 +237,7 @@ public final class DetectorRegion {
 			iter.remove();
 		}
 		regionsById.remove(this.id);
-		for (ChunkCoordinates coord : this.coordinates) {
+		for (IntVector3 coord : this.coordinates) {
 			List<DetectorRegion> list = regions.get(this.world, coord);
 			if (list == null) continue;
 			list.remove(this);
@@ -257,9 +258,9 @@ public final class DetectorRegion {
 					UUID id = StreamUtil.readUUID(stream);
 					String world = stream.readUTF();
 					coordcount = stream.readInt();
-					Set<ChunkCoordinates> coords = new HashSet<ChunkCoordinates>(coordcount);
+					Set<IntVector3> coords = new HashSet<IntVector3>(coordcount);
 					for (;coordcount > 0; --coordcount) {
-						coords.add(StreamUtil.readCoordinates(stream));
+						coords.add(IntVector3.read(stream));
 					}
 					//create
 					new DetectorRegion(id, world, coords);
@@ -280,8 +281,8 @@ public final class DetectorRegion {
 					StreamUtil.writeUUID(stream, region.id);
 					stream.writeUTF(region.world);
 					stream.writeInt(region.coordinates.size());
-					for (ChunkCoordinates coord : region.coordinates) {
-						StreamUtil.writeCoordinates(stream, coord);
+					for (IntVector3 coord : region.coordinates) {
+						coord.write(stream);
 					}
 				}
 			}

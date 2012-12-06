@@ -3,23 +3,21 @@ package com.bergerkiller.bukkit.tc.storage;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
-import net.minecraft.server.ChunkCoordinates;
-
 public abstract class OfflineSign {
 
-	public OfflineSign(ChunkCoordinates location) {
+	public OfflineSign(IntVector3 location) {
 		this.location = location;
 	}
 
-	private final ChunkCoordinates location;
+	private final IntVector3 location;
 	private boolean isRemoved = false;
 
-	public ChunkCoordinates getLocation() {
+	public IntVector3 getLocation() {
 		return this.location;
 	}
 
@@ -49,7 +47,7 @@ public abstract class OfflineSign {
 	 */
 	public SignActionEvent getSignEvent(World world) {
 		if (this.isLoaded(world)) {
-			Block signblock = BlockUtil.getBlock(world, this.location);
+			Block signblock = this.location.toBlock(world);
 			if (MaterialUtil.ISSIGN.get(signblock)) {
 				SignActionEvent event = new SignActionEvent(signblock);
 				if (this.validate(event)) {

@@ -7,27 +7,26 @@ import java.util.UUID;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.events.MemberConvertEvent;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
-import net.minecraft.server.ChunkCoordinates;
+import net.minecraft.server.Entity;
 import net.minecraft.server.EntityMinecart;
 import net.minecraft.server.EntityTrackerEntry;
 import net.minecraft.server.World;
-import net.minecraft.server.WorldServer;
 
 public abstract class MinecartMemberStore extends NativeMinecartMember {
 
@@ -39,22 +38,22 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 * Converts all Minecarts on all enabled worlds into Minecart Members
 	 */
 	public static void convertAll() {
-		List<EntityMinecart> minecarts = new ArrayList<EntityMinecart>();
-		for (WorldServer world : WorldUtil.getWorlds()) {
-			if (TrainCarts.isWorldDisabled(world.getWorld())) {
+		List<Minecart> minecarts = new ArrayList<Minecart>();
+		for (org.bukkit.World world : WorldUtil.getWorlds()) {
+			if (TrainCarts.isWorldDisabled(world)) {
 				continue;
 			}
-			for (net.minecraft.server.Entity entity : WorldUtil.getEntities(world)) {
-				if (canConvert(entity)) {
-					minecarts.add((EntityMinecart) entity);
+			for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
+				if (canConvert(NativeUtil.getNative(entity))) {
+					minecarts.add((Minecart) entity);
 				}
 			}
-			// Convert
-			for (EntityMinecart em : minecarts) {
-				convert(em);
-			}
-			minecarts.clear();
 		}
+		// Convert
+		for (Minecart em : minecarts) {
+			convert(NativeUtil.getNative(em));
+		}
+		minecarts.clear();
 	}
 
 	/**
@@ -68,7 +67,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 * @param minecart to check
 	 * @return True if the minecart can be converted, False if not
 	 */
-	public static boolean canConvert(net.minecraft.server.Entity minecart) {
+	public static boolean canConvert(Entity minecart) {
 		if (minecart != null && !(minecart instanceof MinecartMember)) {
 			Class<?> clazz = minecart.getClass();
 			if (clazz.equals(EntityMinecart.class) || clazz.getName().equals("com.bergerkiller.bukkit.tc.controller.MinecartMember")) {
@@ -130,7 +129,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 * @param minecart to check (only checks if it is an EntityMinecart)
 	 * @return True if valid, False if not
 	 */
-	public static boolean validateMinecart(net.minecraft.server.Entity minecart) {
+	public static boolean validateMinecart(Entity minecart) {
 		if (minecart instanceof EntityMinecart) {
 			//could be a bugged minecart.
 			//verify that it is not bugged
@@ -156,7 +155,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 * @return Minecart Member, or null if not found
 	 */
 	public static MinecartMember getFromUID(UUID uuid) {
-		for (World world : WorldUtil.getWorlds()) {
+		for (org.bukkit.World world : WorldUtil.getWorlds()) {
 			MinecartMember member = CommonUtil.tryCast(EntityUtil.getEntity(world, uuid), MinecartMember.class);
 			if (member != null && !member.isUnloaded()) {
 				return member;
@@ -173,7 +172,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			return getFromUID((UUID) o);
 		}
 		if (o instanceof Minecart) {
-			o = EntityUtil.getNative((Minecart) o);
+			o = NativeUtil.getNative((Minecart) o);
 		}
 		if (o instanceof MinecartMember) {
 			MinecartMember member = (MinecartMember) o;
@@ -225,7 +224,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	}
 
 	public static MinecartMember spawn(Location at, int type) {
-		MinecartMember mm = new MinecartMember(WorldUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
+		MinecartMember mm = new MinecartMember(NativeUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
 		mm = MemberSpawnEvent.call(mm).getMember();
@@ -238,30 +237,28 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 
 	public static MinecartMember getAt(Block railblock) {
 		if (railblock == null) return null;
-		return getAt(WorldUtil.getNative(railblock.getWorld()), BlockUtil.getCoordinates(railblock));
+		return getAt(NativeUtil.getNative(railblock.getWorld()), new IntVector3(railblock));
 	}
 
-	public static MinecartMember getAt(org.bukkit.World world, ChunkCoordinates coord) {
-		return getAt(WorldUtil.getNative(world), coord);
+	public static MinecartMember getAt(org.bukkit.World world, IntVector3 coord) {
+		return getAt(NativeUtil.getNative(world), coord);
 	}
 
-	@SuppressWarnings("rawtypes")
-	public static MinecartMember getAt(World world, ChunkCoordinates coord) {
-		net.minecraft.server.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
+	public static MinecartMember getAt(World world, IntVector3 coord) {
+		org.bukkit.Chunk chunk = WorldUtil.getChunk(world.getWorld(), coord.x >> 4, coord.z >> 4);
 		if (chunk != null) {
 			MinecartMember mm;
 			MinecartMember result = null;
 			// find member in chunk
-			for (List list : chunk.entitySlices) {
-				for (Object e : list) {
-					if (e instanceof MinecartMember) {
-						mm = (MinecartMember) e;
-						if (mm.getLiveBlockX() != coord.x) continue;
-						if (mm.getLiveBlockY() != coord.y) continue;
-						if (mm.getLiveBlockZ() != coord.z) continue;
-						result = mm;
-						if (result.isHeadingTo(coord)) return result;
-					}
+			for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(chunk)) {
+				Entity e = NativeUtil.getNative(entity);
+				if (e instanceof MinecartMember) {
+					mm = (MinecartMember) e;
+					if (mm.getLiveBlockX() != coord.x) continue;
+					if (mm.getLiveBlockY() != coord.y) continue;
+					if (mm.getLiveBlockZ() != coord.z) continue;
+					result = mm;
+					if (result.isHeadingTo(coord)) return result;
 				}
 			}
 			if (result == null) {
@@ -288,7 +285,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 		if (at == null) return null;
 		searchRadius *= searchRadius;
 		MinecartMember result = null;
-		for (Entity e : at.getBlock().getChunk().getEntities()) {
+		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(at.getBlock().getChunk())) {
 			if (e instanceof Minecart) {
 				MinecartMember mm = get(e);
 				if (mm == null) continue;

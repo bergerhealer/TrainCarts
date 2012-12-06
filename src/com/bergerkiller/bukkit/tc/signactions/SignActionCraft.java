@@ -8,9 +8,9 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -38,7 +38,7 @@ public class SignActionCraft extends SignAction {
 			} else if (dir == BlockFace.WEST) {
 				radZ = 0;
 			}
-			World world = WorldUtil.getNative(info.getWorld());
+			World world = NativeUtil.getNative(info.getWorld());
 			Block m = info.getRails();
 			int id;
 			Block w = null;

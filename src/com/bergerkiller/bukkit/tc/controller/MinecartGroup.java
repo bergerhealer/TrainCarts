@@ -15,8 +15,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import net.minecraft.server.ChunkCoordinates;
-import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
 
@@ -28,8 +26,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.items.ItemParser;
-import com.bergerkiller.bukkit.common.items.MergedInventory;
+import com.bergerkiller.bukkit.common.natives.IInventoryMerged;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
@@ -52,7 +51,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 public class MinecartGroup extends MinecartGroupStore {
 	private static final long serialVersionUID = 3;
 
-	private Map<ChunkPosition, MinecartMember> memberBlockSpace = new HashMap<ChunkPosition, MinecartMember>();
+	private Map<IntVector3, MinecartMember> memberBlockSpace = new HashMap<IntVector3, MinecartMember>();
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
@@ -177,8 +176,8 @@ public class MinecartGroup extends MinecartGroupStore {
 	public void updateActiveSigns() {
 		this.needsSignRefresh = false;
 		World world = this.getWorld();
-		for (Map.Entry<ChunkPosition, MinecartMember> entry : this.memberBlockSpace.entrySet()) {
-			ChunkPosition p = entry.getKey();
+		for (Map.Entry<IntVector3, MinecartMember> entry : this.memberBlockSpace.entrySet()) {
+			IntVector3 p = entry.getKey();
 			Block block = world.getBlockAt(p.x, p.y, p.z);
 			if (Util.ISTCRAIL.get(block)) {
 				for (Block sign : Util.getSignsFromRails(block)) {
@@ -709,7 +708,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				i++;
 			}
 		}
-		return MergedInventory.convert(source);
+		return IInventoryMerged.convert(source);
 	}
 	public Inventory getPlayerInventory() {
 		//count amount of player passengers
@@ -727,7 +726,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				i++;
 			}
 		}
-		return MergedInventory.convert(source);
+		return IInventoryMerged.convert(source);
 	}
 
 	public void loadChunks() {
@@ -775,8 +774,8 @@ public class MinecartGroup extends MinecartGroupStore {
 	 * @param position to get the member at
 	 * @return member at the position, or null if not found
 	 */
-	public MinecartMember getAt(ChunkCoordinates position) {
-		return this.memberBlockSpace.get(new ChunkPosition(position.x, position.y, position.z));
+	public MinecartMember getAt(IntVector3 position) {
+		return this.memberBlockSpace.get(new IntVector3(position.x, position.y, position.z));
 	}
 
 	/**
@@ -791,23 +790,23 @@ public class MinecartGroup extends MinecartGroupStore {
 		} else if (this.size() > 1) {
 			for (int i = 0; i < this.size() - 1; i++) {
 				MinecartMember member = get(i);
-				ChunkPosition from = member.getBlockPos();
-				ChunkPosition to = get(i + 1).getBlockPos();
+				IntVector3 from = member.getBlockPos();
+				IntVector3 to = get(i + 1).getBlockPos();
 				this.memberBlockSpace.put(from, member);
 				if (to.x > from.x + 1) {
-					this.memberBlockSpace.put(new ChunkPosition(from.x + 1, from.y, from.z), member);
+					this.memberBlockSpace.put(new IntVector3(from.x + 1, from.y, from.z), member);
 				} else if (to.x + 1 < from.x) {
-					this.memberBlockSpace.put(new ChunkPosition(from.x - 1, from.y, from.z), member);
+					this.memberBlockSpace.put(new IntVector3(from.x - 1, from.y, from.z), member);
 				}
 				if (to.y > from.y + 1) {
-					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y + 1, from.z), member);
+					this.memberBlockSpace.put(new IntVector3(from.x, from.y + 1, from.z), member);
 				} else if (to.y + 1 < from.y) {
-					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y - 1, from.z), member);
+					this.memberBlockSpace.put(new IntVector3(from.x, from.y - 1, from.z), member);
 				}
 				if (to.z > from.z + 1) {
-					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z + 1), member);
+					this.memberBlockSpace.put(new IntVector3(from.x, from.y, from.z + 1), member);
 				} else if (to.z + 1 < from.z) {
-					this.memberBlockSpace.put(new ChunkPosition(from.x, from.y, from.z - 1), member);
+					this.memberBlockSpace.put(new IntVector3(from.x, from.y, from.z - 1), member);
 				}
 			}
 			this.memberBlockSpace.put(tail().getBlockPos(), tail());

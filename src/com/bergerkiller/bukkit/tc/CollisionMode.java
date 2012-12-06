@@ -1,8 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import net.minecraft.server.EntityDamageSource;
-import net.minecraft.server.EntityLiving;
-
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
@@ -42,10 +39,9 @@ public enum CollisionMode {
 						TCListener.cancelNextDrops = true;
 					}
 					if (entity instanceof LivingEntity) {
-						boolean old = Util.setInvulnerable(entity, false);
-						EntityLiving living = EntityUtil.getNative(entity, EntityLiving.class);
-						living.damageEntity(new EntityDamageSource("mob", member), Short.MAX_VALUE);
-						Util.setInvulnerable(entity, old);
+						boolean old = EntityUtil.isInvulnerable(entity);
+						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getBukkitEntity());
+						EntityUtil.setInvulnerable(entity, old);
 					} else {
 						entity.remove();
 					}

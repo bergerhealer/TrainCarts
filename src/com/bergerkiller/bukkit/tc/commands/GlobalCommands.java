@@ -1,13 +1,10 @@
 package com.bergerkiller.bukkit.tc.commands;
 
-import net.minecraft.server.Entity;
-import net.minecraft.server.EntityMinecart;
-import net.minecraft.server.WorldServer;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -89,9 +86,9 @@ public class GlobalCommands {
 			}
 			count += OfflineGroupManager.getStoredCount();
 			int minecartCount = 0;
-			for (WorldServer world : WorldUtil.getWorlds()) {
-				for (Entity e : WorldUtil.getEntities(world)) {
-					if (e instanceof EntityMinecart) {
+			for (World world : WorldUtil.getWorlds()) {
+				for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
+					if (e instanceof Minecart) {
 						minecartCount++;
 					}
 				}

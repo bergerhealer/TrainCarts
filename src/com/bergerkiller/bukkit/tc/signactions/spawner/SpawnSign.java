@@ -9,14 +9,11 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.storage.OfflineSign;
-
-import net.minecraft.server.ChunkCoordinates;
 
 public class SpawnSign extends OfflineSign {
 
@@ -27,10 +24,10 @@ public class SpawnSign extends OfflineSign {
 	private Task task = null;
 
 	public SpawnSign(Block block, long interval) {
-		this(BlockUtil.getCoordinates(block), block.getWorld().getName(), interval);
+		this(new IntVector3(block), block.getWorld().getName(), interval);
 	}
 
-	public SpawnSign(ChunkCoordinates location, String worldname, long interval) {
+	public SpawnSign(IntVector3 location, String worldname, long interval) {
 		super(location);
 		this.interval = interval;
 		this.world = worldname;
@@ -38,14 +35,14 @@ public class SpawnSign extends OfflineSign {
 	}
 
 	public void write(DataOutputStream stream) throws IOException {
-		StreamUtil.writeCoordinates(stream, this.getLocation());
+		this.getLocation().write(stream);
 		stream.writeUTF(this.world);
 		stream.writeLong(this.interval);
 		stream.writeLong(this.getRemaining());
 	}
 
 	public static SpawnSign read(DataInputStream stream) throws IOException {
-		ChunkCoordinates coord = StreamUtil.readCoordinates(stream);
+		IntVector3 coord = IntVector3.read(stream);
 		String world = stream.readUTF();
 		long interval = stream.readLong();
 		SpawnSign sign = new SpawnSign(coord, world, interval);

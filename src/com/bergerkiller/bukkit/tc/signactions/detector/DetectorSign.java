@@ -1,11 +1,9 @@
 package com.bergerkiller.bukkit.tc.signactions.detector;
 
-import net.minecraft.server.ChunkCoordinates;
-
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -17,10 +15,10 @@ import com.bergerkiller.bukkit.tc.storage.OfflineSign;
 public class DetectorSign extends OfflineSign {
 
 	public DetectorSign(DetectorSignPair detector, Block signBlock) {
-		this(detector, BlockUtil.getCoordinates(signBlock));
+		this(detector, new IntVector3(signBlock));
 	}
 
-	public DetectorSign(DetectorSignPair detector, ChunkCoordinates signLocation) {
+	public DetectorSign(DetectorSignPair detector, IntVector3 signLocation) {
 		super(signLocation);
 		this.detector = detector;
 	}

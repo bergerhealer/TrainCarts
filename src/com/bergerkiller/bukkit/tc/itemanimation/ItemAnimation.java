@@ -99,7 +99,7 @@ public class ItemAnimation {
 	private static Object fixObject(Object object) {
 		if (object instanceof TileEntity) {
 			TileEntity t = (TileEntity) object;
-			return new Location(BlockUtil.getWorld(t).getWorld(), t.x, t.y, t.z);
+			return new Location(BlockUtil.getWorld(t), t.x, t.y, t.z);
 		}
 		if (object instanceof GroundItemsInventory) {
 			return ((GroundItemsInventory) object).getLocation();

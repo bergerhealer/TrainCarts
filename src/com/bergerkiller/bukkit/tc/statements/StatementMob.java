@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.statements;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -15,14 +16,14 @@ public class StatementMob extends Statement {
 
 	@Override
 	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
-		return member.hasPassenger() && EntityUtil.isMob(member.passenger);
+		return member.hasPassenger() && EntityUtil.isMob(member.getPassenger());
 	}
 
 	@Override
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = 0;
 		for (MinecartMember member : group) {
-			if (member.hasPassenger() && EntityUtil.isMob(member.passenger)) {
+			if (member.hasPassenger() && EntityUtil.isMob(NativeUtil.getEntity(member.passenger))) {
 				count++;
 			}
 		}
@@ -42,8 +43,8 @@ public class StatementMob extends Statement {
 			mob = mob.substring(0, idx - 1);
 		}
 		//contains one of the defined mobs?
-		if (member.hasPassenger() && EntityUtil.isMob(member.passenger)) {
-			String mobname = EntityUtil.getName(member.passenger);
+		if (member.hasPassenger() && EntityUtil.isMob(member.getPassenger())) {
+			String mobname = EntityUtil.getName(member.getPassenger());
 			return mobname.contains(mob);
 		}
 		return false;

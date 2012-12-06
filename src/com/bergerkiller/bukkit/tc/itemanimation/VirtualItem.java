@@ -4,13 +4,11 @@ import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.EntityHuman;
 import net.minecraft.server.EntityItem;
-import net.minecraft.server.World;
 
 /**
  * A dummy class that basically does nothing :)
@@ -18,19 +16,10 @@ import net.minecraft.server.World;
 public class VirtualItem extends EntityItem {
 
 	public VirtualItem(Location location, ItemStack itemstack) {
-		this(location.getWorld(), location.getX(), location.getY(), location.getZ(), itemstack);
-	}
-	public VirtualItem(org.bukkit.World world, double x, double y, double z, ItemStack itemstack) {
-		this(WorldUtil.getNative(world), x, y, z, ItemUtil.getNative(itemstack));
-	}
-	public VirtualItem(World world, double x, double y, double z, net.minecraft.server.ItemStack itemstack) {
-		super(world, x, y, z, itemstack);
+		super(NativeUtil.getNative(location.getWorld()), location.getX(), location.getY(), location.getZ(), NativeUtil.getNative(itemstack));
 		refresh();
 		WorldUtil.getTracker(world).track(this);
 	}
-
-	@Override
-	public void c_(EntityHuman entityhuman) {};
 
 	@Override
 	public void j_() {

@@ -40,11 +40,11 @@ import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -158,11 +158,10 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityAdd(EntityAddEvent event) {
-		net.minecraft.server.Entity entity = EntityUtil.getNative(event.getEntity());
-		if (!(entity instanceof EntityMinecart)) {
+		if (!(event.getEntity() instanceof Minecart)) {
 			return;
 		}
-		MinecartMember member = MinecartMemberStore.convert((EntityMinecart) entity);
+		MinecartMember member = MinecartMemberStore.convert(NativeUtil.getNative(event.getEntity(), EntityMinecart.class));
 		if (member != null && !member.isUnloaded() && lastPlayer != null) {
 			// A player just placed a minecart - set defaults and ownership
 			member.getGroup().getProperties().setDefault(lastPlayer);
@@ -241,7 +240,7 @@ public class TCListener implements Listener {
 		}
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				MinecartMember mm1 = EntityUtil.getNative(event.getVehicle(), MinecartMember.class);
+				MinecartMember mm1 = NativeUtil.getNative(event.getVehicle(), MinecartMember.class);
 				if (mm1 == null) {
 					return;
 				}
@@ -478,8 +477,8 @@ public class TCListener implements Listener {
 		if (event.isCancelled()) {
 			return;
 		}
-		net.minecraft.server.Entity e = EntityUtil.getNative(event.getEntity());
-		if (e.vehicle != null && e.vehicle instanceof MinecartMember && ((MinecartMember) e.vehicle).isTeleportImmune()) {
+		MinecartMember member = MinecartMember.get(event.getEntity().getVehicle());
+		if (member != null && member.isTeleportImmune()) {
 			event.setCancelled(true);
 		}
 	}

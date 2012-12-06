@@ -22,6 +22,7 @@ import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -45,7 +46,6 @@ import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 
 import net.minecraft.server.AxisAlignedBB;
-import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.DamageSource;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityHuman;
@@ -148,8 +148,8 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public int getBlockZ() {
 		return moveinfo.blockZ;
 	}
-	public ChunkPosition getBlockPos() {
-		return new ChunkPosition(getBlockX(), getBlockY(), getBlockZ());
+	public IntVector3 getBlockPos() {
+		return new IntVector3(getBlockX(), getBlockY(), getBlockZ());
 	}
 	public org.bukkit.World getWorld() {
 		return world.getWorld();

@@ -12,6 +12,8 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -39,13 +41,13 @@ public class OfflineMember {
 	public MinecartMember create(World world) {
 		// first try to find it in the chunk
 		Chunk c = world.getChunkAt(cx, cz);
-		for (Entity e : c.getEntities()) {
+		for (Entity e : WorldUtil.getEntities(c)) {
 			if (e instanceof Minecart && e.getUniqueId().equals(entityUID)) {
-				return EntityUtil.getNative(e, MinecartMember.class);
+				return NativeUtil.getNative(e, MinecartMember.class);
 			}
 		}
 		// try to find it in the world
-		return EntityUtil.getNative(EntityUtil.getEntity(world, entityUID), MinecartMember.class);
+		return NativeUtil.getNative(EntityUtil.getEntity(world, entityUID), MinecartMember.class);
 	}
 	public void writeTo(DataOutputStream stream) throws IOException {
 		stream.writeLong(entityUID.getMostSignificantBits());

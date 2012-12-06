@@ -6,23 +6,18 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
-import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.WorldServer;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.util.LongHash;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
-import com.bergerkiller.bukkit.common.Operation;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
@@ -100,8 +95,8 @@ public class OfflineGroupManager {
 	private OfflineGroupMap groupmap = new OfflineGroupMap();
 
 	public static void refresh() {
-		for (WorldServer world : WorldUtil.getWorlds()) {
-			refresh(world.getWorld());
+		for (World world : WorldUtil.getWorlds()) {
+			refresh(world);
 		}
 	}
 	public static void refresh(World world) {
@@ -218,7 +213,7 @@ public class OfflineGroupManager {
 		return count;
 	}
 	public static void destroyMinecarts(World world) {
-		for (Entity e : world.getEntities()) {
+		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
 			if (!e.isDead()) {
 				if (e instanceof Minecart) e.remove();
 			}
@@ -231,42 +226,28 @@ public class OfflineGroupManager {
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public static void removeBuggedMinecarts() {
-		new Operation() {
-			private Set<net.minecraft.server.Entity> toRemove;
-			private Set worldentities;
-			@Override
-			public void run() {
-				this.worldentities = new HashSet();
-				this.toRemove = new HashSet<net.minecraft.server.Entity>();
-				this.doWorlds();
-			}
-			@Override
-			public void handle(WorldServer world) {
-				this.worldentities.clear();
-				this.worldentities.addAll(world.entityList);
-				this.doChunks(world);
-			}
-			@Override
-			public void handle(net.minecraft.server.Chunk chunk) {
-				this.doEntities(chunk);
-				if (!this.toRemove.isEmpty()) {
-					for (List list : chunk.entitySlices) {
-						list.removeAll(this.toRemove);
+		Set<org.bukkit.entity.Entity> toRemove = new HashSet<org.bukkit.entity.Entity>();
+		Set worldentities = new HashSet();
+		for (World world : WorldUtil.getWorlds()) {
+			worldentities.clear();
+			worldentities.addAll(WorldUtil.getEntities(world));
+			for (Chunk chunk : WorldUtil.getChunks(world)) {
+				// Remove entities that are falsely added
+				Iterator<org.bukkit.entity.Entity> iter = WorldUtil.getEntities(chunk).iterator();
+				while (iter.hasNext()) {
+					org.bukkit.entity.Entity e = iter.next();
+					if (!worldentities.contains(e)) {
+						iter.remove();
+						toRemove.add(e);
 					}
 				}
-				for (net.minecraft.server.Entity e : this.toRemove) {
-					e.world.removeEntity(e);
-					WorldUtil.getTracker(e.world).untrackEntity(e);
+				// Remove them from other locations
+				for (org.bukkit.entity.Entity e : toRemove) {
+					WorldUtil.removeEntity(e);
 				}
-				this.toRemove.clear();
+				toRemove.clear();
 			}
-			@Override
-			public void handle(net.minecraft.server.Entity entity) {
-				if (!this.worldentities.contains(entity)) {
-					toRemove.add(entity);
-				}
-			}
-		};
+		}
 	}
 	
 	public static void deinit() {
@@ -327,20 +308,20 @@ public class OfflineGroupManager {
 	 */
 	public static void initChunks(World world) {
 		OfflineGroupManager man = get(world);
-		Set<ChunkCoordIntPair> loaded = new HashSet<ChunkCoordIntPair>();
+		Set<IntVector2> loaded = new HashSet<IntVector2>();
 		for (OfflineGroup group : man.groupmap) {
 			TrainProperties prop = TrainProperties.get(group.name);
 			if (prop.isKeepingChunksLoaded()) {
 				for (OfflineMember wm : group.members) {
 					for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
 						for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
-							loaded.add(new ChunkCoordIntPair(x, z));
+							loaded.add(new IntVector2(x, z));
 						}
 					}
 				}
 			}
 		}
-		for (ChunkCoordIntPair coord : loaded) {
+		for (IntVector2 coord : loaded) {
 			world.getChunkAt(coord.x, coord.z);
 		}
 	}

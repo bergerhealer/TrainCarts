@@ -4,14 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Item;
 
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.ItemStack;
 import net.minecraft.server.World;
 
-import com.bergerkiller.bukkit.common.items.IInventoryBase;
+import com.bergerkiller.bukkit.common.natives.IInventoryBase;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 /**
@@ -20,23 +23,22 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
  * If this item is set, a new item is spawned
  */
 public class GroundItemsInventory extends IInventoryBase {
-	private final List<EntityItem> items = new ArrayList<EntityItem>();
+	private final List<Item> items = new ArrayList<Item>();
 	private final Location location;
 	private final World world;
 
 	public GroundItemsInventory(Location location, double range) {
 		this.location = location;
-		this.world = WorldUtil.getNative(location.getWorld());
+		this.world = NativeUtil.getNative(location.getWorld());
 		double rangeSquared = range * range;
-		for (Object o : this.world.entityList) {
-			if (!(o instanceof EntityItem)) {
+		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(location.getWorld())) {
+			if (!(e instanceof Item)) {
 				continue;
 			}
-			EntityItem em = (EntityItem) o;
-			if (MathUtil.distanceSquared(em.locX, em.locY, em.locZ, location.getX(), location.getY(), location.getZ()) > rangeSquared) {
-				continue;
+			EntityItem em = NativeUtil.getNative((Item) e);
+			if (MathUtil.distanceSquared(em.locX, em.locY, em.locZ, location.getX(), location.getY(), location.getZ()) <= rangeSquared) {
+				this.items.add((Item) e);
 			}
-			this.items.add(em);
 		}
 	}
 
@@ -61,7 +63,7 @@ public class GroundItemsInventory extends IInventoryBase {
 	 * @param index to get the item at
 	 * @return the item
 	 */
-	public EntityItem getEntity(int index) {
+	public Item getEntity(int index) {
 		return this.items.get(index);
 	}
 
@@ -76,14 +78,14 @@ public class GroundItemsInventory extends IInventoryBase {
 			double dZ = (double) (world.random.nextFloat() * rfact + offset);
 			EntityItem entityitem = new EntityItem(world, location.getX() + dX, location.getY() + dY, location.getZ() + dZ, stack);
 			entityitem.pickupDelay = 5;
-			world.addEntity(entityitem);
-			this.items.add(entityitem);
+			EntityUtil.addEntity(entityitem.getBukkitEntity());
+			this.items.add(NativeUtil.getItem(entityitem));
 		} else {
 			// Set item stack, if null, kill the item
-			EntityItem item = this.items.get(index);
+			EntityItem item = NativeUtil.getNative(this.items.get(index));
 			if (!(item.dead = (stack == null))) {
 				item.itemStack = stack;
-				this.items.set(index, ItemUtil.respawnItem(item));
+				this.items.set(index, ItemUtil.respawnItem((Item) item.getBukkitEntity()));
 			}
 		}
 	}
@@ -93,11 +95,11 @@ public class GroundItemsInventory extends IInventoryBase {
 		if (index == this.items.size()) {
 			return null;
 		} else {
-			EntityItem item = this.items.get(index);
-			if (item.dead) {
+			Item item = this.items.get(index);
+			if (item.isDead()) {
 				return null;
 			} else {
-				return item.itemStack;
+				return NativeUtil.getNative(item).itemStack;
 			}
 		}
 	}
