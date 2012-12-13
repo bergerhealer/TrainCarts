@@ -4,12 +4,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import net.minecraft.server.ChunkCoordinates;
-
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -109,7 +108,7 @@ public class TrackIterator implements Iterator<Block> {
 	private int distance;
 	private final int maxdistance;
 	private final boolean onlyInLoadedChunks;
-	private Set<ChunkCoordinates> coordinates = new HashSet<ChunkCoordinates>();
+	private Set<IntVector3> coordinates = new HashSet<IntVector3>();
 
 	public TrackIterator(Block startblock, BlockFace direction) {
 		this(startblock, direction, false);
@@ -262,7 +261,7 @@ public class TrackIterator implements Iterator<Block> {
 				return false;
 			}
 		}
-		if (genNext() && this.coordinates.add(BlockUtil.getCoordinates(this.next))) {
+		if (genNext() && this.coordinates.add(new IntVector3(this.next))) {
 			this.distance++;
 			return true;
 		}

@@ -2,13 +2,13 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
 
-import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.v1_4_5.EntityMinecart;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.util.LongHash;
+import org.bukkit.craftbukkit.v1_4_5.util.LongHash;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -491,7 +491,7 @@ public class TCListener implements Listener {
 	public void ignoreOutputLever(Block lever) {
 		// Ignore signs that are attached to the block the lever is attached to
 		Block att = BlockUtil.getAttachedBlock(lever);
-		for (BlockFace face : FaceUtil.attachedFaces) {
+		for (BlockFace face : FaceUtil.ATTACHEDFACES) {
 			Block signblock = att.getRelative(face);
 			if (MaterialUtil.ISSIGN.get(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
 				if (ignoredSigns.isEmpty()) {

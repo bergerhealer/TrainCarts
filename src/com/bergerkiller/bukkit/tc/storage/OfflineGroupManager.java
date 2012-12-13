@@ -14,12 +14,12 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -84,7 +84,7 @@ public class OfflineGroupManager {
 					Set<OfflineGroup> groupset = man.groupmap.get(chunk);
 					if (groupset != null) {
 						for (OfflineGroup group : groupset) {
-							group.loadedChunks.remove(LongHash.toLong(chunk.getX(), chunk.getZ()));
+							group.loadedChunks.remove(MathUtil.longHashToLong(chunk.getX(), chunk.getZ()));
 						}
 					}
 				}

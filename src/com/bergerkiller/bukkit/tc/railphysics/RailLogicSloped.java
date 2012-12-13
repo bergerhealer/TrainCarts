@@ -1,13 +1,13 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
-import net.minecraft.server.MathHelper;
-import net.minecraft.server.Vec3D;
+import net.minecraft.server.v1_4_5.Vec3D;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -33,8 +33,8 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
 	@Override
 	public void onPostMove(MinecartMember member) {
-		int dx = member.getBlockX() - MathHelper.floor(member.locX);
-		int dz = member.getBlockZ() - MathHelper.floor(member.locZ);
+		int dx = member.getBlockX() - MathUtil.floor(member.locX);
+		int dz = member.getBlockZ() - MathUtil.floor(member.locZ);
 		if (dx == this.getDirection().getModX() && dz == this.getDirection().getModZ()) {
 			member.locY -= 1.0;
 		}

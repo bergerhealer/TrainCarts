@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.EntityItem;
+import net.minecraft.server.v1_4_5.EntityItem;
 
 /**
  * A dummy class that basically does nothing :)
@@ -34,9 +34,9 @@ public class VirtualItem extends EntityItem {
 
 	public void refresh() {
 		this.al = true;
-		EntityRef.chunkX.set(this, MathUtil.locToChunk(this.locX));
-		EntityRef.chunkY.set(this, MathUtil.locToChunk(this.locY));
-		EntityRef.chunkZ.set(this, MathUtil.locToChunk(this.locZ));
+		EntityRef.chunkX.set(this, MathUtil.toChunk(this.locX));
+		EntityRef.chunkY.set(this, MathUtil.toChunk(this.locY));
+		EntityRef.chunkZ.set(this, MathUtil.toChunk(this.locZ));
 	}
 
 	public void die() {

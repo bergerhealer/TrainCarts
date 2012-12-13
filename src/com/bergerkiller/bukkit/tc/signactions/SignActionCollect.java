@@ -5,14 +5,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.server.IInventory;
-import net.minecraft.server.TileEntity;
-import net.minecraft.server.TileEntityChest;
-import net.minecraft.server.TileEntityDispenser;
-import net.minecraft.server.TileEntityFurnace;
+import net.minecraft.server.v1_4_5.IInventory;
+import net.minecraft.server.v1_4_5.TileEntity;
+import net.minecraft.server.v1_4_5.TileEntityChest;
+import net.minecraft.server.v1_4_5.TileEntityDispenser;
+import net.minecraft.server.v1_4_5.TileEntityFurnace;
 
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 

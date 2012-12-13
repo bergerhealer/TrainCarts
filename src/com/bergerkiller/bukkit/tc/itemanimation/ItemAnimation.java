@@ -3,14 +3,14 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import net.minecraft.server.TileEntity;
+import net.minecraft.server.v1_4_5.Entity;
+import net.minecraft.server.v1_4_5.ItemStack;
+import net.minecraft.server.v1_4_5.TileEntity;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
-import org.bukkit.entity.Entity;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.craftbukkit.v1_4_5.inventory.CraftItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -24,11 +24,11 @@ public class ItemAnimation {
 	
 	private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<ItemAnimation>();
 	private static Task task;
-	public static void start(Object from, Object to, net.minecraft.server.ItemStack data) {
+	public static void start(Object from, Object to, ItemStack data) {
 		if (data == null) return;
 		start(from, to, new CraftItemStack(data));
 	}
-	public static void start(Object from, Object to, ItemStack data) {
+	public static void start(Object from, Object to, org.bukkit.inventory.ItemStack data) {
 		if (from == null || to == null || data == null) return;
 		if (data.getAmount() == 0) return;
 		data = data.clone();
@@ -38,7 +38,7 @@ public class ItemAnimation {
 			Location l2 = getLocation(fixObject(anim.item));
 			if (l2 != null && l1.getWorld() == l2.getWorld()) {
 				if (l1.distanceSquared(l2) < 4.0) {
-					ItemStack thisdata = new CraftItemStack(anim.item.itemStack);
+					org.bukkit.inventory.ItemStack thisdata = new CraftItemStack(anim.item.itemStack);
 					if (thisdata.getAmount() == 0) continue;
 					ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);
 					if (data.getAmount() == 0) return;
@@ -78,7 +78,7 @@ public class ItemAnimation {
 	private final Object from;
 	private final Object to;
 	private final VirtualItem item;
-	private ItemAnimation(Object from, Object to, ItemStack data) {
+	private ItemAnimation(Object from, Object to, org.bukkit.inventory.ItemStack data) {
 		this.from = fixObject(from);
 		this.to = fixObject(to);
 		Location f = this.getFrom();
@@ -110,8 +110,8 @@ public class ItemAnimation {
 		if (object instanceof Block) {
 			return ((Block) object).getLocation().add(0.5, 0.5, 0.5);
 		}
-		if (object instanceof net.minecraft.server.Entity) {
-			return ((net.minecraft.server.Entity) object).getBukkitEntity();
+		if (object instanceof Entity) {
+			return ((Entity) object).getBukkitEntity();
 		}
 		return object;
 	}
@@ -123,8 +123,8 @@ public class ItemAnimation {
 	 * @return object location
 	 */
 	private static Location getLocation(Object object) {
-		if (object instanceof Entity) {
-			return ((Entity) object).getLocation();
+		if (object instanceof org.bukkit.entity.Entity) {
+			return ((org.bukkit.entity.Entity) object).getLocation();
 		}
 		if (object instanceof Location) {
 			return (Location) object;

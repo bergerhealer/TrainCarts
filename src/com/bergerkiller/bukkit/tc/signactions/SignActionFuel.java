@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.server.ItemStack;
-import net.minecraft.server.TileEntity;
-import net.minecraft.server.TileEntityChest;
+import net.minecraft.server.v1_4_5.ItemStack;
+import net.minecraft.server.v1_4_5.TileEntity;
+import net.minecraft.server.v1_4_5.TileEntityChest;
 
 import org.bukkit.Material;
 

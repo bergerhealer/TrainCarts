@@ -10,8 +10,8 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 import org.bukkit.World;
-import org.bukkit.craftbukkit.util.LongHash;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
@@ -52,7 +52,7 @@ public class OfflineGroup {
 	public boolean updateLoadedChunks(World world) {
 		this.loadedChunks.clear();
 		for (long chunk : this.chunks) {
-			if (WorldUtil.isLoaded(world, LongHash.msw(chunk), LongHash.lsw(chunk))) {
+			if (WorldUtil.isLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
 				this.loadedChunks.add(chunk);
 			}
 		}
@@ -66,7 +66,7 @@ public class OfflineGroup {
 		for (OfflineMember wm : this.members) {
 			for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
 				for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
-					this.chunks.add(LongHash.toLong(x, z));
+					this.chunks.add(MathUtil.longHashToLong(x, z));
 				}
 			}
 		}

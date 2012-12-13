@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Ghast;
@@ -182,7 +181,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 				World world = Bukkit.getWorld(group.worldUUID);
 				if (world != null) {
 					for (long chunk : group.chunks) {
-						world.getChunkAt(LongHash.msw(chunk), LongHash.lsw(chunk));
+						world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
 					}
 				}
 			}

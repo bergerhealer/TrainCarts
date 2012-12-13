@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.minecraft.server.v1_4_5.Item;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -28,9 +30,9 @@ public class Util {
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {
-		setItemMaxSize(net.minecraft.server.Item.byId[material.getId()], maxstacksize);
+		setItemMaxSize(Item.byId[material.getId()], maxstacksize);
 	}
-	public static void setItemMaxSize(net.minecraft.server.Item item, int maxstacksize) {
+	public static void setItemMaxSize(Item item, int maxstacksize) {
 		SafeField.set(item, "maxStackSize", maxstacksize);
 	}
 
@@ -79,7 +81,7 @@ public class Util {
 	public static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
 		boolean found = false;
 		Block b;
-		for (BlockFace face : FaceUtil.axis) {
+		for (BlockFace face : FaceUtil.AXIS) {
 			b = middle.getRelative(face);
 			if (b.getTypeId() == Material.WALL_SIGN.getId()) {
 				if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {

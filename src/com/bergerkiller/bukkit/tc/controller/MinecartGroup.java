@@ -15,8 +15,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.IInventory;
+import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_5.IInventory;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;

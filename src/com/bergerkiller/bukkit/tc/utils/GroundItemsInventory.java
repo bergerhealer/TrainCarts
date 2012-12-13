@@ -6,9 +6,9 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.entity.Item;
 
-import net.minecraft.server.EntityItem;
-import net.minecraft.server.ItemStack;
-import net.minecraft.server.World;
+import net.minecraft.server.v1_4_5.EntityItem;
+import net.minecraft.server.v1_4_5.ItemStack;
+import net.minecraft.server.v1_4_5.World;
 
 import com.bergerkiller.bukkit.common.natives.IInventoryBase;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;

@@ -10,13 +10,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.minecraft.server.EntityMinecart;
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.IInventory;
-import net.minecraft.server.ItemStack;
-import net.minecraft.server.LocaleI18n;
-import net.minecraft.server.World;
-import net.minecraft.server.EntityItem;
+import net.minecraft.server.v1_4_5.Entity;
+import net.minecraft.server.v1_4_5.EntityMinecart;
+import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_5.ItemStack;
+import net.minecraft.server.v1_4_5.LocaleI18n;
+import net.minecraft.server.v1_4_5.PlayerInventory;
+import net.minecraft.server.v1_4_5.World;
+import net.minecraft.server.v1_4_5.EntityItem;
 
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
@@ -24,9 +25,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.inventory.CraftInventory;
-import org.bukkit.craftbukkit.inventory.CraftInventoryPlayer;
-import org.bukkit.entity.Entity;
+import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
+import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventoryPlayer;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.inventory.Inventory;
@@ -48,7 +48,6 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.common.natives.IInventoryMerged;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -94,8 +93,8 @@ public class MinecartMember extends MinecartMemberStore {
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
 		super(world, x, y, z, type);
-		this.prevcx = MathUtil.locToChunk(this.locX);
-		this.prevcz = MathUtil.locToChunk(this.locZ);
+		this.prevcx = MathUtil.toChunk(this.locX);
+		this.prevcz = MathUtil.toChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
 		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
 	}
@@ -139,7 +138,7 @@ public class MinecartMember extends MinecartMemberStore {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
 			Item item;
-			for (net.minecraft.server.Entity e : this.getNearbyEntities(2)) {
+			for (Entity e : this.getNearbyEntities(2)) {
 				if (e instanceof EntityItem) {
 					item = (Item) e.getBukkitEntity();
 					if (EntityUtil.isIgnored(item)) continue;
@@ -516,13 +515,13 @@ public class MinecartMember extends MinecartMemberStore {
 	public double getMovedDistance() {
 		return MathUtil.length(this.getMovedX(), this.getMovedY(), this.getMovedZ());
 	}
-	public double distance(net.minecraft.server.Entity e) {
+	public double distance(Entity e) {
 		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
 	}
 	public double distance(Location l) {
 		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
-	public double distanceXZ(net.minecraft.server.Entity e) {
+	public double distanceXZ(Entity e) {
 		return MathUtil.distance(this.getX(), this.getZ(), e.locX, e.locZ);
 	}
 	public double distanceXZ(Location l) {
@@ -531,13 +530,13 @@ public class MinecartMember extends MinecartMemberStore {
 	public double distanceXZ(Block block) {
 		return MathUtil.distance(this.getX(), this.getZ(), 0.5 + block.getX(), 0.5 + block.getZ());
 	}
-	public double distanceSquared(net.minecraft.server.Entity e) {
+	public double distanceSquared(Entity e) {
 		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
 	}
 	public double distanceSquared(Location l) {
 		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
-	public double distanceXZSquared(net.minecraft.server.Entity e) {
+	public double distanceXZSquared(Entity e) {
 		return MathUtil.distanceSquared(this.getX(), this.getZ(), e.locX, e.locZ);
 	}
 	public double distanceXZSquared(Location l) {
@@ -554,17 +553,17 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 		return true;
 	}
-	public List<net.minecraft.server.Entity> getNearbyEntities(double radius) {
+	public List<Entity> getNearbyEntities(double radius) {
 		return this.getNearbyEntities(radius, radius, radius);
 	}
 	@SuppressWarnings("unchecked")
-	public List<net.minecraft.server.Entity> getNearbyEntities(double x, double y, double z) {
+	public List<Entity> getNearbyEntities(double x, double y, double z) {
 		return this.world.getEntities(this, this.boundingBox.grow(x, y, z));
 	}
 	public Vector getOffset(IntVector3 to) {
 		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());
 	}
-	public Vector getOffset(Entity to) {
+	public Vector getOffset(org.bukkit.entity.Entity to) {
 		return getOffset(to.getLocation());
 	}
 	public Vector getOffset(MinecartMember to) {
@@ -682,10 +681,10 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isTurned() {
 		return FaceUtil.isSubCardinal(this.direction);
 	}
-	public boolean isHeadingTo(net.minecraft.server.Entity entity) {
+	public boolean isHeadingTo(Entity entity) {
 		return this.isHeadingTo(entity.getBukkitEntity());
 	}
-	public boolean isHeadingTo(Entity entity) {
+	public boolean isHeadingTo(org.bukkit.entity.Entity entity) {
 		return this.isHeadingTo(entity.getLocation());
 	}
 	public boolean isHeadingTo(IntVector3 location) {
@@ -771,17 +770,17 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean hasPassenger() {
 		return this.passenger != null;
 	}
-	public Entity getPassenger() {
+	public org.bukkit.entity.Entity getPassenger() {
 		return this.passenger == null ? null : this.passenger.getBukkitEntity();
 	}
 	public Inventory getInventory() {
 		return new CraftInventory(this);
 	}
-	public Inventory getPlayerInventory() {
+	public org.bukkit.inventory.PlayerInventory getPlayerInventory() {
 		if (this.hasPlayerPassenger()) {
 			return new CraftInventoryPlayer(((EntityPlayer) this.passenger).inventory);
 		} else {
-			return new CraftInventory(new IInventoryMerged(new IInventory[0]));
+			return new CraftInventoryPlayer(new PlayerInventory(null));
 		}
 	}
 	public boolean hasPlayerPassenger() {
@@ -834,10 +833,10 @@ public class MinecartMember extends MinecartMemberStore {
 	/*
 	 * Actions
 	 */
-	public void pushSideways(Entity entity) {
+	public void pushSideways(org.bukkit.entity.Entity entity) {
 		this.pushSideways(entity, TrainCarts.pushAwayForce);
 	}
-	public void pushSideways(Entity entity, double force) {
+	public void pushSideways(org.bukkit.entity.Entity entity, double force) {
 		float yaw = FaceUtil.faceToYaw(this.direction);
 		float lookat = MathUtil.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
 		lookat = MathUtil.wrapAngle(lookat);
@@ -847,7 +846,7 @@ public class MinecartMember extends MinecartMemberStore {
 		Vector vel = MathUtil.getDirection(yaw, 0).multiply(force);
 		entity.setVelocity(vel);
 	}
-	public void push(Entity entity, double force) {
+	public void push(org.bukkit.entity.Entity entity, double force) {
 		Vector offset = this.getOffset(entity);
 		MathUtil.setVectorLength(offset, force);
 		entity.setVelocity(entity.getVelocity().add(offset));
@@ -896,10 +895,10 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.teleportImmunityTick > 0;
 	}
 
-	public boolean isCollisionIgnored(Entity entity) {
+	public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {
 		return isCollisionIgnored(NativeUtil.getNative(entity));
 	}
-	public boolean isCollisionIgnored(net.minecraft.server.Entity entity) {
+	public boolean isCollisionIgnored(Entity entity) {
 		if (entity instanceof MinecartMember) {
 			return this.isCollisionIgnored((MinecartMember) entity);
 		}
@@ -911,10 +910,10 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.collisionIgnoreTimes.containsKey(member.uniqueId) || 
 				member.collisionIgnoreTimes.containsKey(this.uniqueId);
 	}
-	public void ignoreCollision(Entity entity, int ticktime) {
+	public void ignoreCollision(org.bukkit.entity.Entity entity, int ticktime) {
 		this.ignoreCollision(NativeUtil.getNative(entity), ticktime);
 	}
-	public void ignoreCollision(net.minecraft.server.Entity entity, int ticktime) {
+	public void ignoreCollision(Entity entity, int ticktime) {
 		collisionIgnoreTimes.put(entity.uniqueId, new AtomicInteger(ticktime));
 	}
 	public void eject() {
@@ -922,7 +921,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void eject(final Location to) {
 		if (this.passenger != null) {
-			final Entity passenger = this.passenger.getBukkitEntity();
+			final org.bukkit.entity.Entity passenger = this.passenger.getBukkitEntity();
 			this.passenger.setPassengerOf(null);
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {
@@ -935,7 +934,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.getGroup().connect(this, with);
 	}
 
-	public void setItem(int index, net.minecraft.server.ItemStack item) {
+	public void setItem(int index, ItemStack item) {
 		super.setItem(index, item);
 		this.update();
 	}

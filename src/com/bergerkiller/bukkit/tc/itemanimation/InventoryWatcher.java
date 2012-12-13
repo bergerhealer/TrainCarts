@@ -2,24 +2,25 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 
 import java.util.List;
 
-import net.minecraft.server.EntityHuman;
-import net.minecraft.server.IInventory;
-import net.minecraft.server.ItemStack;
+import net.minecraft.server.v1_4_5.EntityHuman;
+import net.minecraft.server.v1_4_5.IInventory;
+import net.minecraft.server.v1_4_5.ItemStack;
 
-import org.bukkit.craftbukkit.entity.CraftHumanEntity;
-import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.craftbukkit.v1_4_5.entity.CraftHumanEntity;
+import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
 public class InventoryWatcher implements IInventory {
 
 	public InventoryWatcher(Object from, Object to, Inventory inventory) {
-		this(from, to, ((CraftInventory) inventory).getInventory());
+		this(from, to, NativeUtil.getNative(inventory));
 	}
-	
+
 	private Object other, self;
 	private final IInventory source;
 	private final ItemStack[] original;

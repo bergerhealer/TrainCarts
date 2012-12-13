@@ -24,10 +24,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
-
-import net.minecraft.server.ChunkCoordinates;
 
 public final class DetectorRegion {
 	private static List<DetectorListener> listenerBuffer = new ArrayList<DetectorListener>();
@@ -41,7 +38,7 @@ public final class DetectorRegion {
 			List<DetectorRegion> list = regions.get(from);
 			//Leave the regions if the to-location is not contained
 			if (list != null) {
-				ChunkCoordinates toCoords = BlockUtil.getCoordinates(to);
+				IntVector3 toCoords = new IntVector3(to);
 				for (DetectorRegion region : list) {
 					if (!region.coordinates.contains(toCoords)) {
 						region.remove(mm);

@@ -66,7 +66,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.powerinv = false;
 			this.poweron = false;
 			this.facing = null;
-			this.watchedDirections = FaceUtil.axis;
+			this.watchedDirections = FaceUtil.AXIS;
 			return;
 		} else {
 			// Sign available - initialize the sign
@@ -287,10 +287,10 @@ public class SignActionEvent extends Event implements Cancellable {
 		Block attblock = this.signblock.getRelative(att);
 		if (attblock.isBlockPowered()) {
 			boolean found = false;
-			for (BlockFace face : FaceUtil.attachedFaces) {
+			for (BlockFace face : FaceUtil.ATTACHEDFACES) {
 				if (BlockUtil.isType(attblock.getRelative(face), Material.LEVER)) {
 					//check EVERYTHING
-					for (BlockFace alter : FaceUtil.attachedFacesDown) {
+					for (BlockFace alter : FaceUtil.ATTACHEDFACESDOWN) {
 						if (alter != face) {
 							if (PowerState.get(attblock, alter, false) == PowerState.ON) {
 								return !invert;
@@ -305,7 +305,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		}
 		if (invert) {
 			boolean def = true;
-			for (BlockFace face : FaceUtil.attachedFacesDown) {
+			for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
 				if (face == att) continue;
 				PowerState state = this.getPower(face);
 				switch (state) {
@@ -316,7 +316,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			}
 			return def;
 		} else {
-			for (BlockFace face : FaceUtil.attachedFacesDown) {
+			for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
 				if (face == att) continue;
 				if (this.getPower(face).hasPower()) return true;
 			}

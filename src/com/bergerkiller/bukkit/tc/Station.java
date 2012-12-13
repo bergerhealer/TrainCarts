@@ -152,7 +152,7 @@ public class Station {
 				if (rr == null || rr.getDirection() != railDirection) {
 					break;
 				}
-				tlength += MathUtil.halfRootOfTwo;
+				tlength += MathUtil.HALFROOTOFTWO;
 			}
 
 			// Update the length

@@ -8,9 +8,8 @@ import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_4_5.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -45,21 +44,21 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 
-import net.minecraft.server.AxisAlignedBB;
-import net.minecraft.server.DamageSource;
-import net.minecraft.server.Entity;
-import net.minecraft.server.EntityHuman;
-import net.minecraft.server.EntityItem;
-import net.minecraft.server.EntityLiving;
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.Item;
-import net.minecraft.server.ItemStack;
-import net.minecraft.server.MathHelper;
-import net.minecraft.server.NBTTagCompound;
-import net.minecraft.server.Packet;
-import net.minecraft.server.Packet23VehicleSpawn;
-import net.minecraft.server.World;
-import net.minecraft.server.EntityMinecart;
+import net.minecraft.server.v1_4_5.AxisAlignedBB;
+import net.minecraft.server.v1_4_5.Block;
+import net.minecraft.server.v1_4_5.DamageSource;
+import net.minecraft.server.v1_4_5.Entity;
+import net.minecraft.server.v1_4_5.EntityHuman;
+import net.minecraft.server.v1_4_5.EntityItem;
+import net.minecraft.server.v1_4_5.EntityLiving;
+import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_5.Item;
+import net.minecraft.server.v1_4_5.ItemStack;
+import net.minecraft.server.v1_4_5.NBTTagCompound;
+import net.minecraft.server.v1_4_5.Packet;
+import net.minecraft.server.v1_4_5.Packet23VehicleSpawn;
+import net.minecraft.server.v1_4_5.World;
+import net.minecraft.server.v1_4_5.EntityMinecart;
 
 public abstract class NativeMinecartMember extends EntityMinecart {
 	public static final int FUEL_PER_COAL = 3600;
@@ -122,22 +121,22 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return this.locZ;
 	}
 	public int getLiveChunkX() {
-		return MathUtil.locToChunk(this.locX);
+		return MathUtil.toChunk(this.locX);
 	}
 	public int getLiveChunkY() {
-		return MathUtil.locToChunk(this.locY);
+		return MathUtil.toChunk(this.locY);
 	}
 	public int getLiveChunkZ() {
-		return MathUtil.locToChunk(this.locZ);
+		return MathUtil.toChunk(this.locZ);
 	}
 	public int getLiveBlockX() {
-		return MathHelper.floor(this.getX());
+		return MathUtil.floor(this.getX());
 	}
 	public int getLiveBlockY() {
-		return MathHelper.floor(this.getY());
+		return MathUtil.floor(this.getY());
 	}
 	public int getLiveBlockZ() {
-		return MathHelper.floor(this.getZ());
+		return MathUtil.floor(this.getZ());
 	}
 	public int getBlockX() {
 		return moveinfo.blockX;
@@ -272,7 +271,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	private class MoveInfo {
 		public final MinecartMember owner;
 		public int blockX, blockY, blockZ;
-		public Block lastBlock, block;
+		public org.bukkit.block.Block lastBlock, block;
 		public RailType railType;
 		public RailType prevRailType = RailType.NONE;
 		public RailLogic railLogic = RailLogicGround.INSTANCE;
@@ -341,7 +340,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 
 			// Vertical -> Slope UP
 			if (this.railType == RailType.NONE && owner.motY > 0) {
-				Block next = owner.world.getWorld().getBlockAt(blockX + this.prevRailLogic.getDirection().getModX(), blockY, blockZ + this.prevRailLogic.getDirection().getModZ());
+				org.bukkit.block.Block next = owner.world.getWorld().getBlockAt(blockX + this.prevRailLogic.getDirection().getModX(), blockY, blockZ + this.prevRailLogic.getDirection().getModZ());
 				Rails rails = BlockUtil.getRails(next);
 				if (rails != null && rails.isOnSlope()) {
 					if (rails.getDirection() == this.prevRailLogic.getDirection()) {
@@ -568,7 +567,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				} else {
 					// Launch away from a suffocating block
 					BlockFace dir = this.getRailDirection();
-					Block block = this.getBlock();
+					org.bukkit.block.Block block = this.getBlock();
 					boolean pushFrom1 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir.getOppositeFace()));
 					boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
 					// If pushing from both directions, block all movement
@@ -601,7 +600,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		if (!from.equals(to)) {
 			// Execute move events
 			CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
-			for (Block sign : this.member().getActiveSigns()) {
+			for (org.bukkit.block.Block sign : this.member().getActiveSigns()) {
 				SignAction.executeAll(new SignActionEvent(sign, this.member()), SignActionType.MEMBER_MOVE);
 			}
 		}
@@ -669,7 +668,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * @param from block - the old block
 	 * @param to block - the new block
 	 */
-	public abstract void onBlockChange(Block from, Block to);
+	public abstract void onBlockChange(org.bukkit.block.Block from, org.bukkit.block.Block to);
 
 	/**
 	 * Performs rotation updates for yaw and pitch
@@ -953,7 +952,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			d12 = this.locZ - d5;
 			if (positionChanged) {
 				Vehicle vehicle = (Vehicle)getBukkitEntity();
-				Block block = world.getWorld().getBlockAt(MathHelper.floor(locX), MathHelper.floor(locY - (double)height), MathHelper.floor(locZ));
+				org.bukkit.block.Block block = world.getWorld().getBlockAt(MathUtil.floor(locX), MathUtil.floor(locY - (double)height), MathUtil.floor(locZ));
 				if (d6 > d0) {
 					block = block.getRelative(BlockFace.SOUTH);
 				} else if (d6 < d0) {
@@ -968,9 +967,9 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 
 			if (this.f_() && this.vehicle == null) {
-                int i = MathHelper.floor(this.locX);
-                int j = MathHelper.floor(this.locY - 0.2D - (double) this.height);
-                int k = MathHelper.floor(this.locZ);
+                int i = MathUtil.floor(this.locX);
+                int j = MathUtil.floor(this.locY - 0.2D - (double) this.height);
+                int k = MathUtil.floor(this.locZ);
                 int l = this.world.getTypeId(i, j, k);
 
                 if (l == 0 && this.world.getTypeId(i, j - 1, k) == Material.FENCE.getId()) {
@@ -981,12 +980,12 @@ public abstract class NativeMinecartMember extends EntityMinecart {
                     d11 = 0.0D;
                 }
 
-                this.Q = (float) ((double) this.Q + (double) MathHelper.sqrt(d10 * d10 + d12 * d12) * 0.6D);
-                this.R = (float) ((double) this.R + (double) MathHelper.sqrt(d10 * d10 + d11 * d11 + d12 * d12) * 0.6D);
+                this.Q = (float) ((double) this.Q + Math.sqrt(d10 * d10 + d12 * d12) * 0.6D);
+                this.R = (float) ((double) this.R + Math.sqrt(d10 * d10 + d11 * d11 + d12 * d12) * 0.6D);
                 if (this.R > (float) this.c && l > 0) {
                     this.c = (int) this.R + 1;
                     if (this.H()) {
-                        float f = MathHelper.sqrt(this.motX * this.motX * 0.20000000298023224D + this.motY * this.motY + this.motZ * this.motZ * 0.20000000298023224D) * 0.35F;
+                        float f = (float) Math.sqrt(this.motX * this.motX * 0.20000000298023224D + this.motY * this.motY + this.motZ * this.motZ * 0.20000000298023224D) * 0.35F;
 
                         if (f > 1.0F) {
                             f = 1.0F;
@@ -996,7 +995,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
                     }
 
                     this.a(i, j, k, l);
-					net.minecraft.server.Block.byId[k].b(this.world, i, j, k, this);
+					Block.byId[k].b(this.world, i, j, k, this);
 				}
 			}
 
@@ -1065,8 +1064,8 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			if (logic1 instanceof RailLogicVerticalSlopeDown) {
 				RailLogic logic2 = mm2.getRailLogic();
 				if (logic2 instanceof RailLogicVerticalSlopeDown) {
-					Block b1 = mm1.getBlock(logic1.getDirection());
-					Block b2 = mm2.getBlock(logic2.getDirection());
+					org.bukkit.block.Block b1 = mm1.getBlock(logic1.getDirection());
+					org.bukkit.block.Block b2 = mm2.getBlock(logic2.getDirection());
 					if (BlockUtil.equals(b1, b2)) {
 						return false;
 					}
@@ -1117,7 +1116,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * @param hitFace of the block that the minecart hit
 	 * @return True if collision is allowed, False if it is ignored
 	 */
-	public boolean onBlockCollision(Block block, BlockFace hitFace) {
+	public boolean onBlockCollision(org.bukkit.block.Block block, BlockFace hitFace) {
 		if (Util.ISVERTRAIL.get(block)) {
 			return false;
 		}
@@ -1170,7 +1169,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 					}
 				}
 				if (isBlock) {
-					Block block = this.world.getWorld().getBlockAt(MathHelper.floor(a.a), MathHelper.floor(a.b), MathHelper.floor(a.c));
+					org.bukkit.block.Block block = this.world.getWorld().getBlockAt(MathUtil.floor(a.a), MathUtil.floor(a.b), MathUtil.floor(a.c));
 					
 					dx = this.locX - block.getX() - 0.5;
 					dy = this.locY - block.getY() - 0.5;
@@ -1224,7 +1223,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * 
 	 * @return Rail block or block at minecart position
 	 */
-	public Block getBlock() {
+	public org.bukkit.block.Block getBlock() {
 		return moveinfo.block;
 	}
 

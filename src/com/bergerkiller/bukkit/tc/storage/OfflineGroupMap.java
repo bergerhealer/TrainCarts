@@ -7,8 +7,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
-import org.bukkit.craftbukkit.util.LongHash;
-import org.bukkit.craftbukkit.util.LongObjectHashMap;
+import org.bukkit.craftbukkit.v1_4_5.util.LongHash;
+import org.bukkit.craftbukkit.v1_4_5.util.LongObjectHashMap;
 
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	
