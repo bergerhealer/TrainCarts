@@ -322,6 +322,20 @@ public class Util {
 		return railsData >= 0x2 && railsData <= 0x5;
 	}
 
+	/*
+	 * This should be removed from all calls once the directionale bug of rails is fixed
+	 */
+	@Deprecated
+	public static BlockFace getRailsDir(BlockFace railsDir) {
+		if (railsDir == null) {
+			return null;
+		}
+		if (FaceUtil.isSubCardinal(railsDir)) {
+			return FaceUtil.rotate(railsDir, 2);
+		}
+		return railsDir;
+	}
+
 	/**
 	 * Checks if a given rails block has a vertical rail above facing the direction specified
 	 * 
@@ -343,14 +357,14 @@ public class Util {
 	public static BlockFace getVerticalRailDirection(int raildata) {
 		switch (raildata) {
 			case 0x2:
-				return BlockFace.WEST;
-			case 0x3:
-				return BlockFace.EAST;
-			case 0x4:
 				return BlockFace.SOUTH;
+			case 0x3:
+				return BlockFace.NORTH;
+			case 0x4:
+				return BlockFace.EAST;
 			default:
 			case 0x5:
-				return BlockFace.NORTH;
+				return BlockFace.WEST;
 		}
 	}
 

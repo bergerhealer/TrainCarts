@@ -18,23 +18,26 @@ public class RailLogicHorizontal extends RailLogic {
 	}
 
 	private final double dx, dz;
-	private final double x1, z1, x2, z2;
+	private final double startX, startZ;
 	private final BlockFace[] faces;
 
 	protected RailLogicHorizontal(BlockFace direction) {
 		super(direction);
-		// Fix north/east, they are non-existent
-		if (direction == BlockFace.NORTH || direction == BlockFace.EAST) {
-			direction = direction.getOppositeFace();
+		// Fix north/west, they are non-existent
+		direction = FaceUtil.toRailsDirection(direction);
+		// Faces and direction
+		if (this.curved) {
+			this.dx = -0.5 * direction.getModX();
+			this.dz = 0.5 * direction.getModZ();
+		} else {
+			this.dx = direction.getModX();
+			this.dz = direction.getModZ();
 		}
-		// Generate faces and movement offset data
+		// Start offset and direction faces
 		this.faces = FaceUtil.getFaces(direction);
-		this.x1 = -0.5 * faces[0].getModX();
-		this.z1 = -0.5 * faces[0].getModZ();
-		this.x2 = -0.5 * faces[1].getModX();
-		this.z2 = -0.5 * faces[1].getModZ();
-		this.dx = this.x2 - this.x1;
-		this.dz = this.z2 - this.z1;
+		final double startFactor = MathUtil.invert(0.5, !this.curved);
+		this.startX = startFactor * faces[0].getModX();
+		this.startZ = startFactor * faces[0].getModZ();
 		// Invert north and south (is for some reason needed)
 		for (int i = 0; i < this.faces.length; i++) {
 			if (this.faces[i] == BlockFace.NORTH || this.faces[i] == BlockFace.SOUTH) {
@@ -44,23 +47,11 @@ public class RailLogicHorizontal extends RailLogic {
 	}
 
 	@Override
-	public double getForwardVelocity(MinecartMember member) {
-		BlockFace direction = member.getDirection();
-		return -FaceUtil.sin(direction) * member.motZ - FaceUtil.cos(direction) * member.motX; 
-	}
-
-	@Override
-	public void setForwardVelocity(MinecartMember member, double force) {
-		member.motX = -FaceUtil.cos(member.getDirection()) * force;
-		member.motZ = -FaceUtil.sin(member.getDirection()) * force;
-	}
-
-	@Override
 	public void onPreMove(MinecartMember member) {
 		// Apply velocity modifiers
-		boolean invert = false;
+		final boolean invert;
 		if (this.curved) {
-			// Invert only if the delta z is inverted
+			// Invert only if heading towards the exit-direction of the curve
 			BlockFace from = FaceUtil.getDirection(member.motX, member.motZ, false);
 			invert = from == this.faces[0] || from == this.faces[1];
 		} else {
@@ -72,10 +63,9 @@ public class RailLogicHorizontal extends RailLogic {
 		member.motZ = railFactor * this.dz;
 		member.motY = 0.0;
 
-		//location is updated to follow the tracks
-		double newLocX = (double) member.getBlockX() + 0.5 + this.x1;
+		double newLocX = (double) member.getBlockX() + 0.5 + this.startX;
 		double newLocY = (double) member.getBlockY() + (double) member.height;
-		double newLocZ = (double) member.getBlockZ() + 0.5 + this.z1;
+		double newLocZ = (double) member.getBlockZ() + 0.5 + this.startZ;
 		if (this.alongX) {
 			// Moving along the X-axis
 			newLocZ += this.dz * (member.locZ - member.getBlockZ());

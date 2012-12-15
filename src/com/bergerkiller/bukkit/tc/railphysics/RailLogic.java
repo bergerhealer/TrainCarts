@@ -18,9 +18,9 @@ public abstract class RailLogic {
 
 	public RailLogic(BlockFace horizontalDirection) {
 		this.horizontalDir = horizontalDirection;
-		this.alongX = horizontalDirection == BlockFace.EAST || horizontalDirection == BlockFace.WEST;
-		this.alongZ = horizontalDirection == BlockFace.NORTH || horizontalDirection == BlockFace.SOUTH;
-		this.alongY = horizontalDirection == BlockFace.UP || horizontalDirection == BlockFace.DOWN;
+		this.alongX = horizontalDirection.getModX() == 0 && horizontalDirection.getModZ() != 0;
+		this.alongZ = horizontalDirection.getModZ() == 0 && horizontalDirection.getModX() != 0;
+		this.alongY = FaceUtil.isVertical(horizontalDirection);
 		this.curved = !alongX && !alongY && !alongZ;
 	}
 
@@ -130,7 +130,7 @@ public abstract class RailLogic {
 		Block rails = member.getBlock();
 		int typeId = rails.getTypeId();
 		if (MaterialUtil.ISRAILS.get(typeId)) {
-			BlockFace direction = BlockUtil.getRails(rails).getDirection();
+			BlockFace direction = Util.getRailsDir(BlockUtil.getRails(rails).getDirection());
 			if (Util.isSloped(rails.getData())) {
 				if (Util.isVerticalAbove(rails, direction)) {
 					// Slope-vertical logic
@@ -149,9 +149,9 @@ public abstract class RailLogic {
 			if (dir == BlockFace.SELF) {
 				//set track direction based on direction of this cart
 				if (Math.abs(member.motX) > Math.abs(member.motZ)) {
-					dir = BlockFace.SOUTH;
+					dir = BlockFace.EAST;
 				} else {
-					dir = BlockFace.WEST;
+					dir = BlockFace.SOUTH;
 				}
 			}
 			return RailLogicHorizontal.get(dir);

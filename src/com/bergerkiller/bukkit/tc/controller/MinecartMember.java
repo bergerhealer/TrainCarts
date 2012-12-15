@@ -591,9 +591,6 @@ public class MinecartMember extends MinecartMemberStore {
 	public int getDirectionDifference(MinecartMember comparer) {
 		return this.getDirectionDifference(comparer.direction);
 	}
-	public void updateDirection() {
-		this.updateDirection(this.getVelocity());
-	}
 	public void updateDirection(Vector movement) {
 		if (this.isOnVertical()) {
 			this.directionTo = this.direction = Util.getVerticalFace(movement.getY() > 0.0);
@@ -641,6 +638,9 @@ public class MinecartMember extends MinecartMemberStore {
 		if (this.directionFrom == BlockFace.SELF) {
 			this.directionFrom = this.directionTo;
 		}
+	}
+	public void updateDirection() {
+		this.updateDirection(this.getVelocity());
 	}
 	public void updateDirectionTo(MinecartMember member) {
 		this.updateDirection(this.getOffset(member));

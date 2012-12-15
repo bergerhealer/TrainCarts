@@ -354,7 +354,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (!this.hasRails()) return null;
 		if (this.raildirection == null) {
 			if (MaterialUtil.ISRAILS.get(this.railsblock)) {
-				this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
+				this.raildirection = Util.getRailsDir(BlockUtil.getRails(this.railsblock).getDirection());
 			} else if (MaterialUtil.ISPRESSUREPLATE.get(this.railsblock)) {
 				this.raildirection = Util.getPlateDirection(this.railsblock);
 			}
