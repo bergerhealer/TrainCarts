@@ -57,7 +57,7 @@ public class TrackIterator implements Iterator<Block> {
 		BlockFace dir;
 		int railType = rail.getTypeId();
 		if (MaterialUtil.ISRAILS.get(railType)) {
-			dir = Util.getRailsDir(BlockUtil.getRails(rail).getDirection()).getOppositeFace();
+			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
 		} else if (Util.ISVERTRAIL.get(railType)) {
 			dir = BlockFace.UP;
 		} else if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
@@ -125,7 +125,7 @@ public class TrackIterator implements Iterator<Block> {
 		//adjust direction if moving into a curve
 		Rails rails = BlockUtil.getRails(this.next);
 		if (rails != null) {
-			final BlockFace railsDirection = Util.getRailsDir(rails.getDirection());
+			final BlockFace railsDirection = rails.getDirection();
 			if (rails.isCurve()) {
 				// Make sure curve directions are properly adjusted
 				BlockFace[] p = FaceUtil.getFaces(railsDirection.getOppositeFace());
@@ -168,7 +168,7 @@ public class TrackIterator implements Iterator<Block> {
 				Block nextSlope = this.next.getRelative(dir);
 				if (MaterialUtil.ISRAILS.get(nextSlope) && Util.isSloped(nextSlope.getData())) {
 					this.next = nextSlope;
-					this.nextdirection = Util.getRailsDir(BlockUtil.getRails(this.next).getDirection());
+					this.nextdirection = BlockUtil.getRails(this.next).getDirection();
 					return true;
 				}
 			}
@@ -199,7 +199,7 @@ public class TrackIterator implements Iterator<Block> {
 				return true;
 			}
 		} else {
-			final BlockFace railsDirection = Util.getRailsDir(rails.getDirection());
+			final BlockFace railsDirection = rails.getDirection();
 			// Special slope logic
 			if (rails.isOnSlope()) {
 				// Moving down a vertical rail onto a slope - fix direction

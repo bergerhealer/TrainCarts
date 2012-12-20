@@ -10,13 +10,13 @@ import net.minecraft.server.v1_4_5.TileEntity;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
@@ -26,7 +26,7 @@ public class ItemAnimation {
 	private static Task task;
 	public static void start(Object from, Object to, ItemStack data) {
 		if (data == null) return;
-		start(from, to, new CraftItemStack(data));
+		start(from, to, NativeUtil.getItemStack(data));
 	}
 	public static void start(Object from, Object to, org.bukkit.inventory.ItemStack data) {
 		if (from == null || to == null || data == null) return;
@@ -38,7 +38,7 @@ public class ItemAnimation {
 			Location l2 = getLocation(fixObject(anim.item));
 			if (l2 != null && l1.getWorld() == l2.getWorld()) {
 				if (l1.distanceSquared(l2) < 4.0) {
-					org.bukkit.inventory.ItemStack thisdata = new CraftItemStack(anim.item.itemStack);
+					org.bukkit.inventory.ItemStack thisdata = NativeUtil.getItemStack(anim.item.itemStack);
 					if (thisdata.getAmount() == 0) continue;
 					ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);
 					if (data.getAmount() == 0) return;

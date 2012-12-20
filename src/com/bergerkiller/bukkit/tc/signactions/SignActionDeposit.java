@@ -12,7 +12,6 @@ import net.minecraft.server.v1_4_5.TileEntityDispenser;
 import net.minecraft.server.v1_4_5.TileEntityFurnace;
 
 import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftItemStack;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -95,7 +94,7 @@ public class SignActionDeposit extends SignAction {
 				}
 				ItemStack item = furnaceinv.getItem(0);
 				if (item == null) {
-					item = new CraftItemStack(0, 0);
+					item = new ItemStack(0, 0);
 				}
 				limit -= ItemUtil.transfer(cartinv, item, p, limit);
 				ItemUtil.setItem(furnaceinv, 0, item);
@@ -124,7 +123,7 @@ public class SignActionDeposit extends SignAction {
 				//===================================================
 				ItemStack fuel = furnaceinv.getItem(1);
 				if (fuel == null) {
-					fuel = new CraftItemStack(0, 0);
+					fuel = new ItemStack(0, 0);
 				} else {
 					fuel = fuel.clone();
 				}

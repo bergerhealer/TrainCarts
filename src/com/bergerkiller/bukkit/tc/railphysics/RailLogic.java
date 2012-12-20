@@ -130,7 +130,7 @@ public abstract class RailLogic {
 		Block rails = member.getBlock();
 		int typeId = rails.getTypeId();
 		if (MaterialUtil.ISRAILS.get(typeId)) {
-			BlockFace direction = Util.getRailsDir(BlockUtil.getRails(rails).getDirection());
+			BlockFace direction = BlockUtil.getRails(rails).getDirection();
 			if (Util.isSloped(rails.getData())) {
 				if (Util.isVerticalAbove(rails, direction)) {
 					// Slope-vertical logic

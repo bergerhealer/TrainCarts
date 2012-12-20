@@ -27,8 +27,10 @@ public class RailLogicHorizontal extends RailLogic {
 		direction = FaceUtil.toRailsDirection(direction);
 		// Faces and direction
 		if (this.curved) {
-			this.dx = -0.5 * direction.getModX();
-			this.dz = 0.5 * direction.getModZ();
+			this.dx = 0.5 * direction.getModX();
+			this.dz = -0.5 * direction.getModZ();
+			// Invert direction, because it is wrong otherwise
+			direction = direction.getOppositeFace();
 		} else {
 			this.dx = direction.getModX();
 			this.dz = direction.getModZ();

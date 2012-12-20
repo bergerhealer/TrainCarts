@@ -9,7 +9,6 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -27,6 +26,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.RailType;
@@ -221,7 +221,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 
 				for (org.bukkit.inventory.ItemStack stack : drops) {
-					this.a(CraftItemStack.createNMSItemStack(stack), 0.0F);
+					this.a(NativeUtil.getNative(stack), 0.0F);
 				}
 
 				this.die();
@@ -241,23 +241,23 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public List<org.bukkit.inventory.ItemStack> getDrops() {
 		ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>(2);
 		if (TrainCarts.breakCombinedCarts) {
-			drops.add(new CraftItemStack(Item.MINECART.id, 1));
+			drops.add(new org.bukkit.inventory.ItemStack(Item.MINECART.id, 1));
 			if (this.isStorageCart()) {
-				drops.add(new CraftItemStack(Material.CHEST.getId(), 1));
+				drops.add(new org.bukkit.inventory.ItemStack(Material.CHEST.getId(), 1));
 			} else if (this.isPoweredCart()) {
-				drops.add(new CraftItemStack(Material.FURNACE.getId(), 1));
+				drops.add(new org.bukkit.inventory.ItemStack(Material.FURNACE.getId(), 1));
 			}
 			return drops;
 		} else {
 			switch (this.type) {
 				case 0:
-					drops.add(new CraftItemStack(Item.MINECART.id, 1));
+					drops.add(new org.bukkit.inventory.ItemStack(Item.MINECART.id, 1));
 					break;
 				case 1:
-					drops.add(new CraftItemStack(Item.STORAGE_MINECART.id, 1));
+					drops.add(new org.bukkit.inventory.ItemStack(Item.STORAGE_MINECART.id, 1));
 					break;
 				case 2:
-					drops.add(new CraftItemStack(Item.POWERED_MINECART.id, 1));
+					drops.add(new org.bukkit.inventory.ItemStack(Item.POWERED_MINECART.id, 1));
 					break;
 			}
 		}
