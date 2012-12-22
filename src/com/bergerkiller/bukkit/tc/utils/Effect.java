@@ -14,17 +14,18 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 public class Effect {
 	private static final Map<String, BlockFace> DIR_NAMES = new HashMap<String, BlockFace>();
-	private static final Map<Integer, BlockFace> SMOKE_DIRS = new HashMap<Integer, BlockFace>();
+	private static final BlockFace[] SMOKE_DIRS;
 	static {
-		SMOKE_DIRS.put(0, BlockFace.SOUTH_EAST);
-		SMOKE_DIRS.put(1, BlockFace.SOUTH);
-		SMOKE_DIRS.put(2, BlockFace.SOUTH_WEST);
-		SMOKE_DIRS.put(3, BlockFace.EAST);
-		SMOKE_DIRS.put(4, BlockFace.UP);
-		SMOKE_DIRS.put(5, BlockFace.WEST);
-		SMOKE_DIRS.put(6, BlockFace.NORTH_EAST);
-		SMOKE_DIRS.put(7, BlockFace.NORTH);
-		SMOKE_DIRS.put(8, BlockFace.NORTH_WEST);
+		SMOKE_DIRS = new BlockFace[9];
+		SMOKE_DIRS[0] = BlockFace.SOUTH_EAST;
+		SMOKE_DIRS[1] = BlockFace.SOUTH;
+		SMOKE_DIRS[2] = BlockFace.SOUTH_WEST;
+		SMOKE_DIRS[3] = BlockFace.EAST;
+		SMOKE_DIRS[4] = BlockFace.UP;
+		SMOKE_DIRS[5] = BlockFace.WEST;
+		SMOKE_DIRS[6] = BlockFace.NORTH_EAST;
+		SMOKE_DIRS[7] = BlockFace.NORTH;
+		SMOKE_DIRS[8] = BlockFace.NORTH_WEST;
 		DIR_NAMES.put("u", BlockFace.UP);
 		DIR_NAMES.put("m", BlockFace.UP);
 		DIR_NAMES.put("n", BlockFace.NORTH);
@@ -65,7 +66,7 @@ public class Effect {
 				}
 				if (data == null) {
 					try {
-						data = SMOKE_DIRS.get(Integer.parseInt(name));
+						data = SMOKE_DIRS[Integer.parseInt(name) % SMOKE_DIRS.length];
 					} catch (NumberFormatException ex) {}
 				}
 				if (data == null) {

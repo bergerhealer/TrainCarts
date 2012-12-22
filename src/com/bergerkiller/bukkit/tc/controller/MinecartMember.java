@@ -612,11 +612,22 @@ public class MinecartMember extends MinecartMemberStore {
 			} else {
 				this.direction = FaceUtil.getRailsCartDirection(raildirection);
 				if (movement.getX() == 0 || movement.getZ() == 0) {
+					// Moving along one axis - simplified calculation
 					if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
 						this.direction = this.direction.getOppositeFace();
 					}
 				} else {
-					if (MathUtil.getAngleDifference(MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(this.direction)) > 90) {
+					final float moveYaw = MathUtil.getLookAtYaw(movement);
+					// Compare with the movement direction to find out whether the opposite is needed
+					float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(this.direction));
+					float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(this.direction.getOppositeFace()));
+					// Compare with the previous direction to sort out equality problems
+					if (diff1 == diff2) {
+						diff1 = FaceUtil.getFaceYawDifference(this.directionFrom, this.direction);
+						diff2 = FaceUtil.getFaceYawDifference(this.directionFrom, this.direction.getOppositeFace());
+					}
+					// Use the opposite direction if needed
+					if (diff1 > diff2) {
 						this.direction = this.direction.getOppositeFace();
 					}
 				}

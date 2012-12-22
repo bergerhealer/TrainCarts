@@ -54,7 +54,7 @@ public class RailLogicHorizontal extends RailLogic {
 		final boolean invert;
 		if (this.curved) {
 			// Invert only if heading towards the exit-direction of the curve
-			BlockFace from = FaceUtil.getDirection(member.motX, member.motZ, false);
+			BlockFace from = member.getDirectionTo(); //FaceUtil.getDirection(member.motX, member.motZ, false);
 			invert = from == this.faces[0] || from == this.faces[1];
 		} else {
 			// Invert only if the direction is inverted relative to cart velocity

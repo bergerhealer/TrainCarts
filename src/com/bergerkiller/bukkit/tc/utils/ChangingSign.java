@@ -4,8 +4,10 @@ import org.bukkit.block.Sign;
 import org.bukkit.craftbukkit.v1_4_5.block.CraftBlockState;
 import org.bukkit.event.block.SignChangeEvent;
 
+/**
+ * A sign implementation that ensured proper access to a sign while it is being placed
+ */
 public class ChangingSign extends CraftBlockState implements Sign {
-
 	private final SignChangeEvent event;
 
 	public ChangingSign(SignChangeEvent event) {

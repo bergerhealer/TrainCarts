@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -93,37 +94,38 @@ public abstract class SignAction {
 		if (info.getSign() == null) {
 			return;
 		}
+		boolean canCauseAction = event.getAction() == Action.RIGHT_CLICK_BLOCK;
+		if (event.getAction() == Action.LEFT_CLICK_BLOCK && event.getPlayer().getGameMode() == GameMode.CREATIVE) {
+			canCauseAction = true;
+		}
 		for (SignAction action : actions) {
 			if (action.click(info, event.getPlayer(), event.getAction())) {
-				event.setCancelled(true); // Prevent block placement
+				// Prevent the action to be executed
+				if (canCauseAction) {
+					event.setCancelled(true);
+				}
 			}
-			if (info.isCancelled()) break;
+			if (info.isCancelled()) {
+				break;
+			}
 		}
 	}
-	
+
 	public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname) {
 		return handleBuild(event, permission, signname, null);
 	}
+
 	public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname, String signdescription) {
-		return handleBuild(event, permission.toString(), signname, signdescription);
-	}
-	public static boolean handleBuild(SignChangeActionEvent event, String permission, String signname) {
-		return handleBuild(event, permission, signname, null);
-	}
-	public static boolean handleBuild(SignChangeActionEvent event, String permission, String signname, String signdescription) {
-		if (event.getPlayer().hasPermission(permission)) {
+		if (permission.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use this sign")) {
 			event.getPlayer().sendMessage(ChatColor.YELLOW + "You built a " + ChatColor.WHITE + signname + ChatColor.YELLOW + "!");
 			if (signdescription != null) {
 				event.getPlayer().sendMessage(ChatColor.GREEN + "This sign can " + signdescription + ".");
 			}
 			return true;
-		} else {
-			event.getPlayer().sendMessage(ChatColor.RED + "You do not have permission to use this sign");
-			event.setCancelled(true);
-			return false;
 		}
+		return false;
 	}
-	
+
 	public static void handleBuild(SignChangeEvent event) {
 		SignChangeActionEvent info = new SignChangeActionEvent(event);
 		for (SignAction action : actions) {
@@ -150,13 +152,16 @@ public abstract class SignAction {
 		executeAll(info);
 	}
 	public static final void executeAll(SignActionEvent info) {
-		if (info.getSign() == null) return;
+		if (info == null || info.getSign() == null) {
+			return;
+		}
 		//Event
 		info.setCancelled(false);
 		if (!CommonUtil.callEvent(info).isCancelled() && actions != null) {
 			//facing?
 			boolean facing;
-			if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF)) {
+			if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF, 
+					SignActionType.MEMBER_UPDATE, SignActionType.GROUP_UPDATE)) {
 				facing = true;
 			} else {
 				facing = info.isFacing();
@@ -164,7 +169,9 @@ public abstract class SignAction {
 			for (SignAction action : actions) {
 				if (facing || action.overrideFacing()) {
 					action.execute(info);
-					if (info.isCancelled()) break;
+					if (info.isCancelled()) {
+						break;
+					}
 				}
 			}
 		}

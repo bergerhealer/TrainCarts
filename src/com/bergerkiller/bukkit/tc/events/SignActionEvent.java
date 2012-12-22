@@ -30,12 +30,22 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public class SignActionEvent extends Event implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
-	public HandlerList getHandlers() {
-		return handlers;
-	}
-	public static HandlerList getHandlerList() {
-		return handlers;
-	}
+	private final Block signblock;
+	private Block railsblock;
+	private boolean verticalRail;
+	private final SignActionMode mode;
+	private SignActionType actionType;
+	private final BlockFace facing;
+	private final Sign sign;
+	private BlockFace raildirection = null;
+	private MinecartMember member = null;
+	private MinecartGroup group = null;
+	private boolean memberchecked = false;
+	private boolean cancelled = false;
+	private boolean railschecked = false;
+	private final BlockFace[] watchedDirections;
+	private final boolean powerinv;
+	private final boolean poweron;
 
 	public SignActionEvent(Block signblock, MinecartMember member) {
 		this(signblock, member.isDerailed() ? null : member.getBlock());
@@ -144,23 +154,6 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.watchedDirections = watchedFaces.toArray(new BlockFace[0]);
 	}
 
-	private final Block signblock;
-	private Block railsblock;
-	private boolean verticalRail;
-	private final SignActionMode mode;
-	private SignActionType actionType;
-	private final BlockFace facing;
-	private final Sign sign;
-	private BlockFace raildirection = null;
-	private MinecartMember member = null;
-	private MinecartGroup group = null;
-	private boolean memberchecked = false;
-	private boolean cancelled = false;
-	private boolean railschecked = false;
-	private final BlockFace[] watchedDirections;
-	private final boolean powerinv;
-	private final boolean poweron;
-
 	/**
 	 * Sets whether levers connected to this Sign are toggled
 	 * 
@@ -238,28 +231,59 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.setRailsTo(direction.getDirection(this.getFacing()));
 	}
 
+	/**
+	 * Gets the action represented by this event
+	 * 
+	 * @return Event action type
+	 */
 	public SignActionType getAction() {
 		return this.actionType;
 	}
-	public boolean isAction(SignActionType... types) {
-		for (SignActionType type : types) {
-			if (this.actionType == type) return true;
-		}
-		return false;
-	}
+
+	/**
+	 * Sets the action represented by this event
+	 * 
+	 * @param type to set to
+	 * @return This sign action event
+	 */
 	public SignActionEvent setAction(SignActionType type) {
 		this.actionType = type;
 		return this;
 	}
 
+	/**
+	 * Checks whether one of the types specified equal the action of this event
+	 * 
+	 * @param types to check against
+	 * @return True if one of the types is the action, False if not
+	 */
+	public boolean isAction(SignActionType... types) {
+		return LogicUtil.contains(this.actionType, types);
+	}
+
+	/**
+	 * Checks whether a rails with a minecart on it is available above this sign
+	 * 
+	 * @return True if available, False if not
+	 */
 	public boolean hasRailedMember() {
 		return this.hasRails() && this.hasMember();
 	}
 
+	/**
+	 * Checks whether power reading is inverted for this Sign
+	 * 
+	 * @return True if it is inverted, False if not
+	 */
 	public boolean isPowerInverted() {
 		return this.powerinv;
 	}
 
+	/**
+	 * Checks whether power reading always returns on for this Sign
+	 * 
+	 * @return True if the power is always on, False if not
+	 */
 	public boolean isPowerAlwaysOn() {
 		return this.poweron;
 	}
@@ -371,14 +395,32 @@ public class SignActionEvent extends Event implements Cancellable {
 	public BlockFace getFacing() {
 		return this.facing;
 	}
+
+	/**
+	 * Checks whether the minecart that caused this event is facing the sign correctly
+	 * 
+	 * @return True if the minecart is able to invoke this sign, False if not
+	 */
 	public boolean isFacing() {
 		if (!this.hasMember()) return false;
 		if (!getMember().isMoving()) return true;
 		return this.isWatchedDirection(this.getMember().getDirectionFrom());
 	}
+
+	/**
+	 * Gets the sign associated with this sign action event
+	 * 
+	 * @return Sign
+	 */
 	public Sign getSign() {
 		return this.sign;
 	}
+
+	/**
+	 * Finds all signs below this sign that can extend the amount of lines
+	 * 
+	 * @return Signs below this sign
+	 */
 	public Sign[] findSignsBelow() {
 		ArrayList<Sign> below = new ArrayList<Sign>(1);
 		//other signs below this sign we could parse?
@@ -437,12 +479,29 @@ public class SignActionEvent extends Event implements Cancellable {
 		return false;
 	}
 
+	/**
+	 * Gets a collection of all Minecart Groups this sign remote controls
+	 * 
+	 * @return Remotely controlled groups
+	 */
 	public Collection<MinecartGroup> getRCTrainGroups() {
 		return MinecartGroup.matchAll(this.getRCName());
 	}
+
+	/**
+	 * Gets a collection of all Minecart Group train properties this sign remotely controls
+	 * 
+	 * @return Train properties of remotely controlled groups
+	 */
 	public Collection<TrainProperties> getRCTrainProperties() {
 		return TrainProperties.matchAll(this.getRCName());
 	}
+
+	/**
+	 * Gets the remote-controlled train name format used on this sign
+	 * 
+	 * @return Remote control name, or null if this is not a RC sign
+	 */
 	public String getRCName() {
 		if (this.isRCSign()) {
 			String name = this.getLine(0);
@@ -453,6 +512,13 @@ public class SignActionEvent extends Event implements Cancellable {
 		}
 	}
 
+	/**
+	 * Gets or finds the minecart associated with this sign right now<br>
+	 * Will find a possible minecart on rails above this sign 
+	 * if none was specified while creating this event
+	 * 
+	 * @return Minecart Member
+	 */
 	public MinecartMember getMember() {
 		if (this.member == null) {
 			if (!this.memberchecked) {
@@ -472,17 +538,29 @@ public class SignActionEvent extends Event implements Cancellable {
 		}
 		return this.member;
 	}
+
+	/**
+	 * Checks whether a minecart is associated with this event
+	 * 
+	 * @return True if a member is available, False if not
+	 */
 	public boolean hasMember() {
 		return this.getMember() != null;
 	}
 
+	/**
+	 * Sets the minecart associated with this event, overriding any previous members and groups
+	 * 
+	 * @param member to set to
+	 */
 	public void setMember(MinecartMember member) {
 		this.member = member;
+		this.memberchecked = true;
 		this.group = member.getGroup();
 	}
 
 	/**
-	 * Gets the directions minecarts have to move to be seen by this sign
+	 * Gets the directions minecarts have to move to be detected by this sign
 	 * 
 	 * @return Watched directions
 	 */
@@ -500,37 +578,69 @@ public class SignActionEvent extends Event implements Cancellable {
 		return LogicUtil.contains(direction, this.watchedDirections);
 	}
 
+	/**
+	 * Gets the Minecart Group that is associated with this event
+	 * 
+	 * @return Minecart group
+	 */
 	public MinecartGroup getGroup() {
-		if (this.group != null) return this.group;
+		if (this.group != null) {
+			return this.group;
+		}
 		MinecartMember mm = this.getMember();
-		if (mm == null) return null;
-		return mm.getGroup();
+		return mm == null ? null : mm.getGroup();
 	}
+
+	/**
+	 * Checks whether a minecart group is associated with this event
+	 * 
+	 * @return True if a group is available, False if not
+	 */
 	public boolean hasGroup() {
 		return this.getGroup() != null;
 	}
+
 	public String getLine(int index) {
 		return this.sign.getLine(index);
 	}
+
 	public String[] getLines() {
 		return this.sign.getLines();
 	}
+
 	public void setLine(int index, String line) {
 		this.sign.setLine(index, line);
 		this.sign.update(true);
 	}
+
+	/**
+	 * Gets the sign mode of this TrainCarts sign
+	 * 
+	 * @return Sign mode
+	 */
 	public SignActionMode getMode() {
 		return this.mode;
 	}
+
 	public boolean isCartSign() {
 		return this.mode == SignActionMode.CART;
 	}
+
 	public boolean isTrainSign() {
 		return this.mode == SignActionMode.TRAIN;
 	}
+
 	public boolean isRCSign() {
 		return this.mode == SignActionMode.RCTRAIN;
 	}
+
+	/**
+	 * Checks whether a given line starts with any of the text types specified
+	 * 
+	 * @param line number to check, 0 - 3
+	 * @param texttypes to check against
+	 * @return True if the line starts with any of the specified types, False if not
+	 */
 	public boolean isLine(int line, String... texttypes) {
 		String linetext = this.getLine(line).toLowerCase();
 		for (String type : texttypes) {
@@ -538,15 +648,33 @@ public class SignActionEvent extends Event implements Cancellable {
 		}
 		return false;
 	}
+
+	/**
+	 * Checks the first line of this sign to see if it starts with one of the sign types specified
+	 * 
+	 * @param signtypes to check against
+	 * @return True if the first line starts with any of the types, False if not
+	 */
 	public boolean isType(String... signtypes) {
 		return isLine(1, signtypes);
 	}
 
+	@Override
 	public boolean isCancelled() {
 		return this.cancelled;
 	}
 
-	public void setCancelled(boolean arg0) {
-		this.cancelled = arg0;	
+	@Override
+	public void setCancelled(boolean cancel) {
+		this.cancelled = cancel;	
+	}
+
+	@Override
+	public HandlerList getHandlers() {
+		return handlers;
+	}
+
+	public static HandlerList getHandlerList() {
+		return handlers;
 	}
 }

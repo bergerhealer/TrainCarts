@@ -2,10 +2,10 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Direction;
-import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -14,14 +14,13 @@ public class SignActionBlock extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("blocker")) return;
-		if (info.getMode() != SignActionMode.NONE) {
-			if (!info.hasRailedMember()) return;
+		if (info.isType("blocker") && info.getMode() != SignActionMode.NONE && info.hasRailedMember()) {
+			System.out.println(info.getMember().getDirectionTo());
 			if (info.isAction(SignActionType.GROUP_LEAVE) || (info.isAction(SignActionType.REDSTONE_CHANGE) && !info.isPowered())) {
 				// Remove the wait state when the train leaves or the sign lost power to block
-				Action action = info.getGroup().getCurrentAction();
-				if (action != null && action instanceof GroupActionWaitState) {
-					((GroupActionWaitState) action).stop();
+				GroupActionWaitState action = CommonUtil.tryCast(info.getGroup().getCurrentAction(), GroupActionWaitState.class);
+				if (action != null) {
+					action.stop();
 				}
 			} else if (info.isPowered() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
 				// Set the next direction based on the sign

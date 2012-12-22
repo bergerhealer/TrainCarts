@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import net.minecraft.server.v1_4_5.EntityMinecart;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -37,6 +38,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.BlockSet;
+import com.bergerkiller.bukkit.common.EntityMap;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -67,7 +69,9 @@ public class TCListener implements Listener {
 	public static Player lastPlayer = null;
 	public static boolean cancelNextDrops = false;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
+	private EntityMap<Player, Long> lastHitTimes = new EntityMap<Player, Long>();
 	private static final boolean DEBUG_DO_TRACKTEST = false;
+	private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
@@ -350,8 +354,20 @@ public class TCListener implements Listener {
 				}
 				MinecartMemberStore.spawnBy(at, event.getPlayer());
 			}
-			if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) || (event.getAction() == Action.LEFT_CLICK_BLOCK)) {
-				if (MaterialUtil.ISSIGN.get(event.getClickedBlock())) {
+			final boolean isLeftClick = event.getAction() == Action.LEFT_CLICK_BLOCK;			
+			if ((isLeftClick || (event.getAction() == Action.RIGHT_CLICK_BLOCK)) && MaterialUtil.ISSIGN.get(event.getClickedBlock())) {
+				boolean clickAllowed = true;
+				// Prevent creative players instantly destroying signs after clicking
+				if (isLeftClick && event.getPlayer().getGameMode() == GameMode.CREATIVE) {
+					// Deny left-clicking at a too high interval
+					Long lastHitTime = lastHitTimes.get(event.getPlayer());
+					long time = System.currentTimeMillis();
+					if (lastHitTime != null && (lastHitTime.longValue() + SIGN_CLICK_INTERVAL) >= time) {
+						clickAllowed = false;
+					}
+					lastHitTimes.put(event.getPlayer(), time);
+				}
+				if (clickAllowed) {
 					SignAction.handleClick(event);
 				}
 			}
