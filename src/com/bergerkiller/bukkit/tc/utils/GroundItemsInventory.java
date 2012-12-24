@@ -2,18 +2,19 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.bukkit.Location;
-import org.bukkit.entity.Item;
+import java.util.Random;
 
 import net.minecraft.server.v1_4_5.EntityItem;
-import net.minecraft.server.v1_4_5.ItemStack;
-import net.minecraft.server.v1_4_5.World;
 
-import com.bergerkiller.bukkit.common.natives.IInventoryBase;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Item;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
+
+import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
@@ -22,21 +23,19 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
  * Is of a dynamic size; the last item is always null<br>
  * If this item is set, a new item is spawned
  */
-public class GroundItemsInventory extends IInventoryBase {
+public class GroundItemsInventory extends InventoryBase {
 	private final List<Item> items = new ArrayList<Item>();
 	private final Location location;
-	private final World world;
+
+	public GroundItemsInventory(Block block, double range) {
+		this(block.getLocation().add(0.5, 0.5, 0.5), range);
+	}
 
 	public GroundItemsInventory(Location location, double range) {
 		this.location = location;
-		this.world = NativeUtil.getNative(location.getWorld());
 		double rangeSquared = range * range;
 		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(location.getWorld())) {
-			if (!(e instanceof Item)) {
-				continue;
-			}
-			EntityItem em = NativeUtil.getNative((Item) e);
-			if (MathUtil.distanceSquared(em.locX, em.locY, em.locZ, location.getX(), location.getY(), location.getZ()) <= rangeSquared) {
+			if (e instanceof Item && e.getLocation().distanceSquared(location) <= rangeSquared) {
 				this.items.add((Item) e);
 			}
 		}
@@ -70,21 +69,20 @@ public class GroundItemsInventory extends IInventoryBase {
 	@Override
 	public void setItem(int index, ItemStack stack) {
 		if (index == this.items.size()) {
-			// Spawn new item for this item stack
-			float rfact = 0.7F;
-			float offset = (1.0f - rfact) * 0.5f;
-			double dX = (double) (world.random.nextFloat() * rfact + offset);
-			double dY = (double) (world.random.nextFloat() * rfact + offset);
-			double dZ = (double) (world.random.nextFloat() * rfact + offset);
-			EntityItem entityitem = new EntityItem(world, location.getX() + dX, location.getY() + dY, location.getZ() + dZ, stack);
-			entityitem.pickupDelay = 5;
-			EntityUtil.addEntity(entityitem.getBukkitEntity());
-			this.items.add(NativeUtil.getItem(entityitem));
+			if (!LogicUtil.nullOrEmpty(stack)) {
+				// Spawn new item for this item stack
+				Random random = WorldUtil.getRandom(this.location.getWorld());
+				Location spawnLoc = this.location.clone().add(-0.45, -0.45, -0.45);
+				spawnLoc = spawnLoc.add(0.9f * random.nextFloat(), 0.9f * random.nextFloat(), 0.9f * random.nextFloat());
+				Item item = location.getWorld().dropItem(spawnLoc, stack);
+				item.setVelocity(new Vector(0, 0, 0));
+				this.items.add(item);
+			}
 		} else {
 			// Set item stack, if null, kill the item
 			EntityItem item = NativeUtil.getNative(this.items.get(index));
-			if (!(item.dead = (stack == null))) {
-				item.itemStack = stack;
+			if (!(item.dead = LogicUtil.nullOrEmpty(stack))) {
+				item.itemStack = NativeUtil.getNative(stack);
 				this.items.set(index, ItemUtil.respawnItem((Item) item.getBukkitEntity()));
 			}
 		}
@@ -99,18 +97,9 @@ public class GroundItemsInventory extends IInventoryBase {
 			if (item.isDead()) {
 				return null;
 			} else {
-				return NativeUtil.getNative(item).itemStack;
+				return item.getItemStack();
 			}
 		}
-	}
-
-	@Override
-	public ItemStack[] getContents() {
-		ItemStack[] items = new ItemStack[this.getSize()];
-		for (int i = 0; i < items.length; i++) {
-			items[i] = this.getItem(i);
-		}
-		return items;
 	}
 
 	@Override

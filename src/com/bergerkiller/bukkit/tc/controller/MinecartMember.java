@@ -25,8 +25,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventoryPlayer;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.inventory.Inventory;
@@ -34,7 +32,7 @@ import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -785,14 +783,16 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.passenger == null ? null : this.passenger.getBukkitEntity();
 	}
 	public Inventory getInventory() {
-		return new CraftInventory(this);
+		return NativeUtil.getInventory(this);
 	}
 	public org.bukkit.inventory.PlayerInventory getPlayerInventory() {
+		PlayerInventory inventory;
 		if (this.hasPlayerPassenger()) {
-			return new CraftInventoryPlayer(((EntityPlayer) this.passenger).inventory);
+			inventory = ((EntityPlayer) this.passenger).inventory;
 		} else {
-			return new CraftInventoryPlayer(new PlayerInventory(null));
+			inventory = new PlayerInventory(null);
 		}
+		return NativeUtil.getInventory(inventory, org.bukkit.inventory.PlayerInventory.class);
 	}
 	public boolean hasPlayerPassenger() {
 		return this.passenger != null && this.passenger instanceof EntityPlayer;

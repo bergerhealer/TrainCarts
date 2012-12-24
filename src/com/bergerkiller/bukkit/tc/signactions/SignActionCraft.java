@@ -6,7 +6,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
-import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -24,16 +25,16 @@ public class SignActionCraft extends SignAction {
 			//parse the sign
 			boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
 			boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
-			if (!docart && !dotrain) return;
-			if (!info.hasRailedMember()) return;
-			if (!info.isPowered()) return;
+			if ((!docart && !dotrain) || !info.hasRailedMember() || !info.isPowered()) {
+				return;
+			}
 
 			int radX, radY, radZ;
 			radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
 			BlockFace dir = info.getRailDirection();
-			if (dir == BlockFace.SOUTH) {
+			if (FaceUtil.isAlongX(dir)) {
 				radX = 0;
-			} else if (dir == BlockFace.WEST) {
+			} else if (FaceUtil.isAlongZ(dir)) {
 				radZ = 0;
 			}
 			World world = info.getWorld();
@@ -60,7 +61,7 @@ public class SignActionCraft extends SignAction {
 					inventory = info.getGroup().getInventory();
 				}
 				if (TrainCarts.showTransferAnimations) {
-					inventory = InventoryWatcher.convert(w, info.getMember(), inventory);
+					inventory = InventoryWatcher.convert(inventory, w, info.getMember());
 				}
 
 				// craft

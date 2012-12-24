@@ -17,7 +17,8 @@ import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.Task;
@@ -323,7 +324,7 @@ public class TrainCarts extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 9;
+		return Common.VERSION;
 	}
 
 	public void enable() {

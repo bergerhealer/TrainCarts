@@ -3,135 +3,112 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
-import net.minecraft.server.v1_4_5.IInventory;
-import net.minecraft.server.v1_4_5.TileEntity;
-import net.minecraft.server.v1_4_5.TileEntityChest;
-import net.minecraft.server.v1_4_5.TileEntityDispenser;
-import net.minecraft.server.v1_4_5.TileEntityFurnace;
-
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.ContainerBlock;
+import org.bukkit.block.Furnace;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.items.ItemParser;
-import com.bergerkiller.bukkit.common.natives.IInventoryMerged;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
+import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
+@SuppressWarnings("deprecation")
 public class SignActionDeposit extends SignAction {
-	public void deposit(List<TileEntityFurnace> furnaces, String line2, String line3, Inventory cartinv, MinecartMember m) {
-		//split parsers into the burned and cooked items
-		List<ItemParser> cooked = new ArrayList<ItemParser>();
-		List<ItemParser> burned = new ArrayList<ItemParser>();
-		for (ItemParser parser : Util.getParsers(line2)) {
-			if (!parser.hasType()) {
-				continue;
-			}
-			if (RecipeUtil.getHeatableItems().contains(parser.getTypeId())) {
-				cooked.add(parser);
-			} else if (RecipeUtil.isFuelItem(parser.getTypeId())) {
-				burned.add(parser);
-			}
-		}
-		for (ItemParser parser : Util.getParsers(line3)) {
-			if (!parser.hasType()) {
-				continue;
-			}
-			if (RecipeUtil.isFuelItem(parser.getTypeId())) {
-				burned.add(parser);
-			} else if (RecipeUtil.getHeatableItems().contains(parser.getTypeId())) {
-				cooked.add(parser);
-			}
-		}
-		if (cooked.isEmpty() && burned.isEmpty()) {
+
+	public static int depositInFurnace(Inventory from, Inventory to, Furnace toFurnace, ItemParser parser, boolean parserIsFuelHalf) {
+		List<ItemParser> heatables = new ArrayList<ItemParser>();
+		List<ItemParser> fuels = new ArrayList<ItemParser>();
+		if (!parser.hasType()) {
+			// Add all heatables and fuels
 			for (ItemParser p : TrainCarts.plugin.getParsers("heatable")) {
-				if (!p.hasType()) {
-					cooked.clear();
+				if (p == null || !p.hasType()) {
+					heatables.clear();
 					break;
 				} else {
-					cooked.add(p);
+					heatables.add(p);
 				}
 			}
 			for (ItemParser p : TrainCarts.plugin.getParsers("fuel")) {
-				if (!p.hasType()) {
-					burned.clear();
+				if (p == null || !p.hasType()) {
+					fuels.clear();
 					break;
 				} else {
-					burned.add(p);
+					fuels.add(p);
 				}
 			}
-		}
-		deposit(furnaces, cooked, burned, cartinv, m);
-	}
-
-	public void deposit(List<TileEntityFurnace> furnaces, List<ItemParser> cooked, List<ItemParser> burned, Inventory cartinv, MinecartMember m) {
-		//put stuff from the inventory into the furnaces
-		if (furnaces.isEmpty()) return;
-		int limit;
-		Inventory furnaceinv;
-
-		// transfer cooked items
-		for (ItemParser p : cooked) {
-			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-			for (TileEntityFurnace f : furnaces) {
-				if (TrainCarts.showTransferAnimations) {
-					furnaceinv = InventoryWatcher.convert(m, f, f);
+			if (heatables.isEmpty() && fuels.isEmpty()) {
+				return 0;
+			}
+		} else {
+			// Is the parser fuel or heatable?
+			boolean heatable = RecipeUtil.isHeatableItem(parser.getTypeId());
+			boolean fuel = RecipeUtil.isFuelItem(parser.getTypeId());
+			if (heatable && fuel) {
+				if (parserIsFuelHalf) {
+					fuels.add(parser);
 				} else {
-					furnaceinv = new CraftInventory(f);
+					heatables.add(parser);
 				}
-				ItemStack item = furnaceinv.getItem(0);
-				if (item == null) {
-					item = new ItemStack(0, 0);
-				}
-				limit -= ItemUtil.transfer(cartinv, item, p, limit);
-				ItemUtil.setItem(furnaceinv, 0, item);
+			} else if (heatable) {
+				heatables.add(parser);
+			} else if (fuel) {
+				fuels.add(parser);
+			} else {
+				return 0;
 			}
 		}
+		final int startAmount = parser.hasAmount() ? parser.getAmount() : Integer.MAX_VALUE;
+		int amountToTransfer = startAmount;
 
-		//transfer fuel (requires manual limiting if no amount is set)
-		for (ItemParser p : burned) {
-			if (p == null) continue;
-			limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-			//first fill the amount needed
-			for (TileEntityFurnace f : furnaces) {
-				if (limit == 0) return;
-				if (TrainCarts.showTransferAnimations) {
-					furnaceinv = InventoryWatcher.convert(m, f, f);
-				} else {
-					furnaceinv = new CraftInventory(f);
-				}
-				ItemStack cookeditem = furnaceinv.getItem(0);
+		// Transfer heatable items
+		for (ItemParser p : heatables) {
+			ItemStack item = to.getItem(0);
+			if (item == null) {
+				item = ItemUtil.emptyItem();
+			}
+			amountToTransfer -= ItemUtil.transfer(from, item, p, amountToTransfer);
+			to.setItem(0, item);
+		}
+
+		// Transfer fuel (requires manual limiting if no amount is set)
+		for (ItemParser p : fuels) {
+			if (p == null) {
+				continue;
+			}
+			if (amountToTransfer == 0) {
+				break;
+			}
+
+			int transferCount = amountToTransfer;
+			ItemStack fuel = to.getItem(1);
+			if (fuel == null) {
+				fuel = ItemUtil.emptyItem();
+			}
+			if (!p.hasAmount()) {
+				// Fill the minimal amount needed to burn all the heatables in the furnace
+				ItemStack cookeditem = to.getItem(0);
 				if (cookeditem == null || cookeditem.getTypeId() == 0) continue;
 				int fuelNeeded = cookeditem.getAmount() * 200;
 				if (fuelNeeded == 0) continue; //nothing to cook
 				//===================================================
-				fuelNeeded -= f.cookTime;
+				fuelNeeded -= toFurnace.getCookTime();
 				if (fuelNeeded <= 0) continue; //we got enough
 				//===================================================
-				ItemStack fuel = furnaceinv.getItem(1);
-				if (fuel == null) {
-					fuel = new ItemStack(0, 0);
-				} else {
-					fuel = fuel.clone();
-				}
 				int fuelPerItem = 0;
 				if (fuel.getTypeId() == 0) {
-					if (p.hasType()) {
-						fuelPerItem = RecipeUtil.getFuelTime(p.getTypeId());
-					}
+					fuelPerItem = RecipeUtil.getFuelTime(p.getTypeId());
 				} else {
 					fuelPerItem = RecipeUtil.getFuelTime(fuel.getTypeId());
 				}
@@ -140,111 +117,82 @@ public class SignActionDeposit extends SignAction {
 				fuelNeeded -= fuelPerItem * fuel.getAmount();
 				if (fuelNeeded <= 0) continue;
 				//====================================================
-				int itemcount = Math.min(limit, (int) Math.ceil((double) fuelNeeded / (double) fuelPerItem));
-				limit -= ItemUtil.transfer(cartinv, fuel, p, itemcount);
-				ItemUtil.setItem(furnaceinv, 1, fuel);
+				transferCount = Math.min(amountToTransfer, (int) Math.ceil((double) fuelNeeded / (double) fuelPerItem));
 			}
-
-			//if an amount is set; top it off
-			if (p.hasAmount()) {
-				for (TileEntityFurnace f : furnaces) {
-					if (TrainCarts.showTransferAnimations) {
-						furnaceinv = InventoryWatcher.convert(m, f, f);
-					} else {
-						furnaceinv = new CraftInventory(f);
-					}
-					ItemStack item = furnaceinv.getItem(1);
-					limit -= ItemUtil.transfer(cartinv, item, p, limit);
-					ItemUtil.setItem(furnaceinv, 1, item);
-				}
-			}
+			amountToTransfer -= ItemUtil.transfer(from, fuel, p, transferCount);
+			to.setItem(1, fuel);
 		}
+		return startAmount - amountToTransfer;
 	}
-	
+
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
-
-		if (!info.hasRailedMember() || !info.isPowered()) return;
-
-		//get the block types to collect and the radius (2nd line)
-		Collection<InteractType> typesToCheck = InteractType.parse("deposit", info.getLine(1));
-		if (typesToCheck.isEmpty()) return;
-		int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
-
-		//get the tile entities to deposit to
-		Set<TileEntity> found = SignActionCollect.getTileEntities(info, radius);
-		if (found.isEmpty()) return;
-		
-		List<IInventory> invlist = new ArrayList<IInventory>();
-		List<TileEntityFurnace> furnaces = new ArrayList<TileEntityFurnace>();
-		for (InteractType type : typesToCheck) {
-			switch (type) {
-				case CHEST : {
-					for (TileEntity tile : found) {
-						if (tile instanceof TileEntityChest) {
-							invlist.add((IInventory) tile);
-						}
-					}
-					break;
-				}
-				case FURNACE : {
-					for (TileEntity tile : found) {
-						if (tile instanceof TileEntityFurnace) {
-							furnaces.add((TileEntityFurnace) tile);
-						}
-					}
-					break;
-				}
-				case DISPENSER : {
-					for (TileEntity tile : found) {
-						if (tile instanceof TileEntityDispenser) {
-							invlist.add((IInventory) tile);
-						}
-					}
-					break;
-				}
-				case GROUNDITEM : {
-					invlist.add(new GroundItemsInventory(info.getRailLocation(), (double) radius + 0.5));
-					break;
-				}
-			}
+		if (!info.hasRails() || !info.isPowered()) {
+			return;
 		}
-
-		if (invlist.isEmpty() && furnaces.isEmpty()) return;
 
 		//parse the sign
 		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
 		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
-		if (!docart && !dotrain) return;
-		
-		//get the inventory to transfer from
-		Inventory cartinv;
-		if (docart) {
-			if (!info.getMember().isStorageCart()) return;
-			cartinv = info.getMember().getInventory();
-		} else {
-			cartinv = info.getGroup().getInventory();
+		if (!docart && !dotrain) {
+			return;
 		}
 
-		//deposit into furnaces
-		if (!furnaces.isEmpty()) {
-			deposit(furnaces, info.getLine(2), info.getLine(3), cartinv, info.getMember());
+		Collection<BlockState> blocks = TransferSignUtil.findBlocks(info, "deposit");
+		if (blocks.isEmpty()) {
+			return;
 		}
-		//deposit into other inventories
-		if (!invlist.isEmpty()) {
-			if (TrainCarts.showTransferAnimations) {
-				InventoryWatcher.convertAll(invlist, info.getMember());
+
+		//get the inventory to transfer from
+		Inventory from;
+		if (docart) {
+			if (!info.getMember().isStorageCart()) {
+				return;
 			}
-			ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
-			int limit;
-			final Inventory to = IInventoryMerged.convert(invlist);
-			for (ItemParser p : parsers) {
-				if (p == null) continue;
-				limit = p.hasAmount() ? p.getAmount() : Integer.MAX_VALUE;
-				ItemUtil.transfer(cartinv, to, p, limit);
+			from = info.getMember().getInventory();
+		} else {
+			from = info.getGroup().getInventory();
+		}
+
+		//get item parsers to use for transferring
+		ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
+		int furnaceFuelOffset = 0; // 0 by default, sees both lines as fuel
+		if (!info.getLine(2).isEmpty() && !info.getLine(3).isEmpty()) {
+			// Only second line is seen as fuel
+			furnaceFuelOffset = Util.getParsers(info.getLine(2)).length;
+		}
+
+		// Go through all the inventories to deposit items in
+		int amount;
+		for (BlockState block : blocks) {
+			if (!(block instanceof ContainerBlock)) {
+				continue;
+			}
+			// Obtain the inventory
+			Inventory inv = ((ContainerBlock) block).getInventory();
+			// Do not deposit using animations for ground items, it shows duplicates which looks bad
+			if (TrainCarts.showTransferAnimations && !(inv instanceof GroundItemsInventory)) {
+				inv = InventoryWatcher.convert(inv, block, info.getMember());
+			}
+
+			// Parse all the parsers
+			for (int i = 0; i < parsers.length; i++) {
+				ItemParser p = parsers[i];
+				if (block instanceof Furnace) {
+					// Deposit into fuel and heatable slots
+					amount = depositInFurnace(from, inv, (Furnace) block, p, i >= furnaceFuelOffset);
+				} else {
+					// Collect all contents
+					amount = ItemUtil.transfer(from, inv, p, p.getAmount());
+				}
+				// Update parser amount
+				if (amount > 0 && p.hasAmount()) {
+					p = p.setAmount(p.getAmount() - amount);
+				}
+				parsers[i] = p;
 			}
 		}
 	}

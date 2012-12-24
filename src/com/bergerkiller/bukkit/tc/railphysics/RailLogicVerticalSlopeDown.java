@@ -29,9 +29,9 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
 	@Override
 	public void onPostMove(MinecartMember member) {
 		double factor = 0.0;
-		if (this.alongX) {
+		if (this.alongZ) {
 			factor = this.getDirection().getModZ() * ((member.getBlockZ() + 0.5) - member.locZ);
-		} else if (this.alongZ) {
+		} else if (this.alongX) {
 			factor = this.getDirection().getModX() * ((member.getBlockX() + 0.5) - member.locX);
 		}
 		double posYAdd = (0.5 - MathUtil.clamp(factor, 0.0, 0.5)) * 2.0;

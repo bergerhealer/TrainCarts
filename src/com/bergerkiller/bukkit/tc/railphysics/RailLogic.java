@@ -14,14 +14,14 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  */
 public abstract class RailLogic {
 	private final BlockFace horizontalDir;
-	protected final boolean alongX, alongZ, alongY, curved;
+	protected final boolean alongZ, alongX, alongY, curved;
 
 	public RailLogic(BlockFace horizontalDirection) {
 		this.horizontalDir = horizontalDirection;
-		this.alongX = horizontalDirection.getModX() == 0 && horizontalDirection.getModZ() != 0;
-		this.alongZ = horizontalDirection.getModZ() == 0 && horizontalDirection.getModX() != 0;
-		this.alongY = FaceUtil.isVertical(horizontalDirection);
-		this.curved = !alongX && !alongY && !alongZ;
+		this.alongX = FaceUtil.isAlongX(horizontalDirection);
+		this.alongZ = FaceUtil.isAlongZ(horizontalDirection);
+		this.alongY = FaceUtil.isAlongY(horizontalDirection);
+		this.curved = !alongZ && !alongY && !alongX;
 	}
 
 	/**

@@ -1,63 +1,26 @@
 package com.bergerkiller.bukkit.tc.itemanimation;
 
-import java.util.List;
-
-import net.minecraft.server.v1_4_5.EntityHuman;
-import net.minecraft.server.v1_4_5.IInventory;
-import net.minecraft.server.v1_4_5.ItemStack;
-
-import org.bukkit.craftbukkit.v1_4_5.entity.CraftHumanEntity;
-import org.bukkit.craftbukkit.v1_4_5.inventory.CraftInventory;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.bergerkiller.bukkit.common.inventory.InventoryBase;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
-public class InventoryWatcher implements IInventory {
-
-	public InventoryWatcher(Object from, Object to, Inventory inventory) {
-		this(from, to, NativeUtil.getNative(inventory));
-	}
-
+public class InventoryWatcher extends InventoryBase {
 	private Object other, self;
-	private final IInventory source;
+	private final Inventory source;
 	private final ItemStack[] original;
-	public InventoryWatcher(Object other, Object self, final IInventory inventory) {
+
+	public InventoryWatcher(Inventory inventory, Object self, Object other) {
 		this.other = other;
 		this.self = self;
 		this.source = inventory;
-		this.original = new ItemStack[this.source.getSize()];
-		for (int i = 0; i < this.original.length; i++) {
-			ItemStack item = inventory.getItem(i);
-			this.original[i] = item == null ? null : item.cloneItemStack();
-		}
-	}
-	
-	public static Inventory convert(Object other, Object self, Inventory inventory) {
-		return convert(other, self, ((CraftInventory) inventory).getInventory());
-	}
-	public static Inventory convert(Object other, Object self, IInventory inventory) {
-		return new InventoryWatcher(other, self, inventory).getInventory();
+		this.original = ItemUtil.getClonedContents(inventory);
 	}
 
-	/**
-	 * Converts all the inventories into watched inventories<br>
-	 * The self object is the inventory
-	 * 
-	 * @param inventories to convert
-	 * @param other object that is interacted with
-	 */
-	public static void convertAll(List<IInventory> inventories, Object other) {
-		for (int i = 0; i < inventories.size(); i++) {
-			IInventory inv = inventories.get(i);
-			inventories.set(i, new InventoryWatcher(other, inv, inv));
-		}
-	}
-
-	public Inventory getInventory() {
-		return new CraftInventory(this);
+	public static Inventory convert(Inventory inventory, Object self, Object other) {
+		return new InventoryWatcher(inventory, self, other);
 	}
 
 	@Override
@@ -65,7 +28,7 @@ public class InventoryWatcher implements IInventory {
 		ItemStack olditem = this.original[index];
 		this.source.setItem(index, newitem);
 		Object self = this.getSelfAt(index);
-		this.original[index] = newitem == null ? null : newitem.cloneItemStack();
+		this.original[index] = ItemUtil.cloneItem(newitem);
 		if (olditem == null) {
 			if (newitem != null) {
 				ItemAnimation.start(other, self, newitem);
@@ -75,13 +38,16 @@ public class InventoryWatcher implements IInventory {
 				ItemAnimation.start(self, other, olditem);
 			} else {
 				//same type?
-				if (newitem.id == olditem.id && newitem.getData() == olditem.getData()) {
-					ItemStack trans = newitem.cloneItemStack();
-					trans.count -= olditem.count;
-					if (trans.count > 0) {
+				if (ItemUtil.equalsIgnoreAmount(olditem, newitem)) {
+					// Obtain an item stack (trans) to do an animation with
+					// Switch between self and other based on changed amount
+					ItemStack trans = ItemUtil.cloneItem(newitem);
+					int newAmount = trans.getAmount() - olditem.getAmount();
+					if (newAmount > 0) {
+						trans.setAmount(newAmount);
 						ItemAnimation.start(other, self, trans);
-					} else if (trans.count < 0) {
-						trans.count = -trans.count;
+					} else if (newAmount < 0) {
+						trans.setAmount(-newAmount);
 						ItemAnimation.start(self, other, trans);
 					}
 				} else {
@@ -100,66 +66,13 @@ public class InventoryWatcher implements IInventory {
 		return self;
 	}
 
-	public boolean a_(EntityHuman arg0) {
-		return this.source.a_(arg0);
+	@Override
+	public ItemStack getItem(int index) {
+		return this.source.getItem(index);
 	}
-	public void f() {
-		this.source.f();
-	}
-	public ItemStack[] getContents() {
-		return this.source.getContents();
-	}
-	public ItemStack getItem(int arg0) {
-		return this.source.getItem(arg0);
-	}
-	public int getMaxStackSize() {
-		return this.source.getMaxStackSize();
-	}
-	public String getName() {
-		return this.source.getName();
-	}
+
+	@Override
 	public int getSize() {
 		return this.source.getSize();
-	}
-	public ItemStack splitStack(int arg0, int arg1) {
-		return this.source.splitStack(arg0, arg1);
-	}
-	public void update() {
-		this.source.update();
-	}
-
-	@Override
-	public InventoryHolder getOwner() {
-		return this.source.getOwner();
-	}
-
-	@Override
-	public List<HumanEntity> getViewers() {
-		return this.source.getViewers();
-	}
-
-	@Override
-	public void onClose(CraftHumanEntity arg0) {
-		this.source.onClose(arg0);
-	}
-
-	@Override
-	public void onOpen(CraftHumanEntity arg0) {
-		this.source.onOpen(arg0);
-	}
-
-	@Override
-	public ItemStack splitWithoutUpdate(int arg0) {
-		return this.source.splitWithoutUpdate(arg0);
-	}
-
-	@Override
-	public void setMaxStackSize(int arg0) {
-		this.source.setMaxStackSize(arg0);
-	}
-
-	@Override
-	public void startOpen() {
-		this.source.startOpen();
 	}
 }

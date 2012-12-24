@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,7 +14,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
-import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -221,43 +220,46 @@ public class Util {
 	public static ItemParser[] getParsers(final String items) {
 		List<ItemParser> parsers = new ArrayList<ItemParser>();
 		for (String type : items.split(";")) {
-			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*", "_");
 			boolean groupedMult = false;
-			Integer amount = null;
+			int amount = -1;
+			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*", "_");
 			if (idx > 0) {
-				amount = ParseUtil.parseInt(type.substring(0, idx), null);
-				if (amount != null) {
+				amount = ParseUtil.parseInt(type.substring(0, idx), -1);
+				if (amount != -1) {
 					groupedMult = type.charAt(idx) == '_';
 					type = type.substring(idx + 1);
 				}
 			}
 			ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type);
 			if (keyparsers.length != 0) {
-				if (amount == null) {
+				if (amount == -1) {
 					// add parsers directly
-					parsers.addAll(Arrays.asList(keyparsers));
+					for (ItemParser p : keyparsers) {
+						parsers.add(p.setAmount(-1));
+					}
 				} else if (groupedMult) {
 					// add parsers one by one
 					for (int i = 0; i < amount; i++) {
 						for (ItemParser p : keyparsers) {
-							Integer a = p.hasAmount() ? p.getAmount() : 1;
-							Material t = p.hasType() ? p.getType() : null;
-							Byte d = p.hasData() ? p.getData() : null;
-							parsers.add(new ItemParser(t, a, d));
+							if (p.hasAmount()) {
+								parsers.add(p.setAmount(1));
+							} else {
+								parsers.add(p);
+							}
 						}
 					}
 				} else {
 					// add parsers with set modifier amount
 					for (ItemParser p : keyparsers) {
-						parsers.add(p.multiplyAmount(amount.intValue()));
+						parsers.add(p.multiplyAmount(amount));
 					}
 				}
 			} else {
-				parsers.add(ItemParser.parse(type, amount == null ? null : amount.toString()));
+				parsers.add(ItemParser.parse(type, amount == -1 ? null : Integer.toString(amount)));
 			}
 		}
 		if (parsers.isEmpty()) {
-			parsers.add(new ItemParser(null, null));
+			parsers.add(new ItemParser(null));
 		}
 		return parsers.toArray(new ItemParser[0]);
 	}

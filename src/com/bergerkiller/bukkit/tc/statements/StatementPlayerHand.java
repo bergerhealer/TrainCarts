@@ -4,9 +4,7 @@ import java.util.ArrayList;
 
 import org.bukkit.inventory.Inventory;
 
-import net.minecraft.server.v1_4_5.ItemStack;
-
-import com.bergerkiller.bukkit.common.natives.IInventoryBaseImpl;
+import com.bergerkiller.bukkit.common.inventory.InventoryBaseImpl;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -30,9 +28,9 @@ public class StatementPlayerHand extends StatementItems {
 			item = member.getPlayerInventory().getItemInHand();
 		}
 		if (LogicUtil.nullOrEmpty(item)) {
-			return new IInventoryBaseImpl(new ItemStack[0]).getInventory();
+			return new InventoryBaseImpl(new org.bukkit.inventory.ItemStack[0]);
 		} else {
-			return new IInventoryBaseImpl(item).getInventory();
+			return new InventoryBaseImpl(new org.bukkit.inventory.ItemStack[] {item});
 		}
 	}
 
@@ -47,6 +45,6 @@ public class StatementPlayerHand extends StatementItems {
 				}
 			}
 		}
-		return new IInventoryBaseImpl(items).getInventory();
+		return new InventoryBaseImpl(items, false);
 	}
 }

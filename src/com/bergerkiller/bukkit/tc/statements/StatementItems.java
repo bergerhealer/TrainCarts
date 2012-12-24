@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.statements;
 
 import org.bukkit.inventory.Inventory;
 
-import com.bergerkiller.bukkit.common.items.ItemParser;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -18,13 +18,13 @@ public class StatementItems extends Statement {
 	
 	@Override
 	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
-		int count = ItemUtil.getItemCount(getInventory(member), null, null);
+		int count = ItemUtil.getItemCount(getInventory(member), -1, -1);
 		return Util.evaluate(count, text);
 	}
-	
+
 	@Override
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
-		int count = ItemUtil.getItemCount(getInventory(group), null, null);
+		int count = ItemUtil.getItemCount(getInventory(group), -1, -1);
 		return Util.evaluate(count, text);
 	}
 

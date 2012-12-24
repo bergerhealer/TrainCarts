@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.server.v1_4_5.ItemStack;
-import net.minecraft.server.v1_4_5.TileEntity;
-import net.minecraft.server.v1_4_5.TileEntityChest;
 
 import org.bukkit.Material;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Chest;
+import org.bukkit.inventory.Inventory;
 
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -16,6 +19,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
+import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
 public class SignActionFuel extends SignAction {
 
@@ -34,16 +38,16 @@ public class SignActionFuel extends SignAction {
 			
 			//get nearby chests
 			int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
-			
-			List<TileEntityChest> chests = new ArrayList<TileEntityChest>();
-			for (TileEntity tile : SignActionCollect.getTileEntities(info, radius)) {
-				if (tile instanceof TileEntityChest) {
-					chests.add((TileEntityChest) tile);
+			List<Chest> chests = new ArrayList<Chest>();
+			for (BlockState state : TransferSignUtil.getBlockStates(info, radius)) {
+				if (state instanceof Chest) {
+					chests.add((Chest) state);
 				}
 			}
-			
-			if (chests.isEmpty()) return;
-			
+			if (chests.isEmpty()) {
+				return;
+			}
+
 			List<MinecartMember> carts;
 			if (dotrain) {
 				carts = info.getGroup();
@@ -51,22 +55,21 @@ public class SignActionFuel extends SignAction {
 				carts = new ArrayList<MinecartMember>(1);
 				carts.add(info.getMember());
 			}
-			
+
 			int i;
 			boolean found = false;
 			for (MinecartMember member : carts) {
 				if (member.isPoweredCart() && !member.hasFuel()) {
 					found = false;
-					for (TileEntityChest chest : chests) {
-						for (i = 0; i < chest.getSize(); i++) {
-							ItemStack item = chest.getItem(i);
-							if (item != null && item.id == Material.COAL.getId()) {
-								item.count--;
-								chest.setItem(i, item.count == 0 ? null : item);
+					for (Chest chest : chests) {
+						Inventory inv = chest.getInventory();
+						for (i = 0; i < inv.getSize(); i++) {
+							org.bukkit.inventory.ItemStack item = inv.getItem(i);
+							if (!LogicUtil.nullOrEmpty(item) && item.getTypeId() == Material.COAL.getId()) {
+								ItemUtil.subtractAmount(item, 1);
+								inv.setItem(i, item);
 								found = true;
-								member.fuel += 3600;
-								member.b = member.motX;
-								member.c = member.motZ;
+								member.addFuel(3600);
 								if (TrainCarts.showTransferAnimations) {
 									ItemAnimation.start(chest, member, new ItemStack(Material.COAL.getId(), 1, 0));
 								}

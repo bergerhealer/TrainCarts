@@ -68,10 +68,10 @@ public class RailLogicHorizontal extends RailLogic {
 		double newLocX = (double) member.getBlockX() + 0.5 + this.startX;
 		double newLocY = (double) member.getBlockY() + (double) member.height;
 		double newLocZ = (double) member.getBlockZ() + 0.5 + this.startZ;
-		if (this.alongX) {
+		if (this.alongZ) {
 			// Moving along the X-axis
 			newLocZ += this.dz * (member.locZ - member.getBlockZ());
-		} else if (this.alongZ) {
+		} else if (this.alongX) {
 			// Moving along the Z-axis
 			newLocX += this.dx * (member.locX - member.getBlockX());
 		} else {

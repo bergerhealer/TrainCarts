@@ -15,9 +15,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import net.minecraft.server.v1_4_5.EntityPlayer;
-import net.minecraft.server.v1_4_5.IInventory;
-
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,8 +24,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.items.ItemParser;
-import com.bergerkiller.bukkit.common.natives.IInventoryMerged;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
@@ -700,15 +697,18 @@ public class MinecartGroup extends MinecartGroupStore {
 
 	public Inventory getInventory() {
 		//count amount of storage minecarts
-		IInventory[] source = new IInventory[this.size(Material.STORAGE_MINECART)];
+		Inventory[] source = new Inventory[this.size(Material.STORAGE_MINECART)];
 		int i = 0;
 		for (MinecartMember mm : this) {
 			if (mm.isStorageCart()) {
-				source[i] = mm;
+				source[i] = mm.getInventory();
 				i++;
 			}
 		}
-		return IInventoryMerged.convert(source);
+		if (source.length == 1) {
+			return source[0];
+		}
+		return new MergedInventory(source);
 	}
 	public Inventory getPlayerInventory() {
 		//count amount of player passengers
@@ -718,15 +718,18 @@ public class MinecartGroup extends MinecartGroupStore {
 				count++;
 			}
 		}
-		IInventory[] source = new IInventory[count];
+		Inventory[] source = new Inventory[count];
+		if (source.length == 1) {
+			return source[0];
+		}
 		int i = 0;
 		for (MinecartMember mm : this) {
 			if (mm.hasPlayerPassenger()) {
-				source[i] = ((EntityPlayer) mm.passenger).inventory;
+				source[i] = mm.getPlayerInventory();
 				i++;
 			}
 		}
-		return IInventoryMerged.convert(source);
+		return new MergedInventory(source);
 	}
 
 	public void loadChunks() {

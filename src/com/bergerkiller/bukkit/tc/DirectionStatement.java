@@ -6,6 +6,9 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
 public class DirectionStatement {
+	public Direction direction;
+	public String text;
+	public Integer number;
 
 	public DirectionStatement(String text) {
 		this(text, Direction.NONE);
@@ -26,10 +29,6 @@ public class DirectionStatement {
 			this.number = null;
 		}
 	}
-
-	public Direction direction;
-	public String text;
-	public Integer number;
 
 	public boolean has(SignActionEvent event, MinecartMember member) {
 		return Statement.has(member, this.text, event);
