@@ -64,7 +64,7 @@ public class Station {
 				}
 			} else {
 				// Which directions to move, or brake?
-				if (FaceUtil.isAlongZ(this.railDirection)) {
+				if (FaceUtil.isAlongX(this.railDirection)) {
 					boolean west = info.isPowered(BlockFace.WEST);
 					boolean east = info.isPowered(BlockFace.EAST);
 					if (west && !east) {
@@ -76,7 +76,7 @@ public class Station {
 					} else {
 						this.instruction = null;
 					}
-				} else if (FaceUtil.isAlongX(this.railDirection)) {
+				} else if (FaceUtil.isAlongZ(this.railDirection)) {
 					boolean north = info.isPowered(BlockFace.NORTH);
 					boolean south = info.isPowered(BlockFace.SOUTH);
 					if (north && !south) {

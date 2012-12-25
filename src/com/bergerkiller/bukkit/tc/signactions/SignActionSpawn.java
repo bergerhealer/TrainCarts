@@ -112,6 +112,7 @@ public class SignActionSpawn extends SignAction {
 						}
 					}
 					GroupCreateEvent.call(group);
+					break;
 				}
 			}
 		}
