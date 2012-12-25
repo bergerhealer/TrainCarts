@@ -64,7 +64,7 @@ public class Station {
 				}
 			} else {
 				// Which directions to move, or brake?
-				if (this.railDirection == BlockFace.WEST) {
+				if (FaceUtil.isAlongZ(this.railDirection)) {
 					boolean west = info.isPowered(BlockFace.WEST);
 					boolean east = info.isPowered(BlockFace.EAST);
 					if (west && !east) {
@@ -76,7 +76,7 @@ public class Station {
 					} else {
 						this.instruction = null;
 					}
-				} else if (this.railDirection == BlockFace.SOUTH) {
+				} else if (FaceUtil.isAlongX(this.railDirection)) {
 					boolean north = info.isPowered(BlockFace.NORTH);
 					boolean south = info.isPowered(BlockFace.SOUTH);
 					if (north && !south) {
@@ -204,11 +204,7 @@ public class Station {
 		for (BlockFace face : toCheck) {
 			int tlength = 0;
 			// Get the type of rail required
-			BlockFace checkface = face;
-			if (checkface == BlockFace.NORTH)
-				checkface = BlockFace.SOUTH;
-			if (checkface == BlockFace.EAST)
-				checkface = BlockFace.WEST;
+			BlockFace checkface = FaceUtil.toRailsDirection(face);
 
 			Block b = this.railsBlock;
 			for (int i = 0; i < 20; i++) {

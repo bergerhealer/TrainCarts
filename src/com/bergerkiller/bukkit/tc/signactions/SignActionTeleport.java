@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public class SignActionTeleport extends SignAction {
@@ -44,8 +45,7 @@ public class SignActionTeleport extends SignAction {
 							boolean isPlate = MaterialUtil.ISPRESSUREPLATE.get(destinationRail);
 							if (isPlate || MaterialUtil.ISRAILS.get(destinationRail)) {
 								//rail aligned at sign?
-								if (facing == BlockFace.NORTH) facing = BlockFace.SOUTH;
-								if (facing == BlockFace.EAST) facing = BlockFace.WEST;
+								facing = FaceUtil.toRailsDirection(facing);
 								if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
 									//Allowed?
 									if (!this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {

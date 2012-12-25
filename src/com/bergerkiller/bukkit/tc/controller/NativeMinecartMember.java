@@ -954,13 +954,13 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				Vehicle vehicle = (Vehicle)getBukkitEntity();
 				org.bukkit.block.Block block = world.getWorld().getBlockAt(MathUtil.floor(locX), MathUtil.floor(locY - (double)height), MathUtil.floor(locZ));
 				if (d6 > d0) {
-					block = block.getRelative(BlockFace.SOUTH);
-				} else if (d6 < d0) {
-					block = block.getRelative(BlockFace.NORTH);
-				} else if (d8 > d2) {
-					block = block.getRelative(BlockFace.WEST);
-				} else if (d8 < d2) {
 					block = block.getRelative(BlockFace.EAST);
+				} else if (d6 < d0) {
+					block = block.getRelative(BlockFace.WEST);
+				} else if (d8 > d2) {
+					block = block.getRelative(BlockFace.SOUTH);
+				} else if (d8 < d2) {
+					block = block.getRelative(BlockFace.NORTH);
 				}
 				VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
 				world.getServer().getPluginManager().callEvent(event);
@@ -1227,6 +1227,11 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return moveinfo.block;
 	}
 
+	/**
+	 * Checks whether this minecart is currently traveling on a vertical rail
+	 * 
+	 * @return True if traveling vertically, False if not
+	 */
 	public boolean isOnVertical() {
 		return this.getRailLogic() instanceof RailLogicVertical;
 	}
@@ -1271,7 +1276,30 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return Math.abs(this.motX) >= 0.001 || Math.abs(this.motZ) >= 0.001;
 	}
 
-	public boolean canBeRidden() { return this.type == 0; }
-	public boolean isStorageCart() { return this.type == 1; }
-	public boolean isPoweredCart() { return this.type == 2; }
+	/**
+	 * Checks whether this Minecart can be entered and ridden by living entities
+	 * 
+	 * @return True if it can be ridden, False if not
+	 */
+	public boolean canBeRidden() {
+		return this.type == 0;
+	}
+
+	/**
+	 * Checks whether this Minecart contains a chest with items and can be opened by players
+	 * 
+	 * @return True if it is a storage minecart, False if not
+	 */
+	public boolean isStorageCart() {
+		return this.type == 1;
+	}
+
+	/**
+	 * Checks whether this Minecart contains a furnace which powers the train using coal
+	 * 
+	 * @return True if it is a powered minecart, False if not
+	 */
+	public boolean isPoweredCart() {
+		return this.type == 2;
+	}
 }

@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
@@ -205,12 +206,11 @@ public class PathNode {
 	public String toString() {
 		return "[" + this.name + "]";
 	}
-	
+
 	public void explore() {
-		this.explore(BlockFace.NORTH);
-		this.explore(BlockFace.EAST);
-		this.explore(BlockFace.SOUTH);
-		this.explore(BlockFace.WEST);
+		for (BlockFace face : FaceUtil.AXIS) {
+			this.explore(face);
+		}
 	}
 	public void explore(final BlockFace dir) {
 		//obtain the rails block to start at

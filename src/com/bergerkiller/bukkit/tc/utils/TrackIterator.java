@@ -232,8 +232,8 @@ public class TrackIterator implements Iterator<Block> {
 				this.nextdirection = possible[1];
 			} else if (possible[1].equals(dir)) {
 				this.nextdirection = possible[0];
-				// south-west rule
-			} else if (possible[0] == BlockFace.WEST || possible[0] == BlockFace.SOUTH) {
+				// south-east rule
+			} else if (possible[0] == BlockFace.SOUTH || possible[0] == BlockFace.EAST) {
 				this.nextdirection = possible[0];
 			} else {
 				this.nextdirection = possible[1];

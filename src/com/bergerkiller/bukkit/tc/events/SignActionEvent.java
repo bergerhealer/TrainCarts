@@ -402,9 +402,12 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @return True if the minecart is able to invoke this sign, False if not
 	 */
 	public boolean isFacing() {
-		if (!this.hasMember()) return false;
-		if (!getMember().isMoving()) return true;
-		return this.isWatchedDirection(this.getMember().getDirectionFrom());
+		MinecartMember member = this.getMember();
+		if (member == null) {
+			return false;
+		}
+		BlockFace dir = this.isAction(SignActionType.MEMBER_MOVE) ? member.getDirectionTo() : member.getDirectionFrom();
+		return !getMember().isMoving() || this.isWatchedDirection(dir);
 	}
 
 	/**

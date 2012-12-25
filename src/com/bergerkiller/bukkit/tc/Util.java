@@ -305,7 +305,7 @@ public class Util {
 		if (s && w) {
 			return BlockFace.SELF;
 		} else if (w) {
-			return BlockFace.WEST;
+			return BlockFace.EAST;
 		} else if (s) {
 			return BlockFace.SOUTH;
 		} else {

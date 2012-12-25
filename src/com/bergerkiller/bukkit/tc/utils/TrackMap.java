@@ -71,22 +71,14 @@ public class TrackMap extends ArrayList<Block> {
 		Location from = this.get(index).getLocation();
 		Location to = this.get(index + 1).getLocation();
 		int motX = to.getBlockX() - from.getBlockX();
-		if (motX > 0) {
-			return BlockFace.SOUTH;
-		} else if (motX < 0) {
-			return BlockFace.NORTH;
+		int motZ = to.getBlockZ() - from.getBlockZ();
+		if (motX == 0 && motZ == 0) {
+			return BlockFace.SELF;
 		} else {
-			int motZ = to.getBlockZ() - from.getBlockZ();
-			if (motZ > 0) {
-				return BlockFace.WEST;
-			} else if (motZ < 0) {
-				return BlockFace.EAST;
-			} else {
-				return BlockFace.SELF;
-			}
+			return FaceUtil.getDirection(motX, motZ, false);
 		}
 	}
-	
+
 	public Location getPoint(int index) {
 		Location loc = this.get(index).getLocation();
 		BlockFace dir = getDirection(index);

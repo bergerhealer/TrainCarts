@@ -15,7 +15,6 @@ public class SignActionBlock extends SignAction {
 	@Override
 	public void execute(SignActionEvent info) {
 		if (info.isType("blocker") && info.getMode() != SignActionMode.NONE && info.hasRailedMember()) {
-			System.out.println(info.getMember().getDirectionTo());
 			if (info.isAction(SignActionType.GROUP_LEAVE) || (info.isAction(SignActionType.REDSTONE_CHANGE) && !info.isPowered())) {
 				// Remove the wait state when the train leaves or the sign lost power to block
 				GroupActionWaitState action = CommonUtil.tryCast(info.getGroup().getCurrentAction(), GroupActionWaitState.class);
