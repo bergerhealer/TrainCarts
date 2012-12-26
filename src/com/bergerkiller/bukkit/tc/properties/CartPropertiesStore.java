@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  */
 public class CartPropertiesStore {
 	private static HashMap<UUID, CartProperties> properties = new HashMap<UUID, CartProperties>();
-	private static HashMap<String, CartProperties> editing = new HashMap<String, CartProperties>();
+	protected static HashMap<String, CartProperties> editing = new HashMap<String, CartProperties>();
 
 	/**
 	 * Gets the properties of the Minecart the specified player is currently editing

@@ -25,6 +25,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.v1_4_5.util.LongHashSet;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.inventory.Inventory;
@@ -1026,16 +1027,37 @@ public class MinecartMember extends MinecartMemberStore {
 		int newcx = this.getLiveChunkX();
 		int newcz = this.getLiveChunkZ();
 		if (newcx != prevcx || newcz != prevcz) {
-			prevcx = newcx;
-			prevcz = newcz;
 			if (canunload) {
-				if (!this.world.areChunksLoaded(newcx << 4, this.getLiveBlockY(), newcz << 4, 32)) {
+				if (!WorldUtil.areChunksLoaded(getWorld(), newcx, newcz, 2)) {
 					OfflineGroupManager.hideGroup(this.getGroup());
 					throw new GroupUnloadedException();
 				}
 			} else {
+				// Queue the chunks this minecart left for unloading
+				LongHashSet unloadedChunks = new LongHashSet(25);
+				int cx, cz;
+				// Add in the previous chunks
+				for (cx = -2; cx <= 2; cx++) {
+					for (cz = -2; cz <= 2; cz++) {
+						unloadedChunks.add(prevcx + cx, prevcz + cz);
+					}
+				}
+				// Remove the current chunks
+				for (cx = -2; cx <= 2; cx++) {
+					for (cz = -2; cz <= 2; cz++) {
+						unloadedChunks.remove(newcx + cx, newcz + cz);
+					}
+				}
+				// Queue-unload the chunks that are not kept loaded
+				for (long key : unloadedChunks.toArray()) {
+					cx = MathUtil.longHashMsw(key);
+					cz = MathUtil.longHashLsw(key);
+					getWorld().unloadChunkRequest(cx, cz, true);
+				}
 				this.loadChunks();
 			}
+			prevcx = newcx;
+			prevcz = newcz;
 		}
 	}
 }

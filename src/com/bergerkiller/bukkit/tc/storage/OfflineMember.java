@@ -20,6 +20,11 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * Contains the information to get and restore a Minecart
  */
 public class OfflineMember {
+	public double motX, motZ;
+	public UUID entityUID;
+	public int cx, cz;
+	public OfflineGroup group;
+
 	public OfflineMember() {}
 	public OfflineMember(OfflineGroup group, MinecartMember instance) {
 		this.motX = instance.motX;
@@ -29,26 +34,37 @@ public class OfflineMember {
 		this.cz = instance.getLiveChunkZ();
 		this.group = group;
 	}
-	public double motX, motZ;
-	public UUID entityUID;
-	public int cx, cz;
-	public OfflineGroup group;
+
 	public void setVelocity(double velocity) {
 		Vector vel = new Vector(this.motX, 0.0, this.motZ).normalize().multiply(velocity);
 		this.motX = vel.getX();
 		this.motZ = vel.getZ();
 	}
+
 	public MinecartMember create(World world) {
+		MinecartMember mm = null;
 		// first try to find it in the chunk
 		Chunk c = world.getChunkAt(cx, cz);
 		for (Entity e : WorldUtil.getEntities(c)) {
-			if (e instanceof Minecart && e.getUniqueId().equals(entityUID)) {
-				return NativeUtil.getNative(e, MinecartMember.class);
+			if (e instanceof Minecart && e.getUniqueId().equals(this.entityUID)) {
+				mm = NativeUtil.getNative(e, MinecartMember.class);
 			}
 		}
-		// try to find it in the world
-		return NativeUtil.getNative(EntityUtil.getEntity(world, entityUID), MinecartMember.class);
+		// Try to find it in the world
+		if (mm == null) {
+			// Load a 5x5 chunk area around this Minecart so it can properly be found
+			WorldUtil.loadChunks(world, this.cx, this.cz, 2);
+			// Try to find it
+			mm = NativeUtil.getNative(EntityUtil.getEntity(world, this.entityUID), MinecartMember.class);
+		}
+		// Restore velocity
+		if (mm != null) {
+			mm.motX = this.motX;
+			mm.motZ = this.motZ;
+		}
+		return mm;
 	}
+
 	public void writeTo(DataOutputStream stream) throws IOException {
 		stream.writeLong(entityUID.getMostSignificantBits());
 		stream.writeLong(entityUID.getLeastSignificantBits());
@@ -57,6 +73,7 @@ public class OfflineMember {
 		stream.writeInt(cx);
 		stream.writeInt(cz);
 	}
+
 	public static OfflineMember readFrom(DataInputStream stream) throws IOException {
 		OfflineMember wm = new OfflineMember();
 		wm.entityUID = new UUID(stream.readLong(), stream.readLong());

@@ -4,43 +4,69 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.BlockMap;
+import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathNode {
-	private static Set<PathNode> findTraversed = new HashSet<PathNode>();
 	private static BlockMap<PathNode> blockNodes = new BlockMap<PathNode>();
 	private static Map<String, PathNode> nodes = new HashMap<String, PathNode>();
 	public static void clearAll() {
 		nodes.clear();
 		blockNodes.clear();
 	}
-	public static PathNode find(PathNode from, final String name) {
-		PathNode node = get(name);
-		if (node != null && from.connections.containsKey(node)) {
-			return node;
-		} else {
-			node = from.findNode(name);
-			findTraversed.clear();
-			return node;
+
+	/**
+	 * Called by the Path Provider to tell all nodes that were exploring that exploration has finished
+	 */
+	protected static void finishExploration() {
+		for (PathNode node : nodes.values()) {
+			node.explored = true;
 		}
 	}
+
+	/**
+	 * Re-calculates all path nodes from scratch
+	 */
+	public static void reroute() {
+		BlockSet blocks = new BlockSet();
+		blocks.addAll(blockNodes.keySet());
+		clearAll();
+		String name;
+		SignActionEvent info;
+		for (BlockLocation location : blocks) {
+			name = location.toString();
+			// Destination sign? If so, fix up the name
+			Block block = location.getBlock();
+			if (block == null) {
+				continue;
+			}
+			for (Block signBlock : Util.getSignsFromRails(block)) {
+				info = new SignActionEvent(signBlock);
+				if (info.getSign() != null && info.isType("destination")) {
+					name = info.getLine(2);
+					break;
+				}
+			}
+			getOrCreate(name, location);
+		}
+	}
+
 	public static PathNode get(Block block) {
-		if (block == null) return null;
+		if (block == null) {
+			return null;
+		}
 		return blockNodes.get(block);
 	}
 	public static PathNode get(final String name) {
@@ -92,12 +118,30 @@ public class PathNode {
 		return getOrCreate(name, new BlockLocation(location));
 	}
 	public static PathNode getOrCreate(final String name, final BlockLocation location) {
-		if (name == null || name.isEmpty()) return null;
+		if (LogicUtil.nullOrEmpty(name) || location == null) {
+			return null;
+		}
 		PathNode node = get(name);
 		if (node == null) {
+			// Create a new node
 			node = new PathNode(name, location);
 			nodes.put(node.name, node);
 			blockNodes.put(location, node);
+			// Start exploration
+			node.explored = false;
+			Block nodeBlock = location.getBlock();
+			if (nodeBlock == null) {
+				node.explored = true;
+			} else {
+				Block startBlock;
+				for (BlockFace dir : FaceUtil.AXIS) {
+					startBlock = Util.getRailsBlock(nodeBlock.getRelative(dir));
+					if (startBlock == null) {
+						continue;
+					}
+					PathProvider.schedule(node, startBlock, dir);
+				}
+			}
 		}
 		return node;
 	}
@@ -113,7 +157,8 @@ public class PathNode {
 	public final Map<PathNode, PathConnection> neighboursFrom = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> neighboursTo = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
-		
+	private boolean explored = false;
+
 	public boolean containsConnection(PathNode node) {
 		return this.connections.containsKey(node);
 	}
@@ -160,28 +205,6 @@ public class PathNode {
 		return conn;
 	}
 
-	public PathConnection findConnection(final String name) {
-		PathConnection conn = this.getConnection(name);
-		if (conn == null) {
-			conn = this.getConnection(find(this, name));
-		}
-		return conn;
-	}	
-	
-	private PathNode findNode(final String name) {
-		if (this.name.equals(name)) return this;
-		if (!findTraversed.add(this)) return null;
-		if (this.neighboursTo.isEmpty()) this.explore();
-		PathNode found;
-		for (PathNode node : this.neighboursTo.keySet()) {
-			found = node.findNode(name);
-			if (found != null) {
-				return found;
-			}
-		}
-		return null;
-	}
-	
 	public void clear() {
 		this.clearMapping();
 		for (PathNode node : nodes.values()) {
@@ -190,12 +213,13 @@ public class PathNode {
 			}
 		}
 	}
+
 	private void clearMapping() {
 		this.neighboursFrom.clear();
 		this.neighboursTo.clear();
 		this.connections.clear();
 	}
-	
+
 	public void remove() {
 		this.clear();
 		//remove globally
@@ -203,60 +227,20 @@ public class PathNode {
 		blockNodes.remove(this.location);
 	}
 
+	@Override
 	public String toString() {
 		return "[" + this.name + "]";
 	}
 
-	public void explore() {
-		for (BlockFace face : FaceUtil.AXIS) {
-			this.explore(face);
-		}
-	}
-	public void explore(final BlockFace dir) {
-		//obtain the rails block to start at
-		if (this.location == null) return;
-		Block tmpblock = this.location.getBlock();
-		if (tmpblock == null) return;
-		tmpblock = Util.getRailsBlock(tmpblock.getRelative(dir));
-		if (tmpblock == null) return;
-		
-		//start iterating
-		TrackIterator iter = new TrackIterator(tmpblock, dir);
-
-		String newdest;
-		BlockLocation location;
-		while (iter.hasNext()) {
-			tmpblock = iter.next();
-			for (Block signblock : Util.getSignsFromRails(tmpblock)) {
-				SignActionEvent event = new SignActionEvent(signblock);
-				if (event.getMode() != SignActionMode.NONE) {
-					if (event.isType("tag", "switcher")){
-						location = new BlockLocation(tmpblock);
-						newdest = location.toString();
-					} else if (event.isType("destination")) {
-						location = new BlockLocation(tmpblock);
-						newdest = event.getLine(2);
-					} else if (event.isType("blocker")) {
-						if (event.isWatchedDirection(iter.currentDirection())) {
-							return;
-						} else {
-							continue;
-						}
-					} else {
-						continue;
-					}
-					if (newdest.isEmpty()) continue;
-					if (newdest.equals(this.name)) continue;
-					//finished, we found our first target - create connection
-					PathNode to = getOrCreate(newdest, location);
-					this.createNeighbourConnection(to, iter.getDistance() + 1, dir);
-					return;
-				}
-			}
-		}
+	/**
+	 * Checks whether this Path Node has explored it's neighbours already
+	 * 
+	 * @return True if it has been explored, False if not
+	 */
+	public boolean isExplored() {
+		return this.explored;
 	}
 
-	
 	public static void init(String filename) {
 		new CompressedDataReader(filename) {
 			public void read(DataInputStream stream) throws IOException {
@@ -272,6 +256,7 @@ public class PathNode {
 						name = loc.toString();
 					}
 					parr[i] = new PathNode(name, loc);
+					parr[i].explored = true;
 					nodes.put(parr[i].name, parr[i]);
 					blockNodes.put(loc, parr[i]);
 				}
@@ -285,13 +270,15 @@ public class PathNode {
 						conn.destination.neighboursFrom.put(node, conn);
 						node.connections.put(conn.destination, conn);
 					}
-					
+
 					ncount = stream.readInt();
 					for (int i = 0 ; i < ncount; i++) {
 						conn = new PathConnection(stream, parr[stream.readInt()]);
 						node.connections.put(conn.destination, conn);
-					}					
+					}
 				}
+				//update exploring state
+				
 			}
 		}.read();
 	}
@@ -332,6 +319,4 @@ public class PathNode {
 	public static void deinit() {
 		clearAll();
 	}
-	
-	
 }

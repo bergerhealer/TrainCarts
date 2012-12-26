@@ -110,7 +110,6 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (!this.hasAction()) return;
 		if (this.actions.peek().doTick()) {
 			this.actions.remove();
-			this.updateAction();
 		}
 	}
 	public GroupActionWait addActionWait(long delay) {

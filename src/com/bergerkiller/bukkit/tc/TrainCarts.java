@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -377,6 +378,9 @@ public class TrainCarts extends PluginBase {
 		//Restore carts where possible
 		OfflineGroupManager.refresh();
 
+		// Start the path finding task
+		PathProvider.init();
+
 		//Properly dispose of partly-referenced carts
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
@@ -445,6 +449,7 @@ public class TrainCarts extends PluginBase {
 		SignAction.deinit();
 		ItemAnimation.deinit();
 		OfflineGroupManager.deinit();
+		PathProvider.deinit();
 	}
 
 	public boolean command(CommandSender sender, String cmd, String[] args) {

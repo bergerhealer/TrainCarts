@@ -24,6 +24,12 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * Also adds functions to write and load from/to file
  */
 public class OfflineGroup {
+	public OfflineMember[] members;
+	public String name;
+	public final Set<Long> chunks = new HashSet<Long>();
+	public final Set<Long> loadedChunks = new HashSet<Long>();
+	public UUID worldUUID;
+
 	public OfflineGroup() {}
 	public OfflineGroup(MinecartGroup group) {
 		this.members = new OfflineMember[group.size()];
@@ -40,11 +46,6 @@ public class OfflineGroup {
 		}
 		this.genChunks();
 	}
-	public OfflineMember[] members;
-	public String name;
-	public final Set<Long> chunks = new HashSet<Long>();
-	public final Set<Long> loadedChunks = new HashSet<Long>();
-	public UUID worldUUID;
 
 	public boolean testFullyLoaded() {
 		return this.loadedChunks.size() == this.chunks.size();
@@ -71,20 +72,18 @@ public class OfflineGroup {
 			}
 		}
 	}
-	
+
 	/**
 	 * Tries to find all Minecarts based on their UID
 	 * @param w
 	 * @return An array of Minecarts
 	 */
 	public MinecartGroup create(World w) {
-		ArrayList<MinecartMember> rval = new ArrayList<MinecartMember>();
+		ArrayList<MinecartMember> rval = new ArrayList<MinecartMember>(this.members.length);
 		int missingNo = 0;
-		for (OfflineMember member : members) {
+		for (OfflineMember member : this.members) {
 			MinecartMember mm = member.create(w);
 			if (mm != null) {
-				mm.motX = member.motX;
-				mm.motZ = member.motZ;
 				rval.add(mm);
 			} else {
 				missingNo++;

@@ -57,8 +57,13 @@ public class GlobalCommands {
 			return true;
 		} else if (args[0].equals("reroute")) {
 			Permission.COMMAND_REROUTE.handle(sender);
-			PathNode.clearAll();
-			sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated.");
+			if (args.length >= 2 && args[1].equalsIgnoreCase("lazy")) {
+				PathNode.clearAll();
+				sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
+			} else {
+				PathNode.reroute();
+				sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated");
+			}
 			return true;
 		} else if (args[0].equals("reload")) {
 			Permission.COMMAND_RELOAD.handle(sender);
@@ -159,5 +164,4 @@ public class GlobalCommands {
 			player.sendMessage(ChatColor.RED + "You do not own any trains you can edit.");
 		}
 	}
-
 }

@@ -30,12 +30,12 @@ public class TrackIterator implements Iterator<Block> {
 		}
 		BlockFace dir1, dir2;
 		if (Util.ISVERTRAIL.get(rail1type)) {
-			dir1 = rail2.getY() > rail1.getY() ? BlockFace.UP : BlockFace.DOWN;
+			dir1 = Util.getVerticalFace(rail2.getY() > rail1.getY());
 		} else {
 			dir1 = FaceUtil.getDirection(rail1, rail2, false);
 		}
 		if (Util.ISVERTRAIL.get(rail2type)) {
-			dir2 = rail1.getY() > rail2.getY() ? BlockFace.UP : BlockFace.DOWN;
+			dir2 = Util.getVerticalFace(rail1.getY() > rail2.getY());
 		} else {
 			dir2 = FaceUtil.getDirection(rail2, rail1, false);
 		}
@@ -137,11 +137,9 @@ public class TrackIterator implements Iterator<Block> {
 						this.nextdirection = p[0];
 					}
 				}
-			} else if (rails.isOnSlope() && direction == railsDirection) {
+			} else if (rails.isOnSlope() && direction == railsDirection && Util.isVerticalAbove(startblock, direction)) {
 				// Vertical rail above - check
-				if (Util.isVerticalAbove(startblock, direction)) {
-					this.nextdirection = BlockFace.UP;
-				}
+				this.nextdirection = BlockFace.UP;
 			}
 		}
 	}
@@ -220,7 +218,7 @@ public class TrackIterator implements Iterator<Block> {
 
 			// simple forward - always true
 			for (BlockFace newdir : possible) {
-				if (newdir.equals(this.currentdirection)) {
+				if (newdir == this.currentdirection) {
 					this.nextdirection = this.currentdirection;
 					return true;
 				}
@@ -307,5 +305,4 @@ public class TrackIterator implements Iterator<Block> {
 	public void remove() {
 		throw new UnsupportedOperationException("TrackIterator.remove is not supported");
 	}
-
 }

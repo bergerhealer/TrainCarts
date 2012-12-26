@@ -4,11 +4,13 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberActionLaunch extends MemberAction implements VelocityAction {
-
+	private static final double minVelocity = 0.02;
+	private static final double minVelocityForLaunch = 0.004;
 	private double distance;
 	private double targetdistance;
 	private double targetvelocity;
 	private double startvelocity;
+
 	public MemberActionLaunch(final MinecartMember member, double targetdistance, double targetvelocity) {
 		super(member);
 		this.distance = 0;
@@ -16,23 +18,20 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 		this.targetvelocity = targetvelocity;
 		this.distance = 0;
 	}
-	
+
 	protected void setTargetDistance(double distance) {
 		this.targetdistance = distance;
 	}
-	
+
 	public void start() {
 		this.startvelocity = MathUtil.clamp(this.getMember().getForce(), this.getMember().maxSpeed);
 		if (this.startvelocity < minVelocity) this.startvelocity = minVelocity;
 	}
-	
+
 	@Override
 	public boolean isVelocityChangesSuppressed() {
 		return true;
 	}
-	
-	private static final double minVelocity = 0.02;
-	private static final double minVelocityForLaunch = 0.004;
 	
 	public double getTargetVelocity() {
 		return this.targetvelocity;
@@ -43,7 +42,8 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 	public double getDistance() {
 		return this.distance;
 	}
-	
+
+	@Override
 	public boolean update() {	
 		//Derailed?
 		if (this.getMember().isDerailed()) {
@@ -83,5 +83,4 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 			return false;
 		}
 	}
-
 }

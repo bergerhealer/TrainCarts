@@ -283,15 +283,30 @@ public class Util {
 	 * @return time in the hh:mm:ss format
 	 */
 	public static String getTimeString(long time) {
-		if (time == 0) return "00:00:00";
-		time /= 1000; // msec -> sec
-		String seconds = Integer.toString((int)(time % 60));
-		String minutes = Integer.toString((int)((time % 3600) / 60));
-		String hours = Integer.toString((int)(time / 3600)); 
-		if (seconds.length() == 1) seconds = "0" + seconds;
-		if (minutes.length() == 1) minutes = "0" + minutes;
-		if (hours.length() == 1) hours = "0" + hours;
-		return hours + ":" + minutes + ":" + seconds;
+		if (time == 0) {
+			return "00:00:00";
+		}
+		time = (long) Math.ceil(0.001 * time); // msec -> sec
+		int seconds = (int) (time % 60);
+		int minutes = (int) ((time % 3600) / 60);
+		int hours = (int) (time / 3600);
+		StringBuilder rval = new StringBuilder(8);
+		// Hours
+		if (hours < 10) {
+			rval.append('0');
+		}
+		rval.append(hours).append(':');
+		// Minutes
+		if (minutes < 10) {
+			rval.append('0');
+		}
+		rval.append(minutes).append(':');
+		// Seconds
+		if (seconds < 10) {
+			rval.append('0');
+		}
+		rval.append(seconds);
+		return rval.toString();
 	}
 
 	/**

@@ -10,17 +10,18 @@ import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.BlockMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
 public class SignActionSwitcher extends SignAction {
-
 	private BlockMap<AtomicInteger> switchedTimes = new BlockMap<AtomicInteger>();
 	private AtomicInteger getSwitchedTimes(Block signblock) {
 		AtomicInteger i = switchedTimes.get(signblock);
@@ -140,15 +141,26 @@ public class SignActionSwitcher extends SignAction {
 		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.hasMember()) {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {
-				PathConnection conn = null;
+				String destination = null;
 				if (doCart && info.hasMember()) {
-					conn = node.findConnection(info.getMember().getProperties().getDestination());
+					destination = info.getMember().getProperties().getDestination();
 				} else if (doTrain && info.hasGroup()) {
-					conn = node.findConnection(info.getGroup().getProperties().getDestination());
+					destination = info.getGroup().getProperties().getDestination();
 				}
-				if (conn != null) {
-					info.setRailsTo(conn.direction);
-					return;
+				if (!LogicUtil.nullOrEmpty(destination)) {
+					if (node.isExplored()) {
+						// Switch the rails to the right direction
+						PathConnection conn = node.getConnection(destination);
+						if (conn != null) {
+							info.setRailsTo(conn.direction);
+						}
+					} else {
+						double currentForce = info.getGroup().getAverageForce();
+						// Add an action to let the train wait until the node IS explored
+						info.getGroup().addAction(new GroupActionWaitPathFinding(info, node, destination));
+						info.getMember().addActionLaunch(info.getMember().getDirectionFrom(), 1.0, currentForce);
+						info.getGroup().stop();
+					}
 				}
 			}
 		}

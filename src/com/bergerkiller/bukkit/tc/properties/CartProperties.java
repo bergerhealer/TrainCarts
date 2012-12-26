@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,11 +34,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		TrainProperties.EMPTY.add(EMPTY);
 	}
 
-	protected CartProperties(UUID uuid, TrainProperties group) {
-		this.uuid = uuid;
-		this.group = group;
-	}
-
 	private final UUID uuid;
 	private final Set<String> owners = new HashSet<String>();
 	private final Set<String> tags = new HashSet<String>();
@@ -50,6 +46,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private boolean pickUp = false;
 	private SoftReference<MinecartMember> member = new SoftReference<MinecartMember>();
 	protected TrainProperties group = null;
+
+	protected CartProperties(UUID uuid, TrainProperties group) {
+		this.uuid = uuid;
+		this.group = group;
+	}
 
 	public TrainProperties getTrainProperties() {
 		return this.group;
@@ -79,12 +80,46 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		MinecartMember m = this.getMember();
 		if (m != null) m.update();
 	}
-	
+
+	/**
+	 * Gets a collection of lower-case player names that are editing these properties
+	 * 
+	 * @return Collection of editing player names
+	 */
+	public Collection<String> getEditing() {
+		ArrayList<String> players = new ArrayList<String>();
+		for (Map.Entry<String, CartProperties> entry : editing.entrySet()) {
+			if (entry.getValue() == this) {
+				players.add(entry.getKey());
+			}
+		}
+		return players;
+	}
+
+	/**
+	 * Gets a collection of online players that are editing these properties
+	 * 
+	 * @return Collection of editing players
+	 */
+	public Collection<Player> getEditingPlayers() {
+		Collection<String> names = getEditing();
+		ArrayList<Player> players = new ArrayList<Player>(names.size());
+		for (String name : names) {
+			Player p = Bukkit.getServer().getPlayerExact(name);
+			if (p != null) {
+				players.add(p);
+			}
+		}
+		return players;
+	}
+
 	/*
 	 * Block obtaining
 	 */
 	public boolean canBreak(Block block) {
-		if (this.blockBreakTypes.isEmpty()) return false;
+		if (this.blockBreakTypes.isEmpty()) {
+			return false;
+		}
 		return this.blockBreakTypes.contains(block.getType());
 	}
 
@@ -92,9 +127,15 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	 * Owners
 	 */
 	public boolean hasOwnership(Player player) {
-		if (!canHaveOwnership(player)) return false;
-		if (!this.hasOwners()) return true;
-		if (hasGlobalOwnership(player)) return true;
+		if (!canHaveOwnership(player)) {
+			return false;
+		}
+		if (!this.hasOwners()) {
+			return true;
+		}
+		if (hasGlobalOwnership(player)) {
+			return true;
+		}
 		return this.isOwner(player);
 	}
 	public static boolean hasGlobalOwnership(Player player) {
