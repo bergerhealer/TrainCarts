@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 
 public class SignActionSwitcher extends SignAction {
 	private BlockMap<AtomicInteger> switchedTimes = new BlockMap<AtomicInteger>();
@@ -148,18 +149,18 @@ public class SignActionSwitcher extends SignAction {
 					destination = info.getGroup().getProperties().getDestination();
 				}
 				if (!LogicUtil.nullOrEmpty(destination)) {
-					if (node.isExplored()) {
-						// Switch the rails to the right direction
-						PathConnection conn = node.getConnection(destination);
-						if (conn != null) {
-							info.setRailsTo(conn.direction);
-						}
-					} else {
+					if (PathProvider.isProcessing()) {
 						double currentForce = info.getGroup().getAverageForce();
 						// Add an action to let the train wait until the node IS explored
 						info.getGroup().addAction(new GroupActionWaitPathFinding(info, node, destination));
 						info.getMember().addActionLaunch(info.getMember().getDirectionFrom(), 1.0, currentForce);
 						info.getGroup().stop();
+					} else {
+						// Switch the rails to the right direction
+						PathConnection conn = node.getConnection(destination);
+						if (conn != null) {
+							info.setRailsTo(conn.direction);
+						}
 					}
 				}
 			}

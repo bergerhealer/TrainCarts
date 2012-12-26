@@ -69,7 +69,6 @@ public class PathProvider extends Task {
 				PathFindOperation operation = this.pendingOperations.poll();
 				while (operation.next());
 			}
-			PathNode.finishExploration();
 		}
 		return super.stop();
 	}
@@ -97,9 +96,6 @@ public class PathProvider extends Task {
 			} else {
 				break; // Ran out of time
 			}
-		}
-		if (this.pendingOperations.isEmpty()) {
-			PathNode.finishExploration();
 		}
 	}
 
@@ -142,8 +138,10 @@ public class PathProvider extends Task {
 					}
 					if (!newNodeName.isEmpty() && !newNodeName.equals(startNode.name)) {
 						//finished, we found our first target - create connection
+						//long start = System.currentTimeMillis();
 						PathNode to = PathNode.getOrCreate(newNodeName, newNodeLocation);
 						this.startNode.createNeighbourConnection(to, iter.getDistance() + 1, this.startDir);
+						//System.out.println("CREATED FROM " + this.startNode + " TO " + to + " IN " + (System.currentTimeMillis() - start) + "MS");
 						return true;
 					}
 				}

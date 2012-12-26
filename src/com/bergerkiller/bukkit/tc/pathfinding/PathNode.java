@@ -28,15 +28,6 @@ public class PathNode {
 	}
 
 	/**
-	 * Called by the Path Provider to tell all nodes that were exploring that exploration has finished
-	 */
-	protected static void finishExploration() {
-		for (PathNode node : nodes.values()) {
-			node.explored = true;
-		}
-	}
-
-	/**
 	 * Re-calculates all path nodes from scratch
 	 */
 	public static void reroute() {
@@ -128,11 +119,8 @@ public class PathNode {
 			nodes.put(node.name, node);
 			blockNodes.put(location, node);
 			// Start exploration
-			node.explored = false;
 			Block nodeBlock = location.getBlock();
-			if (nodeBlock == null) {
-				node.explored = true;
-			} else {
+			if (nodeBlock != null) {
 				Block startBlock;
 				for (BlockFace dir : FaceUtil.AXIS) {
 					startBlock = Util.getRailsBlock(nodeBlock.getRelative(dir));
@@ -157,7 +145,6 @@ public class PathNode {
 	public final Map<PathNode, PathConnection> neighboursFrom = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> neighboursTo = new HashMap<PathNode, PathConnection>(2);
 	public final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
-	private boolean explored = false;
 
 	public boolean containsConnection(PathNode node) {
 		return this.connections.containsKey(node);
@@ -183,23 +170,28 @@ public class PathNode {
 		to.neighboursFrom.put(this, conn);
 		return conn;
 	}
+
 	public PathConnection createConnection(final PathNode to, final int distance, final BlockFace direction) {
-		if (to == null || to == this) return null;
+		if (to == null || to == this) {
+			return null;
+		}
 		PathConnection conn = this.getConnection(to);
-		if (conn == null || conn.distance > distance) {
-			conn = new PathConnection(distance, direction, to);
+		if (conn == null) {
+			conn = new PathConnection(Integer.MAX_VALUE, direction, to);
 			this.connections.put(to, conn);
+		}
+		if (conn.distance > distance) {
+			conn.direction = direction;
+			conn.distance = distance;
 
 			//make sure all neighbours get informed of this connection
 			for (Map.Entry<PathNode, PathConnection> entry : this.neighboursFrom.entrySet()) {
-				int newdistance = entry.getValue().distance + distance + 1;
-				entry.getKey().createConnection(to, newdistance, entry.getValue().direction);
+				entry.getKey().createConnection(to, entry.getValue().distance + distance + 1, entry.getValue().direction);
 			}
-			
+
 			//any connections to make to other nodes contained in to?
 			for (Map.Entry<PathNode, PathConnection> entry : to.connections.entrySet()) {
-				int newdistance = entry.getValue().distance + distance + 1;
-				this.createConnection(entry.getKey(), newdistance, direction);
+				this.createConnection(entry.getKey(), entry.getValue().distance + distance + 1, direction);
 			}
 		}
 		return conn;
@@ -232,15 +224,6 @@ public class PathNode {
 		return "[" + this.name + "]";
 	}
 
-	/**
-	 * Checks whether this Path Node has explored it's neighbours already
-	 * 
-	 * @return True if it has been explored, False if not
-	 */
-	public boolean isExplored() {
-		return this.explored;
-	}
-
 	public static void init(String filename) {
 		new CompressedDataReader(filename) {
 			public void read(DataInputStream stream) throws IOException {
@@ -256,7 +239,6 @@ public class PathNode {
 						name = loc.toString();
 					}
 					parr[i] = new PathNode(name, loc);
-					parr[i].explored = true;
 					nodes.put(parr[i].name, parr[i]);
 					blockNodes.put(loc, parr[i]);
 				}
