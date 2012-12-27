@@ -9,8 +9,8 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class PathConnection {
-	public int distance;
-	public BlockFace direction;
+	public final int distance;
+	public final BlockFace direction;
 	public final PathNode destination;
 
 	public PathConnection(DataInputStream stream, PathNode destination) throws IOException {

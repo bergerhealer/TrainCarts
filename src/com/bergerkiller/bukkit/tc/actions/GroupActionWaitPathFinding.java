@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import java.util.HashSet;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
@@ -37,19 +37,14 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 						receivers.add((Player) member.getPassenger());
 					}
 				}
-				if (!receivers.isEmpty()) {
-					MessageBuilder builder = new MessageBuilder();
-					builder.yellow("This train (").blue(getGroup().getProperties().getTrainName());
-					builder.yellow(") is currently looking for a way to reach the destination...");
-					for (Player player : receivers) {
-						builder.send(player);
-					}
+				for (Player player : receivers) {
+					player.sendMessage(ChatColor.YELLOW + "Looking for a way to reach the destination...");
 				}
 			}
 			return false;
 		} else {
 			// Switch the rails to the right direction
-			PathConnection conn = this.from.getConnection(this.destination);
+			PathConnection conn = this.from.findConnection(this.destination);
 			if (conn != null) {
 				this.info.setRailsTo(conn.direction);
 			}

@@ -157,7 +157,7 @@ public class SignActionSwitcher extends SignAction {
 						info.getGroup().stop();
 					} else {
 						// Switch the rails to the right direction
-						PathConnection conn = node.getConnection(destination);
+						PathConnection conn = node.findConnection(destination);
 						if (conn != null) {
 							info.setRailsTo(conn.direction);
 						}

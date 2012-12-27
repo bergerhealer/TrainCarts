@@ -142,74 +142,77 @@ public class PathNode {
 	public int index;
 	public final String name;
 	public final BlockLocation location;
-	public final Map<PathNode, PathConnection> neighboursFrom = new HashMap<PathNode, PathConnection>(2);
-	public final Map<PathNode, PathConnection> neighboursTo = new HashMap<PathNode, PathConnection>(2);
-	public final Map<PathNode, PathConnection> connections = new HashMap<PathNode, PathConnection>();
+	private final Map<PathNode, PathConnection> neighbours = new HashMap<PathNode, PathConnection>(2);
+	private int lastDistance;
 
-	public boolean containsConnection(PathNode node) {
-		return this.connections.containsKey(node);
-	}
-	
-	public PathConnection getConnection(PathNode node) {
-		return node == null ? null : connections.get(node);
-	}
-	public PathConnection getConnection(String name) {
-		return this.getConnection(get(name));
-	}
-	
-	public PathConnection removeNeighbourConnection(final PathNode to) {
-		PathConnection conn = this.neighboursTo.remove(to);
-		to.neighboursFrom.remove(this);
-		return conn;
-	}
-	
-	public PathConnection createNeighbourConnection(final PathNode to, final int distance, final BlockFace direction) {
-		PathConnection conn = this.createConnection(to, distance, direction);
-		if (conn == null) return null;
-		this.neighboursTo.put(to, conn);
-		to.neighboursFrom.put(this, conn);
-		return conn;
+	/**
+	 * Tries to find a connection from this node to the node specified
+	 * 
+	 * @param destination name of the node to find
+	 * @return A connection, or null if none could be found
+	 */
+	public PathConnection findConnection(String destination) {
+		PathNode node = get(destination);
+		return node == null ? null : findConnection(node);
 	}
 
-	public PathConnection createConnection(final PathNode to, final int distance, final BlockFace direction) {
-		if (to == null || to == this) {
+	/**
+	 * Tries to find a connection from this node to the node specified
+	 * 
+	 * @param destination node to find
+	 * @return A connection, or null if none could be found
+	 */
+	public PathConnection findConnection(PathNode destination) {
+		for (PathNode node : nodes.values()) {
+			node.lastDistance = Integer.MAX_VALUE;
+		}
+		return this.findConnectionRecursive(0, destination);
+	}
+
+	private PathConnection findConnectionRecursive(int currentDistance, PathNode destination) {
+		if (this.lastDistance < currentDistance) {
 			return null;
 		}
-		PathConnection conn = this.getConnection(to);
+		this.lastDistance = currentDistance;
+		PathConnection conn = this.neighbours.get(destination);
 		if (conn == null) {
-			conn = new PathConnection(Integer.MAX_VALUE, direction, to);
-			this.connections.put(to, conn);
+			int distance = Integer.MAX_VALUE;
+			for (Map.Entry<PathNode, PathConnection> connection : this.neighbours.entrySet()) {
+				final int neighDistance = currentDistance + connection.getValue().distance;
+				PathConnection neighConn = connection.getKey().findConnectionRecursive(neighDistance, destination);
+				if (neighConn != null) {
+					final int toDist = neighDistance + neighConn.distance;
+					if (toDist < distance) {
+						conn = new PathConnection(distance = toDist, connection.getValue().direction, destination);
+					}
+				}
+			}
 		}
-		if (conn.distance > distance) {
-			conn.direction = direction;
-			conn.distance = distance;
+		return conn;
+	}
 
-			//make sure all neighbours get informed of this connection
-			for (Map.Entry<PathNode, PathConnection> entry : this.neighboursFrom.entrySet()) {
-				entry.getKey().createConnection(to, entry.getValue().distance + distance + 1, entry.getValue().direction);
-			}
-
-			//any connections to make to other nodes contained in to?
-			for (Map.Entry<PathNode, PathConnection> entry : to.connections.entrySet()) {
-				this.createConnection(entry.getKey(), entry.getValue().distance + distance + 1, direction);
-			}
+	/**
+	 * Adds a neighbour connection to this node
+	 * 
+	 * @param to the node to make a connection with
+	 * @param distance of the connection
+	 * @param direction of the connection
+	 * @return The connection that was made
+	 */
+	public PathConnection addNeighbour(final PathNode to, final int distance, final BlockFace direction) {
+		PathConnection conn = neighbours.get(to);
+		if (conn == null || conn.distance > distance) {
+			conn = new PathConnection(distance, direction, to);
+			neighbours.put(to, conn);
 		}
 		return conn;
 	}
 
 	public void clear() {
-		this.clearMapping();
+		this.neighbours.clear();
 		for (PathNode node : nodes.values()) {
-			if (node.containsConnection(this)) {
-				node.clearMapping();
-			}
+			node.neighbours.remove(this);
 		}
-	}
-
-	private void clearMapping() {
-		this.neighboursFrom.clear();
-		this.neighboursTo.clear();
-		this.connections.clear();
 	}
 
 	public void remove() {
@@ -222,6 +225,10 @@ public class PathNode {
 	@Override
 	public String toString() {
 		return "[" + this.name + "]";
+	}
+
+	public static void deinit() {
+		clearAll();
 	}
 
 	public static void init(String filename) {
@@ -248,19 +255,9 @@ public class PathNode {
 					int ncount = stream.readInt();
 					for (int i = 0 ; i < ncount; i++) {
 						conn = new PathConnection(stream, parr[stream.readInt()]);
-						node.neighboursTo.put(conn.destination, conn);
-						conn.destination.neighboursFrom.put(node, conn);
-						node.connections.put(conn.destination, conn);
-					}
-
-					ncount = stream.readInt();
-					for (int i = 0 ; i < ncount; i++) {
-						conn = new PathConnection(stream, parr[stream.readInt()]);
-						node.connections.put(conn.destination, conn);
+						node.neighbours.put(conn.destination, conn);
 					}
 				}
-				//update exploring state
-				
 			}
 		}.read();
 	}
@@ -285,20 +282,12 @@ public class PathNode {
 				}
 				//write out connections
 				for (PathNode node : nodes.values()) {
-					stream.writeInt(node.neighboursTo.size());
-					for (PathConnection conn : node.neighboursTo.values()) {
-						conn.writeTo(stream);
-					}
-					stream.writeInt(node.connections.size() - node.neighboursTo.size());
-					for (PathConnection conn : node.connections.values()) {
-						if (node.neighboursTo.containsKey(conn.destination)) continue;
+					stream.writeInt(node.neighbours.size());
+					for (PathConnection conn : node.neighbours.values()) {
 						conn.writeTo(stream);
 					}
 				}
 			}
 		}.write();
-	}
-	public static void deinit() {
-		clearAll();
 	}
 }
