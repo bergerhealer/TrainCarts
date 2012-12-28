@@ -690,7 +690,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 		} else if (this.isOnVertical()) {
 			newyaw = FaceUtil.faceToYaw(this.getRailDirection());
-			newpitch = -90;
+			newpitch = -90f;
 			mode = false;
 		} else if (moveinfo.railType == RailType.PRESSUREPLATE) {
 			newpitch = 0.0F; //prevent weird pitch angles on pressure plates
@@ -1266,7 +1266,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	}
 
 	public boolean isMovingVertically() {
-		return this.motY > 0.001 || (this.motY < -0.001 && !this.onGround);
+		return Math.abs(MathUtil.wrapAngle(this.pitch)) == 90f && (this.motY > 0.001 || (this.motY < -0.001 && !this.onGround));
 	}
 
 	public boolean isMovingHorizontally() {
