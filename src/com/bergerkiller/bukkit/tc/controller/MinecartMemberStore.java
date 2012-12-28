@@ -13,7 +13,6 @@ import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
@@ -121,31 +120,6 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			EntityUtil.setEntity(source, with, entry);
 		}
 		return with;
-	}
-
-	/**
-	 * Checks if the minecart is added to the world. If not, returns false and removes the minecart
-	 * 
-	 * @param minecart to check (only checks if it is an EntityMinecart)
-	 * @return True if valid, False if not
-	 */
-	public static boolean validateMinecart(Entity minecart) {
-		if (minecart instanceof EntityMinecart) {
-			//could be a bugged minecart.
-			//verify that it is not bugged
-			if (!minecart.world.entityList.contains(minecart)) {
-				//bugged minecart - kill it!
-				minecart.dead = true;
-				minecart.world.removeEntity(minecart);
-				int cX = EntityRef.chunkX.get(minecart);
-				int cZ = EntityRef.chunkZ.get(minecart);
-				if (minecart.world.chunkProvider.isChunkLoaded(cX, cZ)) {
-					minecart.world.chunkProvider.getChunkAt(cX, cZ).b(minecart);
-				}
-				return false;
-			}
-		}
-		return true;
 	}
 
 	/**

@@ -248,7 +248,7 @@ public class TCListener implements Listener {
 				if (mm1 == null) {
 					return;
 				}
-				if (mm1.isUnloaded() || !MinecartMemberStore.validateMinecart(mm1)) {
+				if (mm1.isUnloaded()) {
 					event.setCancelled(true);
 					return;
 				}
@@ -268,7 +268,7 @@ public class TCListener implements Listener {
 						event.setCancelled(true);
 						return;
 					}
-					if (mm2.isUnloaded() || !MinecartMemberStore.validateMinecart(mm2)) {
+					if (mm2.isUnloaded()) {
 						event.setCancelled(true);
 						return;
 					}

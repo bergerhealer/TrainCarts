@@ -224,6 +224,30 @@ public class MinecartGroup extends MinecartGroupStore {
 		return this.get((int) Math.floor((double) size() / 2));
 	}
 
+	public Iterator<MinecartMember> iterator() {
+		final Iterator<MinecartMember> listIter = super.iterator();
+		return new Iterator<MinecartMember>() {
+			@Override
+			public boolean hasNext() {
+				return listIter.hasNext();
+			}
+
+			@Override
+			public MinecartMember next() {
+				try {
+					return listIter.next();
+				} catch (ConcurrentModificationException ex) {
+					throw new MemberMissingException();
+				}
+			}
+
+			@Override
+			public void remove() {
+				listIter.remove();
+			}
+		};
+	}
+
 	public MinecartMember[] toArray() {
 		return super.toArray(new MinecartMember[0]);
 	}

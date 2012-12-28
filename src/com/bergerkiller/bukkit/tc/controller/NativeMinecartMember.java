@@ -610,7 +610,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		List<Entity> list = this.world.getEntities(this, this.boundingBox.grow(0.2, 0, 0.2));
 		if (list != null && !list.isEmpty()) {
 			for (Entity entity : list) {
-				if (entity != this.passenger && entity.M() && entity instanceof EntityMinecart && MinecartMemberStore.validateMinecart(entity)) {
+				if (entity != this.passenger && entity.M() && entity instanceof EntityMinecart) {
 					entity.collide(this);
 				}
 			}
@@ -1098,9 +1098,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			if (!prop.getCollisionMode(e.getBukkitEntity()).execute(this.member(), e.getBukkitEntity())) {
 				return false;
 			}
-		}
-		if (!MinecartMemberStore.validateMinecart(e)) {
-			return false;
 		}
 		// Collision occurred, collided head-on? Stop the entire train
 		if (this.member().isHeadingTo(e)) {

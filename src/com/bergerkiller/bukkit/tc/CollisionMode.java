@@ -40,6 +40,7 @@ public enum CollisionMode {
 					}
 					if (entity instanceof LivingEntity) {
 						boolean old = EntityUtil.isInvulnerable(entity);
+						EntityUtil.setInvulnerable(entity, false);
 						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getBukkitEntity());
 						EntityUtil.setInvulnerable(entity, old);
 					} else {

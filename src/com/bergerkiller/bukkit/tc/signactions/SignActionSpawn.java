@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class SignActionSpawn extends SignAction {
@@ -74,45 +75,65 @@ public class SignActionSpawn extends SignAction {
 					}
 				}
 
-				if (types.isEmpty()) return;
-				for (BlockFace direction : info.getWatchedDirections()) {
-					direction = direction.getOppositeFace();
-
-					Location[] locs = new Location[types.size()];
-					TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
-					boolean occupied = false;
-					for (int i = 0; i < types.size(); i++) {
-						if (!iter.hasNext()) {
-							occupied = true;
+				if (types.isEmpty()) {
+					return;
+				}
+				Location[] locs = new Location[types.size()];
+				BlockFace spawnDirection = null;
+				if (types.size() == 1) {
+					// Single-minecart spawning logic
+					locs[0] = info.getRailLocation();
+					for (BlockFace direction : info.getWatchedDirections()) {
+						direction = direction.getOppositeFace();
+						spawnDirection = direction;
+						TrackIterator iter = new TrackIterator(info.getRails(), direction);
+						// Ignore the starting block
+						iter.next();
+						// Next block available?
+						if (iter.hasNext()) {
 							break;
 						}
-						locs[i] = iter.next();
-						//not taken?
-						if (MinecartMember.getAt(locs[i]) != null) {
-							occupied = true;
+					}
+				} else {
+					// Multiple-minecart spawning logic
+					for (BlockFace direction : info.getWatchedDirections()) {
+						direction = direction.getOppositeFace();
+						TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
+						boolean occupied = false;
+						for (int i = 0; i < types.size(); i++) {
+							if (!iter.hasNext()) {
+								occupied = true;
+								break;
+							}
+							locs[i] = iter.next();
+							//not taken?
+							if (MinecartMember.getAt(locs[i]) != null) {
+								occupied = true;
+								break;
+							}
+						}
+						if (!occupied) {
+							spawnDirection = direction;
 							break;
 						}
 					}
-					if (occupied) {
-						continue;
-					}
+				}
+				// Prepare chunks
+				for (Location loc : locs) {
+					WorldUtil.loadChunks(loc, 2);
+				}
 
-					// Prepare chunks
-					for (Location loc : locs) {
-						WorldUtil.loadChunks(loc, 2);
-					}
-
-					//Spawn
+				//Spawn
+				if (spawnDirection != null) {
 					MinecartGroup group = MinecartGroup.create();
 					for (int i = 0; i < locs.length; i++) {
 						MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
 						group.add(mm);
 						if (force != 0 && i == 0) {
-							mm.addActionLaunch(direction, 2, force);
+							mm.addActionLaunch(spawnDirection, 2, force);
 						}
 					}
 					GroupCreateEvent.call(group);
-					break;
 				}
 			}
 		}
