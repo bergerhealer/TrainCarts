@@ -41,7 +41,7 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 					player.sendMessage(ChatColor.YELLOW + "Looking for a way to reach the destination...");
 				}
 			}
-			return false;
+			return super.update();
 		} else {
 			// Switch the rails to the right direction
 			PathConnection conn = this.from.findConnection(this.destination);

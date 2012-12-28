@@ -112,8 +112,8 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.actions.remove();
 		}
 	}
-	public GroupActionWait addActionWait(long delay) {
-		return this.addAction(new GroupActionWait(this, delay));
+	public GroupActionWaitDelay addActionWait(long delay) {
+		return this.addAction(new GroupActionWaitDelay(this, delay));
 	}
 	public GroupActionWaitTill addActionWaitTill(long time) {
 		return this.addAction(new GroupActionWaitTill(this, time));
@@ -139,7 +139,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 	public boolean isVelocityAction() {
 		Action a = this.actions.peek();
-		return a == null ? false : a instanceof VelocityAction && ((VelocityAction) a).isVelocityChangesSuppressed();
+		return a instanceof VelocityAction && ((VelocityAction) a).isVelocityChangesSuppressed();
 	}
 
 	/*

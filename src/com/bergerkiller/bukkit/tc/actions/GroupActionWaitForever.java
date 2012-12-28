@@ -10,6 +10,7 @@ public class GroupActionWaitForever extends GroupAction implements WaitAction {
 
 	@Override
 	public boolean update() {
+		getGroup().stop();
 		return false;
 	}
 

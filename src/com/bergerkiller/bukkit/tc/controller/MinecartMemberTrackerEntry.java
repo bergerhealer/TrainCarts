@@ -238,11 +238,12 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public void syncMeta() {
-		if (this.tracker.dead) return;
-		//meta data packets (used for effects like smoke toggling)
-		DataWatcher datawatcher = this.tracker.getDataWatcher();
-		if (datawatcher.a()) {
-			this.broadcastIncludingSelf(new Packet40EntityMetadata(this.tracker.id, datawatcher, false));
+		if (!this.tracker.dead) {
+			//meta data packets (used for effects like smoke toggling)
+			DataWatcher datawatcher = this.tracker.getDataWatcher();
+			if (datawatcher.a()) {
+				this.broadcastIncludingSelf(new Packet40EntityMetadata(this.tracker.id, datawatcher, false));
+			}
 		}
 	}
 
@@ -263,6 +264,11 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 
 	public void doSpawn(EntityPlayer entityplayer) {
 		entityplayer.netServerHandler.sendPacket(((MinecartMember) this.tracker).getSpawnPacket());
+
+		// Meta data
+		entityplayer.netServerHandler.sendPacket(new Packet40EntityMetadata(this.tracker.id, this.tracker.getDataWatcher(), true));
+
+		// Velocity, positioning and passenger
 		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
 		entityplayer.netServerHandler.sendPacket(getTeleportPacket());
 		if (this.tracker.passenger != null) {

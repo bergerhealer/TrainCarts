@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
-public class GroupActionWaitTill extends GroupAction implements WaitAction {
-
+public class GroupActionWaitTill extends GroupActionWaitForever {
 	private long finishtime;
+
 	public GroupActionWaitTill(final MinecartGroup group, final long finishtime) {
 		super(group);
 		this.setTime(finishtime);
@@ -16,12 +16,6 @@ public class GroupActionWaitTill extends GroupAction implements WaitAction {
 
 	@Override
 	public boolean update() {
-		return this.finishtime <= System.currentTimeMillis();
+		return this.finishtime <= System.currentTimeMillis() || super.update();
 	}
-	
-	@Override
-	public boolean isVelocityChangesSuppressed() {
-		return true;
-	}
-
 }

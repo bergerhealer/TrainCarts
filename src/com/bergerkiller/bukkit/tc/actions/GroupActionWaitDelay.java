@@ -2,16 +2,16 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
-public class GroupActionWait extends GroupActionWaitTill implements WaitAction {
-
+public class GroupActionWaitDelay extends GroupActionWaitTill implements WaitAction {
 	private long delay;
-	public GroupActionWait(MinecartGroup group, long delayMS) {
+
+	public GroupActionWaitDelay(MinecartGroup group, long delayMS) {
 		super(group, System.currentTimeMillis() + delayMS);
 		this.delay = delayMS;
 	}
-	
+
+	@Override
 	public void start() {
 		this.setTime(System.currentTimeMillis() + delay);
 	}
-
 }
