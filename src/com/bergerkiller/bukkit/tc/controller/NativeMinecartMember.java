@@ -44,21 +44,21 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 
-import net.minecraft.server.v1_4_5.AxisAlignedBB;
-import net.minecraft.server.v1_4_5.Block;
-import net.minecraft.server.v1_4_5.DamageSource;
-import net.minecraft.server.v1_4_5.Entity;
-import net.minecraft.server.v1_4_5.EntityHuman;
-import net.minecraft.server.v1_4_5.EntityItem;
-import net.minecraft.server.v1_4_5.EntityLiving;
-import net.minecraft.server.v1_4_5.EntityPlayer;
-import net.minecraft.server.v1_4_5.Item;
-import net.minecraft.server.v1_4_5.ItemStack;
-import net.minecraft.server.v1_4_5.NBTTagCompound;
-import net.minecraft.server.v1_4_5.Packet;
-import net.minecraft.server.v1_4_5.Packet23VehicleSpawn;
-import net.minecraft.server.v1_4_5.World;
-import net.minecraft.server.v1_4_5.EntityMinecart;
+import net.minecraft.server.v1_4_6.AxisAlignedBB;
+import net.minecraft.server.v1_4_6.Block;
+import net.minecraft.server.v1_4_6.DamageSource;
+import net.minecraft.server.v1_4_6.Entity;
+import net.minecraft.server.v1_4_6.EntityHuman;
+import net.minecraft.server.v1_4_6.EntityItem;
+import net.minecraft.server.v1_4_6.EntityLiving;
+import net.minecraft.server.v1_4_6.EntityPlayer;
+import net.minecraft.server.v1_4_6.Item;
+import net.minecraft.server.v1_4_6.ItemStack;
+import net.minecraft.server.v1_4_6.NBTTagCompound;
+import net.minecraft.server.v1_4_6.Packet;
+import net.minecraft.server.v1_4_6.Packet23VehicleSpawn;
+import net.minecraft.server.v1_4_6.World;
+import net.minecraft.server.v1_4_6.EntityMinecart;
 
 public abstract class NativeMinecartMember extends EntityMinecart {
 	public static final int FUEL_PER_COAL = 3600;

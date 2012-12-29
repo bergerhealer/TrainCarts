@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.server.v1_4_5.EntityItem;
+import net.minecraft.server.v1_4_6.EntityItem;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -82,7 +82,7 @@ public class GroundItemsInventory extends InventoryBase {
 			// Set item stack, if null, kill the item
 			EntityItem item = NativeUtil.getNative(this.items.get(index));
 			if (!(item.dead = LogicUtil.nullOrEmpty(stack))) {
-				item.itemStack = NativeUtil.getNative(stack);
+				item.setItemStack(NativeUtil.getNative(stack));
 				this.items.set(index, ItemUtil.respawnItem((Item) item.getBukkitEntity()));
 			}
 		}

@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.server.v1_4_5.ItemStack;
+import net.minecraft.server.v1_4_6.ItemStack;
 
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;

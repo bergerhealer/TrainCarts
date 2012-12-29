@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
-import net.minecraft.server.v1_4_5.*;
+import net.minecraft.server.v1_4_6.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
@@ -160,9 +160,9 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public void doTeleport() {
-		int x = tracker.ar.a(this.tracker.locX);
+		int x = tracker.as.a(this.tracker.locX);
 		int y = MathHelper.floor(this.tracker.locY * 32);
-		int z = tracker.ar.a(this.tracker.locZ);
+		int z = tracker.as.a(this.tracker.locZ);
 		int yaw = MathHelper.d(this.tracker.yaw * 256 / 360);
 		int pitch = MathHelper.d(this.tracker.pitch * 256 / 360);
 		this.xLoc = x;
@@ -187,9 +187,9 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 
 	public void syncLocation(boolean teleport) {
 		if (!teleport) {
-			int newXLoc = this.tracker.ar.a(this.tracker.locX);
+			int newXLoc = this.tracker.as.a(this.tracker.locX);
 			int newYLoc = MathHelper.floor(this.tracker.locY * 32);
-			int newZLoc = this.tracker.ar.a(this.tracker.locZ);
+			int newZLoc = this.tracker.as.a(this.tracker.locZ);
 			int xDiff = newXLoc - this.xLoc;
 			int yDiff = newYLoc - this.yLoc;
 			int zDiff = newZLoc - this.zLoc;
@@ -259,20 +259,20 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public void doDestroy(EntityPlayer entityplayer) {
-		entityplayer.netServerHandler.sendPacket(new Packet29DestroyEntity(this.tracker.id));
+		entityplayer.playerConnection.sendPacket(new Packet29DestroyEntity(this.tracker.id));
 	}
 
 	public void doSpawn(EntityPlayer entityplayer) {
-		entityplayer.netServerHandler.sendPacket(((MinecartMember) this.tracker).getSpawnPacket());
+		entityplayer.playerConnection.sendPacket(((MinecartMember) this.tracker).getSpawnPacket());
 
 		// Meta data
-		entityplayer.netServerHandler.sendPacket(new Packet40EntityMetadata(this.tracker.id, this.tracker.getDataWatcher(), true));
+		entityplayer.playerConnection.sendPacket(new Packet40EntityMetadata(this.tracker.id, this.tracker.getDataWatcher(), true));
 
 		// Velocity, positioning and passenger
-		entityplayer.netServerHandler.sendPacket(new Packet28EntityVelocity(this.tracker));
-		entityplayer.netServerHandler.sendPacket(getTeleportPacket());
+		entityplayer.playerConnection.sendPacket(new Packet28EntityVelocity(this.tracker));
+		entityplayer.playerConnection.sendPacket(getTeleportPacket());
 		if (this.tracker.passenger != null) {
-			entityplayer.netServerHandler.sendPacket(new Packet39AttachEntity(this.tracker.passenger, this.tracker));
+			entityplayer.playerConnection.sendPacket(new Packet39AttachEntity(this.tracker.passenger, this.tracker));
 		}
 	}
 

@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import net.minecraft.server.v1_4_5.Entity;
-import net.minecraft.server.v1_4_5.ItemStack;
-import net.minecraft.server.v1_4_5.TileEntity;
+import net.minecraft.server.v1_4_6.Entity;
+import net.minecraft.server.v1_4_6.ItemStack;
+import net.minecraft.server.v1_4_6.TileEntity;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -38,7 +38,7 @@ public class ItemAnimation {
 			Location l2 = getLocation(fixObject(anim.item));
 			if (l2 != null && l1.getWorld() == l2.getWorld()) {
 				if (l1.distanceSquared(l2) < 4.0) {
-					org.bukkit.inventory.ItemStack thisdata = NativeUtil.getItemStack(anim.item.itemStack);
+					org.bukkit.inventory.ItemStack thisdata = NativeUtil.getItemStack(anim.item.getItemStack());
 					if (thisdata.getAmount() == 0) continue;
 					ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);
 					if (data.getAmount() == 0) return;
