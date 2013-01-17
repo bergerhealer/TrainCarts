@@ -18,6 +18,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.metrics.AddonHandler;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
@@ -387,6 +388,10 @@ public class TrainCarts extends PluginBase {
 				OfflineGroupManager.removeBuggedMinecarts();
 			}
 		});
+		
+		//do metrics
+		AddonHandler ah = new AddonHandler(this);
+		ah.startMetrics();
 	}
 
 	/**
@@ -483,5 +488,4 @@ public class TrainCarts extends PluginBase {
 	public static boolean isWorldDisabled(String worldname) {
 		return plugin.disabledWorlds.contains(worldname.toLowerCase());
 	}
-	
 }
