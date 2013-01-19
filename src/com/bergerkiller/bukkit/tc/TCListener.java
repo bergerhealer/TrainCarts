@@ -2,14 +2,14 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
 
-import net.minecraft.server.v1_4_R1.EntityMinecart;
+import net.minecraft.server.v1_4_6.EntityMinecart;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_4_R1.util.LongHash;
+import org.bukkit.craftbukkit.v1_4_6.util.LongHash;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;

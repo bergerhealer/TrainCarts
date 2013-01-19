@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.ContainerBlock;
-import org.bukkit.craftbukkit.v1_4_R1.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_4_6.block.CraftBlockState;
 
 @SuppressWarnings("deprecation")
 public class GroundItemsState extends CraftBlockState implements ContainerBlock {

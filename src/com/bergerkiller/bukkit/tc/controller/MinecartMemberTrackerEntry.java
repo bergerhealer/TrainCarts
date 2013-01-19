@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
-import net.minecraft.server.v1_4_R1.*;
+import net.minecraft.server.v1_4_6.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class MinecartMemberTrackerEntry extends EntityTrackerEntry {

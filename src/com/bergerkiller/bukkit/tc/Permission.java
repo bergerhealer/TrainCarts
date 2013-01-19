@@ -53,7 +53,6 @@ public class Permission extends PermissionEnum {
 	public static final Permission BUILD_TICKET = new Permission("train.build.ticket", PermissionDefault.OP, "The player can build a sign that will charge money or ejects a player if he can't pay");
 	public static final Permission BUILD_ANNOUNCER = new Permission("train.build.announcer", PermissionDefault.OP, "The player can build a sign that sends a message to all the players in a train");
 	public static final Permission BUILD_EFFECT = new Permission("train.build.effect", PermissionDefault.OP, "The player can build a sign that can play an effect");
-	public static final Permission BUILD_BOOSTER = new Permission("train.build.booster", PermissionDefault.OP, "The player can build a sign that can boost a cart/train");
 	public static final Permission GENERAL_PLACE_MINECART = new Permission("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts");
 	public static final Permission GENERAL_PROPERTIES_DEFAULT = new Permission("train.properties.default", PermissionDefault.NOT_OP, "Carts placed by this player get the default properties");
 	public static final Permission GENERAL_PROPERTIES_ADMIN = new Permission("train.properties.admin", PermissionDefault.OP, "Carts placed by this player get the admin properties");

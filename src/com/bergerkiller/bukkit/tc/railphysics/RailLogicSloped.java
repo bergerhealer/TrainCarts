@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
-import net.minecraft.server.v1_4_R1.Vec3D;
+import net.minecraft.server.v1_4_6.Vec3D;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;

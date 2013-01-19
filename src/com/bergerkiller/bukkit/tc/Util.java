@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import net.minecraft.server.v1_4_R1.Item;
+import net.minecraft.server.v1_4_6.Item;
 
 import org.bukkit.Material;
 import org.bukkit.World;

@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.events;
 
-import net.minecraft.server.v1_4_R1.EntityMinecart;
+import net.minecraft.server.v1_4_6.EntityMinecart;
 
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.Cancellable;

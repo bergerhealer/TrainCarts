@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.server.v1_4_R1.EntityItem;
+import net.minecraft.server.v1_4_6.EntityItem;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;

@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import net.minecraft.server.v1_4_R1.Entity;
-import net.minecraft.server.v1_4_R1.ItemStack;
-import net.minecraft.server.v1_4_R1.TileEntity;
+import net.minecraft.server.v1_4_6.Entity;
+import net.minecraft.server.v1_4_6.ItemStack;
+import net.minecraft.server.v1_4_6.TileEntity;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
