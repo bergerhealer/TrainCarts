@@ -22,10 +22,10 @@ import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.events.MemberConvertEvent;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
-import net.minecraft.server.v1_4_6.Entity;
-import net.minecraft.server.v1_4_6.EntityMinecart;
-import net.minecraft.server.v1_4_6.EntityTrackerEntry;
-import net.minecraft.server.v1_4_6.World;
+import net.minecraft.server.v1_4_R1.Entity;
+import net.minecraft.server.v1_4_R1.EntityMinecart;
+import net.minecraft.server.v1_4_R1.EntityTrackerEntry;
+import net.minecraft.server.v1_4_R1.World;
 
 public abstract class MinecartMemberStore extends NativeMinecartMember {
 

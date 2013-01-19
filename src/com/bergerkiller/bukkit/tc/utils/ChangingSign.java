@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import org.bukkit.block.Sign;
-import org.bukkit.craftbukkit.v1_4_6.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_4_R1.block.CraftBlockState;
 import org.bukkit.event.block.SignChangeEvent;
 
 /**

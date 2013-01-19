@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.v1_4_6.EntityItem;
+import net.minecraft.server.v1_4_R1.EntityItem;
 
 /**
  * A dummy class that basically does nothing :)
