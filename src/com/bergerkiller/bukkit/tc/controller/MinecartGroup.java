@@ -176,7 +176,9 @@ public class MinecartGroup extends MinecartGroupStore {
 			IntVector3 p = entry.getKey();
 			Block block = world.getBlockAt(p.x, p.y, p.z);
 			if (Util.ISTCRAIL.get(block)) {
-				for (Block sign : Util.getSignsFromRails(block)) {
+				Iterator<Block> signs = Util.getSignsFromRails(block).iterator();
+				while(signs.hasNext()) {
+					Block sign = signs.next();
 					entry.getValue().addActiveSign(sign);
 				}
 			}
