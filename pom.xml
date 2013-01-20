@@ -1,0 +1,95 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.bergerkiller.bukkit</groupId>
+  <artifactId>TrainCarts</artifactId>
+  <version>1.72.4</version>
+  <packaging>jar</packaging>
+
+  <name>TrainCarts</name>
+  <url>http://dev.bukkit.org/server-mods/traincarts/</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <repositories>
+    <!-- Repo for access to Vault -->
+    <repository>
+      <id>vault-repo</id>
+      <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
+    </repository>
+    <!-- Repo for access to CraftBukkit -->
+    <repository>
+      <id>bukkit-repo</id>
+      <url>http://repo.bukkit.org/content/groups/public</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.bukkit</groupId>
+      <artifactId>craftbukkit</artifactId>
+      <version>1.4.7-R0.2-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.bergerkiller.bukkit</groupId>
+      <artifactId>MultiWorlds</artifactId>
+      <version>1.58</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/MyWorlds.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>com.bergerkiller.bukkit</groupId>
+      <artifactId>SignLink</artifactId>
+      <version>1.30</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/SignLink.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>com.bergerkiller.bukkit</groupId>
+      <artifactId>BKCommonLib</artifactId>
+      <version>1.43</version>
+  	</dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <!-- Build -->
+  <build>
+    <!-- Resources -->
+    <resources>
+	  <resource>
+	    <directory>src/main/java/</directory>
+		<includes>
+          <include>**</include>
+		</includes>
+        <!-- Don't add source files to target jar -->
+	    <excludes>
+		  <exclude>com/bergerkiller/bukkit/**/*.java</exclude>
+		</excludes>
+	  </resource>
+	</resources>
+	<defaultGoal>clean install</defaultGoal>
+	<!-- Plugins -->
+	<plugins>
+	  <!-- Compiler plugin -->
+	  <plugin>
+	    <groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-compiler-plugin</artifactId>
+		<version>2.4</version>
+		<configuration>
+		  <source>1.6</source>
+		  <target>1.6</target>
+		  <showWarnings>true</showWarnings>
+		  <showDeprecation>true</showDeprecation>
+		</configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
