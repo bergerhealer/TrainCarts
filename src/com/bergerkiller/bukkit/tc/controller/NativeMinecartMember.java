@@ -183,8 +183,8 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 		try {
 			// CraftBukkit start
-			Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-			org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
+			Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
+			org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : NativeUtil.getEntity(damagesource.getEntity());
 
 			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
 
@@ -593,7 +593,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// CraftBukkit start
 		Location from = new Location(this.world.getWorld(), this.lastX, this.lastY, this.lastZ, this.lastYaw, this.lastPitch);
 		Location to = this.getLocation();
-		Vehicle vehicle = (Vehicle) this.getBukkitEntity();
+		Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
 
 		CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
 
@@ -951,7 +951,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			d11 = this.locY - d4;
 			d12 = this.locZ - d5;
 			if (positionChanged) {
-				Vehicle vehicle = (Vehicle)getBukkitEntity();
+				Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
 				org.bukkit.block.Block block = world.getWorld().getBlockAt(MathUtil.floor(locX), MathUtil.floor(locY - (double)height), MathUtil.floor(locZ));
 				if (d6 > d0) {
 					block = block.getRelative(BlockFace.EAST);
@@ -1008,7 +1008,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				if(!flag2) {
 					this.fireTicks++;
 					if(this.fireTicks <= 0) {
-						EntityCombustEvent event = new EntityCombustEvent(getBukkitEntity(), 8);
+						EntityCombustEvent event = new EntityCombustEvent(NativeUtil.getEntity(this), 8);
 						this.world.getServer().getPluginManager().callEvent(event);
 						if (!event.isCancelled()) {
 							this.setOnFire(event.getDuration());
@@ -1085,7 +1085,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			//No collision is allowed? (Owners override)
 			if (!prop.getColliding()) {
 				if (e instanceof EntityPlayer) {
-					Player p = (Player) e.getBukkitEntity();
+					Player p = (Player) NativeUtil.getEntity(e);
 					if (!prop.isOwner(p)) {
 						return false;
 					}
@@ -1095,7 +1095,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 
 			// Collision modes
-			if (!prop.getCollisionMode(e.getBukkitEntity()).execute(this.member(), e.getBukkitEntity())) {
+			if (!prop.getCollisionMode(NativeUtil.getEntity(e)).execute(this.member(), e.getBukkitEntity())) {
 				return false;
 			}
 		}

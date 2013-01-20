@@ -111,7 +111,7 @@ public class ItemAnimation {
 			return ((Block) object).getLocation().add(0.5, 0.5, 0.5);
 		}
 		if (object instanceof Entity) {
-			return ((Entity) object).getBukkitEntity();
+			return NativeUtil.getEntity((Entity) object);
 		}
 		return object;
 	}

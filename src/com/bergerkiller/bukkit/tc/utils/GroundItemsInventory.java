@@ -83,7 +83,7 @@ public class GroundItemsInventory extends InventoryBase {
 			EntityItem item = NativeUtil.getNative(this.items.get(index));
 			if (!(item.dead = LogicUtil.nullOrEmpty(stack))) {
 				item.setItemStack(NativeUtil.getNative(stack));
-				this.items.set(index, ItemUtil.respawnItem((Item) item.getBukkitEntity()));
+				this.items.set(index, ItemUtil.respawnItem((Item) NativeUtil.getEntity(item)));
 			}
 		}
 	}

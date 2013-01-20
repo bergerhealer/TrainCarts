@@ -7,6 +7,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberConvertEvent extends MemberEvent implements Cancellable {
@@ -28,7 +29,7 @@ public class MemberConvertEvent extends MemberEvent implements Cancellable {
 	}
 
 	public Minecart getSource() {
-		return (Minecart) this.from.getBukkitEntity();
+		return (Minecart) NativeUtil.getEntity(this.from);
 	}
 
 	@Override

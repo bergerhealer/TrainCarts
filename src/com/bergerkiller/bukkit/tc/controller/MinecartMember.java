@@ -139,7 +139,7 @@ public class MinecartMember extends MinecartMemberStore {
 			Item item;
 			for (Entity e : this.getNearbyEntities(2)) {
 				if (e instanceof EntityItem) {
-					item = (Item) e.getBukkitEntity();
+					item = (Item) NativeUtil.getEntity(e);
 					if (EntityUtil.isIgnored(item)) continue;
 					stack = item.getItemStack();
 					double distance = this.distance(e);
@@ -161,11 +161,11 @@ public class MinecartMember extends MinecartMemberStore {
 							} else {
 								factor = 0.25;
 							}
-							this.push(e.getBukkitEntity(), -factor / distance);
+							this.push(NativeUtil.getEntity(e), -factor / distance);
 							continue;
 						}
 					}
-					this.push(e.getBukkitEntity(), 1 / distance);
+					this.push(NativeUtil.getEntity(e), 1 / distance);
 				}
 			}
 		}
@@ -257,7 +257,7 @@ public class MinecartMember extends MinecartMemberStore {
  		return this.properties;
  	}
 	public Minecart getMinecart() {
-		return (Minecart) this.getBukkitEntity();
+		return (Minecart) NativeUtil.getEntity(this);
 	}
 
 	/**
@@ -692,7 +692,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return FaceUtil.isSubCardinal(this.direction);
 	}
 	public boolean isHeadingTo(Entity entity) {
-		return this.isHeadingTo(entity.getBukkitEntity());
+		return this.isHeadingTo(NativeUtil.getEntity(entity));
 	}
 	public boolean isHeadingTo(org.bukkit.entity.Entity entity) {
 		return this.isHeadingTo(entity.getLocation());
@@ -781,7 +781,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.passenger != null;
 	}
 	public org.bukkit.entity.Entity getPassenger() {
-		return this.passenger == null ? null : this.passenger.getBukkitEntity();
+		return this.passenger == null ? null : NativeUtil.getEntity(this.passenger);
 	}
 	public Inventory getInventory() {
 		return NativeUtil.getInventory(this);
@@ -850,7 +850,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void pushSideways(org.bukkit.entity.Entity entity, double force) {
 		float yaw = FaceUtil.faceToYaw(this.direction);
-		float lookat = MathUtil.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
+		float lookat = MathUtil.getLookAtYaw(NativeUtil.getEntity(this), entity) - yaw;
 		lookat = MathUtil.wrapAngle(lookat);
 		if (lookat > 0) {
 			yaw -= 180;
@@ -933,7 +933,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void eject(final Location to) {
 		if (this.passenger != null) {
-			final org.bukkit.entity.Entity passenger = this.passenger.getBukkitEntity();
+			final org.bukkit.entity.Entity passenger = NativeUtil.getEntity(this.passenger);
 			this.passenger.setPassengerOf(null);
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {
