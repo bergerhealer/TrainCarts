@@ -1,18 +1,17 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.event.entity.EntityCombustEvent;
-import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
@@ -20,7 +19,11 @@ import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.EntityMinecartBase;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -44,23 +47,14 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 
-import net.minecraft.server.v1_4_R1.AxisAlignedBB;
-import net.minecraft.server.v1_4_R1.Block;
-import net.minecraft.server.v1_4_R1.DamageSource;
-import net.minecraft.server.v1_4_R1.Entity;
 import net.minecraft.server.v1_4_R1.EntityHuman;
 import net.minecraft.server.v1_4_R1.EntityItem;
-import net.minecraft.server.v1_4_R1.EntityLiving;
 import net.minecraft.server.v1_4_R1.EntityPlayer;
 import net.minecraft.server.v1_4_R1.Item;
 import net.minecraft.server.v1_4_R1.ItemStack;
 import net.minecraft.server.v1_4_R1.NBTTagCompound;
-import net.minecraft.server.v1_4_R1.Packet;
-import net.minecraft.server.v1_4_R1.Packet23VehicleSpawn;
-import net.minecraft.server.v1_4_R1.World;
-import net.minecraft.server.v1_4_R1.EntityMinecart;
 
-public abstract class NativeMinecartMember extends EntityMinecart {
+public abstract class NativeMinecartMember extends EntityMinecartBase {
 	public static final int FUEL_PER_COAL = 3600;
 	public static final double GRAVITY_MULTIPLIER = 0.04;
 	public static final double VERTRAIL_MULTIPLIER = 0.02;
@@ -74,7 +68,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	protected BlockFace pushDirection = BlockFace.SELF;
 	private final SoundLoop soundLoop;
 
-	public NativeMinecartMember(World world, double d0, double d1, double d2, int i) {
+	public NativeMinecartMember(org.bukkit.World world, double d0, double d1, double d2, int i) {
 		super(world);
 		setPosition(d0, d1 + (double) height, d2);
 		this.type = i;
@@ -177,31 +171,32 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
 	 */
 	@Override
-	public boolean damageEntity(DamageSource damagesource, int i) {
+	public boolean damage(org.bukkit.entity.Entity entity, int damage) {
 		if (this.dead) {
 			return true;
 		}
 		try {
 			// CraftBukkit start
 			Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
-			org.bukkit.entity.Entity passenger = (damagesource.getEntity() == null) ? null : NativeUtil.getEntity(damagesource.getEntity());
 
-			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, passenger, i);
+			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, entity, damage);
 
 			if (CommonUtil.callEvent(event).isCancelled()) {
 				return true;
 			}
 
-			i = event.getDamage();
+			damage = event.getDamage();
 			// CraftBukkit end
 
-			this.i(-this.k());
-			this.h(10);
-			this.K();
-			setDamage(getDamage() + i * 10);
+			this.setShakingDirection(this.getShakingDirection());
+			this.setShakingFactor(10);
+			this.markVelocityChanged();
+			setDamage(getDamage() + damage * 10);
 			if (TrainCarts.instantCreativeDestroy) {
-				if ((damagesource.getEntity() instanceof EntityHuman) && ((EntityHuman) damagesource.getEntity()).abilities.canInstantlyBuild) {
-					setDamage(100);
+				if(entity instanceof HumanEntity) {
+					HumanEntity human = (HumanEntity) entity;
+					if(EntityPlayerRef.canInstaBuild(human))
+						setDamage(100);
 				}
 			}
 			if (getDamage() > 40) {
@@ -209,7 +204,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
 				drops.addAll(this.getDrops());
 
-				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, passenger);
+				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, entity);
 				if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
 					setDamage(40);
 					return true;
@@ -221,7 +216,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 
 				for (org.bukkit.inventory.ItemStack stack : drops) {
-					this.a(NativeUtil.getNative(stack), 0.0F);
+					this.dropItem(stack, 0.0F);
 				}
 
 				this.die();
@@ -376,29 +371,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 	}
 
-	@Override
-	public void j_() {
-		try {
-			this.onTick();
-		} catch (Throwable t) {
-			TrainCarts.plugin.log(Level.SEVERE, "An error occurred while performing minecart physics:");
-			t.printStackTrace();
-		}
-	}
-
-	/**
-	 * Executed when the entity tick logic is performed<br>
-	 * When calling super.onTick(), it will perform the internal minecart logic
-	 */
-	public void onTick() {
-		try {
-			super.j_();
-		} catch (Throwable t) {
-			System.out.println("An error occurred while performing native minecart physics:");
-			t.printStackTrace();
-		}
-	}
-
 	/**
 	 * Executes the block and pre-movement calculations, which handles rail information updates<br>
 	 * Physics stage: <b>1</b>
@@ -444,8 +416,8 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 */
 	public void onPhysicsPreMove() {
 		// fire ticks decrease
-		if (this.j() > 0) {
-			this.h(this.j() - 1);
+		if (this.getShakingFactor() > 0) {
+			this.setShakingFactor(this.getShakingFactor() - 1);
 		}
 
 		// health regenerate
@@ -491,7 +463,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	 * @throws MemberMissingException - thrown when the minecart is dead or dies
 	 * @throws GroupUnloadedException - thrown when the group is no longer loaded
 	 */
-	@SuppressWarnings("unchecked")
 	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
 		this.checkMissing();
 
@@ -509,7 +480,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		}
 
 		// Move using set motion, and perform post-move rail logic
-		this.onMove(motX, motY, motZ);
+		this.move(motX, motY, motZ);
 		this.checkMissing();
 		this.moveinfo.railLogic.onPostMove(this.member());
 
@@ -607,14 +578,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		// CraftBukkit end
 
 		// Minecart collisions
-		List<Entity> list = this.world.getEntities(this, this.boundingBox.grow(0.2, 0, 0.2));
-		if (list != null && !list.isEmpty()) {
-			for (Entity entity : list) {
-				if (entity != this.passenger && entity.M() && entity instanceof EntityMinecart) {
-					entity.collide(this);
-				}
-			}
-		}
+		this.handleCollission();
 
 		// Ensure that null or dead passengers are cleared
 		if (this.passenger != null && this.passenger.dead) {
@@ -645,7 +609,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				this.fuel = 0;
 				this.pushDirection = BlockFace.SELF;
 			}
-			this.e(this.hasFuel());
+			this.setSmoking(this.hasFuel());
 
 			// Play additional sound effects
 			this.soundLoop.onTick();
@@ -778,256 +742,6 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public abstract boolean onCoalUsed();
 
 	/**
-	 * Cloned move function and updated to prevent collisions. For source, see:
-	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/Entity.java
-	 */
-	@SuppressWarnings("unchecked")
-	public void onMove(double d0, double d1, double d2) {
-		if (this.Y) {
-			this.boundingBox.d(d0, d1, d2);
-			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2.0D;
-			this.locY = (this.boundingBox.b + (double) this.height) - (double) this.W;
-			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2.0D;
-		} else {
-			this.W *= 0.4F;
-			double d3 = this.locX;
-			double d4 = this.locY;
-			double d5 = this.locZ;
-			if (this.J) {
-				this.J = false;
-				d0 *= 0.25D;
-				d1 *= 0.05D;
-				d2 *= 0.25D;
-				this.motX = 0.0D;
-				this.motY = 0.0D;
-				this.motZ = 0.0D;
-			}
-			double d6 = d0;
-			double d7 = d1;
-			double d8 = d2;
-			AxisAlignedBB axisalignedbb = this.boundingBox.clone();
-			List<AxisAlignedBB> list = this.world.getCubes(this, boundingBox.a(d0, d1, d2));
-
-			//================================================
-			filterCollisionList(list);
-			//================================================
-
-			// Collision testing using Y
-			for (AxisAlignedBB aabb : list) {
-				d1 = aabb.b(this.boundingBox, d1);
-			}
-			this.boundingBox.d(0.0D, d1, 0.0D);
-			if(!this.K && d7 != d1) {
-				d2 = 0.0D;
-				d1 = 0.0D;
-				d0 = 0.0D;
-			}
-
-			// Collision testing using X
-			boolean flag1 = this.onGround || d7 != d1 && d7 < 0.0D;
-			for (AxisAlignedBB aabb : list) {
-				d0 = aabb.a(this.boundingBox, d0);
-			}
-			this.boundingBox.d(d0, 0.0D, 0.0D);
-			if(!this.K && d6 != d0) {
-				d2 = 0.0D;
-				d1 = 0.0D;
-				d0 = 0.0D;
-			}
-
-			// Collision testing using Z
-			for (AxisAlignedBB aabb : list) {
-				d2 = aabb.c(this.boundingBox, d2);
-			}
-			this.boundingBox.d(0.0D, 0.0D, d2);
-			if (!this.K && d8 != d2) {
-				d2 = 0.0D;
-				d1 = 0.0D;
-				d0 = 0.0D;
-			}
-
-			double d10;
-			double d11;
-			double d12;
-
-			if(this.X > 0.0F && flag1 && this.W < 0.05F && (d6 != d0 || d8 != d2)) {
-				d10 = d0;
-				d11 = d1;
-				d12 = d2;
-				d0 = d6;
-				d1 = (double) this.X;
-				d2 = d8;
-
-				AxisAlignedBB axisalignedbb1 = this.boundingBox.clone();
-				this.boundingBox.c(axisalignedbb);
-
-				list = world.getCubes(this, this.boundingBox.a(d6, d1, d8));
-
-				//================================================
-				filterCollisionList(list);
-				//================================================
-
-				for (AxisAlignedBB aabb : list) {
-					d1 = aabb.b(this.boundingBox, d1);
-				}
-				this.boundingBox.d(0.0D, d1, 0.0D);
-				if(!this.K && d7 != d1) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
-
-				for (AxisAlignedBB aabb : list) {
-					d0 = aabb.a(this.boundingBox, d0);
-				}
-				this.boundingBox.d(d0, 0.0D, 0.0D);
-				if (!this.K && d6 != d0) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
-
-				for (AxisAlignedBB aabb : list) {
-					d2 = aabb.c(this.boundingBox, d2);
-				}
-				this.boundingBox.d(0.0D, 0.0D, d2);
-				if (!this.K && d8 != d2) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				}
-
-				if (!this.K && d7 != d1) {
-					d2 = 0.0D;
-					d1 = 0.0D;
-					d0 = 0.0D;
-				} else {
-					d1 = (double) -this.X;
-					for (int k = 0; k < list.size(); k++) {
-						d1 = list.get(k).b(this.boundingBox, d1);
-					}
-					this.boundingBox.d(0.0D, d1, 0.0D);
-				}
-				if (d10 * d10 + d12 * d12 >= d0 * d0 + d2 * d2) {
-					d0 = d10;
-					d1 = d11;
-					d2 = d12;
-					this.boundingBox.c(axisalignedbb1);
-				} else {
-					double d13 = this.boundingBox.b - (double)(int) this.boundingBox.b;
-					if (d13 > 0.0D) {
-						this.W = (float)((double) this.W + d13 + 0.01D);
-					}
-				}
-			}
-
-			this.locX = (this.boundingBox.a + this.boundingBox.d) / 2D;
-			this.locY = (this.boundingBox.b + (double) this.height) - (double) this.W;
-			this.locZ = (this.boundingBox.c + this.boundingBox.f) / 2D;
-			this.positionChanged = d6 != d0 || d8 != d2;
-			this.G = d7 != d1;
-			this.onGround = d7 != d1 && d7 < 0.0D;
-			this.H = positionChanged || this.G;
-			a(d1, this.onGround);
-
-			if (d7 != d1) {
-				this.motY = 0.0D;
-			}
-
-			//========TrainCarts edit: Math.abs check to prevent collision slowdown=====
-			if (d6 != d0) {
-				if (Math.abs(motX) > Math.abs(motZ)) {
-					this.motX = 0.0D;
-				}
-			}
-			if (d8 != d2) {
-				if (Math.abs(motZ) > Math.abs(motX)) {
-					this.motZ = 0.0D;
-				}
-			}
-			//===========================================================================
-
-			d10 = this.locX - d3;
-			d11 = this.locY - d4;
-			d12 = this.locZ - d5;
-			if (positionChanged) {
-				Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
-				org.bukkit.block.Block block = world.getWorld().getBlockAt(MathUtil.floor(locX), MathUtil.floor(locY - (double)height), MathUtil.floor(locZ));
-				if (d6 > d0) {
-					block = block.getRelative(BlockFace.EAST);
-				} else if (d6 < d0) {
-					block = block.getRelative(BlockFace.WEST);
-				} else if (d8 > d2) {
-					block = block.getRelative(BlockFace.SOUTH);
-				} else if (d8 < d2) {
-					block = block.getRelative(BlockFace.NORTH);
-				}
-				VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, block);
-				world.getServer().getPluginManager().callEvent(event);
-			}
-
-			if (this.f_() && this.vehicle == null) {
-                int i = MathUtil.floor(this.locX);
-                int j = MathUtil.floor(this.locY - 0.2D - (double) this.height);
-                int k = MathUtil.floor(this.locZ);
-                int l = this.world.getTypeId(i, j, k);
-
-                if (l == 0 && this.world.getTypeId(i, j - 1, k) == Material.FENCE.getId()) {
-                    l = this.world.getTypeId(i, j - 1, k);
-                }
-
-                if (l != Material.LADDER.getId()) {
-                    d11 = 0.0D;
-                }
-
-                this.Q = (float) ((double) this.Q + Math.sqrt(d10 * d10 + d12 * d12) * 0.6D);
-                this.R = (float) ((double) this.R + Math.sqrt(d10 * d10 + d11 * d11 + d12 * d12) * 0.6D);
-                if (this.R > (float) this.c && l > 0) {
-                    this.c = (int) this.R + 1;
-                    if (this.H()) {
-                        float f = (float) Math.sqrt(this.motX * this.motX * 0.20000000298023224D + this.motY * this.motY + this.motZ * this.motZ * 0.20000000298023224D) * 0.35F;
-
-                        if (f > 1.0F) {
-                            f = 1.0F;
-                        }
-
-                        this.world.makeSound(this, "liquid.swim", f, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
-                    }
-
-                    this.a(i, j, k, l);
-					Block.byId[k].b(this.world, i, j, k, this);
-				}
-			}
-
-			this.D(); // Handle block collisions
-
-			// Fire tick calculation (check using block collision)
-			boolean flag2 = this.G();
-			if (this.world.e(boundingBox.shrink(0.001D, 0.001D, 0.001D))) {
-				this.burn(1);
-				if(!flag2) {
-					this.fireTicks++;
-					if(this.fireTicks <= 0) {
-						EntityCombustEvent event = new EntityCombustEvent(NativeUtil.getEntity(this), 8);
-						this.world.getServer().getPluginManager().callEvent(event);
-						if (!event.isCancelled()) {
-							this.setOnFire(event.getDuration());
-						}
-					} else {
-						this.setOnFire(8);
-					}
-				}
-			} else if (this.fireTicks <= 0) {
-				this.fireTicks = -this.maxFireTicks;
-			}
-			if (flag2 && this.fireTicks > 0) {
-				this.world.makeSound(this, "random.fizz", 0.7F, 1.6F + (random.nextFloat() - random.nextFloat()) * 0.4F);
-				this.fireTicks = -this.maxFireTicks;
-			}
-		}
-	}
-
-	/**
 	 * Handles the collision of this minecart with another Entity
 	 * 
 	 * @param e entity with which is collided
@@ -1036,7 +750,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 	public boolean onEntityCollision(Entity e) {
 		MinecartMember mm1 = this.member();
 		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded()) return false;
-		if (e.dead || this.dead) return false;
+		if (e.isDead() || this.dead) return false;
 		if (this.group().isVelocityAction()) return false;
 		if (e instanceof MinecartMember) {
 			//colliding with a member in the group, or not?
@@ -1072,7 +786,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 				}
 			}
 			return true;
-		} else if (e instanceof EntityLiving && e.vehicle != null && e.vehicle instanceof EntityMinecart) {
+		} else if (e instanceof LivingEntity && e.isInsideVehicle() && e.getVehicle() instanceof Minecart) {
 			//Ignore passenger collisions
 			return false;
 		} else {
@@ -1085,7 +799,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			//No collision is allowed? (Owners override)
 			if (!prop.getColliding()) {
 				if (e instanceof EntityPlayer) {
-					Player p = (Player) NativeUtil.getEntity(e);
+					Player p = (Player) e;
 					if (!prop.isOwner(p)) {
 						return false;
 					}
@@ -1095,7 +809,7 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 			}
 
 			// Collision modes
-			if (!prop.getCollisionMode(NativeUtil.getEntity(e)).execute(this.member(), e.getBukkitEntity())) {
+			if (!prop.getCollisionMode(e).execute(this.member(), NativeUtil.getEntity(this))) {
 				return false;
 			}
 		}
@@ -1138,61 +852,13 @@ public abstract class NativeMinecartMember extends EntityMinecart {
 		return true;
 	}
 
-	/*
-	 * Prevents passengers and Minecarts from colliding with Minecarts
-	 */
-	@SuppressWarnings("unchecked")
-	private void filterCollisionList(List<AxisAlignedBB> list) {		
-		try {
-			// Shortcut to prevent unneeded logic
-			if (list.isEmpty()) {
-				return;
-			}
-			List<Entity> entityList = this.world.entityList;
-
-			Iterator<AxisAlignedBB> iter = list.iterator();
-			AxisAlignedBB a;
-			boolean isBlock;
-			double dx, dy, dz;
-			BlockFace dir;
-			while (iter.hasNext()) {
-				a = iter.next();
-				isBlock = true;
-				for (Entity e : entityList) {
-					if (e.boundingBox == a) {
-						if (!onEntityCollision(e)) iter.remove();
-						isBlock = false;
-						break;
-					}
-				}
-				if (isBlock) {
-					org.bukkit.block.Block block = this.world.getWorld().getBlockAt(MathUtil.floor(a.a), MathUtil.floor(a.b), MathUtil.floor(a.c));
-					
-					dx = this.locX - block.getX() - 0.5;
-					dy = this.locY - block.getY() - 0.5;
-					dz = this.locZ - block.getZ() - 0.5;
-					if (Math.abs(dx) < 0.1 && Math.abs(dz) < 0.1) {
-						dir = Util.getVerticalFace(dy >= 0.0);
-					} else {
-						dir = FaceUtil.getDirection(dx, dz, false);
-					}
-					if (!this.onBlockCollision(block, dir)) {
-						iter.remove();
-					}
-				}
-			}
-		} catch (ConcurrentModificationException ex) {
-			TrainCarts.plugin.log(Level.WARNING, "Another plugin is interacting with the world entity list from another thread, please check your plugins!");
-		}
-	}
-
 	/**
 	 * Gets the packet to spawn this Minecart Member
 	 * 
 	 * @return spawn packet
 	 */
-	public Packet getSpawnPacket() {
-		return new Packet23VehicleSpawn(this, 10 + this.type);
+	public CommonPacket getSpawnPacket() {
+		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this, 10 + this.type), 23);
 	}
 
 	public BlockFace getRailDirection() {

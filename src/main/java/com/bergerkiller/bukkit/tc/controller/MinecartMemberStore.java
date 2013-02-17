@@ -29,7 +29,7 @@ import net.minecraft.server.v1_4_R1.World;
 
 public abstract class MinecartMemberStore extends NativeMinecartMember {
 
-	public MinecartMemberStore(World world, double d0, double d1, double d2, int i) {
+	public MinecartMemberStore(org.bukkit.World world, double d0, double d1, double d2, int i) {
 		super(world, d0, d1, d2, i);
 	}
 

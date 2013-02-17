@@ -6,9 +6,12 @@ import java.util.logging.Level;
 
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 import net.minecraft.server.v1_4_R1.*;
@@ -263,7 +266,8 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntry {
 	}
 
 	public void doSpawn(EntityPlayer entityplayer) {
-		entityplayer.playerConnection.sendPacket(((MinecartMember) this.tracker).getSpawnPacket());
+		CommonPacket packet = ((MinecartMember) this.tracker).getSpawnPacket();
+		PacketUtil.sendCommonPacket(NativeUtil.getPlayer(entityplayer), packet, true);
 
 		// Meta data
 		entityplayer.playerConnection.sendPacket(new Packet40EntityMetadata(this.tracker.id, this.tracker.getDataWatcher(), true));

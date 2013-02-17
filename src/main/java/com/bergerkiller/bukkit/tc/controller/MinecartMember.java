@@ -91,7 +91,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	protected MinecartMember(World world, double x, double y, double z, int type) {
-		super(world, x, y, z, type);
+		super(NativeUtil.getWorld(world), x, y, z, type);
 		this.prevcx = MathUtil.toChunk(this.locX);
 		this.prevcz = MathUtil.toChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
