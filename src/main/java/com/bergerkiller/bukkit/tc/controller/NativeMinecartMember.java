@@ -165,13 +165,12 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		return member().getGroup();
 	}
 
-
 	/*
 	 * Replaced standard droppings based on TrainCarts settings. For source, see:
 	 * https://github.com/Bukkit/CraftBukkit/blob/master/src/main/java/net/minecraft/server/EntityMinecart.java
 	 */
 	@Override
-	public boolean damage(org.bukkit.entity.Entity entity, int damage) {
+	public boolean onEntityDamage(org.bukkit.entity.Entity entity, int damage) {
 		if (this.dead) {
 			return true;
 		}
@@ -578,7 +577,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		// CraftBukkit end
 
 		// Minecart collisions
-		this.handleCollission();
+		this.handleCollision();
 
 		// Ensure that null or dead passengers are cleared
 		if (this.passenger != null && this.passenger.dead) {
@@ -858,7 +857,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	 * @return spawn packet
 	 */
 	public CommonPacket getSpawnPacket() {
-		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this, 10 + this.type), 23);
+		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getBukkitEntity(), 10 + this.type), 23);
 	}
 
 	public BlockFace getRailDirection() {

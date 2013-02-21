@@ -37,8 +37,8 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 
-import com.bergerkiller.bukkit.common.BlockSet;
-import com.bergerkiller.bukkit.common.EntityMap;
+import com.bergerkiller.bukkit.common.collections.BlockSet;
+import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;

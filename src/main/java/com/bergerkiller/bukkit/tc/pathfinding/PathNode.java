@@ -10,8 +10,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.BlockMap;
-import com.bergerkiller.bukkit.common.BlockSet;
+import com.bergerkiller.bukkit.common.collections.BlockMap;
+import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;

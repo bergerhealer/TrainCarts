@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.v1_4_R1.EntityItem;
+import net.minecraft.server.v1_4_R1.EntityTracker;
 
 /**
  * A dummy class that basically does nothing :)
@@ -18,7 +19,7 @@ public class VirtualItem extends EntityItem {
 	public VirtualItem(Location location, ItemStack itemstack) {
 		super(NativeUtil.getNative(location.getWorld()), location.getX(), location.getY(), location.getZ(), NativeUtil.getNative(itemstack));
 		refresh();
-		WorldUtil.getTracker(world).track(this);
+		((EntityTracker) WorldUtil.getTracker(world)).track(this);
 	}
 
 	@Override
@@ -39,8 +40,9 @@ public class VirtualItem extends EntityItem {
 		EntityRef.chunkZ.set(this, MathUtil.toChunk(this.locZ));
 	}
 
+	@Override
 	public void die() {
 		super.die();
-		WorldUtil.getTracker(world).untrackEntity(this);
+		((EntityTracker) WorldUtil.getTracker(world)).untrackEntity(this);
 	}
 }

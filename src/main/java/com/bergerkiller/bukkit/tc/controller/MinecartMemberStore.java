@@ -108,7 +108,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 		// Replace entity
 		synchronized (WorldUtil.getTracker(source.world)) {
 			// swap the tracker
-			EntityTrackerEntry entry = WorldUtil.getTrackerEntry(source);
+			EntityTrackerEntry entry = (EntityTrackerEntry) WorldUtil.getTrackerEntry(source);
 			// Create MM tracker using old as base
 			if (entry == null) {
 				entry = new MinecartMemberTrackerEntry(with);

@@ -31,14 +31,21 @@
     <dependency>
       <groupId>org.bukkit</groupId>
       <artifactId>craftbukkit</artifactId>
-      <version>1.4.7-R0.2-SNAPSHOT</version>
+      <version>1.4.7-R1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
-      <artifactId>MultiWorlds</artifactId>
+      <artifactId>MyWorlds</artifactId>
       <version>1.58</version>
       <scope>system</scope>
       <systemPath>${project.basedir}/lib/MyWorlds.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>com.earth2me.essentials</groupId>
+      <artifactId>Essentials</artifactId>
+      <version>2.10.1</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/Essentials.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
@@ -50,7 +57,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.43</version>
+      <version>1.49</version>
   	</dependency>
     <dependency>
       <groupId>junit</groupId>
