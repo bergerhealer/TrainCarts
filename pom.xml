@@ -15,15 +15,15 @@
   </properties>
 
   <repositories>
-    <!-- Repo for access to Vault -->
-    <repository>
-      <id>vault-repo</id>
-      <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
-    </repository>
     <!-- Repo for access to CraftBukkit -->
     <repository>
       <id>bukkit-repo</id>
       <url>http://repo.bukkit.org/content/groups/public</url>
+    </repository>
+    <!-- Repo for access to Essentials -->
+    <repository>
+      <id>essentials-repo</id>
+      <url>http://ess.ementalo.com/nexus/content/groups/public/</url>
     </repository>
   </repositories>
 
@@ -41,11 +41,10 @@
       <systemPath>${project.basedir}/lib/MyWorlds.jar</systemPath>
     </dependency>
     <dependency>
-      <groupId>com.earth2me.essentials</groupId>
-      <artifactId>Essentials</artifactId>
-      <version>2.10.1</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/lib/Essentials.jar</systemPath>
+      <groupId>com.earth2me</groupId>
+      <artifactId>essentials</artifactId>
+      <version>2.9.1</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
