@@ -7,18 +7,16 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.EntityTrackerEntryBase;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerEntryRef;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-
-import net.minecraft.server.v1_4_R1.*;
 
 public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	private int ticksNoTeleport = 0;
+	private Vector synchedVelocity = new Vector();
 	public boolean isRemoved = false;
 	protected boolean tracked = false;
 	public static final long MIN_SYNC_INTERVAL = 10;
@@ -32,23 +30,18 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 
 	public MinecartMemberTrackerEntry(MinecartMember member) {
-		super(member.getBukkitEntity(), 80, 3, true);
+		super(member.getEntity(), 80, 3, true);
 	}
 
-	/**
-	 * Reverts this entry to the default internal minecart entry
-	 */
-	public EntityTrackerEntry revert() {
-		EntityTrackerEntryBase entry = new EntityTrackerEntryBase(this.getTracker(), 80, 3, true);
-		EntityTrackerEntryRef.TEMPLATE.transfer(this, entry);
-		return entry;
+	public MinecartMember getMember() {
+		return Conversion.convert(getTracker(), MinecartMember.class);
 	}
 
 	@Override
 	public void onTick() {
 		try {
 			this.tracked = true;
-			final MinecartMember tracker = Conversion.convert(getTracker(), MinecartMember.class);
+			final MinecartMember tracker = getMember();
 			if (tracker.isUnloaded()) {
 				this.sync();
 				return;
@@ -81,7 +74,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	 * Called from within the last tracked minecart in the group
 	 */
 	private void syncAll() {
-		MinecartGroup group = ((MinecartMember) this.tracker).getGroup();
+		MinecartGroup group = MemberConverter.toMember.convert(getTracker()).getGroup();
 		MinecartMemberTrackerEntry headtracker = group.head().getTracker();
 		if (headtracker == null) {
 			return;
@@ -95,8 +88,8 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 			for (MinecartMember mm : group) {
 				MinecartMemberTrackerEntry tracker = mm.getTracker();
 				if (tracker != null) {
-					location |= tracker.hasTrackerChanged();
-					velocity |= tracker.tracker.velocityChanged;
+					location |= this.isTrackerPositionChanged();
+					velocity |= this.isTrackerVelocityChanged();
 				}
 			}
 			for (MinecartMember mm : group) {
@@ -116,13 +109,13 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 	
 	public void sync() {
-		if (this.tracker.dead) {
+		if (this.getTracker().isDead()) {
 			return;
 		}
-		if (this.needsLocationSync() || this.hasTrackerChanged()) {
+		if (this.needsLocationSync() || this.isTrackerPositionChanged()) {
 			this.syncLocation(this.needsTeleport());
 		}
-		if (this.tracker.velocityChanged) {
+		if (this.isTrackerVelocityChanged()) {
 			this.syncVelocity();
 		}
 		this.syncMeta();
@@ -144,11 +137,11 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 
 	public void doTeleport() {
-		int x = tracker.as.a(this.tracker.locX);
-		int y = MathHelper.floor(this.tracker.locY * 32);
-		int z = tracker.as.a(this.tracker.locZ);
-		int yaw = MathHelper.d(this.tracker.yaw * 256 / 360);
-		int pitch = MathHelper.d(this.tracker.pitch * 256 / 360);
+		int x = this.getTrackerProtocolX();
+		int y = this.getTrackerProtocolY();
+		int z = this.getTrackerProtocolZ();
+		int yaw = this.getTrackerProtocolYaw();
+		int pitch = this.getTrackerProtocolPitch();
 		this.xLoc = x;
 		this.yLoc = y;
 		this.zLoc = z;
@@ -157,38 +150,30 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 		this.broadcastPacket(getTeleportPacket());
 	}
 
-	private Packet getTeleportPacket() {
-		return new Packet34EntityTeleport(this.tracker.id, this.xLoc, this.yLoc, this.zLoc, (byte) this.xRot, (byte) this.yRot);
-	}
-
-	public boolean hasTrackerChanged() {
-		return EntityRef.positionChanged.get(this.tracker);
-	}
-
-	public void setTrackerChanged(boolean changed) {
-		EntityRef.positionChanged.set(this.tracker, changed);
+	private Object getTeleportPacket() {
+		return PacketFields.ENTITY_TELEPORT.newInstance(getTrackerId(), this.xLoc, this.yLoc, this.zLoc, (byte) this.xRot, (byte) this.yRot);
 	}
 
 	public void syncLocation(boolean teleport) {
 		if (!teleport) {
-			int newXLoc = this.tracker.as.a(this.tracker.locX);
-			int newYLoc = MathHelper.floor(this.tracker.locY * 32);
-			int newZLoc = this.tracker.as.a(this.tracker.locZ);
+			int newXLoc = this.getTrackerProtocolX();
+			int newYLoc = this.getTrackerProtocolY();
+			int newZLoc = this.getTrackerProtocolZ();
 			int xDiff = newXLoc - this.xLoc;
 			int yDiff = newYLoc - this.yLoc;
 			int zDiff = newZLoc - this.zLoc;
 			teleport = Math.abs(xDiff) > 128 || Math.abs(yDiff) > 128 || Math.abs(zDiff) > 128;
 			if (!teleport) {
-				int newXRot = MathHelper.d(this.tracker.yaw * 256 / 360);
-				int newYRot = MathHelper.d(this.tracker.pitch * 256 / 360);
+				int newXRot = this.getTrackerProtocolYaw();
+				int newYRot = this.getTrackerProtocolPitch();
 				boolean looked = Math.abs(newXRot - this.xRot) >= 4 || Math.abs(newYRot - this.yRot) >= 4;
 				boolean moved = Math.abs(xDiff) >= 4 || Math.abs(yDiff) >= 4 || Math.abs(zDiff) >= 4;
 				if (moved && looked) {
-					this.broadcastPacket(new Packet33RelEntityMoveLook(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff, (byte) newXRot, (byte) newYRot));
+					this.broadcastPacket(PacketFields.REL_ENTITY_MOVE_LOOK.newInstance(getTrackerId(), (byte) xDiff, (byte) yDiff, (byte) zDiff, (byte) newXRot, (byte) newYRot));
 				} else if (moved) {
-					this.broadcastPacket(new Packet31RelEntityMove(this.tracker.id, (byte) xDiff, (byte) yDiff, (byte) zDiff));
+					this.broadcastPacket(PacketFields.REL_ENTITY_MOVE.newInstance(getTrackerId(), (byte) xDiff, (byte) yDiff, (byte) zDiff));
 				} else if (looked) {
-					this.broadcastPacket(new Packet32EntityLook(this.tracker.id, (byte) newXRot, (byte) newYRot));
+					this.broadcastPacket(PacketFields.ENTITY_LOOK.newInstance(this.getTrackerId(), (byte) newXRot, (byte) newYRot));
 				}
 				if (moved) {
 					this.xLoc = newXLoc;
@@ -200,33 +185,35 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 				}
 			}
 		}
-		if (teleport) this.doTeleport();
-		this.setTrackerChanged(false);
+		if (teleport) {
+			this.doTeleport();
+		}
+		this.setTrackerPositionChanged(false);
 
 		//motion packets
-		Vector velocity = ((MinecartMember) this.tracker).getLimitedVelocity();
-		double motDiff = MathUtil.distanceSquared(velocity.getX(), velocity.getY(), velocity.getZ(), this.j, this.k, this.l);
+		Vector velocity = getMember().getLimitedVelocity();
+		double motDiff = velocity.distance(synchedVelocity);
 		if (motDiff > 0.0004 || (motDiff > 0 && velocity.lengthSquared() == 0.0)) {
-			this.j = velocity.getX();
-			this.k = velocity.getY();
-			this.l = velocity.getZ();
-			this.broadcastPacket(new Packet28EntityVelocity(this.tracker.id, this.j, this.k, this.l));
+			synchedVelocity = velocity;
+			this.broadcastPacket(PacketFields.ENTITY_VELOCITY.newInstance(getTrackerId(), velocity));
 		}
 	}
 
 	public void syncVelocity() {
-		if (this.tracker.dead) return;
-		Vector velocity = ((MinecartMember) this.tracker).getLimitedVelocity();
-		this.broadcastPacket(new Packet28EntityVelocity(this.tracker.id, velocity.getX(), velocity.getY(), velocity.getZ()));
-		this.tracker.velocityChanged = false;
+		if (this.getTracker().isDead()) {
+			return;
+		}
+		Vector velocity = getMember().getLimitedVelocity();
+		this.broadcastPacket(PacketFields.ENTITY_VELOCITY.newInstance(getTrackerId(), velocity));
+		this.setTrackerVelocityChanged(false);
 	}
 
 	public void syncMeta() {
-		if (!this.tracker.dead) {
+		if (!this.getTracker().isDead()) {
 			//meta data packets (used for effects like smoke toggling)
-			DataWatcher datawatcher = this.tracker.getDataWatcher();
-			if (datawatcher.a()) {
-				this.broadcastPacket(new Packet40EntityMetadata(this.tracker.id, datawatcher, false));
+			DataWatcher datawatcher = this.getTrackerMetaData();
+			if (datawatcher.isChanged()) {
+				this.broadcastPacket(PacketFields.ENTITY_METADATA.newInstance(getTrackerId(), datawatcher, false));
 			}
 		}
 	}
@@ -242,22 +229,17 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 		this.doSpawn(player);
 	}
 
-	public void doDestroy(Player player) {
-		PacketUtil.sendPacket(player, new Packet29DestroyEntity(this.tracker.id));
-	}
-
 	public void doSpawn(Player player) {
-		CommonPacket packet = ((MinecartMember) this.tracker).getSpawnPacket();
-		PacketUtil.sendCommonPacket(player, packet, true);
+		PacketUtil.sendCommonPacket(player, getSpawnPacket());
 
 		// Meta data
-		PacketUtil.sendPacket(player, new Packet40EntityMetadata(this.tracker.id, this.tracker.getDataWatcher(), true));
+		PacketUtil.sendPacket(player, PacketFields.ENTITY_METADATA.newInstance(getTrackerId(), getTrackerMetaData(), true));
 
 		// Velocity, positioning and passenger
-		PacketUtil.sendPacket(player, new Packet28EntityVelocity(this.tracker));
+		PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getTracker()));
 		PacketUtil.sendPacket(player, getTeleportPacket());
 		if (this.getTracker().getPassenger() != null) {
-			PacketUtil.sendPacket(player, new Packet39AttachEntity(this.tracker.passenger, this.tracker));
+			PacketUtil.sendPacket(player, PacketFields.ATTACH_ENTITY.newInstance(this.getTracker().getPassenger(), this.getTracker()));
 		}
 	}
 

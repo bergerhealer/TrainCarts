@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -27,8 +28,8 @@ import net.minecraft.server.v1_4_R1.EntityMinecart;
 
 public abstract class MinecartMemberStore extends NativeMinecartMember {
 
-	public MinecartMemberStore(org.bukkit.World world, double d0, double d1, double d2, int i) {
-		super(world, d0, d1, d2, i);
+	public MinecartMemberStore(org.bukkit.World world, double d0, double d1, double d2, Material type) {
+		super(world, d0, d1, d2, type);
 	}
 
 	/**
@@ -122,7 +123,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			}
 			with.tracker = (MinecartMemberTrackerEntry) entry;
 			// And set the entity
-			EntityUtil.setEntity(source, with.getBukkitEntity(), entry);
+			EntityUtil.setEntity(source, with.getEntity(), entry);
 		}
 		return with;
 	}
@@ -167,14 +168,6 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 		if (item == null) {
 			return null;
 		}
-		//get type of minecart
-		int type;
-		switch (item.getType()) {
-		case STORAGE_MINECART : type = 1; break;
-		case POWERED_MINECART : type = 2; break;
-		case MINECART : type = 0; break;
-		default : return null;
-		}
 
 		// subtract held item
 		if (player.getGameMode() != GameMode.CREATIVE) {
@@ -185,16 +178,16 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 		}
 
 		// spawn and fire event
-		return MinecartMember.spawn(at, type);
+		return MinecartMember.spawn(at, item.getType());
 	}
 
-	public static MinecartMember spawn(Location at, int type) {
+	public static MinecartMember spawn(Location at, Material type) {
 		MinecartMember mm = new MinecartMember(at.getWorld(), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
 		mm = MemberSpawnEvent.call(mm).getMember();
 		mm.tracker = new MinecartMemberTrackerEntry(mm);
-		WorldUtil.setTrackerEntry(mm.getBukkitEntity(), mm.tracker);
+		WorldUtil.setTrackerEntry(mm.getEntity(), mm.tracker);
 		mm.world.addEntity(mm);
 		CommonUtil.callEvent(new VehicleCreateEvent(mm.getMinecart()));
 		return mm;

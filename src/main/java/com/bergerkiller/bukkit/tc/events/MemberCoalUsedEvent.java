@@ -42,5 +42,4 @@ public class MemberCoalUsedEvent extends MemberEvent {
 	public static MemberCoalUsedEvent call(final MinecartMember member) {
 		return CommonUtil.callEvent(new MemberCoalUsedEvent(member));
 	}
-
 }

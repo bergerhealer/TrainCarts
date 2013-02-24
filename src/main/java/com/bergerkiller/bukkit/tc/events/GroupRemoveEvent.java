@@ -23,5 +23,4 @@ public class GroupRemoveEvent extends GroupEvent {
 	public static void call(final MinecartGroup group) {
 		CommonUtil.callEvent(new GroupRemoveEvent(group));
 	}
-
 }

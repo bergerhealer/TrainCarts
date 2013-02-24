@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.bukkit.Location;
@@ -8,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -16,17 +18,21 @@ import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.EntityMinecartBase;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -47,13 +53,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 
-import net.minecraft.server.v1_4_R1.EntityHuman;
-import net.minecraft.server.v1_4_R1.EntityItem;
-import net.minecraft.server.v1_4_R1.EntityPlayer;
-import net.minecraft.server.v1_4_R1.Item;
-import net.minecraft.server.v1_4_R1.ItemStack;
-import net.minecraft.server.v1_4_R1.NBTTagCompound;
-
 public abstract class NativeMinecartMember extends EntityMinecartBase {
 	public static final int FUEL_PER_COAL = 3600;
 	public static final double GRAVITY_MULTIPLIER = 0.04;
@@ -67,23 +66,23 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	protected BlockFace pushDirection = BlockFace.SELF;
 	private final SoundLoop soundLoop;
 
-	public NativeMinecartMember(org.bukkit.World world, double d0, double d1, double d2, int i) {
+	public NativeMinecartMember(org.bukkit.World world, double d0, double d1, double d2, Material type) {
 		super(world);
 		setPosition(d0, d1 + (double) height, d2);
-		this.type = i;
+		this.setType(type);
 		this.lastX = this.locX;
 		this.lastY = this.locY;
 		this.lastZ = this.locZ;
-		this.motX = 0.0D;
-		this.motY = 0.0D;
-		this.motZ = 0.0D;
+		this.motX = 0.0;
+		this.motY = 0.0;
+		this.motZ = 0.0;
 		if (this.isPoweredCart()) {
 			this.soundLoop = new PoweredCartSoundLoop(this.member());
 		} else {
 			this.soundLoop = new SoundLoop(this.member());
 		}
 	}
-	
+
 	/**
 	 * Checks if this minecart is dead, and throws an exception if it is
 	 * 
@@ -183,7 +182,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		}
 		try {
 			// CraftBukkit start
-			Vehicle vehicle = (Vehicle) this.getBukkitEntity();
+			Vehicle vehicle = this.getEntity();
 
 			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, entity, damage);
 
@@ -207,7 +206,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			}
 			if (getDamage() > 40) {
 				// CraftBukkit start
-				List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
+				List<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>(2);
 				drops.addAll(this.getDrops());
 
 				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, entity);
@@ -217,8 +216,9 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 				}
 				// CraftBukkit end
 
-				if (this.passenger != null) {
-					this.passenger.mount(this);
+				// Some sort of validation check (what is the use...?)
+				if (this.hasPassenger()) {
+					this.getEntity().setPassenger(this.getPassenger());
 				}
 
 				for (org.bukkit.inventory.ItemStack stack : drops) {
@@ -234,35 +234,13 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		}
 	}
 
-	/**
-	 * Gets all the drops to spawn when this minecart is broken
-	 * 
-	 * @return items to spawn
-	 */
+	@Override
 	public List<org.bukkit.inventory.ItemStack> getDrops() {
-		ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>(2);
 		if (TrainCarts.breakCombinedCarts) {
-			drops.add(new org.bukkit.inventory.ItemStack(Item.MINECART.id, 1));
-			if (this.isStorageCart()) {
-				drops.add(new org.bukkit.inventory.ItemStack(Material.CHEST.getId(), 1));
-			} else if (this.isPoweredCart()) {
-				drops.add(new org.bukkit.inventory.ItemStack(Material.FURNACE.getId(), 1));
-			}
-			return drops;
+			return super.getDrops();
 		} else {
-			switch (this.type) {
-				case 0:
-					drops.add(new org.bukkit.inventory.ItemStack(Item.MINECART.id, 1));
-					break;
-				case 1:
-					drops.add(new org.bukkit.inventory.ItemStack(Item.STORAGE_MINECART.id, 1));
-					break;
-				case 2:
-					drops.add(new org.bukkit.inventory.ItemStack(Item.POWERED_MINECART.id, 1));
-					break;
-			}
+			return Arrays.asList(new ItemStack(getType(), 1));
 		}
-		return drops;
 	}
 
 	/*
@@ -527,7 +505,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 
 			// Slowing down of minecarts
 			if (this.group().getProperties().isSlowingDown()) {
-				if (this.passenger != null || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
+				if (this.hasPassenger() || !this.slowWhenEmpty || !TrainCarts.slowDownEmptyCarts) {
 					this.setForceFactor(TrainCarts.slowDownMultiplierNormal);
 				} else {
 					this.setForceFactor(TrainCarts.slowDownMultiplierSlow);
@@ -571,7 +549,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		// CraftBukkit start
 		Location from = new Location(this.world.getWorld(), this.lastX, this.lastY, this.lastZ, this.lastYaw, this.lastPitch);
 		Location to = this.getLocation();
-		Vehicle vehicle = (Vehicle) this.getBukkitEntity();
+		Vehicle vehicle = this.getEntity();
 
 		CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
 
@@ -587,10 +565,9 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		// Minecart collisions
 		this.handleCollision();
 
-		// Ensure that null or dead passengers are cleared
-		if (this.passenger != null && this.passenger.dead) {
-			this.passenger.vehicle = null; // CraftBukkit
-			this.passenger = null;
+		// Ensure that dead passengers are cleared
+		if (this.hasPassenger() && this.getPassenger().isDead()) {
+			this.getPassenger().setPassenger(null);
 		}
 
 		// Fuel update routines
@@ -676,25 +653,20 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		setAngleSafe(newyaw, newpitch, mode);
 	}
 
-	/**
-	 * Overridden function used to let players interact with this minecart
-	 * Changes: use my own fuel and changes direction of all attached carts
-	 */
 	@Override
-	public boolean a(EntityHuman entityhuman) {
+	public boolean onInteract(HumanEntity human) {
 		if (this.isPoweredCart()) {
-			ItemStack itemstack = entityhuman.inventory.getItemInHand();
-			if (itemstack != null && itemstack.id == Item.COAL.id) {
-				if (--itemstack.count == 0) {
-					entityhuman.inventory.setItem(entityhuman.inventory.itemInHandIndex, (ItemStack) null);
-				}
+			ItemStack itemstack = human.getItemInHand();
+			if (itemstack != null && itemstack.getTypeId() == Material.COAL.getId()) {
+				itemstack.setAmount(itemstack.getAmount() - 1);
+				human.setItemInHand(itemstack);
 				this.addFuel(3600);
 			}
 			if (this.isOnVertical()) {
-				this.pushDirection = Util.getVerticalFace((this.locY - entityhuman.locY) > 0.0);
+				this.pushDirection = Util.getVerticalFace((this.locY - EntityUtil.getLocX(human)) > 0.0);
 			} else {
 				BlockFace dir = FaceUtil.getRailsCartDirection(this.getRailDirection());
-				if (MathUtil.isHeadingTo(dir, new Vector(this.locX - entityhuman.locX, 0.0, this.locZ - entityhuman.locZ))) {
+				if (MathUtil.isHeadingTo(dir, new Vector(this.locX - EntityUtil.getLocX(human), 0.0, this.locZ - EntityUtil.getLocZ(human)))) {
 					this.pushDirection = dir;
 				} else {
 					this.pushDirection = dir.getOppositeFace();
@@ -709,34 +681,31 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			}
 			return true;
 		} else {
-			return super.a(entityhuman);
+			return super.onInteract(human);
 		}
 	}
 
 	/**
-	 * Main saving function - overridden to make it save properly (id was faulty)
+	 * Performs the entity loading logic
+	 * 
+	 * @param data to load from
 	 */
-	@Override
-	public boolean c(NBTTagCompound nbttagcompound) {
-		if (!this.dead) {
-			nbttagcompound.setString("id", "Minecart");
-			this.d(nbttagcompound);
-			return true;
-		} else {
-			return false;
-		}
+	public void onLoad(CommonTagCompound data) {
+		// Change the id to a valid type before starting to load
+		data.putValue("id", "Minecart");
+		super.onLoad(data);
 	}
 
 	/**
-	 * Saving function - overridden to save powered minecart pushing 
-	 * direction and fuel properly (allow vertical)
+	 * Performs the entity saving logic
+	 * 
+	 * @param data to save to
 	 */
-	@Override
-	public void b(NBTTagCompound nbttagcompound) {
-		super.b(nbttagcompound);
+	public void onSave(CommonTagCompound data) {
+		super.onSave(data);
 		if (this.isPoweredCart()) {
-			nbttagcompound.setDouble("PushX", this.pushDirection.getModX());
-			nbttagcompound.setDouble("PushZ", this.pushDirection.getModZ());
+			data.putValue("PushX", this.pushDirection.getModX());
+			data.putValue("PushZ", this.pushDirection.getModZ());
 		}
 	}
 
@@ -755,12 +724,12 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	 */
 	public boolean onEntityCollision(Entity e) {
 		MinecartMember mm1 = this.member();
-		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded()) return false;
-		if (e.isDead() || this.dead) return false;
-		if (this.group().isVelocityAction()) return false;
-		if (e instanceof MinecartMember) {
-			//colliding with a member in the group, or not?
-			MinecartMember mm2 = (MinecartMember) e;
+		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded() || e.isDead() || this.dead || this.group().isVelocityAction()) {
+			return false;
+		}
+		MinecartMember mm2 = MemberConverter.toMember.convert(e);
+		//colliding with a member in the group, or not?
+		if (mm2 != null) {
 			if (mm2.isUnloaded()) {
 				// The minecart is unloaded - ignore it
 				return false;
@@ -798,24 +767,17 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		} else {
 			TrainProperties prop = this.group().getProperties();
 			// Is it picking up this item?
-			if (e instanceof EntityItem && this.member().getProperties().canPickup()) {
+			if (e instanceof Item && this.member().getProperties().canPickup()) {
 				return false;
 			}
 
 			//No collision is allowed? (Owners override)
-			if (!prop.getColliding()) {
-				if (e instanceof EntityPlayer) {
-					Player p = (Player) e;
-					if (!prop.isOwner(p)) {
-						return false;
-					}
-				} else {
-					return false;
-				}
+			if (!prop.getColliding() && (!(e instanceof Player) || !prop.isOwner((Player) e))) {
+				return false;
 			}
 
 			// Collision modes
-			if (!prop.getCollisionMode(e).execute(this.member(), this.getBukkitEntity())) {
+			if (!prop.getCollisionMode(e).execute(this.member(), this.getEntity())) {
 				return false;
 			}
 		}
@@ -864,7 +826,8 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	 * @return spawn packet
 	 */
 	public CommonPacket getSpawnPacket() {
-		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getBukkitEntity(), 10 + this.type), 23);
+		final int type = Conversion.toMinecartTypeId.convert(getType());
+		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
 	}
 
 	public BlockFace getRailDirection() {
@@ -943,32 +906,5 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 
 	public boolean isMovingHorizontally() {
 		return Math.abs(this.motX) >= 0.001 || Math.abs(this.motZ) >= 0.001;
-	}
-
-	/**
-	 * Checks whether this Minecart can be entered and ridden by living entities
-	 * 
-	 * @return True if it can be ridden, False if not
-	 */
-	public boolean canBeRidden() {
-		return this.type == 0;
-	}
-
-	/**
-	 * Checks whether this Minecart contains a chest with items and can be opened by players
-	 * 
-	 * @return True if it is a storage minecart, False if not
-	 */
-	public boolean isStorageCart() {
-		return this.type == 1;
-	}
-
-	/**
-	 * Checks whether this Minecart contains a furnace which powers the train using coal
-	 * 
-	 * @return True if it is a powered minecart, False if not
-	 */
-	public boolean isPoweredCart() {
-		return this.type == 2;
 	}
 }

@@ -1,11 +1,11 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import org.bukkit.block.Block;
-import org.bukkit.block.ContainerBlock;
-import org.bukkit.craftbukkit.v1_4_R1.block.CraftBlockState;
+import org.bukkit.inventory.InventoryHolder;
 
-@SuppressWarnings("deprecation")
-public class GroundItemsState extends CraftBlockState implements ContainerBlock {
+import com.bergerkiller.bukkit.common.bases.BlockStateBase;
+
+public class GroundItemsState extends BlockStateBase implements InventoryHolder {
 	private GroundItemsInventory inventory;
 
 	public GroundItemsState(Block block, int radius) {

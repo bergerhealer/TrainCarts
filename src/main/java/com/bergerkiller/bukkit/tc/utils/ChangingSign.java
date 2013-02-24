@@ -1,13 +1,14 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import org.bukkit.block.Sign;
-import org.bukkit.craftbukkit.v1_4_R1.block.CraftBlockState;
 import org.bukkit.event.block.SignChangeEvent;
+
+import com.bergerkiller.bukkit.common.bases.BlockStateBase;
 
 /**
  * A sign implementation that ensured proper access to a sign while it is being placed
  */
-public class ChangingSign extends CraftBlockState implements Sign {
+public class ChangingSign extends BlockStateBase implements Sign {
 	private final SignChangeEvent event;
 
 	public ChangingSign(SignChangeEvent event) {

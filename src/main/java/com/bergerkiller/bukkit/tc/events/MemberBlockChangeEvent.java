@@ -35,5 +35,4 @@ public class MemberBlockChangeEvent extends MemberEvent {
 	public static void call(final MinecartMember member, final Block from, final Block to) {
 		CommonUtil.callEvent(new MemberBlockChangeEvent(member, from, to));
 	}
-
 }

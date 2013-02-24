@@ -33,5 +33,4 @@ public class GroupForceUpdateEvent extends GroupEvent {
 	public static double call(MinecartGroup group, double force) {
 		return CommonUtil.callEvent(new GroupForceUpdateEvent(group, force)).getForce();
 	}
-
 }

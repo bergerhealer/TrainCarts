@@ -7,13 +7,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
-import org.bukkit.craftbukkit.v1_4_R1.util.LongHash;
-import org.bukkit.craftbukkit.v1_4_R1.util.LongObjectHashMap;
+
+import com.bergerkiller.bukkit.common.bases.LongHash;
+import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	
 	private Set<OfflineGroup> groups = new HashSet<OfflineGroup>();
-	private LongObjectHashMap<HashSet<OfflineGroup>> groupmap = new LongObjectHashMap<HashSet<OfflineGroup>>();
+	private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<HashSet<OfflineGroup>>();
 
 	@Override
 	public Iterator<OfflineGroup> iterator() {

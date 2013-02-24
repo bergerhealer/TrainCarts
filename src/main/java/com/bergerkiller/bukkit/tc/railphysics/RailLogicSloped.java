@@ -1,9 +1,8 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
-import net.minecraft.server.v1_4_R1.Vec3D;
-
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -41,24 +40,24 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
 		// Slope physics and snap to rails logic
 
-		// The below two Vec3D-producing functions are the same as the last part in preUpdate
+		// The below two Vector-producing functions are the same as the last part in preUpdate
 		// It calculates the exact location a minecart should be on the rails
 
 		// Note to self: For new rail types, this needs a rewrite to use a common function!
 		// See the RailLogicHorizontal.onPreMove trailing part...no locY adjustment is done there
-		Vec3D startVector = member.a(member.lastX, member.lastY, member.lastZ);
+		Vector startVector = member.getSlopedPosition(member.lastX, member.lastY, member.lastZ);
 		if (startVector != null) {
-			Vec3D endVector = member.a(member.locX, member.locY, member.locZ);
+			Vector endVector = member.getSlopedPosition(member.locX, member.locY, member.locZ);
 			if (endVector != null) {
 				if (member.getGroup().getProperties().isSlowingDown()) {
 					final double motLength = member.getXZForce();
 					if (motLength > 0) {
-						final double slopeSlowDown = (startVector.d - endVector.d) * 0.05 / motLength + 1.0;
+						final double slopeSlowDown = (startVector.getY() - endVector.getY()) * 0.05 / motLength + 1.0;
 						member.motX *= slopeSlowDown;
 						member.motZ *= slopeSlowDown;
 					}
 				}
-				member.setPosition(member.locX, endVector.d, member.locZ);
+				member.setPosition(member.locX, endVector.getY(), member.locZ);
 			}
 		}
 	}

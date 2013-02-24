@@ -5,9 +5,9 @@ import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.block.BlockState;
-import org.bukkit.block.ContainerBlock;
 import org.bukkit.block.Furnace;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -24,7 +24,6 @@ import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
-@SuppressWarnings("deprecation")
 public class SignActionDeposit extends SignAction {
 
 	public static int depositInFurnace(Inventory from, Inventory to, Furnace toFurnace, ItemParser parser, boolean parserIsFuelHalf) {
@@ -168,11 +167,11 @@ public class SignActionDeposit extends SignAction {
 		// Go through all the inventories to deposit items in
 		int amount;
 		for (BlockState block : blocks) {
-			if (!(block instanceof ContainerBlock)) {
+			if (!(block instanceof InventoryHolder)) {
 				continue;
 			}
 			// Obtain the inventory
-			Inventory inv = ((ContainerBlock) block).getInventory();
+			Inventory inv = ((InventoryHolder) block).getInventory();
 			// Do not deposit using animations for ground items, it shows duplicates which looks bad
 			if (TrainCarts.showTransferAnimations && !(inv instanceof GroundItemsInventory)) {
 				inv = InventoryWatcher.convert(inv, block, info.getMember());

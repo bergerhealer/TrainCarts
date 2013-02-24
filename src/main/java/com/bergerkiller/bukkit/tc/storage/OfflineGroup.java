@@ -4,8 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -13,6 +11,7 @@ import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -26,8 +25,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 public class OfflineGroup {
 	public OfflineMember[] members;
 	public String name;
-	public final Set<Long> chunks = new HashSet<Long>();
-	public final Set<Long> loadedChunks = new HashSet<Long>();
+	public final LongHashSet chunks = new LongHashSet();
+	public final LongHashSet loadedChunks = new LongHashSet();
 	public UUID worldUUID;
 
 	public OfflineGroup() {}

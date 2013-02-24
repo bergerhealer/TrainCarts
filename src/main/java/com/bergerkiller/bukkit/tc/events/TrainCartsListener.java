@@ -15,5 +15,4 @@ public class TrainCartsListener implements Listener {
 	public void onGroupLink(GroupLinkEvent event) {};
 	public void onGroupUnload(GroupUnloadEvent event) {};
 	public void onMemberAdd(MemberAddEvent event) {};
-	
 }

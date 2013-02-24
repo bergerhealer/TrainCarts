@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.Collection;
 
 import org.bukkit.block.BlockState;
-import org.bukkit.block.ContainerBlock;
 import org.bukkit.block.Furnace;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
-@SuppressWarnings("deprecation")
 public class SignActionCollect extends SignAction {
 
 	@Override
@@ -61,12 +60,12 @@ public class SignActionCollect extends SignAction {
 		// Go through all the inventories to collect
 		int amount;
 		for (BlockState block : blocks) {
-			if (!(block instanceof ContainerBlock)) {
+			if (!(block instanceof InventoryHolder)) {
 				continue;
 			}
 
 			// Obtain the inventory
-			Inventory inv = ((ContainerBlock) block).getInventory();
+			Inventory inv = ((InventoryHolder) block).getInventory();
 			if (TrainCarts.showTransferAnimations) {
 				inv = InventoryWatcher.convert(inv, block, info.getMember());
 			}

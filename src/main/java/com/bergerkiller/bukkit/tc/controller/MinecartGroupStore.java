@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -50,7 +51,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		return g;
 	}
 
-	public static MinecartGroup spawn(Location[] at, int... types) {
+	public static MinecartGroup spawn(Location[] at, Material... types) {
 		if (at.length != types.length || at.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < types.length; i++) {
@@ -60,12 +61,10 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		GroupCreateEvent.call(g);
 		return g;
 	}
-	public static MinecartGroup spawn(Block startblock, BlockFace direction, int... types) {
-		ArrayList<Integer> typelist = new ArrayList<Integer>(types.length);
-		for (int i : types) typelist.add(i);
-				return spawn(startblock, direction, typelist);
+	public static MinecartGroup spawn(Block startblock, BlockFace direction, Material... types) {
+		return spawn(startblock, direction, Arrays.asList(types));
 	}
-	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Integer> types) {
+	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Material> types) {
 		Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
 		if (types.size() != destinations.length || destinations.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();

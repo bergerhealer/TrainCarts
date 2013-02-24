@@ -329,16 +329,11 @@ public class MinecartGroup extends MinecartGroupStore {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
 	public int size(Material carttype) {
-		switch (carttype) {
-		case STORAGE_MINECART : return this.size(1);
-		case POWERED_MINECART : return this.size(2);
-		default : return this.size(0);
-		}
-	}
-	public int size(int carttype) {
 		int rval = 0;
 		for (MinecartMember mm : this) {
-			if (mm.type == carttype) rval++;
+			if (mm.getType() == carttype) {
+				rval++;
+			}
 		}
 		return rval;
 	}
@@ -654,10 +649,10 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 		return force;
 	}
-	public List<Integer> getTypes() {
-		ArrayList<Integer> types = new ArrayList<Integer>(this.size());
+	public List<Material> getTypes() {
+		ArrayList<Material> types = new ArrayList<Material>(this.size());
 		for (MinecartMember mm : this) {
-			types.add(mm.type);
+			types.add(mm.getType());
 		}
 		return types;
 	}
@@ -989,7 +984,7 @@ public class MinecartGroup extends MinecartGroupStore {
 							int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
 							for (MinecartMember mm1 : gnew) {
 								for (MinecartMember mm2: this) {
-									mm1.ignoreCollision(mm2.getBukkitEntity(), time);
+									mm1.ignoreCollision(mm2.getEntity(), time);
 								}
 							}
 						}

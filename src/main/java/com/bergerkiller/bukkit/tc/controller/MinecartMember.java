@@ -10,22 +10,18 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.minecraft.server.v1_4_R1.EntityPlayer;
-import net.minecraft.server.v1_4_R1.ItemStack;
-import net.minecraft.server.v1_4_R1.LocaleI18n;
-
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_4_R1.util.LongHashSet;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
@@ -52,9 +48,11 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
@@ -77,7 +75,7 @@ public class MinecartMember extends MinecartMemberStore {
 	protected boolean unloaded = false;
 
 	protected MinecartMember(Minecart source) {
-		this(source.getWorld(), EntityUtil.getLocX(source), EntityUtil.getLocY(source), EntityUtil.getLocZ(source), 0);
+		this(source.getWorld(), EntityUtil.getLocX(source), EntityUtil.getLocY(source), EntityUtil.getLocZ(source), Material.MINECART);
 
 		// Transfer, but keep bukkit entity to avoid reference issues
 		org.bukkit.entity.Entity bukkitEntity = EntityRef.bukkitEntity.get(this);
@@ -93,7 +91,7 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 
-	protected MinecartMember(org.bukkit.World world, double x, double y, double z, int type) {
+	protected MinecartMember(org.bukkit.World world, double x, double y, double z, Material type) {
 		super(world, x, y, z, type);
 		this.prevcx = MathUtil.toChunk(this.locX);
 		this.prevcz = MathUtil.toChunk(this.locZ);
@@ -195,7 +193,7 @@ public class MinecartMember extends MinecartMemberStore {
 	@Override
 	public String getLocalizedName() {
 		if (this.group == null || this.group.size() == 1) {
-			return LocaleI18n.get("entity.Minecart.name");
+			return "Minecart";
 		} else {
 			return "Train";
 		}
@@ -204,7 +202,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean getCoalFromNeighbours() {
 		for (MinecartMember mm : this.getNeightbours()) {
 			//Is it a storage minecart?
-			if (mm.type == 1) {
+			if (mm.isStorageCart()) {
 				//has coal?
 				for (int i = 0; i < mm.getSize(); i++) {
 					if (mm.getItem(i) != null && mm.getItem(i).id == Material.COAL.getId()) {
@@ -573,7 +571,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.getNearbyEntities(radius, radius, radius);
 	}
 	public List<org.bukkit.entity.Entity> getNearbyEntities(double radX, double radY, double radZ) {
-		return WorldUtil.getNearbyEntities(this.getBukkitEntity(), radX, radY, radZ);
+		return WorldUtil.getNearbyEntities(this.getEntity(), radX, radY, radZ);
 	}
 	public Vector getOffset(IntVector3 to) {
 		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());
@@ -784,9 +782,6 @@ public class MinecartMember extends MinecartMemberStore {
 		if (Math.abs(cz - (super.getLiveBlockZ() >> 4)) > 2) return false;
 		return true;
 	}
-	public boolean isRegularMinecart() {
-		return this.type == 0;
-	}
 	public boolean isSingle() {
 		return this.group == null || this.group.size() == 1;
 	}
@@ -800,7 +795,7 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 	public boolean hasPlayerPassenger() {
-		return this.passenger != null && this.passenger instanceof EntityPlayer;
+		return this.hasPassenger() && this.getPassenger() instanceof Player;
 	}
 	public boolean hasItem(ItemParser item) {
 		if (item == null) return false;
@@ -818,9 +813,9 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public boolean hasItem(int typeid) {
 		if (!this.isStorageCart()) return false;
-		for (ItemStack stack : this.getContents()) {
-			if (stack != null) {
-				if (stack.id == typeid) {
+		for (ItemStack stack : this.getItems()) {
+			if (!LogicUtil.nullOrEmpty(stack)) {
+				if (stack.getTypeId() == typeid) {
 					return true;
 				}
 			}
@@ -829,9 +824,9 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public boolean hasItem(int typeid, int data) {
 		if (!this.isStorageCart()) return false;
-		for (ItemStack stack : this.getContents()) {
-			if (stack != null) {
-				if (stack.id == typeid && stack.getData() == data) {
+		for (ItemStack stack : this.getItems()) {
+			if (!LogicUtil.nullOrEmpty(stack)) {
+				if (stack.getTypeId() == typeid && stack.getDurability() == data) {
 					return true;
 				}
 			}
@@ -840,7 +835,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public boolean hasItems() {
 		if (!this.isStorageCart()) return false;
-		for (ItemStack stack : this.getContents()) {
+		for (ItemStack stack : this.getItems()) {
 			if (stack != null) return true;
 		}
 		return false;
@@ -854,7 +849,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void pushSideways(org.bukkit.entity.Entity entity, double force) {
 		float yaw = FaceUtil.faceToYaw(this.direction);
-		float lookat = MathUtil.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
+		float lookat = MathUtil.getLookAtYaw(this.getEntity(), entity) - yaw;
 		lookat = MathUtil.wrapAngle(lookat);
 		if (lookat > 0) {
 			yaw -= 180;
@@ -890,12 +885,12 @@ public class MinecartMember extends MinecartMemberStore {
 		this.died = true;
 		// === Teleport - set unloaded to true and false again to prevent group unloading ===
 		this.unloaded = true;
-		EntityUtil.teleport(this.getBukkitEntity(), to);
+		EntityUtil.teleport(this.getEntity(), to);
 		this.unloaded = false;
 		// =======================
 		if (changedWorld) {
 			this.tracker = new MinecartMemberTrackerEntry(this);
-			WorldUtil.setTrackerEntry(this.getBukkitEntity(), this.tracker);
+			WorldUtil.setTrackerEntry(this.getEntity(), this.tracker);
 		}
 		this.teleportImmunityTick = 10;
 		this.died = false;
@@ -934,9 +929,9 @@ public class MinecartMember extends MinecartMemberStore {
 		this.getMinecart().eject();
 	}
 	public void eject(final Location to) {
-		if (this.passenger != null) {
-			final org.bukkit.entity.Entity passenger = Conversion.toEntity.convert(this.passenger);
-			this.passenger.setPassengerOf(null);
+		if (this.hasPassenger()) {
+			final Entity passenger = this.getPassenger();
+			this.getEntity().setPassenger(null);
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {
 					passenger.teleport(to);
@@ -949,12 +944,14 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	public void setItem(int index, ItemStack item) {
-		super.setItem(index, item);
+		getItems().set(index, item);
 		this.update();
 	}
 
 	public void update() {
-		if (this.dead) return; 
+		if (this.dead) {
+			return; 
+		}
 		this.needsUpdate = true;
 		this.getGroup().update();
 	}
@@ -1013,8 +1010,8 @@ public class MinecartMember extends MinecartMemberStore {
 					this.clearActiveDetectors();
 					this.dead = true;
 				}
-				if (this.passenger != null) {
-					this.passenger.setPassengerOf(null);
+				if (this.hasPassenger()) {
+					this.setPassenger(null);
 				}
 				if (this.group != null) {
 					this.group.remove(this);

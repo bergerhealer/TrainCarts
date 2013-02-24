@@ -30,5 +30,4 @@ public class MemberAddEvent extends MemberEvent {
 	public static void call(final MinecartMember member, final MinecartGroup toGroup) {
 		CommonUtil.callEvent(new MemberAddEvent(member, toGroup));
 	}
-
 }

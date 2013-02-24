@@ -31,7 +31,6 @@ public class RailLogicVerticalSlopeUp extends RailLogicHorizontal {
 		member.motX += member.motY * this.getDirection().getModX();
 		member.motZ += member.motY * this.getDirection().getModZ();
 		member.motY = 0.0;
-		// TODO Auto-generated method stub
 		super.onPreMove(member);
 	}
 

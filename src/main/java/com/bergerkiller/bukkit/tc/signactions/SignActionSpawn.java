@@ -8,6 +8,7 @@ import java.util.HashMap;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -29,18 +30,18 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class SignActionSpawn extends SignAction {
 	private static BlockMap<SpawnSign> spawnSigns = new BlockMap<SpawnSign>();
-	private static HashMap<String, Integer> minecartTypes = new HashMap<String, Integer>();
+	private static HashMap<String, Material> minecartTypes = new HashMap<String, Material>();
 
 	static {
-		addSpawnType('m', 0);
-		addSpawnType('M', 0);
-		addSpawnType('s', 1);
-		addSpawnType('S', 1);
-		addSpawnType('p', 2);
-		addSpawnType('P', 2);
+		addSpawnType('m', Material.MINECART);
+		addSpawnType('M', Material.MINECART);
+		addSpawnType('s', Material.STORAGE_MINECART);
+		addSpawnType('S', Material.STORAGE_MINECART);
+		addSpawnType('p', Material.POWERED_MINECART);
+		addSpawnType('P', Material.POWERED_MINECART);
 	}
 
-	public static void addSpawnType(char character, int type) {
+	public static void addSpawnType(char character, Material type) {
 		minecartTypes.put(Character.toString(character), type);
 	}
 
@@ -55,9 +56,9 @@ public class SignActionSpawn extends SignAction {
 				}
 
 				//Get the cart types to spawn
-				ArrayList<Integer> types = new ArrayList<Integer>();
+				ArrayList<Material> types = new ArrayList<Material>();
 				StringBuilder amountBuilder = new StringBuilder();
-				Integer type;
+				Material type;
 				for (char cart : (info.getLine(2) + info.getLine(3)).toCharArray()) {
 					type = minecartTypes.get(Character.toString(cart));
 					if (type != null) {
