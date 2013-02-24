@@ -1,21 +1,18 @@
 package com.bergerkiller.bukkit.tc.events;
 
-import net.minecraft.server.v1_4_R1.EntityMinecart;
-
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberConvertEvent extends MemberEvent implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
-	private final EntityMinecart from;
+	private final Minecart from;
 	private boolean cancelled = false;
 
-	public MemberConvertEvent(final EntityMinecart from, MinecartMember to) {
+	public MemberConvertEvent(final Minecart from, MinecartMember to) {
 		super(to);
 		this.from = from;
 	}
@@ -24,12 +21,8 @@ public class MemberConvertEvent extends MemberEvent implements Cancellable {
 		this.member = to;
 	}
 
-	public EntityMinecart getNativeSource() {
-		return this.from;
-	}
-
 	public Minecart getSource() {
-		return (Minecart) NativeUtil.getEntity(this.from);
+		return (Minecart) this.from;
 	}
 
 	@Override
@@ -50,7 +43,7 @@ public class MemberConvertEvent extends MemberEvent implements Cancellable {
 		return handlers;
 	}
 
-	public static MemberConvertEvent call(final EntityMinecart from, MinecartMember to) {
+	public static MemberConvertEvent call(Minecart from, MinecartMember to) {
 		return CommonUtil.callEvent(new MemberConvertEvent(from, to));
 	}
 }

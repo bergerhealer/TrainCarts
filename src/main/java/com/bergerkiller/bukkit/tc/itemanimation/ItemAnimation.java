@@ -3,31 +3,22 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import net.minecraft.server.v1_4_R1.Entity;
-import net.minecraft.server.v1_4_R1.ItemStack;
-import net.minecraft.server.v1_4_R1.TileEntity;
-
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
 public class ItemAnimation {
-	
+
 	private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<ItemAnimation>();
 	private static Task task;
-	public static void start(Object from, Object to, ItemStack data) {
-		if (data == null) return;
-		start(from, to, NativeUtil.getItemStack(data));
-	}
+
 	public static void start(Object from, Object to, org.bukkit.inventory.ItemStack data) {
 		if (from == null || to == null || data == null) return;
 		if (data.getAmount() == 0) return;
@@ -38,10 +29,14 @@ public class ItemAnimation {
 			Location l2 = getLocation(fixObject(anim.item));
 			if (l2 != null && l1.getWorld() == l2.getWorld()) {
 				if (l1.distanceSquared(l2) < 4.0) {
-					org.bukkit.inventory.ItemStack thisdata = NativeUtil.getItemStack(anim.item.getItemStack());
-					if (thisdata.getAmount() == 0) continue;
+					org.bukkit.inventory.ItemStack thisdata = anim.item.getItemStack();
+					if (thisdata.getAmount() == 0) {
+						continue;
+					}
 					ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);
-					if (data.getAmount() == 0) return;
+					if (data.getAmount() == 0) {
+						return;
+					}
 				}
 			}
 		}
@@ -78,6 +73,7 @@ public class ItemAnimation {
 	private final Object from;
 	private final Object to;
 	private final VirtualItem item;
+
 	private ItemAnimation(Object from, Object to, org.bukkit.inventory.ItemStack data) {
 		this.from = fixObject(from);
 		this.to = fixObject(to);
@@ -87,7 +83,6 @@ public class ItemAnimation {
 			throw new IllegalArgumentException("Locations are on different worlds!");
 		}
 		this.item = new VirtualItem(f, data);
-		this.item.motY += 0.1;
 	}
 
 	/**
@@ -97,10 +92,6 @@ public class ItemAnimation {
 	 * @return fixed object
 	 */
 	private static Object fixObject(Object object) {
-		if (object instanceof TileEntity) {
-			TileEntity t = (TileEntity) object;
-			return new Location(BlockUtil.getWorld(t), t.x, t.y, t.z);
-		}
 		if (object instanceof GroundItemsInventory) {
 			return ((GroundItemsInventory) object).getLocation();
 		}
@@ -110,8 +101,8 @@ public class ItemAnimation {
 		if (object instanceof Block) {
 			return ((Block) object).getLocation().add(0.5, 0.5, 0.5);
 		}
-		if (object instanceof Entity) {
-			return NativeUtil.getEntity((Entity) object);
+		if (object instanceof MinecartMember) {
+			return ((MinecartMember) object).getMinecart();
 		}
 		return object;
 	}
@@ -140,10 +131,12 @@ public class ItemAnimation {
 	}
 	
 	public int ticksToFinish = 10;
-	
+
 	public Vector getDirection(Location to) {
-		return new Vector(to.getX() - this.item.locX, to.getY() - this.item.locY, to.getZ() - this.item.locZ);
+		final Location itemLoc = this.item.getLocation();
+		return new Vector(to.getX() - itemLoc.getX(), to.getY() - itemLoc.getY(), to.getZ() - itemLoc.getZ());
 	}
+
 	public boolean update() {
 		if (--this.ticksToFinish > 0) {
 			Location to = this.getTo();
@@ -151,18 +144,11 @@ public class ItemAnimation {
 			Vector dir = this.getDirection(to);
 			double distancePerTick = dir.length();
 			distancePerTick /= (double) this.ticksToFinish;
-			
 			dir.normalize().multiply(distancePerTick);
-			
-			this.item.motX = dir.getX() + Math.random() * 0.02 - 0.01;
-			this.item.motY = MathUtil.useOld(this.item.motY, dir.getY(), 0.1);
-			this.item.motZ = dir.getZ() + Math.random() * 0.02 - 0.01;
-			this.item.velocityChanged = true;
-			this.item.j_();
+			this.item.update(dir);
 		} else {
 			return true;
 		}
 		return false;
 	}
-
 }

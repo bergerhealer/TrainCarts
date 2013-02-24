@@ -50,7 +50,7 @@ public class Station {
 			this.railDirection = info.getRailDirection();
 			if (FaceUtil.isSubCardinal(this.railDirection) && FaceUtil.isSubCardinal(info.getFacing())) {				
 				// Sub-cardinal checks: Both directions have two possible powered sides
-				BlockFace[] faces = FaceUtil.getFaces(this.railDirection);
+				final BlockFace[] faces = FaceUtil.getFaces(this.railDirection);
 				boolean pow1 = info.isPowered(faces[0]) || info.isPowered(faces[1].getOppositeFace());
 				boolean pow2 = info.isPowered(faces[1]) || info.isPowered(faces[0].getOppositeFace());
 				if (pow1 && !pow2) {
@@ -162,7 +162,7 @@ public class Station {
 		}
 		return length;
 	}
-	
+
 	private double calcVerticalLength() {
 		double length = 0.0;
 		// Count the amount of vertical tracks
@@ -191,7 +191,7 @@ public class Station {
 		}
 		return length;
 	}
-	
+
 	private double calcHorizontalLength() {
 		double length = 0.0;
 		// Count the amount of horizontal tracks

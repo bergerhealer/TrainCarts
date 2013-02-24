@@ -4,7 +4,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -25,7 +24,7 @@ public enum CollisionMode {
 		switch (this) {
 			case ENTER : 
 				if (!member.hasPassenger() && member.canBeRidden() && Util.canBePassenger(entity)) {
-					NativeUtil.getEntity(member).setPassenger(entity);
+					entity.setPassenger(member.getMinecart());
 				}
 				return false;
 			case PUSH :
@@ -42,7 +41,7 @@ public enum CollisionMode {
 					if (entity instanceof LivingEntity) {
 						boolean old = EntityUtil.isInvulnerable(entity);
 						EntityUtil.setInvulnerable(entity, false);
-						((LivingEntity) entity).damage(Short.MAX_VALUE, NativeUtil.getEntity(member));
+						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getMinecart());
 						EntityUtil.setInvulnerable(entity, old);
 					} else {
 						entity.remove();

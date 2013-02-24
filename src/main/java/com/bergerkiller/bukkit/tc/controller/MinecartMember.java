@@ -11,13 +11,10 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.server.v1_4_R1.Entity;
-import net.minecraft.server.v1_4_R1.EntityMinecart;
 import net.minecraft.server.v1_4_R1.EntityPlayer;
 import net.minecraft.server.v1_4_R1.ItemStack;
 import net.minecraft.server.v1_4_R1.LocaleI18n;
 import net.minecraft.server.v1_4_R1.PlayerInventory;
-import net.minecraft.server.v1_4_R1.World;
-import net.minecraft.server.v1_4_R1.EntityItem;
 
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
@@ -33,6 +30,7 @@ import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
@@ -48,6 +46,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -77,11 +76,15 @@ public class MinecartMember extends MinecartMemberStore {
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	protected boolean unloaded = false;
 
-	protected MinecartMember(EntityMinecart source) {
-		this(source.world, source.lastX, source.lastY, source.lastZ, source.type);
-		EntityMinecartRef.TEMPLATE.transfer(source, this);
+	protected MinecartMember(Minecart source) {
+		this(source.getWorld(), EntityUtil.getLocX(source), EntityUtil.getLocY(source), EntityUtil.getLocZ(source), 0);
+
+		// Transfer, but keep bukkit entity to avoid reference issues
+		org.bukkit.entity.Entity bukkitEntity = EntityRef.bukkitEntity.get(this);
+		EntityMinecartRef.TEMPLATE.transfer(Conversion.toEntityHandle.convert(source), this);
+		EntityRef.bukkitEntity.set(this, bukkitEntity);
+
 		if (this.isPoweredCart()) {
-			this.fuel = EntityMinecartRef.fuel.get(this);
 			if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
 				this.pushDirection = BlockFace.SELF;
 			} else {
@@ -90,8 +93,8 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 
-	protected MinecartMember(World world, double x, double y, double z, int type) {
-		super(NativeUtil.getWorld(world), x, y, z, type);
+	protected MinecartMember(org.bukkit.World world, double x, double y, double z, int type) {
+		super(world, x, y, z, type);
 		this.prevcx = MathUtil.toChunk(this.locX);
 		this.prevcz = MathUtil.toChunk(this.locZ);
 		this.direction = FaceUtil.yawToFace(this.yaw);
@@ -137,9 +140,9 @@ public class MinecartMember extends MinecartMemberStore {
 			Inventory inv = this.getInventory();
 			org.bukkit.inventory.ItemStack stack;
 			Item item;
-			for (Entity e : this.getNearbyEntities(2)) {
-				if (e instanceof EntityItem) {
-					item = (Item) NativeUtil.getEntity(e);
+			for (org.bukkit.entity.Entity e : this.getNearbyEntities(2)) {
+				if (e instanceof Item) {
+					item = (Item) e;
 					if (EntityUtil.isIgnored(item)) continue;
 					stack = item.getItemStack();
 					double distance = this.distance(e);
@@ -149,7 +152,7 @@ public class MinecartMember extends MinecartMemberStore {
 							//this.world.playNote
 							this.world.getWorld().playEffect(this.getLocation(), Effect.CLICK1, 0);
 							if (stack.getAmount() == 0) {
-								e.dead = true;
+								e.remove();
 								continue;
 							}
 						} else {
@@ -161,11 +164,11 @@ public class MinecartMember extends MinecartMemberStore {
 							} else {
 								factor = 0.25;
 							}
-							this.push(NativeUtil.getEntity(e), -factor / distance);
+							this.push(e, -factor / distance);
 							continue;
 						}
 					}
-					this.push(NativeUtil.getEntity(e), 1 / distance);
+					this.push(e, 1 / distance);
 				}
 			}
 		}
@@ -257,7 +260,7 @@ public class MinecartMember extends MinecartMemberStore {
  		return this.properties;
  	}
 	public Minecart getMinecart() {
-		return (Minecart) NativeUtil.getEntity(this);
+		return Conversion.convert(this, Minecart.class);
 	}
 
 	/**
@@ -514,8 +517,12 @@ public class MinecartMember extends MinecartMemberStore {
 	public double getMovedDistance() {
 		return MathUtil.length(this.getMovedX(), this.getMovedY(), this.getMovedZ());
 	}
-	public double distance(Entity e) {
-		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
+	public double distance(org.bukkit.entity.Entity e) {
+		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), 
+				EntityUtil.getLocX(e), EntityUtil.getLocY(e), EntityUtil.getLastZ(e));
+	}
+	public double distance(MinecartMember m) {
+		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), m.getX(), m.getY(), m.getZ());
 	}
 	public double distance(Location l) {
 		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
@@ -552,12 +559,11 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 		return true;
 	}
-	public List<Entity> getNearbyEntities(double radius) {
+	public List<org.bukkit.entity.Entity> getNearbyEntities(double radius) {
 		return this.getNearbyEntities(radius, radius, radius);
 	}
-	@SuppressWarnings("unchecked")
-	public List<Entity> getNearbyEntities(double x, double y, double z) {
-		return this.world.getEntities(this, this.boundingBox.grow(x, y, z));
+	public List<org.bukkit.entity.Entity> getNearbyEntities(double radX, double radY, double radZ) {
+		return WorldUtil.getNearbyEntities(this.getBukkitEntity(), radX, radY, radZ);
 	}
 	public Vector getOffset(IntVector3 to) {
 		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());
@@ -850,7 +856,7 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public void pushSideways(org.bukkit.entity.Entity entity, double force) {
 		float yaw = FaceUtil.faceToYaw(this.direction);
-		float lookat = MathUtil.getLookAtYaw(NativeUtil.getEntity(this), entity) - yaw;
+		float lookat = MathUtil.getLookAtYaw(this.getBukkitEntity(), entity) - yaw;
 		lookat = MathUtil.wrapAngle(lookat);
 		if (lookat > 0) {
 			yaw -= 180;
@@ -886,12 +892,12 @@ public class MinecartMember extends MinecartMemberStore {
 		this.died = true;
 		// === Teleport - set unloaded to true and false again to prevent group unloading ===
 		this.unloaded = true;
-		EntityUtil.teleport(this, to);
+		EntityUtil.teleport(this.getBukkitEntity(), to);
 		this.unloaded = false;
 		// =======================
 		if (changedWorld) {
 			this.tracker = new MinecartMemberTrackerEntry(this);
-			WorldUtil.setTrackerEntry(this, this.tracker);
+			WorldUtil.setTrackerEntry(this.getBukkitEntity(), this.tracker);
 		}
 		this.teleportImmunityTick = 10;
 		this.died = false;
@@ -908,14 +914,14 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {
-		return isCollisionIgnored(NativeUtil.getNative(entity));
-	}
-	public boolean isCollisionIgnored(Entity entity) {
-		if (entity instanceof MinecartMember) {
-			return this.isCollisionIgnored((MinecartMember) entity);
+		MinecartMember member = MinecartMember.get(entity);
+		if (member != null) {
+			return this.isCollisionIgnored(member);
 		}
-		if (this.ignoreAllCollisions) return true;
-		return collisionIgnoreTimes.containsKey(entity.uniqueId);
+		if (this.ignoreAllCollisions) {
+			return true;
+		}
+		return collisionIgnoreTimes.containsKey(entity.getUniqueId());
 	}
 	public boolean isCollisionIgnored(MinecartMember member) {
 		if (this.ignoreAllCollisions || member.ignoreAllCollisions) return true; 
@@ -923,17 +929,15 @@ public class MinecartMember extends MinecartMemberStore {
 				member.collisionIgnoreTimes.containsKey(this.uniqueId);
 	}
 	public void ignoreCollision(org.bukkit.entity.Entity entity, int ticktime) {
-		this.ignoreCollision(NativeUtil.getNative(entity), ticktime);
+		collisionIgnoreTimes.put(entity.getUniqueId(), new AtomicInteger(ticktime));
 	}
-	public void ignoreCollision(Entity entity, int ticktime) {
-		collisionIgnoreTimes.put(entity.uniqueId, new AtomicInteger(ticktime));
-	}
+
 	public void eject() {
 		this.getMinecart().eject();
 	}
 	public void eject(final Location to) {
 		if (this.passenger != null) {
-			final org.bukkit.entity.Entity passenger = NativeUtil.getEntity(this.passenger);
+			final org.bukkit.entity.Entity passenger = Conversion.toEntity.convert(this.passenger);
 			this.passenger.setPassengerOf(null);
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {

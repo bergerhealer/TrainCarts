@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import net.minecraft.server.v1_4_R1.Item;
-
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -14,6 +12,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -29,10 +28,7 @@ public class Util {
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {
-		setItemMaxSize(Item.byId[material.getId()], maxstacksize);
-	}
-	public static void setItemMaxSize(Item item, int maxstacksize) {
-		SafeField.set(item, "maxStackSize", maxstacksize);
+		SafeField.set(Conversion.toItemHandle.convert(material), "maxStackSize", maxstacksize);
 	}
 
 	/**

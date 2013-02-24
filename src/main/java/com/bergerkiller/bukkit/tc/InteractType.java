@@ -12,9 +12,9 @@ public enum InteractType {
 	/**
 	 * Parses all the active interactables represented by the root and name
 	 * 
-	 * @param root of the active object operation
-	 * @param name of the object
-	 * @return A collection of objects represented
+	 * @param root of the active object operation (collect/deposit)
+	 * @param name of the object (textual expression)
+	 * @return A collection of InteractTypes represented
 	 */
 	public static Collection<InteractType> parse(String root, String name) {
 		name = name.toLowerCase();

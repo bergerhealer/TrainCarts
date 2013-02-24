@@ -2,14 +2,11 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
 
-import net.minecraft.server.v1_4_R1.EntityMinecart;
-
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_4_R1.util.LongHash;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -37,8 +34,10 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 
+import com.bergerkiller.bukkit.common.bases.LongHash;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -46,7 +45,6 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -165,7 +163,7 @@ public class TCListener implements Listener {
 		if (!(event.getEntity() instanceof Minecart)) {
 			return;
 		}
-		MinecartMember member = MinecartMemberStore.convert(NativeUtil.getNative(event.getEntity(), EntityMinecart.class));
+		MinecartMember member = MinecartMemberStore.convert((Minecart) event.getEntity());
 		if (member != null && !member.isUnloaded() && lastPlayer != null) {
 			// A player just placed a minecart - set defaults and ownership
 			member.getGroup().getProperties().setDefault(lastPlayer);
@@ -244,10 +242,11 @@ public class TCListener implements Listener {
 		}
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				MinecartMember mm1 = NativeUtil.getNative(event.getVehicle(), MinecartMember.class);
-				if (mm1 == null) {
+				Object veh = Conversion.toEntityHandle.convert(event.getVehicle());
+				if (!(veh instanceof MinecartMember)) {
 					return;
 				}
+				MinecartMember mm1 = (MinecartMember) veh;
 				if (mm1.isUnloaded()) {
 					event.setCancelled(true);
 					return;

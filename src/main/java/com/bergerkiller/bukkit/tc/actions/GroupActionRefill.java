@@ -12,7 +12,7 @@ public class GroupActionRefill extends GroupAction {
 	public void start() {
 		for (MinecartMember member : this.getGroup()) {
 			if (member.isPoweredCart()) {
-				member.fuel = MinecartMember.FUEL_PER_COAL;
+				member.setFuel(MinecartMember.FUEL_PER_COAL);
 			}
 		}
 	}

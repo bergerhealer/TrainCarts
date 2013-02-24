@@ -989,7 +989,7 @@ public class MinecartGroup extends MinecartGroupStore {
 							int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
 							for (MinecartMember mm1 : gnew) {
 								for (MinecartMember mm2: this) {
-									mm1.ignoreCollision(mm2, time);
+									mm1.ignoreCollision(mm2.getBukkitEntity(), time);
 								}
 							}
 						}

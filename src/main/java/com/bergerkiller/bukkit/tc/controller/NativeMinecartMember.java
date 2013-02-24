@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.common.bases.EntityMinecartBase;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -61,7 +62,6 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
 	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
 	public static final double POWERED_RAIL_START_BOOST = 0.02;
-	public int fuel;
 	private int fuelCheckCounter = 0;
 	private boolean forcedBlockUpdate = true;
 	public boolean vertToSlope = false;
@@ -84,7 +84,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			this.soundLoop = new SoundLoop(this.member());
 		}
 	}
-
+	
 	/**
 	 * Checks if this minecart is dead, and throws an exception if it is
 	 * 
@@ -97,6 +97,14 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		} else if (this.member().isUnloaded()) {
 			throw new MemberMissingException();
 		}
+	}
+
+	public int getFuel() {
+		return EntityMinecartRef.fuel.get(this);
+	}
+
+	public void setFuel(int fuel) {
+		EntityMinecartRef.fuel.set(this, fuel);
 	}
 
 	public double getXZForceSquared() {
@@ -155,7 +163,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		return Math.abs(this.motX) > 0.001 || Math.abs(this.motZ) > 0.001 || Math.abs(this.motY) > 0.001;
 	}
 	public boolean hasFuel() {
-		return this.fuel > 0;
+		return this.getFuel() > 0;
 	}
 
 	private MinecartMember member() {
@@ -361,13 +369,14 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	}
 
 	public void addFuel(int fuel) {
-		this.fuel += fuel;
-		if (this.fuel <= 0) {
-			this.fuel = 0;
+		int newFuel = this.getFuel() + fuel;
+		if (newFuel <= 0) {
+			newFuel = 0;
 			this.pushDirection = BlockFace.SELF;
 		} else if (this.pushDirection == BlockFace.SELF) {
 			this.pushDirection = this.member().getDirection();
 		}
+		this.setFuel(fuel);
 	}
 
 	/**
@@ -587,9 +596,9 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 
 		// Fuel update routines
 		if (this.isPoweredCart()) {
-			if (this.fuel > 0) {
-				this.fuel--;
-				if (this.fuel == 0) {
+			if (this.hasFuel()) {
+				this.setFuel(this.getFuel() - 1);
+				if (!this.hasFuel()) {
 					//TrainCarts - Actions to be done when empty
 					if (this.onCoalUsed()) {
 						this.addFuel(FUEL_PER_COAL); //Refill
@@ -597,15 +606,15 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 				}
 			}
 			// Put coal into cart if needed
-			if (this.fuel <= 0) {
+			if (!this.hasFuel()) {
 				if (fuelCheckCounter++ % 20 == 0 && TrainCarts.useCoalFromStorageCart && this.member().getCoalFromNeighbours()) {
 					this.addFuel(FUEL_PER_COAL);
 				}
 			} else {
 				this.fuelCheckCounter = 0;
 			}
-			if (this.fuel <= 0) {
-				this.fuel = 0;
+			if (!this.hasFuel()) {
+				this.setFuel(0);
 				this.pushDirection = BlockFace.SELF;
 			}
 			this.setSmoking(this.hasFuel());
@@ -727,7 +736,6 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	public void b(NBTTagCompound nbttagcompound) {
 		super.b(nbttagcompound);
 		if (this.isPoweredCart()) {
-			nbttagcompound.setShort("Fuel", (short) this.fuel);
 			nbttagcompound.setDouble("PushX", this.pushDirection.getModX());
 			nbttagcompound.setDouble("PushZ", this.pushDirection.getModZ());
 		}

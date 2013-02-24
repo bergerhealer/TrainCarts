@@ -488,5 +488,4 @@ public class TrainCarts extends PluginBase {
 	public static boolean isWorldDisabled(String worldname) {
 		return plugin.disabledWorlds.contains(worldname.toLowerCase());
 	}
-	
 }

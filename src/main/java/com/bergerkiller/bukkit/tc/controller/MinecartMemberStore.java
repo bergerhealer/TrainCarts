@@ -13,10 +13,13 @@ import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.events.MemberConvertEvent;
@@ -43,14 +46,14 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 				continue;
 			}
 			for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
-				if (canConvert(NativeUtil.getNative(entity))) {
+				if (canConvert(entity)) {
 					minecarts.add((Minecart) entity);
 				}
 			}
 		}
 		// Convert
-		for (Minecart em : minecarts) {
-			convert(NativeUtil.getNative(em));
+		for (Minecart minecart : minecarts) {
+			convert(minecart);
 		}
 		minecarts.clear();
 	}
@@ -66,16 +69,19 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 * @param minecart to check
 	 * @return True if the minecart can be converted, False if not
 	 */
-	public static boolean canConvert(Entity minecart) {
-		if (minecart != null && !(minecart instanceof MinecartMember)) {
-			Class<?> clazz = minecart.getClass();
-			if (clazz.equals(EntityMinecart.class) || clazz.getName().equals("com.bergerkiller.bukkit.tc.controller.MinecartMember")) {
-				if (!TrainCarts.isWorldDisabled(minecart.world.getWorld())) {
-					return true;
-				}
-			}
+	public static boolean canConvert(org.bukkit.entity.Entity minecart) {
+		if (minecart == null) {
+			return false;
 		}
-		return false;
+		Class<?> handleClass = Conversion.toEntityHandle.convert(minecart).getClass();
+		if (MinecartMember.class.isAssignableFrom(handleClass)) {
+			return false;
+		}
+		// Check if it is a minecart, or if it is a de-linked Minecart Member
+		if (!handleClass.equals(EntityMinecart.class) && !handleClass.getName().equals(MinecartMember.class.getName())) {
+			return false;
+		}
+		return !TrainCarts.isWorldDisabled(minecart.getWorld());
 	}
 
 	/**
@@ -85,16 +91,18 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 * @param source minecart to convert
 	 * @return Minecart Member conversion
 	 */
-	public static MinecartMember convert(EntityMinecart source) {
-		if (source.dead) {
+	public static MinecartMember convert(Minecart source) {
+		if (source.isDead()) {
 			return null;
 		}
-		if (source instanceof MinecartMember) {
-			return (MinecartMember) source;
+		Object sourceHandle = Conversion.toEntityHandle.convert(source);
+		if (sourceHandle instanceof MinecartMember) {
+			return (MinecartMember) sourceHandle;
 		}
 		if (!canConvert(source)) {
 			return null;
 		}
+		// Create a new Minecart member
 		MinecartMember with = new MinecartMember(source);
 		//unloaded?
 		with.unloaded = OfflineGroupManager.containsMinecart(with.uniqueId);
@@ -105,10 +113,12 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			return null;
 		}
 		with = event.getMember();
+
 		// Replace entity
-		synchronized (WorldUtil.getTracker(source.world)) {
+		EntityTracker tracker = WorldUtil.getTracker(source.getWorld());
+		synchronized (tracker.getHandle()) {
 			// swap the tracker
-			EntityTrackerEntry entry = (EntityTrackerEntry) WorldUtil.getTrackerEntry(source);
+			Object entry = tracker.getEntry(source);
 			// Create MM tracker using old as base
 			if (entry == null) {
 				entry = new MinecartMemberTrackerEntry(with);
@@ -117,7 +127,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			}
 			with.tracker = (MinecartMemberTrackerEntry) entry;
 			// And set the entity
-			EntityUtil.setEntity(source, with, entry);
+			EntityUtil.setEntity(source, with.getBukkitEntity(), entry);
 		}
 		return with;
 	}
@@ -198,12 +208,12 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	}
 
 	public static MinecartMember spawn(Location at, int type) {
-		MinecartMember mm = new MinecartMember(NativeUtil.getNative(at.getWorld()), at.getX(), at.getY(), at.getZ(), type);
+		MinecartMember mm = new MinecartMember(at.getWorld(), at.getX(), at.getY(), at.getZ(), type);
 		mm.yaw = at.getYaw();
 		mm.pitch = at.getPitch();
 		mm = MemberSpawnEvent.call(mm).getMember();
 		mm.tracker = new MinecartMemberTrackerEntry(mm);
-		WorldUtil.setTrackerEntry(mm, mm.tracker);
+		WorldUtil.setTrackerEntry(mm.getBukkitEntity(), mm.tracker);
 		mm.world.addEntity(mm);
 		CommonUtil.callEvent(new VehicleCreateEvent(mm.getMinecart()));
 		return mm;

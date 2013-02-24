@@ -10,11 +10,17 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 public enum RailType {
 	PRESSUREPLATE(true), REGULAR(true), BRAKE(true), BOOST(true), DETECTOR(true), VERTICAL(false), NONE(false);
 
-	private boolean horizontal;
+	private final boolean horizontal;
+
 	private RailType(boolean isHorizontal) {
 		this.horizontal = isHorizontal;
 	}
 
+	/**
+	 * Whether the rail type controls minecarts horizontally only
+	 * 
+	 * @return True if minecarts are horizontally controlled, False if not
+	 */
 	public boolean isHorizontal() {
 		return this.horizontal;
 	}

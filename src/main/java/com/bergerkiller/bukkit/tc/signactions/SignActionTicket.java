@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TicketMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -45,7 +44,7 @@ public class SignActionTicket extends SignAction {
 				} else {
 					money = ParseUtil.parseDouble(info.getLine(3), 0.0);
 				}
-				TicketMode mode = TicketMode.parse(info.getLine(2));
+				final String mode = info.getLine(2);
 				List<MinecartMember> members;
 				if (isTrain) {
 					members = info.getGroup();
@@ -60,13 +59,13 @@ public class SignActionTicket extends SignAction {
 					//actually perform something with it here
 					MethodAccount account = method.getAccount(player.getName());
 
-					if (mode == TicketMode.ADD) {
+					if (mode.equalsIgnoreCase("add")) {
 						account.add(money);
 						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You received " + getCurrencyText(money) + " in your bank account!");
-					} else if (mode == TicketMode.CHECK) {
+					} else if (mode.equalsIgnoreCase("check")) {
 						double getbal = account.balance();
 						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You currently have " + getCurrencyText(getbal) + " in your bank account!");
-					} else if (mode == TicketMode.BUY) {
+					} else if (mode.equalsIgnoreCase("buy")) {
 						if (account.hasUnder(money)) {
 							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.RED + " You can't afford a Ticket for " + getCurrencyText(money) + " , sorry.");
 							member.eject();

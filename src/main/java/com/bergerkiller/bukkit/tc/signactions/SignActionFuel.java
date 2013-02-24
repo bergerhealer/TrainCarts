@@ -3,12 +3,11 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.server.v1_4_R1.ItemStack;
-
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -71,7 +70,7 @@ public class SignActionFuel extends SignAction {
 								found = true;
 								member.addFuel(3600);
 								if (TrainCarts.showTransferAnimations) {
-									ItemAnimation.start(chest, member, new ItemStack(Material.COAL.getId(), 1, 0));
+									ItemAnimation.start(chest, member, new ItemStack(Material.COAL, 1));
 								}
 								break;
 							}

@@ -1,48 +1,70 @@
 package com.bergerkiller.bukkit.tc.itemanimation;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.v1_4_R1.EntityItem;
-import net.minecraft.server.v1_4_R1.EntityTracker;
-
 /**
- * A dummy class that basically does nothing :)
+ * A dummy Item class that basically does nothing :)
  */
-public class VirtualItem extends EntityItem {
+public class VirtualItem {
+	public final Item item;
+	private final Object handle;
+	private final ItemStack itemStack;
 
 	public VirtualItem(Location location, ItemStack itemstack) {
-		super(NativeUtil.getNative(location.getWorld()), location.getX(), location.getY(), location.getZ(), NativeUtil.getNative(itemstack));
+		this.item = EntityRef.createEntityItem(location.getWorld(), location.getX(), location.getY(), location.getZ());
+		this.item.setItemStack(itemstack);
+		this.handle = Conversion.toEntityHandle.convert(this.item);
+		this.itemStack = itemstack;
 		refresh();
-		((EntityTracker) WorldUtil.getTracker(world)).track(this);
+		WorldUtil.getTracker(item.getWorld()).startTracking(item);
+		EntityUtil.setMotY(item, EntityUtil.getMotY(item) + 0.1);
 	}
 
-	@Override
-	public void j_() {
-		this.lastX = this.locX;
-		this.lastY = this.locY;
-		this.lastZ = this.locZ;
-		this.locX += this.motX;
-		this.locY += this.motY;
-		this.locZ += this.motZ;
+	public void update(Vector dir) {
+		// Update velocity
+		EntityUtil.setMotX(item, dir.getX() + Math.random() * 0.02 - 0.01);
+		EntityUtil.setMotY(item, MathUtil.useOld(EntityUtil.getMotY(item), dir.getY(), 0.1));
+		EntityUtil.setMotZ(item, dir.getZ() + Math.random() * 0.02 - 0.01);
+		// Update position using motion
+		final double locX = EntityUtil.getLocX(item);
+		final double locY = EntityUtil.getLocY(item);
+		final double locZ = EntityUtil.getLocZ(item);
+		EntityUtil.setLastX(item, locX);
+		EntityUtil.setLastY(item, locY);
+		EntityUtil.setLastZ(item, locZ);
+		EntityUtil.setLocX(item, locX + EntityUtil.getMotX(item));
+		EntityUtil.setLocY(item, locY + EntityUtil.getMotY(item));
+		EntityUtil.setLocZ(item, locZ + EntityUtil.getMotZ(item));
 		refresh();
-	};
+	}
 
 	public void refresh() {
-		this.al = true;
-		EntityRef.chunkX.set(this, MathUtil.toChunk(this.locX));
-		EntityRef.chunkY.set(this, MathUtil.toChunk(this.locY));
-		EntityRef.chunkZ.set(this, MathUtil.toChunk(this.locZ));
+		EntityRef.positionChanged.set(handle, true);
+		EntityRef.velocityChanged.set(handle, true);
+		EntityRef.chunkX.set(item, MathUtil.toChunk(EntityUtil.getLocX(item)));
+		EntityRef.chunkY.set(item, MathUtil.toChunk(EntityUtil.getLocY(item)));
+		EntityRef.chunkZ.set(item, MathUtil.toChunk(EntityUtil.getLocZ(item)));
 	}
 
-	@Override
 	public void die() {
-		super.die();
-		((EntityTracker) WorldUtil.getTracker(world)).untrackEntity(this);
+		item.remove();
+		WorldUtil.getTracker(item.getWorld()).stopTracking(item);
+	}
+
+	public ItemStack getItemStack() {
+		return itemStack;
+	}
+
+	public Location getLocation() {
+		return item.getLocation();
 	}
 }

@@ -11,6 +11,12 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
+/**
+ * The way a block can be powered:<br>
+ * - ON: Block is powered by something<br>
+ * - OFF: Power source is nearby but is not powering<br>
+ * - NONE: No power source nearby
+ */
 public enum PowerState {
 	ON, OFF, NONE;
 
@@ -24,7 +30,7 @@ public enum PowerState {
 			if (MaterialUtil.ISPOWERSOURCE.get(side.getRelative(BlockFace.DOWN))) {
 				return true;
 			}
-		} else if (type == Material.DIODE_BLOCK_ON || type == Material.DIODE_BLOCK_OFF) {
+		} else if (MaterialUtil.ISDIODE.get(type)) {
 			//powered by repeater?
 			BlockFace facing = BlockUtil.getFacing(side);
 			return facing == face;
@@ -63,7 +69,7 @@ public enum PowerState {
 			} else {
 				return NONE;
 			}
-		} else if (MaterialUtil.ISDIODE.get(type) && from != BlockFace.DOWN && from != BlockFace.UP) {
+		} else if (MaterialUtil.ISDIODE.get(type) && !FaceUtil.isVertical(from)) {
 			if ((BlockUtil.getFacing(block) != from)) {
 				return type == Material.DIODE_BLOCK_ON ? ON : OFF;
 			} else {
@@ -93,6 +99,11 @@ public enum PowerState {
 		return NONE;
 	}
 
+	/**
+	 * Gets whether this Power State is supplying redstone power
+	 * 
+	 * @return True if power is supplied, False if not
+	 */
 	public boolean hasPower() {
 		switch (this) {
 		case ON : return true;
