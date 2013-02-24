@@ -25,25 +25,30 @@
       <id>essentials-repo</id>
       <url>http://ess.ementalo.com/nexus/content/groups/public/</url>
     </repository>
-    <!-- Repo for access to BKCommonLib -->
+    <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
     <repository>
       <id>herocraft-repo</id>
       <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
     </repository>
   </repositories>
 
   <dependencies>
     <dependency>
       <groupId>org.bukkit</groupId>
-      <artifactId>craftbukkit</artifactId>
+      <artifactId>bukkit</artifactId>
       <version>1.4.7-R1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>MyWorlds</artifactId>
       <version>1.60</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/lib/MyWorlds.jar</systemPath>
+      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.earth2me</groupId>
@@ -51,18 +56,20 @@
       <version>2.10.1</version>
       <scope>system</scope>
       <systemPath>${project.basedir}/lib/Essentials.jar</systemPath>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>SignLink</artifactId>
-      <version>1.30</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/lib/SignLink.jar</systemPath>
+      <version>1.31</version>
+      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
       <version>1.50-SNAPSHOT</version>
+      <scope>provided</scope>
   	</dependency>
     <dependency>
       <groupId>junit</groupId>
