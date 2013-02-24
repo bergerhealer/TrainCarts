@@ -10,11 +10,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.minecraft.server.v1_4_R1.Entity;
 import net.minecraft.server.v1_4_R1.EntityPlayer;
 import net.minecraft.server.v1_4_R1.ItemStack;
 import net.minecraft.server.v1_4_R1.LocaleI18n;
-import net.minecraft.server.v1_4_R1.PlayerInventory;
 
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
@@ -23,8 +21,10 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_4_R1.util.LongHashSet;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
@@ -53,8 +53,8 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
@@ -238,8 +238,12 @@ public class MinecartMember extends MinecartMemberStore {
 			//destroy blocks
 			Block left = this.getBlockRelative(BlockFace.WEST);
 			Block right = this.getBlockRelative(BlockFace.EAST);
-			if (this.getProperties().canBreak(left)) BlockUtil.breakBlock(left);
-			if (this.getProperties().canBreak(right)) BlockUtil.breakBlock(right);
+			if (this.getProperties().canBreak(left)) {
+				BlockInfo.get(left).destroy(left, 20.0f);
+			}
+			if (this.getProperties().canBreak(right)) {
+				BlockInfo.get(right).destroy(right, 20.0f);
+			}
 		}
 
 		//Detector regions
@@ -528,7 +532,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
 	public double distanceXZ(Entity e) {
-		return MathUtil.distance(this.getX(), this.getZ(), e.locX, e.locZ);
+		return MathUtil.distance(this.getX(), this.getZ(), EntityUtil.getLocX(e), EntityUtil.getLocZ(e));
 	}
 	public double distanceXZ(Location l) {
 		return MathUtil.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
@@ -537,13 +541,19 @@ public class MinecartMember extends MinecartMemberStore {
 		return MathUtil.distance(this.getX(), this.getZ(), 0.5 + block.getX(), 0.5 + block.getZ());
 	}
 	public double distanceSquared(Entity e) {
-		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), e.locX, e.locY, e.locZ);
+		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), EntityUtil.getLocX(e), EntityUtil.getLocY(e), EntityUtil.getLocZ(e));
+	}
+	public double distanceSquared(MinecartMember member) {
+		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), member.getX(), member.getY(), member.getZ());
 	}
 	public double distanceSquared(Location l) {
 		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
 	}
 	public double distanceXZSquared(Entity e) {
-		return MathUtil.distanceSquared(this.getX(), this.getZ(), e.locX, e.locZ);
+		return MathUtil.distanceSquared(this.getX(), this.getZ(), EntityUtil.getLocX(e), EntityUtil.getLocZ(e));
+	}
+	public double distanceXZSquared(MinecartMember member) {
+		return MathUtil.distanceSquared(this.getX(), this.getZ(), member.getX(), member.getZ());
 	}
 	public double distanceXZSquared(Location l) {
 		return MathUtil.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
@@ -697,9 +707,6 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isTurned() {
 		return FaceUtil.isSubCardinal(this.direction);
 	}
-	public boolean isHeadingTo(Entity entity) {
-		return this.isHeadingTo(NativeUtil.getEntity(entity));
-	}
 	public boolean isHeadingTo(org.bukkit.entity.Entity entity) {
 		return this.isHeadingTo(entity.getLocation());
 	}
@@ -783,23 +790,14 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean isSingle() {
 		return this.group == null || this.group.size() == 1;
 	}
-	public boolean hasPassenger() {
-		return this.passenger != null;
-	}
-	public org.bukkit.entity.Entity getPassenger() {
-		return this.passenger == null ? null : NativeUtil.getEntity(this.passenger);
-	}
-	public Inventory getInventory() {
-		return NativeUtil.getInventory(this);
-	}
+
 	public org.bukkit.inventory.PlayerInventory getPlayerInventory() {
-		PlayerInventory inventory;
-		if (this.hasPlayerPassenger()) {
-			inventory = ((EntityPlayer) this.passenger).inventory;
+		Entity passenger = getPassenger();
+		if (passenger instanceof Player) {
+			return ((Player) passenger).getInventory();
 		} else {
-			inventory = new PlayerInventory(null);
+			return null;
 		}
-		return NativeUtil.getInventory(inventory, org.bukkit.inventory.PlayerInventory.class);
 	}
 	public boolean hasPlayerPassenger() {
 		return this.passenger != null && this.passenger instanceof EntityPlayer;

@@ -12,8 +12,8 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -47,7 +47,7 @@ public class OfflineMember {
 		Chunk c = world.getChunkAt(cx, cz);
 		for (Entity e : WorldUtil.getEntities(c)) {
 			if (e instanceof Minecart && e.getUniqueId().equals(this.entityUID)) {
-				mm = NativeUtil.getNative(e, MinecartMember.class);
+				mm = MemberConverter.toMember.convert(e);
 			}
 		}
 		// Try to find it in the world
@@ -55,7 +55,7 @@ public class OfflineMember {
 			// Load a 5x5 chunk area around this Minecart so it can properly be found
 			WorldUtil.loadChunks(world, this.cx, this.cz, 2);
 			// Try to find it
-			mm = NativeUtil.getNative(EntityUtil.getEntity(world, this.entityUID), MinecartMember.class);
+			mm = MemberConverter.toMember.convert(EntityUtil.getEntity(world, this.entityUID));
 		}
 		// Restore velocity
 		if (mm != null) {

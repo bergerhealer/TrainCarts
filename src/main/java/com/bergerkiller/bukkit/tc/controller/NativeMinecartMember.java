@@ -30,7 +30,6 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.RailType;
@@ -184,7 +183,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		}
 		try {
 			// CraftBukkit start
-			Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
+			Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 
 			VehicleDamageEvent event = new VehicleDamageEvent(vehicle, entity, damage);
 
@@ -572,7 +571,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		// CraftBukkit start
 		Location from = new Location(this.world.getWorld(), this.lastX, this.lastY, this.lastZ, this.lastYaw, this.lastPitch);
 		Location to = this.getLocation();
-		Vehicle vehicle = (Vehicle) NativeUtil.getEntity(this);
+		Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 
 		CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
 
@@ -816,7 +815,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			}
 
 			// Collision modes
-			if (!prop.getCollisionMode(e).execute(this.member(), NativeUtil.getEntity(this))) {
+			if (!prop.getCollisionMode(e).execute(this.member(), this.getBukkitEntity())) {
 				return false;
 			}
 		}

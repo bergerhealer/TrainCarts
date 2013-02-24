@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.statements;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -23,7 +22,7 @@ public class StatementMob extends Statement {
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = 0;
 		for (MinecartMember member : group) {
-			if (member.hasPassenger() && EntityUtil.isMob(NativeUtil.getEntity(member.passenger))) {
+			if (member.hasPassenger() && EntityUtil.isMob(member.getPassenger())) {
 				count++;
 			}
 		}

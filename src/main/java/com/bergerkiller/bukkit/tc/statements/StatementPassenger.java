@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.statements;
 
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -40,7 +39,7 @@ public class StatementPassenger extends Statement {
 	@Override
 	public boolean handleArray(MinecartMember member, String[] names, SignActionEvent event) {
 		if (member.hasPlayerPassenger()) {
-			String pname = ((Player) NativeUtil.getEntity(member.passenger)).getName();
+			String pname = ((Player) member.getPassenger()).getName();
 			for (String name : names) {
 				if (Util.matchText(pname, name)) {
 					return true;

@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.server.v1_4_R1.EntityItem;
-
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Item;
@@ -13,9 +11,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.inventory.InventoryBase;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 /**
@@ -80,10 +78,11 @@ public class GroundItemsInventory extends InventoryBase {
 			}
 		} else {
 			// Set item stack, if null, kill the item
-			EntityItem item = NativeUtil.getNative(this.items.get(index));
-			if (!(item.dead = LogicUtil.nullOrEmpty(stack))) {
-				item.setItemStack(NativeUtil.getNative(stack));
-				this.items.set(index, ItemUtil.respawnItem((Item) NativeUtil.getEntity(item)));
+			Item item = this.items.get(index);
+			EntityUtil.setDead(item, LogicUtil.nullOrEmpty(stack));
+			if (!item.isDead()) {
+				item.setItemStack(stack);
+				this.items.set(index, ItemUtil.respawnItem(item));
 			}
 		}
 	}

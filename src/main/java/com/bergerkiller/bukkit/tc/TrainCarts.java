@@ -25,7 +25,9 @@ import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.tc.commands.Commands;
+import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -335,6 +337,7 @@ public class TrainCarts extends PluginBase {
 		//registering
 		this.register(TCListener.class);
 		this.register("train", "cart");
+		Conversion.register(MemberConverter.toMember);
 
 		//Load configuration
 		loadConfig();
