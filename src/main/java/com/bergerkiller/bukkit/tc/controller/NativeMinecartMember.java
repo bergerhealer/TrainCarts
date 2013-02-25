@@ -719,12 +719,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	 */
 	public abstract boolean onCoalUsed();
 
-	/**
-	 * Handles the collision of this minecart with another Entity
-	 * 
-	 * @param e entity with which is collided
-	 * @return True if collision is allowed, False if it is ignored
-	 */
+	@Override
 	public boolean onEntityCollision(Entity e) {
 		MinecartMember mm1 = this.member();
 		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded() || e.isDead() || this.dead || this.group().isVelocityAction()) {
@@ -790,14 +785,8 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		}
 		return true;
 	}
-	
-	/**
-	 * Handles the collision of this minecart with a Block
-	 * 
-	 * @param block with which this minecart collided
-	 * @param hitFace of the block that the minecart hit
-	 * @return True if collision is allowed, False if it is ignored
-	 */
+
+	@Override
 	public boolean onBlockCollision(org.bukkit.block.Block block, BlockFace hitFace) {
 		if (Util.ISVERTRAIL.get(block)) {
 			return false;

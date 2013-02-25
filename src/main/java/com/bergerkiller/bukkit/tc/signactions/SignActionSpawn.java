@@ -119,6 +119,11 @@ public class SignActionSpawn extends SignAction {
 						}
 					}
 				}
+				// Check for failure
+				if (spawnDirection == null) {
+					return;
+				}
+
 				// Prepare chunks
 				for (Location loc : locs) {
 					WorldUtil.loadChunks(loc, 2);

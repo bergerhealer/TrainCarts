@@ -233,17 +233,27 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 		return getAt(at, in, 1);
 	}
 	public static MinecartMember getAt(Location at, MinecartGroup in, double searchRadius) {
-		if (at == null) return null;
-		searchRadius *= searchRadius;
+		if (at == null) {
+			return null;
+		}
 		MinecartMember result = null;
-		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(at.getBlock().getChunk())) {
+		for (org.bukkit.entity.Entity e : WorldUtil.getNearbyEntities(at, searchRadius, searchRadius, searchRadius)) {
 			if (e instanceof Minecart) {
 				MinecartMember mm = get(e);
-				if (mm == null) continue;
-				if (in != null && mm.getGroup() != in) continue;
-				if (mm.distanceSquared(at) > searchRadius) continue;
+				if (mm == null) {
+					continue;
+				}
+				if (in != null && mm.getGroup() != in) {
+					continue;
+				}
+				if (mm.distanceSquared(at) > searchRadius) {
+					continue;
+				}
 				result = mm;
-				if (mm.isHeadingTo(at)) return result;
+				// If heading (moving) towards the point, instantly return it
+				if (mm.isHeadingTo(at)) {
+					return result;
+				}
 			}
 		}
 		return result;

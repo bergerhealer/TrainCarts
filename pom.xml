@@ -47,8 +47,13 @@
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>MyWorlds</artifactId>
       <version>1.60</version>
+      <!--
+      This is broken on the build server
       <scope>provided</scope>
       <optional>true</optional>
+      -->
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/MyWorlds-1.60.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.earth2me</groupId>
