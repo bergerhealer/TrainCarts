@@ -401,6 +401,18 @@ public class TCListener implements Listener {
 				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
 			} else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
 				PathNode.remove(event.getBlock());
+			} else if (MaterialUtil.ISPOWERSOURCE.get(event.getBlock())) {
+				// Send proper update events for all signs around this power source
+				for (BlockFace face : FaceUtil.RADIAL) {
+					final Block rel = event.getBlock().getRelative(face);
+					if (MaterialUtil.ISSIGN.get(rel)) {
+						CommonUtil.nextTick(new Runnable() {
+							public void run() {
+								triggerRedstoneChange(rel, false);
+							}
+						});
+					}
+				}
 			}
 		}
 	}
@@ -467,23 +479,25 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
-		if (TrainCarts.isWorldDisabled(event)) return;
+		if (TrainCarts.isWorldDisabled(event)) {
+			return;
+		}
 		Material type = event.getBlock().getType();
 		if (BlockUtil.isType(type, Material.LEVER)) {
 			Block up = event.getBlock().getRelative(BlockFace.UP);
 			Block down = event.getBlock().getRelative(BlockFace.DOWN);
 			if (MaterialUtil.ISSIGN.get(up)) {
-				triggerRedstoneChange(up, event);
+				triggerRedstoneChange(up, event.getNewCurrent() > 0);
 			}
 			if (MaterialUtil.ISSIGN.get(down)) {
-				triggerRedstoneChange(down, event);
+				triggerRedstoneChange(down, event.getNewCurrent() > 0);
 			}
 			ignoreOutputLever(event.getBlock());
 		} else if (MaterialUtil.ISSIGN.get(type)) {
 			if (!ignoredSigns.isEmpty() && ignoredSigns.remove(event.getBlock())) {
 				return;
 			}
-			triggerRedstoneChange(event.getBlock(), event);
+			triggerRedstoneChange(event.getBlock(), event.getNewCurrent() > 0);
 		}
 	}
 
@@ -522,20 +536,30 @@ public class TCListener implements Listener {
 		}
 	}
 
-	public void triggerRedstoneChange(Block signblock, BlockRedstoneEvent event) {
-		boolean powered = poweredBlocks.contains(signblock);
+	/**
+	 * Fires redstone change events for a sign
+	 * 
+	 * @param signblock to send the change for
+	 * @param isPowered (updated) state of the change
+	 */
+	public void triggerRedstoneChange(Block signblock, boolean isPowered) {
+		final boolean wasPowered = poweredBlocks.contains(signblock);
 		SignActionEvent info = new SignActionEvent(signblock);
 		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-		if (powered) {
+		// On/off events, ignore when no change of power
+		if (wasPowered == isPowered) {
+			return;
+		}
+		if (wasPowered) {
 			//no longer powered?
-			if (info.isPowerInverted() != (event.getNewCurrent() == 0) && !info.isPowered()) {
+			if (!info.isPowered()) {
 				poweredBlocks.remove(signblock);
 				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
 			}
 		} else {
 			//now powered?
-			if (info.isPowerInverted() != (event.getNewCurrent() > 0) && info.isPowered()) {
-				poweredBlocks.add(event.getBlock());
+			if (info.isPowered()) {
+				poweredBlocks.add(signblock);
 				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
 			}
 		}

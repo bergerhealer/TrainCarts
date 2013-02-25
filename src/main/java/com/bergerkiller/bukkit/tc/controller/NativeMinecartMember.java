@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.Location;
@@ -236,7 +237,9 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 
 	@Override
 	public List<org.bukkit.inventory.ItemStack> getDrops() {
-		if (TrainCarts.breakCombinedCarts) {
+		if (!TrainCarts.spawnItemDrops) {
+			return Collections.emptyList();
+		} else if (TrainCarts.breakCombinedCarts) {
 			return super.getDrops();
 		} else {
 			return Arrays.asList(new ItemStack(getType(), 1));
