@@ -75,7 +75,8 @@ public class MinecartMember extends MinecartMemberStore {
 	protected boolean unloaded = false;
 
 	protected MinecartMember(Minecart source) {
-		this(source.getWorld(), EntityUtil.getLocX(source), EntityUtil.getLocY(source), EntityUtil.getLocZ(source), Material.MINECART);
+		this(source.getWorld(), EntityUtil.getLocX(source), EntityUtil.getLocY(source), EntityUtil.getLocZ(source), 
+				EntityMinecartRef.type.get(Conversion.toEntityHandle.convert(source)));
 
 		// Transfer, but keep bukkit entity to avoid reference issues
 		org.bukkit.entity.Entity bukkitEntity = EntityRef.bukkitEntity.get(this);

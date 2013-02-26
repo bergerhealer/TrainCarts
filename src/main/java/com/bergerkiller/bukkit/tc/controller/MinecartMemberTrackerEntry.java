@@ -238,9 +238,6 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 		// Velocity, positioning and passenger
 		PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getTracker()));
 		PacketUtil.sendPacket(player, getTeleportPacket());
-		if (this.getTracker().getPassenger() != null) {
-			PacketUtil.sendPacket(player, PacketFields.ATTACH_ENTITY.newInstance(this.getTracker().getPassenger(), this.getTracker()));
-		}
 	}
 
 	@Override

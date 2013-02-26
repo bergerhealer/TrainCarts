@@ -18,13 +18,21 @@ public class StatementItems extends Statement {
 	
 	@Override
 	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+		final Inventory inventory = getInventory(member);
+		if (inventory == null) {
+			return false;
+		}
 		int count = ItemUtil.getItemCount(getInventory(member), -1, -1);
 		return Util.evaluate(count, text);
 	}
 
 	@Override
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
-		int count = ItemUtil.getItemCount(getInventory(group), -1, -1);
+		final Inventory inventory = getInventory(group);
+		if (inventory == null) {
+			return false;
+		}
+		int count = ItemUtil.getItemCount(inventory, -1, -1);
 		return Util.evaluate(count, text);
 	}
 
@@ -34,6 +42,9 @@ public class StatementItems extends Statement {
 	}
 	
 	public boolean handleInventory(Inventory inv, String[] items) {
+		if (inv == null) {
+			return false;
+		}
 		int opidx;
 		int count;
 		for (String itemname : items) {

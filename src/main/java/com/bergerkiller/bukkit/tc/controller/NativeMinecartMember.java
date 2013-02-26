@@ -698,8 +698,8 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	public void onSave(CommonTagCompound data) {
 		super.onSave(data);
 		if (this.isPoweredCart()) {
-			data.putValue("PushX", this.pushDirection.getModX());
-			data.putValue("PushZ", this.pushDirection.getModZ());
+			data.putValue("PushX", (double) this.pushDirection.getModX());
+			data.putValue("PushZ", (double) this.pushDirection.getModZ());
 		}
 	}
 
