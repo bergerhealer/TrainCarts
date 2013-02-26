@@ -252,7 +252,7 @@ public class TCListener implements Listener {
 					return;
 				}
 				MinecartGroup g1 = mm1.getGroup();
-				if (g1 == null || g1.isVelocityAction() || mm1.isCollisionIgnored(event.getEntity())) {
+				if (g1 == null || g1.isMovementControlled() || mm1.isCollisionIgnored(event.getEntity())) {
 					event.setCancelled(true);
 					return;
 				}
@@ -272,7 +272,7 @@ public class TCListener implements Listener {
 						return;
 					}
 					MinecartGroup g2 = mm2.getGroup();
-					if (g1 == g2 || !g2.getProperties().canCollide(g1) || MinecartGroup.link(mm1, mm2) || g2.isVelocityAction()) {
+					if (g1 == g2 || !g2.getProperties().canCollide(g1) || MinecartGroup.link(mm1, mm2) || g2.isMovementControlled()) {
 						event.setCancelled(true);
 					}
 				} else if (event.getEntity().getVehicle() instanceof Minecart) {

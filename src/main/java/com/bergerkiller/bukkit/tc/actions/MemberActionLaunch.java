@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.actions;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-public class MemberActionLaunch extends MemberAction implements VelocityAction {
+public class MemberActionLaunch extends MemberAction implements MovementAction {
 	private static final double minVelocity = 0.02;
 	private static final double minVelocityForLaunch = 0.004;
 	private double distance;
@@ -29,7 +29,7 @@ public class MemberActionLaunch extends MemberAction implements VelocityAction {
 	}
 
 	@Override
-	public boolean isVelocityChangesSuppressed() {
+	public boolean isMovementSuppressed() {
 		return true;
 	}
 	

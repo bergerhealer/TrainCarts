@@ -11,7 +11,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
@@ -419,7 +418,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		}
 
 		// Perform gravity
-		if (!group().isVelocityAction()) {
+		if (!group().isMovementControlled()) {
 			this.motY -= this.moveinfo.railLogic.getGravityMultiplier(this.member());
 		}
 
@@ -434,7 +433,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 		this.setPosition(this.locX, this.locY, this.locZ);
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
-		if (moveinfo.railType == RailType.BRAKE && !group().isVelocityAction()) {
+		if (moveinfo.railType == RailType.BRAKE && !group().isMovementControlled()) {
 			if (this.getXZForceSquared() < 0.0009) {
 				this.setForceFactor(0.0);
 			} else {
@@ -491,7 +490,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 				}
 				
 				// Velocity boost is applied
-				if (!group().isVelocityAction()) {
+				if (!group().isMovementControlled()) {
 					if (this.pushDirection != BlockFace.SELF) {
 						double boost = 0.04 + TrainCarts.poweredCartBoost;
 						this.setForceFactor(0.8);
@@ -516,7 +515,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			}
 
 			// Launching on powered booster tracks
-			if (moveinfo.railType == RailType.BOOST && !group().isVelocityAction()) {
+			if (moveinfo.railType == RailType.BOOST && !group().isMovementControlled()) {
 				double motLength = this.getXZForce();
 				if (motLength > 0.01) {
 					// Simple motion boosting when already moving
@@ -544,7 +543,10 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 
 		// Update rotation
 		this.onRotationUpdate();
-		this.b(this.yaw, this.pitch);
+
+		// Ensure that the yaw and pitch stay within limits
+        this.yaw %= 360.0f;
+        this.pitch %= 360.0f;
 
 		// Invalidate volatile information
 		moveinfo.railLogicSnapshotted = false;
@@ -689,17 +691,6 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	}
 
 	/**
-	 * Performs the entity loading logic
-	 * 
-	 * @param data to load from
-	 */
-	public void onLoad(CommonTagCompound data) {
-		// Change the id to a valid type before starting to load
-		data.putValue("id", "Minecart");
-		super.onLoad(data);
-	}
-
-	/**
 	 * Performs the entity saving logic
 	 * 
 	 * @param data to save to
@@ -722,7 +713,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 	@Override
 	public boolean onEntityCollision(Entity e) {
 		MinecartMember mm1 = this.member();
-		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded() || e.isDead() || this.dead || this.group().isVelocityAction()) {
+		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded() || e.isDead() || this.dead || this.group().isMovementControlled()) {
 			return false;
 		}
 		MinecartMember mm2 = MemberConverter.toMember.convert(e);
@@ -742,7 +733,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			} else if (!mm2.getGroup().getProperties().getColliding()) {
 				//Other train allows train collisions?
 				return false;
-			} else if (mm2.getGroup().isVelocityAction()) {
+			} else if (mm2.getGroup().isMovementControlled()) {
 				//Is this train targeting?
 				return false;
 			}
@@ -759,7 +750,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 				}
 			}
 			return true;
-		} else if (e instanceof LivingEntity && e.isInsideVehicle() && e.getVehicle() instanceof Minecart) {
+		} else if (e.isInsideVehicle() && e.getVehicle() instanceof Minecart) {
 			//Ignore passenger collisions
 			return false;
 		} else {
@@ -775,7 +766,7 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			}
 
 			// Collision modes
-			if (!prop.getCollisionMode(e).execute(this.member(), this.getEntity())) {
+			if (!prop.getCollisionMode(e).execute(this.member(), e)) {
 				return false;
 			}
 		}

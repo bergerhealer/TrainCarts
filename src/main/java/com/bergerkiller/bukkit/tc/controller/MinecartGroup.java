@@ -137,9 +137,16 @@ public class MinecartGroup extends MinecartGroupStore {
 		Action a = this.actions.peek();
 		return a == null ? false : a instanceof WaitAction;
 	}
-	public boolean isVelocityAction() {
-		Action a = this.actions.peek();
-		return a instanceof VelocityAction && ((VelocityAction) a).isVelocityChangesSuppressed();
+
+	/**
+	 * Gets whether an action is controlling this train.
+	 * When this is True, no physics should be applied.
+	 * 
+	 * @return True if movement is controlled by an action, False if not
+	 */
+	public boolean isMovementControlled() {
+		final Action a = this.actions.peek();
+		return a instanceof MovementAction && ((MovementAction) a).isMovementSuppressed();
 	}
 
 	/*

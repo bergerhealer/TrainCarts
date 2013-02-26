@@ -22,7 +22,7 @@ public class GroupActionWaitState extends GroupActionWaitForever {
 	}
 
 	@Override
-	public boolean isVelocityChangesSuppressed() {
+	public boolean isMovementSuppressed() {
 		return false;
 	}
 }

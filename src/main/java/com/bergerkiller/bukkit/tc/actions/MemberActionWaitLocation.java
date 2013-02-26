@@ -24,7 +24,7 @@ public class MemberActionWaitLocation extends MemberAction implements WaitAction
 	}
 	
 	@Override
-	public boolean isVelocityChangesSuppressed() {
+	public boolean isMovementSuppressed() {
 		return true;
 	}
 

@@ -70,7 +70,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	}
 
 	@Override
-	public boolean isVelocityChangesSuppressed() {
+	public boolean isMovementSuppressed() {
 		return true;
 	}
 }

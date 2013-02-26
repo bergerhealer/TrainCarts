@@ -3,8 +3,6 @@ package com.bergerkiller.bukkit.tc.signactions;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -17,22 +15,25 @@ public class SignActionAnnounce extends SignAction {
 	public static void sendMessage(SignActionEvent info, MinecartGroup group) {
 		String msg = getMessage(info);
 		for (MinecartMember member : group) {
-			if (!member.hasPlayerPassenger()) return;
-			Player player = (Player) member.getPassenger();
-			sendMessage(msg, player);
+			if (member.hasPlayerPassenger()) {
+				TrainCarts.sendMessage((Player) member.getPassenger(), msg);
+			}
 		}
 	}
+
 	public static void sendMessage(SignActionEvent info, MinecartMember member) {
-		if (!member.hasPlayerPassenger()) return;
-		Player player = (Player) member.getPassenger();
-		sendMessage(getMessage(info), player);
+		if (member.hasPlayerPassenger()) {
+			TrainCarts.sendMessage((Player) member.getPassenger(), getMessage(info));
+		}
 	}
+
 	private static void appendWithSpace(StringBuilder builder, String part) {
 		if (!part.startsWith(" ") && builder.length() > 0 && builder.charAt(builder.length() - 1) != ' ') {
 			builder.append(' ');
 		}
 		builder.append(part);
 	}
+
 	public static String getMessage(SignActionEvent info) {
 		StringBuilder message = new StringBuilder(32);
 		appendWithSpace(message, info.getLine(2));
@@ -42,21 +43,7 @@ public class SignActionAnnounce extends SignAction {
 				appendWithSpace(message, line);
 			}
 		}
-		return getMessage(message.toString());
-	}
-	public static String getMessage(String msg) {
-		return StringUtil.ampToColor(TrainCarts.messageShortcuts.replace(msg));
-	}
-	public static void sendMessage(String msg, Player player) {
-		if (TrainCarts.SignLinkEnabled) {
-			int startindex, endindex;
-			while ((startindex = msg.indexOf('%')) != -1 && (endindex = msg.indexOf('%', startindex + 1)) != -1) {
-				String varname = msg.substring(startindex + 1, endindex);
-				String value = varname.isEmpty() ? "%" : Variables.get(varname).get(player.getName());
-				msg = msg.substring(0, startindex) + value + msg.substring(endindex + 1);
-			}
-		}
-		player.sendMessage(msg);
+		return TrainCarts.getMessage(message.toString());
 	}
 
 	@Override

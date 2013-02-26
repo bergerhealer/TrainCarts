@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
@@ -26,6 +27,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -43,6 +45,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class TrainCarts extends PluginBase {
@@ -477,6 +480,34 @@ public class TrainCarts extends PluginBase {
 	 */
 	public static String getCurrencyText(double value) {
 		return currencyFormat.replace("%value%", Double.toString(value));
+	}
+
+	/**
+	 * Converts generic text to a formatted message based on style codes and message shortcuts
+	 * 
+	 * @param text to convert
+	 * @return message
+	 */
+	public static String getMessage(String text) {
+		return StringUtil.ampToColor(messageShortcuts.replace(text));
+	}
+
+	/**
+	 * Sends a message to a player, keeping player-specific text variables in mind
+	 * 
+	 * @param player to send the message to
+	 * @param text to send
+	 */
+	public static void sendMessage(Player player, String text) {
+		if (TrainCarts.SignLinkEnabled) {
+			int startindex, endindex;
+			while ((startindex = text.indexOf('%')) != -1 && (endindex = text.indexOf('%', startindex + 1)) != -1) {
+				String varname = text.substring(startindex + 1, endindex);
+				String value = varname.isEmpty() ? "%" : Variables.get(varname).get(player.getName());
+				text = text.substring(0, startindex) + value + text.substring(endindex + 1);
+			}
+		}
+		player.sendMessage(text);
 	}
 
 	public static boolean isWorldDisabled(BlockEvent event) {

@@ -50,9 +50,9 @@ public class VirtualItem {
 	public void refresh() {
 		EntityRef.positionChanged.set(handle, true);
 		EntityRef.velocityChanged.set(handle, true);
-		EntityRef.chunkX.set(item, MathUtil.toChunk(EntityUtil.getLocX(item)));
-		EntityRef.chunkY.set(item, MathUtil.toChunk(EntityUtil.getLocY(item)));
-		EntityRef.chunkZ.set(item, MathUtil.toChunk(EntityUtil.getLocZ(item)));
+		EntityUtil.setChunkX(item, MathUtil.toChunk(EntityUtil.getLocX(item)));
+		EntityUtil.setChunkY(item, MathUtil.toChunk(EntityUtil.getLocY(item)));
+		EntityUtil.setChunkZ(item, MathUtil.toChunk(EntityUtil.getLocZ(item)));
 	}
 
 	public void die() {

@@ -19,10 +19,10 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.signactions.SignActionAnnounce;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
@@ -325,7 +325,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	 */
 	public void showEnterMessage(Player player) {
 		if (this.hasEnterMessage()) {
-			SignActionAnnounce.sendMessage(ChatColor.YELLOW + SignActionAnnounce.getMessage(enterMessage), player);
+			TrainCarts.sendMessage(player, ChatColor.YELLOW + TrainCarts.getMessage(enterMessage));
 		}
 	}
 

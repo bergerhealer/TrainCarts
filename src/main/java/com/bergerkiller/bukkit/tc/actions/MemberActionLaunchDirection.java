@@ -4,7 +4,7 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-public class MemberActionLaunchDirection extends MemberActionLaunch implements VelocityAction {
+public class MemberActionLaunchDirection extends MemberActionLaunch implements MovementAction {
 	private BlockFace direction;
 
 	public MemberActionLaunchDirection(final MinecartMember member, double targetdistance, double targetvelocity, final BlockFace direction) {

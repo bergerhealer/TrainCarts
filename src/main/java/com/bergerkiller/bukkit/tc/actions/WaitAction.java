@@ -1,5 +1,5 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-public interface WaitAction extends VelocityAction {
+public interface WaitAction extends MovementAction {
 
 }

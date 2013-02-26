@@ -5,7 +5,7 @@ import org.bukkit.Location;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
-public class MemberActionLaunchLocation extends MemberActionLaunchDirection implements VelocityAction {
+public class MemberActionLaunchLocation extends MemberActionLaunchDirection implements MovementAction {
 
 	private final Location target;
 	public MemberActionLaunchLocation(final MinecartMember member, double targetvelocity, Location target) {
