@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
@@ -172,50 +173,63 @@ public class OfflineGroupManager {
 	 * Train removal
 	 */
 	public static int destroyAll(World world) {
+		// Ignore worlds that are disabled
+		if (TrainCarts.isWorldDisabled(world)) {
+			return 0;
+		}
+		int count = 0;
 		synchronized (managers) {
 			OfflineGroupManager man = managers.remove(world.getUID());
 			if (man != null) {
 				for (OfflineGroup wg : man.groupmap) {
+					count++;
 					containedTrains.remove(wg.name);
+					TrainProperties.remove(wg.name);
 					for (OfflineMember wm : wg.members) {
 						hiddenMinecarts.remove(wm.entityUID);
+						// Load the chunk this minecart is in and remove it
+						// We already de-linked the group map, so no worry for replacements
+						Chunk chunk = world.getChunkAt(wm.cx, wm.cz);
+						Iterator<Entity> iter = WorldUtil.getEntities(chunk).iterator();
+						while (iter.hasNext()) {
+							Entity next = iter.next();
+							if (next.getUniqueId().equals(wm.entityUID)) {
+								next.remove();
+							}
+						}
 					}
 				}
 			}
 		}
-		int count = 0;
 		for (MinecartGroup g : MinecartGroup.getGroups()) {
 			if (g.getWorld() == world) {
-				if (!g.isEmpty()) count++;
+				if (!g.isEmpty()) {
+					count++;
+				}
 				g.destroy();
 			}
 		}
 		destroyMinecarts(world);
-		removeBuggedMinecarts();
+		removeBuggedMinecarts(world);
 		return count;
 	}
 	public static int destroyAll() {
-		int count = 0;
-		synchronized (managers) {
-			managers.clear();
-			containedTrains.clear();
-			hiddenMinecarts.clear();
-		}
-		for (MinecartGroup g : MinecartGroup.getGroups()) {
-			if (!g.isEmpty()) count++;
-			g.destroy();
-		}
-		for (World world : Bukkit.getServer().getWorlds()) {
-			destroyMinecarts(world);
-		}
-		removeBuggedMinecarts();
+		// The below three storage points can be safely cleared
+		// Disabled worlds don't store anything in them anyway
 		TrainProperties.clearAll();
+		containedTrains.clear();
+		hiddenMinecarts.clear();
+		int count = 0;
+		for (World world : WorldUtil.getWorlds()) {
+			count += destroyAll(world);
+		}
 		return count;
 	}
-	public static void destroyMinecarts(World world) {
+
+	private static void destroyMinecarts(World world) {
 		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
-			if (!e.isDead()) {
-				if (e instanceof Minecart) e.remove();
+			if (!e.isDead() && e instanceof Minecart) {
+				e.remove();
 			}
 		}
 	}
@@ -225,28 +239,24 @@ public class OfflineGroupManager {
 	 * resolving collision problems. (this should really never happen, but it is there just in case)
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	public static void removeBuggedMinecarts() {
+	public static void removeBuggedMinecarts(World world) {
 		Set<org.bukkit.entity.Entity> toRemove = new HashSet<org.bukkit.entity.Entity>();
-		Set worldentities = new HashSet();
-		for (World world : WorldUtil.getWorlds()) {
-			worldentities.clear();
-			worldentities.addAll(WorldUtil.getEntities(world));
-			for (Chunk chunk : WorldUtil.getChunks(world)) {
-				// Remove entities that are falsely added
-				Iterator<org.bukkit.entity.Entity> iter = WorldUtil.getEntities(chunk).iterator();
-				while (iter.hasNext()) {
-					org.bukkit.entity.Entity e = iter.next();
-					if (!worldentities.contains(e)) {
-						iter.remove();
-						toRemove.add(e);
-					}
+		Set worldentities = new HashSet(WorldUtil.getEntities(world));
+		for (Chunk chunk : WorldUtil.getChunks(world)) {
+			// Remove entities that are falsely added
+			Iterator<org.bukkit.entity.Entity> iter = WorldUtil.getEntities(chunk).iterator();
+			while (iter.hasNext()) {
+				org.bukkit.entity.Entity e = iter.next();
+				if (!worldentities.contains(e)) {
+					iter.remove();
+					toRemove.add(e);
 				}
-				// Remove them from other locations
-				for (org.bukkit.entity.Entity e : toRemove) {
-					WorldUtil.removeEntity(e);
-				}
-				toRemove.clear();
 			}
+			// Remove them from other locations
+			for (org.bukkit.entity.Entity e : toRemove) {
+				WorldUtil.removeEntity(e);
+			}
+			toRemove.clear();
 		}
 	}
 	

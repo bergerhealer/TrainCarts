@@ -19,7 +19,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.common.metrics.AddonHandler;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
@@ -391,13 +390,11 @@ public class TrainCarts extends PluginBase {
 		//Properly dispose of partly-referenced carts
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
-				OfflineGroupManager.removeBuggedMinecarts();
+				for (World world : WorldUtil.getWorlds()) {
+					OfflineGroupManager.removeBuggedMinecarts(world);
+				}
 			}
 		});
-		
-		//Metrics
-		AddonHandler ah = new AddonHandler(this);
-		ah.startMetrics();
 	}
 
 	/**

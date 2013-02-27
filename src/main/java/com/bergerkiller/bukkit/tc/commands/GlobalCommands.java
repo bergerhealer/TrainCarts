@@ -78,7 +78,9 @@ public class GlobalCommands {
 			return true;
 		} else if (args[0].equals("fixbugged")) {
 			Permission.COMMAND_FIXBUGGED.handle(sender);
-			OfflineGroupManager.removeBuggedMinecarts();
+			for (World world : WorldUtil.getWorlds()) {
+				OfflineGroupManager.removeBuggedMinecarts(world);
+			}
 			sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
 			return true;
 		} else if (args[0].equals("list")) {
