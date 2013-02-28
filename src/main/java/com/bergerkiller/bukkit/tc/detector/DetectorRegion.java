@@ -182,11 +182,17 @@ public final class DetectorRegion {
 		for (DetectorListener listener : listenerBuffer) {
 			listener.onLeave(mm);
 		}
+		if (mm.isUnloaded()) {
+			return;
+		}
+		final MinecartGroup group = mm.getGroup();
 		for (MinecartMember ex : this.members) {
-			if (ex != mm && ex.getGroup() == mm.getGroup()) return;
+			if (ex != mm && ex.getGroup() == group) {
+				return;
+			}
 		}
 		for (DetectorListener listener : listenerBuffer) {
-			listener.onLeave(mm.getGroup());
+			listener.onLeave(group);
 		}
 	}
 	private void onEnter(MinecartMember mm) {
@@ -194,23 +200,32 @@ public final class DetectorRegion {
 		for (DetectorListener listener : listenerBuffer) {
 			listener.onEnter(mm);
 		}
+		if (mm.isUnloaded()) {
+			return;
+		}
+		final MinecartGroup group = mm.getGroup();
 		for (MinecartMember ex : this.members) {
-			if (ex != mm && ex.getGroup() == mm.getGroup()) return;
+			if (ex != mm && ex.getGroup() == group) {
+				return;
+			}
 		}
 		for (DetectorListener listener : listenerBuffer) {
-			listener.onEnter(mm.getGroup());
+			listener.onEnter(group);
 		}
 	}
+
 	public void remove(MinecartMember mm) {
 		if (this.members.remove(mm)) {
 			this.onLeave(mm);
 		}
 	}
+
 	public void add(MinecartMember mm) {
 		if (this.members.add(mm)) {
 			this.onEnter(mm);
 		}
 	}
+
 	private void setListenerBuffer() {
 		listenerBuffer.clear();
 		listenerBuffer.addAll(this.listeners);

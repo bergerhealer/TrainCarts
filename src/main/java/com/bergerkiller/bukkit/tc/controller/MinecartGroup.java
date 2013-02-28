@@ -867,7 +867,8 @@ public class MinecartGroup extends MinecartGroupStore {
 		} catch (GroupUnloadedException ex) {
 			//this group is gone
 		} catch (Exception ex) {
-			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + this.getProperties().getTrainName() + "':");
+			final TrainProperties p = getProperties();
+			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
 			ex.printStackTrace();
 		} catch (Throwable t) {
 			TrainCarts.plugin.handle(t);

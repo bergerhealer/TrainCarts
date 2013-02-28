@@ -34,6 +34,7 @@ public class Permission extends PermissionEnum {
 	public static final Permission COMMAND_DISPLAYNAME = new Permission("train.command.displayname", PermissionDefault.TRUE, "The player can change the display name of his owned trains");
 	public static final Permission COMMAND_MANUALMOVE = new Permission("train.command.manualmove", PermissionDefault.TRUE, "Whether the player can change if trains can be moved by damaging them");
 	public static final Permission COMMAND_SAVEALL = new Permission("train.command.saveall", PermissionDefault.OP, "Whether the player can save all TrainCarts stored information to file");
+	public static final Permission COMMAND_MESSAGE = new Permission("train.command.message", PermissionDefault.OP, "Whether the player can add message shortcuts");
 	public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
 	public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
 	public static final Permission BUILD_TRIGGER = new Permission("train.build.trigger", PermissionDefault.OP, "The player can build train triggers");

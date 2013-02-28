@@ -78,7 +78,7 @@ public class ItemAnimation {
 		this.from = fixObject(from);
 		this.to = fixObject(to);
 		Location f = this.getFrom();
-		Location t = this.getFrom();
+		Location t = this.getTo();
 		if (f.getWorld() != t.getWorld()) {
 			throw new IllegalArgumentException("Locations are on different worlds!");
 		}
@@ -103,6 +103,9 @@ public class ItemAnimation {
 		}
 		if (object instanceof MinecartMember) {
 			return ((MinecartMember) object).getMinecart();
+		}
+		if (object instanceof VirtualItem) {
+			object = ((VirtualItem) object).item;
 		}
 		return object;
 	}

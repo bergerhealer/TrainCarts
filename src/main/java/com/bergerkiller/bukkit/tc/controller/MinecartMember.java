@@ -106,7 +106,9 @@ public class MinecartMember extends MinecartMemberStore {
 			return;
 		}
 		MinecartGroup g = this.getGroup();
-		if (g == null) return;
+		if (g == null) {
+			return;
+		}
 		if (this.dead) {
 			//remove self
 			g.remove(this);
@@ -932,7 +934,7 @@ public class MinecartMember extends MinecartMemberStore {
 	public void eject(final Location to) {
 		if (this.hasPassenger()) {
 			final Entity passenger = this.getPassenger();
-			this.getEntity().setPassenger(null);
+			this.eject();
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {
 					passenger.teleport(to);

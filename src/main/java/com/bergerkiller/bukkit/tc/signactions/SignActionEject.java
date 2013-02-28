@@ -24,7 +24,7 @@ public class SignActionEject extends SignAction {
 		}
 		MinecartMember member = MinecartMember.get(player.getVehicle());
 		if (member == null) {
-			return true;
+			return false;
 		}
 		info.setMember(member);
 		eject(info);

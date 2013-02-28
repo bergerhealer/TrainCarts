@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.bukkit.entity.Player;
 
@@ -133,8 +134,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	 * @return True if TrainProperties exist, False if not
 	 */
 	public static boolean exists(String trainname) {
-		if (trainProperties == null) return false;
-		return trainProperties.containsKey(trainname);
+		return trainProperties == null ? false : trainProperties.containsKey(trainname);
 	}
 
 	/**
@@ -204,13 +204,24 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		}
 		if (!defconfig.contains("admin")) {
 			ConfigurationNode node = defconfig.getNode("admin");
-			TrainProperties.EMPTY.saveAsDefault(node);
+			for (Entry<String, Object> entry : defconfig.getNode("default").getValues().entrySet()) {
+				node.set(entry.getKey(), entry.getValue());
+			}
+			changed = true;
+		}
+		if (!defconfig.contains("spawner")) {
+			ConfigurationNode node = defconfig.getNode("spawner");
+			for (Entry<String, Object> entry : defconfig.getNode("default").getValues().entrySet()) {
+				node.set(entry.getKey(), entry.getValue());
+			}
 			changed = true;
 		}
 		if (fixDeprecation(defconfig)) {
 			changed = true;
 		}
-		if (changed) defconfig.save();
+		if (changed) {
+			defconfig.save();
+		}
 	}
 
 	/**

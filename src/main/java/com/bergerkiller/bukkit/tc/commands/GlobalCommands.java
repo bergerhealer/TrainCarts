@@ -18,12 +18,39 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class GlobalCommands {
 
 	public static boolean execute(CommandSender sender, String[] args) throws NoPermissionException {
-		if (args[0].equals("removeall") || args[0].equals("destroyall")) {
+		if (args[0].equals("msg") || args[0].equals("message")) {
+			Permission.COMMAND_MESSAGE.handle(sender);
+			if (args.length == 1) {
+				sender.sendMessage(ChatColor.YELLOW + "/train message [name] [text...]");
+			} else if (args.length == 2) {
+				String value = TrainCarts.messageShortcuts.get(args[1]);
+				if (value == null) {
+					sender.sendMessage(ChatColor.RED + "No shortcut is set for key '" + args[1] + "'");
+				} else {
+					sender.sendMessage(ChatColor.GREEN + "Shortcut value of '" + args[1] + "' = " + ChatColor.WHITE + value);
+				}
+			} else {
+				StringBuilder valueBuilder = new StringBuilder(100);
+				for (int i = 2; i < args.length; i++) {
+					if (i != 2) {
+						valueBuilder.append(' ');
+					}
+					valueBuilder.append(args[i]);
+				}
+				String value = StringUtil.ampToColor(valueBuilder.toString());
+				TrainCarts.messageShortcuts.remove(args[1]);
+				TrainCarts.messageShortcuts.add(args[1], value);
+				TrainCarts.plugin.saveShortcuts();
+				sender.sendMessage(ChatColor.GREEN + "Shortcut '" + args[1] + "' set to: " + ChatColor.WHITE + value);
+			}
+			return true;
+		} else if (args[0].equals("removeall") || args[0].equals("destroyall")) {
 			Permission.COMMAND_DESTROYALL.handle(sender);
 			if (args.length == 2) {
 				String cname = args[1].toLowerCase();

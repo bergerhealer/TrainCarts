@@ -95,7 +95,16 @@ public class TrainCarts extends PluginBase {
 
 	public static TrainCarts plugin;
 	private Task signtask, cleanupTask;
+	private FileConfiguration config;
 	private Map<String, ItemParser[]> parsers = new HashMap<String, ItemParser[]>();
+
+	/**
+	 * Writes the latest changes in message shortcuts to file
+	 */
+	public void saveShortcuts() {
+		messageShortcuts.save(config.getNode("messageShortcuts"));
+		config.save();
+	}
 
 	public ItemParser[] getParsers(String key) {
 		ItemParser[] rval = parsers.get(key.toLowerCase());
@@ -107,7 +116,7 @@ public class TrainCarts extends PluginBase {
 	}
 
 	public void loadConfig() {
-		FileConfiguration config = new FileConfiguration(this);
+		config = new FileConfiguration(this);
 
 		double exitx, exity, exitz;
 		config.load();
