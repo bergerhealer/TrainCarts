@@ -34,7 +34,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 
 	public MinecartMember getMember() {
-		return Conversion.convert(getTracker(), MinecartMember.class);
+		return (MinecartMember) Conversion.toEntityHandle.convert(getTracker());
 	}
 
 	@Override
