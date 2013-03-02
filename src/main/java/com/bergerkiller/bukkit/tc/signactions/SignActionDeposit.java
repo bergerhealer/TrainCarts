@@ -26,7 +26,7 @@ import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
 public class SignActionDeposit extends SignAction {
 
-	public static int depositInFurnace(Inventory from, Inventory to, Furnace toFurnace, ItemParser parser, boolean parserIsFuelHalf) {
+	public static int depositInFurnace(Inventory from, Inventory to, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
 		List<ItemParser> heatables = new ArrayList<ItemParser>();
 		List<ItemParser> fuels = new ArrayList<ItemParser>();
 		if (!parser.hasType()) {
@@ -55,7 +55,7 @@ public class SignActionDeposit extends SignAction {
 			boolean heatable = RecipeUtil.isHeatableItem(parser.getTypeId());
 			boolean fuel = RecipeUtil.isFuelItem(parser.getTypeId());
 			if (heatable && fuel) {
-				if (parserIsFuelHalf) {
+				if (isFuelPreferred) {
 					fuels.add(parser);
 				} else {
 					heatables.add(parser);
@@ -158,10 +158,17 @@ public class SignActionDeposit extends SignAction {
 
 		//get item parsers to use for transferring
 		ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
-		int furnaceFuelOffset = 0; // 0 by default, sees both lines as fuel
-		if (!info.getLine(2).isEmpty() && !info.getLine(3).isEmpty()) {
-			// Only second line is seen as fuel
-			furnaceFuelOffset = Util.getParsers(info.getLine(2)).length;
+		final int fuelHalfIndex;
+		if (info.getLine(2).isEmpty()) {
+			// Only line 3 is used - always fuel
+			fuelHalfIndex = 0;
+		} else if (info.getLine(3).isEmpty()) {
+			// Only line 2 is used - always heatable
+			fuelHalfIndex = Integer.MAX_VALUE;
+		} else {
+			// Neither lines are empty
+			// Parsers starting at the second line are for fuel
+			fuelHalfIndex = Util.getParsers(info.getLine(2)).length;
 		}
 
 		// Go through all the inventories to deposit items in
@@ -182,7 +189,7 @@ public class SignActionDeposit extends SignAction {
 				ItemParser p = parsers[i];
 				if (block instanceof Furnace) {
 					// Deposit into fuel and heatable slots
-					amount = depositInFurnace(from, inv, (Furnace) block, p, i >= furnaceFuelOffset);
+					amount = depositInFurnace(from, inv, (Furnace) block, p, i >= fuelHalfIndex);
 				} else {
 					// Collect all contents
 					amount = ItemUtil.transfer(from, inv, p, p.getAmount());

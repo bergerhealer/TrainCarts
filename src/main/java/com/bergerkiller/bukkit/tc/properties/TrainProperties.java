@@ -29,6 +29,9 @@ import com.bergerkiller.bukkit.tc.utils.SoftReference;
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
 	private static final long serialVersionUID = 1L;
 	public static final TrainProperties EMPTY = new TrainProperties("");
+	static {
+		EMPTY.add(CartProperties.EMPTY);
+	}
 
 	protected String trainname;	
 	private String displayName;

@@ -136,7 +136,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 	 */
 	public static MinecartMember getFromUID(UUID uuid) {
 		for (org.bukkit.World world : WorldUtil.getWorlds()) {
-			MinecartMember member = CommonUtil.tryCast(EntityUtil.getEntity(world, uuid), MinecartMember.class);
+			MinecartMember member = MemberConverter.toMember.convert(EntityUtil.getEntity(world, uuid));
 			if (member != null && !member.isUnloaded()) {
 				return member;
 			}
@@ -146,14 +146,6 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 
 	public static MinecartMember get(Object o) {
 		return MemberConverter.toMember.convert(o);
-	}
-
-	public static MinecartMember[] getAll(Object... objects) {
-		MinecartMember[] rval = new MinecartMember[objects.length];
-		for (int i = 0; i < rval.length; i++) {
-			rval[i] = get(objects[i]);
-		}
-		return rval;
 	}
 
 	/**

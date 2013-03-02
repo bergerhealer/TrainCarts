@@ -216,6 +216,10 @@ public class Util {
 	public static ItemParser[] getParsers(final String items) {
 		List<ItemParser> parsers = new ArrayList<ItemParser>();
 		for (String type : items.split(";")) {
+			type = type.trim();
+			if (type.isEmpty()) {
+				continue;
+			}
 			boolean groupedMult = false;
 			int amount = -1;
 			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*", "_");

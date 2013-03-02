@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -24,6 +25,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.collections.EntryList;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -48,6 +50,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 public class MinecartGroup extends MinecartGroupStore {
 	private static final long serialVersionUID = 3;
 
+	private static final EntryList<IntVector3, MinecartMember> blockSpaceBuffer = new EntryList<IntVector3, MinecartMember>();
 	private Map<IntVector3, MinecartMember> memberBlockSpace = new HashMap<IntVector3, MinecartMember>();
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
@@ -179,7 +182,8 @@ public class MinecartGroup extends MinecartGroupStore {
 	public void updateActiveSigns() {
 		this.needsSignRefresh = false;
 		World world = this.getWorld();
-		for (Map.Entry<IntVector3, MinecartMember> entry : this.memberBlockSpace.entrySet()) {
+		blockSpaceBuffer.addAll(this.memberBlockSpace.entrySet());
+		for (Entry<IntVector3, MinecartMember> entry : blockSpaceBuffer) {
 			IntVector3 p = entry.getKey();
 			Block block = world.getBlockAt(p.x, p.y, p.z);
 			if (Util.ISTCRAIL.get(block)) {
@@ -188,6 +192,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				}
 			}
 		}
+		blockSpaceBuffer.clear();
 	}
 
 	/**
@@ -803,7 +808,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	 * @return member at the position, or null if not found
 	 */
 	public MinecartMember getAt(IntVector3 position) {
-		return this.memberBlockSpace.get(new IntVector3(position.x, position.y, position.z));
+		return this.memberBlockSpace.get(position);
 	}
 
 	/**
