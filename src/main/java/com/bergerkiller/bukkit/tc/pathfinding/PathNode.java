@@ -3,7 +3,10 @@ package com.bergerkiller.bukkit.tc.pathfinding;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.block.Block;
@@ -138,12 +141,22 @@ public class PathNode {
 		this.location = location;
 		this.name = name == null ? location.toString() : name;
 	}
-	
+
 	public int index;
 	public final String name;
 	public final BlockLocation location;
-	private final Map<PathNode, PathConnection> neighbours = new HashMap<PathNode, PathConnection>(2);
+	private final List<PathConnection> neighbors = new ArrayList<PathConnection>(3);
 	private int lastDistance;
+	private PathConnection lastTaken;
+
+	/**
+	 * Gets whether this Path Node has a special name assigned which differs from the default (location)
+	 * 
+	 * @return True if named, False if not
+	 */
+	public boolean isNamed() {
+		return !this.name.equals(this.location.toString());
+	}
 
 	/**
 	 * Tries to find a connection from this node to the node specified
@@ -166,29 +179,63 @@ public class PathNode {
 		for (PathNode node : nodes.values()) {
 			node.lastDistance = Integer.MAX_VALUE;
 		}
-		return this.findConnectionRecursive(0, destination);
-	}
-
-	private PathConnection findConnectionRecursive(int currentDistance, PathNode destination) {
-		if (this.lastDistance < currentDistance) {
-			return null;
-		}
-		this.lastDistance = currentDistance;
-		PathConnection conn = this.neighbours.get(destination);
-		if (conn == null) {
-			int distance = Integer.MAX_VALUE;
-			for (Map.Entry<PathNode, PathConnection> connection : this.neighbours.entrySet()) {
-				final int neighDistance = currentDistance + connection.getValue().distance;
-				PathConnection neighConn = connection.getKey().findConnectionRecursive(neighDistance, destination);
-				if (neighConn != null) {
-					final int toDist = neighDistance + neighConn.distance;
-					if (toDist < distance) {
-						conn = new PathConnection(distance = toDist, connection.getValue().direction, destination);
-					}
-				}
+		int maxDistance = Integer.MAX_VALUE;
+		int distance;
+		for (PathConnection connection : this.neighbors) {
+			distance = getDistanceTo(connection, 0, maxDistance, destination);
+			if (maxDistance > distance) {
+				maxDistance = distance;
+				this.lastTaken = connection;
 			}
 		}
-		return conn;
+		if (this.lastTaken == null) {
+			return null;
+		} else {
+			return new PathConnection(destination, maxDistance, this.lastTaken.direction);
+		}
+	}
+
+	/**
+	 * Tries to find the exact route (all nodes) to reach a destination from this node
+	 * 
+	 * @param destination to reach
+	 * @return the route taken, or an empty array if none could be found
+	 */
+	public PathNode[] findRoute(PathNode destination) {
+		if (findConnection(destination) == null) {
+			return new PathNode[0];
+		}
+		List<PathNode> route = new ArrayList<PathNode>();
+		route.add(this);
+		PathConnection conn = this.lastTaken;
+		while (conn != null) {
+			route.add(conn.destination);
+			conn = conn.destination.lastTaken;
+		}
+		return route.toArray(new PathNode[0]);
+	}
+
+	private static int getDistanceTo(PathConnection conn, int currentDistance, int maxDistance, PathNode destination) {
+		final PathNode node = conn.destination;
+		currentDistance += conn.distance;
+		if (destination == node) {
+			return currentDistance;
+		}
+		// Initial distance check before continuing
+		if (node.lastDistance < currentDistance || currentDistance > maxDistance) {
+			return Integer.MAX_VALUE;
+		}
+		node.lastDistance = currentDistance;
+		// Check all neighbors and obtain the lowest distance recursively
+		int distance;
+		for (PathConnection connection : node.neighbors) {
+			distance = getDistanceTo(connection, currentDistance, maxDistance, destination);
+			if (maxDistance > distance) {
+				maxDistance = distance;
+				node.lastTaken = connection;
+			}
+		}
+		return maxDistance;
 	}
 
 	/**
@@ -200,18 +247,36 @@ public class PathNode {
 	 * @return The connection that was made
 	 */
 	public PathConnection addNeighbour(final PathNode to, final int distance, final BlockFace direction) {
-		PathConnection conn = neighbours.get(to);
-		if (conn == null || conn.distance > distance) {
-			conn = new PathConnection(distance, direction, to);
-			neighbours.put(to, conn);
+		PathConnection conn;
+		Iterator<PathConnection> iter = this.neighbors.iterator();
+		while (iter.hasNext()) {
+			conn = iter.next();
+			if (conn.destination == to) {
+				if (conn.distance <= distance) {
+					// Lower distance is contained - all done
+					return conn;
+				} else {
+					// Higher distance is contained - remove old element
+					iter.remove();
+					break;
+				}
+			}
 		}
+		// Add a new one
+		conn = new PathConnection(to, distance, direction);
+		this.neighbors.add(conn);
 		return conn;
 	}
 
 	public void clear() {
-		this.neighbours.clear();
+		this.neighbors.clear();
 		for (PathNode node : nodes.values()) {
-			node.neighbours.remove(this);
+			Iterator<PathConnection> iter = node.neighbors.iterator();
+			while (iter.hasNext()) {
+				if (iter.next().destination == this) {
+					iter.remove();
+				}
+			}
 		}
 	}
 
@@ -251,11 +316,9 @@ public class PathNode {
 				}
 				//generating connections
 				for (PathNode node : parr) {
-					PathConnection conn;
 					int ncount = stream.readInt();
 					for (int i = 0 ; i < ncount; i++) {
-						conn = new PathConnection(stream, parr[stream.readInt()]);
-						node.neighbours.put(conn.destination, conn);
+						node.neighbors.add(new PathConnection(parr[stream.readInt()], stream));
 					}
 				}
 			}
@@ -282,8 +345,8 @@ public class PathNode {
 				}
 				//write out connections
 				for (PathNode node : nodes.values()) {
-					stream.writeInt(node.neighbours.size());
-					for (PathConnection conn : node.neighbours.values()) {
+					stream.writeInt(node.neighbors.size());
+					for (PathConnection conn : node.neighbors) {
 						conn.writeTo(stream);
 					}
 				}

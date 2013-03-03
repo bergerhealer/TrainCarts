@@ -51,6 +51,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.displayName = this.trainname = trainname;
 	}
 
+	@Override
+	public String getTypeName() {
+		return "train";
+	}
+
 	/**
 	 * Gets the Group associated with these Properties
 	 * 
@@ -412,6 +417,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public void clearDestination() {
 		for (CartProperties prop : this) {
 			prop.clearDestination();
+		}
+	}
+
+	@Override
+	public String getLastPathNode() {
+		return this.isEmpty() ? "" : this.get(0).getLastPathNode();
+	}
+
+	@Override
+	public void setLastPathNode(String nodeName) {
+		for (CartProperties cprop : this) {
+			cprop.setLastPathNode(nodeName);
 		}
 	}
 

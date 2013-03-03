@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -28,7 +29,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
-	public static final CartProperties EMPTY = new CartProperties(UUID.randomUUID(), TrainProperties.EMPTY);
+	public static final CartProperties EMPTY = new CartProperties(UUID.randomUUID(), null);
 
 	private final UUID uuid;
 	private final Set<String> owners = new HashSet<String>();
@@ -38,6 +39,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private boolean allowPlayerEnter = true;
 	private String enterMessage = null;
 	private String destination = "";
+	private String lastPathNode = "";
 	private boolean isPublic = true;
 	private boolean pickUp = false;
 	private SoftReference<MinecartMember> member = new SoftReference<MinecartMember>();
@@ -50,6 +52,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
 	public TrainProperties getTrainProperties() {
 		return this.group;
+	}
+
+	@Override
+	public String getTypeName() {
+		return "cart";
 	}
 
 	public MinecartMember getMember() {
@@ -350,6 +357,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 
 	@Override
+	public String getLastPathNode() {
+		return this.lastPathNode;
+	}
+
+	@Override
+	public void setLastPathNode(String nodeName) {
+		this.lastPathNode = nodeName;
+	}
+
+	@Override
 	public void parseSet(String key, String arg) {
 		if (key.equals("addtag")) {
 			this.addTags(arg);
@@ -403,13 +420,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			this.tags.add(tag);
 		}
 		this.destination = node.get("destination", this.destination);
+		this.lastPathNode = node.get("lastPathNode", this.lastPathNode);
 		this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
 		this.isPublic = node.get("isPublic", this.isPublic);
 		this.pickUp = node.get("pickUp", this.pickUp);
 		for (String blocktype : node.getList("blockBreakTypes", String.class)) {
 			Material mat = ParseUtil.parseMaterial(blocktype, null);
-			if (mat != null) this.blockBreakTypes.add(mat);
+			if (mat != null) {
+				this.blockBreakTypes.add(mat);
+			}
 		}
 	}
 
@@ -446,6 +466,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			}
 		}
 		node.set("destination", this.hasDestination() ? this.destination : null);
+		node.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
 	}
 
@@ -468,4 +489,5 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	public void setPlayersExit(boolean state) {
 		this.allowPlayerExit = state;
 	}
+
 }

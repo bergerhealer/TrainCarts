@@ -158,6 +158,9 @@ public class CartCommands {
 					}
 				}
 			}
+		} else if (cmd.equals("path") || cmd.equals("route") || cmd.equals("pathinfo")) {
+			Permission.COMMAND_PATHINFO.handle(p);
+			Commands.showPathInfo(p, prop);
 		} else {
 			if (!cmd.equals("help") && !cmd.equals("?")) {
 				p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");

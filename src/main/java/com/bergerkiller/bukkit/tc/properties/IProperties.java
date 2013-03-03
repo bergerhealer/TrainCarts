@@ -13,6 +13,13 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 public interface IProperties {
 
 	/**
+	 * Gets the type name (train/cart) of these properties
+	 * 
+	 * @return the type name, 'train' or 'cart'
+	 */
+	public String getTypeName();
+
+	/**
 	 * Tests if the tag specified matches one of the tags set
 	 * 
 	 * @param tag to match
@@ -135,6 +142,20 @@ public interface IProperties {
 	 * @param destination to set to
 	 */
 	public void setDestination(String destination);
+
+	/**
+	 * Gets the name of the last path finding node that was visited
+	 * 
+	 * @return last path node name
+	 */
+	public String getLastPathNode();
+
+	/**
+	 * Sets the name of the last path finding node that was visited
+	 * 
+	 * @param nodeName to set to
+	 */
+	public void setLastPathNode(String nodeName);
 
 	/**
 	 * Gets the destination

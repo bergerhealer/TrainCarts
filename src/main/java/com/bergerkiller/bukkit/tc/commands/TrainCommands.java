@@ -300,6 +300,9 @@ public class TrainCommands {
 					}
 				}
 			}
+		} else if (cmd.equals("path") || cmd.equals("route") || cmd.equals("pathinfo")) {
+			Permission.COMMAND_PATHINFO.handle(p);
+			Commands.showPathInfo(p, prop);
 		} else {
 			if (!cmd.equals("help") && !cmd.equals("?")) {
 				p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
@@ -310,7 +313,7 @@ public class TrainCommands {
 		prop.tryUpdate();
 		return true;
 	}
-	
+
 	public static MessageBuilder help(MessageBuilder builder) {
 		builder.green("Available commands: ").yellow("/train ").red("[info");
 		builder.setSeparator(ChatColor.WHITE, "/").setIndent(10);
@@ -319,7 +322,7 @@ public class TrainCommands {
 		builder.red("pickup").red("break").red("default").red("rename").red("speedlimit").red("setcollide").red("slowdown");
 		return builder.red("pushplayers").red("pushmobs").red("pushmisc").setSeparator(null).red("]");
 	}
-		
+
 	public static void info(Player p, TrainProperties prop) {
 		p.sendMessage(" ");
 		if (!prop.isDirectOwner(p)) {

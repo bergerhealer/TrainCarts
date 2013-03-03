@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
 
 public class SignActionSwitcher extends SignAction {
 	private BlockMap<AtomicInteger> switchedTimes = new BlockMap<AtomicInteger>();
@@ -143,10 +144,15 @@ public class SignActionSwitcher extends SignAction {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {
 				String destination = null;
+				IProperties prop = null;
 				if (doCart && info.hasMember()) {
-					destination = info.getMember().getProperties().getDestination();
+					prop = info.getMember().getProperties();
 				} else if (doTrain && info.hasGroup()) {
-					destination = info.getGroup().getProperties().getDestination();
+					prop = info.getGroup().getProperties();
+				}
+				if (prop != null) {
+					destination = prop.getDestination();
+					prop.setLastPathNode(node.name);
 				}
 				if (!LogicUtil.nullOrEmpty(destination)) {
 					if (PathProvider.isProcessing()) {
