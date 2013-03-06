@@ -19,7 +19,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class Util {
@@ -184,31 +183,6 @@ public class Util {
 		return null;
 	}
 
-	public static void addItemsToString(Collection<Integer> itemIds, StringBuilder builder) {
-		for (int type : itemIds) {
-			if (builder.length() > 0) {
-				builder.append(';');
-			}
-			Material mat = Material.getMaterial(type);
-			if (mat == null) {
-				builder.append(type);
-			} else {
-				builder.append(mat.toString().toLowerCase());
-			}
-		}
-	}
-
-	public static String getFurnaceItemString(boolean burnables, boolean heatables) {
-		StringBuilder tmp = new StringBuilder();
-		if (burnables) {
-			addItemsToString(RecipeUtil.getFuelTimes().keySet(), tmp);
-		}
-		if (heatables) {
-			addItemsToString(RecipeUtil.getHeatableItems(), tmp);
-		}
-		return tmp.toString();
-	}
-
 	public static ItemParser[] getParsers(String... items) {
 		return getParsers(StringUtil.combine(";", items));
 	}
@@ -272,9 +246,6 @@ public class Util {
 			return ISTCRAIL.get(from) ? from : null;
 		}
 	}
-	public static boolean isRails(Block block, BlockFace direction) {
-		return getRailsBlock(block.getRelative(direction)) != null;
-	}
 
 	/**
 	 * Parses a long time value to a readable time String
@@ -309,14 +280,18 @@ public class Util {
 		return rval.toString();
 	}
 
+	private static boolean isRailsAt(Block block, BlockFace direction) {
+		return getRailsBlock(block.getRelative(direction)) != null;
+	}
+
 	/**
 	 * This will return:
 	 * South or west if it's a straight piece
 	 * Self if it is a cross-intersection
 	 */
 	public static BlockFace getPlateDirection(Block plate) {
-		boolean s = isRails(plate, BlockFace.NORTH) || isRails(plate, BlockFace.SOUTH);
-		boolean w = isRails(plate, BlockFace.EAST) || isRails(plate, BlockFace.WEST);
+		boolean s = isRailsAt(plate, BlockFace.NORTH) || isRailsAt(plate, BlockFace.SOUTH);
+		boolean w = isRailsAt(plate, BlockFace.EAST) || isRailsAt(plate, BlockFace.WEST);
 		if (s && w) {
 			return BlockFace.SELF;
 		} else if (w) {

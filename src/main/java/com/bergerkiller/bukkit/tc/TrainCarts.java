@@ -42,6 +42,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -288,21 +289,35 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
 		ConfigurationNode itemshort = config.getNode("itemShortcuts");
 		parsers.clear();
-		String burnables = itemshort.get("fuel", "");
-		if (burnables.isEmpty()) {
-			burnables = Util.getFurnaceItemString(true, false);
-			itemshort.set("fuel", burnables);
+
+		// ================= Defaults ===============
+		if (!itemshort.contains("fuel")) {
+			itemshort.set("fuel", MaterialUtil.ISFUEL.toString());
 		}
-		parsers.put("fuel", Util.getParsers(burnables));
-		String heatables = itemshort.get("heatable", "");
-		if (heatables.isEmpty()) {
-			heatables = Util.getFurnaceItemString(false, true);
-			itemshort.set("heatable", heatables);
+		if (!itemshort.contains("heatable")) {
+			itemshort.set("heatable", MaterialUtil.ISHEATABLE.toString());
 		}
-		parsers.put("heatable", Util.getParsers(heatables));
+		if (!itemshort.contains("armor")) {
+			itemshort.set("armor", MaterialUtil.ISARMOR.toString());
+		}
+		if (!itemshort.contains("sword")) {
+			itemshort.set("armor", MaterialUtil.ISSWORD.toString());
+		}
+		if (!itemshort.contains("boots")) {
+			itemshort.set("boots", MaterialUtil.ISBOOTS.toString());
+		}
+		if (!itemshort.contains("leggings")) {
+			itemshort.set("leggins", MaterialUtil.ISLEGGINGS.toString());
+		}
+		if (!itemshort.contains("chestplate")) {
+			itemshort.set("chestplate", MaterialUtil.ISCHESTPLATE.toString());
+		}
+		if (!itemshort.contains("helmet")) {
+			itemshort.set("helmet", MaterialUtil.ISHELMET.toString());
+		}
+		// ===========================================
+
 		for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
-			if (entry.getKey().equalsIgnoreCase("fuel")) continue;
-			if (entry.getKey().equalsIgnoreCase("heatable")) continue;
 			parsers.put(entry.getKey().toLowerCase(), Util.getParsers(entry.getValue()));
 			itemshort.setRead(entry.getKey());
 		}

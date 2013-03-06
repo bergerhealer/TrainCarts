@@ -40,7 +40,7 @@ public class StatementPlayerHand extends StatementItems {
 		for (MinecartMember member : group) {
 			if (member.hasPlayerPassenger()) {
 				org.bukkit.inventory.ItemStack item = member.getPlayerInventory().getItemInHand();
-				if (LogicUtil.nullOrEmpty(item)) {
+				if (!LogicUtil.nullOrEmpty(item)) {
 					items.add(item);
 				}
 			}

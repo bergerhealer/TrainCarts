@@ -56,7 +56,7 @@ public class StatementItems extends Statement {
 				itemnamefixed = itemname;
 			}
 			for (ItemParser parser : Util.getParsers(itemnamefixed)) {
-				count = ItemUtil.getItemCount(inv, parser.hasType() ? parser.getTypeId() : null, parser.hasData() ? (int) parser.getData() : null);
+				count = ItemUtil.getItemCount(inv, parser.getTypeId(), parser.getData());
 				if (opidx == -1) {
 					if (parser.hasAmount()) {
 						if (count >= parser.getAmount()) {
