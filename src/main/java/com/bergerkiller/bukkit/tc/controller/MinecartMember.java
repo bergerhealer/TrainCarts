@@ -41,10 +41,11 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -67,6 +68,7 @@ public class MinecartMember extends MinecartMemberStore {
 	private int teleportImmunityTick = 0;
 	private boolean needsUpdate = false;
 	private boolean ignoreAllCollisions = false;
+	private int collisionEnterTimer = 0;
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
@@ -120,6 +122,22 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 
+	/**
+	 * Gets the packet to spawn this Minecart Member
+	 * 
+	 * @return spawn packet
+	 */
+	public CommonPacket getSpawnPacket() {
+		final int type = Conversion.toMinecartTypeId.convert(getType());
+		CommonPacket p = new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
+		p.write(PacketFields.VEHICLE_SPAWN.x, this.getTracker().xLoc);
+		p.write(PacketFields.VEHICLE_SPAWN.y, this.getTracker().yLoc);
+		p.write(PacketFields.VEHICLE_SPAWN.z, this.getTracker().zLoc);
+		p.write(PacketFields.VEHICLE_SPAWN.yaw, (byte) this.getTracker().xRot);
+		p.write(PacketFields.VEHICLE_SPAWN.pitch, (byte) this.getTracker().yRot);
+		return p;
+	}
+
 	@Override
 	public void onPhysicsStart() {
 		//subtract times
@@ -129,6 +147,9 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 		if (this.teleportImmunityTick > 0) {
 			this.teleportImmunityTick--;
+		}
+		if (this.collisionEnterTimer > 0) {
+			this.collisionEnterTimer--;
 		}
 		super.onPhysicsStart();
 	}
@@ -928,18 +949,41 @@ public class MinecartMember extends MinecartMemberStore {
 		collisionIgnoreTimes.put(entity.getUniqueId(), new AtomicInteger(ticktime));
 	}
 
+	/**
+	 * Checks whether mobs/players are allowed to automatically (by collision) enter this Minecart
+	 * 
+	 * @return True if entities can enter, False if not
+	 */
+	public boolean canCollisionEnter() {
+		return collisionEnterTimer == 0;
+	}
+
+	/**
+	 * Resets the enter collision timer, waiting the tick time as configured before
+	 * taking in new entities when colliding with them.
+	 */
+	public void resetCollisionEnter() {
+		this.collisionEnterTimer = TrainCarts.collisionReEnterDelay;
+	}
+
+	/**
+	 * Ejects the passenger of this Minecart
+	 */
 	public void eject() {
 		this.getMinecart().eject();
+		this.resetCollisionEnter();
 	}
+
+	/**
+	 * Ejects the passenger of this Minecart and teleports him to the location specified
+	 * 
+	 * @param to location to eject/teleport to
+	 */
 	public void eject(final Location to) {
 		if (this.hasPassenger()) {
-			final Entity passenger = this.getPassenger();
+			Entity passenger = this.getPassenger();
 			this.eject();
-			CommonUtil.nextTick(new Runnable() {
-				public void run() {
-					passenger.teleport(to);
-				}
-			});
+			EntityUtil.teleportNextTick(passenger, to);
 		}
 	}
 	public boolean connect(MinecartMember with) {

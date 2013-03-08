@@ -24,10 +24,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.EntityMinecartBase;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -801,16 +798,6 @@ public abstract class NativeMinecartMember extends EntityMinecartBase {
 			this.group().stop();
 		}
 		return true;
-	}
-
-	/**
-	 * Gets the packet to spawn this Minecart Member
-	 * 
-	 * @return spawn packet
-	 */
-	public CommonPacket getSpawnPacket() {
-		final int type = Conversion.toMinecartTypeId.convert(getType());
-		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
 	}
 
 	public BlockFace getRailDirection() {

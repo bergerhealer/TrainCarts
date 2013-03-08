@@ -38,7 +38,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 
 	@Override
-	public void onTick() {
+	public synchronized void onTick() {
 		try {
 			this.tracked = true;
 			final MinecartMember tracker = getMember();
@@ -122,7 +122,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 
 	public boolean needsTeleport() {
-		return ++this.ticksNoTeleport > 400;
+		return ++this.ticksNoTeleport > 200;
 	}
 
 	public boolean needsLocationSync() {
@@ -218,26 +218,21 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 		}
 	}
 
-	public void doRespawn() {
-		for (Player player : this.getViewers()) {
-			doRespawn(player);
-		}
-	}
-
-	public void doRespawn(Player player) {
-		this.doDestroy(player);
-		this.doSpawn(player);
-	}
-
 	public void doSpawn(Player player) {
-		PacketUtil.sendCommonPacket(player, getSpawnPacket());
+		// Spawn message
+		PacketUtil.sendCommonPacket(player, getMember().getSpawnPacket());
 
 		// Meta data
 		PacketUtil.sendPacket(player, PacketFields.ENTITY_METADATA.newInstance(getTrackerId(), getTrackerMetaData(), true));
 
-		// Velocity, positioning and passenger
+		// Velocity
 		PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getTracker()));
-		PacketUtil.sendPacket(player, getTeleportPacket());
+		//PacketUtil.sendPacket(player, getTeleportPacket());
+
+		// Passenger (is needed in case of respawn)
+		if (getMember().hasPassenger()) {
+			this.broadcastPacket(PacketFields.ATTACH_ENTITY.newInstance(getMember().getPassenger(), getTracker()));
+		}
 	}
 
 	@Override
@@ -247,14 +242,14 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	}
 
 	@Override
-	public void removeViewer(Player player) {
+	public synchronized void removeViewer(Player player) {
 		if (this.getViewers().remove(player)) {
 			this.doDestroy(player);
 		}
 	}
 
 	@Override
-	public void updatePlayer(Player player) {
+	public synchronized void updatePlayer(Player player) {
 		if (this.getTracker().isDead()) {
 			return;
 		}

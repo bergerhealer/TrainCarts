@@ -187,7 +187,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			IntVector3 p = entry.getKey();
 			Block block = world.getBlockAt(p.x, p.y, p.z);
 			if (Util.ISTCRAIL.get(block)) {
-				for(Block sign : Util.getSignsFromRails(block)) {
+				for (Block sign : Util.getSignsFromRails(block)) {
 					entry.getValue().addActiveSign(sign);
 				}
 			}
@@ -900,17 +900,27 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			// Perform block updates prior to doing the movement calculations
 			boolean blockChanged = false;
+			// First initialize all blocks and handle block changes
 			for (MinecartMember m : this) {
 				m.onPhysicsStart();
 				blockChanged |= m.hasBlockChanged();
 			}
 			if (blockChanged) {
 				this.updateBlockSpace();
+				blockChanged = false;
 			}
+			// Perform block change checks, also take care of potential new block changes
 			for (MinecartMember m : this) {
 				m.onPhysicsBlockChange();
+				blockChanged |= m.hasBlockChanged();
 			}
+			if (blockChanged) {
+				this.updateBlockSpace();
+				blockChanged = false;
+			}
+			// If signs need to be refreshed (as requested), do so
 			if (this.needsSignRefresh) {
+				// Update the signs
 				this.updateActiveSigns();
 			}
 

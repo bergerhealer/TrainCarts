@@ -136,7 +136,9 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
-		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) return;
+		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) {
+			return;
+		}
 		if (!event.isCancelled() && event.getVehicle() instanceof Minecart) {
 			Minecart m = (Minecart) event.getVehicle();
 			Location mloc = m.getLocation();
@@ -147,14 +149,19 @@ public class TCListener implements Listener {
 			//teleport
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {
-					if (e.isDead()) return;
+					if (e.isDead()) {
+						return;
+					}
 					loc.setYaw(e.getLocation().getYaw());
 					loc.setPitch(e.getLocation().getPitch());
 					e.teleport(loc);
 				}
 			});
 			MinecartMember mm = MinecartMember.get(m);
-			if (mm != null) mm.update();
+			if (mm != null) {
+				mm.resetCollisionEnter();
+				mm.update();
+			}
 		}
 	}
 

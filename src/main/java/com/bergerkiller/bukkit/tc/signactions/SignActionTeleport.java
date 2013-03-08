@@ -22,43 +22,43 @@ public class SignActionTeleport extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!TrainCarts.MyWorldsEnabled) return;
-		if (!info.getLine(0).equalsIgnoreCase("[portal]")) return;
-		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.hasGroup()) {
-			if (info.isPowered()) {
-				if (!info.hasRails()) return;
-				Portal portal = Portal.get(info.getLocation());
-				if (portal != null) {
-					String destname = portal.getDestinationName();
-					Location dest = Portal.getPortalLocation(destname, info.getGroup().getWorld().getName());
-					if (dest != null) {
-						//Teleport the ENTIRE train to the destination...
-						Block sign = dest.getBlock();
-						sign.getChunk(); //load the chunk
-						if (MaterialUtil.ISSIGN.get(sign)) {
-							BlockFace facing = BlockUtil.getFacing(sign);
-							BlockFace direction = facing;
-							Block destinationRail = Util.getRailsFromSign(sign);
-							if (destinationRail == null) {
-								return;
-							}
-							boolean isPlate = MaterialUtil.ISPRESSUREPLATE.get(destinationRail);
-							if (isPlate || MaterialUtil.ISRAILS.get(destinationRail)) {
-								//rail aligned at sign?
-								facing = FaceUtil.toRailsDirection(facing);
-								if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
-									//Allowed?
-									if (!this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
-										info.getGroup().teleportAndGo(destinationRail, direction);
-										this.teleportTimes.mark(sign);
-									}
-								}
-							}
+		if (!TrainCarts.MyWorldsEnabled || !info.getLine(0).equalsIgnoreCase("[portal]")) {
+			return;
+		}
+		if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.hasGroup() || !info.isPowered() || !info.hasRails()) {
+			return;
+		}
+		Portal portal = Portal.get(info.getLocation());
+		if (portal == null) {
+			return;
+		}
+		String destname = portal.getDestinationName();
+		Location dest = Portal.getPortalLocation(destname, info.getGroup().getWorld().getName());
+		if (dest != null) {
+			//Teleport the ENTIRE train to the destination...
+			Block sign = dest.getBlock();
+			sign.getChunk(); //load the chunk
+			if (MaterialUtil.ISSIGN.get(sign)) {
+				BlockFace facing = BlockUtil.getFacing(sign);
+				BlockFace direction = facing;
+				Block destinationRail = Util.getRailsFromSign(sign);
+				if (destinationRail == null) {
+					return;
+				}
+				boolean isPlate = MaterialUtil.ISPRESSUREPLATE.get(destinationRail);
+				if (isPlate || MaterialUtil.ISRAILS.get(destinationRail)) {
+					//rail aligned at sign?
+					facing = FaceUtil.toRailsDirection(facing);
+					if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
+						//Allowed?
+						if (!this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
+							info.getGroup().teleportAndGo(destinationRail, direction);
+							this.teleportTimes.mark(sign);
 						}
 					}
 				}
 			}
-		}	
+		}
 	}
 	@Override
 	public boolean build(SignChangeActionEvent event) {

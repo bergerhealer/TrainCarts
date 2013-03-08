@@ -86,6 +86,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean instantCreativeDestroy;
 	private static String currencyFormat;
 	public static double manualMovementSpeed;
+	public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
 
@@ -234,6 +235,9 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("currencyFormat", "\nThe currency Ticket signs will display in messages, %value% represents the displayed value");
 		currencyFormat = config.get("currencyFormat", "%value% Dollars");
 
+		config.setHeader("collisionReEnterDelay", "\nThe delay (in ticks) between ejecting and re-entering by collision (e.g. mobs auto-entering carts)");
+		collisionReEnterDelay = config.get("collisionReEnterDelay", collisionReEnterDelay);
+		
 		config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
 		config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");
 		config.addHeader("allowedBlockBreakTypes", "Others have to use one from this list");
@@ -301,7 +305,7 @@ public class TrainCarts extends PluginBase {
 			itemshort.set("armor", MaterialUtil.ISARMOR.toString());
 		}
 		if (!itemshort.contains("sword")) {
-			itemshort.set("armor", MaterialUtil.ISSWORD.toString());
+			itemshort.set("sword", MaterialUtil.ISSWORD.toString());
 		}
 		if (!itemshort.contains("boots")) {
 			itemshort.set("boots", MaterialUtil.ISBOOTS.toString());

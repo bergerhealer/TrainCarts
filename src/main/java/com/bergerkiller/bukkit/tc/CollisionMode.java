@@ -23,7 +23,7 @@ public enum CollisionMode {
 	public boolean execute(MinecartMember member, Entity entity) {
 		switch (this) {
 			case ENTER : 
-				if (!member.hasPassenger() && member.canBeRidden() && Util.canBePassenger(entity)) {
+				if (!member.hasPassenger() && member.canBeRidden() && Util.canBePassenger(entity) && member.canCollisionEnter()) {
 					member.setPassenger(entity);
 				}
 				return false;
