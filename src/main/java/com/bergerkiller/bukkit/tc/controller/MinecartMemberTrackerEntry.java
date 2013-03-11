@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	private int ticksNoTeleport = 0;
 	private Vector synchedVelocity = new Vector();
+	private int syncTimeout = 0;
 	public boolean isRemoved = false;
 	protected boolean tracked = false;
 	public static final long MIN_SYNC_INTERVAL = 10;
@@ -39,16 +40,24 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 
 	@Override
 	public synchronized void onTick() {
+		// TSync timeout - used to avoid error spam
+		if (syncTimeout > 0) {
+			syncTimeout--;
+			return;
+		}
 		try {
 			this.tracked = true;
-			final MinecartMember tracker = getMember();
-			if (tracker.isUnloaded()) {
+			final MinecartMember selfMember = getMember();
+			if (selfMember.isUnloaded()) {
 				this.sync();
 				return;
 			}
-			MinecartGroup group = tracker.getGroup();
+			// Sync the entire group?
+			final MinecartGroup group = selfMember.getGroup();
+			MinecartMemberTrackerEntry tracker;
 			for (MinecartMember member : group) {
-				if (!member.getTracker().tracked) {
+				tracker = member.getTracker();
+				if (tracker != null && !tracker.tracked) {
 					return;
 				}
 			}
@@ -64,6 +73,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 		} catch (Throwable t) {
 			TrainCarts.plugin.log(Level.SEVERE, "An exception occurred while tracking a minecart:");
 			TrainCarts.plugin.handle(t);
+			syncTimeout = 20;
 		}
 	}
 
@@ -74,7 +84,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 	 * Called from within the last tracked minecart in the group
 	 */
 	private void syncAll() {
-		MinecartGroup group = MemberConverter.toMember.convert(getTracker()).getGroup();
+		MinecartGroup group = getMember().getGroup();
 		MinecartMemberTrackerEntry headtracker = group.head().getTracker();
 		if (headtracker == null) {
 			return;
@@ -231,7 +241,7 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 
 		// Passenger (is needed in case of respawn)
 		if (getMember().hasPassenger()) {
-			this.broadcastPacket(PacketFields.ATTACH_ENTITY.newInstance(getMember().getPassenger(), getTracker()));
+			PacketUtil.sendPacket(player, PacketFields.ATTACH_ENTITY.newInstance(getMember().getPassenger(), getTracker()));
 		}
 	}
 

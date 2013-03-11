@@ -549,26 +549,32 @@ public class TCListener implements Listener {
 	 * @param signblock to send the change for
 	 * @param isPowered (updated) state of the change
 	 */
-	public void triggerRedstoneChange(Block signblock, boolean isPowered) {
-		final boolean wasPowered = poweredBlocks.contains(signblock);
-		SignActionEvent info = new SignActionEvent(signblock);
+	public void triggerRedstoneChange(final Block signblock, boolean isPowered) {
+		final SignActionEvent info = new SignActionEvent(signblock);
 		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-		// On/off events, ignore when no change of power
+		// Do not proceed if the sign disallows on/off changes
+		if (info.isPowerAlwaysOn()) {
+			return;
+		}
+		// Do not proceed if no on/off change happened
+		final boolean wasPowered = poweredBlocks.contains(signblock);
 		if (wasPowered == isPowered) {
 			return;
 		}
-		if (wasPowered) {
-			//no longer powered?
-			if (!info.isPowered()) {
+		// Invert the new power level if required
+		if (info.isPowerInverted()) {
+			isPowered = !isPowered;
+		}
+		// Powered mode has changed?
+		if (isPowered == info.isPowered()) {
+			// Update the powered blocks
+			if (wasPowered) {
 				poweredBlocks.remove(signblock);
-				SignAction.executeAll(info, SignActionType.REDSTONE_OFF);
-			}
-		} else {
-			//now powered?
-			if (info.isPowered()) {
+			} else {
 				poweredBlocks.add(signblock);
-				SignAction.executeAll(info, SignActionType.REDSTONE_ON);
 			}
+			// Fire an event
+			SignAction.executeAll(info, isPowered ? SignActionType.REDSTONE_ON : SignActionType.REDSTONE_OFF);
 		}
 	}
 }

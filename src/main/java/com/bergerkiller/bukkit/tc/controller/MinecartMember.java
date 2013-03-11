@@ -128,13 +128,17 @@ public class MinecartMember extends MinecartMemberStore {
 	 * @return spawn packet
 	 */
 	public CommonPacket getSpawnPacket() {
+		final MinecartMemberTrackerEntry tracker = this.getTracker();
 		final int type = Conversion.toMinecartTypeId.convert(getType());
-		CommonPacket p = new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
-		p.write(PacketFields.VEHICLE_SPAWN.x, this.getTracker().xLoc);
-		p.write(PacketFields.VEHICLE_SPAWN.y, this.getTracker().yLoc);
-		p.write(PacketFields.VEHICLE_SPAWN.z, this.getTracker().zLoc);
-		p.write(PacketFields.VEHICLE_SPAWN.yaw, (byte) this.getTracker().xRot);
-		p.write(PacketFields.VEHICLE_SPAWN.pitch, (byte) this.getTracker().yRot);
+		final CommonPacket p = new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
+		if (tracker != null) {
+			// Entity tracker is available - use it for the right position
+			p.write(PacketFields.VEHICLE_SPAWN.x, tracker.xLoc);
+			p.write(PacketFields.VEHICLE_SPAWN.y, tracker.yLoc);
+			p.write(PacketFields.VEHICLE_SPAWN.z, tracker.zLoc);
+			p.write(PacketFields.VEHICLE_SPAWN.yaw, (byte) tracker.xRot);
+			p.write(PacketFields.VEHICLE_SPAWN.pitch, (byte) tracker.yRot);
+		}
 		return p;
 	}
 
