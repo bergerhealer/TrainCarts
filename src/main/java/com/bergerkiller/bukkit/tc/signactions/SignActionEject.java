@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.util.Vector;
@@ -18,10 +17,12 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 public class SignActionEject extends SignAction {
 
 	@Override
+	public boolean match(SignActionEvent info) {
+		return info.isType("eject");
+	}
+
+	@Override
 	public boolean click(SignActionEvent info, Player player, Action action) {
-		if (!info.isType("eject")) {
-			return false;
-		}
 		MinecartMember member = MinecartMember.get(player.getVehicle());
 		if (member == null) {
 			return false;
@@ -32,10 +33,9 @@ public class SignActionEject extends SignAction {
 	}
 
 	public void eject(SignActionEvent info) {
-		//read from the sign
-		String[] offsettext = info.getLine(2).split("/");
-		String[] angletext = info.getLine(3).split("/");
+		// Read the offset
 		Vector offset = new Vector();
+		String[] offsettext = info.getLine(2).split("/");
 		if (offsettext.length == 3) {
 			offset.setX(ParseUtil.parseDouble(offsettext[0], 0.0));
 			offset.setY(ParseUtil.parseDouble(offsettext[1], 0.0));
@@ -47,44 +47,45 @@ public class SignActionEject extends SignAction {
 			offset.normalize().multiply(TrainCarts.maxEjectDistance);
 		}
 
-		float dyaw = 0F;
-		float dpitch = 0F;
+		// Read the rotation
+		float yaw = 0F;
+		float pitch = 0F;
+		String[] angletext = info.getLine(3).split("/");
 		if (angletext.length == 2) {
-			dyaw = (float) ParseUtil.parseDouble(angletext[0], 0.0);
-			dpitch = (float) ParseUtil.parseDouble(angletext[1], 0.0);
+			yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+			pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
 		} else if (angletext.length == 1) {
-			dyaw = (float) ParseUtil.parseDouble(angletext[0], 0.0);
+			yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
 		}
+
+		// Convert to sign-relative-space
 		float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
-		dyaw += signyawoffset + 90F;
-		
-		//convert to sign-relative-space
 		offset = MathUtil.rotate(signyawoffset, 0F, offset);
-		
-		//actually eject
+		yaw += signyawoffset + 90F;
+
+		// Actually eject
 		if (info.isTrainSign()) {
 			if (info.isRCSign()) {
 				for (MinecartGroup group : info.getRCTrainGroups()) {
 					for (MinecartMember mm : group) {
-						eject(mm, offset, dyaw, dpitch);
+						mm.eject(offset, yaw, pitch);
 					}
 				}
 			} else {
 				MinecartGroup group = info.getGroup();
 				if (group != null) {
 					for (MinecartMember mm : group) {
-						eject(mm, offset, dyaw, dpitch);
+						mm.eject(offset, yaw, pitch);
 					}
 				}
 			}
 		} else {
-			eject(info.getMember(), offset, dyaw, dpitch);
+			info.getMember().eject(offset, yaw, pitch);
 		}
 	}
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("eject")) return;
 		boolean isRemote = false;
 		if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
 		} else if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
@@ -98,30 +99,20 @@ public class SignActionEject extends SignAction {
 		}
 	}
 
-	private void eject(MinecartMember mm, Vector offset, float dyaw, float dpitch) {
-		Location loc = mm.getBlock().getLocation();
-		loc = loc.add(0.5, 1.5, 0.5).add(offset);
-		loc.setYaw(dyaw);
-		loc.setPitch(dpitch);
-		mm.eject(loc);
+	@Override
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isRCSign()) {
+				return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
+			} else {
+				return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
+			}
+		}
+		return false;
 	}
 
 	@Override
 	public boolean canSupportRC() {
 		return true;
 	}
-	@Override
-	public boolean build(SignChangeActionEvent event) {
-		if (event.getMode() != SignActionMode.NONE) {
-			if (event.isType("eject")) {
-				if (event.isRCSign()) {
-					return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
-				} else {
-					return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
-				}
-			}
-		}
-		return false;
-	}
-
 }

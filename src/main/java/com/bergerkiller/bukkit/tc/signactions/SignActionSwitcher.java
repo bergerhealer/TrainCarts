@@ -35,13 +35,12 @@ public class SignActionSwitcher extends SignAction {
 	}
 
 	@Override
-	public boolean overrideFacing() {
-		return true;
+	public boolean match(SignActionEvent info) {
+		return info.isType("switcher", "tag");
 	}
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("switcher", "tag")) return;
 		boolean doCart = false;
 		boolean doTrain = false;
 		if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
@@ -174,13 +173,16 @@ public class SignActionSwitcher extends SignAction {
 	}
 
 	@Override
+	public boolean overrideFacing() {
+		return true;
+	}
+
+	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (event.isType("switcher", "tag")) {
-			if (event.isCartSign()) {
-				return handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
-			} else if (event.isTrainSign()) {
-				return handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
-			}
+		if (event.isCartSign()) {
+			return handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
+		} else if (event.isTrainSign()) {
+			return handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
 		}
 		return false;
 	}

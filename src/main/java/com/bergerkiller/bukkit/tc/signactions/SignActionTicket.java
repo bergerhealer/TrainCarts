@@ -24,9 +24,12 @@ import static com.bergerkiller.bukkit.tc.TrainCarts.getCurrencyText;
 public class SignActionTicket extends SignAction {
 
 	@Override
+	public boolean match(SignActionEvent info) {
+		return TrainCarts.EssentialsEnabled && info.isType("ticket");
+	}
+
+	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("ticket")) return;
-		if (!TrainCarts.EssentialsEnabled) return;
 		final boolean isTrain;
 		if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
 			isTrain = false;
@@ -36,7 +39,7 @@ public class SignActionTicket extends SignAction {
 			return;
 		}
 		if ((info.hasMember() && info.isPowered())) {
-			Method method = getEconomicManager();
+			Method method = Methods.hasMethod() ? Methods.getMethod() : null;
 			if (method != null) {
 				double money;
 				if (info.getLine(3).isEmpty()) {
@@ -74,7 +77,6 @@ public class SignActionTicket extends SignAction {
 							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You bought a Ticket for " + getCurrencyText(money) + " .");
 						}
 					}
-						
 				}
 			}
 		}
@@ -83,14 +85,8 @@ public class SignActionTicket extends SignAction {
 	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.getMode() != SignActionMode.NONE) {
-			if (event.isType("ticket")) {
-				return handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
-			}
+			return handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
 		}
 		return false;
-	}
-
-	public Method getEconomicManager() {
-		return Methods.hasMethod() ? Methods.getMethod() : null;
 	}
 }

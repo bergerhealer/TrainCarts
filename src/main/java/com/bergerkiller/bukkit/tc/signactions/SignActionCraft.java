@@ -20,54 +20,57 @@ import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
 public class SignActionCraft extends SignAction {
 
 	@Override
-	public void execute(SignActionEvent info) {
-		if (info.isType("craft")) {
-			//parse the sign
-			boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
-			boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
-			if ((!docart && !dotrain) || !info.hasRailedMember() || !info.isPowered()) {
-				return;
-			}
+	public boolean match(SignActionEvent info) {
+		return info.isType("craft");
+	}
 
-			int radX, radY, radZ;
-			radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
-			BlockFace dir = info.getRailDirection();
-			if (FaceUtil.isAlongX(dir)) {
-				radX = 0;
-			} else if (FaceUtil.isAlongZ(dir)) {
-				radZ = 0;
-			}
-			World world = info.getWorld();
-			Block m = info.getRails();
-			int id;
-			Block w = null;
-			for (int x = -radX; x <= radX && w == null; x++) {
-				for (int y = -radY; y <= radY && w == null; y++) {
-					for (int z = -radZ; z <= radZ && w == null; z++) {
-						id = world.getBlockTypeIdAt(m.getX() + x, m.getY() + y, m.getZ() + z);
-						if (id == Material.WORKBENCH.getId()) {
-							w = m.getRelative(x, y, z);
-						}
+	@Override
+	public void execute(SignActionEvent info) {
+		//parse the sign
+		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
+		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
+		if ((!docart && !dotrain) || !info.hasRailedMember() || !info.isPowered()) {
+			return;
+		}
+
+		int radX, radY, radZ;
+		radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
+		BlockFace dir = info.getRailDirection();
+		if (FaceUtil.isAlongX(dir)) {
+			radX = 0;
+		} else if (FaceUtil.isAlongZ(dir)) {
+			radZ = 0;
+		}
+		World world = info.getWorld();
+		Block m = info.getRails();
+		int id;
+		Block w = null;
+		for (int x = -radX; x <= radX && w == null; x++) {
+			for (int y = -radY; y <= radY && w == null; y++) {
+				for (int z = -radZ; z <= radZ && w == null; z++) {
+					id = world.getBlockTypeIdAt(m.getX() + x, m.getY() + y, m.getZ() + z);
+					if (id == Material.WORKBENCH.getId()) {
+						w = m.getRelative(x, y, z);
 					}
 				}
 			}
-			if (w != null) {
-				//get the inventory to transfer in
-				Inventory inventory;
-				if (docart) {
-					if (!info.getMember().isStorageCart()) return;
-					inventory = info.getMember().getInventory();
-				} else {
-					inventory = info.getGroup().getInventory();
-				}
-				if (TrainCarts.showTransferAnimations) {
-					inventory = InventoryWatcher.convert(inventory, w, info.getMember());
-				}
+		}
+		if (w != null) {
+			//get the inventory to transfer in
+			Inventory inventory;
+			if (docart) {
+				if (!info.getMember().isStorageCart()) return;
+				inventory = info.getMember().getInventory();
+			} else {
+				inventory = info.getGroup().getInventory();
+			}
+			if (TrainCarts.showTransferAnimations) {
+				inventory = InventoryWatcher.convert(inventory, w, info.getMember());
+			}
 
-				// craft
-				for (ItemParser item : Util.getParsers(info.getLine(2), info.getLine(3))) {
-					RecipeUtil.craftItems(item, inventory);
-				}
+			// craft
+			for (ItemParser item : Util.getParsers(info.getLine(2), info.getLine(3))) {
+				RecipeUtil.craftItems(item, inventory);
 			}
 		}
 	}
@@ -81,5 +84,4 @@ public class SignActionCraft extends SignAction {
 		}
 		return false;
 	}
-
 }

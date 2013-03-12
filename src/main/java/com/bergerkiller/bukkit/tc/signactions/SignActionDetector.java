@@ -10,7 +10,6 @@ import java.util.UUID;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -18,7 +17,6 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
@@ -29,6 +27,8 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionDetector extends SignAction {
+	private static BlockMap<DetectorSignPair> detectors = new BlockMap<DetectorSignPair>();
+
 	public static void removeDetector(Block at) {
 		DetectorSignPair dec = detectors.get(at);
 		if (dec != null) {
@@ -37,44 +37,15 @@ public class SignActionDetector extends SignAction {
 			dec.region.remove();
 		}
 	}
-	private static BlockMap<DetectorSignPair> detectors = new BlockMap<DetectorSignPair>();
 
-	public static boolean isValid(SignActionEvent event) {
-		return event != null && event.getMode() != SignActionMode.NONE && event.isType("detector");
+	@Override
+	public boolean match(SignActionEvent info) {
+		return isValid(info);
 	}
 
 	@Override
 	public void execute(SignActionEvent info) {
 		//nothing happens here, relies on rail detector events
-	}
-
-	public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
-		final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
-		map.next();
-		//now try to find the end rails : find the other sign
-		Block endsign = null;
-		Sign sign;
-		while (map.hasNext()) {
-			for (Block signblock : Util.getSignsFromRails(map.next())) {
-				sign = BlockUtil.getSign(signblock);
-				if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
-					if (sign.getLine(1).toLowerCase().startsWith("detector")) {
-						endsign = signblock;
-						//start and end found : add it
-						final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
-						detectors.put(startsign, detector);
-						detectors.put(endsign, detector);
-						CommonUtil.nextTick(new Runnable() {
-							public void run() {
-								DetectorRegion.create(map).register(detector);
-							}
-						});
-						return true;
-					}
-				}
-			}
-		}
-		return false;
 	}
 
 	@Override
@@ -104,6 +75,37 @@ public class SignActionDetector extends SignAction {
 			return true;
 		}
 		return false;
+	}
+
+	public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
+		final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
+		map.next();
+		//now try to find the end rails : find the other sign
+		Block endsign = null;
+		SignActionEvent info;
+		while (map.hasNext()) {
+			for (Block signblock : Util.getSignsFromRails(map.next())) {
+				info = new SignActionEvent(signblock);
+				if (match(info)) {
+					endsign = signblock;
+					//start and end found : add it
+					final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
+					detectors.put(startsign, detector);
+					detectors.put(endsign, detector);
+					CommonUtil.nextTick(new Runnable() {
+						public void run() {
+							DetectorRegion.create(map).register(detector);
+						}
+					});
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public static boolean isValid(SignActionEvent event) {
+		return event != null && event.getMode() != SignActionMode.NONE && event.isType("detector");
 	}
 
 	public static void init(String filename) {

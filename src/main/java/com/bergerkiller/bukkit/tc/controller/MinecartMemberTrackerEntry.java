@@ -45,6 +45,10 @@ public class MinecartMemberTrackerEntry extends EntityTrackerEntryBase {
 			syncTimeout--;
 			return;
 		}
+		// Dead tracker? Ignore.
+		if (getTracker().isDead()) {
+			return;
+		}
 		try {
 			this.tracked = true;
 			final MinecartMember selfMember = getMember();

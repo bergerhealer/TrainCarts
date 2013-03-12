@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public enum SignActionMode {
 	TRAIN, CART, RCTRAIN, NONE;
+
 	public static SignActionMode fromString(String name) {
 		if (name.endsWith("]") && name.startsWith("[")) {
 			name = name.substring(1, name.length() - 1);

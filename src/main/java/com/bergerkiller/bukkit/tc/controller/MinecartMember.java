@@ -979,6 +979,17 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	/**
+	 * Ejects the passenger of this Minecart and teleports him to the offset and rotation specified
+	 * 
+	 * @param offset to teleport to
+	 * @param yaw rotation
+	 * @param pitch rotation
+	 */
+	public void eject(Vector offset, float yaw, float pitch) {
+		eject(new Location(getWorld(), getX() + offset.getX(), getY() + offset.getY(), getZ() + offset.getZ(), yaw, pitch));
+	}
+
+	/**
 	 * Ejects the passenger of this Minecart and teleports him to the location specified
 	 * 
 	 * @param to location to eject/teleport to
@@ -990,6 +1001,7 @@ public class MinecartMember extends MinecartMemberStore {
 			EntityUtil.teleportNextTick(passenger, to);
 		}
 	}
+
 	public boolean connect(MinecartMember with) {
 		return this.getGroup().connect(this, with);
 	}

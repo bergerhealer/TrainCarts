@@ -12,6 +12,45 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionAnnounce extends SignAction {
 
+	@Override
+	public boolean match(SignActionEvent info) {
+		return info.isType("announce");
+	}
+
+	@Override
+	public void execute(SignActionEvent info) {
+		if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
+			if (!info.hasRailedMember() || !info.isPowered()) return;
+			sendMessage(info, info.getGroup());
+		} else if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
+			if (!info.hasRailedMember() || !info.isPowered()) return;
+			sendMessage(info, info.getMember());
+		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
+			for (MinecartGroup group : info.getRCTrainGroups()) {
+				sendMessage(info, group);
+			}
+		}		
+	}
+
+	@Override
+	public boolean canSupportRC() {
+		return true;
+	}
+
+	@Override
+	public boolean build(SignChangeActionEvent event) {
+		if (event.getMode() != SignActionMode.NONE) {
+			if (event.isType("announce")) {
+				if (event.isRCSign()) {
+					return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "remotely send a message to all the players in the train");
+				} else {
+					return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "send a message to players in a train");
+				}
+			}
+		}
+		return false;
+	}
+
 	public static void sendMessage(SignActionEvent info, MinecartGroup group) {
 		String msg = getMessage(info);
 		for (MinecartMember member : group) {
@@ -44,40 +83,5 @@ public class SignActionAnnounce extends SignAction {
 			}
 		}
 		return TrainCarts.getMessage(message.toString());
-	}
-
-	@Override
-	public void execute(SignActionEvent info) {
-		if (!info.isType("announce")) return;
-		if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
-			if (!info.hasRailedMember() || !info.isPowered()) return;
-			sendMessage(info, info.getGroup());
-		} else if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
-			if (!info.hasRailedMember() || !info.isPowered()) return;
-			sendMessage(info, info.getMember());
-		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
-			for (MinecartGroup group : info.getRCTrainGroups()) {
-				sendMessage(info, group);
-			}
-		}		
-	}
-
-	@Override
-	public boolean canSupportRC() {
-		return true;
-	}
-
-	@Override
-	public boolean build(SignChangeActionEvent event) {
-		if (event.getMode() != SignActionMode.NONE) {
-			if (event.isType("announce")) {
-				if (event.isRCSign()) {
-					return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "remotely send a message to all the players in the train");
-				} else {
-					return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "send a message to players in a train");
-				}
-			}
-		}
-		return false;
 	}
 }

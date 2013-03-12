@@ -17,15 +17,16 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public class SignActionTeleport extends SignAction {
-
 	private BlockTimeoutMap teleportTimes = new BlockTimeoutMap();
 
 	@Override
+	public boolean match(SignActionEvent info) {
+		return TrainCarts.MyWorldsEnabled && info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
+	}
+
+	@Override
 	public void execute(SignActionEvent info) {
-		if (!TrainCarts.MyWorldsEnabled || !info.getLine(0).equalsIgnoreCase("[portal]")) {
-			return;
-		}
-		if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.hasGroup() || !info.isPowered() || !info.hasRails()) {
+		if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.hasGroup() || !info.isPowered()) {
 			return;
 		}
 		Portal portal = Portal.get(info.getLocation());
@@ -60,12 +61,11 @@ public class SignActionTeleport extends SignAction {
 			}
 		}
 	}
+
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (event.getLine(0).equalsIgnoreCase("[portal]")) {
-			if (event.hasRails()) {
-				return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
-			}
+		if (event.hasRails()) {
+			return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
 		}
 		return false;
 	}

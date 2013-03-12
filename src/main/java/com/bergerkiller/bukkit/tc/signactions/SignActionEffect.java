@@ -12,9 +12,14 @@ import com.bergerkiller.bukkit.tc.utils.Effect;
 public class SignActionEffect extends SignAction {
 
 	@Override
+	public boolean match(SignActionEvent info) {
+		return info.isType("effect", "meffect");
+	}
+
+	@Override
 	public void execute(SignActionEvent info) {
 		boolean move = info.isType("meffect");
-		if ((!info.isType("effect") && !move) || !info.isPowered()) return;
+		if (!info.isPowered()) return;
 		Effect eff = parse(info);
 		if (info.isAction(SignActionType.MEMBER_MOVE)) {
 			if (move) {
@@ -49,6 +54,24 @@ public class SignActionEffect extends SignAction {
 		}
 	}
 
+	@Override
+	public boolean build(SignChangeActionEvent event) {
+		String app = event.isType("meffect") ? " while moving" : "";
+		if (event.isCartSign()) {
+			return handleBuild(event, Permission.BUILD_EFFECT, "cart effect player", "play an effect in the minecart" + app);
+		} else if (event.isTrainSign()) {
+			return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
+		} else if (event.isRCSign()) {
+			return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
+		}
+		return false;
+	}
+
+	@Override
+	public boolean canSupportRC() {
+		return true;
+	}
+
 	public static Effect parse(SignActionEvent event) {
 		Effect eff = new Effect();
 		eff.parseEffect(event.getLine(2));
@@ -63,26 +86,5 @@ public class SignActionEffect extends SignAction {
 			}
 		} catch (NumberFormatException ex) {}
 		return eff;
-	}
-
-	@Override
-	public boolean canSupportRC() {
-		return true;
-	}
-
-	@Override
-	public boolean build(SignChangeActionEvent event) {
-		boolean move = event.isType("meffect");
-		if (move || event.isType("effect")) {
-			String app = move ? " while moving" : "";
-			if (event.isCartSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "cart effect player", "play an effect in the minecart" + app);
-			} else if (event.isTrainSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
-			} else if (event.isRCSign()) {
-				return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
-			}
-		}
-		return false;
 	}
 }

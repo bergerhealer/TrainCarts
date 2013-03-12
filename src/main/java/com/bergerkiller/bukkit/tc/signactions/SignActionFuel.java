@@ -23,60 +23,62 @@ import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 public class SignActionFuel extends SignAction {
 
 	@Override
+	public boolean match(SignActionEvent info) {
+		return info.isType("fuel");
+	}
+
+	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
 			return;
 		}
+		//parse the sign
+		boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
+		boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
+		if (!docart && !dotrain) return;
+		if (!info.isPowered()) return;
 		
-		if (info.isType("fuel")) {			
-			//parse the sign
-			boolean docart = info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember();
-			boolean dotrain = !docart && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup();
-			if (!docart && !dotrain) return;
-			if (!info.isPowered()) return;
-			
-			//get nearby chests
-			int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
-			List<Chest> chests = new ArrayList<Chest>();
-			for (BlockState state : TransferSignUtil.getBlockStates(info, radius)) {
-				if (state instanceof Chest) {
-					chests.add((Chest) state);
-				}
+		//get nearby chests
+		int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
+		List<Chest> chests = new ArrayList<Chest>();
+		for (BlockState state : TransferSignUtil.getBlockStates(info, radius)) {
+			if (state instanceof Chest) {
+				chests.add((Chest) state);
 			}
-			if (chests.isEmpty()) {
-				return;
-			}
+		}
+		if (chests.isEmpty()) {
+			return;
+		}
 
-			List<MinecartMember> carts;
-			if (dotrain) {
-				carts = info.getGroup();
-			} else {
-				carts = new ArrayList<MinecartMember>(1);
-				carts.add(info.getMember());
-			}
+		List<MinecartMember> carts;
+		if (dotrain) {
+			carts = info.getGroup();
+		} else {
+			carts = new ArrayList<MinecartMember>(1);
+			carts.add(info.getMember());
+		}
 
-			int i;
-			boolean found = false;
-			for (MinecartMember member : carts) {
-				if (member.isPoweredCart() && !member.hasFuel()) {
-					found = false;
-					for (Chest chest : chests) {
-						Inventory inv = chest.getInventory();
-						for (i = 0; i < inv.getSize(); i++) {
-							org.bukkit.inventory.ItemStack item = inv.getItem(i);
-							if (!LogicUtil.nullOrEmpty(item) && item.getTypeId() == Material.COAL.getId()) {
-								ItemUtil.subtractAmount(item, 1);
-								inv.setItem(i, item);
-								found = true;
-								member.addFuel(3600);
-								if (TrainCarts.showTransferAnimations) {
-									ItemAnimation.start(chest, member, new ItemStack(Material.COAL, 1));
-								}
-								break;
+		int i;
+		boolean found = false;
+		for (MinecartMember member : carts) {
+			if (member.isPoweredCart() && !member.hasFuel()) {
+				found = false;
+				for (Chest chest : chests) {
+					Inventory inv = chest.getInventory();
+					for (i = 0; i < inv.getSize(); i++) {
+						org.bukkit.inventory.ItemStack item = inv.getItem(i);
+						if (!LogicUtil.nullOrEmpty(item) && item.getTypeId() == Material.COAL.getId()) {
+							ItemUtil.subtractAmount(item, 1);
+							inv.setItem(i, item);
+							found = true;
+							member.addFuel(3600);
+							if (TrainCarts.showTransferAnimations) {
+								ItemAnimation.start(chest, member, new ItemStack(Material.COAL, 1));
 							}
+							break;
 						}
-						if (found) break;
 					}
+					if (found) break;
 				}
 			}
 		}
@@ -84,9 +86,8 @@ public class SignActionFuel extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (event.getMode() != SignActionMode.NONE && event.isType("fuel")) {
-			return handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", 
-					"fuel the powered minecart using coal from a chest");
+		if (event.getMode() != SignActionMode.NONE) {
+			return handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", "fuel the powered minecart using coal from a chest");
 		}
 		return false;
 	}

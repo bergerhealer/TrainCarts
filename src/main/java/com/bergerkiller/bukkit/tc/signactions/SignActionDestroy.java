@@ -8,8 +8,13 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 public class SignActionDestroy extends SignAction {
 
 	@Override
+	public boolean match(SignActionEvent info) {
+		return info.isType("destroy");
+	}
+
+	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("destroy") || !info.isPowered()) return;
+		if (!info.isPowered()) return;
 		if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.hasGroup()) {
 			info.getGroup().playLinkEffect();
 			info.getGroup().destroy();
@@ -24,11 +29,6 @@ public class SignActionDestroy extends SignAction {
 	}
 
 	@Override
-	public boolean canSupportRC() {
-		return true;
-	}
-
-	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.isType("destroy")) {
 			if (event.isCartSign()) {
@@ -40,5 +40,10 @@ public class SignActionDestroy extends SignAction {
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public boolean canSupportRC() {
+		return true;
 	}
 }

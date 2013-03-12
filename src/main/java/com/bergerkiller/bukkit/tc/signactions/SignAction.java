@@ -20,19 +20,6 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public abstract class SignAction {
-	/**
-	 * Whether the remote control format is supported for this sign
-	 */
-	public boolean canSupportRC() {
-		return false;
-	}
-	/**
-	 * Whether this sign overrides the internal facing check
-	 */
-	public boolean overrideFacing() {
-		return false;
-	}
-
 	private static List<SignAction> actions;
 	public static void init() {
 		actions = new ArrayList<SignAction>();
@@ -57,12 +44,62 @@ public abstract class SignAction {
 		register(new SignActionAnnounce());
 		register(new SignActionEffect());
 	}
+
 	public static void deinit() {
 		actions = null;
 	}
 
+	/**
+	 * Obtains the SignAction meant for a SignActionEvent
+	 * 
+	 * @param event to check
+	 * @return sign action, or null if not found
+	 */
+	public static SignAction getSignAction(SignActionEvent event) {
+		for (SignAction action : actions) {
+			if (action.match(event)) {
+				return action;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Checks whether a sign action event is meant for this type of Sign Action
+	 * 
+	 * @param info event
+	 * @return True if it matched, False if not
+	 */
+	public abstract boolean match(SignActionEvent info);
+
+	/**
+	 * Fired when this sign is being executed for a certain event
+	 * 
+	 * @param info event
+	 */
 	public abstract void execute(SignActionEvent info);
+
+	/**
+	 * Fired when a sign is being built
+	 * 
+	 * @param info event
+	 * @return True if building is allowed, False if not
+	 */
 	public abstract boolean build(SignChangeActionEvent info);
+
+	/**
+	 * Whether the remote control format is supported for this sign
+	 */
+	public boolean canSupportRC() {
+		return false;
+	}
+
+	/**
+	 * Whether this sign overrides the internal facing check
+	 */
+	public boolean overrideFacing() {
+		return false;
+	}
 
 	/**
 	 * Handles a player clicking this action sign
@@ -81,9 +118,7 @@ public abstract class SignAction {
 		actions.add(action);
 		return action;
 	}
-	public final void register() {
-		register(this);
-	}
+
 	public static final void unregister(SignAction action) {
 		if (actions == null) return;
 		actions.remove(action);
@@ -94,19 +129,14 @@ public abstract class SignAction {
 		if (info.getSign() == null) {
 			return;
 		}
-		boolean canCauseAction = event.getAction() == Action.RIGHT_CLICK_BLOCK;
-		if (event.getAction() == Action.LEFT_CLICK_BLOCK && event.getPlayer().getGameMode() == GameMode.CREATIVE) {
-			canCauseAction = true;
-		}
-		for (SignAction action : actions) {
+		final boolean canCauseAction = event.getAction() == Action.RIGHT_CLICK_BLOCK ||
+				(event.getAction() == Action.LEFT_CLICK_BLOCK && event.getPlayer().getGameMode() == GameMode.CREATIVE);
+
+		SignAction action = getSignAction(info);
+		if (action != null && action.click(info, event.getPlayer(), event.getAction()) && canCauseAction) {
 			if (action.click(info, event.getPlayer(), event.getAction())) {
-				// Prevent the action to be executed
-				if (canCauseAction) {
-					event.setCancelled(true);
-				}
-			}
-			if (info.isCancelled()) {
-				break;
+				// Prevent the action from being executed
+				event.setCancelled(true);
 			}
 		}
 	}
@@ -128,7 +158,8 @@ public abstract class SignAction {
 
 	public static void handleBuild(SignChangeEvent event) {
 		SignChangeActionEvent info = new SignChangeActionEvent(event);
-		for (SignAction action : actions) {
+		SignAction action = getSignAction(info);
+		if (action != null) {
 			if (action.build(info)) {
 				if (!action.canSupportRC() && info.isRCSign()) {
 					event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
@@ -139,7 +170,9 @@ public abstract class SignAction {
 					}
 				}
 			}
-			if (event.isCancelled()) return;
+			if (event.isCancelled()) {
+				return;
+			}
 		}
 		if (info.getMode() != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
 			//snap to fixed 45-degree angle
@@ -147,10 +180,12 @@ public abstract class SignAction {
 			BlockUtil.setFacing(event.getBlock(), Util.snapFace(facing));
 		}
 	}
+
 	public static final void executeAll(SignActionEvent info, SignActionType actiontype) {
 		info.setAction(actiontype);
 		executeAll(info);
 	}
+
 	public static final void executeAll(SignActionEvent info) {
 		if (info == null || info.getSign() == null) {
 			return;
@@ -166,15 +201,10 @@ public abstract class SignAction {
 			} else {
 				facing = info.isFacing();
 			}
-			for (SignAction action : actions) {
-				if (facing || action.overrideFacing()) {
-					action.execute(info);
-					if (info.isCancelled()) {
-						break;
-					}
-				}
+			SignAction action = getSignAction(info);
+			if (action != null && (facing || action.overrideFacing())) {
+				action.execute(info);
 			}
 		}
 	}
-	
 }

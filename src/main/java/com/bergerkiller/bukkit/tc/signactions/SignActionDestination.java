@@ -14,23 +14,13 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class SignActionDestination extends SignAction {
 
-	public void setDestination(CartProperties prop, SignActionEvent info) {
-		if (!info.isAction(SignActionType.REDSTONE_CHANGE)) {
-			if (!info.getLine(2).isEmpty() && prop.hasDestination()) {
-				if (!info.getLine(2).equals(prop.getDestination())) {
-					return;
-				}
-			}
-		}
-		prop.setDestination(info.getLine(3));
+	@Override
+	public boolean match(SignActionEvent info) {
+		return info.isType("destination");
 	}
 
 	@Override
 	public boolean click(SignActionEvent info, Player player, Action action) {
-		if (!info.isType("destination")) {
-			return false;
-		}
-
 		//get the train this player is editing
 		CartProperties cprop = CartProperties.getEditing(player);
 		if (cprop == null) {
@@ -61,7 +51,6 @@ public class SignActionDestination extends SignAction {
 	
 	@Override
 	public void execute(SignActionEvent info) {
-		if (!info.isType("destination")) return;
 		if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
 			if (!info.hasRailedMember()) return;
 			PathNode.getOrCreate(info);
@@ -77,6 +66,7 @@ public class SignActionDestination extends SignAction {
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
 			for (TrainProperties prop : info.getRCTrainProperties()) {
 				for (CartProperties cprop : prop) {
+					// Set the cart destination
 					setDestination(cprop, info);
 				}
 			}
@@ -84,26 +74,35 @@ public class SignActionDestination extends SignAction {
 	}
 
 	@Override
-	public boolean canSupportRC() {
-		return true;
-	}
-	
-	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.isTrainSign()) {
-			if (event.isType("destination")) {
-				return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");			
-			}
+			return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");
 		} else if (event.isCartSign()) {
-			if (event.isType("destination")) {
-				return handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
-			}
+			return handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
 		} else if (event.isRCSign()) {
-			if (event.isType("destination")) {
-				return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
-			}
+			return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
 		}
 		return false;
 	}
 
+	@Override
+	public boolean canSupportRC() {
+		return true;
+	}
+
+	/**
+	 * Sets the destination for a single minecart. Only sets a destination if:<br>
+	 * - Redstone change was the cause<br>
+	 * - No destination requirement is set on the sign<br>
+	 * - The destination requirement equals the current train destination
+	 * 
+	 * @param prop of the minecart
+	 * @param info to use to set the destination
+	 */
+	public void setDestination(CartProperties prop, SignActionEvent info) {
+		if (info.isAction(SignActionType.REDSTONE_CHANGE) || info.getLine(2).isEmpty() 
+				|| (prop.hasDestination() && info.getLine(2).equals(prop.getDestination()))) {
+			prop.setDestination(info.getLine(3));
+		}
+	}
 }

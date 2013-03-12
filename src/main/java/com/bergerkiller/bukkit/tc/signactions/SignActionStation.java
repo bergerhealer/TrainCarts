@@ -15,16 +15,16 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 public class SignActionStation extends SignAction {
 
 	@Override
-	public boolean overrideFacing() {
-		return true;
+	public boolean match(SignActionEvent info) {
+		return info.isType("station");
 	}
-	
+
 	@Override
 	public void execute(SignActionEvent info) {
 		if (!info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
 			return;
 		}
-		if ((!info.isTrainSign() && !info.isCartSign()) || !info.isType("station") || !info.hasRails() || !info.hasGroup()) {
+		if ((!info.isTrainSign() && !info.isCartSign()) || !info.hasRails() || !info.hasGroup()) {
 			return;
 		}
 		if (info.isAction(SignActionType.GROUP_LEAVE)) {
@@ -93,11 +93,14 @@ public class SignActionStation extends SignAction {
 	}
 
 	@Override
+	public boolean overrideFacing() {
+		return true;
+	}
+
+	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.getMode() != SignActionMode.NONE) {
-			if (event.isType("station")) {
-				return handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
-			}
+			return handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
 		}
 		return false;
 	}

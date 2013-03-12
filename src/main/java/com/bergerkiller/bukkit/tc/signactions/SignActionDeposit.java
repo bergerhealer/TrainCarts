@@ -26,6 +26,11 @@ import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
 public class SignActionDeposit extends SignAction {
 
+	@Override
+	public boolean match(SignActionEvent info) {
+		return !InteractType.parse("deposit", info.getLine(1)).isEmpty();
+	}
+
 	public static int depositInFurnace(Inventory from, Inventory to, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
 		List<ItemParser> heatables = new ArrayList<ItemParser>();
 		List<ItemParser> fuels = new ArrayList<ItemParser>();
