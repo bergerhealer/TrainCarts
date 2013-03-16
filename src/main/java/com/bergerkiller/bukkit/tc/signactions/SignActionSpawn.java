@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
@@ -58,17 +60,15 @@ public class SignActionSpawn extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (isValid(event)) {
-			if (handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) {
-				long interval = getSpawnTime(event);
-				if (interval > 0) {
-					event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
-					SpawnSign sign = new SpawnSign(event.getBlock(), interval);
-					spawnSigns.put(event.getBlock(), sign);
-					sign.start();
-				}
-				return true;
+		if (handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) {
+			long interval = getSpawnTime(event);
+			if (interval > 0) {
+				event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
+				SpawnSign sign = new SpawnSign(event.getBlock(), interval);
+				spawnSigns.put(event.getBlock(), sign);
+				sign.start();
 			}
+			return true;
 		}
 		return false;
 	}
@@ -89,26 +89,48 @@ public class SignActionSpawn extends SignAction {
 		return event != null && event.getMode() != SignActionMode.NONE && event.isType("spawn");
 	}
 
-	public static long getSpawnTime(SignActionEvent event) {
-		String line = event.getLine(1).toLowerCase();
-		if (line.startsWith("spawn ")) {
-			String[] bits = line.substring(6).split(" ");
-			if (bits.length > 0) {
-				if (bits.length > 1 || bits[0].contains(":")) {
-					return ParseUtil.parseTime(bits[0]);
-				}
+	private static String[] getArgs(SignActionEvent event) {
+		final String line = event.getLine(1).toLowerCase(Locale.ENGLISH);
+		final int idx = line.indexOf(' ');
+		if (idx == -1) {
+			return StringUtil.EMPTY_ARRAY;
+		}
+		return line.substring(idx + 1).split(" ");
+	}
+
+	public static double getSpawnForce(SignActionEvent event) {
+		String[] bits = getArgs(event);
+		if (bits.length >= 2) {
+			// Choose
+			if (!bits[0].contains(":")) {
+				return ParseUtil.parseDouble(bits[0], 0.0);
+			} else {
+				return ParseUtil.parseDouble(bits[1], 0.0);
 			}
+		} else if (bits.length >= 1 && !bits[0].contains(":")) {
+			return ParseUtil.parseDouble(bits[0], 0.0);
+		}
+		return 0.0;
+	}
+
+	public static long getSpawnTime(SignActionEvent event) {
+		String[] bits = getArgs(event);
+		if (bits.length >= 2) {
+			// Choose
+			if (bits[1].contains(":")) {
+				return ParseUtil.parseTime(bits[1]);
+			} else {
+				return ParseUtil.parseTime(bits[0]);
+			}
+		} else if (bits.length >= 1 && bits[0].contains(":")) {
+			return ParseUtil.parseTime(bits[0]);
 		}
 		return 0;
 	}
 
 	public static void spawn(SignActionEvent info) {
 		if ((info.isTrainSign() || info.isCartSign()) && isValid(info) && info.isPowered() && info.hasRails()) {
-			int idx = info.getLine(1).lastIndexOf(" ");
-			double force = 0.0;
-			if (idx != -1) {
-				force = ParseUtil.parseDouble(info.getLine(1).substring(idx + 1), 0.0);
-			}
+			final double spawnForce = getSpawnForce(info);
 
 			//Get the cart types to spawn
 			ArrayList<Material> types = new ArrayList<Material>();
@@ -139,15 +161,17 @@ public class SignActionSpawn extends SignAction {
 			if (types.size() == 1) {
 				// Single-minecart spawning logic
 				locs[0] = info.getRailLocation();
-				for (BlockFace direction : info.getWatchedDirections()) {
-					direction = direction.getOppositeFace();
-					spawnDirection = direction;
-					TrackIterator iter = new TrackIterator(info.getRails(), direction);
-					// Ignore the starting block
-					iter.next();
-					// Next block available?
-					if (iter.hasNext()) {
-						break;
+				if (MinecartMember.getAt(locs[0]) == null) {
+					for (BlockFace direction : info.getWatchedDirections()) {
+						direction = direction.getOppositeFace();
+						spawnDirection = direction;
+						TrackIterator iter = new TrackIterator(info.getRails(), direction);
+						// Ignore the starting block
+						iter.next();
+						// Next block available?
+						if (iter.hasNext()) {
+							break;
+						}
 					}
 				}
 			} else {
@@ -190,8 +214,8 @@ public class SignActionSpawn extends SignAction {
 				for (int i = 0; i < locs.length; i++) {
 					MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
 					group.add(mm);
-					if (force != 0 && i == 0) {
-						mm.addActionLaunch(spawnDirection, 2, force);
+					if (spawnForce != 0 && i == 0) {
+						mm.addActionLaunch(spawnDirection, 2, spawnForce);
 					}
 				}
 				group.getProperties().setDefault("spawner");

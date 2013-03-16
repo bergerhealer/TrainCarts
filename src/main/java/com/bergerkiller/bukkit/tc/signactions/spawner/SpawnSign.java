@@ -61,7 +61,7 @@ public class SpawnSign extends OfflineSign {
 		return this.lastWorld;
 	}
 
-	public void cleanWorld() {
+	public void clearWorld() {
 		this.lastWorld = null;
 	}
 
@@ -114,7 +114,7 @@ public class SpawnSign extends OfflineSign {
 		if (world == null) {
 			this.start();
 		} else if (this.getRemaining() == 0) {
-			this.cleanWorld();
+			this.clearWorld();
 			this.loadChunks(world);
 			SignActionEvent event = this.getSignEvent(world);
 			if (event != null) {

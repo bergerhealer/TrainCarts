@@ -219,6 +219,8 @@ public class PathNode {
 	private static int getDistanceTo(PathConnection from, PathConnection conn, int currentDistance, int maxDistance, PathNode destination) {
 		final PathNode node = conn.destination;
 		currentDistance += conn.distance;
+		// Consider taking turns as one distance longer
+		// This avoids the excessive use of turns in 2-way 'X' intersections
 		if (from.direction != conn.direction) {
 			currentDistance++;
 		}

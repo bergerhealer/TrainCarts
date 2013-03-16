@@ -229,6 +229,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 			return null;
 		}
 		MinecartMember result = null;
+		final double distSquared = searchRadius * searchRadius;
 		for (org.bukkit.entity.Entity e : WorldUtil.getNearbyEntities(at, searchRadius, searchRadius, searchRadius)) {
 			if (e instanceof Minecart) {
 				MinecartMember mm = get(e);
@@ -238,7 +239,7 @@ public abstract class MinecartMemberStore extends NativeMinecartMember {
 				if (in != null && mm.getGroup() != in) {
 					continue;
 				}
-				if (mm.distanceSquared(at) > searchRadius) {
+				if (mm.distanceSquared(at) > distSquared) {
 					continue;
 				}
 				result = mm;
