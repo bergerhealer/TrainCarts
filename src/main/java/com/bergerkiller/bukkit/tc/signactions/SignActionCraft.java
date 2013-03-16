@@ -15,7 +15,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.itemanimation.InventoryWatcher;
+import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
 
 public class SignActionCraft extends SignAction {
 
@@ -65,7 +65,7 @@ public class SignActionCraft extends SignAction {
 				inventory = info.getGroup().getInventory();
 			}
 			if (TrainCarts.showTransferAnimations) {
-				inventory = InventoryWatcher.convert(inventory, w, info.getMember());
+				inventory = ItemAnimatedInventory.convert(inventory, w, info.getMember());
 			}
 
 			// craft

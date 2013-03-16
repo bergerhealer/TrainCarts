@@ -108,11 +108,33 @@ public class TrainCarts extends PluginBase {
 		config.save();
 	}
 
-	public ItemParser[] getParsers(String key) {
+	/**
+	 * Obtains all Item parsers associated with a certain key and amount.
+	 * If none was found in the TrainCarts item mapping, it is parsed.
+	 * 
+	 * @param key to get
+	 * @param amount to multiply the result with. Use 1 to ignore.
+	 * @return An array of associated item parsers
+	 */
+	public ItemParser[] getParsers(String key, int amount) {
 		ItemParser[] rval = parsers.get(key.toLowerCase());
-		return rval == null ? new ItemParser[0] : rval;
+		if (rval == null) {
+			// Not found - parse it from the key and amount
+			rval = new ItemParser[] {ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
+		} else if (amount == -1) {
+			// Set to any amount
+			for (int i = 0; i < rval.length; i++) {
+				rval[i] = rval[i].setAmount(-1);
+			}
+		} else if (amount > 1) {
+			// Multiply by amount (ignore 1)
+			for (int i = 0; i < rval.length; i++) {
+				rval[i] = rval[i].multiplyAmount(amount);
+			}
+		}
+		return rval;
 	}
-	
+
 	public static boolean canBreak(Material type) {
 		return plugin.allowedBlockBreakTypes.contains(type);
 	}

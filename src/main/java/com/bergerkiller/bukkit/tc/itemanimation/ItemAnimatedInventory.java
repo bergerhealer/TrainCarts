@@ -7,12 +7,15 @@ import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
-public class InventoryWatcher extends InventoryBase {
+/**
+ * Redirects calls to a base inventory, while showing item animations during item transfers
+ */
+public class ItemAnimatedInventory extends InventoryBase {
 	private Object other, self;
 	private final Inventory source;
 	private final ItemStack[] original;
 
-	public InventoryWatcher(Inventory inventory, Object self, Object other) {
+	public ItemAnimatedInventory(Inventory inventory, Object self, Object other) {
 		this.other = other;
 		this.self = self;
 		this.source = inventory;
@@ -20,7 +23,7 @@ public class InventoryWatcher extends InventoryBase {
 	}
 
 	public static Inventory convert(Inventory inventory, Object self, Object other) {
-		return new InventoryWatcher(inventory, self, other);
+		return new ItemAnimatedInventory(inventory, self, other);
 	}
 
 	@Override

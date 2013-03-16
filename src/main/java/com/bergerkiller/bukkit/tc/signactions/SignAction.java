@@ -31,8 +31,7 @@ public abstract class SignAction {
 		register(new SignActionTeleport());
 		register(new SignActionEject());
 		register(new SignActionDestroy());
-		register(new SignActionCollect());
-		register(new SignActionDeposit());
+		register(new SignActionTransfer());
 		register(new SignActionFuel());
 		register(new SignActionCraft());
 		register(new SignActionDetector());

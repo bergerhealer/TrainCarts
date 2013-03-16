@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -20,6 +21,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 
 public class Util {
 	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(Material.RAILS, Material.POWERED_RAIL, Material.DETECTOR_RAIL, 
@@ -189,48 +191,37 @@ public class Util {
 
 	public static ItemParser[] getParsers(final String items) {
 		List<ItemParser> parsers = new ArrayList<ItemParser>();
+		int multiIndex, multiplier = -1;
 		for (String type : items.split(";")) {
 			type = type.trim();
 			if (type.isEmpty()) {
 				continue;
 			}
-			boolean groupedMult = false;
+			// Check to see whether this is a multiplier
+			multiIndex = type.indexOf('#');
+			if (multiIndex != -1) {
+				multiplier = ParseUtil.parseInt(type.substring(0, multiIndex), -1);
+				type = type.substring(multiIndex + 1);
+			}
+			// Parse the amount and a possible multiplier from it
 			int amount = -1;
-			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*", "_");
+			int idx = StringUtil.firstIndexOf(type, "x", "X", " ", "*");
 			if (idx > 0) {
 				amount = ParseUtil.parseInt(type.substring(0, idx), -1);
 				if (amount != -1) {
-					groupedMult = type.charAt(idx) == '_';
 					type = type.substring(idx + 1);
 				}
 			}
-			ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type);
-			if (keyparsers.length != 0) {
-				if (amount == -1) {
-					// add parsers directly
-					for (ItemParser p : keyparsers) {
-						parsers.add(p.setAmount(-1));
-					}
-				} else if (groupedMult) {
-					// add parsers one by one
-					for (int i = 0; i < amount; i++) {
-						for (ItemParser p : keyparsers) {
-							if (p.hasAmount()) {
-								parsers.add(p.setAmount(1));
-							} else {
-								parsers.add(p);
-							}
-						}
-					}
-				} else {
-					// add parsers with set modifier amount
-					for (ItemParser p : keyparsers) {
-						parsers.add(p.multiplyAmount(amount));
-					}
+			// Obtain the item parsers for this type and amount, apply a possible multiplier
+			ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type, amount);
+			if (multiIndex != -1) {
+				// Convert to proper multiplied versions
+				for (int i = 0; i < keyparsers.length; i++) {
+					keyparsers[i] = new AveragedItemParser(keyparsers[i], multiplier);
 				}
-			} else {
-				parsers.add(ItemParser.parse(type, amount == -1 ? null : Integer.toString(amount)));
 			}
+			// Add the parsers
+			parsers.addAll(Arrays.asList(keyparsers));
 		}
 		if (parsers.isEmpty()) {
 			parsers.add(new ItemParser(null));
