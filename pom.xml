@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>TrainCarts</artifactId>
-  <version>1.72.6</version>
+  <version>1.72.7</version>
   <packaging>jar</packaging>
 
   <name>TrainCarts</name>
@@ -20,20 +20,10 @@
       <id>bukkit-repo</id>
       <url>http://repo.bukkit.org/content/groups/public</url>
     </repository>
-    <!-- Repo for access to Essentials -->
-    <repository>
-      <id>essentials-repo</id>
-      <url>http://ess.ementalo.com/nexus/content/groups/public/</url>
-    </repository>
     <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
     <repository>
-      <id>herocraft-repo</id>
-      <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>fail</checksumPolicy>
-      </snapshots>
+      <id>dj-tcraft-repo</id>
+      <url>http://ci.dj-tcraft.nl/plugin/repository/</url>
     </repository>
   </repositories>
 
@@ -41,7 +31,8 @@
     <dependency>
       <groupId>org.bukkit</groupId>
       <artifactId>bukkit</artifactId>
-      <version>1.4.7-R1.1-SNAPSHOT</version>
+      <version>1.5-R0.1-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
@@ -68,7 +59,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.50-SNAPSHOT</version>
+      <version>1.51-SNAPSHOT</version>
       <scope>provided</scope>
   	</dependency>
     <dependency>
