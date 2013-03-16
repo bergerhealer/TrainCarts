@@ -106,7 +106,7 @@ public class SignActionDestination extends SignAction {
 	 */
 	public void setDestination(CartProperties prop, SignActionEvent info) {
 		if (info.isAction(SignActionType.REDSTONE_CHANGE) || info.getLine(2).isEmpty() 
-				|| (prop.hasDestination() && info.getLine(2).equals(prop.getDestination()))) {
+				|| !prop.hasDestination() || info.getLine(2).equals(prop.getDestination())) {
 			prop.setDestination(info.getLine(3));
 		}
 	}

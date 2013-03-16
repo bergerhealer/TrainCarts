@@ -181,8 +181,9 @@ public class PathNode {
 		}
 		int maxDistance = Integer.MAX_VALUE;
 		int distance;
+		final PathConnection from = new PathConnection(this, 0, BlockFace.SELF);
 		for (PathConnection connection : this.neighbors) {
-			distance = getDistanceTo(connection, 0, maxDistance, destination);
+			distance = getDistanceTo(from, connection, 0, maxDistance, destination);
 			if (maxDistance > distance) {
 				maxDistance = distance;
 				this.lastTaken = connection;
@@ -215,9 +216,12 @@ public class PathNode {
 		return route.toArray(new PathNode[0]);
 	}
 
-	private static int getDistanceTo(PathConnection conn, int currentDistance, int maxDistance, PathNode destination) {
+	private static int getDistanceTo(PathConnection from, PathConnection conn, int currentDistance, int maxDistance, PathNode destination) {
 		final PathNode node = conn.destination;
 		currentDistance += conn.distance;
+		if (from.direction != conn.direction) {
+			currentDistance++;
+		}
 		if (destination == node) {
 			return currentDistance;
 		}
@@ -229,7 +233,7 @@ public class PathNode {
 		// Check all neighbors and obtain the lowest distance recursively
 		int distance;
 		for (PathConnection connection : node.neighbors) {
-			distance = getDistanceTo(connection, currentDistance, maxDistance, destination);
+			distance = getDistanceTo(conn, connection, currentDistance, maxDistance, destination);
 			if (maxDistance > distance) {
 				maxDistance = distance;
 				node.lastTaken = connection;
