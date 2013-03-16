@@ -384,26 +384,28 @@ public class MinecartMember extends MinecartMemberStore {
 			return false;
 		}
 	}
+	private void handleActiveSignRemove(Block signblock) {
+		SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.MEMBER_LEAVE);
+		// This sign is not present in other members of the group?
+		for (MinecartMember mm : this.getGroup()) {
+			if (mm != this && mm.isActiveSign(signblock)) {
+				// Active for another minecart - no group removal
+				return;
+			}
+		}
+		this.getGroup().setActiveSign(signblock, false);
+	}
+	public void removeActiveSign(Block signblock) {
+		if (this.activeSigns.remove(signblock)) {
+			handleActiveSignRemove(signblock);
+		}
+	}
 	public void clearActiveSigns() {
 		if (this.isUnloaded()) {
 			return;
 		}
-		boolean found;
 		for (Block signblock : this.activeSigns) {
-			SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.MEMBER_LEAVE);
-			//this sign is not present in other members of the group?
-			found = false;
-			for (MinecartMember mm : this.getGroup()) {
-				if (mm != this && mm.isActiveSign(signblock)) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				if (this.getGroup().tail() == this) {
-					this.getGroup().setActiveSign(signblock, false);
-				}
-			}
+			handleActiveSignRemove(signblock);
 		}
 		this.activeSigns.clear();
 	}

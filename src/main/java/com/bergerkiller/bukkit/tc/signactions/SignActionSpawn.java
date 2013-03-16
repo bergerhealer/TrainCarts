@@ -73,6 +73,11 @@ public class SignActionSpawn extends SignAction {
 		return false;
 	}
 
+	@Override
+	public void destroy(SignActionEvent info) {
+		remove(info.getBlock());
+	}
+
 	public static void remove(Block signBlock) {
 		SpawnSign sign = spawnSigns.remove(signBlock);
 		if (sign != null) {

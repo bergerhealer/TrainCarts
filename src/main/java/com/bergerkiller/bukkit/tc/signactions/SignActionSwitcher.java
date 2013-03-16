@@ -173,11 +173,6 @@ public class SignActionSwitcher extends SignAction {
 	}
 
 	@Override
-	public boolean overrideFacing() {
-		return true;
-	}
-
-	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.isCartSign()) {
 			return handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
@@ -185,5 +180,15 @@ public class SignActionSwitcher extends SignAction {
 			return handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
 		}
 		return false;
+	}
+
+	@Override
+	public void destroy(SignActionEvent event) {
+		PathNode.clear(event.getRails());
+	}
+
+	@Override
+	public boolean overrideFacing() {
+		return true;
 	}
 }

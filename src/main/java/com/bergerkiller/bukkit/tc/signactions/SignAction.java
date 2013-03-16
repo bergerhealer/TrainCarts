@@ -16,6 +16,8 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
@@ -101,6 +103,14 @@ public abstract class SignAction {
 	}
 
 	/**
+	 * Handles the post-destroy logic for when this sign is broken
+	 * 
+	 * @param info related to the destroy event
+	 */
+	public void destroy(SignActionEvent info) {
+	}
+
+	/**
 	 * Handles a player clicking this action sign
 	 * 
 	 * @param info related to the event
@@ -156,7 +166,7 @@ public abstract class SignAction {
 	}
 
 	public static void handleBuild(SignChangeEvent event) {
-		SignChangeActionEvent info = new SignChangeActionEvent(event);
+		final SignChangeActionEvent info = new SignChangeActionEvent(event);
 		SignAction action = getSignAction(info);
 		if (action != null) {
 			if (action.build(info)) {
@@ -168,6 +178,17 @@ public abstract class SignAction {
 						event.setLine(0, "[train]");
 					}
 				}
+				// Tell minecart above to add this sign, if available
+				if (info.hasRails()) {
+					final MinecartMember member = MinecartMember.getAt(info.getRails());
+					if (member != null) {
+						CommonUtil.nextTick(new Runnable() {
+							public void run() {
+								member.addActiveSign(info.getBlock());
+							}
+						});
+					}
+				}
 			}
 			if (event.isCancelled()) {
 				return;
@@ -177,6 +198,23 @@ public abstract class SignAction {
 			//snap to fixed 45-degree angle
 			BlockFace facing = BlockUtil.getFacing(event.getBlock());
 			BlockUtil.setFacing(event.getBlock(), Util.snapFace(facing));
+		}
+	}
+
+	public static void handleDestroy(SignActionEvent info) {
+		if (info == null || info.getSign() == null) {
+			return;
+		}
+		SignAction action = getSignAction(info);
+		if (action != null) {
+			// First, remove this sign from all Minecarts on the world
+			for (MinecartGroup group : MinecartGroup.getGroups()) {
+				for (MinecartMember member : group) {
+					member.removeActiveSign(info.getBlock());
+				}
+			}
+			// Handle sign destroy logic
+			action.destroy(info);
 		}
 	}
 

@@ -16,7 +16,7 @@ public class SignActionStation extends SignAction {
 
 	@Override
 	public boolean match(SignActionEvent info) {
-		return info.isType("station");
+		return info.isType("station") && info.getMode() != SignActionMode.NONE;
 	}
 
 	@Override
@@ -24,11 +24,14 @@ public class SignActionStation extends SignAction {
 		if (!info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
 			return;
 		}
-		if ((!info.isTrainSign() && !info.isCartSign()) || !info.hasRails() || !info.hasGroup()) {
+		if (info.isAction(SignActionType.GROUP_LEAVE)) {
+			if (info.getGroup().isWaitAction()) {
+				info.getGroup().clearActions();
+			}
+			info.setLevers(false);
 			return;
 		}
-		if (info.isAction(SignActionType.GROUP_LEAVE)) {
-			info.setLevers(false);
+		if (!info.hasRails() || !info.hasGroup()) {
 			return;
 		}
 		//Check if not already targeting
@@ -59,18 +62,24 @@ public class SignActionStation extends SignAction {
 				//Actual launching here
 				if (station.hasDelay()) {
 					centerMember.addActionLaunch(info.getRailLocation(), 0);
-					if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+					if (TrainCarts.playSoundAtStation) {
+						group.addActionSizzle();
+					}
 					info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 					group.addActionWait(station.getDelay());
 				} else if (group.head().getDirectionTo() != trainDirection) {
 					centerMember.addActionLaunch(info.getRailLocation(), 0);
 				}
-				if (TrainCarts.refillAtStations) group.addActionRefill();
+				if (TrainCarts.refillAtStations) {
+					group.addActionRefill();
+				}
 				centerMember.addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
 			} else {
 				centerMember.addActionLaunch(info.getRailLocation(), 0);
 				group.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-				if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+				if (TrainCarts.playSoundAtStation) {
+					group.addActionSizzle();
+				}
 				group.addActionWaitForever();
 			}
 		} else {
@@ -83,18 +92,17 @@ public class SignActionStation extends SignAction {
 				station.getCenterCart().addActionLaunch(info.getRailLocation(), 0);
 			}
 			if (station.hasDelay()) {
-				if (TrainCarts.playSoundAtStation) group.addActionSizzle();
+				if (TrainCarts.playSoundAtStation) {
+					group.addActionSizzle();
+				}
 				group.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 				group.addActionWait(station.getDelay());
 			}
-			if (TrainCarts.refillAtStations) group.addActionRefill();
+			if (TrainCarts.refillAtStations) {
+				group.addActionRefill();
+			}
 			station.getCenterCart().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
 		}
-	}
-
-	@Override
-	public boolean overrideFacing() {
-		return true;
 	}
 
 	@Override
@@ -103,5 +111,10 @@ public class SignActionStation extends SignAction {
 			return handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
 		}
 		return false;
+	}
+
+	@Override
+	public boolean overrideFacing() {
+		return true;
 	}
 }

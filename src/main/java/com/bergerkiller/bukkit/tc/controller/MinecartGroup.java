@@ -51,6 +51,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	private static final long serialVersionUID = 3;
 
 	private static final EntryList<IntVector3, MinecartMember> blockSpaceBuffer = new EntryList<IntVector3, MinecartMember>();
+	private static final Set<Block> signActionBuffer = new HashSet<Block>();
 	private Map<IntVector3, MinecartMember> memberBlockSpace = new HashMap<IntVector3, MinecartMember>();
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
@@ -58,6 +59,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private boolean needsUpdate = false;
+	private boolean needsBlockSpaceRefresh = true;
 	private boolean needsSignRefresh = true;
 	protected long lastSync = Long.MIN_VALUE;
 
@@ -179,9 +181,14 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (signblock == null) return false;
 		return setActiveSign(new SignActionEvent(signblock, null, this), active);
 	}
-	public void updateActiveSigns() {
+	public void updateActiveSigns(boolean lazy) {
+		if (lazy) {
+			this.needsSignRefresh = true;
+			return;
+		}
 		this.needsSignRefresh = false;
 		World world = this.getWorld();
+		signActionBuffer.addAll(this.activeSigns);
 		blockSpaceBuffer.addAll(this.memberBlockSpace.entrySet());
 		for (Entry<IntVector3, MinecartMember> entry : blockSpaceBuffer) {
 			IntVector3 p = entry.getKey();
@@ -189,10 +196,18 @@ public class MinecartGroup extends MinecartGroupStore {
 			if (Util.ISTCRAIL.get(block)) {
 				for (Block sign : Util.getSignsFromRails(block)) {
 					entry.getValue().addActiveSign(sign);
+					signActionBuffer.remove(sign);
 				}
 			}
 		}
+		// All active blocks remaining in the buffer are no longer active
+		for (Block block : signActionBuffer) {
+			for (MinecartMember member : this) {
+				member.removeActiveSign(block);
+			}
+		}
 		blockSpaceBuffer.clear();
+		signActionBuffer.clear();
 	}
 
 	/**
@@ -288,7 +303,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		for (Block sign : member.getActiveSigns()) {
 			this.setActiveSign(sign, true);
 		}
-		this.updateBlockSpace();
+		this.updateBlockSpace(false);
 		this.getProperties().add(member);
 	}
 	public void add(int index, MinecartMember member) {
@@ -401,7 +416,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 		super.remove(index);
 		this.getProperties().remove(member);
-		this.updateBlockSpace();
+		this.updateBlockSpace(false);
 		Action a;
 		for (Iterator<Action> actionit = this.actions.iterator(); actionit.hasNext();) {
 			a = actionit.next();
@@ -568,7 +583,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (locations == null || locations.length == 0 || locations.length != this.size()) {
 			return;
 		}
-		this.needsSignRefresh = true;
+		this.updateActiveSigns(true);
 		boolean needAvoidSmoothing = locations[0].getWorld() == this.getWorld();
 		this.clearActiveSigns();
 		this.breakPhysics();
@@ -814,7 +829,12 @@ public class MinecartGroup extends MinecartGroupStore {
 	/**
 	 * Updates the member block space mapping of this group
 	 */
-	public void updateBlockSpace() {
+	public void updateBlockSpace(boolean lazy) {
+		if (lazy) {
+			this.needsBlockSpaceRefresh = true;
+			return;
+		}
+		this.needsBlockSpaceRefresh = false;
 		// Update block space of minecarts in this group
 		this.memberBlockSpace.clear();
 		if (this.size() == 1) {
@@ -899,29 +919,26 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.updateAction();
 
 			// Perform block updates prior to doing the movement calculations
-			boolean blockChanged = false;
 			// First initialize all blocks and handle block changes
 			for (MinecartMember m : this) {
 				m.onPhysicsStart();
-				blockChanged |= m.hasBlockChanged();
+				this.needsBlockSpaceRefresh |= m.hasBlockChanged();
 			}
-			if (blockChanged) {
-				this.updateBlockSpace();
-				blockChanged = false;
+			if (this.needsBlockSpaceRefresh) {
+				this.updateBlockSpace(false);
 			}
 			// Perform block change checks, also take care of potential new block changes
 			for (MinecartMember m : this) {
 				m.onPhysicsBlockChange();
-				blockChanged |= m.hasBlockChanged();
+				this.needsBlockSpaceRefresh |= m.hasBlockChanged();
 			}
-			if (blockChanged) {
-				this.updateBlockSpace();
-				blockChanged = false;
+			if (this.needsBlockSpaceRefresh) {
+				this.updateBlockSpace(false);
 			}
 			// If signs need to be refreshed (as requested), do so
 			if (this.needsSignRefresh) {
 				// Update the signs
-				this.updateActiveSigns();
+				this.updateActiveSigns(false);
 			}
 
 			this.updateDirection();

@@ -77,6 +77,11 @@ public class SignActionDetector extends SignAction {
 		return false;
 	}
 
+	@Override
+	public void destroy(SignActionEvent info) {
+		removeDetector(info.getBlock());
+	}
+
 	public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
 		final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
 		map.next();

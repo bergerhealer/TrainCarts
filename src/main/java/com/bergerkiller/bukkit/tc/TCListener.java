@@ -54,8 +54,6 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
-import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
-import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -397,17 +395,14 @@ public class TCListener implements Listener {
 			TrainCarts.plugin.handle(t);
 		}
 	}
-
+	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (!event.isCancelled()) {
 			if (MaterialUtil.ISSIGN.get(event.getBlock())) {
-				SignActionDetector.removeDetector(event.getBlock());
-				SignActionSpawn.remove(event.getBlock());
-				//invalidate this piece of track
-				PathNode.clear(Util.getRailsFromSign(event.getBlock()));
+				SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
 			} else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
-				PathNode.remove(event.getBlock());
+				onRailsBreak(event.getBlock());
 			} else if (MaterialUtil.ISPOWERSOURCE.get(event.getBlock())) {
 				// Send proper update events for all signs around this power source
 				for (BlockFace face : FaceUtil.RADIAL) {
@@ -435,12 +430,28 @@ public class TCListener implements Listener {
 		}
 	}
 
+	private static boolean isSupported(Block block) {
+		return MaterialUtil.ISSOLID.get(BlockUtil.getAttachedBlock(block));
+	}
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
-		if (!event.isCancelled()) {
-			if (updateRails(event.getBlock())) {
-				event.setCancelled(true);
-			}
+		if (event.isCancelled()) {
+			return;
+		}
+		final Block block = event.getBlock();
+		if (Util.ISTCRAIL.get(block) && !isSupported(block)) {
+			// No valid supporting block - clear the active signs of this rails
+			onRailsBreak(block);
+			return;
+		} else if (MaterialUtil.ISSIGN.get(block) && !isSupported(block)) {
+			// Sign is no longer supported - clear all sign actions
+			SignAction.handleDestroy(new SignActionEvent(block));
+			return;
+		}
+		// Handle regular physics
+		if (updateRails(block)) {
+			event.setCancelled(true);
 		}
 	}
 
@@ -576,5 +587,20 @@ public class TCListener implements Listener {
 			// Fire an event
 			SignAction.executeAll(info, isPowered ? SignActionType.REDSTONE_ON : SignActionType.REDSTONE_OFF);
 		}
+	}
+
+	/**
+	 * Called when a rails block is being broken
+	 * 
+	 * @param railsBlock that is broken
+	 */
+	public void onRailsBreak(Block railsBlock) {
+		MinecartMember mm = MinecartMember.getAt(railsBlock);
+		if (mm != null) {
+			mm.getGroup().updateBlockSpace(true);
+			mm.getGroup().updateActiveSigns(true);
+		}
+		// Remove path node from path finding
+		PathNode.remove(railsBlock);
 	}
 }

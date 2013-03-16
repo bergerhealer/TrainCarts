@@ -86,6 +86,11 @@ public class SignActionDestination extends SignAction {
 	}
 
 	@Override
+	public void destroy(SignActionEvent event) {
+		PathNode.clear(event.getRails());
+	}
+
+	@Override
 	public boolean canSupportRC() {
 		return true;
 	}
