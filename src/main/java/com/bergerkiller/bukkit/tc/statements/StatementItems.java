@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementItems extends Statement {
@@ -15,9 +16,9 @@ public class StatementItems extends Statement {
 	public boolean match(String text) {
 		return text.startsWith("items");
 	}
-	
+
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		final Inventory inventory = getInventory(member);
 		if (inventory == null) {
 			return false;
@@ -72,17 +73,21 @@ public class StatementItems extends Statement {
 		}
 		return false;
 	}
-	
-	public Inventory getInventory(MinecartMember member) {
-		return member.getInventory();
+
+	public Inventory getInventory(MinecartMember<?> member) {
+		if (member instanceof MinecartMemberChest) {
+			return ((MinecartMemberChest) member).getEntity().getInventory();
+		} else {
+			return null;
+		}
 	}
-	
+
 	public Inventory getInventory(MinecartGroup group) {
 		return group.getInventory();
 	}
-	
+
 	@Override
-	public boolean handleArray(MinecartMember member, String[] items, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] items, SignActionEvent event) {
 		return handleInventory(getInventory(member), items);
 	}
 	

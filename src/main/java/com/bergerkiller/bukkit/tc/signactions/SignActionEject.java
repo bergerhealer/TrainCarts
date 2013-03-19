@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
@@ -23,7 +24,7 @@ public class SignActionEject extends SignAction {
 
 	@Override
 	public boolean click(SignActionEvent info, Player player, Action action) {
-		MinecartMember member = MinecartMember.get(player.getVehicle());
+		MinecartMember<?> member = MinecartMemberStore.get(player.getVehicle());
 		if (member == null) {
 			return false;
 		}
@@ -67,14 +68,14 @@ public class SignActionEject extends SignAction {
 		if (info.isTrainSign()) {
 			if (info.isRCSign()) {
 				for (MinecartGroup group : info.getRCTrainGroups()) {
-					for (MinecartMember mm : group) {
+					for (MinecartMember<?> mm : group) {
 						mm.eject(offset, yaw, pitch);
 					}
 				}
 			} else {
 				MinecartGroup group = info.getGroup();
 				if (group != null) {
-					for (MinecartMember mm : group) {
+					for (MinecartMember<?> mm : group) {
 						mm.eject(offset, yaw, pitch);
 					}
 				}

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -56,7 +57,7 @@ public abstract class RailLogic {
 	 * 
 	 * @return gravity multiplier
 	 */
-	public double getGravityMultiplier(MinecartMember member) {
+	public double getGravityMultiplier(MinecartMember<?> member) {
 		return this.hasVerticalMovement() ? MinecartMember.GRAVITY_MULTIPLIER : 0.0;
 	}
 
@@ -71,9 +72,14 @@ public abstract class RailLogic {
 	 * @param member to get the velocity of
 	 * @return Forwards velocity of the minecart
 	 */
-	public double getForwardVelocity(MinecartMember member) {
-		BlockFace direction = member.getDirection();
-		return member.motY * direction.getModY() + -FaceUtil.sin(direction) * member.motZ - FaceUtil.cos(direction) * member.motX; 
+	public double getForwardVelocity(MinecartMember<?> member) {
+		final CommonEntity<?> e = member.getEntity();
+		final BlockFace direction = member.getDirection();
+		double vel = 0.0;
+		vel += e.getMotY() * direction.getModY();
+		vel += -FaceUtil.sin(direction) * e.getMotZ();
+		vel += -FaceUtil.cos(direction) * e.getMotX();
+		return vel;
 	}
 
 	/**
@@ -82,12 +88,13 @@ public abstract class RailLogic {
 	 * @param member to set the velocity for
 	 * @param force to set to, negative to reverse
 	 */
-	public void setForwardVelocity(MinecartMember member, double force) {
+	public void setForwardVelocity(MinecartMember<?> member, double force) {
+		final CommonEntity<?> e = member.getEntity();
 		if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
-			member.motX = force * -FaceUtil.cos(member.getDirection());
-			member.motZ = force * -FaceUtil.sin(member.getDirection());
+			e.setMotX(force * -FaceUtil.cos(member.getDirection()));
+			e.setMotZ(force * -FaceUtil.sin(member.getDirection()));
 		} else {
-			member.motY = force * member.getDirection().getModY();
+			e.setMotY(force * member.getDirection().getModY());
 		}
 	}
 
@@ -99,7 +106,7 @@ public abstract class RailLogic {
 	 * 
 	 * @param member to update
 	 */
-	public abstract void onPreMove(MinecartMember member);
+	public abstract void onPreMove(MinecartMember<?> member);
 
 	/**
 	 * Is called after the minecart performed the movement updates<br>
@@ -109,7 +116,7 @@ public abstract class RailLogic {
 	 * 
 	 * @param member that moved
 	 */
-	public void onPostMove(MinecartMember member) {
+	public void onPostMove(MinecartMember<?> member) {
 	}
 
 	/**
@@ -118,7 +125,7 @@ public abstract class RailLogic {
 	 * @param member to get the rail logic for
 	 * @return Rail Logic
 	 */
-	public static RailLogic get(MinecartMember member) {
+	public static RailLogic get(MinecartMember<?> member) {
 		if (member.isDerailed()) {
 			// Two no-rail logic types
 			if (member.isFlying()) {
@@ -148,7 +155,7 @@ public abstract class RailLogic {
 			BlockFace dir = Util.getPlateDirection(rails);
 			if (dir == BlockFace.SELF) {
 				//set track direction based on direction of this cart
-				if (Math.abs(member.motX) > Math.abs(member.motZ)) {
+				if (Math.abs(member.getEntity().getMotX()) > Math.abs(member.getEntity().getMotZ())) {
 					dir = BlockFace.EAST;
 				} else {
 					dir = BlockFace.SOUTH;

@@ -25,7 +25,7 @@ public class ArrivalSigns {
 	private static class TimeCalculation {
 		public long startTime;
 		public Block signblock;
-		public MinecartMember member = null;
+		public MinecartMember<?> member = null;
 		public void setTime() {
 			long duration = System.currentTimeMillis() - startTime;
 			if (MaterialUtil.ISSIGN.get(this.signblock)) {
@@ -99,7 +99,7 @@ public class ArrivalSigns {
 		return false;
 	}
 
-	public static void trigger(Sign sign, MinecartMember mm) {
+	public static void trigger(Sign sign, MinecartMember<?> mm) {
 		if (!TrainCarts.SignLinkEnabled) return;
 		String name = sign.getLine(2);
 		String duration = sign.getLine(3);
@@ -162,7 +162,7 @@ public class ArrivalSigns {
 		updateTask = null;
 	}
 
-	public static void timeCalcStart(Block signblock, MinecartMember member) {
+	public static void timeCalcStart(Block signblock, MinecartMember<?> member) {
 		TimeCalculation calc = new TimeCalculation();
 		calc.startTime = System.currentTimeMillis();
 		calc.signblock = signblock;
@@ -186,7 +186,7 @@ public class ArrivalSigns {
 					}
 					for (TimeCalculation calc : timeCalculations.values()) {
 						if (calc.member != null) {
-							if (calc.member.dead || !calc.member.isMoving()) {
+							if (calc.member.getEntity().isDead() || !calc.member.getEntity().isMoving()) {
 								calc.setTime();
 								timeCalculations.remove(calc.signblock);
 								return;

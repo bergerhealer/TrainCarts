@@ -29,12 +29,12 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 		if (PathProvider.isProcessing()) {
 			if (this.failCounter++ == 20) {
 				HashSet<Player> receivers = new HashSet<Player>();
-				for (MinecartMember member : this.getGroup()) {
+				for (MinecartMember<?> member : this.getGroup()) {
 					// Editing
 					receivers.addAll(member.getProperties().getEditingPlayers());
 					// Occupants
-					if (member.hasPlayerPassenger()) {
-						receivers.add((Player) member.getPassenger());
+					if (member.getEntity().hasPlayerPassenger()) {
+						receivers.add(member.getEntity().getPlayerPassenger());
 					}
 				}
 				for (Player player : receivers) {

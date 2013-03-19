@@ -20,7 +20,7 @@ public class Station {
 	private final long delay;
 	private final BlockFace instruction;
 	private final Direction nextDirection;
-	private final MinecartMember centerCart;
+	private final MinecartMember<?> centerCart;
 	private final boolean valid;
 	private final BlockFace railDirection;
 	private final Block railsBlock;
@@ -286,7 +286,7 @@ public class Station {
 	 * 
 	 * @return center minecart
 	 */
-	public MinecartMember getCenterCart() {
+	public MinecartMember<?> getCenterCart() {
 		return this.centerCart;
 	}
 }

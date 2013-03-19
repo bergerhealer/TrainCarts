@@ -8,6 +8,14 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 public class MemberSpawnEvent extends MemberEvent {
 	private static final HandlerList handlers = new HandlerList();
 
+	public MemberSpawnEvent(MinecartMember<?> member) {
+		super(member);
+	}
+
+	public void setMember(MinecartMember<?> member) {
+		this.member = member;
+	}
+
 	public HandlerList getHandlers() {
 		return handlers;
 	}
@@ -16,15 +24,7 @@ public class MemberSpawnEvent extends MemberEvent {
 		return handlers;
 	}
 
-	public MemberSpawnEvent(MinecartMember member) {
-		super(member);
-	}
-
-	public void setMember(MinecartMember member) {
-		this.member = member;
-	}
-
-	public static MemberSpawnEvent call(MinecartMember member) {
+	public static MemberSpawnEvent call(MinecartMember<?> member) {
 		return CommonUtil.callEvent(new MemberSpawnEvent(member));
 	}
 }

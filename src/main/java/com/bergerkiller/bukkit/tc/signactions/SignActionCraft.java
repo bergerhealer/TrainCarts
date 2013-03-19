@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
+import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 
 public class SignActionCraft extends SignAction {
 
@@ -57,13 +58,11 @@ public class SignActionCraft extends SignAction {
 		}
 		if (w != null) {
 			//get the inventory to transfer in
-			Inventory inventory;
-			if (docart) {
-				if (!info.getMember().isStorageCart()) return;
-				inventory = info.getMember().getInventory();
-			} else {
-				inventory = info.getGroup().getInventory();
+			Inventory inventory = TransferSignUtil.getInventory(info);
+			if (inventory == null) {
+				return;
 			}
+
 			if (TrainCarts.showTransferAnimations) {
 				inventory = ItemAnimatedInventory.convert(inventory, w, info.getMember());
 			}

@@ -20,6 +20,7 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
@@ -30,7 +31,7 @@ public final class DetectorRegion {
 	private static List<DetectorListener> listenerBuffer = new ArrayList<DetectorListener>();
 	private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<UUID, DetectorRegion>();
 	private static BlockMap<List<DetectorRegion>> regions = new BlockMap<List<DetectorRegion>>();
-	public static List<DetectorRegion> handleMove(MinecartMember mm, Block from, Block to) {
+	public static List<DetectorRegion> handleMove(MinecartMember<?> mm, Block from, Block to) {
 		if (from == to) {
 		} else if (from.getWorld() != to.getWorld()) {
 			handleLeave(mm, from);
@@ -49,7 +50,7 @@ public final class DetectorRegion {
 		//Enter possible new locations
 		return handleEnter(mm, to);
 	}
-	public static List<DetectorRegion> handleLeave(MinecartMember mm, Block block) {
+	public static List<DetectorRegion> handleLeave(MinecartMember<?> mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);
 		if (list != null) {
 			for (DetectorRegion region : list) {
@@ -58,7 +59,7 @@ public final class DetectorRegion {
 		}
 		return list;
 	}
-	public static List<DetectorRegion> handleEnter(MinecartMember mm, Block block) {
+	public static List<DetectorRegion> handleEnter(MinecartMember<?> mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);
 		if (list != null) {
 			for (DetectorRegion region : list) {
@@ -128,7 +129,7 @@ public final class DetectorRegion {
 		World w = Bukkit.getServer().getWorld(this.world);
 		if (w != null) {
 			for (IntVector3 coord : this.coordinates) {
-				MinecartMember mm = MinecartMember.getAt(w, coord);
+				MinecartMember<?> mm = MinecartMemberStore.getAt(w, coord);
 				if (mm != null && this.members.add(mm)) {
 					this.onEnter(mm);
 				}
@@ -138,7 +139,7 @@ public final class DetectorRegion {
 	private final UUID id;
 	private final String world;
 	private final Set<IntVector3> coordinates;
-	private final Set<MinecartMember> members = new HashSet<MinecartMember>();
+	private final Set<MinecartMember<?>> members = new HashSet<MinecartMember<?>>();
 	private final List<DetectorListener> listeners = new ArrayList<DetectorListener>(1);
 	public String getWorldName() {
 		return this.world;
@@ -146,12 +147,12 @@ public final class DetectorRegion {
 	public Set<IntVector3> getCoordinates() {
 		return this.coordinates;
 	}
-	public Set<MinecartMember> getMembers() {
+	public Set<MinecartMember<?>> getMembers() {
 		return this.members;
 	}
 	public Set<MinecartGroup> getGroups() {
 		Set<MinecartGroup> rval = new HashSet<MinecartGroup>();
-		for (MinecartMember mm : this.members) {
+		for (MinecartMember<?> mm : this.members) {
 			if (mm.getGroup() == null) continue;
 			rval.add(mm.getGroup());
 		}
@@ -163,21 +164,21 @@ public final class DetectorRegion {
 	public void register(DetectorListener listener) {
 		this.listeners.add(listener);
 		listener.onRegister(this);
-		for (MinecartMember mm : this.members) {
+		for (MinecartMember<?> mm : this.members) {
 			listener.onEnter(mm);
 		}
 	}
 	public void unregister(DetectorListener listener) {
 		this.listeners.remove(listener);
 		listener.onUnregister(this);
-		for (MinecartMember mm : this.members) {
+		for (MinecartMember<?> mm : this.members) {
 			listener.onLeave(mm);
 		}
 	}
 	public boolean isRegistered() {
 		return !this.listeners.isEmpty();
 	}
-	private void onLeave(MinecartMember mm) {
+	private void onLeave(MinecartMember<?> mm) {
 		this.setListenerBuffer();
 		for (DetectorListener listener : listenerBuffer) {
 			listener.onLeave(mm);
@@ -186,7 +187,7 @@ public final class DetectorRegion {
 			return;
 		}
 		final MinecartGroup group = mm.getGroup();
-		for (MinecartMember ex : this.members) {
+		for (MinecartMember<?> ex : this.members) {
 			if (ex != mm && ex.getGroup() == group) {
 				return;
 			}
@@ -195,7 +196,7 @@ public final class DetectorRegion {
 			listener.onLeave(group);
 		}
 	}
-	private void onEnter(MinecartMember mm) {
+	private void onEnter(MinecartMember<?> mm) {
 		this.setListenerBuffer();
 		for (DetectorListener listener : listenerBuffer) {
 			listener.onEnter(mm);
@@ -204,7 +205,7 @@ public final class DetectorRegion {
 			return;
 		}
 		final MinecartGroup group = mm.getGroup();
-		for (MinecartMember ex : this.members) {
+		for (MinecartMember<?> ex : this.members) {
 			if (ex != mm && ex.getGroup() == group) {
 				return;
 			}
@@ -214,13 +215,13 @@ public final class DetectorRegion {
 		}
 	}
 
-	public void remove(MinecartMember mm) {
+	public void remove(MinecartMember<?> mm) {
 		if (this.members.remove(mm)) {
 			this.onLeave(mm);
 		}
 	}
 
-	public void add(MinecartMember mm) {
+	public void add(MinecartMember<?> mm) {
 		if (this.members.add(mm)) {
 			this.onEnter(mm);
 		}
@@ -231,7 +232,7 @@ public final class DetectorRegion {
 		listenerBuffer.addAll(this.listeners);
 	}
 
-	public void update(MinecartMember member) {
+	public void update(MinecartMember<?> member) {
 		for (DetectorListener list : this.listeners) {
 			list.onUpdate(member);
 		}
@@ -243,7 +244,7 @@ public final class DetectorRegion {
 	}
 	
 	public void remove() {
-		Iterator<MinecartMember> iter = this.members.iterator();
+		Iterator<MinecartMember<?>> iter = this.members.iterator();
 		while (iter.hasNext()) {
 			this.onLeave(iter.next());
 			iter.remove();

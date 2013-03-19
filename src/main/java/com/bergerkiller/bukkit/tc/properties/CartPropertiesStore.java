@@ -108,7 +108,7 @@ public class CartPropertiesStore {
 	 * @param member the properties belong to
 	 * @return the Cart Properties for the Minecart
 	 */
-	public static CartProperties get(MinecartMember member) {
-		return get(member.uniqueId, member.getGroup().getProperties());
+	public static CartProperties get(MinecartMember<?> member) {
+		return get(member.getEntity().getUniqueId(), member.getGroup().getProperties());
 	}
 }

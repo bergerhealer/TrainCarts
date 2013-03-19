@@ -23,7 +23,7 @@
     <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
     <repository>
       <id>dj-tcraft-repo</id>
-      <url>http://ci.dj-tcraft.nl/plugin/repository/</url>
+      <url>http://ci.dj-tcraft.nl/plugin/repository/everything/</url>
     </repository>
   </repositories>
 
@@ -37,7 +37,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>MyWorlds</artifactId>
-      <version>1.60</version>
+      <version>1.61</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>

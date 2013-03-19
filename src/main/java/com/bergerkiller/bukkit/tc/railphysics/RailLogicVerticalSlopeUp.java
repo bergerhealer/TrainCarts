@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.entity.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -27,10 +28,11 @@ public class RailLogicVerticalSlopeUp extends RailLogicHorizontal {
 	}
 
 	@Override
-	public void onPreMove(MinecartMember member) {
-		member.motX += member.motY * this.getDirection().getModX();
-		member.motZ += member.motY * this.getDirection().getModZ();
-		member.motY = 0.0;
+	public void onPreMove(MinecartMember<?> member) {
+		final CommonMinecart<?> entity = member.getEntity();
+		entity.addMotX(entity.getMotY() * this.getDirection().getModX());
+		entity.addMotZ(entity.getMotY() * this.getDirection().getModZ());
+		entity.setMotY(0.0);
 		super.onPreMove(member);
 	}
 

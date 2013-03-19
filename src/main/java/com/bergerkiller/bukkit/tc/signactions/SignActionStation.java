@@ -45,7 +45,7 @@ public class SignActionStation extends SignAction {
 		if (station.getInstruction() == null) {
 			info.getGroup().clearActions();
 		} else if (station.getInstruction() == BlockFace.SELF) {
-			MinecartMember centerMember = station.getCenterCart();
+			MinecartMember<?> centerMember = station.getCenterCart();
 			// Do not allow redstone changes to center a launching train
 			if (info.isAction(SignActionType.REDSTONE_CHANGE) && (info.getGroup().isMovementControlled() || info.getGroup().isMoving())) {
 				return;
@@ -85,7 +85,7 @@ public class SignActionStation extends SignAction {
 		} else {
 			//Launch
 			group.clearActions();
-			MinecartMember head = group.head();
+			MinecartMember<?>  head = group.head();
 
 			if (station.hasDelay() || (head.isMoving() && head.getDirection() != station.getInstruction())) {
 				//Reversing or has delay, need to center it in the middle first

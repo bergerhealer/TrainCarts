@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -21,18 +20,16 @@ public class RailLogicAir extends RailLogic {
 	}
 
 	@Override
-	public void onPreMove(MinecartMember member) {
+	public void onPreMove(MinecartMember<?> member) {
 		// Only do this logic if the head is is not moving vertically
 		// Or if this member is the head, of course
 		if (member.isMovingVerticalOnly()) {
-			MinecartMember head = member.getGroup().head();
+			MinecartMember<?> head = member.getGroup().head();
 			if (member != head && head.isMovingVerticalOnly()) {
 				return;
 			}
 		}
-		Vector friction = member.getFlyingVelocityMod();
-		member.motX *= friction.getX();
-		member.motY *= friction.getY();
-		member.motZ *= friction.getZ();
+		// Apply flying friction
+		member.getEntity().multiplyVelocity(member.getEntity().getFlyingVelocityMod());
 	}
 }

@@ -13,7 +13,7 @@ public class StatementVelocity extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return Util.evaluate(member.getForce(), text);
 	}
 

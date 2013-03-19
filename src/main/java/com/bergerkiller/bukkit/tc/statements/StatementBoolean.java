@@ -12,7 +12,7 @@ public class StatementBoolean extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return text.equalsIgnoreCase("true");
 	}
 

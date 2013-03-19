@@ -4,6 +4,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
@@ -15,7 +16,8 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	private double launchforce;
 	private int counter = 20;
 	private boolean breakCode = false;
-	public MemberActionWaitOccupied(final MinecartMember head, final int maxsize, final long delay, final double launchDistance) {
+
+	public MemberActionWaitOccupied(final MinecartMember<?> head, final int maxsize, final long delay, final double launchDistance) {
 		super(head);
 		this.maxsize = maxsize;
 		this.direction = head.getDirectionTo();
@@ -37,10 +39,10 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	public boolean handleOccupied() {
 		return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
 	}
-	public static boolean handleOccupied(Block start, BlockFace direction, MinecartMember ignore, int maxdistance) {
+	public static boolean handleOccupied(Block start, BlockFace direction, MinecartMember<?> ignore, int maxdistance) {
 		TrackIterator iter = new TrackIterator(start, direction);
 		while (iter.hasNext() && --maxdistance >= 0) {
-			MinecartMember mm = MinecartMember.getAt(iter.next());
+			MinecartMember<?> mm = MinecartMemberStore.getAt(iter.next());
 			if (mm != null && mm.getGroup() != ignore.getGroup()) {
 				ignore.setIgnoreCollisions(true);
 				return true;

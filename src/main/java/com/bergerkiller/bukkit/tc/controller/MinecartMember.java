@@ -13,52 +13,75 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.entity.Vehicle;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleMoveEvent;
+import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberMissingException;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.actions.*;
-import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
-import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
-import com.bergerkiller.bukkit.tc.signactions.SignAction;
-import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.common.controller.EntityController;
+import com.bergerkiller.bukkit.common.entity.CommonMinecart;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityMinecartRef;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.bergerkiller.bukkit.tc.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.MemberMissingException;
+import com.bergerkiller.bukkit.tc.RailType;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchDirection;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
+import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
+import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
+import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicGround;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
-public class MinecartMember extends MinecartMemberStore {
+public class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> {
+	public static final double GRAVITY_MULTIPLIER = 0.04;
+	public static final double VERTRAIL_MULTIPLIER = 0.02;
+	public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
+	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
+	public static final double POWERED_RAIL_START_BOOST = 0.02;
 	public static final double MIN_VEL_FOR_SLOPE = 0.05;
+
 	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private BlockFace direction;
 	private BlockFace directionTo;
@@ -72,212 +95,22 @@ public class MinecartMember extends MinecartMemberStore {
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
-	protected MinecartMemberTrackerEntry tracker;
+	//protected MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	protected boolean unloaded = false;
-
-	protected MinecartMember(Minecart source) {
-		this(source.getWorld(), EntityUtil.getLocX(source), EntityUtil.getLocY(source), EntityUtil.getLocZ(source), 
-				EntityMinecartRef.type.get(Conversion.toEntityHandle.convert(source)));
-
-		// Transfer, but keep bukkit entity to avoid reference issues
-		org.bukkit.entity.Entity bukkitEntity = EntityRef.bukkitEntity.get(this);
-		EntityMinecartRef.TEMPLATE.transfer(Conversion.toEntityHandle.convert(source), this);
-		EntityRef.bukkitEntity.set(this, bukkitEntity);
-
-		if (this.isPoweredCart()) {
-			if (MathUtil.lengthSquared(this.b, this.c) < 0.001) {
-				this.pushDirection = BlockFace.SELF;
-			} else {
-				this.pushDirection = FaceUtil.getDirection(this.b, this.c, true);
-			}
-		}
-	}
-
-	protected MinecartMember(org.bukkit.World world, double x, double y, double z, Material type) {
-		super(world, x, y, z, type);
-		this.prevcx = MathUtil.toChunk(this.locX);
-		this.prevcz = MathUtil.toChunk(this.locZ);
-		this.direction = FaceUtil.yawToFace(this.yaw);
-		this.directionFrom = this.directionTo = FaceUtil.yawToFace(this.yaw, false);
-	}
+	private boolean forcedBlockUpdate = true;
+	public boolean vertToSlope = false;
+	protected SoundLoop<?> soundLoop;
 
 	@Override
-	public void onTick() {
-		if (this.isUnloaded()) {
-			return;
-		}
-		MinecartGroup g = this.getGroup();
-		if (g == null) {
-			return;
-		}
-		if (this.dead) {
-			//remove self
-			g.remove(this);
-		} else if (g.isEmpty()) {
-			g.remove();
-			super.onTick();
-		} else if (g.tail() == this) {
-			g.doPhysics();
-		}
-	}
-
-	/**
-	 * Gets the packet to spawn this Minecart Member
-	 * 
-	 * @return spawn packet
-	 */
-	public CommonPacket getSpawnPacket() {
-		final MinecartMemberTrackerEntry tracker = this.getTracker();
-		final int type = Conversion.toMinecartTypeId.convert(getType());
-		final CommonPacket p = new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
-		if (tracker != null) {
-			// Entity tracker is available - use it for the right position
-			p.write(PacketFields.VEHICLE_SPAWN.x, tracker.xLoc);
-			p.write(PacketFields.VEHICLE_SPAWN.y, tracker.yLoc);
-			p.write(PacketFields.VEHICLE_SPAWN.z, tracker.zLoc);
-			p.write(PacketFields.VEHICLE_SPAWN.yaw, (byte) tracker.xRot);
-			p.write(PacketFields.VEHICLE_SPAWN.pitch, (byte) tracker.yRot);
-		}
-		return p;
-	}
-
-	@Override
-	public void onPhysicsStart() {
-		//subtract times
-		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
-		while (times.hasNext()) {			
-			if (times.next().decrementAndGet() <= 0) times.remove();
-		}
-		if (this.teleportImmunityTick > 0) {
-			this.teleportImmunityTick--;
-		}
-		if (this.collisionEnterTimer > 0) {
-			this.collisionEnterTimer--;
-		}
-		super.onPhysicsStart();
-	}
-
-	@Override
-	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
-		super.onPhysicsPostMove(speedFactor);
-		this.checkMissing();
-		if (this.getProperties().canPickup() && this.isStorageCart()) {
-			Inventory inv = this.getInventory();
-			org.bukkit.inventory.ItemStack stack;
-			Item item;
-			for (org.bukkit.entity.Entity e : this.getNearbyEntities(2)) {
-				if (e instanceof Item) {
-					item = (Item) e;
-					if (EntityUtil.isIgnored(item)) continue;
-					stack = item.getItemStack();
-					double distance = this.distance(e);
-					if (ItemUtil.testTransfer(stack, inv) == stack.getAmount()) {
-						if (distance < 0.7) {
-							ItemUtil.transfer(stack, inv, Integer.MAX_VALUE);
-							//this.world.playNote
-							this.world.getWorld().playEffect(this.getLocation(), Effect.CLICK1, 0);
-							if (stack.getAmount() == 0) {
-								e.remove();
-								continue;
-							}
-						} else {
-							final double factor;
-							if (distance > 1) {
-								factor = 0.8;
-							} else if (distance > 0.75) {
-								factor = 0.5;
-							} else {
-								factor = 0.25;
-							}
-							this.push(e, -factor / distance);
-							continue;
-						}
-					}
-					this.push(e, 1 / distance);
-				}
-			}
-		}
-		if (this.needsUpdate) {
-			this.needsUpdate = false;
-			for (Block b : this.activeSigns) {
-				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
-			}
-			for (DetectorRegion reg : this.activeDetectorRegions) {
-				reg.update(this);
-			}
-		}
-	}
-
-	@Override
-	public boolean onCoalUsed() {
-		MemberCoalUsedEvent event = MemberCoalUsedEvent.call(this);
-		if (event.useCoal()) {
-			return this.getCoalFromNeighbours();
-		}
-		return event.refill();
-	}
-
-	@Override
-	public String getLocalizedName() {
-		if (this.group == null || this.group.size() == 1) {
-			return "Minecart";
-		} else {
-			return "Train";
-		}
-	}
-
-	public boolean getCoalFromNeighbours() {
-		for (MinecartMember mm : this.getNeightbours()) {
-			//Is it a storage minecart?
-			if (mm.isStorageCart()) {
-				//has coal?
-				for (int i = 0; i < mm.getSize(); i++) {
-					if (mm.getItem(i) != null && mm.getItem(i).id == Material.COAL.getId()) {
-						 mm.getItem(i).count--;
-						 return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public void onBlockChange(Block from, Block to) {
-		//update from direction
-		if (BlockUtil.getManhattanDistance(from, to, true) > 3) {
-			this.directionFrom = BlockFace.SELF;
-		} else {
-			this.directionFrom = this.directionTo;
-		}
-
-		//update active signs
-		this.clearActiveSigns();
-		this.checkMissing();
-		if (!this.isDerailed()) {
-			for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
-				this.addActiveSign(sign);
-				this.checkMissing();
-			}
-
-			//destroy blocks
-			Block left = this.getBlockRelative(BlockFace.WEST);
-			Block right = this.getBlockRelative(BlockFace.EAST);
-			if (this.getProperties().canBreak(left)) {
-				BlockInfo.get(left).destroy(left, 20.0f);
-			}
-			if (this.getProperties().canBreak(right)) {
-				BlockInfo.get(right).destroy(right, 20.0f);
-			}
-		}
-
-		//Detector regions
-		List<DetectorRegion> newregions = DetectorRegion.handleMove(this, from, to);
-		this.activeDetectorRegions.clear();
-		if (newregions != null) {
-			this.activeDetectorRegions.addAll(newregions);
-		}
+	public void onAttached(T entity) {
+		super.onAttached(entity);
+		this.moveinfo = new MoveInfo(this);
+		this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
+		this.prevcx = entity.getLocChunkX();
+		this.prevcz = entity.getLocChunkZ();
+		this.direction = FaceUtil.yawToFace(entity.getYaw());
+		this.directionFrom = this.directionTo = FaceUtil.yawToFace(entity.getYaw(), false);
 	}
 
 	/*
@@ -289,9 +122,6 @@ public class MinecartMember extends MinecartMemberStore {
  		}
  		return this.properties;
  	}
-	public Minecart getMinecart() {
-		return Conversion.convert(this, Minecart.class);
-	}
 
 	/**
 	 * Sets the group of this Minecart, removing this member from the previous group<br>
@@ -323,7 +153,6 @@ public class MinecartMember extends MinecartMemberStore {
  		}
  		return this.group;
  	}
-
  	/**
  	 * Removes this Minecart from it's current group<br>
  	 * Upon the next call of getGroup() a new group is created
@@ -334,36 +163,39 @@ public class MinecartMember extends MinecartMemberStore {
  
  	public int getIndex() {
  		if (this.group == null) {
- 			return this.dead ? -1 : 0;
+ 			return this.entity.isDead() ? -1 : 0;
  		} else {
  			return this.group.indexOf(this);
  		}
  	}
- 	public MinecartMember getNeighbour(int offset) {
+ 	public MinecartMember<?> getNeighbour(int offset) {
  		int index = this.getIndex();
- 		if (index == -1) return null;
+ 		if (index == -1) {
+ 			return null;
+ 		}
  		index += offset;
- 		if (this.getGroup().containsIndex(index)) return this.getGroup().get(index);
+ 		if (this.getGroup().containsIndex(index)) {
+ 			return this.getGroup().get(index);
+ 		}
  		return null;
  	}
- 	public MinecartMember[] getNeightbours() {
-		if (this.getGroup() == null) return new MinecartMember[0];
+ 	public MinecartMember<?>[] getNeightbours() {
+		if (this.getGroup() == null) return new MinecartMember<?>[0];
 		int index = this.getIndex();
-		if (index == -1) return new MinecartMember[0];
+		if (index == -1) return new MinecartMember<?>[0];
 		if (index > 0) {
 			if (index < this.getGroup().size() - 1) {
-				return new MinecartMember[] {
-						this.getGroup().get(index - 1), 
-						this.getGroup().get(index + 1)};
+				return new MinecartMember<?>[] {this.getGroup().get(index - 1), this.getGroup().get(index + 1)};
 			} else {
-				return new MinecartMember[] {this.getGroup().get(index - 1)};
+				return new MinecartMember<?>[] {this.getGroup().get(index - 1)};
 			}
 		} else if (index < this.getGroup().size() - 1) {
-			return new MinecartMember[] {this.getGroup().get(index + 1)};
+			return new MinecartMember<?>[] {this.getGroup().get(index + 1)};
 		} else {
-			return new MinecartMember[0];
+			return new MinecartMember<?>[0];
 		}
 	}
+ 
 
  	/*
  	 * Active signs
@@ -374,10 +206,10 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 	public boolean addActiveSign(Block signblock) {
 		if (this.activeSigns.add(signblock)) {
-			if (this.dead) return true;
+			if (entity.isDead()) return true;
 			SignActionEvent info = new SignActionEvent(signblock, this);
 			SignAction.executeAll(info, SignActionType.MEMBER_ENTER);
-			if (this.dead) return true;
+			if (entity.isDead()) return true;
 			this.getGroup().setActiveSign(info, true);
 			return true;
 		} else {
@@ -387,7 +219,7 @@ public class MinecartMember extends MinecartMemberStore {
 	private void handleActiveSignRemove(Block signblock) {
 		SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.MEMBER_LEAVE);
 		// This sign is not present in other members of the group?
-		for (MinecartMember mm : this.getGroup()) {
+		for (MinecartMember<?> mm : this.getGroup()) {
 			if (mm != this && mm.isActiveSign(signblock)) {
 				// Active for another minecart - no group removal
 				return;
@@ -421,16 +253,39 @@ public class MinecartMember extends MinecartMemberStore {
 	public boolean hasSign() {
 		return !this.activeSigns.isEmpty();
 	}
- 
 	public List<DetectorRegion> getActiveDetectorRegions() {
 		return this.activeDetectorRegions;
+	}
+
+	/**
+	 * Gets whether this Minecart is unloaded
+	 * 
+	 * @return True if it is unloaded, False if not
+	 */
+	public boolean isUnloaded() {
+		return this.unloaded;
+	}
+
+	public boolean isInChunk(Chunk chunk) {
+		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
+	}
+
+	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
+		if (world != entity.getWorld()) return false;
+		if (Math.abs(cx - (entity.getLocBlockX() >> 4)) > 2) return false;
+		if (Math.abs(cz - (entity.getLocBlockZ() >> 4)) > 2) return false;
+		return true;
+	}
+
+	public boolean isSingle() {
+		return this.group == null || this.group.size() == 1;
 	}
 
  	/*
  	 * Block functions
  	 */
  	public Block getBlock(int dx, int dy, int dz) {
- 		return this.world.getWorld().getBlockAt(this.getBlockX() + dx, this.getBlockY() + dy, this.getBlockZ() + dz);
+ 		return entity.getWorld().getBlockAt(getBlockPos().x + dx, getBlockPos().y + dy, getBlockPos().z + dz);
  	}
 	public Block getBlock(BlockFace face) {
 		return this.getBlock(face.getModX(), face.getModY(), face.getModZ());
@@ -446,9 +301,121 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	/*
-	 * Actions
+	 * Velocity functions
 	 */
-	public <T extends Action> T addAction(T action) {
+	public double getForceSquared() {
+		if (entity.isOnGround()) {
+			return MathUtil.lengthSquared(entity.getMotX(), entity.getMotZ());
+		}
+		return MathUtil.lengthSquared(entity.getMotX(), entity.getMotY(), entity.getMotZ());
+	}
+	public double getForce() {
+		return Math.sqrt(this.getForceSquared());
+	}
+	public double getForwardForce() {
+		return this.getRailLogic().getForwardVelocity(this);
+	}
+	public void setForwardForce(double force) {
+		this.getRailLogic().setForwardVelocity(this, force);
+	}
+	public void limitSpeed() {
+		//Limits the velocity to the maximum
+		final double currvel = getForce();
+		if (currvel > entity.getMaxSpeed() && currvel > 0.01) {
+			final double factor = entity.getMaxSpeed() / currvel;
+			entity.multiplyVelocity(factor, 1.0, factor);
+		}
+	}
+	public Vector getLimitedVelocity() {
+		double max;
+		if (this.isUnloaded()) {
+			max = entity.getMaxSpeed();
+		} else {
+			max = this.getGroup().getProperties().getSpeedLimit();
+		}
+		return new Vector(MathUtil.clamp(entity.getMotX(), max), MathUtil.clamp(entity.getMotY(), max), MathUtil.clamp(entity.getMotZ(), max));
+	}
+	public TrackMap makeTrackMap(int size) {
+		return new TrackMap(this.getBlock(), this.direction, size);
+	}
+
+	/*
+	 * Teleportation
+	 */
+	public void loadChunks() {
+		WorldUtil.loadChunks(entity.getWorld(), entity.getLocChunkX(), entity.getLocChunkZ(), 2);
+	}
+	public void teleport(Block railsblock) {
+		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
+	}
+	public void teleport(Location to) {
+		boolean changedWorld = to.getWorld() != this.entity.getWorld();
+		entity.setDead(true);
+		// === Teleport - set unloaded to true and false again to prevent group unloading ===
+		this.unloaded = true;
+		EntityUtil.teleport(this.entity.getEntity(), to);
+		this.unloaded = false;
+		// =======================
+		if (changedWorld) {
+			//this.tracker = new MinecartMemberTrackerEntry(this);
+			//WorldUtil.setTrackerEntry(this.getEntity(), this.tracker);
+		}
+		this.teleportImmunityTick = 10;
+		entity.setDead(false);
+		this.refreshBlockInformation();
+	}
+
+	/**
+	 * Gets whether this Minecart and the passenger has immunity as a result of teleportation
+	 * 
+	 * @return True if it is immune, False if not
+	 */
+	public boolean isTeleportImmune() {
+		return this.teleportImmunityTick > 0;
+	}
+
+	public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {
+		MinecartMember<?> member = MinecartMemberStore.get(entity);
+		if (member != null) {
+			return this.isCollisionIgnored(member);
+		}
+		if (this.ignoreAllCollisions) {
+			return true;
+		}
+		return collisionIgnoreTimes.containsKey(entity.getUniqueId());
+	}
+	public boolean isCollisionIgnored(MinecartMember<?> member) {
+		if (this.ignoreAllCollisions || member.ignoreAllCollisions) {
+			return true; 
+		}
+		return this.collisionIgnoreTimes.containsKey(member.entity.getUniqueId()) || 
+				member.collisionIgnoreTimes.containsKey(this.entity.getUniqueId());
+	}
+	public void ignoreCollision(org.bukkit.entity.Entity entity, int ticktime) {
+		collisionIgnoreTimes.put(entity.getUniqueId(), new AtomicInteger(ticktime));
+	}
+
+	/**
+	 * Checks whether mobs/players are allowed to automatically (by collision) enter this Minecart
+	 * 
+	 * @return True if entities can enter, False if not
+	 */
+	public boolean canCollisionEnter() {
+		return collisionEnterTimer == 0;
+	}
+
+	/**
+	 * Resets the enter collision timer, waiting the tick time as configured before
+	 * taking in new entities when colliding with them.
+	 */
+	public void resetCollisionEnter() {
+		this.collisionEnterTimer = TrainCarts.collisionReEnterDelay;
+	}
+
+	/*
+	 * Scheduled Actions
+	 */
+	public <A extends Action> A addAction(A action) {
 		return this.getGroup().addAction(action);
 	}
 	public MemberActionWaitDistance addActionWaitDistance(double distance) {
@@ -467,7 +434,7 @@ public class MinecartMember extends MinecartMemberStore {
 		return this.addAction(new MemberActionLaunchLocation(this, targetvelocity, destination));
 	}
 	public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
-		return this.addActionLaunch(this.getLocation().add(offset), targetvelocity);
+		return this.addActionLaunch(entity.getLocation().add(offset), targetvelocity);
 	}
 	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
 		return this.addAction(new MemberActionLaunchDirection(this, targetdistance, targetvelocity, direction));
@@ -477,143 +444,191 @@ public class MinecartMember extends MinecartMemberStore {
 	}
 
 	/*
-	 * Velocity functions
+	 * Actions
 	 */
-	public double getForceSquared() {
-		if (this.onGround) {
-			return MathUtil.lengthSquared(this.motX, this.motZ);
+	public void pushSideways(org.bukkit.entity.Entity entity) {
+		this.pushSideways(entity, TrainCarts.pushAwayForce);
+	}
+	public void pushSideways(org.bukkit.entity.Entity entity, double force) {
+		float yaw = FaceUtil.faceToYaw(this.direction);
+		float lookat = MathUtil.getLookAtYaw(this.entity.getEntity(), entity) - yaw;
+		lookat = MathUtil.wrapAngle(lookat);
+		if (lookat > 0) {
+			yaw -= 180;
 		}
-		return MathUtil.lengthSquared(this.motX, this.motY, this.motZ);
+		Vector vel = MathUtil.getDirection(yaw, 0).multiply(force);
+		entity.setVelocity(vel);
 	}
-	public double getForce() {
-		return Math.sqrt(this.getForceSquared());
+	public void push(org.bukkit.entity.Entity entity, double force) {
+		Vector offset = this.entity.locOffsetTo(entity);
+		MathUtil.setVectorLength(offset, force);
+		entity.setVelocity(entity.getVelocity().add(offset));
 	}
-	public double getForwardForce() {
-		return this.getRailLogic().getForwardVelocity(this);
+	public void playLinkEffect() {
+		this.playLinkEffect(true);
 	}
-	public void setForwardForce(double force) {
-		this.getRailLogic().setForwardVelocity(this, force);
+	public void playLinkEffect(boolean showSmoke) {
+		Location loc = entity.getLocation();
+		if (showSmoke) {
+			loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
+		}
+		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
 	}
-	public void limitSpeed() {
-		//Limits the velocity to the maximum
-		double currvel = getForce();
-		if (currvel > this.maxSpeed && currvel > 0.01) {
-			double factor = this.maxSpeed / currvel;
-			this.motX *= factor;
-			this.motZ *= factor;
+
+	/**
+	 * Checks if this minecart is dead, and throws an exception if it is
+	 * 
+	 * @throws MemberMissingException
+	 */
+	public void checkMissing() throws MemberMissingException {
+		if (entity.isDead()) {
+			this.onDie();
+			throw new MemberMissingException();
+		} else if (this.isUnloaded()) {
+			throw new MemberMissingException();
 		}
 	}
-	public Vector getLimitedVelocity() {
-		double max;
-		if (this.isUnloaded()) {
-			max = this.maxSpeed;
-		} else {
-			max = this.getGroup().getProperties().getSpeedLimit();
-		}
-		return new Vector(MathUtil.clamp(this.motX, max), MathUtil.clamp(this.motY, max), MathUtil.clamp(this.motZ, max));
+
+	public double getXZForceSquared() {
+		return MathUtil.lengthSquared(entity.getMotX(), entity.getMotZ());
 	}
-	public TrackMap makeTrackMap(int size) {
-		return new TrackMap(this.getBlock(), this.direction, size);
+
+	public double getXZForce() {
+		return MathUtil.length(entity.getMotX(), entity.getMotZ());
+	}
+
+	public IntVector3 getBlockPos() {
+		return moveinfo.blockPos;
+	}
+
+	/**
+	 * Gets the block this minecart is currently in, or driving on
+	 * 
+	 * @return Rail block or block at minecart position
+	 */
+	public Block getBlock() {
+		return moveinfo.block;
 	}
 
 	/*
-	 * Location functions
+	 * States
 	 */
-	public double getSubX() {
-		double x = getX() + 0.5;
-		return x - (int) x;
-	}	
-	public double getSubZ() {
-		double z = getZ() + 0.5;
-		return z - (int) z;
+	public boolean isMoving() {
+		return entity.isMoving();
 	}
-
-	public int getChunkX() {
-		return this.getBlockX() >> 4;
+	public boolean isTurned() {
+		return FaceUtil.isSubCardinal(this.direction);
 	}
-	public int getChunkZ() {
-		return this.getBlockZ() >> 4;
+	public boolean isDerailed() {
+		return this.moveinfo.railType == RailType.NONE;
 	}
-	public double getMovedX() {
-		return this.locX - this.lastX;
+	/**
+	 * Checks whether this minecart is currently traveling on a vertical rail
+	 * 
+	 * @return True if traveling vertically, False if not
+	 */
+	public boolean isOnVertical() {
+		return this.getRailLogic() instanceof RailLogicVertical;
 	}
-	public double getMovedY() {
-		return this.locY - this.lastY;
+	public RailLogic getPrevRailLogic() {
+		return moveinfo.prevRailLogic;
 	}
-	public double getMovedZ() {
-		return this.locZ - this.lastZ;
+	public RailLogic getRailLogic() {
+		if (moveinfo.railLogicSnapshotted) {
+			return moveinfo.railLogic;
+		} else {
+			return RailLogic.get(this);
+		}
 	}
-	public double getMovedDistanceXZ() {
-		return MathUtil.length(this.getMovedX(), this.getMovedZ());
+	public boolean hasBlockChanged() {
+		return moveinfo.blockChanged();
 	}
-	public double getMovedDistance() {
-		return MathUtil.length(this.getMovedX(), this.getMovedY(), this.getMovedZ());
+	public boolean isOnSlope() {
+		return this.getRailLogic().isSloped();
 	}
-	public double distance(org.bukkit.entity.Entity e) {
-		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), 
-				EntityUtil.getLocX(e), EntityUtil.getLocY(e), EntityUtil.getLastZ(e));
+	public boolean isFlying() {
+		return this.moveinfo.railType == RailType.NONE && !entity.isOnGround();
 	}
-	public double distance(MinecartMember m) {
-		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), m.getX(), m.getY(), m.getZ());
+	public boolean isMovingHorizontally() {
+		return entity.isMovingHorizontally();
 	}
-	public double distance(Location l) {
-		return MathUtil.distance(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
+	public boolean isMovingVerticalOnly() {
+		return this.isMovingVertically() && !this.isMovingHorizontally();
 	}
-	public double distanceXZ(Entity e) {
-		return MathUtil.distance(this.getX(), this.getZ(), EntityUtil.getLocX(e), EntityUtil.getLocZ(e));
+	public boolean isMovingVertically() {
+		return Math.abs(MathUtil.wrapAngle(entity.getPitch())) == 90f && (entity.getMotY() > 0.001 || (entity.getMotY() < -0.001 && !entity.isOnGround()));
 	}
-	public double distanceXZ(Location l) {
-		return MathUtil.distance(this.getX(), this.getZ(), l.getX(), l.getZ());
-	}
-	public double distanceXZ(Block block) {
-		return MathUtil.distance(this.getX(), this.getZ(), 0.5 + block.getX(), 0.5 + block.getZ());
-	}
-	public double distanceSquared(Entity e) {
-		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), EntityUtil.getLocX(e), EntityUtil.getLocY(e), EntityUtil.getLocZ(e));
-	}
-	public double distanceSquared(MinecartMember member) {
-		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), member.getX(), member.getY(), member.getZ());
-	}
-	public double distanceSquared(Location l) {
-		return MathUtil.distanceSquared(this.getX(), this.getY(), this.getZ(), l.getX(), l.getY(), l.getZ());
-	}
-	public double distanceXZSquared(Entity e) {
-		return MathUtil.distanceSquared(this.getX(), this.getZ(), EntityUtil.getLocX(e), EntityUtil.getLocZ(e));
-	}
-	public double distanceXZSquared(MinecartMember member) {
-		return MathUtil.distanceSquared(this.getX(), this.getZ(), member.getX(), member.getZ());
-	}
-	public double distanceXZSquared(Location l) {
-		return MathUtil.distanceSquared(this.getX(), this.getZ(), l.getX(), l.getZ());
-	}
-	public double distanceXZSquared(Block block) {
-		return MathUtil.distanceSquared(this.getX(), this.getZ(), 0.5 + block.getX(), 0.5 + block.getZ());
-	}
-	public boolean isNearOf(MinecartMember member) {
+	public boolean isNearOf(MinecartMember<?> member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
-		if (this.distanceXZSquared(member) > max) return false;
+		if (entity.distanceXZSquaredTo(member.entity) > max) {
+			return false;
+		}
 		if (this.isDerailed() || this.isOnVertical() || member.isDerailed() || member.isOnVertical()) {
-			return Math.abs(this.getY() - member.getY()) <= max;
+			return Math.abs(entity.getLocY() - member.entity.getLocY()) <= max;
 		}
 		return true;
 	}
-	public List<org.bukkit.entity.Entity> getNearbyEntities(double radius) {
-		return this.getNearbyEntities(radius, radius, radius);
+	public boolean isHeadingTo(org.bukkit.entity.Entity entity) {
+		return this.isHeadingTo(entity.getLocation());
 	}
-	public List<org.bukkit.entity.Entity> getNearbyEntities(double radX, double radY, double radZ) {
-		return WorldUtil.getNearbyEntities(this.getEntity(), radX, radY, radZ);
+	public boolean isHeadingTo(IntVector3 location) {
+		return MathUtil.isHeadingTo(this.entity.locOffsetTo(location.x, location.y, location.z), entity.getVelocity());
 	}
-	public Vector getOffset(IntVector3 to) {
-		return new Vector(to.x - this.getX(), to.y - this.getY(), to.z - this.getZ());
+	public boolean isHeadingTo(Location target) {
+		return MathUtil.isHeadingTo(entity.getLocation(), target, entity.getVelocity());
 	}
-	public Vector getOffset(org.bukkit.entity.Entity to) {
-		return getOffset(to.getLocation());
+	public boolean isHeadingTo(BlockFace direction) {
+		return MathUtil.isHeadingTo(direction, entity.getVelocity());
 	}
-	public Vector getOffset(MinecartMember to) {
-		return new Vector(to.getX() - this.getX(), to.getY() - this.getY(), to.getZ() - this.getZ());
+	public boolean isFollowingOnTrack(MinecartMember<?> member) {
+		// Checks if this member is able to follow the specified member on the tracks
+		if (!this.isNearOf(member)) {
+			return false;
+		}
+		// If derailed keep train alive
+		if (this.isDerailed() || member.isDerailed()) {
+			return true;
+		}
+
+		// Same block?
+		Block memberrail = member.getBlock();
+		if (BlockUtil.equals(this.getBlock(), memberrail)) {
+			return true;
+		}
+
+		// If moving, use current direction, otherwise be flexible and allow both directions
+		if (this.isMoving()) {
+			// Check if the current direction allows this minecart to reach the other rail
+			if (TrackIterator.canReach(this.getBlock(), this.getDirectionTo(), memberrail)) {
+				return true;
+			}
+			// Check both ways (just in case this direction is invalid)
+			if (TrackIterator.isConnected(this.getBlock(), memberrail, true)) {
+				return true;
+			}
+		} else {
+			if (TrackIterator.isConnected(this.getBlock(), memberrail, false)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
-	public Vector getOffset(Location to) {
-		return new Vector(to.getX() - this.getX(), to.getY() - this.getY(), to.getZ() - this.getZ());
+	public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
+		//Can the minecart reach the other?
+		boolean m1moving = m1.isMoving();
+		boolean m2moving = m2.isMoving();
+		if (m1moving && m2moving) {
+			if (!m1.isFollowingOnTrack(m2) && !m2.isFollowingOnTrack(m1)) return false;
+		} else if (m1moving) {
+			if (!m1.isFollowingOnTrack(m2)) return false;
+		} else if (m2moving) {
+			if (!m2.isFollowingOnTrack(m1)) return false;
+		} else {
+			if (!m1.isNearOf(m2)) return false;
+			if (!TrackIterator.isConnected(m1.getBlock(), m2.getBlock(), false)) return false;
+		}
+		return true;
 	}
 
 	/*
@@ -628,11 +643,14 @@ public class MinecartMember extends MinecartMemberStore {
 	public BlockFace getDirectionTo() {
 		return this.directionTo;
 	}
-	public int getDirectionDifference(BlockFace dircomparer) {
-		return FaceUtil.getFaceYawDifference(this.direction, dircomparer);
+	public BlockFace getRailDirection() {
+		return this.getRailLogic().getDirection();
 	}
-	public int getDirectionDifference(MinecartMember comparer) {
-		return this.getDirectionDifference(comparer.direction);
+	public int getDirectionDifference(BlockFace dircomparer) {
+		return FaceUtil.getFaceYawDifference(this.getDirection(), dircomparer);
+	}
+	public int getDirectionDifference(MinecartMember<?> comparer) {
+		return this.getDirectionDifference(comparer.getDirection());
 	}
 	public void updateDirection(Vector movement) {
 		if (this.isOnVertical()) {
@@ -694,405 +712,206 @@ public class MinecartMember extends MinecartMemberStore {
 		}
 	}
 	public void updateDirection() {
-		this.updateDirection(this.getVelocity());
+		this.updateDirection(this.entity.getVelocity());
 	}
-	public void updateDirectionTo(MinecartMember member) {
-		this.updateDirection(this.getOffset(member));
+	public void updateDirectionTo(MinecartMember<?> member) {
+		this.updateDirection(this.entity.locOffsetTo(member.entity));
 	}
-	public void updateDirectionFrom(MinecartMember member) {
-		this.updateDirection(member.getOffset(this));
-	}
-
-	/*
-	 * Pitch functions
-	 */
-	public float getPitch() {
-		return this.pitch;
-	}
-	public float getPitchDifference(MinecartMember comparer) {
-		return getPitchDifference(comparer.getPitch());
-	}
-	public float getPitchDifference(float pitchcomparer) {
-		return MathUtil.getAngleDifference(this.getPitch(), pitchcomparer);
-	}
-
-	/*
-	 * Yaw functions
-	 */
-	public float getYaw() {
-		return this.yaw;
-	}
-	public float getYawDifference(float yawcomparer) {
-		return MathUtil.getAngleDifference(this.getYaw(), yawcomparer);
-	}
-
-	/*
-	 * States
-	 */
- 	public boolean hasMoved() {
- 		return Math.abs(this.getMovedX()) > 0.001 || Math.abs(this.getMovedZ()) > 0.001;
- 	}
-	public boolean isTurned() {
-		return FaceUtil.isSubCardinal(this.direction);
-	}
-	public boolean isHeadingTo(org.bukkit.entity.Entity entity) {
-		return this.isHeadingTo(entity.getLocation());
-	}
-	public boolean isHeadingTo(IntVector3 location) {
-		return MathUtil.isHeadingTo(this.getOffset(location), this.getVelocity());
-		
-	}
-	public boolean isHeadingTo(Location target) {
-		return MathUtil.isHeadingTo(this.getLocation(), target, this.getVelocity());
-	}
-	public boolean isHeadingTo(BlockFace direction) {
-		return MathUtil.isHeadingTo(direction, this.getVelocity());
-	}
-	public boolean isFollowingOnTrack(MinecartMember member) {
-		// Checks if this member is able to follow the specified member on the tracks
-		if (!this.isNearOf(member)) {
-			return false;
-		}
-		// If derailed keep train alive
-		if (this.isDerailed() || member.isDerailed()) {
-			return true;
-		}
-
-		// Same block?
-		Block memberrail = member.getBlock();
-		if (BlockUtil.equals(this.getBlock(), memberrail)) {
-			return true;
-		}
-
-		// If moving, use current direction, otherwise be flexible and allow both directions
-		if (this.isMoving()) {
-			// Check if the current direction allows this minecart to reach the other rail
-			if (TrackIterator.canReach(this.getBlock(), this.getDirectionTo(), memberrail)) {
-				return true;
-			}
-			// Check both ways (just in case this direction is invalid)
-			if (TrackIterator.isConnected(this.getBlock(), memberrail, true)) {
-				return true;
-			}
-		} else {
-			if (TrackIterator.isConnected(this.getBlock(), memberrail, false)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public static boolean isTrackConnected(MinecartMember m1, MinecartMember m2) {
-		//Can the minecart reach the other?
-		boolean m1moving = m1.isMoving();
-		boolean m2moving = m2.isMoving();
-		if (m1moving && m2moving) {
-			if (!m1.isFollowingOnTrack(m2) && !m2.isFollowingOnTrack(m1)) return false;
-		} else if (m1moving) {
-			if (!m1.isFollowingOnTrack(m2)) return false;
-		} else if (m2moving) {
-			if (!m2.isFollowingOnTrack(m1)) return false;
-		} else {
-			if (!m1.isNearOf(m2)) return false;
-			if (!TrackIterator.isConnected(m1.getBlock(), m2.getBlock(), false)) return false;
-		}
-		return true;
-	}
-
-	public boolean isUnloaded() {
-		return this.unloaded;
-	}
-	public boolean isInChunk(Chunk chunk) {
-		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
-	}
-	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
-		if (world != this.getWorld()) return false;
-		if (Math.abs(cx - (super.getLiveBlockX() >> 4)) > 2) return false;
-		if (Math.abs(cz - (super.getLiveBlockZ() >> 4)) > 2) return false;
-		return true;
-	}
-	public boolean isSingle() {
-		return this.group == null || this.group.size() == 1;
-	}
-
-	public org.bukkit.inventory.PlayerInventory getPlayerInventory() {
-		Entity passenger = getPassenger();
-		if (passenger instanceof Player) {
-			return ((Player) passenger).getInventory();
-		} else {
-			return null;
-		}
-	}
-	public boolean hasPlayerPassenger() {
-		return this.hasPassenger() && this.getPassenger() instanceof Player;
-	}
-	public boolean hasItem(ItemParser item) {
-		if (item == null) return false;
-		if (item.hasData()) {
-			return this.hasItem(item.getTypeId(), item.getData());
-		} else {
-			return this.hasItem(item.getTypeId());
-		}
-	}
-	public boolean hasItem(Material type, int data) {
-		return this.hasItem(type.getId(), data);
-	}
-	public boolean hasItem(Material type) {
-		return this.hasItem(type.getId());
-	}
-	public boolean hasItem(int typeid) {
-		if (!this.isStorageCart()) return false;
-		for (ItemStack stack : this.getItems()) {
-			if (!LogicUtil.nullOrEmpty(stack)) {
-				if (stack.getTypeId() == typeid) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	public boolean hasItem(int typeid, int data) {
-		if (!this.isStorageCart()) return false;
-		for (ItemStack stack : this.getItems()) {
-			if (!LogicUtil.nullOrEmpty(stack)) {
-				if (stack.getTypeId() == typeid && stack.getDurability() == data) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	public boolean hasItems() {
-		if (!this.isStorageCart()) return false;
-		for (ItemStack stack : this.getItems()) {
-			if (stack != null) return true;
-		}
-		return false;
-	}
-	
-	/*
-	 * Actions
-	 */
-	public void pushSideways(org.bukkit.entity.Entity entity) {
-		this.pushSideways(entity, TrainCarts.pushAwayForce);
-	}
-	public void pushSideways(org.bukkit.entity.Entity entity, double force) {
-		float yaw = FaceUtil.faceToYaw(this.direction);
-		float lookat = MathUtil.getLookAtYaw(this.getEntity(), entity) - yaw;
-		lookat = MathUtil.wrapAngle(lookat);
-		if (lookat > 0) {
-			yaw -= 180;
-		}
-		Vector vel = MathUtil.getDirection(yaw, 0).multiply(force);
-		entity.setVelocity(vel);
-	}
-	public void push(org.bukkit.entity.Entity entity, double force) {
-		Vector offset = this.getOffset(entity);
-		MathUtil.setVectorLength(offset, force);
-		entity.setVelocity(entity.getVelocity().add(offset));
-	}
-	public void playLinkEffect() {
-		this.playLinkEffect(true);
-	}
-	public void playLinkEffect(boolean showSmoke) {
-		Location loc = this.getLocation();
-		if (showSmoke) loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
-		loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
-	}
-
-	/*
-	 * Teleportation
-	 */
-	public void loadChunks() {
-		WorldUtil.loadChunks(this.getWorld(), super.getLiveBlockX() >> 4, super.getLiveBlockZ() >> 4, 2);
-	}
-	public void teleport(Block railsblock) {
-		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
-	}
-	public void teleport(Location to) {
-		boolean changedWorld = to.getWorld() != this.getWorld();
-		this.died = true;
-		// === Teleport - set unloaded to true and false again to prevent group unloading ===
-		this.unloaded = true;
-		EntityUtil.teleport(this.getEntity(), to);
-		this.unloaded = false;
-		// =======================
-		if (changedWorld) {
-			this.tracker = new MinecartMemberTrackerEntry(this);
-			WorldUtil.setTrackerEntry(this.getEntity(), this.tracker);
-		}
-		this.teleportImmunityTick = 10;
-		this.died = false;
-		this.refreshBlockInformation();
-	}
-
-	/**
-	 * Gets whether this Minecart and the passenger has immunity as a result of teleportation
-	 * 
-	 * @return True if it is immune, False if not
-	 */
-	public boolean isTeleportImmune() {
-		return this.teleportImmunityTick > 0;
-	}
-
-	public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {
-		MinecartMember member = MinecartMember.get(entity);
-		if (member != null) {
-			return this.isCollisionIgnored(member);
-		}
-		if (this.ignoreAllCollisions) {
-			return true;
-		}
-		return collisionIgnoreTimes.containsKey(entity.getUniqueId());
-	}
-	public boolean isCollisionIgnored(MinecartMember member) {
-		if (this.ignoreAllCollisions || member.ignoreAllCollisions) return true; 
-		return this.collisionIgnoreTimes.containsKey(member.uniqueId) || 
-				member.collisionIgnoreTimes.containsKey(this.uniqueId);
-	}
-	public void ignoreCollision(org.bukkit.entity.Entity entity, int ticktime) {
-		collisionIgnoreTimes.put(entity.getUniqueId(), new AtomicInteger(ticktime));
-	}
-
-	/**
-	 * Checks whether mobs/players are allowed to automatically (by collision) enter this Minecart
-	 * 
-	 * @return True if entities can enter, False if not
-	 */
-	public boolean canCollisionEnter() {
-		return collisionEnterTimer == 0;
-	}
-
-	/**
-	 * Resets the enter collision timer, waiting the tick time as configured before
-	 * taking in new entities when colliding with them.
-	 */
-	public void resetCollisionEnter() {
-		this.collisionEnterTimer = TrainCarts.collisionReEnterDelay;
-	}
-
-	/**
-	 * Ejects the passenger of this Minecart
-	 */
-	public void eject() {
-		this.getMinecart().eject();
-		this.resetCollisionEnter();
-	}
-
-	/**
-	 * Ejects the passenger of this Minecart and teleports him to the offset and rotation specified
-	 * 
-	 * @param offset to teleport to
-	 * @param yaw rotation
-	 * @param pitch rotation
-	 */
-	public void eject(Vector offset, float yaw, float pitch) {
-		eject(new Location(getWorld(), getX() + offset.getX(), getY() + offset.getY(), getZ() + offset.getZ(), yaw, pitch));
-	}
-
-	/**
-	 * Ejects the passenger of this Minecart and teleports him to the location specified
-	 * 
-	 * @param to location to eject/teleport to
-	 */
-	public void eject(final Location to) {
-		if (this.hasPassenger()) {
-			Entity passenger = this.getPassenger();
-			this.eject();
-			EntityUtil.teleportNextTick(passenger, to);
-		}
-	}
-
-	public boolean connect(MinecartMember with) {
-		return this.getGroup().connect(this, with);
-	}
-
-	public void setItem(int index, ItemStack item) {
-		getItems().set(index, item);
-		this.update();
-	}
-
-	public void update() {
-		if (this.dead) {
-			return; 
-		}
-		this.needsUpdate = true;
-		this.getGroup().update();
-	}
-
-	public boolean isIgnoringCollisions() {
-		return this.ignoreAllCollisions;
-	}
-	public void setIgnoreCollisions(boolean ignoreAll) {
-		this.ignoreAllCollisions = ignoreAll;
-	}
-
-	/**
-	 * Respawns the entity to the client (used to avoid teleport smoothing)
-	 */
-	public void respawn() {
-		if (this.tracker != null) {
-			this.tracker.doRespawn();
-		}
-	}
-	public void stop() {
-		this.stop(false);
-	}
-	public void stop(boolean cancelLocationChange) {
-		this.motX = 0;
-		this.motY = 0;
-		this.motZ = 0;
-		if (cancelLocationChange) {
-			this.locX = this.lastX;
-			this.locY = this.lastY;
-			this.locZ = this.lastZ;
-		}
-	}
-	public void reverse() {
-		this.motX *= -1;
-		this.motY *= -1;
-		this.motZ *= -1;
-		this.pushDirection = this.pushDirection.getOppositeFace();
-		this.direction = this.direction.getOppositeFace();
-	}
-
-	public MinecartMemberTrackerEntry getTracker() {
-		return this.tracker;
+	public void updateDirectionFrom(MinecartMember<?> member) {
+		this.updateDirection(member.entity.locOffsetTo(this.entity));
 	}
 
 	@Override
-	public void die() {
+	public boolean onEntityDamage(Entity entity, int damage) {
+		if (entity.isDead()) {
+			return true;
+		}
+		try {
+			// Call CraftBukkit event
+			VehicleDamageEvent event = new VehicleDamageEvent(this.entity.getEntity(), entity, damage);
+			if (CommonUtil.callEvent(event).isCancelled()) {
+				return true;
+			}
+			damage = event.getDamage();
+
+			// Play shaking animation and logic
+			this.entity.setShakingDirection(-this.entity.getShakingDirection());
+			this.entity.setShakingFactor(10);
+			this.entity.setVelocityChanged(true);
+			this.entity.setDamage(this.entity.getDamage() + damage * 10);
+
+			if (TrainCarts.instantCreativeDestroy) {
+				// Check whether the entity is a creative (insta-build) entity
+				if(entity instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) entity).canInstantlyBuild()) {
+					this.entity.setDamage(100);
+				}
+			}
+			if (this.entity.getDamage() > 40) {
+				// CraftBukkit start
+				List<ItemStack> drops = new ArrayList<ItemStack>(2);
+				if (TrainCarts.breakCombinedCarts) {
+					drops.addAll(this.entity.getBrokenDrops());
+				} else {
+					drops.add(new ItemStack(this.entity.getCombinedItem()));
+				}
+				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(this.entity.getEntity(), entity);
+				if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
+					this.entity.setDamage(40);
+					return true;
+				}
+				// CraftBukkit end
+
+				// Some sort of validation check (what is the use...?)
+				if (this.entity.hasPassenger()) {
+					this.getEntity().setPassenger(this.entity.getPassenger());
+				}
+
+				// Spawn drops and die
+				for (ItemStack stack : drops) {
+					this.entity.spawnItemDrop(stack, 0.0F);
+				}
+				this.onDie();
+			}
+			return true;
+		} catch (Throwable t) {
+			TrainCarts.plugin.handle(t);
+			return false;
+		}
+	}
+
+	/*
+	 * Stores physics information (since functions are now pretty much scattered around)
+	 */
+	private MoveInfo moveinfo;
+	private class MoveInfo {
+		public final MinecartMember<?> owner;
+		public IntVector3 blockPos = new IntVector3(0, 0, 0);
+		public Block lastBlock, block;
+		public RailType railType;
+		public RailType prevRailType = RailType.NONE;
+		public RailLogic railLogic = RailLogicGround.INSTANCE;
+		public RailLogic prevRailLogic = RailLogicGround.INSTANCE;
+		public boolean railLogicSnapshotted = false;
+
+		public MoveInfo(MinecartMember<?> owner) {
+			this.owner = owner;
+			this.blockPos = owner.entity.getLocBlockPos();
+			this.lastBlock = this.block = this.blockPos.toBlock(owner.entity.getWorld());
+		}
+
+		public boolean blockChanged() {
+			return blockPos.x != lastBlock.getX() || blockPos.y != lastBlock.getY() || blockPos.z != lastBlock.getZ();
+		}
+
+		public void updateBlock() {
+			updateBlock(WorldUtil.getBlockTypeId(owner.entity.getWorld(), blockPos));
+		}
+
+		public void updateBlock(int railtype) {
+			if (this.blockChanged()) {
+				this.block = this.blockPos.toBlock(owner.entity.getWorld());
+			}
+			int raildata = WorldUtil.getBlockData(owner.entity.getWorld(), blockPos);
+			// Update rail type and sloped state
+			this.railType = RailType.get(railtype, raildata);
+		}
+
+		public void updateRailLogic() {
+			this.prevRailType = this.railType;
+			this.prevRailLogic = this.railLogic;
+			this.railLogic = RailLogic.get(this.owner);
+			if (this.railLogic instanceof RailLogicVertical) {
+				this.railType = RailType.VERTICAL;
+			}
+			this.railLogicSnapshotted = true;
+		}
+
+		public void fillRailsData() {
+			final World world = owner.entity.getWorld();
+			this.lastBlock = this.block;
+			this.blockPos = owner.entity.getLocBlockPos();
+			IntVector3 below = this.blockPos.subtract(0, 1, 0);
+			owner.vertToSlope = false;
+
+			// Find the rail - first step
+			int railtype = WorldUtil.getBlockTypeId(world, below);
+			if (MaterialUtil.ISRAILS.get(railtype) || MaterialUtil.ISPRESSUREPLATE.get(railtype)) {
+				this.blockPos = below;
+			} else if (Util.ISVERTRAIL.get(railtype) && this.prevRailType != RailType.VERTICAL) {
+				this.blockPos = below;
+			} else {
+				railtype = WorldUtil.getBlockTypeId(world, this.blockPos);
+			}
+			this.updateBlock(railtype);
+
+			// Slope UP -> Vertical
+			if (this.railType == RailType.VERTICAL && this.prevRailLogic.isSloped()) {
+				if (this.prevRailLogic.getDirection() == owner.getDirection().getOppositeFace()) {
+					owner.entity.setLocY((double) blockPos.y + 0.95);
+				}
+			}
+
+			// Vertical -> Slope UP
+			if (this.railType == RailType.NONE && owner.entity.getMotY() > 0) {
+				final IntVector3 nextPos = blockPos.add(this.prevRailLogic.getDirection());
+				Block next = nextPos.toBlock(world);
+				Rails rails = BlockUtil.getRails(next);
+				if (rails != null && rails.isOnSlope()) {
+					if (rails.getDirection() == this.prevRailLogic.getDirection()) {
+						// Move the minecart to the slope
+						this.blockPos = nextPos;
+						this.updateBlock();
+						owner.entity.setLocX((double) this.blockPos.x + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModX());
+						owner.entity.setLocZ((double) this.blockPos.z + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModZ());
+						// Y offset
+						final double transOffset = 0.01; // How high above the slope to teleport to
+						owner.entity.setLocY(this.blockPos.y + transOffset);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Refreshes the rail information of this minecart
+	 */
+	protected void refreshBlockInformation() {
+		moveinfo.fillRailsData();
+	}
+
+
+	@Override
+	public void onDie() {
 		if (!this.died) {
-			super.die();
+			super.onDie();
 			this.died = true;
 			if (!this.isUnloaded()) {
 				// Note: No getGroup() calls are allowed here!
 				// They may create new groups!
 				if (this.group != null) {
-					this.dead = false;
+					entity.setDead(false);
 					this.clearActiveSigns();
 					this.clearActiveDetectors();
-					this.dead = true;
+					entity.setDead(true);
 				}
-				if (this.hasPassenger()) {
-					this.setPassenger(null);
+				if (entity.hasPassenger()) {
+					entity.setPassenger(null);
 				}
 				if (this.group != null) {
 					this.group.remove(this);
 				}
-				CartPropertiesStore.remove(this.uniqueId);
+				CartPropertiesStore.remove(entity.getUniqueId());
 			}
 		}
 	}
 
 	private int prevcx, prevcz;
 	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
-		int newcx = this.getLiveChunkX();
-		int newcz = this.getLiveChunkZ();
+		int newcx = entity.getLocChunkX();
+		int newcz = entity.getLocChunkZ();
 		if (newcx != prevcx || newcz != prevcz) {
 			if (canunload) {
-				if (!WorldUtil.areChunksLoaded(getWorld(), newcx, newcz, 2)) {
+				if (!WorldUtil.areChunksLoaded(entity.getWorld(), newcx, newcz, 2)) {
 					OfflineGroupManager.hideGroup(this.getGroup());
 					throw new GroupUnloadedException();
 				}
@@ -1116,12 +935,569 @@ public class MinecartMember extends MinecartMemberStore {
 				for (long key : unloadedChunks.toArray()) {
 					cx = MathUtil.longHashMsw(key);
 					cz = MathUtil.longHashLsw(key);
-					getWorld().unloadChunkRequest(cx, cz, true);
+					entity.getWorld().unloadChunkRequest(cx, cz, true);
 				}
 				this.loadChunks();
 			}
 			prevcx = newcx;
 			prevcz = newcz;
 		}
+	}
+
+	@Override
+	public boolean onEntityCollision(Entity e) {
+		MinecartMember<?> mm1 = this;
+		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded() || e.isDead() || this.entity.isDead() || this.getGroup().isMovementControlled()) {
+			return false;
+		}
+		MinecartMember<?> mm2 = MemberConverter.toMember.convert(e);
+		//colliding with a member in the group, or not?
+		if (mm2 != null) {
+			if (mm2.isUnloaded()) {
+				// The minecart is unloaded - ignore it
+				return false;
+			} else if (mm1.getGroup() == mm2.getGroup()) {
+				//Same group, but do prevent penetration
+				if (mm1.entity.distanceTo(mm2.entity) > 0.5) {
+					return false;
+				}
+			} else if (!mm1.getGroup().getProperties().getColliding()) {
+				//Allows train collisions?
+				return false;
+			} else if (!mm2.getGroup().getProperties().getColliding()) {
+				//Other train allows train collisions?
+				return false;
+			} else if (mm2.getGroup().isMovementControlled()) {
+				//Is this train targeting?
+				return false;
+			}
+			// Check if both minecarts are on the same vertical column
+			RailLogic logic1 = mm1.getRailLogic();
+			if (logic1 instanceof RailLogicVerticalSlopeDown) {
+				RailLogic logic2 = mm2.getRailLogic();
+				if (logic2 instanceof RailLogicVerticalSlopeDown) {
+					Block b1 = mm1.getBlock(logic1.getDirection());
+					Block b2 = mm2.getBlock(logic2.getDirection());
+					if (BlockUtil.equals(b1, b2)) {
+						return false;
+					}
+				}
+			}
+			return true;
+		} else if (e.isInsideVehicle() && e.getVehicle() instanceof Minecart) {
+			//Ignore passenger collisions
+			return false;
+		} else {
+			TrainProperties prop = this.getGroup().getProperties();
+			// Is it picking up this item?
+			if (e instanceof Item && this.getProperties().canPickup()) {
+				return false;
+			}
+
+			//No collision is allowed? (Owners override)
+			if (!prop.getColliding() && (!(e instanceof Player) || !prop.isOwner((Player) e))) {
+				return false;
+			}
+
+			// Collision modes
+			if (!prop.getCollisionMode(e).execute(this, e)) {
+				return false;
+			}
+		}
+		// Collision occurred, collided head-on? Stop the entire train
+		if (this.isHeadingTo(e)) {
+			this.getGroup().stop();
+		}
+		return true;
+	}
+
+	@Override
+	public boolean onBlockCollision(org.bukkit.block.Block block, BlockFace hitFace) {
+		if (Util.ISVERTRAIL.get(block)) {
+			return false;
+		}
+		if (moveinfo.railType == RailType.VERTICAL && hitFace != BlockFace.UP && hitFace != BlockFace.DOWN) {
+			// Check if the collided block has vertical rails
+			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
+				return false;
+			}
+		}
+		// Handle collision
+		if (!this.isTurned() && hitFace.getOppositeFace() == this.getDirectionTo() && !this.isDerailed()) {
+			// Cancel collisions with blocks at the heading of sloped rails
+			if (this.isOnSlope() && hitFace == this.getRailDirection().getOppositeFace()) {
+				// Vertical rail above?
+				if (Util.isVerticalAbove(this.getBlock(), this.getRailDirection())) {
+					return false;
+				}
+			}
+			// Stop the train
+			this.getGroup().stop();
+		}
+		return true;
+	}
+
+	/**
+	 * Gets the packet to spawn this Minecart Member
+	 * 
+	 * @return spawn packet
+	 */
+	public CommonPacket getSpawnPacket() {
+		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(entity.getEntity(), 10 + entity.getMinecartType()));
+		/*
+		final MinecartMemberTrackerEntry tracker = this.getTracker();
+		final int type = Conversion.toMinecartTypeId.convert(getType());
+		final CommonPacket p = new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
+		if (tracker != null) {
+			// Entity tracker is available - use it for the right position
+			p.write(PacketFields.VEHICLE_SPAWN.x, tracker.xLoc);
+			p.write(PacketFields.VEHICLE_SPAWN.y, tracker.yLoc);
+			p.write(PacketFields.VEHICLE_SPAWN.z, tracker.zLoc);
+			p.write(PacketFields.VEHICLE_SPAWN.yaw, (byte) tracker.xRot);
+			p.write(PacketFields.VEHICLE_SPAWN.pitch, (byte) tracker.yRot);
+		}
+		return p;
+		*/
+	}
+
+	/**
+	 * Gets the inventory of a potential Player passenger
+	 * 
+	 * @return the passenger Player inventory, or null if there is no player
+	 */
+	public PlayerInventory getPlayerInventory() {
+		Entity passenger = entity.getPassenger();
+		if (passenger instanceof Player) {
+			return ((Player) passenger).getInventory();
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Ejects the passenger of this Minecart
+	 */
+	public void eject() {
+		this.getEntity().eject();
+		this.resetCollisionEnter();
+	}
+
+	/**
+	 * Ejects the passenger of this Minecart and teleports him to the offset and rotation specified
+	 * 
+	 * @param offset to teleport to
+	 * @param yaw rotation
+	 * @param pitch rotation
+	 */
+	public void eject(Vector offset, float yaw, float pitch) {
+		eject(new Location(entity.getWorld(), entity.getLocX() + offset.getX(), entity.getLocY() + offset.getY(), entity.getLocZ() + offset.getZ(), yaw, pitch));
+	}
+
+	/**
+	 * Ejects the passenger of this Minecart and teleports him to the location specified
+	 * 
+	 * @param to location to eject/teleport to
+	 */
+	public void eject(final Location to) {
+		if (entity.hasPassenger()) {
+			final Entity passenger = this.entity.getPassenger();
+			this.eject();
+			EntityUtil.teleportNextTick(passenger, to);
+		}
+	}
+
+	public boolean connect(MinecartMember<?> with) {
+		return this.getGroup().connect(this, with);
+	}
+
+	public void update() {
+		if (entity.isDead()) {
+			return; 
+		}
+		this.needsUpdate = true;
+		this.getGroup().update();
+	}
+
+	public boolean isIgnoringCollisions() {
+		return this.ignoreAllCollisions;
+	}
+	public void setIgnoreCollisions(boolean ignoreAll) {
+		this.ignoreAllCollisions = ignoreAll;
+	}
+
+	public void stop() {
+		this.stop(false);
+	}
+	public void stop(boolean cancelLocationChange) {
+		entity.multiplyVelocity(0.0);
+		if (cancelLocationChange) {
+			entity.setLocX(entity.getLastX());
+			entity.setLocY(entity.getLastY());
+			entity.setLocX(entity.getLastZ());
+		}
+	}
+	public void reverse() {
+		entity.multiplyVelocity(-1.0);
+		this.direction = this.direction.getOppositeFace();
+	}
+
+	/**
+	 * Respawns the entity to the client (used to avoid teleport smoothing)
+	 */
+	public void respawn() {
+//		if (this.tracker != null) {
+//			this.tracker.doRespawn();
+//		}
+	}
+
+//	public MinecartMemberTrackerEntry getTracker() {
+//		return this.tracker;
+//	}
+
+
+	/**
+	 * Called when the blocks below this minecart change block coordinates
+	 * 
+	 * @param from block - the old block
+	 * @param to block - the new block
+	 */
+	public void onBlockChange(Block from, Block to) {
+		//update from direction
+		if (BlockUtil.getManhattanDistance(from, to, true) > 3) {
+			this.directionFrom = BlockFace.SELF;
+		} else {
+			this.directionFrom = this.directionTo;
+		}
+
+		//update active signs
+		this.clearActiveSigns();
+		this.checkMissing();
+		if (!this.isDerailed()) {
+			for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
+				this.addActiveSign(sign);
+				this.checkMissing();
+			}
+
+			//destroy blocks
+			Block left = this.getBlockRelative(BlockFace.WEST);
+			Block right = this.getBlockRelative(BlockFace.EAST);
+			if (this.getProperties().canBreak(left)) {
+				BlockInfo.get(left).destroy(left, 20.0f);
+			}
+			if (this.getProperties().canBreak(right)) {
+				BlockInfo.get(right).destroy(right, 20.0f);
+			}
+		}
+
+		//Detector regions
+		List<DetectorRegion> newregions = DetectorRegion.handleMove(this, from, to);
+		this.activeDetectorRegions.clear();
+		if (newregions != null) {
+			this.activeDetectorRegions.addAll(newregions);
+		}
+	}
+
+	/**
+	 * Executes the block and pre-movement calculations, which handles rail information updates<br>
+	 * Physics stage: <b>1</b>
+	 */
+	public void onPhysicsStart() {
+		//subtract times
+		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
+		while (times.hasNext()) {			
+			if (times.next().decrementAndGet() <= 0) times.remove();
+		}
+		if (this.teleportImmunityTick > 0) {
+			this.teleportImmunityTick--;
+		}
+		if (this.collisionEnterTimer > 0) {
+			this.collisionEnterTimer--;
+		}
+
+		//Some fixed
+		entity.setMotX(MathUtil.fixNaN(entity.getMotX()));
+		entity.setMotY(MathUtil.fixNaN(entity.getMotY()));
+		entity.setMotZ(MathUtil.fixNaN(entity.getMotZ()));
+
+		// CraftBukkit start
+		entity.setLastX(entity.getLocX());
+		entity.setLastY(entity.getLocY());
+		entity.setLastZ(entity.getLocZ());
+		entity.setLastYaw(entity.getYaw());
+		entity.setLastPitch(entity.getPitch());
+		// CraftBukkit end
+
+		this.refreshBlockInformation();
+	}
+
+	/**
+	 * Executes the block change events<br>
+	 * Physics stage: <b>2</b>
+	 */
+	public void onPhysicsBlockChange() {
+		// Handle block changes
+		this.checkMissing();
+		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
+			this.forcedBlockUpdate = false;
+			// Perform events and logic - validate along the way
+			MemberBlockChangeEvent.call(this, moveinfo.lastBlock, moveinfo.block);
+			this.checkMissing();
+			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
+			this.checkMissing();
+		}
+		moveinfo.updateRailLogic();
+	}
+
+	/**
+	 * Executes the velocity and pre-movement calculations, which handles logic prior to actual movement occurs<br>
+	 * Physics stage: <b>3</b>
+	 */
+	public void onPhysicsPreMove() {
+		// Reduce shaking over time
+		if (entity.getShakingFactor() > 0) {
+			entity.setShakingFactor(entity.getShakingFactor() - 1);
+		}
+
+		// Health regenerate
+		if (entity.getDamage() > 0) {
+			entity.setDamage(entity.getDamage() - 1);
+		}
+
+		// Kill entity if falling into the void
+		if (entity.getLocY() < -64.0D) {
+			this.onDie();
+		}
+
+		// Perform gravity
+		if (!getGroup().isMovementControlled()) {
+			entity.addMotY(-this.moveinfo.railLogic.getGravityMultiplier(this));
+		}
+
+		// reset fall distance
+		if (!this.isDerailed()) {
+			entity.setFallDistance(0.0f);
+		}
+
+		// Perform rails logic
+		moveinfo.railLogic.onPreMove(this);
+
+		// Update the entity shape
+		entity.setPosition(entity.getLocX(), entity.getLocY(), entity.getLocZ());
+
+		// Slow down on unpowered booster tracks
+		// Note: HAS to be in PreUpdate, otherwise glitches occur!
+		if (moveinfo.railType == RailType.BRAKE && !getGroup().isMovementControlled()) {
+			if (this.getXZForceSquared() < 0.0009) {
+				entity.multiplyVelocity(0.0);
+			} else {
+				entity.multiplyVelocity(0.5);
+			}
+		}
+	}
+
+	/**
+	 * Performs all logic right after movement has occurred
+	 */
+	public void doPostMoveLogic() {
+	}
+
+	/**
+	 * Moves the minecart and performs post-movement logic such as events, onBlockChanged and other (rail) logic
+	 * Physics stage: <b>4</b>
+	 * 
+	 * @param speedFactor to apply when moving
+	 * @throws MemberMissingException - thrown when the minecart is dead or dies
+	 * @throws GroupUnloadedException - thrown when the group is no longer loaded
+	 */
+	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+		this.checkMissing();
+
+		// Modify speed factor to stay within bounds
+		speedFactor = MathUtil.clamp(MathUtil.fixNaN(speedFactor, 1), 0.1, 10);
+
+		// Apply speed factor to maxed and not-a-number-fixed values
+		double motX = speedFactor * MathUtil.clamp(MathUtil.fixNaN(entity.getMotX()), entity.getMaxSpeed());
+		double motY = speedFactor * MathUtil.clamp(MathUtil.fixNaN(entity.getMotY()), entity.getMaxSpeed());
+		double motZ = speedFactor * MathUtil.clamp(MathUtil.fixNaN(entity.getMotZ()), entity.getMaxSpeed());
+
+		// No vertical motion if stuck to the rails that way
+		if (!moveinfo.railLogic.hasVerticalMovement()) {
+			motY = 0.0;
+		}
+
+		// Move using set motion, and perform post-move rail logic
+		this.onMove(motX, motY, motZ);
+		this.checkMissing();
+		this.moveinfo.railLogic.onPostMove(this);
+
+		// Post-move logic
+		this.doPostMoveLogic();
+		if (!this.isDerailed()) {
+			// Slowing down of minecarts
+			if (this.getGroup().getProperties().isSlowingDown()) {
+				if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TrainCarts.slowDownEmptyCarts) {
+					entity.multiplyVelocity(TrainCarts.slowDownMultiplierNormal);
+				} else {
+					entity.multiplyVelocity(TrainCarts.slowDownMultiplierSlow);
+				}
+			}
+
+			// Launching on powered booster tracks
+			if (moveinfo.railType == RailType.BOOST && !getGroup().isMovementControlled()) {
+				double newMotX = entity.getMotX();
+				double newMotZ = entity.getMotZ();
+				double motLength = entity.getVelXZLength();
+				if (motLength > 0.01) {
+					// Simple motion boosting when already moving
+					double launchFactor = TrainCarts.poweredRailBoost / motLength;
+					newMotX += newMotX * launchFactor;
+					newMotZ += newMotZ * launchFactor;
+				} else {
+					// Launch away from a suffocating block
+					BlockFace dir = this.getRailDirection();
+					org.bukkit.block.Block block = this.getBlock();
+					boolean pushFrom1 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir.getOppositeFace()));
+					boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
+					// If pushing from both directions, block all movement
+					if (pushFrom1 && pushFrom2) {
+						newMotX = newMotZ = 0.0;
+					} else if (pushFrom1 != pushFrom2) {
+						// Boosting to the open spot
+						final double boost = MathUtil.invert(POWERED_RAIL_START_BOOST, pushFrom2);
+						newMotX = boost * dir.getModX();
+						newMotZ = boost * dir.getModZ();
+					}
+				}
+				entity.setMotX(newMotX);
+				entity.setMotZ(newMotZ);
+			}
+		}
+
+		// Update rotation
+		this.onRotationUpdate();
+
+		// Ensure that the yaw and pitch stay within limits
+		entity.setYaw(entity.getYaw() % 360.0f);
+		entity.setPitch(entity.getPitch() % 360.0f);
+
+		// Invalidate volatile information
+		moveinfo.railLogicSnapshotted = false;
+
+		// Perform some (CraftBukkit) events
+		Location from = entity.getLastLocation();
+		Location to = entity.getLocation();
+		Vehicle vehicle = entity.getEntity();
+		CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
+		if (!from.equals(to)) {
+			// Execute move events
+			CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
+			for (org.bukkit.block.Block sign : this.getActiveSigns()) {
+				SignAction.executeAll(new SignActionEvent(sign, this), SignActionType.MEMBER_MOVE);
+			}
+		}
+
+		// Minecart collisions
+		for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
+			if (near instanceof Minecart && near != this.entity.getPassenger()) {
+				EntityUtil.doCollision(near, this.entity.getEntity());
+			}
+		}
+
+		// Ensure that dead passengers are cleared
+		if (entity.hasPassenger() && entity.getPassenger().isDead()) {
+			entity.setPassenger(null);
+		}
+
+		// Final logic
+		this.checkMissing();
+		this.doPhysicsEndLogic();
+
+		// Play additional sound effects
+		this.soundLoop.onTick();
+	}
+
+	@Override
+	public void onTick() {
+		if (this.isUnloaded()) {
+			return;
+		}
+		MinecartGroup g = this.getGroup();
+		if (g == null) {
+			return;
+		}
+		if (entity.isDead()) {
+			// remove self
+			g.remove(this);
+		} else if (g.isEmpty()) {
+			g.remove();
+			super.onTick();
+		} else if (g.tail() == this) {
+			g.doPhysics();
+		}
+	}
+
+	/**
+	 * Performs all logic at the very end of the physics routines
+	 */
+	public void doPhysicsEndLogic() {
+		if (this.needsUpdate) {
+			this.needsUpdate = false;
+			for (Block b : this.activeSigns) {
+				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
+			}
+			for (DetectorRegion reg : this.activeDetectorRegions) {
+				reg.update(this);
+			}
+		}
+	}
+
+	private void setAngleSafe(float newyaw, float pitch, boolean mode) {
+		if (MathUtil.getAngleDifference(entity.getYaw(), newyaw) > 170) {
+			entity.setYaw(MathUtil.wrapAngle(newyaw + 180));
+			entity.setPitch(mode ? -pitch : (pitch - 180f));
+		} else {
+			entity.setYaw(newyaw);
+			entity.setPitch(pitch);
+		}
+	}
+
+	/**
+	 * Performs rotation updates for yaw and pitch
+	 */
+	public void onRotationUpdate() {
+		//Update yaw and pitch based on motion
+		double movedX = -entity.getMovedX();
+		double movedY = -entity.getMovedY();
+		double movedZ = -entity.getMovedZ();
+		boolean movedXZ = entity.hasMovedHorizontally();
+		float newyaw = movedXZ ? MathUtil.getLookAtYaw(movedX, movedZ) : entity.getYaw();
+		float newpitch = entity.getPitch();
+		boolean mode = true;
+		if (entity.isOnGround()) {
+			if (Math.abs(newpitch) > 0.1) {
+				newpitch *= 0.1;
+			} else {
+				newpitch = 0;
+			}
+		} else if (this.isOnVertical()) {
+			newyaw = FaceUtil.faceToYaw(this.getRailDirection());
+			newpitch = -90f;
+			mode = false;
+		} else if (moveinfo.railType == RailType.PRESSUREPLATE) {
+			newpitch = 0.0F; //prevent weird pitch angles on pressure plates
+		} else if (movedXZ) {
+			if (this.moveinfo.railType.isHorizontal()) {
+				newpitch = -0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
+			} else {
+				newpitch = 0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
+			}
+			newpitch = MathUtil.clamp(newpitch, 60F);
+		}
+		setAngleSafe(newyaw, newpitch, mode);
+	}
+
+	@Override
+	public String getLocalizedName() {
+		return isSingle() ? "Minecart" : "Train";
 	}
 }

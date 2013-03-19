@@ -1,12 +1,12 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.collections.InterpolatedMap;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 
 /**
  * Keeps track of the current sound to
  */
-public class PoweredCartSoundLoop extends SoundLoop {
+public class PoweredCartSoundLoop extends SoundLoop<MinecartMemberFurnace> {
 	private static InterpolatedMap nodes = new InterpolatedMap();
 	private int swooshSoundCounter = 0;
 
@@ -21,17 +21,17 @@ public class PoweredCartSoundLoop extends SoundLoop {
 		nodes.put(0.4, 5.0);
 	}
 
-	public PoweredCartSoundLoop(MinecartMember member) {
+	public PoweredCartSoundLoop(MinecartMemberFurnace member) {
 		super(member);
 	}
 
 	@Override
 	public void onTick() {
-		if (!member.hasFuel()) {
+		if (!member.getEntity().hasFuel()) {
 			return;
 		}
 		this.swooshSoundCounter++;
-		int interval = (int) nodes.get(member.getMovedDistance());
+		int interval = (int) nodes.get(member.getEntity().getMovedDistance());
 		if (this.swooshSoundCounter >= interval) {
 			this.swooshSoundCounter = 0;
 			play("step.cloth", 0.4f + 0.2f * random.nextFloat(), 0.8f);

@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
@@ -200,14 +201,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	/*
 	 * Carts
 	 */
-	public void add(MinecartMember member) {
+	public void add(MinecartMember<?> member) {
 		this.add(member.getProperties());
 	}
 
 	@Override
 	public boolean remove(Object o) {
-		if (o instanceof MinecartMember) {
-			return super.remove(((MinecartMember) o).getProperties());
+		if (o instanceof MinecartMember<?>) {
+			return super.remove(((MinecartMember<?>) o).getProperties());
 		} else {
 			return super.remove(o);
 		}
@@ -461,15 +462,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	/*
 	 * Collision settings
 	 */
-	public boolean canCollide(MinecartMember with) {
+	public boolean canCollide(MinecartMember<?> with) {
 		return this.canCollide(with.getGroup());
 	}
 	public boolean canCollide(MinecartGroup with) {
 		return this.trainCollision && with != null && with.getProperties().trainCollision;
 	}
 	public boolean canCollide(Entity with) {
-		MinecartMember mm = MinecartMember.get(with);
-		if (mm == null || mm.dead) {
+		MinecartMember<?> mm = MinecartMemberStore.get(with);
+		if (mm == null || mm.getEntity().isDead()) {
 			if (this.trainCollision) {
 				return true;
 			}

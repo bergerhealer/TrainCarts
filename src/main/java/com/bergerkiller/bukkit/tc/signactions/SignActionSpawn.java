@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -161,7 +162,7 @@ public class SignActionSpawn extends SignAction {
 			if (types.size() == 1) {
 				// Single-minecart spawning logic
 				locs[0] = info.getRailLocation();
-				if (MinecartMember.getAt(locs[0]) == null) {
+				if (MinecartMemberStore.getAt(locs[0]) == null) {
 					for (BlockFace direction : info.getWatchedDirections()) {
 						direction = direction.getOppositeFace();
 						spawnDirection = direction;
@@ -187,7 +188,7 @@ public class SignActionSpawn extends SignAction {
 						}
 						locs[i] = iter.next();
 						//not taken?
-						if (MinecartMember.getAt(locs[i]) != null) {
+						if (MinecartMemberStore.getAt(locs[i]) != null) {
 							occupied = true;
 							break;
 						}
@@ -212,7 +213,7 @@ public class SignActionSpawn extends SignAction {
 			if (spawnDirection != null) {
 				MinecartGroup group = MinecartGroup.create();
 				for (int i = 0; i < locs.length; i++) {
-					MinecartMember mm = MinecartMember.spawn(locs[i], types.get(i));
+					MinecartMember<?> mm = MinecartMemberStore.spawn(locs[i], types.get(i));
 					group.add(mm);
 					if (spawnForce != 0 && i == 0) {
 						mm.addActionLaunch(spawnDirection, 2, spawnForce);

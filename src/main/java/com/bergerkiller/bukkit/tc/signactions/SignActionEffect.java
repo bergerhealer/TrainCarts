@@ -24,25 +24,25 @@ public class SignActionEffect extends SignAction {
 		if (info.isAction(SignActionType.MEMBER_MOVE)) {
 			if (move) {
 				if (info.isTrainSign()) {
-					for (MinecartMember member : info.getGroup()) {
-						eff.play(member.getLocation());
+					for (MinecartMember<?> member : info.getGroup()) {
+						eff.play(member.getEntity().getLocation());
 					}
 				} else if (info.isCartSign()) {
-					eff.play(info.getMember().getLocation());
+					eff.play(info.getMember().getEntity().getLocation());
 				}
 			}
 			return;
 		}
 		if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.hasGroup()) {
-			for (MinecartMember member : info.getGroup()) {
-				eff.play(member.getLocation());
+			for (MinecartMember<?> member : info.getGroup()) {
+				eff.play(member.getEntity().getLocation());
 			}
 		} else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.hasMember()) {
-			eff.play(info.getMember().getLocation());
+			eff.play(info.getMember().getEntity().getLocation());
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
 			for (MinecartGroup group : info.getRCTrainGroups()) {
-				for (MinecartMember member : group) {
-					eff.play(member.getLocation());
+				for (MinecartMember<?> member : group) {
+					eff.play(member.getEntity().getLocation());
 				}
 			}
 		} else if (info.isAction(SignActionType.REDSTONE_ON)) {

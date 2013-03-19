@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
@@ -180,7 +181,7 @@ public abstract class SignAction {
 				}
 				// Tell minecart above to add this sign, if available
 				if (info.hasRails()) {
-					final MinecartMember member = MinecartMember.getAt(info.getRails());
+					final MinecartMember<?> member = MinecartMemberStore.getAt(info.getRails());
 					if (member != null) {
 						CommonUtil.nextTick(new Runnable() {
 							public void run() {
@@ -209,7 +210,7 @@ public abstract class SignAction {
 		if (action != null) {
 			// First, remove this sign from all Minecarts on the world
 			for (MinecartGroup group : MinecartGroup.getGroups()) {
-				for (MinecartMember member : group) {
+				for (MinecartMember<?> member : group) {
 					member.removeActiveSign(info.getBlock());
 				}
 			}

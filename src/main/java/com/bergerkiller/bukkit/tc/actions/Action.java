@@ -1,17 +1,22 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import com.bergerkiller.bukkit.common.ToggledState;
+
 public class Action {
-	
-	private boolean started = false;
+	private final ToggledState started = new ToggledState();
+
 	public boolean doTick() {
-		if (!this.started) {
-			this.started = true;
+		if (this.started.set()) {
 			this.start();
 		}
 		return this.update();
 	}
-	
-	public boolean update() {return true;}
-	public void start() {}
 
+	public boolean update() {
+		return true;
+	}
+
+	public void start() {
+		// Default implementation does nothing here
+	}
 }

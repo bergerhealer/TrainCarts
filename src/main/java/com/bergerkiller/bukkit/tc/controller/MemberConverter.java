@@ -4,30 +4,31 @@ import java.util.UUID;
 
 import org.bukkit.entity.Minecart;
 
+import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.CastingConverter;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.conversion.Converter;
 import com.bergerkiller.bukkit.common.conversion.ConverterPair;
+import com.bergerkiller.bukkit.common.entity.CommonEntityStore;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 
-public class MemberConverter implements Converter<MinecartMember> {
+public class MemberConverter implements Converter<MinecartMember<?>> {
 	public static final MemberConverter toMember = new MemberConverter();
 
 	@Override
-	public MinecartMember convert(Object value, MinecartMember def) {
+	public MinecartMember<?> convert(Object value, MinecartMember<?> def) {
 		if (value == null) {
 			return def;
 		}
 		if (value instanceof UUID) {
-			return LogicUtil.fixNull(MinecartMember.getFromUID((UUID) value), def);
+			return LogicUtil.fixNull(MinecartMemberStore.getFromUID((UUID) value), def);
 		}
-		final MinecartMember member;
+		final MinecartMember<?> member;
 		if (value instanceof MinecartMember) {
-			member = (MinecartMember) value;
+			member = (MinecartMember<?>) value;
 		} else if (value instanceof Minecart) {
-			Object entityHandle = Conversion.toEntityHandle.convert(value);
-			if (entityHandle instanceof MinecartMember) {
-				member = (MinecartMember) entityHandle;
+			EntityController<?> controller = CommonEntityStore.get((Minecart) value).getController();
+			if (controller instanceof MinecartMember) {
+				member = (MinecartMember<?>) controller;
 			} else {
 				return def;
 			}
@@ -42,12 +43,13 @@ public class MemberConverter implements Converter<MinecartMember> {
 	}
 
 	@Override
-	public final MinecartMember convert(Object value) {
+	public final MinecartMember<?> convert(Object value) {
 		return convert(value, null);
 	}
 
 	@Override
-	public Class<MinecartMember> getOutputType() {
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	public Class getOutputType() {
 		return MinecartMember.class;
 	}
 
@@ -62,8 +64,8 @@ public class MemberConverter implements Converter<MinecartMember> {
 	}
 
 	@Override
-	public <K> ConverterPair<MinecartMember, K> formPair(Converter<K> converterB) {
-		return new ConverterPair<MinecartMember, K>(this, converterB);
+	public <K> ConverterPair<MinecartMember<?>, K> formPair(Converter<K> converterB) {
+		return new ConverterPair<MinecartMember<?>, K>(this, converterB);
 	}
 
 	@Override

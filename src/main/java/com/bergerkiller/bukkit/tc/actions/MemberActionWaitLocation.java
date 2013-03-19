@@ -5,13 +5,14 @@ import org.bukkit.Location;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberActionWaitLocation extends MemberAction implements WaitAction {
-	
 	private final Location dest;
 	private final double radiussquared;
-	public MemberActionWaitLocation(final MinecartMember member, final Location dest) {
+
+	public MemberActionWaitLocation(final MinecartMember<?> member, final Location dest) {
 		this(member, dest, 1);
 	}
-	public MemberActionWaitLocation(final MinecartMember member, final Location dest, final double radius) {
+
+	public MemberActionWaitLocation(final MinecartMember<?> member, final Location dest, final double radius) {
 		super(member);
 		this.dest = dest;
 		this.radiussquared = radius * radius;
@@ -20,12 +21,11 @@ public class MemberActionWaitLocation extends MemberAction implements WaitAction
 	@Override
 	public boolean update() {
 		if (this.getWorld() != dest.getWorld()) return false;
-		return this.getMember().distanceSquared(dest) <= this.radiussquared;
+		return this.getEntity().distanceSquaredTo(dest) <= this.radiussquared;
 	}
-	
+
 	@Override
 	public boolean isMovementSuppressed() {
 		return true;
 	}
-
 }

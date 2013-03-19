@@ -89,12 +89,12 @@ public class CartCommands {
 			}
 		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
 			Permission.COMMAND_DESTROY.handle(p);
-			MinecartMember mm = prop.getMember();
+			MinecartMember<?> mm = prop.getMember();
 			if (mm == null) {
 				CartPropertiesStore.remove(prop.getUUID());
 				OfflineGroupManager.removeMember(prop.getUUID());
 			} else {
-				mm.die();
+				mm.onDie();
 			}
 			p.sendMessage(ChatColor.YELLOW + "The selected minecart has been destroyed!");
 		} else if (cmd.equals("public")) {

@@ -13,7 +13,7 @@ public class StatementOwners extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return Util.evaluate(member.getProperties().getOwners().size(), text);
 	}
 
@@ -28,7 +28,7 @@ public class StatementOwners extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] owners, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] owners, SignActionEvent event) {
 		for (String owner : owners) {
 			if (member.getProperties().isOwner(owner.toLowerCase())) {
 				return true;

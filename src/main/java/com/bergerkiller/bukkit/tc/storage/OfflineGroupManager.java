@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class OfflineGroupManager {
@@ -374,8 +375,8 @@ public class OfflineGroupManager {
 		World world = group.getWorld();
 		if (world == null) return;
 		synchronized (managers) {
-			for (MinecartMember mm : group) {
-				hiddenMinecarts.add(mm.uniqueId);
+			for (MinecartMember<?> mm : group) {
+				hiddenMinecarts.add(mm.getEntity().getUniqueId());
 			}
 			//==== add =====
 			OfflineGroup wg = new OfflineGroup(group);
@@ -387,8 +388,10 @@ public class OfflineGroupManager {
 		}
 	}
 	public static void hideGroup(Object member) {
-		MinecartMember mm = MinecartMember.get(member);
-		if (mm != null && !mm.dead) hideGroup(mm.getGroup());
+		MinecartMember<?> mm = MinecartMemberStore.get(member);
+		if (mm != null && !mm.getEntity().isDead()) {
+			 hideGroup(mm.getGroup());
+		}
 	}
 
 	/**

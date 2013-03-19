@@ -54,13 +54,13 @@ public class DetectorSignPair implements DetectorListener {
 	}
 
 	@Override
-	public void onLeave(MinecartMember member) {
+	public void onLeave(MinecartMember<?> member) {
 		this.sign1.onLeave(member);
 		this.sign2.onLeave(member);
 	}
 
 	@Override
-	public void onEnter(MinecartMember member) {
+	public void onEnter(MinecartMember<?> member) {
 		this.sign1.onEnter(member);
 		this.sign2.onEnter(member);
 	}
@@ -78,7 +78,7 @@ public class DetectorSignPair implements DetectorListener {
 	}
 
 	@Override
-	public void onUpdate(MinecartMember member) {
+	public void onUpdate(MinecartMember<?> member) {
 		this.sign1.onUpdate(member);
 		this.sign2.onUpdate(member);
 	}

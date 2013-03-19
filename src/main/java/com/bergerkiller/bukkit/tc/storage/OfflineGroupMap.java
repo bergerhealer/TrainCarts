@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import org.bukkit.Chunk;
 
-import com.bergerkiller.bukkit.common.bases.LongHash;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
@@ -92,11 +92,11 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	public Set<OfflineGroup> remove(Chunk chunk) {
 		return remove(chunk.getX(), chunk.getZ());
 	}
-	
+
 	public Set<OfflineGroup> remove(int x, int z) {
-		return remove(LongHash.toLong(x, z));
+		return remove(MathUtil.longHashToLong(x, z));
 	}
-	
+
 	public Set<OfflineGroup> remove(long chunk) {
 		Set<OfflineGroup> rval = this.groupmap.remove(chunk);
 		if (rval != null) {
@@ -112,7 +112,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	}
 	
 	public Set<OfflineGroup> get(int x, int z) {
-		return this.get(LongHash.toLong(x, z));
+		return this.get(MathUtil.longHashToLong(x, z));
 	}
 	
 	public Set<OfflineGroup> get(long chunk) {

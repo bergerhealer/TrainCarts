@@ -30,7 +30,7 @@ public class DirectionStatement {
 		}
 	}
 
-	public boolean has(SignActionEvent event, MinecartMember member) {
+	public boolean has(SignActionEvent event, MinecartMember<?> member) {
 		return Statement.has(member, this.text, event);
 	}
 

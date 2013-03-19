@@ -4,9 +4,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.entity.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -31,11 +31,13 @@ public class RailLogicSloped extends RailLogicHorizontal {
 	}
 
 	@Override
-	public void onPostMove(MinecartMember member) {
-		int dx = member.getBlockX() - MathUtil.floor(member.locX);
-		int dz = member.getBlockZ() - MathUtil.floor(member.locZ);
+	public void onPostMove(MinecartMember<?> member) {
+		final CommonMinecart<?> entity = member.getEntity();
+
+		int dx = member.getBlockPos().x - entity.getLocBlockX();
+		int dz = member.getBlockPos().z - entity.getLocBlockZ();
 		if (dx == this.getDirection().getModX() && dz == this.getDirection().getModZ()) {
-			member.locY -= 1.0;
+			entity.setLocY(entity.getLocY() - 1.0);
 		}
 
 		// Slope physics and snap to rails logic
@@ -45,46 +47,47 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
 		// Note to self: For new rail types, this needs a rewrite to use a common function!
 		// See the RailLogicHorizontal.onPreMove trailing part...no locY adjustment is done there
-		Vector startVector = member.getSlopedPosition(member.lastX, member.lastY, member.lastZ);
+		Vector startVector = entity.getSlopedPosition(entity.getLastX(), entity.getLastY(), entity.getLastZ());
 		if (startVector != null) {
-			Vector endVector = member.getSlopedPosition(member.locX, member.locY, member.locZ);
+			Vector endVector = entity.getSlopedPosition(entity.getLocX(), entity.getLocY(), entity.getLocZ());
 			if (endVector != null) {
 				if (member.getGroup().getProperties().isSlowingDown()) {
 					final double motLength = member.getXZForce();
 					if (motLength > 0) {
-						final double slopeSlowDown = (startVector.getY() - endVector.getY()) * 0.05 / motLength + 1.0;
-						member.motX *= slopeSlowDown;
-						member.motZ *= slopeSlowDown;
+						final double fact = (startVector.getY() - endVector.getY()) * 0.05 / motLength + 1.0;
+						entity.multiplyVelocity(fact, 1.0, fact);
 					}
 				}
-				member.setPosition(member.locX, endVector.getY(), member.locZ);
+				entity.setPosition(entity.getLocX(), endVector.getY(), entity.getLocZ());
 			}
 		}
 	}
 
 	@Override
-	public void onPreMove(MinecartMember member) {
+	public void onPreMove(MinecartMember<?> member) {
+		final CommonMinecart<?> entity = member.getEntity();
+	
 		MinecartGroup group = member.getGroup();
 		// Velocity modifier for sloped tracks
 		if (group.getProperties().isSlowingDown() && !group.isMovementControlled()) {
-			member.motX -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModX();
-			member.motZ -= MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModZ();
+			entity.addMotX(-MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModX());
+			entity.addMotZ(-MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModZ());
 		}
-		member.motX += member.motY * this.getDirection().getModX();
-		member.motZ += member.motY * this.getDirection().getModZ();
-		member.motY = 0.0;
+		entity.addMotX(entity.getMotY() * this.getDirection().getModX());
+		entity.addMotZ(entity.getMotY() * this.getDirection().getModZ());
+		entity.setMotY(0.0);
 
 		// Stop movement if colliding with a block at the slope
 		double blockedDistance = Double.MAX_VALUE;
 		Block heading = member.getBlock(this.getDirection().getOppositeFace());
 		if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
 			if (MaterialUtil.SUFFOCATES.get(heading)) {
-				blockedDistance = member.distanceXZ(heading) - 1.0;
+				blockedDistance = entity.distanceXZTo(heading) - 1.0;
 			}
 		} else if (member.isHeadingTo(this.getDirection())) {
 			Block above = member.getBlock(BlockFace.UP);
 			if (MaterialUtil.SUFFOCATES.get(above)) {
-				blockedDistance = member.distanceXZ(above);
+				blockedDistance = entity.distanceXZTo(above);
 			}
 		}
 		if (member.getXZForce() > blockedDistance) {
@@ -93,7 +96,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
 		// Perform remaining positioning updates
 		super.onPreMove(member);
-		member.locY += 1.0;
+		entity.setLocY(entity.getLocY() + 1.0);
 	}
 
 	/**

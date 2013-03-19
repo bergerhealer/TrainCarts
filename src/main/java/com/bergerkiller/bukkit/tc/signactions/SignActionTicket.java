@@ -48,17 +48,21 @@ public class SignActionTicket extends SignAction {
 					money = ParseUtil.parseDouble(info.getLine(3), 0.0);
 				}
 				final String mode = info.getLine(2);
-				List<MinecartMember> members;
+				List<MinecartMember<?>> members;
 				if (isTrain) {
 					members = info.getGroup();
 				} else {
-					members = new ArrayList<MinecartMember>(1);
+					members = new ArrayList<MinecartMember<?>>(1);
 					members.add(info.getMember());
 				}
-				for (MinecartMember member : members) {
-					if (!member.hasPlayerPassenger()) continue;
-					Player player = (Player) member.getPassenger();
-					if (!method.hasAccount(player.getName())) continue;
+				for (MinecartMember<?> member : members) {
+					if (!member.getEntity().hasPlayerPassenger()) {
+						continue;
+					}
+					Player player = member.getEntity().getPlayerPassenger();
+					if (!method.hasAccount(player.getName())) {
+						continue;
+					}
 					//actually perform something with it here
 					MethodAccount account = method.getAccount(player.getName());
 

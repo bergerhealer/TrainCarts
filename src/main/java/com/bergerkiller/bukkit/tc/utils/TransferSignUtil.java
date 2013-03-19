@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +25,8 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
 
@@ -31,6 +34,36 @@ import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
  * Utilities for dealing with item transfers between different containers
  */
 public class TransferSignUtil {
+
+	public static Inventory getInventory(SignActionEvent info) {
+		if (info.isCartSign()) {
+			if (info.getMember() instanceof MinecartMemberChest) {
+				return ((MinecartMemberChest) info.getMember()).getEntity().getInventory();
+			} else {
+				return null;
+			}
+		} else {
+			return info.getGroup().getInventory();
+		}
+	}
+
+	public static Collection<InventoryHolder> getInventories(SignActionEvent info) {
+		if (info.isCartSign()) {
+			if (info.getMember() instanceof MinecartMemberChest) {
+				return Arrays.asList((InventoryHolder) info.getMember().getEntity().getEntity());
+			} else {
+				return Collections.emptyList();
+			}
+		} else {
+			Collection<InventoryHolder> trainInvs = new ArrayList<InventoryHolder>(info.getGroup().size());
+			for (MinecartMember<?> member : info.getGroup()) {
+				if (member instanceof MinecartMemberChest) {
+					trainInvs.add((InventoryHolder) member.getEntity().getEntity());
+				}
+			}
+			return trainInvs;
+		}
+	}
 
 	public static int depositInFurnace(Inventory from, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
 		final Inventory to = toFurnace.getInventory();

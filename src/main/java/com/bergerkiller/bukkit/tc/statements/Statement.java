@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public abstract class Statement {
-
 	/**
 	 * Checks if this statement matches the given text
 	 * The given text is lower cased.
@@ -28,7 +27,7 @@ public abstract class Statement {
 	public abstract boolean matchArray(String text);
 
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
-		for (MinecartMember member : group) {
+		for (MinecartMember<?> member : group) {
 			if (this.handle(member, text, event)) {
 				return true;
 			}
@@ -37,7 +36,7 @@ public abstract class Statement {
 	}
 
 	public boolean handleArray(MinecartGroup group, String[] text, SignActionEvent event) {
-		for (MinecartMember member : group) {
+		for (MinecartMember<?> member : group) {
 			if (this.handleArray(member, text, event)) {
 				return true;
 			}
@@ -45,11 +44,11 @@ public abstract class Statement {
 		return false;
 	}
 
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return false;
 	}
 
-	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] text, SignActionEvent event) {
 		return false;
 	}
 
@@ -89,7 +88,7 @@ public abstract class Statement {
 		return statement;
 	}
 
-	public static boolean has(MinecartMember member, String text, SignActionEvent event) {
+	public static boolean has(MinecartMember<?> member, String text, SignActionEvent event) {
 		return has(member, null, text, event);
 	}
 
@@ -106,7 +105,7 @@ public abstract class Statement {
 	 * @param event to parse
 	 * @return True if successful, False if not
 	 */
-	public static boolean has(MinecartMember member, MinecartGroup group, String text, SignActionEvent event) {
+	public static boolean has(MinecartMember<?> member, MinecartGroup group, String text, SignActionEvent event) {
 		boolean inv = false;
 		text = TrainCarts.statementShortcuts.replace(text);
 		while (text.startsWith("!")) {

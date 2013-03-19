@@ -16,13 +16,13 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class Commands {
-	
+
 	public static void permission(CommandSender sender, String node) throws NoPermissionException {
 		if (sender instanceof Player && !((Player) sender).hasPermission(node)) {
 			throw new NoPermissionException();
 		}
 	}
-	
+
 	public static boolean execute(CommandSender sender, String command, String[] args) {
 		if (args.length == 0) {
 			sender.sendMessage("TrainCarts " + TrainCarts.plugin.getVersion() + " - See WIKI page for more information");

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -49,7 +50,8 @@ public class RailLogicHorizontal extends RailLogic {
 	}
 
 	@Override
-	public void onPreMove(MinecartMember member) {
+	public void onPreMove(MinecartMember<?> member) {
+		final CommonEntity<?> entity = member.getEntity();
 		// Apply velocity modifiers
 		final boolean invert;
 		if (this.curved) {
@@ -58,31 +60,30 @@ public class RailLogicHorizontal extends RailLogic {
 			invert = from == this.faces[0] || from == this.faces[1];
 		} else {
 			// Invert only if the direction is inverted relative to cart velocity
-			invert = (member.motX * this.dx + member.motZ * this.dz) < 0.0;
+			invert = (entity.getMotX() * this.dx + entity.getMotZ() * this.dz) < 0.0;
 		}
-		double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, member.motX, member.motZ), invert);
-		member.motX = railFactor * this.dx;
-		member.motZ = railFactor * this.dz;
-		member.motY = 0.0;
+		double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, entity.getMotX(), entity.getMotZ()), invert);
+		entity.setVelocity(railFactor * this.dx, 0.0, railFactor * this.dz);
 
-		double newLocX = (double) member.getBlockX() + 0.5 + this.startX;
-		double newLocY = (double) member.getBlockY() + (double) member.height;
-		double newLocZ = (double) member.getBlockZ() + 0.5 + this.startZ;
+		double newLocX = (double) member.getBlockPos().x + 0.5 + this.startX;
+		double newLocY = (double) member.getBlockPos().y + (double) entity.getHeight();
+		double newLocZ = (double) member.getBlockPos().z + 0.5 + this.startZ;
 		if (this.alongZ) {
 			// Moving along the X-axis
-			newLocZ += this.dz * (member.locZ - member.getBlockZ());
+			newLocZ += this.dz * (entity.getLocZ() - member.getBlockPos().z);
 		} else if (this.alongX) {
 			// Moving along the Z-axis
-			newLocX += this.dx * (member.locX - member.getBlockX());
+			newLocX += this.dx * (entity.getLocX() - member.getBlockPos().x);
 		} else {
 			// Curve
-			double factor = 2.0 * (this.dx * (member.locX - newLocX) + this.dz * (member.locZ - newLocZ));
+			double factor = 2.0 * (this.dx * (entity.getLocX() - newLocX) + this.dz * (entity.getLocZ() - newLocZ));
 			newLocX += factor * this.dx;
 			newLocZ += factor * this.dz;
 		}
-		member.locX = newLocX;
-		member.locY = newLocY;
-		member.locZ = newLocZ;
+		//entity.setPosition(newLocX, newLocY, newLocZ);
+		entity.setLocX(newLocX);
+		entity.setLocY(newLocY);
+		entity.setLocZ(newLocZ);
 	}
 
 	/**

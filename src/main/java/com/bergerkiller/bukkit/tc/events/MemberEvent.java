@@ -6,13 +6,13 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public abstract class MemberEvent extends Event {
-	protected MinecartMember member;
+	protected MinecartMember<?> member;
 
-	public MemberEvent(final MinecartMember member) {
+	public MemberEvent(final MinecartMember<?> member) {
 		this.member = member;
 	}
 
-	public MinecartMember getMember() {
+	public MinecartMember<?> getMember() {
 		return this.member;
 	}
 

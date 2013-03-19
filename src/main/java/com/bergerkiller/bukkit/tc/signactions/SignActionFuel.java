@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
@@ -50,18 +51,22 @@ public class SignActionFuel extends SignAction {
 			return;
 		}
 
-		List<MinecartMember> carts;
+		List<MinecartMember<?>> carts;
 		if (dotrain) {
 			carts = info.getGroup();
 		} else {
-			carts = new ArrayList<MinecartMember>(1);
+			carts = new ArrayList<MinecartMember<?>>(1);
 			carts.add(info.getMember());
 		}
 
 		int i;
 		boolean found = false;
-		for (MinecartMember member : carts) {
-			if (member.isPoweredCart() && !member.hasFuel()) {
+		for (MinecartMember<?> cart : carts) {
+			if (!(cart instanceof MinecartMemberFurnace)) {
+				continue;
+			}
+			MinecartMemberFurnace member = (MinecartMemberFurnace) cart;
+			if (!member.getEntity().hasFuel()) {
 				found = false;
 				for (Chest chest : chests) {
 					Inventory inv = chest.getInventory();
@@ -71,14 +76,16 @@ public class SignActionFuel extends SignAction {
 							ItemUtil.subtractAmount(item, 1);
 							inv.setItem(i, item);
 							found = true;
-							member.addFuel(3600);
+							member.addFuelTicks(3600);
 							if (TrainCarts.showTransferAnimations) {
 								ItemAnimation.start(chest, member, new ItemStack(Material.COAL, 1));
 							}
 							break;
 						}
 					}
-					if (found) break;
+					if (found){
+						break;
+					}
 				}
 			}
 		}

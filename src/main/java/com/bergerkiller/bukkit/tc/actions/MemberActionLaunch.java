@@ -11,7 +11,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 	private double targetvelocity;
 	private double startvelocity;
 
-	public MemberActionLaunch(final MinecartMember member, double targetdistance, double targetvelocity) {
+	public MemberActionLaunch(final MinecartMember<?> member, double targetdistance, double targetvelocity) {
 		super(member);
 		this.distance = 0;
 		this.targetdistance = targetdistance;
@@ -23,9 +23,12 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 		this.targetdistance = distance;
 	}
 
+	@Override
 	public void start() {
-		this.startvelocity = MathUtil.clamp(this.getMember().getForce(), this.getMember().maxSpeed);
-		if (this.startvelocity < minVelocity) this.startvelocity = minVelocity;
+		this.startvelocity = MathUtil.clamp(this.getMember().getForce(), this.getEntity().getMaxSpeed());
+		if (this.startvelocity < minVelocity) {
+			this.startvelocity = minVelocity;
+		}
 	}
 
 	@Override
@@ -52,14 +55,14 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
 		//Did any of the carts in the group stop?
 		if (this.distance != 0) {
-			for (MinecartMember mm : this.getGroup()) {
+			for (MinecartMember<?> mm : this.getGroup()) {
 				if (mm.getForceSquared() < minVelocityForLaunch * minVelocityForLaunch) return true; //stopped
 			}
 		}
-		
+
 		//Increment distance
-		this.distance += this.getMember().getMovedDistance();
-		
+		this.distance += this.getEntity().getMovedDistance();
+
 		//Reached the target distance?
 		if (this.distance > this.targetdistance - 0.2) {
 			if (this.targetvelocity == 0) {
@@ -72,7 +75,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 			return true;
 		} else {
 			//Get the velocity to set the carts to
-			double targetvel = MathUtil.clamp(this.targetvelocity, this.getMember().maxSpeed);
+			double targetvel = MathUtil.clamp(this.targetvelocity, this.getEntity().getMaxSpeed());
 			if (this.targetvelocity > 0 || (this.targetdistance - this.distance) < 5) {
 				targetvel = MathUtil.lerp(this.startvelocity, targetvel, this.distance / this.targetdistance);
 			} else {

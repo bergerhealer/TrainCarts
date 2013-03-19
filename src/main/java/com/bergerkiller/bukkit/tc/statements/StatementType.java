@@ -22,11 +22,11 @@ public class StatementType extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		if (isSize(text.toLowerCase(Locale.ENGLISH))) {
 			return true;
 		}
-		return member.getType() == Conversion.toMinecartType.convert(text);
+		return member.getEntity().getCombinedItem() == Conversion.toMinecartType.convert(text);
 	}
 
 	@Override

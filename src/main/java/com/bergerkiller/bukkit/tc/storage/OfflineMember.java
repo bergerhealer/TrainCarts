@@ -11,6 +11,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -26,12 +27,13 @@ public class OfflineMember {
 	public OfflineGroup group;
 
 	public OfflineMember() {}
-	public OfflineMember(OfflineGroup group, MinecartMember instance) {
-		this.motX = instance.motX;
-		this.motZ = instance.motZ;
-		this.entityUID = instance.uniqueId;
-		this.cx = instance.getLiveChunkX();
-		this.cz = instance.getLiveChunkZ();
+	public OfflineMember(OfflineGroup group, MinecartMember<?> instance) {
+		CommonEntity<?> entity = instance.getEntity();
+		this.motX = entity.getMotX();
+		this.motZ = entity.getMotZ();
+		this.entityUID = entity.getUniqueId();
+		this.cx = entity.getLocChunkX();
+		this.cz = entity.getLocChunkZ();
 		this.group = group;
 	}
 
@@ -41,8 +43,8 @@ public class OfflineMember {
 		this.motZ = vel.getZ();
 	}
 
-	public MinecartMember create(World world) {
-		MinecartMember mm = null;
+	public MinecartMember<?> create(World world) {
+		MinecartMember<?> mm = null;
 		// first try to find it in the chunk
 		Chunk c = world.getChunkAt(cx, cz);
 		for (Entity e : WorldUtil.getEntities(c)) {
@@ -63,8 +65,8 @@ public class OfflineMember {
 		}
 		// Restore velocity
 		if (mm != null) {
-			mm.motX = this.motX;
-			mm.motZ = this.motZ;
+			mm.getEntity().setMotX(this.motX);
+			mm.getEntity().setMotZ(this.motZ);
 		}
 		return mm;
 	}

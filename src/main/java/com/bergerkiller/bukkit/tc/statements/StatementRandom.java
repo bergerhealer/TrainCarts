@@ -36,7 +36,7 @@ public class StatementRandom extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return handle();
 	}
 
@@ -46,7 +46,7 @@ public class StatementRandom extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] text, SignActionEvent event) {
 		return handle(text);
 	}
 }

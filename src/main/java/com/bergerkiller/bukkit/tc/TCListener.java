@@ -34,10 +34,10 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 
-import com.bergerkiller.bukkit.common.bases.LongHash;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.controller.EntityController;
+import com.bergerkiller.bukkit.common.entity.CommonEntityStore;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -97,7 +97,7 @@ public class TCListener implements Listener {
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
 			// This chunk is still referenced, ensure that it is really gone
-			OfflineGroupManager.lastUnloadChunk = LongHash.toLong(event.getChunk().getX(), event.getChunk().getZ());
+			OfflineGroupManager.lastUnloadChunk = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
 			// Unload groups
 			synchronized (this.expectUnload) {
 				for (MinecartGroup mg : this.expectUnload) {
@@ -155,7 +155,7 @@ public class TCListener implements Listener {
 					e.teleport(loc);
 				}
 			});
-			MinecartMember mm = MinecartMember.get(m);
+			MinecartMember<?> mm = MinecartMemberStore.get(m);
 			if (mm != null) {
 				mm.resetCollisionEnter();
 				mm.update();
@@ -168,7 +168,7 @@ public class TCListener implements Listener {
 		if (!(event.getEntity() instanceof Minecart)) {
 			return;
 		}
-		MinecartMember member = MinecartMemberStore.convert((Minecart) event.getEntity());
+		MinecartMember<?> member = MinecartMemberStore.convert((Minecart) event.getEntity());
 		if (member != null && !member.isUnloaded() && lastPlayer != null) {
 			// A player just placed a minecart - set defaults and ownership
 			member.getGroup().getProperties().setDefault(lastPlayer);
@@ -183,8 +183,8 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onEntityRemove(EntityRemoveEvent event) {
 		if (event.getEntity() instanceof Minecart) {
-			MinecartMember member = MinecartMember.get(event.getEntity());
-			if (member == null || member.isUnloaded() || member.dead) {
+			MinecartMember<?> member = MinecartMemberStore.get(event.getEntity());
+			if (member == null || member.isUnloaded() || member.getEntity().isDead()) {
 				return;
 			}
 			MinecartGroup group = member.getGroup();
@@ -197,7 +197,7 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleEnter(VehicleEnterEvent event) {
 		if (!event.isCancelled()) {
-			MinecartMember member = MinecartMember.get(event.getVehicle());
+			MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
 			if (member != null) {
 				CartProperties prop = member.getProperties();
 				if (event.getEntered() instanceof Player) {
@@ -219,7 +219,7 @@ public class TCListener implements Listener {
 	public void onVehicleDamage(VehicleDamageEvent event) {
 		if (event.getAttacker() != null && event.getAttacker() instanceof Player) {
 			if (!event.isCancelled()) {
-				MinecartMember mm = MinecartMember.get(event.getVehicle());
+				MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
 				if (mm != null) {
 					Player p = (Player) event.getAttacker();
 					if (mm.getProperties().hasOwnership(p)) {
@@ -229,7 +229,7 @@ public class TCListener implements Listener {
 						if (group.getProperties().isManualMovementAllowed()) {
 							// Get velocity modifier
 							float yaw = p.getLocation().getYaw();
-							mm.setVelocity(MathUtil.getDirection(yaw, 0.0f).multiply(TrainCarts.manualMovementSpeed));
+							mm.getEntity().setVelocity(MathUtil.getDirection(yaw, 0.0f).multiply(TrainCarts.manualMovementSpeed));
 							group.updateDirection();
 						}
 					} else {
@@ -247,11 +247,11 @@ public class TCListener implements Listener {
 		}
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				Object veh = Conversion.toEntityHandle.convert(event.getVehicle());
-				if (!(veh instanceof MinecartMember)) {
+				EntityController<?> controller = CommonEntityStore.getController(event.getVehicle());
+				if (!(controller instanceof MinecartMember)) {
 					return;
 				}
-				MinecartMember mm1 = (MinecartMember) veh;
+				MinecartMember<?> mm1 = (MinecartMember<?>) controller;
 				if (mm1.isUnloaded()) {
 					event.setCancelled(true);
 					return;
@@ -267,7 +267,7 @@ public class TCListener implements Listener {
 					return;
 				}
 				if (event.getEntity() instanceof Minecart) {
-					MinecartMember mm2 = MinecartMember.get(event.getEntity());
+					MinecartMember<?> mm2 = MinecartMemberStore.get(event.getEntity());
 					if (mm2 == null || mm1 == mm2) {
 						event.setCancelled(true);
 						return;
@@ -383,10 +383,10 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		try {
-			MinecartMember mm = MinecartMember.get(event.getRightClicked());
+			MinecartMember<?> mm = MinecartMemberStore.get(event.getRightClicked());
 			if (mm != null) {
 				CartPropertiesStore.setEditing(event.getPlayer(), mm.getProperties());
-				MinecartMember entered = MinecartMember.get(event.getPlayer().getVehicle());
+				MinecartMember<?> entered = MinecartMemberStore.get(event.getPlayer().getVehicle());
 				if (entered != null && !entered.getProperties().getPlayersExit()) {
 					event.setCancelled(true);
 				}
@@ -524,7 +524,7 @@ public class TCListener implements Listener {
 		if (event.isCancelled()) {
 			return;
 		}
-		MinecartMember member = MinecartMember.get(event.getEntity().getVehicle());
+		MinecartMember<?> member = MinecartMemberStore.get(event.getEntity().getVehicle());
 		if (member != null && member.isTeleportImmune()) {
 			event.setCancelled(true);
 		}
@@ -595,7 +595,7 @@ public class TCListener implements Listener {
 	 * @param railsBlock that is broken
 	 */
 	public void onRailsBreak(Block railsBlock) {
-		MinecartMember mm = MinecartMember.getAt(railsBlock);
+		MinecartMember<?> mm = MinecartMemberStore.getAt(railsBlock);
 		if (mm != null) {
 			mm.getGroup().updateBlockSpace(true);
 			mm.getGroup().updateActiveSigns(true);

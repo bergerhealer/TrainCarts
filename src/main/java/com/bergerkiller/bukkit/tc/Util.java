@@ -43,6 +43,17 @@ public class Util {
 	}
 
 	/**
+	 * Gets the sub-coordinates; the distance moved from the center of the current block
+	 * 
+	 * @param value
+	 * @return sub-value
+	 */
+	public static double sub(double value) {
+		final double z = value + 0.5;
+		return z - (int) z;
+	}
+
+	/**
 	 * Snaps a block face to one of the 8 possible radial block faces (NESW/NE/etc.)
 	 * 
 	 * @param face to snap to a nearby valid face

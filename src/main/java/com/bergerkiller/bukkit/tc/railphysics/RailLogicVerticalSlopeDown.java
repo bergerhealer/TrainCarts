@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.entity.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -27,24 +29,25 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
 	}
 
 	@Override
-	public void onPostMove(MinecartMember member) {
+	public void onPostMove(MinecartMember<?> member) {
+		final CommonMinecart<?> entity = member.getEntity();
+		final IntVector3 block = member.getBlockPos();
+
 		double factor = 0.0;
 		if (this.alongZ) {
-			factor = this.getDirection().getModZ() * ((member.getBlockZ() + 0.5) - member.locZ);
+			factor = this.getDirection().getModZ() * ((block.z + 0.5) - entity.getLocZ());
 		} else if (this.alongX) {
-			factor = this.getDirection().getModX() * ((member.getBlockX() + 0.5) - member.locX);
+			factor = this.getDirection().getModX() * ((block.x + 0.5) - entity.getLocX());
 		}
 		double posYAdd = (0.5 - MathUtil.clamp(factor, 0.0, 0.5)) * 2.0;
-		member.locY = member.getBlockY() + posYAdd;
+		entity.setLocY(block.y + posYAdd);
 		if (posYAdd >= 1.0) {
 			// Go to the vertical rail
-			member.locY += 1.0;
-			member.locX = member.getBlockX() + 0.5;
-			member.locZ = member.getBlockZ() + 0.5;
+			entity.setLocY(entity.getLocY() + 1.0);
+			entity.setLocX(block.x + 0.5);
+			entity.setLocZ(block.z + 0.5);
 			// Turn velocity to the vertical type
-			member.motY = member.getXZForce();
-			member.motX = 0.0;
-			member.motZ = 0.0;
+			entity.setVelocity(0.0, member.getXZForce(), 0.0);
 		}
 	}
 

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.entity.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -18,13 +19,13 @@ public class RailLogicVertical extends RailLogic {
 	}
 
 	@Override
-	public double getForwardVelocity(MinecartMember member) {
-		return member.getDirection().getModY() * member.motY;
+	public double getForwardVelocity(MinecartMember<?> member) {
+		return member.getDirection().getModY() * member.getEntity().getMotY();
 	}
 
 	@Override
-	public void setForwardVelocity(MinecartMember member, double force) {
-		member.motY = member.getDirection().getModY() * force;
+	public void setForwardVelocity(MinecartMember<?> member, double force) {
+		member.getEntity().setMotY(member.getDirection().getModY() * force);
 	}
 
 	@Override
@@ -33,19 +34,20 @@ public class RailLogicVertical extends RailLogic {
 	}
 
 	@Override
-	public double getGravityMultiplier(MinecartMember member) {
+	public double getGravityMultiplier(MinecartMember<?> member) {
 		return member.getGroup().getProperties().isSlowingDown() ? MinecartMember.VERTRAIL_MULTIPLIER : 0.0;
 	}
 
 	@Override
-	public void onPreMove(MinecartMember member) {
+	public void onPreMove(MinecartMember<?> member) {
+		final CommonMinecart<?> entity = member.getEntity();
 		// Horizontal rail force to motY
-		member.motY += member.getXZForce() * member.getDirection().getModY();
-		member.motX = 0.0;
-		member.motZ = 0.0;
+		entity.addMotY(member.getXZForce() * member.getDirection().getModY());
+		entity.setMotX(0.0);
+		entity.setMotZ(0.0);
 		// Position update
-		member.locX = (double) member.getBlockX() + 0.5;
-		member.locZ = (double) member.getBlockZ() + 0.5;
+		entity.setLocX((double) member.getBlockPos().x + 0.5);
+		entity.setLocZ((double) member.getBlockPos().z + 0.5);
 	}
 
 	/**

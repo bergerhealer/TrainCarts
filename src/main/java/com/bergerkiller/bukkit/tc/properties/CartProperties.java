@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
@@ -42,7 +43,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private String lastPathNode = "";
 	private boolean isPublic = true;
 	private boolean pickUp = false;
-	private SoftReference<MinecartMember> member = new SoftReference<MinecartMember>();
+	private SoftReference<MinecartMember<?>> member = new SoftReference<MinecartMember<?>>();
 	protected TrainProperties group = null;
 
 	protected CartProperties(UUID uuid, TrainProperties group) {
@@ -59,16 +60,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		return "cart";
 	}
 
-	public MinecartMember getMember() {
-		MinecartMember member = this.member.get();
-		if (member == null || member.dead || member.isUnloaded() || !member.uniqueId.equals(this.uuid)) {
-			return this.member.set(MinecartMember.get(this.uuid));
+	public MinecartMember<?> getMember() {
+		MinecartMember<?> member = this.member.get();
+		if (member == null || member.getEntity().isDead() || member.isUnloaded() || !member.getEntity().getUniqueId().equals(this.uuid)) {
+			return this.member.set(MinecartMemberStore.get(this.uuid));
 		} else {
 			return member;
 		}
 	}
 	public MinecartGroup getGroup() {
-		MinecartMember member = this.getMember();
+		MinecartMember<?> member = this.getMember();
 		if (member == null) {
 			return this.group == null ? null : this.group.getGroup();
 		} else {
@@ -80,7 +81,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 	
 	public void tryUpdate() {
-		MinecartMember m = this.getMember();
+		MinecartMember<?> m = this.getMember();
 		if (m != null) m.update();
 	}
 
@@ -258,9 +259,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
 	@Override
 	public BlockLocation getLocation() {
-		MinecartMember member = this.getMember();
+		MinecartMember<?> member = this.getMember();
 		if (member != null) {
-			return new BlockLocation(member.getLocation().getBlock());
+			return new BlockLocation(member.getEntity().getLocation().getBlock());
 		} else {
 			// Offline member?
 			OfflineMember omember = OfflineGroupManager.findMember(this.getTrainProperties().getTrainName(), this.getUUID());
@@ -489,5 +490,4 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	public void setPlayersExit(boolean state) {
 		this.allowPlayerExit = state;
 	}
-
 }

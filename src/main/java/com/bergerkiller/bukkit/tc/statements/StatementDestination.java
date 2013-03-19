@@ -11,7 +11,7 @@ public class StatementDestination extends Statement {
 	}
 	
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return member.getProperties().hasDestination();
 	}
 	
@@ -21,7 +21,7 @@ public class StatementDestination extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] text, SignActionEvent event) {
 		String dest = member.getProperties().getDestination();
 		for (String elem : text) {
 			if (dest == null ? elem.length() == 0 : elem.equals(dest)) {

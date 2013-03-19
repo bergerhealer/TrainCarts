@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
-public class MinecartGroupStore extends ArrayList<MinecartMember> {
+public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 	private static final long serialVersionUID = 1;
 	protected static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
 
@@ -30,17 +30,17 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		groups.add(g);
 		return g;
 	}
-	public static MinecartGroup create(MinecartMember... members) {
+	public static MinecartGroup create(MinecartMember<?>... members) {
 		return create(null, members);
 	}
-	public static MinecartGroup create(String name, MinecartMember... members) {
+	public static MinecartGroup create(String name, MinecartMember<?>... members) {
 		// There is not a group with this name already?
 		MinecartGroup g = new MinecartGroup();
 		if (name != null) {
 			g.setProperties(TrainProperties.get(name));
 		}
-		for (MinecartMember member : members) {
-			if (member != null && !member.dead) {
+		for (MinecartMember<?> member : members) {
+			if (member != null && !member.getEntity().isDead()) {
 				g.add(member);
 			}
 		}
@@ -55,7 +55,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		if (at.length != types.length || at.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < types.length; i++) {
-			g.add(MinecartMember.spawn(at[i], types[i]));
+			g.add(MinecartMemberStore.spawn(at[i], types[i]));
 		}
 		groups.add(g);
 		GroupCreateEvent.call(g);
@@ -69,7 +69,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		if (types.size() != destinations.length || destinations.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < destinations.length; i++) {
-			g.add(MinecartMember.spawn(destinations[destinations.length - i - 1], types.get(i)));
+			g.add(MinecartMemberStore.spawn(destinations[destinations.length - i - 1], types.get(i)));
 		}
 		groups.add(g);
 		GroupCreateEvent.call(g);
@@ -103,9 +103,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 		return groups.toArray(new MinecartGroup[0]);
 	}
 	public static MinecartGroup get(Entity e) {
-		MinecartMember mm = MinecartMember.get(e);
-		if (mm == null) return null;
-		return mm.getGroup();
+		final MinecartMember<?> mm = MinecartMemberStore.get(e);
+		return mm == null ? null : mm.getGroup();
 	}
 	public static MinecartGroup get(TrainProperties prop) {
 		for (MinecartGroup group : groups) {
@@ -115,19 +114,20 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 	}
 
 	public static boolean link(Minecart m1, Minecart m2) {
-		if (m1 == m2) return false;
-		if (m1.isDead()) return false;
-		if (m2.isDead()) return false;
-		return link(MinecartMember.get(m1), MinecartMember.get(m2));
+		return link(MinecartMemberStore.get(m1), MinecartMemberStore.get(m2));
 	}
-	public static boolean link(MinecartMember m1, MinecartMember m2) {
-		if (m1 == null || m2 == null || m1 == m2) return false;
-		if (m1.dead || m2.dead || m1.isUnloaded() || m2.isUnloaded()) return false;
+
+	public static boolean link(MinecartMember<?> m1, MinecartMember<?> m2) {
+		if (m1 == null || m2 == null || m1 == m2 || m1.getEntity().isDead() || m2.getEntity().isDead() || m1.isUnloaded() || m2.isUnloaded()) {
+			return false;
+		}
 		MinecartGroup g1 = m1.getGroup();
 		MinecartGroup g2 = m2.getGroup();
 		//max links per update
 		if (g1 != g2) {
-			if (m1.isDerailed() || m2.isDerailed()) return false;
+			if (m1.isDerailed() || m2.isDerailed()) {
+				return false;
+			}
 			//Can the two groups bind?
 			TrainProperties prop1 = g1.getProperties();
 			TrainProperties prop2 = g2.getProperties();
@@ -179,7 +179,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember> {
 			}
 
 			//Re-activate the signs underneath the train
-			for (MinecartMember mm : g2) {
+			for (MinecartMember<?> mm : g2) {
 				for (Block sign : mm.getActiveSigns()) {
 					g2.setActiveSign(sign, true);
 				}

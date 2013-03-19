@@ -18,7 +18,7 @@ public class StatementPlayerItems extends StatementItems {
 	}
 	
 	@Override
-	public Inventory getInventory(MinecartMember member) {
+	public Inventory getInventory(MinecartMember<?> member) {
 		return member.getPlayerInventory();
 	}
 	

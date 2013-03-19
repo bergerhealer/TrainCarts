@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
 
 public class ItemAnimation {
-
 	private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<ItemAnimation>();
 	private static Task task;
 
@@ -102,7 +101,7 @@ public class ItemAnimation {
 			return ((Block) object).getLocation().add(0.5, 0.5, 0.5);
 		}
 		if (object instanceof MinecartMember) {
-			return ((MinecartMember) object).getMinecart();
+			return ((MinecartMember<?>) object).getEntity();
 		}
 		if (object instanceof VirtualItem) {
 			object = ((VirtualItem) object).item;

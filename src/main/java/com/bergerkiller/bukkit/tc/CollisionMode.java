@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
+import com.bergerkiller.bukkit.common.entity.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -20,11 +21,12 @@ public enum CollisionMode {
 	 * @param entity collided with
 	 * @return True if collision is allowed, False if not
 	 */
-	public boolean execute(MinecartMember member, Entity entity) {
+	public boolean execute(MinecartMember<?> member, Entity entity) {
+		final CommonMinecart<?> minecart = member.getEntity();
 		switch (this) {
 			case ENTER : 
-				if (!member.hasPassenger() && member.canBeRidden() && Util.canBePassenger(entity) && member.canCollisionEnter()) {
-					member.setPassenger(entity);
+				if (!minecart.hasPassenger() && minecart.isVehicle() && Util.canBePassenger(entity) && member.canCollisionEnter()) {
+					minecart.setPassenger(entity);
 				}
 				return false;
 			case PUSH :
@@ -41,7 +43,7 @@ public enum CollisionMode {
 					if (entity instanceof LivingEntity) {
 						boolean old = EntityUtil.isInvulnerable(entity);
 						EntityUtil.setInvulnerable(entity, false);
-						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getMinecart());
+						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getEntity().getEntity());
 						EntityUtil.setInvulnerable(entity, old);
 					} else {
 						entity.remove();

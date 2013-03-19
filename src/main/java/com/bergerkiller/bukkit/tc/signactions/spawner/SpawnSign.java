@@ -16,7 +16,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.storage.OfflineSign;
 
 public class SpawnSign extends OfflineSign {
-
 	private final long interval;
 	private long lastSpawnTime;
 	private String world;

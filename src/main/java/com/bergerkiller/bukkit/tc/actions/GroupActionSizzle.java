@@ -3,11 +3,12 @@ package com.bergerkiller.bukkit.tc.actions;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
 public class GroupActionSizzle extends GroupAction {
-	
+
 	public GroupActionSizzle(MinecartGroup group) {
 		super(group);
 	}
 
+	@Override
 	public void start() {
 		int j;
 		for (int i = 0; i < this.getGroup().size(); i++) {
@@ -17,5 +18,4 @@ public class GroupActionSizzle extends GroupAction {
 			}
 		}
 	}
-	
 }

@@ -73,7 +73,7 @@ public class StatementProperty extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		CartProperties prop = member.getProperties();
 		String lower = text.toLowerCase();
 		if (match(playerEnter, lower)) {

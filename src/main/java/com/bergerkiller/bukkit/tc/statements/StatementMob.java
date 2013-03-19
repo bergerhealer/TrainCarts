@@ -14,15 +14,15 @@ public class StatementMob extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
-		return member.hasPassenger() && EntityUtil.isMob(member.getPassenger());
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
+		return member.getEntity().hasPassenger() && EntityUtil.isMob(member.getEntity().getPassenger());
 	}
 
 	@Override
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = 0;
-		for (MinecartMember member : group) {
-			if (member.hasPassenger() && EntityUtil.isMob(member.getPassenger())) {
+		for (MinecartMember<?> member : group) {
+			if (member.getEntity().isVehicle() && EntityUtil.isMob(member.getEntity().getPassenger())) {
 				count++;
 			}
 		}
@@ -34,7 +34,7 @@ public class StatementMob extends Statement {
 		return text.equals("m");
 	}
 
-	public boolean hasMob(MinecartMember member, String mob) {
+	public boolean hasMob(MinecartMember<?> member, String mob) {
 		int idx = Util.getOperatorIndex(mob);
 		if (idx == 0) {
 			return false;
@@ -42,15 +42,15 @@ public class StatementMob extends Statement {
 			mob = mob.substring(0, idx - 1);
 		}
 		//contains one of the defined mobs?
-		if (member.hasPassenger() && EntityUtil.isMob(member.getPassenger())) {
-			String mobname = EntityUtil.getName(member.getPassenger());
+		if (member.getEntity().hasPassenger() && EntityUtil.isMob(member.getEntity().getPassenger())) {
+			String mobname = EntityUtil.getName(member.getEntity().getPassenger());
 			return mobname.contains(mob);
 		}
 		return false;
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] mobs, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] mobs, SignActionEvent event) {
 		if (mobs.length == 0) {
 			return this.handle(member, null, event);
 		} else {
@@ -78,7 +78,7 @@ public class StatementMob extends Statement {
 			}
 			for (String mob : mobs) {
 				int count = 0;
-				for (MinecartMember member : group) {
+				for (MinecartMember<?> member : group) {
 					if (hasMob(member, mob)) {
 						count++;
 					}

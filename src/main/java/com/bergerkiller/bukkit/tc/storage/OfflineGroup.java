@@ -78,10 +78,10 @@ public class OfflineGroup {
 	 * @return An array of Minecarts
 	 */
 	public MinecartGroup create(World w) {
-		ArrayList<MinecartMember> rval = new ArrayList<MinecartMember>(this.members.length);
+		ArrayList<MinecartMember<?>> rval = new ArrayList<MinecartMember<?>>(this.members.length);
 		int missingNo = 0;
 		for (OfflineMember member : this.members) {
-			MinecartMember mm = member.create(w);
+			MinecartMember<?> mm = member.create(w);
 			if (mm != null) {
 				rval.add(mm);
 			} else {

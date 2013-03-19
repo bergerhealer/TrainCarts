@@ -20,7 +20,7 @@ public class StatementPermission extends Statement {
 
 	@Override
 	public boolean handleArray(MinecartGroup group, String[] text, SignActionEvent event) {
-		for (MinecartMember member : group) {
+		for (MinecartMember<?> member : group) {
 			if (!handleArray(member, text, event)) {
 				return false;
 			}
@@ -29,9 +29,9 @@ public class StatementPermission extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] text, SignActionEvent event) {
-		if (member.hasPlayerPassenger()) {
-			Player passenger = (Player) member.getPassenger();
+	public boolean handleArray(MinecartMember<?> member, String[] text, SignActionEvent event) {
+		if (member.getEntity().hasPlayerPassenger()) {
+			Player passenger = member.getEntity().getPlayerPassenger();
 			for (String perm : text) {
 				if (!passenger.hasPermission(perm)) {
 					return false;

@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -21,10 +20,8 @@ public class RailLogicGround extends RailLogic {
 	}
 
 	@Override
-	public void onPreMove(MinecartMember member) {
-		Vector friction = member.getDerailedVelocityMod();
-		member.motX *= friction.getX();
-		member.motY *= friction.getY();
-		member.motZ *= friction.getZ();
+	public void onPreMove(MinecartMember<?> member) {
+		// Apply flying friction
+		member.getEntity().multiplyVelocity(member.getEntity().getDerailedVelocityMod());
 	}
 }

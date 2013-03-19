@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.statements;
 
-import org.bukkit.entity.Player;
-
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -15,16 +13,16 @@ public class StatementPassenger extends Statement {
 	}
 	
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
-		return text.toLowerCase().startsWith("player") ? member.hasPlayerPassenger() : member.hasPassenger();
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
+		return text.toLowerCase().startsWith("player") ? member.getEntity().hasPlayerPassenger() : member.getEntity().hasPassenger();
 	}
-	
+
 	@Override
 	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
 		int count = 0;
 		boolean playermode = text.toLowerCase().startsWith("player");
-		for (MinecartMember member : group) {
-			if (playermode ? member.hasPlayerPassenger() : member.hasPassenger()) {
+		for (MinecartMember<?> member : group) {
+			if (playermode ? member.getEntity().hasPlayerPassenger() : member.getEntity().hasPassenger()) {
 				count++;
 			}
 		}
@@ -37,9 +35,9 @@ public class StatementPassenger extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] names, SignActionEvent event) {
-		if (member.hasPlayerPassenger()) {
-			String pname = ((Player) member.getPassenger()).getName();
+	public boolean handleArray(MinecartMember<?> member, String[] names, SignActionEvent event) {
+		if (member.getEntity().hasPlayerPassenger()) {
+			String pname = member.getEntity().getPlayerPassenger().getName();
 			for (String name : names) {
 				if (Util.matchText(pname, name)) {
 					return true;

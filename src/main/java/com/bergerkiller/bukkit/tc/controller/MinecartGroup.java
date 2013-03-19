@@ -34,6 +34,8 @@ import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
@@ -50,9 +52,9 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 public class MinecartGroup extends MinecartGroupStore {
 	private static final long serialVersionUID = 3;
 
-	private static final EntryList<IntVector3, MinecartMember> blockSpaceBuffer = new EntryList<IntVector3, MinecartMember>();
+	private static final EntryList<IntVector3, MinecartMember<?>> blockSpaceBuffer = new EntryList<IntVector3, MinecartMember<?>>();
 	private static final Set<Block> signActionBuffer = new HashSet<Block>();
-	private Map<IntVector3, MinecartMember> memberBlockSpace = new HashMap<IntVector3, MinecartMember>();
+	private Map<IntVector3, MinecartMember<?>> memberBlockSpace = new HashMap<IntVector3, MinecartMember<?>>();
 	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
@@ -71,7 +73,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	public TrainProperties getProperties() {
 		if (this.prop == null) {
 			this.prop = TrainPropertiesStore.create();
-			for (MinecartMember member : this) {
+			for (MinecartMember<?> member : this) {
 				this.prop.add(member);
 			}
 		}
@@ -190,7 +192,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		World world = this.getWorld();
 		signActionBuffer.addAll(this.activeSigns);
 		blockSpaceBuffer.addAll(this.memberBlockSpace.entrySet());
-		for (Entry<IntVector3, MinecartMember> entry : blockSpaceBuffer) {
+		for (Entry<IntVector3, MinecartMember<?>> entry : blockSpaceBuffer) {
 			IntVector3 p = entry.getKey();
 			Block block = world.getBlockAt(p.x, p.y, p.z);
 			if (Util.ISTCRAIL.get(block)) {
@@ -202,7 +204,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 		// All active blocks remaining in the buffer are no longer active
 		for (Block block : signActionBuffer) {
-			for (MinecartMember member : this) {
+			for (MinecartMember<?> member : this) {
 				member.removeActiveSign(block);
 			}
 		}
@@ -229,38 +231,38 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 		this.activeSigns.clear();
 		if (clearMembers) {
-			for (MinecartMember mm : this) {
+			for (MinecartMember<?> mm : this) {
 				mm.clearActiveSigns();
 			}
 		}
 	}
 
-	public MinecartMember head(int index) {
+	public MinecartMember<?> head(int index) {
 		return this.get(index);
 	}
-	public MinecartMember head() {
+	public MinecartMember<?> head() {
 		return this.head(0);
 	}
-	public MinecartMember tail(int index) {
+	public MinecartMember<?> tail(int index) {
 		return this.get(this.size() - 1 - index);
 	}
-	public MinecartMember tail() {
+	public MinecartMember<?> tail() {
 		return this.tail(0);
 	}
-	public MinecartMember middle() {
+	public MinecartMember<?> middle() {
 		return this.get((int) Math.floor((double) size() / 2));
 	}
 
-	public Iterator<MinecartMember> iterator() {
-		final Iterator<MinecartMember> listIter = super.iterator();
-		return new Iterator<MinecartMember>() {
+	public Iterator<MinecartMember<?>> iterator() {
+		final Iterator<MinecartMember<?>> listIter = super.iterator();
+		return new Iterator<MinecartMember<?>>() {
 			@Override
 			public boolean hasNext() {
 				return listIter.hasNext();
 			}
 
 			@Override
-			public MinecartMember next() {
+			public MinecartMember<?> next() {
 				try {
 					return listIter.next();
 				} catch (ConcurrentModificationException ex) {
@@ -275,11 +277,11 @@ public class MinecartGroup extends MinecartGroupStore {
 		};
 	}
 
-	public MinecartMember[] toArray() {
-		return super.toArray(new MinecartMember[0]);
+	public MinecartMember<?>[] toArray() {
+		return super.toArray(new MinecartMember<?>[0]);
 	}
 
-	public boolean connect(MinecartMember contained, MinecartMember with) {
+	public boolean connect(MinecartMember<?> contained, MinecartMember<?> with) {
 		if (this.size() <= 1) {
 			this.add(with);
 		} else if (this.head() == contained && this.canConnect(with, 0)) {
@@ -292,13 +294,16 @@ public class MinecartGroup extends MinecartGroupStore {
 		return true;
 	}
 
+	@Override
 	public int indexOf(Object object) {
-		MinecartMember mm = MinecartMember.get(object);
-		if (mm == null) return -1;
+		MinecartMember<?> mm = MinecartMemberStore.get(object);
+		if (mm == null) {
+			return -1;
+		}
 		return super.indexOf(mm);
 	}
 
-	private void addMember(MinecartMember member) {
+	private void addMember(MinecartMember<?> member) {
 		member.setGroup(this);
 		for (Block sign : member.getActiveSigns()) {
 			this.setActiveSign(sign, true);
@@ -306,59 +311,59 @@ public class MinecartGroup extends MinecartGroupStore {
 		this.updateBlockSpace(false);
 		this.getProperties().add(member);
 	}
-	public void add(int index, MinecartMember member) {
+	public void add(int index, MinecartMember<?> member) {
 		super.add(index, member);
 		MemberAddEvent.call(member, this);
 		this.addMember(member);
 	}
-	public boolean add(MinecartMember member) {
+	public boolean add(MinecartMember<?> member) {
 		super.add(member);
 		MemberAddEvent.call(member, this);
 		this.addMember(member);
 		return true;
 	}
-	public boolean addAll(int index, Collection<? extends MinecartMember> members) {
+	public boolean addAll(int index, Collection<? extends MinecartMember<?>> members) {
 		super.addAll(index, members);
-		MinecartMember[] memberArr = members.toArray(new MinecartMember[0]);
-		for (MinecartMember m : memberArr) {
+		MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
+		for (MinecartMember<?> m : memberArr) {
 			MemberAddEvent.call(m, this);
 		}
-		for (MinecartMember member : memberArr) {
+		for (MinecartMember<?> member : memberArr) {
 			this.addMember(member);
 		}
 		return true;
 	}
-	public boolean addAll(Collection<? extends MinecartMember> members) {
+	public boolean addAll(Collection<? extends MinecartMember<?>> members) {
 		super.addAll(members);
-		MinecartMember[] memberArr = members.toArray(new MinecartMember[0]);
-		for (MinecartMember m : memberArr) {
+		MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
+		for (MinecartMember<?> m : memberArr) {
 			MemberAddEvent.call(m, this);
 		}
-		for (MinecartMember member : memberArr) {
+		for (MinecartMember<?> member : memberArr) {
 			this.addMember(member);
 		}
 		return true;
 	}
 
 	public boolean contains(Object o) {
-		return super.contains(MinecartMember.get(o));
+		return super.contains(MinecartMemberStore.get(o));
 	}
 	public boolean containsIndex(int index) {
 		return this.isEmpty() ? false : index >= 0 && index < this.size();
 	}
 
 	public World getWorld() {
-		if (this.size() == 0) return null;
-		return this.get(0).getWorld();
+		return isEmpty() ? null : get(0).getEntity().getWorld();
 	}
 
 	public double length() {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
+
 	public int size(Material carttype) {
 		int rval = 0;
-		for (MinecartMember mm : this) {
-			if (mm.getType() == carttype) {
+		for (MinecartMember<?> mm : this) {
+			if (mm.getEntity().getCombinedItem() == carttype) {
 				rval++;
 			}
 		}
@@ -381,7 +386,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	 * @param member to remove
 	 * @return True if removed, False if not
 	 */
-	public boolean removeSilent(MinecartMember member) {
+	public boolean removeSilent(MinecartMember<?> member) {
 		int index = this.indexOf(member);
 		if (index == -1) {
 			return false;
@@ -397,17 +402,17 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (index == -1) return false;
 		return this.remove(index) != null;
 	}
-	private MinecartMember removeMember(int index) {
-		MinecartMember member = super.get(index);
+	private MinecartMember<?> removeMember(int index) {
+		MinecartMember<?> member = super.get(index);
 		MemberRemoveEvent.call(member);
 		//Delete the member if dead, otherwise remove active signs from this group only
-		if (member.dead) {
+		if (member.getEntity().isDead()) {
 			//added Bukkit vehicle destroy event
 			member.clearActiveSigns();
 		} else {
 			Set<Block> toRemove = new HashSet<Block>();
 			toRemove.addAll(member.getActiveSigns());
-			for (MinecartMember mm : this) {
+			for (MinecartMember<?> mm : this) {
 				if (mm != member) toRemove.removeAll(mm.getActiveSigns());
 			}
 			for (Block sign : toRemove) {
@@ -429,8 +434,8 @@ public class MinecartGroup extends MinecartGroupStore {
 		member.group = null;
 		return member;
 	}
-	public MinecartMember remove(int index) {
-		MinecartMember removed = this.removeMember(index);
+	public MinecartMember<?> remove(int index) {
+		MinecartMember<?> removed = this.removeMember(index);
 		if (this.isEmpty()) {
 			//Remove empty group as a result
 			this.remove();
@@ -469,7 +474,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			groups.add(gnew);
 
 			//Set the new active signs
-			for (MinecartMember mm : gnew) {
+			for (MinecartMember<?> mm : gnew) {
 				for (Block sign : mm.getActiveSigns()) {
 					gnew.setActiveSign(sign, true);
 				}
@@ -489,10 +494,10 @@ public class MinecartGroup extends MinecartGroupStore {
 	public void clear() {
 		this.clearActiveSigns();
 		this.clearActions();
-		for (MinecartMember mm : this.toArray()) {
+		for (MinecartMember<?> mm : this.toArray()) {
 			this.getProperties().remove(mm);
-			if (mm.dead) {
-				mm.die();
+			if (mm.getEntity().isDead()) {
+				mm.onDie();
 			} else {
 				mm.group = null;
 				mm.getGroup().getProperties().load(this.getProperties());
@@ -512,8 +517,8 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 	}
 	public void destroy() {
-		for (MinecartMember mm : this) {
-			mm.dead = true;
+		for (MinecartMember<?> mm : this) {
+			mm.getEntity().remove();
 		}
 		this.remove();
 	}
@@ -521,7 +526,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		GroupUnloadEvent.call(this);
 		this.stop(true);
 		groups.remove(this);
-		for (MinecartMember member : this) {
+		for (MinecartMember<?> member : this) {
 			member.group = null;
 			member.unloaded = true;
 		}
@@ -531,12 +536,12 @@ public class MinecartGroup extends MinecartGroupStore {
 	 * Visually respawns this minecart to avoid teleportation smoothing
 	 */
 	public void respawn() {
-		for (MinecartMember mm : this) {
+		for (MinecartMember<?> mm : this) {
 			mm.respawn();
 		}
 	}
 	public void playLinkEffect() {
-		for (MinecartMember mm : this) {
+		for (MinecartMember<?> mm : this) {
 			mm.playLinkEffect();
 		}
 	}
@@ -544,17 +549,17 @@ public class MinecartGroup extends MinecartGroupStore {
 		this.stop(false);
 	}
 	public void stop(boolean cancelLocationChange) {
-		for (MinecartMember m : this) {
+		for (MinecartMember<?> m : this) {
 			m.stop(cancelLocationChange);
 		}
 	}
 	public void limitSpeed() {
-		for (MinecartMember mm : this) {
+		for (MinecartMember<?> mm : this) {
 			mm.limitSpeed();
 		}
 	}
 	public void eject() {
-		for (MinecartMember mm : this) mm.eject();
+		for (MinecartMember<?> mm : this) mm.eject();
 	}
 
 	/**
@@ -603,12 +608,12 @@ public class MinecartGroup extends MinecartGroupStore {
 
 	public void shareForce() {
 		double f = this.getAverageForce();
-		for (MinecartMember m : this) {
+		for (MinecartMember<?> m : this) {
 			m.setForwardForce(f);
 		}
 	}
 	public void reverse() {
-		for (MinecartMember mm : this) {
+		for (MinecartMember<?> mm : this) {
 			mm.reverse();
 		}
 		Collections.reverse(this);
@@ -616,19 +621,19 @@ public class MinecartGroup extends MinecartGroupStore {
 	public void setForwardForce(double force) {
 		final double currvel = this.head().getForce();
 		if (currvel <= 0.01 || Math.abs(force) < 0.01) {
-			for (MinecartMember mm : this) {
+			for (MinecartMember<?> mm : this) {
 				mm.setForwardForce(force);
 			}
 		} else {
 			final double f = force / currvel;
-			for (MinecartMember mm : this) {
-				mm.setForceFactor(f);
+			for (MinecartMember<?> mm : this) {
+				mm.getEntity().multiplyVelocity(f);
 			}
 		}
 
 	}
 
-	public boolean canConnect(MinecartMember mm, int at) {
+	public boolean canConnect(MinecartMember<?> mm, int at) {
 		if (this.size() == 1) return true;
 		if (this.size() == 0) return false;
 		if (at == 0) {
@@ -659,7 +664,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		double force = 0;
 		double fforce = 0;
 		double f;
-		for (MinecartMember m : this) {
+		for (MinecartMember<?> m : this) {
 			f = m.getForwardForce();
 			fforce += f;
 			if (f < 0) {
@@ -678,33 +683,41 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 	public List<Material> getTypes() {
 		ArrayList<Material> types = new ArrayList<Material>(this.size());
-		for (MinecartMember mm : this) {
-			types.add(mm.getType());
+		for (MinecartMember<?> mm : this) {
+			types.add(mm.getEntity().getCombinedItem());
 		}
 		return types;
 	}
 
 	public boolean hasPassenger() {
-		for (MinecartMember mm : this) {
-			if (mm.hasPassenger()) return true;
+		for (MinecartMember<?> mm : this) {
+			if (mm.getEntity().hasPassenger()) {
+				return true;
+			}
 		}
 		return false;
 	}
 	public boolean hasFuel() {
-		for (MinecartMember mm : this) {
-			if (mm.hasFuel()) return true;
+		for (MinecartMember<?> mm : this) {
+			if (mm instanceof MinecartMemberFurnace && ((MinecartMemberFurnace) mm).getEntity().hasFuel()) {
+				return true;
+			}
 		}
 		return false;
 	}
 	public boolean hasItems() {
-		for (MinecartMember mm : this) {
-			if (mm.hasItems()) return true;
+		for (MinecartMember<?> mm : this) {
+			if (mm instanceof MinecartMemberChest && ((MinecartMemberChest) mm).hasItems()) {
+				return true;
+			}
 		}
 		return false;
 	}
 	public boolean hasItem(ItemParser item) {
-		for (MinecartMember mm : this) {
-			if (mm.hasItem(item)) return true;
+		for (MinecartMember<?> mm : this) {
+			if (mm instanceof MinecartMemberChest && ((MinecartMemberChest) mm).hasItem(item)) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -729,8 +742,8 @@ public class MinecartGroup extends MinecartGroupStore {
 				return false;
 			}
 		}
-		for (MinecartMember member : this) {
-			if (member.hasPlayerPassenger()) {
+		for (MinecartMember<?> member : this) {
+			if (member.getEntity().hasPlayerPassenger()) {
 				return false;
 			}
 		}
@@ -744,9 +757,9 @@ public class MinecartGroup extends MinecartGroupStore {
 		//count amount of storage minecarts
 		Inventory[] source = new Inventory[this.size(Material.STORAGE_MINECART)];
 		int i = 0;
-		for (MinecartMember mm : this) {
-			if (mm.isStorageCart()) {
-				source[i] = mm.getInventory();
+		for (MinecartMember<?> mm : this) {
+			if (mm instanceof MinecartMemberChest) {
+				source[i] = ((MinecartMemberChest) mm).getEntity().getInventory();
 				i++;
 			}
 		}
@@ -758,8 +771,8 @@ public class MinecartGroup extends MinecartGroupStore {
 	public Inventory getPlayerInventory() {
 		//count amount of player passengers
 		int count = 0;
-		for (MinecartMember mm : this) {
-			if (mm.hasPlayerPassenger()) {
+		for (MinecartMember<?> mm : this) {
+			if (mm.getEntity().hasPlayerPassenger()) {
 				count++;
 			}
 		}
@@ -768,8 +781,8 @@ public class MinecartGroup extends MinecartGroupStore {
 			return source[0];
 		}
 		int i = 0;
-		for (MinecartMember mm : this) {
-			if (mm.hasPlayerPassenger()) {
+		for (MinecartMember<?> mm : this) {
+			if (mm.getEntity().hasPlayerPassenger()) {
 				source[i] = mm.getPlayerInventory();
 				i++;
 			}
@@ -778,14 +791,14 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 
 	public void loadChunks() {
-		for (MinecartMember mm : this) mm.loadChunks();
+		for (MinecartMember<?> mm : this) mm.loadChunks();
 	}
 
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
 	}
 	public boolean isInChunk(World world, int cx, int cz) {
-		for (MinecartMember mm : this) {
+		for (MinecartMember<?> mm : this) {
 			if (mm.isInChunk(world, cx, cz)) return true;
 		}
 		return false;
@@ -822,7 +835,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	 * @param position to get the member at
 	 * @return member at the position, or null if not found
 	 */
-	public MinecartMember getAt(IntVector3 position) {
+	public MinecartMember<?> getAt(IntVector3 position) {
 		return this.memberBlockSpace.get(position);
 	}
 
@@ -838,11 +851,11 @@ public class MinecartGroup extends MinecartGroupStore {
 		// Update block space of minecarts in this group
 		this.memberBlockSpace.clear();
 		if (this.size() == 1) {
-			MinecartMember member = head();
+			MinecartMember<?> member = head();
 			this.memberBlockSpace.put(member.getBlockPos(), member);
 		} else if (this.size() > 1) {
 			for (int i = 0; i < this.size() - 1; i++) {
-				MinecartMember member = get(i);
+				MinecartMember<?> member = get(i);
 				IntVector3 from = member.getBlockPos();
 				IntVector3 to = get(i + 1).getBlockPos();
 				this.memberBlockSpace.put(from, member);
@@ -872,19 +885,17 @@ public class MinecartGroup extends MinecartGroupStore {
 			double speedlimit = this.getProperties().getSpeedLimit();
 			if (totalforce > 0.4 && speedlimit > 0.4) {
 				int bits = (int) Math.ceil(speedlimit / 0.4);
-				for (MinecartMember mm : this) {
-					mm.motX /= (double) bits;
-					mm.motY /= (double) bits;
-					mm.motZ /= (double) bits;
+				final double mult = (double) bits;
+				final double div = 1.0 / mult;
+				for (MinecartMember<?> mm : this) {
+					mm.getEntity().multiplyVelocity(div);
 				}
 				for (int i = 0; i < bits; i++) {
 					while (!this.doPhysics(bits));
 				}
-				for (MinecartMember mm : this) {
-					mm.motX *= (double) bits;
-					mm.motY *= (double) bits;
-					mm.motZ *= (double) bits;
-					mm.maxSpeed = this.getProperties().getSpeedLimit();
+				for (MinecartMember<?> mm : this) {
+					mm.getEntity().multiplyVelocity(mult);
+					mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
 				}
 			} else {
 				this.doPhysics(1);
@@ -909,9 +920,9 @@ public class MinecartGroup extends MinecartGroupStore {
 			}
 
 			//validate members and set max speed
-			for (MinecartMember mm : this) {
+			for (MinecartMember<?> mm : this) {
 				mm.checkMissing();
-				mm.maxSpeed = this.getProperties().getSpeedLimit() / (double) stepcount;
+				mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() / (double) stepcount);
 			}
 
 			// Update direction and executed actions prior to updates
@@ -920,7 +931,7 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			// Perform block updates prior to doing the movement calculations
 			// First initialize all blocks and handle block changes
-			for (MinecartMember m : this) {
+			for (MinecartMember<?> m : this) {
 				m.onPhysicsStart();
 				this.needsBlockSpaceRefresh |= m.hasBlockChanged();
 			}
@@ -928,7 +939,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				this.updateBlockSpace(false);
 			}
 			// Perform block change checks, also take care of potential new block changes
-			for (MinecartMember m : this) {
+			for (MinecartMember<?> m : this) {
 				m.onPhysicsBlockChange();
 				this.needsBlockSpaceRefresh |= m.hasBlockChanged();
 			}
@@ -944,7 +955,7 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.updateDirection();
 
 			// Perform velocity updates
-			for (MinecartMember m : this) {
+			for (MinecartMember<?> m : this) {
 				m.onPhysicsPreMove();
 			}
 
@@ -969,7 +980,7 @@ public class MinecartGroup extends MinecartGroupStore {
 
 				if (performUpdate) {
 					//update force
-					for (MinecartMember m : this) {
+					for (MinecartMember<?> m : this) {
 						m.setForwardForce(force);
 					}
 				}
@@ -979,11 +990,11 @@ public class MinecartGroup extends MinecartGroupStore {
 				try {
 					int i = 1;
 					double distance, threshold, forcer;
-					MinecartMember after;
-					for (MinecartMember member : this) {
+					MinecartMember<?> after;
+					for (MinecartMember<?> member : this) {
 						after = this.get(i);
-						distance = member.distance(after);
-						if (member.getDirectionDifference(after) >= 45 || member.getPitchDifference(after) > 10) {
+						distance = member.getEntity().distanceTo(after.getEntity());
+						if (member.getDirectionDifference(after) >= 45 || member.getEntity().getPitchDifference(after.getEntity()) > 10) {
 							threshold = TrainCarts.turnedCartDistance;
 							forcer = TrainCarts.turnedCartDistanceForcer;
 						} else {
@@ -1015,16 +1026,16 @@ public class MinecartGroup extends MinecartGroupStore {
 				for (int i = 0; i < this.size() - 1; i++) {
 					if (!head(i + 1).isFollowingOnTrack(head(i))) {
 						for (int j = i + 1; j < this.size(); j++) {
-							this.get(j).setForceFactor(stepcount);
+							this.get(j).getEntity().multiplyVelocity(stepcount);
 						}
 						MinecartGroup gnew = this.split(i + 1);
 						if (gnew != null) { 
 							//what time do we want to prevent them from colliding too soon?
 							//needs to travel 2 blocks in the meantime
 							int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
-							for (MinecartMember mm1 : gnew) {
-								for (MinecartMember mm2: this) {
-									mm1.ignoreCollision(mm2.getEntity(), time);
+							for (MinecartMember<?> mm1 : gnew) {
+								for (MinecartMember<?> mm2: this) {
+									mm1.ignoreCollision(mm2.getEntity().getEntity(), time);
 								}
 							}
 						}
@@ -1035,7 +1046,7 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			//still in loaded chunks?
 			boolean canunload = this.canUnload();
-			for (MinecartMember mm : this) {
+			for (MinecartMember<?> mm : this) {
 				mm.checkChunks(canunload);
 			}
 
@@ -1045,7 +1056,7 @@ public class MinecartGroup extends MinecartGroupStore {
 					SignAction.executeAll(new SignActionEvent(b, null, this), SignActionType.GROUP_UPDATE);
 				}
 				tmpRegions.clear();
-				for (MinecartMember mm : this) {
+				for (MinecartMember<?> mm : this) {
 					tmpRegions.addAll(mm.getActiveDetectorRegions());
 				}
 				for (DetectorRegion reg : tmpRegions) {
@@ -1057,5 +1068,4 @@ public class MinecartGroup extends MinecartGroupStore {
 			return false;
 		}
 	}
-
 }

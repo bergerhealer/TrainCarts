@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -38,7 +39,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private final BlockFace facing;
 	private final Sign sign;
 	private BlockFace raildirection = null;
-	private MinecartMember member = null;
+	private MinecartMember<?> member = null;
 	private MinecartGroup group = null;
 	private boolean memberchecked = false;
 	private boolean cancelled = false;
@@ -47,7 +48,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private final boolean powerinv;
 	private final boolean poweron;
 
-	public SignActionEvent(Block signblock, MinecartMember member) {
+	public SignActionEvent(Block signblock, MinecartMember<?> member) {
 		this(signblock, member.isDerailed() ? null : member.getBlock());
 		this.member = member;
 		this.memberchecked = true;
@@ -402,7 +403,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * @return True if the minecart is able to invoke this sign, False if not
 	 */
 	public boolean isFacing() {
-		MinecartMember member = this.getMember();
+		MinecartMember<?> member = this.getMember();
 		if (member == null) {
 			return false;
 		}
@@ -522,10 +523,10 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * 
 	 * @return Minecart Member
 	 */
-	public MinecartMember getMember() {
+	public MinecartMember<?> getMember() {
 		if (this.member == null) {
 			if (!this.memberchecked) {
-				this.member = this.hasRails() ? MinecartMember.getAt(this.railsblock) : null;
+				this.member = this.hasRails() ? MinecartMemberStore.getAt(this.railsblock) : null;
 				this.memberchecked = true;
 			}
 			if (this.group != null && !this.group.isEmpty()) {
@@ -536,7 +537,7 @@ public class SignActionEvent extends Event implements Cancellable {
 				}
 			}
 		}
-		if (this.member == null || this.member.dead || this.member.isUnloaded()) {
+		if (this.member == null || this.member.getEntity().isDead() || this.member.isUnloaded()) {
 			return null; 
 		}
 		return this.member;
@@ -556,7 +557,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * 
 	 * @param member to set to
 	 */
-	public void setMember(MinecartMember member) {
+	public void setMember(MinecartMember<?> member) {
 		this.member = member;
 		this.memberchecked = true;
 		this.group = member.getGroup();
@@ -590,7 +591,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (this.group != null) {
 			return this.group;
 		}
-		MinecartMember mm = this.getMember();
+		MinecartMember<?> mm = this.getMember();
 		return mm == null ? null : mm.getGroup();
 	}
 

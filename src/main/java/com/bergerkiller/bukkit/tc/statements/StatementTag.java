@@ -12,19 +12,19 @@ public class StatementTag extends Statement {
 	public boolean match(String text) {
 		return true;
 	}
-	
+
 	@Override
 	public boolean matchArray(String text) {
 		return true;
 	}
-	
+
 	@Override
-	public boolean handle(MinecartMember member, String tag, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String tag, SignActionEvent event) {
 		return this.handleArray(member, parseArray(tag), event);
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] tags, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] tags, SignActionEvent event) {
 		for (String tag : tags) {
 			if (member.getProperties().matchTag(tag)) {
 				return true;

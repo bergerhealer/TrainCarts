@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.block.Sign;
-import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -53,16 +52,16 @@ public class SignActionAnnounce extends SignAction {
 
 	public static void sendMessage(SignActionEvent info, MinecartGroup group) {
 		String msg = getMessage(info);
-		for (MinecartMember member : group) {
-			if (member.hasPlayerPassenger()) {
-				TrainCarts.sendMessage((Player) member.getPassenger(), msg);
+		for (MinecartMember<?> member : group) {
+			if (member.getEntity().hasPlayerPassenger()) {
+				TrainCarts.sendMessage(member.getEntity().getPlayerPassenger(), msg);
 			}
 		}
 	}
 
-	public static void sendMessage(SignActionEvent info, MinecartMember member) {
-		if (member.hasPlayerPassenger()) {
-			TrainCarts.sendMessage((Player) member.getPassenger(), getMessage(info));
+	public static void sendMessage(SignActionEvent info, MinecartMember<?> member) {
+		if (member.getEntity().hasPlayerPassenger()) {
+			TrainCarts.sendMessage(member.getEntity().getPlayerPassenger(), getMessage(info));
 		}
 	}
 

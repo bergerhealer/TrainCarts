@@ -73,18 +73,18 @@ public class DetectorSign extends OfflineSign {
 		}
 	}
 
-	public void onLeave(MinecartMember member) {
+	public void onLeave(MinecartMember<?> member) {
 		if (this.wasDown) {
-			SignActionEvent event = getSignEvent(member.getWorld());
+			SignActionEvent event = getSignEvent(member.getEntity().getWorld());
 			if (event != null && event.isCartSign() && isDown(event, member, null)) {
 				this.wasDown = updateMembers(event);
 			}
 		}
 	}
 
-	public void onEnter(MinecartMember member) {
+	public void onEnter(MinecartMember<?> member) {
 		if (!this.wasDown) {
-			SignActionEvent event = getSignEvent(member.getWorld());
+			SignActionEvent event = getSignEvent(member.getEntity().getWorld());
 			if (event != null && event.isCartSign() && isDown(event, member, null)) {
 				this.wasDown = true;
 				event.setLevers(true);
@@ -93,7 +93,7 @@ public class DetectorSign extends OfflineSign {
 	}
 
 	public boolean updateMembers(SignActionEvent event) {
-		for (MinecartMember mm : this.detector.region.getMembers()) {
+		for (MinecartMember<?> mm : this.detector.region.getMembers()) {
 			if (isDown(event, mm, null)) {
 				this.wasDown = true;
 				event.setLevers(true);
@@ -116,8 +116,8 @@ public class DetectorSign extends OfflineSign {
 		return false;
 	}
 
-	public void onUpdate(MinecartMember member) {
-		SignActionEvent event = this.getSignEvent(member.getWorld());
+	public void onUpdate(MinecartMember<?> member) {
+		SignActionEvent event = this.getSignEvent(member.getEntity().getWorld());
 		if (event != null) this.updateMembers(event);
 	}
 
@@ -126,7 +126,7 @@ public class DetectorSign extends OfflineSign {
 		if (event != null) this.updateMembers(event);
 	}
 
-	public boolean isDown(SignActionEvent event, MinecartMember member, MinecartGroup group) {
+	public boolean isDown(SignActionEvent event, MinecartMember<?> member, MinecartGroup group) {
 		boolean firstEmpty = false;
 		if (event.getLine(2).isEmpty()) {
 			firstEmpty = true;

@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 
 import org.bukkit.inventory.InventoryHolder;
@@ -11,7 +9,6 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
@@ -54,19 +51,9 @@ public class SignActionTransfer extends SignAction {
 
 		// Obtain the inventory holders of the train or minecart
 		//get the inventory to transfer from
-		Collection<InventoryHolder> trainInvs;
-		if (docart) {
-			if (!info.getMember().isStorageCart()) {
-				return;
-			}
-			trainInvs = Arrays.asList((InventoryHolder) info.getMember().getMinecart());
-		} else {
-			trainInvs = new ArrayList<InventoryHolder>(info.getGroup().size());
-			for (MinecartMember member : info.getGroup()) {
-				if (member.isStorageCart()) {
-					trainInvs.add((InventoryHolder) member.getMinecart());
-				}
-			}
+		Collection<InventoryHolder> trainInvs = TransferSignUtil.getInventories(info);
+		if (trainInvs.isEmpty()) {
+			return;
 		}
 
 		//get item parsers to use for transferring
