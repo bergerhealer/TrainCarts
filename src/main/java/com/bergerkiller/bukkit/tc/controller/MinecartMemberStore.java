@@ -8,19 +8,17 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
-import com.bergerkiller.bukkit.common.entity.CommonEntityStore;
 import com.bergerkiller.bukkit.common.entity.CommonMinecartChest;
 import com.bergerkiller.bukkit.common.entity.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.entity.CommonMinecartRideable;
-import com.bergerkiller.bukkit.common.entity.nms.NMSEntity;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -67,11 +65,11 @@ public abstract class MinecartMemberStore {
 	 * @return True if the minecart can be converted, False if not
 	 */
 	public static boolean canConvert(org.bukkit.entity.Entity minecart) {
-		if (!(minecart instanceof Minecart) || CommonEntityStore.hasController(minecart) || TrainCarts.isWorldDisabled(minecart.getWorld())) {
+		if (!(minecart instanceof Minecart) || TrainCarts.isWorldDisabled(minecart.getWorld())) {
 			return false;
 		}
-		final Object handle = Conversion.toEntityHandle.convert(minecart);
-		return handle != null && (handle instanceof NMSEntity || handle.getClass().getName().startsWith(Common.NMS_ROOT));
+		CommonEntity<Entity> common = CommonEntity.get(minecart);
+		return common.hasControllerSupport() && common.getController() instanceof DefaultEntityController;
 	}
 
 	/**
@@ -86,7 +84,7 @@ public abstract class MinecartMemberStore {
 		if (source.isDead() || !canConvert(source)) {
 			return null;
 		}
-		CommonEntity<?> entity = CommonEntityStore.get(source);
+		CommonEntity<?> entity = CommonEntity.get(source);
 
 		// Already assigned a controller?
 		if (entity.getController() instanceof MinecartMember) {
@@ -109,8 +107,9 @@ public abstract class MinecartMemberStore {
 		// Unloaded?
 		newController.unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
 
-		// Set it and return
+		// Set controllers and done
 		entity.setController(newController);
+		entity.setNetworkController(new MinecartMemberNetwork());
 		return newController;
 	}
 

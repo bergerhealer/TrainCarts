@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.CastingConverter;
 import com.bergerkiller.bukkit.common.conversion.Converter;
 import com.bergerkiller.bukkit.common.conversion.ConverterPair;
-import com.bergerkiller.bukkit.common.entity.CommonEntityStore;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 
 public class MemberConverter implements Converter<MinecartMember<?>> {
@@ -26,7 +26,7 @@ public class MemberConverter implements Converter<MinecartMember<?>> {
 		if (value instanceof MinecartMember) {
 			member = (MinecartMember<?>) value;
 		} else if (value instanceof Minecart) {
-			EntityController<?> controller = CommonEntityStore.get((Minecart) value).getController();
+			EntityController<?> controller = CommonEntity.get((Minecart) value).getController();
 			if (controller instanceof MinecartMember) {
 				member = (MinecartMember<?>) controller;
 			} else {

@@ -20,7 +20,7 @@ public class StatementRedstone extends Statement {
 	}
 
 	@Override
-	public boolean handle(MinecartMember member, String text, SignActionEvent event) {
+	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
 		return this.handle(text, event);
 	}
 
@@ -30,7 +30,7 @@ public class StatementRedstone extends Statement {
 	}
 
 	@Override
-	public boolean handleArray(MinecartMember member, String[] names, SignActionEvent event) {
+	public boolean handleArray(MinecartMember<?> member, String[] names, SignActionEvent event) {
 		return this.handle(names, event);
 	}
 

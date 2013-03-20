@@ -24,8 +24,8 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 	private int fuelCheckCounter = 0;
 
 	@Override
-	public void onAttached(CommonMinecartFurnace entity) {
-		super.onAttached(entity);
+	public void onAttached() {
+		super.onAttached();
 		this.soundLoop = new PoweredCartSoundLoop(this);
 		double pushX = entity.getPushX();
 		double pushZ = entity.getPushZ();

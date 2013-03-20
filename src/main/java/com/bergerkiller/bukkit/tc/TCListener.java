@@ -37,7 +37,7 @@ import org.bukkit.material.Rails;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.controller.EntityController;
-import com.bergerkiller.bukkit.common.entity.CommonEntityStore;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -247,7 +247,7 @@ public class TCListener implements Listener {
 		}
 		try {
 			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				EntityController<?> controller = CommonEntityStore.getController(event.getVehicle());
+				EntityController<?> controller = CommonEntity.get(event.getVehicle()).getController();
 				if (!(controller instanceof MinecartMember)) {
 					return;
 				}

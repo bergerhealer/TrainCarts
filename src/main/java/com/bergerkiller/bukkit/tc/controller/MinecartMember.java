@@ -103,8 +103,8 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	protected SoundLoop<?> soundLoop;
 
 	@Override
-	public void onAttached(T entity) {
-		super.onAttached(entity);
+	public void onAttached() {
+		super.onAttached();
 		this.moveinfo = new MoveInfo(this);
 		this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
 		this.prevcx = entity.getLocChunkX();
@@ -1043,7 +1043,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	 * @return spawn packet
 	 */
 	public CommonPacket getSpawnPacket() {
-		return new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(entity.getEntity(), 10 + entity.getMinecartType()));
+		return PacketFields.VEHICLE_SPAWN.newInstance(entity.getEntity(), 10 + entity.getMinecartType());
 		/*
 		final MinecartMemberTrackerEntry tracker = this.getTracker();
 		final int type = Conversion.toMinecartTypeId.convert(getType());
