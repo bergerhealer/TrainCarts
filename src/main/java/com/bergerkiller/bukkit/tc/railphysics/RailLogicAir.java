@@ -30,6 +30,6 @@ public class RailLogicAir extends RailLogic {
 			}
 		}
 		// Apply flying friction
-		member.getEntity().multiplyVelocity(member.getEntity().getFlyingVelocityMod());
+		member.getEntity().vel.multiply(member.getEntity().getFlyingVelocityMod());
 	}
 }

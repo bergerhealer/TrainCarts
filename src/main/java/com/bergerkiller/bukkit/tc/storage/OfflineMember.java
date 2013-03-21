@@ -29,11 +29,11 @@ public class OfflineMember {
 	public OfflineMember() {}
 	public OfflineMember(OfflineGroup group, MinecartMember<?> instance) {
 		CommonEntity<?> entity = instance.getEntity();
-		this.motX = entity.getMotX();
-		this.motZ = entity.getMotZ();
+		this.motX = entity.vel.getX();
+		this.motZ = entity.vel.getZ();
 		this.entityUID = entity.getUniqueId();
-		this.cx = entity.getLocChunkX();
-		this.cz = entity.getLocChunkZ();
+		this.cx = entity.loc.x.chunk();
+		this.cz = entity.loc.z.chunk();
 		this.group = group;
 	}
 
@@ -65,8 +65,7 @@ public class OfflineMember {
 		}
 		// Restore velocity
 		if (mm != null) {
-			mm.getEntity().setMotX(this.motX);
-			mm.getEntity().setMotZ(this.motZ);
+			mm.getEntity().vel.xz.set(this.motX, this.motZ);
 		}
 		return mm;
 	}

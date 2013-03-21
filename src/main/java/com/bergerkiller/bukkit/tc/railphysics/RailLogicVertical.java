@@ -20,12 +20,12 @@ public class RailLogicVertical extends RailLogic {
 
 	@Override
 	public double getForwardVelocity(MinecartMember<?> member) {
-		return member.getDirection().getModY() * member.getEntity().getMotY();
+		return member.getDirection().getModY() * member.getEntity().vel.getY();
 	}
 
 	@Override
 	public void setForwardVelocity(MinecartMember<?> member, double force) {
-		member.getEntity().setMotY(member.getDirection().getModY() * force);
+		member.getEntity().vel.setY(member.getDirection().getModY() * force);
 	}
 
 	@Override
@@ -42,12 +42,11 @@ public class RailLogicVertical extends RailLogic {
 	public void onPreMove(MinecartMember<?> member) {
 		final CommonMinecart<?> entity = member.getEntity();
 		// Horizontal rail force to motY
-		entity.addMotY(member.getXZForce() * member.getDirection().getModY());
-		entity.setMotX(0.0);
-		entity.setMotZ(0.0);
+		entity.vel.y.add(entity.vel.xz.length() * member.getDirection().getModY());
+		entity.vel.xz.setZero();
 		// Position update
-		entity.setLocX((double) member.getBlockPos().x + 0.5);
-		entity.setLocZ((double) member.getBlockPos().z + 0.5);
+		entity.loc.x.set(member.getBlockPos().midX());
+		entity.loc.z.set(member.getBlockPos().midZ());
 	}
 
 	/**

@@ -45,10 +45,10 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 			addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
 		}
 		if (this.isOnVertical()) {
-			this.pushDirection = Util.getVerticalFace((entity.getLocY() - EntityUtil.getLocY(human)) > 0.0);
+			this.pushDirection = Util.getVerticalFace((entity.loc.getY() - EntityUtil.getLocY(human)) > 0.0);
 		} else {
 			BlockFace dir = FaceUtil.getRailsCartDirection(this.getRailDirection());
-			if (MathUtil.isHeadingTo(dir, new Vector(entity.getLocX() - EntityUtil.getLocX(human), 0.0, entity.getLocZ() - EntityUtil.getLocZ(human)))) {
+			if (MathUtil.isHeadingTo(dir, new Vector(entity.loc.getX() - EntityUtil.getLocX(human), 0.0, entity.loc.getZ() - EntityUtil.getLocZ(human)))) {
 				this.pushDirection = dir;
 			} else {
 				this.pushDirection = dir.getOppositeFace();
@@ -163,14 +163,12 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 		if (!getGroup().isMovementControlled()) {
 			if (this.pushDirection != BlockFace.SELF) {
 				double boost = 0.04 + TrainCarts.poweredCartBoost;
-				entity.multiplyVelocity(0.8);
-				entity.addMotX(boost * -FaceUtil.cos(this.pushDirection));
-				entity.addMotY((boost + 0.04) * this.pushDirection.getModY());
-				entity.addMotZ(boost * -FaceUtil.sin(this.pushDirection));
-			} else {
-				if (this.getGroup().getProperties().isSlowingDown()) {
-					entity.multiplyVelocity(0.9);
-				}
+				entity.vel.multiply(0.8);
+				entity.vel.x.add(boost * FaceUtil.cos(this.pushDirection));
+				entity.vel.y.add((boost + 0.04) * this.pushDirection.getModY());
+				entity.vel.z.add(boost * FaceUtil.sin(this.pushDirection));
+			} else if (this.getGroup().getProperties().isSlowingDown()) {
+				entity.vel.multiply(0.9);
 			}
 		}
 	}

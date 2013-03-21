@@ -34,10 +34,10 @@ public class RailLogicSloped extends RailLogicHorizontal {
 	public void onPostMove(MinecartMember<?> member) {
 		final CommonMinecart<?> entity = member.getEntity();
 
-		int dx = member.getBlockPos().x - entity.getLocBlockX();
-		int dz = member.getBlockPos().z - entity.getLocBlockZ();
+		int dx = member.getBlockPos().x - entity.loc.x.block();
+		int dz = member.getBlockPos().z - entity.loc.z.block();
 		if (dx == this.getDirection().getModX() && dz == this.getDirection().getModZ()) {
-			entity.setLocY(entity.getLocY() - 1.0);
+			entity.loc.y.subtract(1.0);
 		}
 
 		// Slope physics and snap to rails logic
@@ -47,18 +47,17 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
 		// Note to self: For new rail types, this needs a rewrite to use a common function!
 		// See the RailLogicHorizontal.onPreMove trailing part...no locY adjustment is done there
-		Vector startVector = entity.getSlopedPosition(entity.getLastX(), entity.getLastY(), entity.getLastZ());
+		Vector startVector = entity.getSlopedPosition(entity.last.getX(), entity.last.getY(), entity.last.getZ());
 		if (startVector != null) {
-			Vector endVector = entity.getSlopedPosition(entity.getLocX(), entity.getLocY(), entity.getLocZ());
+			Vector endVector = entity.getSlopedPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
 			if (endVector != null) {
 				if (member.getGroup().getProperties().isSlowingDown()) {
-					final double motLength = member.getXZForce();
+					final double motLength = entity.vel.xz.length();
 					if (motLength > 0) {
-						final double fact = (startVector.getY() - endVector.getY()) * 0.05 / motLength + 1.0;
-						entity.multiplyVelocity(fact, 1.0, fact);
+						entity.vel.xz.multiply((startVector.getY() - endVector.getY()) * 0.05 / motLength + 1.0);
 					}
 				}
-				entity.setPosition(entity.getLocX(), endVector.getY(), entity.getLocZ());
+				entity.setPosition(entity.loc.getX(), endVector.getY(), entity.loc.getZ());
 			}
 		}
 	}
@@ -70,33 +69,31 @@ public class RailLogicSloped extends RailLogicHorizontal {
 		MinecartGroup group = member.getGroup();
 		// Velocity modifier for sloped tracks
 		if (group.getProperties().isSlowingDown() && !group.isMovementControlled()) {
-			entity.addMotX(-MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModX());
-			entity.addMotZ(-MinecartMember.SLOPE_VELOCITY_MULTIPLIER * this.getDirection().getModZ());
+			entity.vel.xz.subtract(this.getDirection(), MinecartMember.SLOPE_VELOCITY_MULTIPLIER);
 		}
-		entity.addMotX(entity.getMotY() * this.getDirection().getModX());
-		entity.addMotZ(entity.getMotY() * this.getDirection().getModZ());
-		entity.setMotY(0.0);
+		entity.vel.xz.add(this.getDirection(), entity.vel.getY());
+		entity.vel.y.setZero();
 
 		// Stop movement if colliding with a block at the slope
 		double blockedDistance = Double.MAX_VALUE;
 		Block heading = member.getBlock(this.getDirection().getOppositeFace());
 		if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
 			if (MaterialUtil.SUFFOCATES.get(heading)) {
-				blockedDistance = entity.distanceXZTo(heading) - 1.0;
+				blockedDistance = entity.loc.xz.distance(heading) - 1.0;
 			}
 		} else if (member.isHeadingTo(this.getDirection())) {
 			Block above = member.getBlock(BlockFace.UP);
 			if (MaterialUtil.SUFFOCATES.get(above)) {
-				blockedDistance = entity.distanceXZTo(above);
+				blockedDistance = entity.loc.xz.distance(above);
 			}
 		}
-		if (member.getXZForce() > blockedDistance) {
+		if (entity.vel.xz.length() > blockedDistance) {
 			member.getGroup().setForwardForce(blockedDistance);
 		}
 
 		// Perform remaining positioning updates
 		super.onPreMove(member);
-		entity.setLocY(entity.getLocY() + 1.0);
+		entity.loc.y.add(1.0);
 	}
 
 	/**

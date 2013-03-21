@@ -35,19 +35,20 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
 
 		double factor = 0.0;
 		if (this.alongZ) {
-			factor = this.getDirection().getModZ() * ((block.z + 0.5) - entity.getLocZ());
+			factor = this.getDirection().getModZ() * (block.midZ() - entity.loc.getZ());
 		} else if (this.alongX) {
-			factor = this.getDirection().getModX() * ((block.x + 0.5) - entity.getLocX());
+			factor = this.getDirection().getModX() * (block.midX() - entity.loc.getX());
 		}
 		double posYAdd = (0.5 - MathUtil.clamp(factor, 0.0, 0.5)) * 2.0;
-		entity.setLocY(block.y + posYAdd);
+		entity.loc.y.set(block.y + posYAdd);
 		if (posYAdd >= 1.0) {
 			// Go to the vertical rail
-			entity.setLocY(entity.getLocY() + 1.0);
-			entity.setLocX(block.x + 0.5);
-			entity.setLocZ(block.z + 0.5);
+			entity.loc.y.add(1.0);
+			entity.loc.x.set(block.midX());
+			entity.loc.z.set(block.midZ());
 			// Turn velocity to the vertical type
-			entity.setVelocity(0.0, member.getXZForce(), 0.0);
+			entity.vel.y.set(entity.vel.xz.length());
+			entity.vel.xz.setZero();
 		}
 	}
 

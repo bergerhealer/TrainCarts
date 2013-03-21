@@ -21,7 +21,7 @@ public class MemberActionWaitLocation extends MemberAction implements WaitAction
 	@Override
 	public boolean update() {
 		if (this.getWorld() != dest.getWorld()) return false;
-		return this.getEntity().distanceSquaredTo(dest) <= this.radiussquared;
+		return this.getEntity().loc.distanceSquared(dest) <= this.radiussquared;
 	}
 
 	@Override

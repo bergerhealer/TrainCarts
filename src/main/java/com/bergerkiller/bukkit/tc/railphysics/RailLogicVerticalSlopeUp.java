@@ -30,9 +30,8 @@ public class RailLogicVerticalSlopeUp extends RailLogicHorizontal {
 	@Override
 	public void onPreMove(MinecartMember<?> member) {
 		final CommonMinecart<?> entity = member.getEntity();
-		entity.addMotX(entity.getMotY() * this.getDirection().getModX());
-		entity.addMotZ(entity.getMotY() * this.getDirection().getModZ());
-		entity.setMotY(0.0);
+		entity.vel.xz.add(this.getDirection(), entity.vel.getY());
+		entity.vel.y.setZero();
 		super.onPreMove(member);
 	}
 

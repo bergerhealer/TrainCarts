@@ -60,30 +60,28 @@ public class RailLogicHorizontal extends RailLogic {
 			invert = from == this.faces[0] || from == this.faces[1];
 		} else {
 			// Invert only if the direction is inverted relative to cart velocity
-			invert = (entity.getMotX() * this.dx + entity.getMotZ() * this.dz) < 0.0;
+			invert = (entity.vel.getX() * this.dx + entity.vel.getZ() * this.dz) < 0.0;
 		}
-		double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, entity.getMotX(), entity.getMotZ()), invert);
-		entity.setVelocity(railFactor * this.dx, 0.0, railFactor * this.dz);
+		final double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, entity.vel.getX(), entity.vel.getZ()), invert);
+		entity.vel.set(railFactor * this.dx, 0.0, railFactor * this.dz);
 
-		double newLocX = (double) member.getBlockPos().x + 0.5 + this.startX;
+		double newLocX = member.getBlockPos().midX() + this.startX;
 		double newLocY = (double) member.getBlockPos().y + (double) entity.getHeight();
-		double newLocZ = (double) member.getBlockPos().z + 0.5 + this.startZ;
+		double newLocZ = member.getBlockPos().midZ() + this.startZ;
 		if (this.alongZ) {
 			// Moving along the X-axis
-			newLocZ += this.dz * (entity.getLocZ() - member.getBlockPos().z);
+			newLocZ += this.dz * (entity.loc.getZ() - member.getBlockPos().z);
 		} else if (this.alongX) {
 			// Moving along the Z-axis
-			newLocX += this.dx * (entity.getLocX() - member.getBlockPos().x);
+			newLocX += this.dx * (entity.loc.getX() - member.getBlockPos().x);
 		} else {
 			// Curve
-			double factor = 2.0 * (this.dx * (entity.getLocX() - newLocX) + this.dz * (entity.getLocZ() - newLocZ));
+			double factor = 2.0 * (this.dx * (entity.loc.getX() - newLocX) + this.dz * (entity.loc.getZ() - newLocZ));
 			newLocX += factor * this.dx;
 			newLocZ += factor * this.dz;
 		}
 		//entity.setPosition(newLocX, newLocY, newLocZ);
-		entity.setLocX(newLocX);
-		entity.setLocY(newLocY);
-		entity.setLocZ(newLocZ);
+		entity.loc.set(newLocX, newLocY, newLocZ);
 	}
 
 	/**

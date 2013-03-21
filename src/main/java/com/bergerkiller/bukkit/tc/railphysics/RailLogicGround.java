@@ -22,6 +22,6 @@ public class RailLogicGround extends RailLogic {
 	@Override
 	public void onPreMove(MinecartMember<?> member) {
 		// Apply flying friction
-		member.getEntity().multiplyVelocity(member.getEntity().getDerailedVelocityMod());
+		member.getEntity().vel.multiply(member.getEntity().getDerailedVelocityMod());
 	}
 }

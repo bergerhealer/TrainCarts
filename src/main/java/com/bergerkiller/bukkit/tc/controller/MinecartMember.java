@@ -107,10 +107,10 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		super.onAttached();
 		this.moveinfo = new MoveInfo(this);
 		this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
-		this.prevcx = entity.getLocChunkX();
-		this.prevcz = entity.getLocChunkZ();
-		this.direction = FaceUtil.yawToFace(entity.getYaw());
-		this.directionFrom = this.directionTo = FaceUtil.yawToFace(entity.getYaw(), false);
+		this.prevcx = entity.loc.x.chunk();
+		this.prevcz = entity.loc.z.chunk();
+		this.direction = FaceUtil.yawToFace(entity.loc.getYaw());
+		this.directionFrom = this.directionTo = FaceUtil.yawToFace(entity.loc.getYaw(), false);
 	}
 
 	/*
@@ -272,8 +272,8 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 
 	public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
 		if (world != entity.getWorld()) return false;
-		if (Math.abs(cx - (entity.getLocBlockX() >> 4)) > 2) return false;
-		if (Math.abs(cz - (entity.getLocBlockZ() >> 4)) > 2) return false;
+		if (Math.abs(cx - entity.loc.x.chunk()) > 2) return false;
+		if (Math.abs(cz - entity.loc.z.chunk()) > 2) return false;
 		return true;
 	}
 
@@ -305,9 +305,9 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	 */
 	public double getForceSquared() {
 		if (entity.isOnGround()) {
-			return MathUtil.lengthSquared(entity.getMotX(), entity.getMotZ());
+			return entity.vel.xz.lengthSquared();
 		}
-		return MathUtil.lengthSquared(entity.getMotX(), entity.getMotY(), entity.getMotZ());
+		return entity.vel.lengthSquared();
 	}
 	public double getForce() {
 		return Math.sqrt(this.getForceSquared());
@@ -322,8 +322,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		//Limits the velocity to the maximum
 		final double currvel = getForce();
 		if (currvel > entity.getMaxSpeed() && currvel > 0.01) {
-			final double factor = entity.getMaxSpeed() / currvel;
-			entity.multiplyVelocity(factor, 1.0, factor);
+			entity.vel.xz.multiply(entity.getMaxSpeed() / currvel);
 		}
 	}
 	public Vector getLimitedVelocity() {
@@ -333,7 +332,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		} else {
 			max = this.getGroup().getProperties().getSpeedLimit();
 		}
-		return new Vector(MathUtil.clamp(entity.getMotX(), max), MathUtil.clamp(entity.getMotY(), max), MathUtil.clamp(entity.getMotZ(), max));
+		return new Vector(entity.vel.x.getClamped(max), entity.vel.y.getClamped(max), entity.vel.z.getClamped(max));
 	}
 	public TrackMap makeTrackMap(int size) {
 		return new TrackMap(this.getBlock(), this.direction, size);
@@ -343,7 +342,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	 * Teleportation
 	 */
 	public void loadChunks() {
-		WorldUtil.loadChunks(entity.getWorld(), entity.getLocChunkX(), entity.getLocChunkZ(), 2);
+		WorldUtil.loadChunks(entity.getWorld(), entity.loc.x.chunk(), entity.loc.z.chunk(), 2);
 	}
 	public void teleport(Block railsblock) {
 		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
@@ -460,7 +459,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		entity.setVelocity(vel);
 	}
 	public void push(org.bukkit.entity.Entity entity, double force) {
-		Vector offset = this.entity.locOffsetTo(entity);
+		Vector offset = this.entity.loc.offsetTo(entity);
 		MathUtil.setVectorLength(offset, force);
 		entity.setVelocity(entity.getVelocity().add(offset));
 	}
@@ -487,14 +486,6 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		} else if (this.isUnloaded()) {
 			throw new MemberMissingException();
 		}
-	}
-
-	public double getXZForceSquared() {
-		return MathUtil.lengthSquared(entity.getMotX(), entity.getMotZ());
-	}
-
-	public double getXZForce() {
-		return MathUtil.length(entity.getMotX(), entity.getMotZ());
 	}
 
 	public IntVector3 getBlockPos() {
@@ -556,15 +547,15 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		return this.isMovingVertically() && !this.isMovingHorizontally();
 	}
 	public boolean isMovingVertically() {
-		return Math.abs(MathUtil.wrapAngle(entity.getPitch())) == 90f && (entity.getMotY() > 0.001 || (entity.getMotY() < -0.001 && !entity.isOnGround()));
+		return Math.abs(MathUtil.wrapAngle(entity.loc.getPitch())) == 90f && (entity.vel.getY() > 0.001 || (entity.vel.getY() < -0.001 && !entity.isOnGround()));
 	}
 	public boolean isNearOf(MinecartMember<?> member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
-		if (entity.distanceXZSquaredTo(member.entity) > max) {
+		if (entity.loc.xz.distanceSquared(member.entity) > max) {
 			return false;
 		}
 		if (this.isDerailed() || this.isOnVertical() || member.isDerailed() || member.isOnVertical()) {
-			return Math.abs(entity.getLocY() - member.entity.getLocY()) <= max;
+			return Math.abs(entity.loc.getY() - member.entity.loc.getY()) <= max;
 		}
 		return true;
 	}
@@ -572,7 +563,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		return this.isHeadingTo(entity.getLocation());
 	}
 	public boolean isHeadingTo(IntVector3 location) {
-		return MathUtil.isHeadingTo(this.entity.locOffsetTo(location.x, location.y, location.z), entity.getVelocity());
+		return MathUtil.isHeadingTo(this.entity.loc.offsetTo(location.x, location.y, location.z), entity.getVelocity());
 	}
 	public boolean isHeadingTo(Location target) {
 		return MathUtil.isHeadingTo(entity.getLocation(), target, entity.getVelocity());
@@ -715,10 +706,10 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		this.updateDirection(this.entity.getVelocity());
 	}
 	public void updateDirectionTo(MinecartMember<?> member) {
-		this.updateDirection(this.entity.locOffsetTo(member.entity));
+		this.updateDirection(this.entity.loc.offsetTo(member.entity));
 	}
 	public void updateDirectionFrom(MinecartMember<?> member) {
-		this.updateDirection(member.entity.locOffsetTo(this.entity));
+		this.updateDirection(member.entity.loc.offsetTo(this.entity));
 	}
 
 	@Override
@@ -795,7 +786,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 
 		public MoveInfo(MinecartMember<?> owner) {
 			this.owner = owner;
-			this.blockPos = owner.entity.getLocBlockPos();
+			this.blockPos = owner.entity.loc.block();
 			this.lastBlock = this.block = this.blockPos.toBlock(owner.entity.getWorld());
 		}
 
@@ -829,7 +820,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		public void fillRailsData() {
 			final World world = owner.entity.getWorld();
 			this.lastBlock = this.block;
-			this.blockPos = owner.entity.getLocBlockPos();
+			this.blockPos = owner.entity.loc.block();
 			IntVector3 below = this.blockPos.subtract(0, 1, 0);
 			owner.vertToSlope = false;
 
@@ -847,12 +838,12 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 			// Slope UP -> Vertical
 			if (this.railType == RailType.VERTICAL && this.prevRailLogic.isSloped()) {
 				if (this.prevRailLogic.getDirection() == owner.getDirection().getOppositeFace()) {
-					owner.entity.setLocY((double) blockPos.y + 0.95);
+					owner.entity.loc.setY((double) blockPos.y + 0.95);
 				}
 			}
 
 			// Vertical -> Slope UP
-			if (this.railType == RailType.NONE && owner.entity.getMotY() > 0) {
+			if (this.railType == RailType.NONE && owner.entity.vel.getY() > 0) {
 				final IntVector3 nextPos = blockPos.add(this.prevRailLogic.getDirection());
 				Block next = nextPos.toBlock(world);
 				Rails rails = BlockUtil.getRails(next);
@@ -861,11 +852,11 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 						// Move the minecart to the slope
 						this.blockPos = nextPos;
 						this.updateBlock();
-						owner.entity.setLocX((double) this.blockPos.x + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModX());
-						owner.entity.setLocZ((double) this.blockPos.z + 0.5 - 0.49 * this.prevRailLogic.getDirection().getModZ());
+						owner.entity.loc.xz.set(this.blockPos.x + 0.5, this.blockPos.z + 0.5);
+						owner.entity.loc.xz.subtract(this.prevRailLogic.getDirection(), 0.49);
 						// Y offset
 						final double transOffset = 0.01; // How high above the slope to teleport to
-						owner.entity.setLocY(this.blockPos.y + transOffset);
+						owner.entity.loc.setY(this.blockPos.y + transOffset);
 					}
 				}
 			}
@@ -907,8 +898,8 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 
 	private int prevcx, prevcz;
 	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
-		int newcx = entity.getLocChunkX();
-		int newcz = entity.getLocChunkZ();
+		int newcx = entity.loc.x.chunk();
+		int newcz = entity.loc.z.chunk();
 		if (newcx != prevcx || newcz != prevcz) {
 			if (canunload) {
 				if (!WorldUtil.areChunksLoaded(entity.getWorld(), newcx, newcz, 2)) {
@@ -958,7 +949,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 				return false;
 			} else if (mm1.getGroup() == mm2.getGroup()) {
 				//Same group, but do prevent penetration
-				if (mm1.entity.distanceTo(mm2.entity) > 0.5) {
+				if (mm1.entity.loc.distance(mm2.entity) > 0.5) {
 					return false;
 				}
 			} else if (!mm1.getGroup().getProperties().getColliding()) {
@@ -1090,7 +1081,7 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	 * @param pitch rotation
 	 */
 	public void eject(Vector offset, float yaw, float pitch) {
-		eject(new Location(entity.getWorld(), entity.getLocX() + offset.getX(), entity.getLocY() + offset.getY(), entity.getLocZ() + offset.getZ(), yaw, pitch));
+		eject(new Location(entity.getWorld(), entity.loc.getX() + offset.getX(), entity.loc.getY() + offset.getY(), entity.loc.getZ() + offset.getZ(), yaw, pitch));
 	}
 
 	/**
@@ -1129,15 +1120,13 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		this.stop(false);
 	}
 	public void stop(boolean cancelLocationChange) {
-		entity.multiplyVelocity(0.0);
+		entity.vel.setZero();
 		if (cancelLocationChange) {
-			entity.setLocX(entity.getLastX());
-			entity.setLocY(entity.getLastY());
-			entity.setLocX(entity.getLastZ());
+			entity.loc.set(entity.last);
 		}
 	}
 	public void reverse() {
-		entity.multiplyVelocity(-1.0);
+		entity.vel.multiply(-1.0);
 		this.direction = this.direction.getOppositeFace();
 	}
 
@@ -1214,19 +1203,9 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 			this.collisionEnterTimer--;
 		}
 
-		//Some fixed
-		entity.setMotX(MathUtil.fixNaN(entity.getMotX()));
-		entity.setMotY(MathUtil.fixNaN(entity.getMotY()));
-		entity.setMotZ(MathUtil.fixNaN(entity.getMotZ()));
-
-		// CraftBukkit start
-		entity.setLastX(entity.getLocX());
-		entity.setLastY(entity.getLocY());
-		entity.setLastZ(entity.getLocZ());
-		entity.setLastYaw(entity.getYaw());
-		entity.setLastPitch(entity.getPitch());
-		// CraftBukkit end
-
+		// Prepare
+		entity.vel.fixNaN();
+		entity.last.set(entity.loc);
 		this.refreshBlockInformation();
 	}
 
@@ -1264,13 +1243,13 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		}
 
 		// Kill entity if falling into the void
-		if (entity.getLocY() < -64.0D) {
+		if (entity.loc.getY() < -64.0D) {
 			this.onDie();
 		}
 
 		// Perform gravity
 		if (!getGroup().isMovementControlled()) {
-			entity.addMotY(-this.moveinfo.railLogic.getGravityMultiplier(this));
+			entity.vel.y.subtract(this.moveinfo.railLogic.getGravityMultiplier(this));
 		}
 
 		// reset fall distance
@@ -1282,15 +1261,15 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		moveinfo.railLogic.onPreMove(this);
 
 		// Update the entity shape
-		entity.setPosition(entity.getLocX(), entity.getLocY(), entity.getLocZ());
+		entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
 
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
 		if (moveinfo.railType == RailType.BRAKE && !getGroup().isMovementControlled()) {
-			if (this.getXZForceSquared() < 0.0009) {
-				entity.multiplyVelocity(0.0);
+			if (entity.vel.xz.lengthSquared() < 0.0009) {
+				entity.vel.multiply(0.0);
 			} else {
-				entity.multiplyVelocity(0.5);
+				entity.vel.multiply(0.5);
 			}
 		}
 	}
@@ -1316,9 +1295,9 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		speedFactor = MathUtil.clamp(MathUtil.fixNaN(speedFactor, 1), 0.1, 10);
 
 		// Apply speed factor to maxed and not-a-number-fixed values
-		double motX = speedFactor * MathUtil.clamp(MathUtil.fixNaN(entity.getMotX()), entity.getMaxSpeed());
-		double motY = speedFactor * MathUtil.clamp(MathUtil.fixNaN(entity.getMotY()), entity.getMaxSpeed());
-		double motZ = speedFactor * MathUtil.clamp(MathUtil.fixNaN(entity.getMotZ()), entity.getMaxSpeed());
+		double motX = speedFactor * entity.vel.x.fixNaN().getClamped(entity.getMaxSpeed());
+		double motY = speedFactor * entity.vel.y.fixNaN().getClamped(entity.getMaxSpeed());
+		double motZ = speedFactor * entity.vel.z.fixNaN().getClamped(entity.getMaxSpeed());
 
 		// No vertical motion if stuck to the rails that way
 		if (!moveinfo.railLogic.hasVerticalMovement()) {
@@ -1336,22 +1315,18 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 			// Slowing down of minecarts
 			if (this.getGroup().getProperties().isSlowingDown()) {
 				if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TrainCarts.slowDownEmptyCarts) {
-					entity.multiplyVelocity(TrainCarts.slowDownMultiplierNormal);
+					entity.vel.multiply(TrainCarts.slowDownMultiplierNormal);
 				} else {
-					entity.multiplyVelocity(TrainCarts.slowDownMultiplierSlow);
+					entity.vel.multiply(TrainCarts.slowDownMultiplierSlow);
 				}
 			}
 
 			// Launching on powered booster tracks
 			if (moveinfo.railType == RailType.BOOST && !getGroup().isMovementControlled()) {
-				double newMotX = entity.getMotX();
-				double newMotZ = entity.getMotZ();
-				double motLength = entity.getVelXZLength();
+				double motLength = entity.vel.xz.length();
 				if (motLength > 0.01) {
 					// Simple motion boosting when already moving
-					double launchFactor = TrainCarts.poweredRailBoost / motLength;
-					newMotX += newMotX * launchFactor;
-					newMotZ += newMotZ * launchFactor;
+					entity.vel.xz.add(entity.vel.xz, TrainCarts.poweredRailBoost / motLength);
 				} else {
 					// Launch away from a suffocating block
 					BlockFace dir = this.getRailDirection();
@@ -1360,16 +1335,13 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 					boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
 					// If pushing from both directions, block all movement
 					if (pushFrom1 && pushFrom2) {
-						newMotX = newMotZ = 0.0;
+						entity.vel.xz.setZero();
 					} else if (pushFrom1 != pushFrom2) {
 						// Boosting to the open spot
 						final double boost = MathUtil.invert(POWERED_RAIL_START_BOOST, pushFrom2);
-						newMotX = boost * dir.getModX();
-						newMotZ = boost * dir.getModZ();
+						entity.vel.xz.set(boost * dir.getModX(), boost * dir.getModZ());
 					}
 				}
-				entity.setMotX(newMotX);
-				entity.setMotZ(newMotZ);
 			}
 		}
 
@@ -1377,8 +1349,8 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		this.onRotationUpdate();
 
 		// Ensure that the yaw and pitch stay within limits
-		entity.setYaw(entity.getYaw() % 360.0f);
-		entity.setPitch(entity.getPitch() % 360.0f);
+		entity.loc.setYaw(entity.loc.getYaw() % 360.0f);
+		entity.loc.setPitch(entity.loc.getPitch() % 360.0f);
 
 		// Invalidate volatile information
 		moveinfo.railLogicSnapshotted = false;
@@ -1452,12 +1424,12 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	}
 
 	private void setAngleSafe(float newyaw, float pitch, boolean mode) {
-		if (MathUtil.getAngleDifference(entity.getYaw(), newyaw) > 170) {
-			entity.setYaw(MathUtil.wrapAngle(newyaw + 180));
-			entity.setPitch(mode ? -pitch : (pitch - 180f));
+		if (entity.loc.getYawDifference(newyaw) > 170) {
+			entity.loc.setYaw(MathUtil.wrapAngle(newyaw + 180));
+			entity.loc.setPitch(mode ? -pitch : (pitch - 180f));
 		} else {
-			entity.setYaw(newyaw);
-			entity.setPitch(pitch);
+			entity.loc.setYaw(newyaw);
+			entity.loc.setPitch(pitch);
 		}
 	}
 
@@ -1470,8 +1442,8 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 		double movedY = -entity.getMovedY();
 		double movedZ = -entity.getMovedZ();
 		boolean movedXZ = entity.hasMovedHorizontally();
-		float newyaw = movedXZ ? MathUtil.getLookAtYaw(movedX, movedZ) : entity.getYaw();
-		float newpitch = entity.getPitch();
+		float newyaw = movedXZ ? MathUtil.getLookAtYaw(movedX, movedZ) : entity.loc.getYaw();
+		float newpitch = entity.loc.getPitch();
 		boolean mode = true;
 		if (entity.isOnGround()) {
 			if (Math.abs(newpitch) > 0.1) {

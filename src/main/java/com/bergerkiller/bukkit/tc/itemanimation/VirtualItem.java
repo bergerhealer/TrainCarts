@@ -22,33 +22,26 @@ public class VirtualItem {
 		this.itemStack = itemstack;
 		refresh();
 		WorldUtil.getTracker(item.getWorld()).startTracking(item.getEntity());
-		item.addMotY(0.1);
+		item.vel.y.add(0.1);
 	}
 
 	public void update(Vector dir) {
 		// Update velocity
-		item.setMotX(dir.getX() + Math.random() * 0.02 - 0.01);
-		item.setMotY(MathUtil.useOld(item.getMotY(), dir.getY(), 0.1));
-		item.setMotZ(dir.getZ() + Math.random() * 0.02 - 0.01);
+		item.vel.setX(dir.getX() + Math.random() * 0.02 - 0.01);
+		item.vel.setY(MathUtil.useOld(item.vel.getY(), dir.getY(), 0.1));
+		item.vel.setZ(dir.getZ() + Math.random() * 0.02 - 0.01);
 		// Update position using motion
-		final double locX = item.getLocX();
-		final double locY = item.getLocY();
-		final double locZ = item.getLocZ();
-		item.setLastX(locX);
-		item.setLastY(locY);
-		item.setLastZ(locZ);
-		item.setLocX(locX + item.getMotX());
-		item.setLocY(locX + item.getMotY());
-		item.setLocZ(locX + item.getMotZ());
+		item.last.set(item.loc);
+		item.loc.add(item.vel);
 		refresh();
 	}
 
 	public void refresh() {
 		item.setPositionChanged(true);
 		item.setVelocityChanged(true);
-		item.setChunkX(item.getLocChunkX());
-		item.setChunkY(item.getLocChunkY());
-		item.setChunkZ(item.getLocChunkZ());
+		item.setChunkX(item.loc.x.chunk());
+		item.setChunkY(item.loc.y.chunk());
+		item.setChunkZ(item.loc.z.chunk());
 	}
 
 	public void die() {

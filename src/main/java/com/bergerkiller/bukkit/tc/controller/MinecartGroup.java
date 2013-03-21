@@ -627,7 +627,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		} else {
 			final double f = force / currvel;
 			for (MinecartMember<?> mm : this) {
-				mm.getEntity().multiplyVelocity(f);
+				mm.getEntity().vel.multiply(f);
 			}
 		}
 
@@ -884,17 +884,16 @@ public class MinecartGroup extends MinecartGroupStore {
 			double totalforce = this.getAverageForce();
 			double speedlimit = this.getProperties().getSpeedLimit();
 			if (totalforce > 0.4 && speedlimit > 0.4) {
-				int bits = (int) Math.ceil(speedlimit / 0.4);
+				final int bits = (int) Math.ceil(speedlimit / 0.4);
 				final double mult = (double) bits;
-				final double div = 1.0 / mult;
 				for (MinecartMember<?> mm : this) {
-					mm.getEntity().multiplyVelocity(div);
+					mm.getEntity().vel.divide(mult);
 				}
 				for (int i = 0; i < bits; i++) {
 					while (!this.doPhysics(bits));
 				}
 				for (MinecartMember<?> mm : this) {
-					mm.getEntity().multiplyVelocity(mult);
+					mm.getEntity().vel.multiply(mult);
 					mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
 				}
 			} else {
@@ -993,8 +992,8 @@ public class MinecartGroup extends MinecartGroupStore {
 					MinecartMember<?> after;
 					for (MinecartMember<?> member : this) {
 						after = this.get(i);
-						distance = member.getEntity().distanceTo(after.getEntity());
-						if (member.getDirectionDifference(after) >= 45 || member.getEntity().getPitchDifference(after.getEntity()) > 10) {
+						distance = member.getEntity().loc.distance(after.getEntity());
+						if (member.getDirectionDifference(after) >= 45 || member.getEntity().loc.getPitchDifference(after.getEntity()) > 10) {
 							threshold = TrainCarts.turnedCartDistance;
 							forcer = TrainCarts.turnedCartDistanceForcer;
 						} else {
@@ -1026,7 +1025,7 @@ public class MinecartGroup extends MinecartGroupStore {
 				for (int i = 0; i < this.size() - 1; i++) {
 					if (!head(i + 1).isFollowingOnTrack(head(i))) {
 						for (int j = i + 1; j < this.size(); j++) {
-							this.get(j).getEntity().multiplyVelocity(stepcount);
+							this.get(j).getEntity().vel.multiply(stepcount);
 						}
 						MinecartGroup gnew = this.split(i + 1);
 						if (gnew != null) { 

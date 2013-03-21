@@ -9,7 +9,7 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection impl
 	private final Location target;
 
 	public MemberActionLaunchLocation(final MinecartMember<?> member, double targetvelocity, Location target) {
-		super(member, member.getEntity().distanceTo(target), targetvelocity, member.getDirection());
+		super(member, member.getEntity().loc.distance(target), targetvelocity, member.getDirection());
 		this.target = target.clone();
 	}
 
@@ -17,8 +17,8 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection impl
 	public void start() {
 		//update direction to launch at
 		super.setDirection(FaceUtil.getDirection(this.getEntity().getLocation(), this.target, false));
-		double d = this.getEntity().distanceXZTo(this.target);
-		d += Math.abs(this.target.getBlockY() - this.getEntity().getLocBlockY());
+		double d = this.getEntity().loc.xz.distance(this.target);
+		d += Math.abs(this.target.getBlockY() - this.getEntity().loc.y.block());
 		super.setTargetDistance(d);
 		super.start();
 	}

@@ -82,7 +82,7 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 				}
 				Item item = (Item) e;
 				ItemStack stack = item.getItemStack();
-				double distance = entity.distanceTo(e);
+				double distance = entity.loc.distance(e);
 				if (ItemUtil.testTransfer(stack, inv) == stack.getAmount()) {
 					if (distance < 0.7) {
 						ItemUtil.transfer(stack, inv, Integer.MAX_VALUE);

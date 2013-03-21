@@ -212,9 +212,9 @@ public abstract class MinecartMemberStore {
 			// find member in chunk
 			for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(chunk)) {
 				if ((mm = get(entity)) != null) {
-					if (mm.getEntity().getLocChunkX() != coord.x) continue;
-					if (mm.getEntity().getLocChunkY() != coord.y) continue;
-					if (mm.getEntity().getLocChunkZ() != coord.z) continue;
+					if (mm.getEntity().loc.x.chunk() != coord.x) continue;
+					if (mm.getEntity().loc.y.chunk() != coord.y) continue;
+					if (mm.getEntity().loc.z.chunk() != coord.z) continue;
 					result = mm;
 					if (result.isHeadingTo(coord)) return result;
 				}
@@ -254,7 +254,7 @@ public abstract class MinecartMemberStore {
 				if (in != null && mm.getGroup() != in) {
 					continue;
 				}
-				if (mm.getEntity().distanceSquaredTo(at) > distSquared) {
+				if (mm.getEntity().loc.distanceSquared(at) > distSquared) {
 					continue;
 				}
 				result = mm;

@@ -76,9 +76,9 @@ public abstract class RailLogic {
 		final CommonEntity<?> e = member.getEntity();
 		final BlockFace direction = member.getDirection();
 		double vel = 0.0;
-		vel += e.getMotY() * direction.getModY();
-		vel += -FaceUtil.sin(direction) * e.getMotZ();
-		vel += -FaceUtil.cos(direction) * e.getMotX();
+		vel += e.vel.getX() * FaceUtil.cos(direction);
+		vel += e.vel.getY() * direction.getModY();
+		vel += e.vel.getZ() * FaceUtil.sin(direction);
 		return vel;
 	}
 
@@ -91,10 +91,10 @@ public abstract class RailLogic {
 	public void setForwardVelocity(MinecartMember<?> member, double force) {
 		final CommonEntity<?> e = member.getEntity();
 		if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
-			e.setMotX(force * -FaceUtil.cos(member.getDirection()));
-			e.setMotZ(force * -FaceUtil.sin(member.getDirection()));
+			e.vel.setX(force * FaceUtil.cos(member.getDirection()));
+			e.vel.setZ(force * FaceUtil.sin(member.getDirection()));
 		} else {
-			e.setMotY(force * member.getDirection().getModY());
+			e.vel.setY(force * member.getDirection().getModY());
 		}
 	}
 
@@ -155,7 +155,7 @@ public abstract class RailLogic {
 			BlockFace dir = Util.getPlateDirection(rails);
 			if (dir == BlockFace.SELF) {
 				//set track direction based on direction of this cart
-				if (Math.abs(member.getEntity().getMotX()) > Math.abs(member.getEntity().getMotZ())) {
+				if (member.getEntity().vel.x.abs() > member.getEntity().vel.z.abs()) {
 					dir = BlockFace.EAST;
 				} else {
 					dir = BlockFace.SOUTH;
