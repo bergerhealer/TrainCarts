@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
-import com.bergerkiller.bukkit.common.entity.CommonMinecart;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 
 public class MinecartMemberNetwork<T extends CommonMinecart<?>> extends EntityNetworkController<T> {
 	public static final long MIN_SYNC_INTERVAL = 10;

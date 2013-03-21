@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
-import com.bergerkiller.bukkit.common.entity.CommonMinecart;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;

@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.entity.CommonItem;
+import com.bergerkiller.bukkit.common.entity.type.CommonItem;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;

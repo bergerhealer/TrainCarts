@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.common.entity.CommonMinecart;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 

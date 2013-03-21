@@ -16,9 +16,11 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
-import com.bergerkiller.bukkit.common.entity.CommonMinecartChest;
-import com.bergerkiller.bukkit.common.entity.CommonMinecartFurnace;
-import com.bergerkiller.bukkit.common.entity.CommonMinecartRideable;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartTNT;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -26,7 +28,9 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberHopper;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberRideable;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberTNT;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
 public abstract class MinecartMemberStore {
@@ -99,6 +103,10 @@ public abstract class MinecartMemberStore {
 			newController = new MinecartMemberFurnace();
 		} else if (entity instanceof CommonMinecartChest) {
 			newController = new MinecartMemberChest();
+		} else if (entity instanceof CommonMinecartHopper) {
+			newController = new MinecartMemberHopper();
+		} else if (entity instanceof CommonMinecartTNT) {
+			newController = new MinecartMemberTNT();
 		} else {
 			// Unsupported
 			return null;

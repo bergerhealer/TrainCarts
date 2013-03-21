@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.common.entity.CommonMinecartFurnace;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;

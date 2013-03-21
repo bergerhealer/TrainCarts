@@ -7,7 +7,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.entity.CommonMinecartChest;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
