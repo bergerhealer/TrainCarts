@@ -13,6 +13,8 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -115,8 +117,8 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 	}
 
 	@Override
-	public void doPhysicsEndLogic() {
-		super.doPhysicsEndLogic();
+	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+		super.onPhysicsPostMove(speedFactor);
 		// Fuel update routines
 		if (entity.hasFuel()) {
 			entity.addFuelTicks(-1);

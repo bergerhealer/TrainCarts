@@ -12,9 +12,18 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberInventory;
 
 public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
+
+	@Override
+	public void onAttached() {
+		super.onAttached();
+		entity.setInventoryController(new MinecartMemberInventory());
+	}
 
 	public boolean hasItem(ItemParser item) {
 		if (item == null)
@@ -72,8 +81,8 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 	}
 
 	@Override
-	public void doPhysicsEndLogic() {
-		super.doPhysicsEndLogic();
+	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+		super.onPhysicsPostMove(speedFactor);
 		if (this.getProperties().canPickup()) {
 			Inventory inv = entity.getInventory();
 			for (Entity e : entity.getNearbyEntities(2.0)) {

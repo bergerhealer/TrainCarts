@@ -19,14 +19,14 @@ import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 
 public class Util {
-	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(Material.RAILS, Material.POWERED_RAIL, Material.DETECTOR_RAIL, 
-			Material.LADDER, Material.STONE_PLATE, Material.WOOD_PLATE);
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
+	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {
 		SafeField.set(Conversion.toItemHandle.convert(material), "maxStackSize", maxstacksize);
@@ -40,17 +40,6 @@ public class Util {
 	 */
 	public static BlockFace getVerticalFace(boolean up) {
 		return up ? BlockFace.UP : BlockFace.DOWN;
-	}
-
-	/**
-	 * Gets the sub-coordinates; the distance moved from the center of the current block
-	 * 
-	 * @param value
-	 * @return sub-value
-	 */
-	public static double sub(double value) {
-		final double z = value + 0.5;
-		return z - (int) z;
 	}
 
 	/**

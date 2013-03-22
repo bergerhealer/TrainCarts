@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
  * The type of rails below a minecart
  */
 public enum RailType {
-	PRESSUREPLATE(true), REGULAR(true), BRAKE(true), BOOST(true), DETECTOR(true), VERTICAL(false), NONE(false);
+	ACTIVATOR_ON(true), ACTIVATOR_OFF(true), PRESSUREPLATE(true), REGULAR(true), BRAKE(true), BOOST(true), DETECTOR(true), VERTICAL(false), NONE(false);
 
 	private final boolean horizontal;
 
@@ -27,11 +27,9 @@ public enum RailType {
 
 	public static RailType get(int typeId, int data) {
 		if (typeId == Material.POWERED_RAIL.getId()) {
-			if ((data & 0x8) == 0x8) {
-				return BOOST;
-			} else {
-				return BRAKE;
-			}
+			return (data & 0x8) == 0x8 ? BOOST : BRAKE;
+		} else if (typeId == Material.ACTIVATOR_RAIL.getId()) {
+			return (data & 0x8) == 0x8 ? ACTIVATOR_ON : ACTIVATOR_OFF;
 		} else if (typeId == Material.DETECTOR_RAIL.getId()) {
 			return DETECTOR;
 		} else if (typeId == Material.RAILS.getId()) {

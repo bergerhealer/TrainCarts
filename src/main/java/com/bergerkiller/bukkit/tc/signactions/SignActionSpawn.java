@@ -40,7 +40,7 @@ public class SignActionSpawn extends SignAction {
 		addSpawnType('p', EntityType.MINECART_FURNACE);
 		addSpawnType('h', EntityType.MINECART_FURNACE);
 		addSpawnType('t', EntityType.MINECART_TNT);
-		addSpawnType('m', EntityType.MINECART_MOB_SPAWNER);
+		addSpawnType('e', EntityType.MINECART_MOB_SPAWNER);
 	}
 
 	public static void addSpawnType(char character, EntityType type) {

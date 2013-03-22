@@ -31,6 +31,7 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -44,6 +45,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
+import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
@@ -88,8 +90,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	private BlockFace directionFrom = BlockFace.SELF;
 	protected MinecartGroup group;
 	protected boolean died = false;
+	private final ToggledState needsUpdate = new ToggledState();
+	private final ToggledState forcedBlockUpdate = new ToggledState(true);
+	private final ToggledState railActivated = new ToggledState(false);
 	private int teleportImmunityTick = 0;
-	private boolean needsUpdate = false;
 	private boolean ignoreAllCollisions = false;
 	private int collisionEnterTimer = 0;
 	private CartProperties properties;
@@ -97,7 +101,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	protected boolean unloaded = false;
-	private boolean forcedBlockUpdate = true;
 	public boolean vertToSlope = false;
 	protected SoundLoop<?> soundLoop;
 
@@ -712,15 +715,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	@Override
-	public boolean onEntityDamage(Entity entity, int damage) {
-		if (entity.isDead()) {
-			return true;
+	public void onDamage(DamageSource damagesource, int damage) {
+		if (this.entity.isDead()) {
+			return;
 		}
+		final Entity damager = damagesource.getEntity();
 		try {
 			// Call CraftBukkit event
-			VehicleDamageEvent event = new VehicleDamageEvent(this.entity.getEntity(), entity, damage);
+			VehicleDamageEvent event = new VehicleDamageEvent(this.entity.getEntity(), damager, damage);
 			if (CommonUtil.callEvent(event).isCancelled()) {
-				return true;
+				return;
 			}
 			damage = event.getDamage();
 
@@ -732,7 +736,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 			if (TrainCarts.instantCreativeDestroy) {
 				// Check whether the entity is a creative (insta-build) entity
-				if(entity instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) entity).canInstantlyBuild()) {
+				if (damager instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) damager).canInstantlyBuild()) {
 					this.entity.setDamage(100);
 				}
 			}
@@ -744,10 +748,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				} else {
 					drops.add(new ItemStack(this.entity.getCombinedItem()));
 				}
-				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(this.entity.getEntity(), entity);
+				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(this.entity.getEntity(), damager);
 				if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
 					this.entity.setDamage(40);
-					return true;
+					return;
 				}
 				// CraftBukkit end
 
@@ -762,10 +766,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				}
 				this.onDie();
 			}
-			return true;
 		} catch (Throwable t) {
 			TrainCarts.plugin.handle(t);
-			return false;
 		}
 	}
 
@@ -868,7 +870,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	protected void refreshBlockInformation() {
 		moveinfo.fillRailsData();
 	}
-
 
 	@Override
 	public void onDie() {
@@ -1104,7 +1105,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (entity.isDead()) {
 			return; 
 		}
-		this.needsUpdate = true;
+		this.needsUpdate.set();
 		this.getGroup().update();
 	}
 
@@ -1208,8 +1209,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public void onPhysicsBlockChange() {
 		// Handle block changes
 		this.checkMissing();
-		if (moveinfo.blockChanged() || this.forcedBlockUpdate) {
-			this.forcedBlockUpdate = false;
+		if (moveinfo.blockChanged() | forcedBlockUpdate.clear()) {
 			// Perform events and logic - validate along the way
 			MemberBlockChangeEvent.call(this, moveinfo.lastBlock, moveinfo.block);
 			this.checkMissing();
@@ -1273,6 +1273,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	/**
+	 * Performs the move logic for when the Minecart travels on top of an Activator rail.
+	 * 
+	 * @param activated state of the Activator rail
+	 */
+	public void onActivatorUpdate(boolean activated) {
+	}
+
+	/**
+	 * Called when activated goes from FALSE to TRUE
+	 */
+	public void onActivate() {
+	}
+
+	/**
 	 * Moves the minecart and performs post-movement logic such as events, onBlockChanged and other (rail) logic
 	 * Physics stage: <b>4</b>
 	 * 
@@ -1311,6 +1325,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				} else {
 					entity.vel.multiply(TrainCarts.slowDownMultiplierSlow);
 				}
+			}
+
+			// Perform Rails-specific logic
+			if (moveinfo.railType == RailType.ACTIVATOR_ON) {
+				// Activating the Minecart
+				this.onActivatorUpdate(true);
+				if (railActivated.set()) {
+					this.onActivate();
+				}
+			} else if (moveinfo.railType == RailType.ACTIVATOR_OFF) {
+				// De-activating the Minecart
+				this.onActivatorUpdate(false);
+				railActivated.clear();
+			} else {
+				railActivated.clear();
 			}
 
 			// Launching on powered booster tracks
@@ -1374,10 +1403,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 		// Final logic
 		this.checkMissing();
-		this.doPhysicsEndLogic();
 
 		// Play additional sound effects
 		this.soundLoop.onTick();
+
+		// Updating
+		if (this.needsUpdate.clear()) {
+			for (Block b : this.activeSigns) {
+				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
+			}
+			for (DetectorRegion reg : this.activeDetectorRegions) {
+				reg.update(this);
+			}
+		}
 	}
 
 	@Override
@@ -1397,21 +1435,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			super.onTick();
 		} else if (g.tail() == this) {
 			g.doPhysics();
-		}
-	}
-
-	/**
-	 * Performs all logic at the very end of the physics routines
-	 */
-	public void doPhysicsEndLogic() {
-		if (this.needsUpdate) {
-			this.needsUpdate = false;
-			for (Block b : this.activeSigns) {
-				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
-			}
-			for (DetectorRegion reg : this.activeDetectorRegions) {
-				reg.update(this);
-			}
 		}
 	}
 

@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartMobSpawner;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartTNT;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -30,6 +31,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberHopper;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberMobSpawner;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberRideable;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberTNT;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -149,6 +151,8 @@ public abstract class MinecartMemberStore {
 			return new MinecartMemberHopper();
 		} else if (entity instanceof CommonMinecartTNT) {
 			return new MinecartMemberTNT();
+		} else if (entity instanceof CommonMinecartMobSpawner) {
+			return new MinecartMemberMobSpawner();
 		} else {
 			return null;
 		}

@@ -396,9 +396,11 @@ public class TrainCarts extends PluginBase {
 
 		//update max item stack
 		if (maxMinecartStackSize != 1) {
-			Util.setItemMaxSize(Material.MINECART, maxMinecartStackSize);
-			Util.setItemMaxSize(Material.POWERED_MINECART, maxMinecartStackSize);
-			Util.setItemMaxSize(Material.STORAGE_MINECART, maxMinecartStackSize);
+			for (Material material : Material.values())  {
+				if (MaterialUtil.ISMINECART.get(material)) {
+					Util.setItemMaxSize(material, maxMinecartStackSize);
+				}
+			}
 		}
 
 		//init statements
@@ -480,9 +482,11 @@ public class TrainCarts extends PluginBase {
 
 		//update max item stack
 		if (maxMinecartStackSize != 1) {
-			Util.setItemMaxSize(Material.MINECART, 1);
-			Util.setItemMaxSize(Material.POWERED_MINECART, 1);
-			Util.setItemMaxSize(Material.STORAGE_MINECART, 1);
+			for (Material material : Material.values())  {
+				if (MaterialUtil.ISMINECART.get(material)) {
+					Util.setItemMaxSize(material, 1);
+				}
+			}
 		}
 
 		//undo replacements for correct native saving
