@@ -22,6 +22,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -360,10 +361,10 @@ public class MinecartGroup extends MinecartGroupStore {
 		return TrainCarts.cartDistance * (this.size() - 1);
 	}
 
-	public int size(Material carttype) {
+	public int size(EntityType carttype) {
 		int rval = 0;
 		for (MinecartMember<?> mm : this) {
-			if (mm.getEntity().getCombinedItem() == carttype) {
+			if (mm.getEntity().getType() == carttype) {
 				rval++;
 			}
 		}
@@ -374,7 +375,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (this.size() == 0) return false;
 		if (this.size() == 1) return true;
 		if (this.getProperties().requirePoweredMinecart) {
-			return this.size(Material.POWERED_MINECART) > 0;
+			return this.size(EntityType.MINECART_FURNACE) > 0;
 		} else {
 			return true;
 		}
@@ -755,7 +756,7 @@ public class MinecartGroup extends MinecartGroupStore {
 
 	public Inventory getInventory() {
 		//count amount of storage minecarts
-		Inventory[] source = new Inventory[this.size(Material.STORAGE_MINECART)];
+		Inventory[] source = new Inventory[this.size(EntityType.MINECART_CHEST)];
 		int i = 0;
 		for (MinecartMember<?> mm : this) {
 			if (mm instanceof MinecartMemberChest) {

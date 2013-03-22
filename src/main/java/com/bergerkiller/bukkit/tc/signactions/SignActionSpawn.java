@@ -9,9 +9,9 @@ import java.util.Locale;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
@@ -33,18 +33,19 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class SignActionSpawn extends SignAction {
 	private static BlockMap<SpawnSign> spawnSigns = new BlockMap<SpawnSign>();
-	private static HashMap<String, Material> minecartTypes = new HashMap<String, Material>();
+	private static HashMap<String, EntityType> minecartTypes = new HashMap<String, EntityType>();
 	static {
-		addSpawnType('m', Material.MINECART);
-		addSpawnType('M', Material.MINECART);
-		addSpawnType('s', Material.STORAGE_MINECART);
-		addSpawnType('S', Material.STORAGE_MINECART);
-		addSpawnType('p', Material.POWERED_MINECART);
-		addSpawnType('P', Material.POWERED_MINECART);
+		addSpawnType('m', EntityType.MINECART);
+		addSpawnType('s', EntityType.MINECART_CHEST);
+		addSpawnType('p', EntityType.MINECART_FURNACE);
+		addSpawnType('h', EntityType.MINECART_FURNACE);
+		addSpawnType('t', EntityType.MINECART_TNT);
+		addSpawnType('m', EntityType.MINECART_MOB_SPAWNER);
 	}
 
-	public static void addSpawnType(char character, Material type) {
-		minecartTypes.put(Character.toString(character), type);
+	public static void addSpawnType(char character, EntityType type) {
+		minecartTypes.put(Character.toString(character).toLowerCase(Locale.ENGLISH), type);
+		minecartTypes.put(Character.toString(character).toUpperCase(Locale.ENGLISH), type);
 	}
 
 	@Override
@@ -134,9 +135,9 @@ public class SignActionSpawn extends SignAction {
 			final double spawnForce = getSpawnForce(info);
 
 			//Get the cart types to spawn
-			ArrayList<Material> types = new ArrayList<Material>();
+			ArrayList<EntityType> types = new ArrayList<EntityType>();
 			StringBuilder amountBuilder = new StringBuilder();
-			Material type;
+			EntityType type;
 			for (char cart : (info.getLine(2) + info.getLine(3)).toCharArray()) {
 				type = minecartTypes.get(Character.toString(cart));
 				if (type != null) {

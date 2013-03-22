@@ -42,7 +42,6 @@ import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -301,7 +300,7 @@ public class TCListener implements Listener {
 					return;
 				}
 				ItemStack item = event.getPlayer().getItemInHand();
-				if (item == null || !LogicUtil.contains(item.getType(), Material.MINECART, Material.POWERED_MINECART, Material.STORAGE_MINECART)) {
+				if (item == null || !MaterialUtil.ISMINECART.get(item)) {
 					return;
 				}
 
@@ -340,23 +339,15 @@ public class TCListener implements Listener {
 
 				// Place logic
 				lastPlayer = event.getPlayer();
-				if (MaterialUtil.ISRAILS.get(id)) {
-					return;
-				} else if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
+				if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
 					//perform a manual Minecart spawn
 					BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
 					if (dir == BlockFace.SELF) {
 						dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
 					}
-
-					//get spawn location
-					if (dir == BlockFace.SOUTH || dir == BlockFace.NORTH) {
-						at.setYaw(0.0F);
-					} else {
-						at.setYaw(90.0F);
-					}
+					at.setYaw(FaceUtil.faceToYaw(dir));
+					MinecartMemberStore.spawnBy(at, event.getPlayer());
 				}
-				MinecartMemberStore.spawnBy(at, event.getPlayer());
 			}
 			final boolean isLeftClick = event.getAction() == Action.LEFT_CLICK_BLOCK;			
 			if ((isLeftClick || (event.getAction() == Action.RIGHT_CLICK_BLOCK)) && MaterialUtil.ISSIGN.get(event.getClickedBlock())) {

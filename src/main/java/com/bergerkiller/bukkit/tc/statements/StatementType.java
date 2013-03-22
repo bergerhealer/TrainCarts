@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.statements;
 
 import java.util.Locale;
 
-import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.tc.Util;
@@ -26,7 +26,7 @@ public class StatementType extends Statement {
 		if (isSize(text.toLowerCase(Locale.ENGLISH))) {
 			return true;
 		}
-		return member.getEntity().getCombinedItem() == Conversion.toMinecartType.convert(text);
+		return member.getEntity().getType() == Conversion.toMinecartType.convert(text);
 	}
 
 	@Override
@@ -34,7 +34,7 @@ public class StatementType extends Statement {
 		if (isSize(text.toLowerCase(Locale.ENGLISH))) {
 			return Util.evaluate(group.size(), text);
 		}
-		final Material type = Conversion.toMinecartType.convert(text);
+		final EntityType type = Conversion.toMinecartType.convert(text);
 		if (type == null) {
 			return false;
 		} else {

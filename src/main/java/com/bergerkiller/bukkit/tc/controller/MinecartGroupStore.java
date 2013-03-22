@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -51,7 +51,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 		return g;
 	}
 
-	public static MinecartGroup spawn(Location[] at, Material... types) {
+	public static MinecartGroup spawn(Location[] at, EntityType... types) {
 		if (at.length != types.length || at.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
 		for (int i = 0; i < types.length; i++) {
@@ -61,10 +61,10 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 		GroupCreateEvent.call(g);
 		return g;
 	}
-	public static MinecartGroup spawn(Block startblock, BlockFace direction, Material... types) {
+	public static MinecartGroup spawn(Block startblock, BlockFace direction, EntityType... types) {
 		return spawn(startblock, direction, Arrays.asList(types));
 	}
-	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<Material> types) {
+	public static MinecartGroup spawn(Block startblock, BlockFace direction, List<EntityType> types) {
 		Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
 		if (types.size() != destinations.length || destinations.length == 0) return null;
 		MinecartGroup g = new MinecartGroup();
@@ -137,7 +137,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 
 			//Is a powered minecart required?
 			if (prop1.requirePoweredMinecart || prop2.requirePoweredMinecart) {
-				if (g1.size(Material.POWERED_MINECART) == 0 && g2.size(Material.POWERED_MINECART) == 0) {
+				if (g1.size(EntityType.MINECART_FURNACE) == 0 && g2.size(EntityType.MINECART_FURNACE) == 0) {
 					return false;
 				}
 			}

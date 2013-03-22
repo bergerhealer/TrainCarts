@@ -74,7 +74,7 @@ import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
-public class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> {
+public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> {
 	public static final double GRAVITY_MULTIPLIER = 0.04;
 	public static final double VERTRAIL_MULTIPLIER = 0.02;
 	public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
@@ -95,7 +95,6 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
 	private Set<Block> activeSigns = new LinkedHashSet<Block>();
-	//protected MinecartMemberTrackerEntry tracker;
 	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	protected boolean unloaded = false;
 	private boolean forcedBlockUpdate = true;
@@ -1134,15 +1133,8 @@ public class MinecartMember<T extends CommonMinecart<?>> extends EntityControlle
 	 * Respawns the entity to the client (used to avoid teleport smoothing)
 	 */
 	public void respawn() {
-//		if (this.tracker != null) {
-//			this.tracker.doRespawn();
-//		}
+		entity.getNetworkController().syncRespawn();
 	}
-
-//	public MinecartMemberTrackerEntry getTracker() {
-//		return this.tracker;
-//	}
-
 
 	/**
 	 * Called when the blocks below this minecart change block coordinates

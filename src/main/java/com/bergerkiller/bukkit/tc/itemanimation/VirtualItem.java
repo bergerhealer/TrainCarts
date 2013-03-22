@@ -1,11 +1,13 @@
 package com.bergerkiller.bukkit.tc.itemanimation;
 
 import org.bukkit.Location;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonItem;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
@@ -17,12 +19,13 @@ public class VirtualItem {
 	private final ItemStack itemStack;
 
 	public VirtualItem(Location location, ItemStack itemstack) {
-		this.item = new CommonItem(EntityRef.createEntityItem(location.getWorld(), location.getX(), location.getY(), location.getZ()));
+		this.item = (CommonItem) CommonEntity.create(EntityType.DROPPED_ITEM);
+		this.item.last.set(this.item.loc.set(location));
+		this.item.vel.y.add(0.1);
 		this.item.setItemStack(itemstack);
 		this.itemStack = itemstack;
-		refresh();
-		WorldUtil.getTracker(item.getWorld()).startTracking(item.getEntity());
-		item.vel.y.add(0.1);
+		this.refresh();
+		this.item.setNetworkController(new DefaultEntityNetworkController());
 	}
 
 	public void update(Vector dir) {

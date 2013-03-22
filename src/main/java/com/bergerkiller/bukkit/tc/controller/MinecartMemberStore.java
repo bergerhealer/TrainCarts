@@ -6,15 +6,16 @@ import java.util.UUID;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
@@ -96,18 +97,8 @@ public abstract class MinecartMemberStore {
 		}
 
 		// Create a new Minecart controller for this type
-		MinecartMember newController;
-		if (entity instanceof CommonMinecartRideable) {
-			newController = new MinecartMemberRideable();
-		} else if (entity instanceof CommonMinecartFurnace) {
-			newController = new MinecartMemberFurnace();
-		} else if (entity instanceof CommonMinecartChest) {
-			newController = new MinecartMemberChest();
-		} else if (entity instanceof CommonMinecartHopper) {
-			newController = new MinecartMemberHopper();
-		} else if (entity instanceof CommonMinecartTNT) {
-			newController = new MinecartMemberTNT();
-		} else {
+		MinecartMember newController = createController(entity);
+		if (newController == null) {
 			// Unsupported
 			return null;
 		}
@@ -120,25 +111,6 @@ public abstract class MinecartMemberStore {
 		entity.setNetworkController(new MinecartMemberNetwork());
 		return newController;
 	}
-
-	/*
-	// Replace entity
-	EntityTracker tracker = WorldUtil.getTracker(source.getWorld());
-	synchronized (tracker.getHandle()) {
-		// swap the tracker
-		Object entry = tracker.getEntry(source);
-		// Create MM tracker using old as base
-		if (entry == null) {
-			entry = new MinecartMemberTrackerEntry(with);
-		} else if (!(entry instanceof MinecartMemberTrackerEntry)) {
-			entry = new MinecartMemberTrackerEntry(entry);
-		}
-		with.tracker = (MinecartMemberTrackerEntry) entry;
-		// And set the entity
-		EntityUtil.setEntity(source, with.getEntity(), entry);
-	}
-	return with;
-	*/
 
 	/**
 	 * Tries to find a minecart member by UUID
@@ -161,6 +133,28 @@ public abstract class MinecartMemberStore {
 	}
 
 	/**
+	 * Creates a suitable Minecart Member controller for an Entity
+	 * 
+	 * @param entity to create a controller for
+	 * @return new MinecartMember instance suitable for the type of Entity, or null if none found
+	 */
+	public static MinecartMember<?> createController(CommonEntity<?> entity) {
+		if (entity instanceof CommonMinecartRideable) {
+			return new MinecartMemberRideable();
+		} else if (entity instanceof CommonMinecartFurnace) {
+			return new MinecartMemberFurnace();
+		} else if (entity instanceof CommonMinecartChest) {
+			return new MinecartMemberChest();
+		} else if (entity instanceof CommonMinecartHopper) {
+			return new MinecartMemberHopper();
+		} else if (entity instanceof CommonMinecartTNT) {
+			return new MinecartMemberTNT();
+		} else {
+			return null;
+		}
+	}
+
+	/**
 	 * Spawns a minecart as being placed by a player
 	 * 
 	 * @param at location to spawn
@@ -170,6 +164,10 @@ public abstract class MinecartMemberStore {
 	public static MinecartMember<?> spawnBy(Location at, Player player) {
 		ItemStack item = player.getItemInHand();
 		if (LogicUtil.nullOrEmpty(item)) {
+			return null;
+		}
+		EntityType type = Conversion.toMinecartType.convert(item.getType());
+		if (type == null) {
 			return null;
 		}
 
@@ -184,20 +182,18 @@ public abstract class MinecartMemberStore {
 		}
 
 		// spawn and fire event
-		return spawn(at, item.getType());
+		return spawn(at, type);
 	}
 
-	public static MinecartMember<?> spawn(Location at, Material type) {
-//		MinecartMember<?> mm = new MinecartMember<?>(at.getWorld(), at.getX(), at.getY(), at.getZ(), type);
-//		mm.yaw = at.getYaw();
-//		mm.pitch = at.getPitch();
-//		mm = MemberSpawnEvent.call(mm).getMember();
-//		mm.tracker = new MinecartMemberTrackerEntry(mm);
-//		WorldUtil.setTrackerEntry(mm.getEntity(), mm.tracker);
-//		mm.world.addEntity(mm);
-//		CommonUtil.callEvent(new VehicleCreateEvent(mm.getMinecart()));
-//		return mm;
-		return null;
+	public static MinecartMember<?> spawn(Location at, EntityType type) {
+		CommonEntity<?> entity = CommonEntity.create(type);
+		MinecartMember<?> controller = createController(entity);
+		if (controller == null) {
+			throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
+		}
+		entity.setController(controller);
+		entity.spawn(at, new MinecartMemberNetwork());
+		return controller;
 	}
 
 	public static MinecartMember<?> getAt(Block block) {
