@@ -121,10 +121,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	 * Block obtaining
 	 */
 	public boolean canBreak(Block block) {
-		if (this.blockBreakTypes.isEmpty()) {
-			return false;
-		}
-		return this.blockBreakTypes.contains(block.getType());
+		return !this.blockBreakTypes.isEmpty() && this.blockBreakTypes.contains(block.getType());
 	}
 
 	/*

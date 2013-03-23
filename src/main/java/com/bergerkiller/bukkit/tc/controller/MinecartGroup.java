@@ -4,16 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -26,44 +20,33 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.collections.EntryList;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.*;
+import com.bergerkiller.bukkit.tc.blocktracker.BlockTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
-import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
-import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
-import com.bergerkiller.bukkit.tc.signactions.SignAction;
-import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class MinecartGroup extends MinecartGroupStore {
 	private static final long serialVersionUID = 3;
 
-	private static final EntryList<IntVector3, MinecartMember<?>> blockSpaceBuffer = new EntryList<IntVector3, MinecartMember<?>>();
-	private static final Set<Block> signActionBuffer = new HashSet<Block>();
-	private Map<IntVector3, MinecartMember<?>> memberBlockSpace = new HashMap<IntVector3, MinecartMember<?>>();
-	private final Set<Block> activeSigns = new LinkedHashSet<Block>();
 	private final Queue<Action> actions = new LinkedList<Action>();
-	private static Set<DetectorRegion> tmpRegions = new HashSet<DetectorRegion>();
+	private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
-	private boolean needsUpdate = false;
-	private boolean needsBlockSpaceRefresh = true;
-	private boolean needsSignRefresh = true;
 	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
@@ -157,85 +140,8 @@ public class MinecartGroup extends MinecartGroupStore {
 		return a instanceof MovementAction && ((MovementAction) a).isMovementSuppressed();
 	}
 
-	/*
-	 * Signs underneath this group
-	 */
-	public boolean isActiveSign(Block signblock) {
-		if (signblock == null) return false;
-		return this.activeSigns.contains(signblock);
-	}
-	public boolean setActiveSign(SignActionEvent signblock, boolean active) {
-		Block b = signblock.getBlock();
-		if (b == null) return false;
-		if (active) {
-			if (this.activeSigns.add(b)) {
-				SignAction.executeAll(signblock, SignActionType.GROUP_ENTER);
-				return true;
-			}
-		} else {
-			if (this.activeSigns.remove(b)) {
-				SignAction.executeAll(signblock, SignActionType.GROUP_LEAVE);
-				return true;
-			}
-		}
-		return false;
-	}
-	public boolean setActiveSign(Block signblock, boolean active) {
-		if (signblock == null) return false;
-		return setActiveSign(new SignActionEvent(signblock, null, this), active);
-	}
-	public void updateActiveSigns(boolean lazy) {
-		if (lazy) {
-			this.needsSignRefresh = true;
-			return;
-		}
-		this.needsSignRefresh = false;
-		World world = this.getWorld();
-		signActionBuffer.addAll(this.activeSigns);
-		blockSpaceBuffer.addAll(this.memberBlockSpace.entrySet());
-		for (Entry<IntVector3, MinecartMember<?>> entry : blockSpaceBuffer) {
-			IntVector3 p = entry.getKey();
-			Block block = world.getBlockAt(p.x, p.y, p.z);
-			if (Util.ISTCRAIL.get(block)) {
-				for (Block sign : Util.getSignsFromRails(block)) {
-					entry.getValue().addActiveSign(sign);
-					signActionBuffer.remove(sign);
-				}
-			}
-		}
-		// All active blocks remaining in the buffer are no longer active
-		for (Block block : signActionBuffer) {
-			for (MinecartMember<?> member : this) {
-				member.removeActiveSign(block);
-			}
-		}
-		blockSpaceBuffer.clear();
-		signActionBuffer.clear();
-	}
-
-	/**
-	 * Clears all the signs this group is currently in<br>
-	 * <b>This includes the signs individual members are in</b>
-	 */
-	public void clearActiveSigns() {
-		clearActiveSigns(true);
-	}
-
-	/**
-	 * Clears all the signs this group is currently in<br>
-	 * 
-	 * @param clearMembers state, True to clear member signs, False to keep them
-	 */
-	public void clearActiveSigns(boolean clearMembers) {
-		for (Block signblock : this.activeSigns) {
-			SignAction.executeAll(new SignActionEvent(signblock, null, this), SignActionType.GROUP_LEAVE);
-		}
-		this.activeSigns.clear();
-		if (clearMembers) {
-			for (MinecartMember<?> mm : this) {
-				mm.clearActiveSigns();
-			}
-		}
+	public BlockTrackerGroup getBlockTracker() {
+		return this.blockTracker;
 	}
 
 	public MinecartMember<?> head(int index) {
@@ -306,10 +212,7 @@ public class MinecartGroup extends MinecartGroupStore {
 
 	private void addMember(MinecartMember<?> member) {
 		member.setGroup(this);
-		for (Block sign : member.getActiveSigns()) {
-			this.setActiveSign(sign, true);
-		}
-		this.updateBlockSpace(false);
+		this.getBlockTracker().updatePosition();
 		this.getProperties().add(member);
 	}
 	public void add(int index, MinecartMember<?> member) {
@@ -406,23 +309,9 @@ public class MinecartGroup extends MinecartGroupStore {
 	private MinecartMember<?> removeMember(int index) {
 		MinecartMember<?> member = super.get(index);
 		MemberRemoveEvent.call(member);
-		//Delete the member if dead, otherwise remove active signs from this group only
-		if (member.getEntity().isDead()) {
-			//added Bukkit vehicle destroy event
-			member.clearActiveSigns();
-		} else {
-			Set<Block> toRemove = new HashSet<Block>();
-			toRemove.addAll(member.getActiveSigns());
-			for (MinecartMember<?> mm : this) {
-				if (mm != member) toRemove.removeAll(mm.getActiveSigns());
-			}
-			for (Block sign : toRemove) {
-				this.setActiveSign(sign, false);
-			}
-		}
 		super.remove(index);
 		this.getProperties().remove(member);
-		this.updateBlockSpace(false);
+		this.getBlockTracker().updatePosition();
 		Action a;
 		for (Iterator<Action> actionit = this.actions.iterator(); actionit.hasNext();) {
 			a = actionit.next();
@@ -474,13 +363,6 @@ public class MinecartGroup extends MinecartGroupStore {
 			//Add the group
 			groups.add(gnew);
 
-			//Set the new active signs
-			for (MinecartMember<?> mm : gnew) {
-				for (Block sign : mm.getActiveSigns()) {
-					gnew.setActiveSign(sign, true);
-				}
-			}
-
 			//Set the new group properties
 			gnew.getProperties().load(this.getProperties());
 
@@ -492,8 +374,9 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 	}
 
+	@Override
 	public void clear() {
-		this.clearActiveSigns();
+		this.getBlockTracker().clear();
 		this.clearActions();
 		for (MinecartMember<?> mm : this.toArray()) {
 			this.getProperties().remove(mm);
@@ -571,7 +454,7 @@ public class MinecartGroup extends MinecartGroupStore {
 		this.teleport(start, direction);
 		this.stop();
 		this.clearActions();
-		if (force > 0.01 || force < -0.01) {
+		if (Math.abs(force) > 0.01) {
 			this.tail().addActionLaunch(direction, 1.0, force);
 		}
 	}
@@ -586,12 +469,15 @@ public class MinecartGroup extends MinecartGroupStore {
 		this.teleport(locations, false);
 	}
 	public void teleport(Location[] locations, boolean reversed) {
-		if (locations == null || locations.length == 0 || locations.length != this.size()) {
+		if (LogicUtil.nullOrEmpty(locations) || locations.length != this.size()) {
 			return;
 		}
-		this.updateActiveSigns(true);
+		if (locations[0].getWorld() != getWorld()) {
+			this.getBlockTracker().clear();
+		}
+		this.getBlockTracker().updatePosition();
+
 		boolean needAvoidSmoothing = locations[0].getWorld() == this.getWorld();
-		this.clearActiveSigns();
 		this.breakPhysics();
 		if (reversed) {
 			for (int i = 0; i < locations.length; i++) {
@@ -813,7 +699,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 
 	public void update() {
-		this.needsUpdate = true;
+		this.getBlockTracker().update();
 	}
 
 	/*
@@ -837,49 +723,9 @@ public class MinecartGroup extends MinecartGroupStore {
 	 * @return member at the position, or null if not found
 	 */
 	public MinecartMember<?> getAt(IntVector3 position) {
-		return this.memberBlockSpace.get(position);
+		return getBlockTracker().getMemberFromRails(position);
 	}
 
-	/**
-	 * Updates the member block space mapping of this group
-	 */
-	public void updateBlockSpace(boolean lazy) {
-		if (lazy) {
-			this.needsBlockSpaceRefresh = true;
-			return;
-		}
-		this.needsBlockSpaceRefresh = false;
-		// Update block space of minecarts in this group
-		this.memberBlockSpace.clear();
-		if (this.size() == 1) {
-			MinecartMember<?> member = head();
-			this.memberBlockSpace.put(member.getBlockPos(), member);
-		} else if (this.size() > 1) {
-			for (int i = 0; i < this.size() - 1; i++) {
-				MinecartMember<?> member = get(i);
-				IntVector3 from = member.getBlockPos();
-				IntVector3 to = get(i + 1).getBlockPos();
-				this.memberBlockSpace.put(from, member);
-				if (to.x > from.x + 1) {
-					this.memberBlockSpace.put(new IntVector3(from.x + 1, from.y, from.z), member);
-				} else if (to.x + 1 < from.x) {
-					this.memberBlockSpace.put(new IntVector3(from.x - 1, from.y, from.z), member);
-				}
-				if (to.y > from.y + 1) {
-					this.memberBlockSpace.put(new IntVector3(from.x, from.y + 1, from.z), member);
-				} else if (to.y + 1 < from.y) {
-					this.memberBlockSpace.put(new IntVector3(from.x, from.y - 1, from.z), member);
-				}
-				if (to.z > from.z + 1) {
-					this.memberBlockSpace.put(new IntVector3(from.x, from.y, from.z + 1), member);
-				} else if (to.z + 1 < from.z) {
-					this.memberBlockSpace.put(new IntVector3(from.x, from.y, from.z - 1), member);
-				}
-			}
-			this.memberBlockSpace.put(tail().getBlockPos(), tail());
-		}
-	}
-	
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -912,7 +758,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	}
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {
 		this.breakPhysics = false;
-		try {			
+		try {
 			//Prevent index exceptions: remove if not a train
 			if (this.isEmpty()) {
 				this.remove();
@@ -930,27 +776,17 @@ public class MinecartGroup extends MinecartGroupStore {
 			this.updateAction();
 
 			// Perform block updates prior to doing the movement calculations
-			// First initialize all blocks and handle block changes
+			// First initialize all blocks and handle block change event
 			for (MinecartMember<?> m : this) {
 				m.onPhysicsStart();
-				this.needsBlockSpaceRefresh |= m.hasBlockChanged();
 			}
-			if (this.needsBlockSpaceRefresh) {
-				this.updateBlockSpace(false);
-			}
-			// Perform block change checks, also take care of potential new block changes
+			this.getBlockTracker().refresh();
+
+			// Perform block change Minecart logic, also take care of potential new block changes
 			for (MinecartMember<?> m : this) {
 				m.onPhysicsBlockChange();
-				this.needsBlockSpaceRefresh |= m.hasBlockChanged();
 			}
-			if (this.needsBlockSpaceRefresh) {
-				this.updateBlockSpace(false);
-			}
-			// If signs need to be refreshed (as requested), do so
-			if (this.needsSignRefresh) {
-				// Update the signs
-				this.updateActiveSigns(false);
-			}
+			this.getBlockTracker().refresh();
 
 			this.updateDirection();
 
@@ -1048,20 +884,6 @@ public class MinecartGroup extends MinecartGroupStore {
 			boolean canunload = this.canUnload();
 			for (MinecartMember<?> mm : this) {
 				mm.checkChunks(canunload);
-			}
-
-			if (this.needsUpdate) {
-				this.needsUpdate = false;
-				for (Block b : this.activeSigns) {
-					SignAction.executeAll(new SignActionEvent(b, null, this), SignActionType.GROUP_UPDATE);
-				}
-				tmpRegions.clear();
-				for (MinecartMember<?> mm : this) {
-					tmpRegions.addAll(mm.getActiveDetectorRegions());
-				}
-				for (DetectorRegion reg : tmpRegions) {
-					reg.update(this);
-				}
 			}
 			return true;
 		} catch (MemberMissingException ex) {

@@ -163,8 +163,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 			}
 
 			//Clear targets and active signs
-			g1.clearActiveSigns(false);
-			g2.clearActiveSigns(false);
+			g1.getBlockTracker().clear();
+			g2.getBlockTracker().clear();
 
 			//Finally link
 			if (m1index == 0 && m2index == 0) {					
@@ -178,16 +178,10 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 				return false;
 			}
 
-			//Re-activate the signs underneath the train
-			for (MinecartMember<?> mm : g2) {
-				for (Block sign : mm.getActiveSigns()) {
-					g2.setActiveSign(sign, true);
-				}
-			}
-
 			//Correct the yaw and order
 			g2.getAverageForce();
 			g2.updateDirection();
+			g2.getBlockTracker().updatePosition();
 
 			g1.remove();
 			m2.playLinkEffect();

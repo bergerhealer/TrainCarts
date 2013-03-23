@@ -3,10 +3,8 @@ package com.bergerkiller.bukkit.tc.controller;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,7 +57,7 @@ import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
-import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.blocktracker.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -84,22 +82,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public static final double POWERED_RAIL_START_BOOST = 0.02;
 	public static final double MIN_VEL_FOR_SLOPE = 0.05;
 
-	private static List<Block> tmpblockbuff = new ArrayList<Block>();
 	private BlockFace direction;
 	private BlockFace directionTo;
 	private BlockFace directionFrom = BlockFace.SELF;
 	protected MinecartGroup group;
 	protected boolean died = false;
-	private final ToggledState needsUpdate = new ToggledState();
+	private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
 	private final ToggledState forcedBlockUpdate = new ToggledState(true);
 	private final ToggledState railActivated = new ToggledState(false);
+	private final ToggledState ignoreDie = new ToggledState(false);
 	private int teleportImmunityTick = 0;
 	private boolean ignoreAllCollisions = false;
 	private int collisionEnterTimer = 0;
 	private CartProperties properties;
 	private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
-	private Set<Block> activeSigns = new LinkedHashSet<Block>();
-	private List<DetectorRegion> activeDetectorRegions = new ArrayList<DetectorRegion>(0);
 	protected boolean unloaded = false;
 	public boolean vertToSlope = false;
 	protected SoundLoop<?> soundLoop;
@@ -198,66 +194,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
  
-
- 	/*
- 	 * Active signs
- 	 */
-	public boolean isActiveSign(Block signblock) {
-		if (signblock == null) return false;
-		return this.activeSigns.contains(signblock);
-	}
-	public boolean addActiveSign(Block signblock) {
-		if (this.activeSigns.add(signblock)) {
-			if (entity.isDead()) return true;
-			SignActionEvent info = new SignActionEvent(signblock, this);
-			SignAction.executeAll(info, SignActionType.MEMBER_ENTER);
-			if (entity.isDead()) return true;
-			this.getGroup().setActiveSign(info, true);
-			return true;
-		} else {
-			return false;
-		}
-	}
-	private void handleActiveSignRemove(Block signblock) {
-		SignAction.executeAll(new SignActionEvent(signblock, this), SignActionType.MEMBER_LEAVE);
-		// This sign is not present in other members of the group?
-		for (MinecartMember<?> mm : this.getGroup()) {
-			if (mm != this && mm.isActiveSign(signblock)) {
-				// Active for another minecart - no group removal
-				return;
-			}
-		}
-		this.getGroup().setActiveSign(signblock, false);
-	}
-	public void removeActiveSign(Block signblock) {
-		if (this.activeSigns.remove(signblock)) {
-			handleActiveSignRemove(signblock);
-		}
-	}
-	public void clearActiveSigns() {
-		if (this.isUnloaded()) {
-			return;
-		}
-		for (Block signblock : this.activeSigns) {
-			handleActiveSignRemove(signblock);
-		}
-		this.activeSigns.clear();
-	}
-	public void clearActiveDetectors() {
-		for (DetectorRegion region : this.activeDetectorRegions) {
-			region.remove(this);
-		}
-		this.activeDetectorRegions.clear();
-	}
-	public Set<Block> getActiveSigns() {
-		return this.activeSigns;
-	}
-	public boolean hasSign() {
-		return !this.activeSigns.isEmpty();
-	}
-	public List<DetectorRegion> getActiveDetectorRegions() {
-		return this.activeDetectorRegions;
-	}
+ 	public BlockTrackerMember getBlockTracker() {
+ 		return blockTracker;
+ 	}
 
 	/**
 	 * Gets whether this Minecart is unloaded
@@ -350,19 +289,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
 	}
 	public void teleport(Location to) {
-		boolean changedWorld = to.getWorld() != this.entity.getWorld();
-		entity.setDead(true);
 		// === Teleport - set unloaded to true and false again to prevent group unloading ===
 		this.unloaded = true;
-		EntityUtil.teleport(this.entity.getEntity(), to);
+		entity.teleport(to);
 		this.unloaded = false;
 		// =======================
-		if (changedWorld) {
-			//this.tracker = new MinecartMemberTrackerEntry(this);
-			//WorldUtil.setTrackerEntry(this.getEntity(), this.tracker);
-		}
 		this.teleportImmunityTick = 10;
-		entity.setDead(false);
 		this.refreshBlockInformation();
 	}
 
@@ -492,6 +424,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	public IntVector3 getBlockPos() {
 		return moveinfo.blockPos;
+	}
+
+	/**
+	 * Gets the block this minecart was previously in, or driving on
+	 * 
+	 * @return Last rail block or block at last minecart position
+	 */
+	public Block getLastBlock() {
+		return moveinfo.lastBlock;
 	}
 
 	/**
@@ -727,13 +668,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				return;
 			}
 			damage = event.getDamage();
-
 			// Play shaking animation and logic
 			this.entity.setShakingDirection(-this.entity.getShakingDirection());
 			this.entity.setShakingFactor(10);
 			this.entity.setVelocityChanged(true);
 			this.entity.setDamage(this.entity.getDamage() + damage * 10);
-
 			if (TrainCarts.instantCreativeDestroy) {
 				// Check whether the entity is a creative (insta-build) entity
 				if (damager instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) damager).canInstantlyBuild()) {
@@ -871,9 +810,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		moveinfo.fillRailsData();
 	}
 
+	/**
+	 * Tells the Minecart to ignore the very next call to {@link onDie()}
+	 * This is needed to avoid passengers removing their Minecarts.
+	 */
+	public void ignoreNextDie() {
+		ignoreDie.set();
+	}
+
 	@Override
 	public void onDie() {
-		if (!this.died) {
+		// Die ignored?
+		if (this.ignoreDie.clear()) {
+			return;
+		}
+		if (!entity.isDead() || !this.died) {
 			super.onDie();
 			this.died = true;
 			if (!this.isUnloaded()) {
@@ -881,8 +832,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				// They may create new groups!
 				if (this.group != null) {
 					entity.setDead(false);
-					this.clearActiveSigns();
-					this.clearActiveDetectors();
+					this.getBlockTracker().clear();
 					entity.setDead(true);
 				}
 				if (entity.hasPassenger()) {
@@ -1102,11 +1052,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	public void update() {
-		if (entity.isDead()) {
-			return; 
-		}
-		this.needsUpdate.set();
-		this.getGroup().update();
+		this.getBlockTracker().update();
 	}
 
 	public boolean isIgnoringCollisions() {
@@ -1144,23 +1090,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 * @param to block - the new block
 	 */
 	public void onBlockChange(Block from, Block to) {
-		//update from direction
+		this.checkMissing();
+
+		// Update from direction
 		if (BlockUtil.getManhattanDistance(from, to, true) > 3) {
 			this.directionFrom = BlockFace.SELF;
 		} else {
 			this.directionFrom = this.directionTo;
 		}
 
-		//update active signs
-		this.clearActiveSigns();
-		this.checkMissing();
-		if (!this.isDerailed()) {
-			for (Block sign : Util.getSignsFromRails(tmpblockbuff, this.getBlock())) {
-				this.addActiveSign(sign);
-				this.checkMissing();
-			}
+		// Handle the block change
+		getGroup().getBlockTracker().updatePosition();
 
-			//destroy blocks
+		// Destroy blocks
+		if (!this.isDerailed() && this.getProperties().hasBlockBreakTypes()) {
 			Block left = this.getBlockRelative(BlockFace.WEST);
 			Block right = this.getBlockRelative(BlockFace.EAST);
 			if (this.getProperties().canBreak(left)) {
@@ -1169,13 +1112,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			if (this.getProperties().canBreak(right)) {
 				BlockInfo.get(right).destroy(right, 20.0f);
 			}
-		}
-
-		//Detector regions
-		List<DetectorRegion> newregions = DetectorRegion.handleMove(this, from, to);
-		this.activeDetectorRegions.clear();
-		if (newregions != null) {
-			this.activeDetectorRegions.addAll(newregions);
 		}
 	}
 
@@ -1384,7 +1320,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (!from.equals(to)) {
 			// Execute move events
 			CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
-			for (org.bukkit.block.Block sign : this.getActiveSigns()) {
+			for (org.bukkit.block.Block sign : this.getBlockTracker().getActiveSigns()) {
 				SignAction.executeAll(new SignActionEvent(sign, this), SignActionType.MEMBER_MOVE);
 			}
 		}
@@ -1406,16 +1342,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 		// Play additional sound effects
 		this.soundLoop.onTick();
-
-		// Updating
-		if (this.needsUpdate.clear()) {
-			for (Block b : this.activeSigns) {
-				SignAction.executeAll(new SignActionEvent(b, this), SignActionType.MEMBER_UPDATE);
-			}
-			for (DetectorRegion reg : this.activeDetectorRegions) {
-				reg.update(this);
-			}
-		}
 	}
 
 	@Override
@@ -1486,5 +1412,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	@Override
 	public String getLocalizedName() {
 		return isSingle() ? "Minecart" : "Train";
+	}
+
+	@Override
+	public boolean isPlayerTakable() {
+		return this.isSingle() && this.group.getProperties().isPlayerTakeable();
 	}
 }

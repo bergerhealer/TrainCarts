@@ -14,7 +14,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 	public static final long MIN_SYNC_INTERVAL = 10;
 
 	@Override
-	public synchronized void onSync() {
+	public void onSync() {
 		if (entity.isDead()) {
 			return;
 		}

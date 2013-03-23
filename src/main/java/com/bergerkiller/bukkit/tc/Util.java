@@ -71,31 +71,19 @@ public class Util {
 		}
 	}
 
-	public static boolean hasAttachedSigns(final Block middle) {
-		return addAttachedSigns(middle, null);
-	}
-	public static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
-		boolean found = false;
-		Block b;
-		for (BlockFace face : FaceUtil.AXIS) {
-			b = middle.getRelative(face);
-			if (b.getTypeId() == Material.WALL_SIGN.getId()) {
-				if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
-					if (rval != null) rval.add(b);
-					found = true;
-				}
-			}
-		}
-		return found;
-	}
-
 	private static BlockFace[] possibleFaces = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
 	private static List<Block> blockbuff = new ArrayList<Block>();
 	public static List<Block> getSignsFromRails(Block railsblock) {
 		return getSignsFromRails(blockbuff, railsblock);
 	}
+	
 	public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
 		rval.clear();
+		addSignsFromRails(rval, railsblock);
+		return rval;
+	}
+
+	public static void addSignsFromRails(List<Block> rval, Block railsblock) {
 		if (ISVERTRAIL.get(railsblock)) {
 			BlockFace dir = getVerticalRailDirection(railsblock.getData());
 			railsblock = railsblock.getRelative(dir);
@@ -124,7 +112,26 @@ public class Util {
 				}
 			}
 		}
-		return rval;
+	}
+
+	public static boolean hasAttachedSigns(final Block middle) {
+		return addAttachedSigns(middle, null);
+	}
+	public static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
+		boolean found = false;
+		Block b;
+		for (BlockFace face : FaceUtil.AXIS) {
+			b = middle.getRelative(face);
+			if (b.getTypeId() == Material.WALL_SIGN.getId()) {
+				if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+					if (rval != null) {
+						rval.add(b);
+					}
+					found = true;
+				}
+			}
+		}
+		return found;
 	}
 
 	public static Block getRailsFromSign(Block signblock) {

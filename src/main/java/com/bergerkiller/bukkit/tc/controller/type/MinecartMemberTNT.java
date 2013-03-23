@@ -10,16 +10,19 @@ import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
+	private boolean ignoreDamage = false;
 
 	@Override
 	public void onDamage(DamageSource damagesource, int damage) {
-		if (entity.isDead()) {
+		if (entity.isDead() || ignoreDamage) {
 			return;
 		}
 		super.onDamage(damagesource, damage);
 		// If entity died and the source of the damage is 'igniting' the TNT, explode
 		// Also explode if the TNT minecart is moving really fast
 		if (entity.isDead() && (damagesource.isFireDamage() || damagesource.isExplosive() || entity.isMovingFast())) {
+			// Important: set dead beforehand
+			ignoreDamage = true;
 			entity.explode();
 		}
 	}

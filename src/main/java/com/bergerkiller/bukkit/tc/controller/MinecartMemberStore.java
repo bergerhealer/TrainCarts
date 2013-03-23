@@ -81,21 +81,26 @@ public abstract class MinecartMemberStore {
 
 	/**
 	 * Creates a Minecart Member from the source minecart specified<br>
-	 * Returns null if no member could be created for this Source
+	 * Returns null if no member could be created for this Source.
+	 * If the source is already a Minecart Member, this is returned instead.
 	 * 
 	 * @param source minecart to convert
 	 * @return Minecart Member conversion
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static MinecartMember<?> convert(Minecart source) {
-		if (source.isDead() || !canConvert(source)) {
+		if (source.isDead()) {
 			return null;
 		}
-		CommonEntity<?> entity = CommonEntity.get(source);
-
 		// Already assigned a controller?
+		CommonEntity<?> entity = CommonEntity.get(source);
 		if (entity.getController() instanceof MinecartMember) {
 			return (MinecartMember<?>) entity.getController();
+		}
+
+		// Check for conversion
+		if (!canConvert(source)) {
+			return null;
 		}
 
 		// Create a new Minecart controller for this type

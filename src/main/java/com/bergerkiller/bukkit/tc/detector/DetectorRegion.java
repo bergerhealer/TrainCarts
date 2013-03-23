@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -52,19 +53,21 @@ public final class DetectorRegion {
 	}
 	public static List<DetectorRegion> handleLeave(MinecartMember<?> mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);
-		if (list != null) {
-			for (DetectorRegion region : list) {
-				region.remove(mm);
-			}
+		if (list == null) {
+			return Collections.emptyList();
+		}
+		for (DetectorRegion region : list) {
+			region.remove(mm);
 		}
 		return list;
 	}
 	public static List<DetectorRegion> handleEnter(MinecartMember<?> mm, Block block) {
 		List<DetectorRegion> list = regions.get(block);
-		if (list != null) {
-			for (DetectorRegion region : list) {
-				region.add(mm);
-			}
+		if (list == null) {
+			return Collections.emptyList();
+		}
+		for (DetectorRegion region : list) {
+			region.add(mm);
 		}
 		return list;
 	}

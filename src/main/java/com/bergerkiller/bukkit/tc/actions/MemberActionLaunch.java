@@ -56,7 +56,10 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 		//Did any of the carts in the group stop?
 		if (this.distance != 0) {
 			for (MinecartMember<?> mm : this.getGroup()) {
-				if (mm.getForceSquared() < minVelocityForLaunch * minVelocityForLaunch) return true; //stopped
+				if (mm.getForceSquared() < minVelocityForLaunch * minVelocityForLaunch) {
+					//stopped
+					return true;
+				}
 			}
 		}
 

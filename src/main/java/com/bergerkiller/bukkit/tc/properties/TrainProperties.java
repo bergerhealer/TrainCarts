@@ -42,6 +42,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	private double speedLimit = 0.4;
 	private boolean keepChunksLoaded = false;
 	private boolean allowManualMovement = false;
+	private boolean allowPlayerTake = true;
 	public CollisionMode mobCollision = CollisionMode.DEFAULT;
 	public CollisionMode playerCollision = CollisionMode.DEFAULT;
 	public CollisionMode miscCollision = CollisionMode.PUSH;
@@ -276,6 +277,26 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			rval.addAll(cprop.getOwners());
 		}
 		return rval;
+	}
+
+	/**
+	 * Sets whether this Train supports players taking minecarts with them when they leave.
+	 * When the Minecart is part of a Train, it is always disallowed.
+	 * 
+	 * @param takeable state to set to
+	 */
+	public void setPlayerTakeable(boolean takeable) {
+		this.allowPlayerTake = takeable;
+	}
+
+	/**
+	 * Gets whether this Train supports players taking minecarts with them when they leave.
+	 * When the Minecart is part of a Train, it is always disallowed.
+	 * 
+	 * @return True if players can take Minecarts with them, False if not.
+	 */
+	public boolean isPlayerTakeable() {
+		return allowPlayerTake;
 	}
 
 	@Override
@@ -659,6 +680,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public void load(ConfigurationNode node) {
 		this.setDisplayName(node.get("displayName", this.displayName));
 		this.allowLinking = node.get("allowLinking", this.allowLinking);
+		this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
 		this.trainCollision = node.get("trainCollision", this.trainCollision);
 		this.slowDown = node.get("slowDown", this.slowDown);
 		if (node.contains("collision")) {
@@ -706,6 +728,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	@Override
 	public void saveAsDefault(ConfigurationNode node) {
 		node.set("displayName", this.displayName);
+		node.set("allowPlayerTake", this.allowPlayerTake);
 		node.set("allowLinking", this.allowLinking);
 		node.set("requirePoweredMinecart", this.requirePoweredMinecart);
 		node.set("trainCollision", this.trainCollision);
@@ -725,6 +748,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	@Override
 	public void save(ConfigurationNode node) {	
 		node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
+		node.set("allowPlayerTake", this.allowPlayerTake ? null : false);
 		node.set("allowLinking", this.allowLinking ? null : false);
 		node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
 		node.set("trainCollision", this.trainCollision ? null : false);

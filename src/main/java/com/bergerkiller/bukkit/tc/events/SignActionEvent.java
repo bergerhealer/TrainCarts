@@ -53,7 +53,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.member = member;
 		this.memberchecked = true;
 	}
-	public SignActionEvent(Block signblock, Block railsblock, MinecartGroup group) {
+	public SignActionEvent(Block signblock, MinecartGroup group) {
 		this(signblock);
 		this.group = group;
 		this.memberchecked = true;

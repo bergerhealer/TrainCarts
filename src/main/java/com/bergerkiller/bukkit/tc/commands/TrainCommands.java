@@ -32,7 +32,13 @@ public class TrainCommands {
 				Permission.COMMAND_SETLINKING.handle(p);
 				prop.setLinking(ParseUtil.parseBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.getLinking());
+			p.sendMessage(ChatColor.YELLOW + "Can be linked:" + ChatColor.WHITE + prop.getLinking());
+		} else if (cmd.equals("playertake") || cmd.equals("allowplayertake")) {
+			if (args.length == 1) {
+				Permission.COMMAND_PLAYERTAKE.handle(p);
+				prop.setPlayerTakeable(ParseUtil.parseBool(args[0]));
+			}
+			p.sendMessage(ChatColor.YELLOW + "Players take Minecart with them: " + ChatColor.WHITE + prop.isPlayerTakeable());
 		} else if (cmd.equals("keepchunksloaded")) {
 			if (args.length == 1) {
 				Permission.COMMAND_KEEPCHUNKSLOADED.handle(p);

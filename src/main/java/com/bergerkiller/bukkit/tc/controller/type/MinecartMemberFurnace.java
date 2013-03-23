@@ -122,6 +122,8 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 		// Fuel update routines
 		if (entity.hasFuel()) {
 			entity.addFuelTicks(-1);
+			entity.setPushX(pushDirection.getModX());
+			entity.setPushZ(pushDirection.getModZ());
 			if (!entity.hasFuel()) {
 				//TrainCarts - Actions to be done when empty
 				if (this.onCoalUsed()) {

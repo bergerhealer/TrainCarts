@@ -179,15 +179,11 @@ public abstract class SignAction {
 						event.setLine(0, "[train]");
 					}
 				}
-				// Tell minecart above to add this sign, if available
+				// Tell train above to update signs, if available
 				if (info.hasRails()) {
 					final MinecartMember<?> member = MinecartMemberStore.getAt(info.getRails());
 					if (member != null) {
-						CommonUtil.nextTick(new Runnable() {
-							public void run() {
-								member.addActiveSign(info.getBlock());
-							}
-						});
+						member.getGroup().getBlockTracker().updatePosition();
 					}
 				}
 			}
@@ -210,9 +206,7 @@ public abstract class SignAction {
 		if (action != null) {
 			// First, remove this sign from all Minecarts on the world
 			for (MinecartGroup group : MinecartGroup.getGroups()) {
-				for (MinecartMember<?> member : group) {
-					member.removeActiveSign(info.getBlock());
-				}
+				group.getBlockTracker().removeSign(info.getBlock());
 			}
 			// Handle sign destroy logic
 			action.destroy(info);
