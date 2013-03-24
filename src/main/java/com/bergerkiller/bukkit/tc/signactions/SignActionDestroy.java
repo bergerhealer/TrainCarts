@@ -30,14 +30,12 @@ public class SignActionDestroy extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (event.isType("destroy")) {
-			if (event.isCartSign()) {
-				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
-			} else if (event.isTrainSign()) {
-				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train");
-			} else if (event.isRCSign()) {
-				return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train remotely");
-			}
+		if (event.isCartSign()) {
+			return handleBuild(event, Permission.BUILD_DESTRUCTOR, "cart destructor", "destroy minecarts");
+		} else if (event.isTrainSign()) {
+			return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train");
+		} else if (event.isRCSign()) {
+			return handleBuild(event, Permission.BUILD_DESTRUCTOR, "train destructor", "destroy an entire train remotely");
 		}
 		return false;
 	}

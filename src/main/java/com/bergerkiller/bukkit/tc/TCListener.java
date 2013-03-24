@@ -405,18 +405,6 @@ public class TCListener implements Listener {
 				SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
 			} else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
 				onRailsBreak(event.getBlock());
-			} else if (MaterialUtil.ISPOWERSOURCE.get(event.getBlock())) {
-				// Send proper update events for all signs around this power source
-				for (BlockFace face : FaceUtil.RADIAL) {
-					final Block rel = event.getBlock().getRelative(face);
-					if (MaterialUtil.ISSIGN.get(rel)) {
-						CommonUtil.nextTick(new Runnable() {
-							public void run() {
-								triggerRedstoneChange(rel, false);
-							}
-						});
-					}
-				}
 			}
 		}
 	}
@@ -446,9 +434,14 @@ public class TCListener implements Listener {
 			// No valid supporting block - clear the active signs of this rails
 			onRailsBreak(block);
 			return;
-		} else if (MaterialUtil.ISSIGN.get(block) && !isSupported(block)) {
-			// Sign is no longer supported - clear all sign actions
-			SignAction.handleDestroy(new SignActionEvent(block));
+		} else if (MaterialUtil.ISSIGN.get(block)) {
+			if (!isSupported(block)) {
+				// Sign is no longer supported - clear all sign actions
+				SignAction.handleDestroy(new SignActionEvent(block));
+			} else {
+				// Check for potential redstone changes
+				triggerRedstoneChange(block, false, true);
+			}
 			return;
 		}
 		// Handle regular physics
@@ -563,6 +556,10 @@ public class TCListener implements Listener {
 	 * @param isPowered (updated) state of the change
 	 */
 	public void triggerRedstoneChange(final Block signblock, boolean isPowered) {
+		triggerRedstoneChange(signblock, isPowered, false);
+	}
+
+	public void triggerRedstoneChange(final Block signblock, boolean isPowered, boolean forced) {
 		final SignActionEvent info = new SignActionEvent(signblock);
 		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
 		// Do not proceed if the sign disallows on/off changes
@@ -571,7 +568,7 @@ public class TCListener implements Listener {
 		}
 		// Do not proceed if no on/off change happened
 		final boolean wasPowered = poweredBlocks.contains(signblock);
-		if (wasPowered == isPowered) {
+		if (forced || wasPowered == isPowered) {
 			return;
 		}
 		// Invert the new power level if required

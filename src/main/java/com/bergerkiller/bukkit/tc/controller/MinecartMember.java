@@ -15,7 +15,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -33,8 +32,6 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
-import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -675,11 +672,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			this.entity.setShakingFactor(10);
 			this.entity.setVelocityChanged(true);
 			this.entity.setDamage(this.entity.getDamage() + damage * 10);
-			if (TrainCarts.instantCreativeDestroy) {
-				// Check whether the entity is a creative (insta-build) entity
-				if (damager instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) damager).canInstantlyBuild()) {
-					this.entity.setDamage(100);
-				}
+			// Check whether the entity is a creative (insta-build) entity
+			if (TrainCarts.instantCreativeDestroy && Util.isCreativePlayer(damager)) {
+				this.entity.setDamage(100);
 			}
 			if (this.entity.getDamage() > 40) {
 				// CraftBukkit start
@@ -978,29 +973,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			this.getGroup().stop();
 		}
 		return true;
-	}
-
-	/**
-	 * Gets the packet to spawn this Minecart Member
-	 * 
-	 * @return spawn packet
-	 */
-	public CommonPacket getSpawnPacket() {
-		return PacketFields.VEHICLE_SPAWN.newInstance(entity.getEntity(), 10 + entity.getMinecartType());
-		/*
-		final MinecartMemberTrackerEntry tracker = this.getTracker();
-		final int type = Conversion.toMinecartTypeId.convert(getType());
-		final CommonPacket p = new CommonPacket(PacketFields.VEHICLE_SPAWN.newInstance(this.getEntity(), 10 + type));
-		if (tracker != null) {
-			// Entity tracker is available - use it for the right position
-			p.write(PacketFields.VEHICLE_SPAWN.x, tracker.xLoc);
-			p.write(PacketFields.VEHICLE_SPAWN.y, tracker.yLoc);
-			p.write(PacketFields.VEHICLE_SPAWN.z, tracker.zLoc);
-			p.write(PacketFields.VEHICLE_SPAWN.yaw, (byte) tracker.xRot);
-			p.write(PacketFields.VEHICLE_SPAWN.pitch, (byte) tracker.yRot);
-		}
-		return p;
-		*/
 	}
 
 	/**

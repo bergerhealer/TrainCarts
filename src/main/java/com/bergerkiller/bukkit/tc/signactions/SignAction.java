@@ -29,6 +29,7 @@ public abstract class SignAction {
 		register(new SignActionStation());
 		register(new SignActionSwitcher());
 		register(new SignActionSpawn());
+		register(new SignActionBlockChanger());
 		register(new SignActionProperties());
 		register(new SignActionTrigger());
 		register(new SignActionTeleport());
