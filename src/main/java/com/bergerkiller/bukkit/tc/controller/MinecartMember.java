@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -54,14 +53,13 @@ import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
-import com.bergerkiller.bukkit.tc.blocktracker.BlockTrackerMember;
-import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
+import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
-import com.bergerkiller.bukkit.tc.railphysics.RailLogicGround;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -85,7 +83,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	protected MinecartGroup group;
 	protected boolean died = false;
 	private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
-	private final ToggledState forcedBlockUpdate = new ToggledState(true);
+	private final RailTracker railTracker = new RailTracker(this);
+	protected final ToggledState forcedBlockUpdate = new ToggledState(true);
 	private final ToggledState railActivated = new ToggledState(false);
 	private final ToggledState ignoreDie = new ToggledState(false);
 	private int teleportImmunityTick = 0;
@@ -100,7 +99,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	@Override
 	public void onAttached() {
 		super.onAttached();
-		this.moveinfo = new MoveInfo(this);
+		this.railTracker.onAttached();
 		this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
 		this.prevcx = entity.loc.x.chunk();
 		this.prevcz = entity.loc.z.chunk();
@@ -294,7 +293,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		this.unloaded = false;
 		// =======================
 		this.teleportImmunityTick = 10;
-		this.refreshBlockInformation();
+		this.getRailTracker().refreshBlock();
 	}
 
 	/**
@@ -421,8 +420,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
 
+	/**
+	 * Gets the rail tracker that keeps track of the current Rail of this Minecart
+	 * 
+	 * @return the Rail Tracker
+	 */
+	public RailTracker getRailTracker() {
+		return this.railTracker;
+	}
+
 	public IntVector3 getBlockPos() {
-		return moveinfo.blockPos;
+		return getRailTracker().blockPos;
 	}
 
 	/**
@@ -431,7 +439,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 * @return Last rail block or block at last minecart position
 	 */
 	public Block getLastBlock() {
-		return moveinfo.lastBlock;
+		return getRailTracker().getLastBlock();
 	}
 
 	/**
@@ -440,7 +448,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 * @return Rail block or block at minecart position
 	 */
 	public Block getBlock() {
-		return moveinfo.block;
+		return getRailTracker().getBlock();
 	}
 
 	/*
@@ -453,7 +461,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return FaceUtil.isSubCardinal(this.direction);
 	}
 	public boolean isDerailed() {
-		return this.moveinfo.railType == RailType.NONE;
+		return getRailType() == RailType.NONE;
 	}
 	/**
 	 * Checks whether this minecart is currently traveling on a vertical rail
@@ -463,24 +471,23 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public boolean isOnVertical() {
 		return this.getRailLogic() instanceof RailLogicVertical;
 	}
-	public RailLogic getPrevRailLogic() {
-		return moveinfo.prevRailLogic;
+	public RailLogic getLastRailLogic() {
+		return getRailTracker().getLastLogic();
 	}
 	public RailLogic getRailLogic() {
-		if (moveinfo.railLogicSnapshotted) {
-			return moveinfo.railLogic;
-		} else {
-			return RailLogic.get(this);
-		}
+		return getRailTracker().getRailLogic();
+	}
+	public RailType getRailType() {
+		return getRailTracker().getRailType();
 	}
 	public boolean hasBlockChanged() {
-		return moveinfo.blockChanged();
+		return getRailTracker().hasBlockChanged();
 	}
 	public boolean isOnSlope() {
 		return this.getRailLogic().isSloped();
 	}
 	public boolean isFlying() {
-		return this.moveinfo.railType == RailType.NONE && !entity.isOnGround();
+		return getRailType() == RailType.NONE && !entity.isOnGround();
 	}
 	public boolean isMovingHorizontally() {
 		return entity.isMovingHorizontally();
@@ -707,106 +714,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
 
-	/*
-	 * Stores physics information (since functions are now pretty much scattered around)
-	 */
-	private MoveInfo moveinfo;
-	private class MoveInfo {
-		public final MinecartMember<?> owner;
-		public IntVector3 blockPos = new IntVector3(0, 0, 0);
-		public Block lastBlock, block;
-		public RailType railType;
-		public RailType prevRailType = RailType.NONE;
-		public RailLogic railLogic = RailLogicGround.INSTANCE;
-		public RailLogic prevRailLogic = RailLogicGround.INSTANCE;
-		public boolean railLogicSnapshotted = false;
-
-		public MoveInfo(MinecartMember<?> owner) {
-			this.owner = owner;
-			this.blockPos = owner.entity.loc.block();
-			this.lastBlock = this.block = this.blockPos.toBlock(owner.entity.getWorld());
-		}
-
-		public boolean blockChanged() {
-			return blockPos.x != lastBlock.getX() || blockPos.y != lastBlock.getY() || blockPos.z != lastBlock.getZ();
-		}
-
-		public void updateBlock() {
-			updateBlock(WorldUtil.getBlockTypeId(owner.entity.getWorld(), blockPos));
-		}
-
-		public void updateBlock(int railtype) {
-			if (this.blockChanged()) {
-				this.block = this.blockPos.toBlock(owner.entity.getWorld());
-			}
-			int raildata = WorldUtil.getBlockData(owner.entity.getWorld(), blockPos);
-			// Update rail type and sloped state
-			this.railType = RailType.get(railtype, raildata);
-		}
-
-		public void updateRailLogic() {
-			this.prevRailType = this.railType;
-			this.prevRailLogic = this.railLogic;
-			this.railLogic = RailLogic.get(this.owner);
-			if (this.railLogic instanceof RailLogicVertical) {
-				this.railType = RailType.VERTICAL;
-			}
-			this.railLogicSnapshotted = true;
-		}
-
-		public void fillRailsData() {
-			final World world = owner.entity.getWorld();
-			this.lastBlock = this.block;
-			this.blockPos = owner.entity.loc.block();
-			IntVector3 below = this.blockPos.subtract(0, 1, 0);
-			owner.vertToSlope = false;
-
-			// Find the rail - first step
-			int railtype = WorldUtil.getBlockTypeId(world, below);
-			if (MaterialUtil.ISRAILS.get(railtype) || MaterialUtil.ISPRESSUREPLATE.get(railtype)) {
-				this.blockPos = below;
-			} else if (Util.ISVERTRAIL.get(railtype) && this.prevRailType != RailType.VERTICAL) {
-				this.blockPos = below;
-			} else {
-				railtype = WorldUtil.getBlockTypeId(world, this.blockPos);
-			}
-			this.updateBlock(railtype);
-
-			// Slope UP -> Vertical
-			if (this.railType == RailType.VERTICAL && this.prevRailLogic.isSloped()) {
-				if (this.prevRailLogic.getDirection() == owner.getDirection().getOppositeFace()) {
-					owner.entity.loc.setY((double) blockPos.y + 0.95);
-				}
-			}
-
-			// Vertical -> Slope UP
-			if (this.railType == RailType.NONE && owner.entity.vel.getY() > 0) {
-				final IntVector3 nextPos = blockPos.add(this.prevRailLogic.getDirection());
-				Block next = nextPos.toBlock(world);
-				Rails rails = BlockUtil.getRails(next);
-				if (rails != null && rails.isOnSlope()) {
-					if (rails.getDirection() == this.prevRailLogic.getDirection()) {
-						// Move the minecart to the slope
-						this.blockPos = nextPos;
-						this.updateBlock();
-						owner.entity.loc.xz.set(this.blockPos.x + 0.5, this.blockPos.z + 0.5);
-						owner.entity.loc.xz.subtract(this.prevRailLogic.getDirection(), 0.49);
-						// Y offset
-						final double transOffset = 0.01; // How high above the slope to teleport to
-						owner.entity.loc.setY(this.blockPos.y + transOffset);
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * Refreshes the rail information of this minecart
-	 */
-	protected void refreshBlockInformation() {
-		moveinfo.fillRailsData();
-	}
-
 	/**
 	 * Tells the Minecart to ignore the very next call to {@link onDie()}
 	 * This is needed to avoid passengers removing their Minecarts.
@@ -954,7 +861,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (Util.ISVERTRAIL.get(block)) {
 			return false;
 		}
-		if (moveinfo.railType == RailType.VERTICAL && hitFace != BlockFace.UP && hitFace != BlockFace.DOWN) {
+		if (getRailType() == RailType.VERTICAL && hitFace != BlockFace.UP && hitFace != BlockFace.DOWN) {
 			// Check if the collided block has vertical rails
 			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
 				return false;
@@ -1064,17 +971,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 * @param to block - the new block
 	 */
 	public void onBlockChange(Block from, Block to) {
-		this.checkMissing();
-
 		// Update from direction
 		if (BlockUtil.getManhattanDistance(from, to, true) > 3) {
 			this.directionFrom = BlockFace.SELF;
 		} else {
 			this.directionFrom = this.directionTo;
 		}
-
-		// Handle the block change
-		getGroup().getBlockTracker().updatePosition();
 
 		// Destroy blocks
 		if (!this.isDerailed() && this.getProperties().hasBlockBreakTypes()) {
@@ -1109,24 +1011,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		// Prepare
 		entity.vel.fixNaN();
 		entity.last.set(entity.loc);
-		this.refreshBlockInformation();
-	}
-
-	/**
-	 * Executes the block change events<br>
-	 * Physics stage: <b>2</b>
-	 */
-	public void onPhysicsBlockChange() {
-		// Handle block changes
-		this.checkMissing();
-		if (moveinfo.blockChanged() | forcedBlockUpdate.clear()) {
-			// Perform events and logic - validate along the way
-			MemberBlockChangeEvent.call(this, moveinfo.lastBlock, moveinfo.block);
-			this.checkMissing();
-			this.onBlockChange(moveinfo.lastBlock, moveinfo.block);
-			this.checkMissing();
-		}
-		moveinfo.updateRailLogic();
+		getRailTracker().refreshBlock();
 	}
 
 	/**
@@ -1134,6 +1019,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 * Physics stage: <b>3</b>
 	 */
 	public void onPhysicsPreMove() {
+		// At this point it's safe to say that the Rail Logic will not change
+		getRailTracker().setRailLogicSnapshotted(true);
+
 		// Reduce shaking over time
 		if (entity.getShakingFactor() > 0) {
 			entity.setShakingFactor(entity.getShakingFactor() - 1);
@@ -1151,7 +1039,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 		// Perform gravity
 		if (!getGroup().isMovementControlled()) {
-			entity.vel.y.subtract(this.moveinfo.railLogic.getGravityMultiplier(this));
+			entity.vel.y.subtract(getRailLogic().getGravityMultiplier(this));
 		}
 
 		// reset fall distance
@@ -1160,14 +1048,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 
 		// Perform rails logic
-		moveinfo.railLogic.onPreMove(this);
+		getRailLogic().onPreMove(this);
 
 		// Update the entity shape
 		entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
 
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
-		if (moveinfo.railType == RailType.BRAKE && !getGroup().isMovementControlled()) {
+		if (getRailType() == RailType.BRAKE && !getGroup().isMovementControlled()) {
 			if (entity.vel.xz.lengthSquared() < 0.0009) {
 				entity.vel.multiply(0.0);
 			} else {
@@ -1216,14 +1104,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		double motZ = speedFactor * entity.vel.z.fixNaN().getClamped(entity.getMaxSpeed());
 
 		// No vertical motion if stuck to the rails that way
-		if (!moveinfo.railLogic.hasVerticalMovement()) {
+		if (!getRailLogic().hasVerticalMovement()) {
 			motY = 0.0;
 		}
 
 		// Move using set motion, and perform post-move rail logic
 		this.onMove(motX, motY, motZ);
 		this.checkMissing();
-		this.moveinfo.railLogic.onPostMove(this);
+		this.getRailLogic().onPostMove(this);
 
 		// Post-move logic
 		this.doPostMoveLogic();
@@ -1238,13 +1126,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			}
 
 			// Perform Rails-specific logic
-			if (moveinfo.railType == RailType.ACTIVATOR_ON) {
+			if (getRailType() == RailType.ACTIVATOR_ON) {
 				// Activating the Minecart
 				this.onActivatorUpdate(true);
 				if (railActivated.set()) {
 					this.onActivate();
 				}
-			} else if (moveinfo.railType == RailType.ACTIVATOR_OFF) {
+			} else if (getRailType() == RailType.ACTIVATOR_OFF) {
 				// De-activating the Minecart
 				this.onActivatorUpdate(false);
 				railActivated.clear();
@@ -1253,7 +1141,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			}
 
 			// Launching on powered booster tracks
-			if (moveinfo.railType == RailType.BOOST && !getGroup().isMovementControlled()) {
+			if (getRailType() == RailType.BOOST && !getGroup().isMovementControlled()) {
 				double motLength = entity.vel.xz.length();
 				if (motLength > 0.01) {
 					// Simple motion boosting when already moving
@@ -1280,7 +1168,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		this.onRotationUpdate();
 
 		// Invalidate volatile information
-		moveinfo.railLogicSnapshotted = false;
+		getRailTracker().setRailLogicSnapshotted(false);
 
 		// Perform some (CraftBukkit) events
 		Location from = entity.getLastLocation();
@@ -1367,11 +1255,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
 			}
 		} else {
-			if (moveinfo.railLogic instanceof RailLogicVertical) {
+			if (getRailLogic() instanceof RailLogicVertical) {
 				newpitch = -90.0f;
-			} else if (moveinfo.railLogic instanceof RailLogicVerticalSlopeDown) {
+			} else if (getRailLogic() instanceof RailLogicVerticalSlopeDown) {
 				newpitch = -45.0f;
-			} else if (moveinfo.railLogic.isSloped()) {
+			} else if (getRailLogic().isSloped()) {
 				newpitch = 0.8f * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 				orientPitch = false;
 			} else {

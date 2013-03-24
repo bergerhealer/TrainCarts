@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.blocktracker;
+package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;

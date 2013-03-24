@@ -80,7 +80,6 @@ public class RailLogicHorizontal extends RailLogic {
 			newLocX += factor * this.dx;
 			newLocZ += factor * this.dz;
 		}
-		//entity.setPosition(newLocX, newLocY, newLocZ);
 		entity.loc.set(newLocX, newLocY, newLocZ);
 	}
 

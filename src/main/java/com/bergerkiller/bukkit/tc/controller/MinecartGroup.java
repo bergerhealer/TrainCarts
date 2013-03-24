@@ -28,13 +28,14 @@ import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.*;
-import com.bergerkiller.bukkit.tc.blocktracker.BlockTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
+import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
@@ -759,13 +760,13 @@ public class MinecartGroup extends MinecartGroupStore {
 	private boolean doPhysics(int stepcount) throws GroupUnloadedException {
 		this.breakPhysics = false;
 		try {
-			//Prevent index exceptions: remove if not a train
+			// Prevent index exceptions: remove if not a train
 			if (this.isEmpty()) {
 				this.remove();
 				throw new GroupUnloadedException();
 			}
 
-			//validate members and set max speed
+			// Validate members and set max speed
 			for (MinecartMember<?> mm : this) {
 				mm.checkMissing();
 				mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() / (double) stepcount);
@@ -777,17 +778,24 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			// Perform block updates prior to doing the movement calculations
 			// First initialize all blocks and handle block change event
-			for (MinecartMember<?> m : this) {
-				m.onPhysicsStart();
+			for (MinecartMember<?> member : this) {
+				member.onPhysicsStart();
 			}
 			this.getBlockTracker().refresh();
 
 			// Perform block change Minecart logic, also take care of potential new block changes
-			for (MinecartMember<?> m : this) {
-				m.onPhysicsBlockChange();
+			for (MinecartMember<?> member : this) {
+				member.checkMissing();
+				if (member.hasBlockChanged() | member.forcedBlockUpdate.clear()) {
+					// Perform events and logic - validate along the way
+					MemberBlockChangeEvent.call(member, member.getLastBlock(), member.getBlock());
+					member.checkMissing();
+					member.onBlockChange(member.getLastBlock(), member.getBlock());
+					this.getBlockTracker().updatePosition();
+					member.checkMissing();
+				}
 			}
 			this.getBlockTracker().refresh();
-
 			this.updateDirection();
 
 			// Perform velocity updates
@@ -880,7 +888,8 @@ public class MinecartGroup extends MinecartGroupStore {
 				}
 			}
 
-			//still in loaded chunks?
+			// Check whether chunks are loaded, and load them if needed
+			// If chunks are not kept loaded, the member will unload the entire train
 			boolean canunload = this.canUnload();
 			for (MinecartMember<?> mm : this) {
 				mm.checkChunks(canunload);
