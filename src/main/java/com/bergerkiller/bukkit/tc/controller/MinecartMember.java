@@ -291,7 +291,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public void teleport(Location to) {
 		// === Teleport - set unloaded to true and false again to prevent group unloading ===
 		this.unloaded = true;
+		ignoreDie.set();
 		entity.teleport(to);
+		ignoreDie.clear();
 		this.unloaded = false;
 		// =======================
 		this.teleportImmunityTick = 10;
@@ -1305,10 +1307,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		// Update rotation
 		this.onRotationUpdate();
 
-		// Ensure that the yaw and pitch stay within limits
-		entity.loc.setYaw(entity.loc.getYaw() % 360.0f);
-		entity.loc.setPitch(entity.loc.getPitch() % 360.0f);
-
 		// Invalidate volatile information
 		moveinfo.railLogicSnapshotted = false;
 
@@ -1364,49 +1362,63 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
 
-	private void setAngleSafe(float newyaw, float pitch, boolean mode) {
-		if (entity.loc.getYawDifference(newyaw) > 170) {
-			entity.loc.setYaw(MathUtil.wrapAngle(newyaw + 180));
-			entity.loc.setPitch(mode ? -pitch : (pitch - 180f));
-		} else {
-			entity.loc.setYaw(newyaw);
-			entity.loc.setPitch(pitch);
-		}
-	}
-
 	/**
 	 * Performs rotation updates for yaw and pitch
 	 */
 	public void onRotationUpdate() {
 		//Update yaw and pitch based on motion
-		double movedX = -entity.getMovedX();
-		double movedY = -entity.getMovedY();
-		double movedZ = -entity.getMovedZ();
-		boolean movedXZ = entity.hasMovedHorizontally();
-		float newyaw = movedXZ ? MathUtil.getLookAtYaw(movedX, movedZ) : entity.loc.getYaw();
+		final double movedX = entity.getMovedX();
+		final double movedY = entity.getMovedY();
+		final double movedZ = entity.getMovedZ();
+		final boolean movedXZ = entity.hasMovedHorizontally();
+		final float oldyaw = entity.loc.getYaw();
+		float newyaw = oldyaw;
 		float newpitch = entity.loc.getPitch();
-		boolean mode = true;
-		if (entity.isOnGround()) {
-			if (Math.abs(newpitch) > 0.1) {
-				newpitch *= 0.1;
-			} else {
-				newpitch = 0;
-			}
-		} else if (this.isOnVertical()) {
+		boolean orientPitch = true;
+		// Update yaw
+		if (movedXZ) {
+			newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
+		} else if (!isDerailed()) {
 			newyaw = FaceUtil.faceToYaw(this.getRailDirection());
-			newpitch = -90f;
-			mode = false;
-		} else if (moveinfo.railType == RailType.PRESSUREPLATE) {
-			newpitch = 0.0F; //prevent weird pitch angles on pressure plates
-		} else if (movedXZ) {
-			if (this.moveinfo.railType.isHorizontal()) {
-				newpitch = -0.8F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
-			} else {
-				newpitch = 0.7F * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
-			}
-			newpitch = MathUtil.clamp(newpitch, 60F);
 		}
-		setAngleSafe(newyaw, newpitch, mode);
+		// Update pitch
+		if (isDerailed()) {
+			if (entity.isOnGround()) {
+				// Reduce pitch over time
+				if (Math.abs(newpitch) > 0.1) {
+					newpitch *= 0.1;
+				} else {
+					newpitch = 0;
+				}
+			} else if (movedXZ) {
+				// Use movement for pitch (but only when moving horizontally)
+				newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+			}
+		} else {
+			if (moveinfo.railLogic instanceof RailLogicVertical) {
+				newpitch = -90.0f;
+			} else if (moveinfo.railLogic instanceof RailLogicVerticalSlopeDown) {
+				newpitch = -45.0f;
+			} else if (moveinfo.railLogic.isSloped()) {
+				newpitch = 0.8f * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
+				orientPitch = false;
+			} else {
+				newpitch = 0.0f;
+			}
+		}
+		// Fix yaw based on the previous yaw angle
+		if (MathUtil.getAngleDifference(oldyaw, newyaw) > 90.0f) {
+			while ((newyaw - oldyaw) >= 90.0f) {
+				newyaw -= 180.0f;
+			}
+			while ((newyaw - oldyaw) < -90.0f) {
+				newyaw += 180.0f;
+			}
+			if (orientPitch) {
+				newpitch = -newpitch;
+			}
+		}
+		entity.setRotation(newyaw, newpitch);
 	}
 
 	@Override

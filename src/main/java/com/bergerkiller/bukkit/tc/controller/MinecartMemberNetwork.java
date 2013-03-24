@@ -1,8 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
@@ -11,7 +8,8 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
-	public static final long MIN_SYNC_INTERVAL = 10;
+	public static final double ROTATION_K = 0.5;
+	public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
 
 	@Override
 	public void onSync() {
@@ -19,8 +17,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 			return;
 		}
 		MinecartMember<?> member = (MinecartMember<?>) entity.getController();
-		if (member.isUnloaded() || member.isSingle()) {
-			// Unloaded or only one minecart: Synchronize just this Minecart
+		if (member.isUnloaded()) {
+			// Unloaded: Synchronize just this Minecart
 			super.onSync();
 			return;
 		} else if (member.getIndex() != 0) {
@@ -28,15 +26,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 			return;
 		}
 
-		// Update for the entire group
+		// Update the entire group
 		MinecartGroup group = member.getGroup();
-		List<EntityNetworkController<?>> networkControllers = new ArrayList<EntityNetworkController<?>>(group.size());
-		for (MinecartMember<?> mm : group) {
-			networkControllers.add(mm.getEntity().getNetworkController());
+		final int count = group.size();
+		EntityNetworkController<?>[] networkControllers = new EntityNetworkController<?>[count];
+		for (int i = 0; i < count; i++) {
+			networkControllers[i] = group.get(i).getEntity().getNetworkController();
 		}
 
 		// Synchronize to the clients
-		if (this.getTicksSinceLocationSync() > 200) {
+		if (this.getTicksSinceLocationSync() > ABSOLUTE_UPDATE_INTERVAL) {
 			// Perform absolute updates
 			for (EntityNetworkController<?> controller : networkControllers) {
 				controller.syncLocationAbsolute();
@@ -56,41 +55,47 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 				}
 			}
 			if (needsSync) {
+				final IntVector3[] synchedPos = new IntVector3[count];
+				final IntVector2[] synchedRot = new IntVector2[count];
+				final IntVector3[] livePos = new IntVector3[count];
+				final IntVector2[] liveRot = new IntVector2[count];
+				final Vector[] liveVel = new Vector[count];
 				boolean moved = false;
 				boolean rotated = false;
 				boolean velocity = false;
-				for (EntityNetworkController<?> controller : networkControllers) {
-					// Position changed?
-					if (!moved) {
-						IntVector3 oldPos = controller.getProtocolPositionSynched();
-						IntVector3 newPos = controller.getProtocolPosition();
-						moved = newPos.subtract(oldPos).abs().greaterEqualThan(MIN_RELATIVE_CHANGE);
-					}
-					// Rotation changed?
-					if (!rotated) {
-						IntVector2 oldRot = controller.getProtocolRotationSynched();
-						IntVector2 newRot = controller.getProtocolRotation();
-						rotated = newRot.subtract(oldRot).abs().greaterEqualThan(MIN_RELATIVE_CHANGE);
-					}
-					// Velocity changed?
-					if (!velocity) {
-						Vector oldVel = controller.getProtocolVelocitySynched();
-						Vector newVel = controller.getProtocolVelocity();
-						velocity |= controller.getEntity().isVelocityChanged();
-						velocity |= newVel.distanceSquared(oldVel) > MIN_RELATIVE_VELOCITY_SQUARED;
-					}
-				}
-				// Update
-				for (EntityNetworkController<?> controller : networkControllers) {
-					// Location update
-					controller.syncLocation(moved, rotated);
-					controller.getEntity().setPositionChanged(false);
+				// Check whether changes are needed
+				for (int i = 0; i < count; i++) {
+					EntityNetworkController<?> controller = networkControllers[i];
+					// Position
+					synchedPos[i] = controller.getProtocolPositionSynched();
+					livePos[i] = controller.getProtocolPosition();
+					moved |= livePos[i].subtract(synchedPos[i]).abs().greaterEqualThan(MIN_RELATIVE_CHANGE);
+					// Rotation
+					synchedRot[i] = controller.getProtocolRotationSynched();
+					liveRot[i] = controller.getProtocolRotation();
+					rotated |= liveRot[i].subtract(synchedRot[i]).abs().greaterEqualThan(MIN_RELATIVE_CHANGE);
 					// Velocity
+					liveVel[i] = controller.getProtocolVelocity();
+					velocity |= controller.getEntity().isVelocityChanged();
+					velocity |= liveVel[i].distanceSquared(controller.getProtocolVelocitySynched()) > MIN_RELATIVE_VELOCITY_SQUARED;
+				}
+				// Perform actual updates
+				for (int i = 0; i < count; i++) {
+					EntityNetworkController<?> controller = networkControllers[i];
+					if (rotated) {
+						// Update rotation with control system function
+						// This ensures that the Client animation doesn't glitch the rotation
+						liveRot[i] = liveRot[i].add(liveRot[i].subtract(synchedRot[i]).multiply(ROTATION_K));
+					}
+					// Synchronize location
+					controller.syncLocation(moved ? livePos[i] : null, rotated ? liveRot[i] : null);
+					controller.getEntity().setPositionChanged(false);
+					// Synchronize velocity
 					if (velocity) {
-						controller.syncVelocity(controller.getProtocolVelocity());
+						controller.syncVelocity(liveVel[i]);
 						controller.getEntity().setVelocityChanged(false);
 					}
-					// Meta
+					// Synchronize meta data
 					controller.syncMeta();
 				}
 			}
