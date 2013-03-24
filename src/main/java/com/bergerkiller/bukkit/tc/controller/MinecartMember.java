@@ -1020,7 +1020,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 */
 	public void onPhysicsPreMove() {
 		// At this point it's safe to say that the Rail Logic will not change
-		getRailTracker().setRailLogicSnapshotted(true);
+		getRailTracker().snapshotRailLogic();
 
 		// Reduce shaking over time
 		if (entity.getShakingFactor() > 0) {
@@ -1168,7 +1168,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		this.onRotationUpdate();
 
 		// Invalidate volatile information
-		getRailTracker().setRailLogicSnapshotted(false);
+		getRailTracker().setLiveRailLogic();
 
 		// Perform some (CraftBukkit) events
 		Location from = entity.getLastLocation();

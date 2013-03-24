@@ -109,17 +109,23 @@ public class RailTracker {
 	}
 
 	/**
-	 * Toggled rail logic snapshotting on or off.
-	 * When snapshotted, the Rail Logic will not be live obtained.
+	 * Stops using the Rail Logic snapshot for the next run
 	 */
-	public void setRailLogicSnapshotted(boolean snapshotted) {
-		this.railLogicSnapshotted = snapshotted;
-		if (snapshotted) {
-			this.railLogic = RailLogic.get(this.owner);
-			if (this.railLogic instanceof RailLogicVertical) {
-				this.railType = RailType.VERTICAL;
-			}
+	public void setLiveRailLogic() {
+		this.railLogicSnapshotted = false;
+	}
+
+	/**
+	 * Creates a snapshot of the Rail Logic for the entire next run
+	 */
+	public void snapshotRailLogic() {
+		this.lastRailType = this.railType;
+		this.lastRailLogic = this.railLogic;
+		this.railLogic = RailLogic.get(this.owner);
+		if (this.railLogic instanceof RailLogicVertical) {
+			this.railType = RailType.VERTICAL;
 		}
+		this.railLogicSnapshotted = true;
 	}
 
 	/**
@@ -128,16 +134,11 @@ public class RailTracker {
 	public void refreshBlock() {
 		// Store the last rail information
 		this.lastBlock = this.block;
-		this.lastRailType = this.railType;
-		this.lastRailLogic = this.railLogic;
 
 		// Obtain the current, live block information
 		final CommonMinecart<?> entity = owner.getEntity();
 		final World world = entity.getWorld();
 		this.blockPos = entity.loc.block();
-		if (this.hasBlockChanged()) {
-			this.block = this.blockPos.toBlock(world);
-		}
 
 		// Gather rail information
 		IntVector3 below = this.blockPos.subtract(0, 1, 0);
@@ -182,7 +183,7 @@ public class RailTracker {
 	}
 
 	private void updateBlock() {
-		updateBlock(WorldUtil.getBlockTypeId(owner.getEntity().getWorld(), blockPos));
+		updateBlock(WorldUtil.getBlockTypeId(owner.getEntity().getWorld(), this.blockPos));
 	}
 
 	private void updateBlock(int railtype) {
@@ -190,7 +191,7 @@ public class RailTracker {
 		if (this.hasBlockChanged()) {
 			this.block = this.blockPos.toBlock(world);
 		}
-		int raildata = WorldUtil.getBlockData(world, blockPos);
+		int raildata = WorldUtil.getBlockData(world, this.blockPos);
 		this.railType = RailType.get(railtype, raildata);
 	}
 }
