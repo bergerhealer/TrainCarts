@@ -39,6 +39,10 @@ public class RailTracker {
 	public void onAttached() {
 		this.blockPos = owner.getEntity().loc.block();
 		this.lastBlock = this.block = this.blockPos.toBlock(owner.getEntity().getWorld());
+		this.refreshBlock();
+		this.lastBlock = this.block;
+		this.lastRailType = this.railType;
+		this.lastRailLogic = this.railLogic;
 	}
 
 	/**

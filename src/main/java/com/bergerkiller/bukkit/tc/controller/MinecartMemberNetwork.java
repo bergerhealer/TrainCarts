@@ -17,8 +17,9 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
 	public static final double ROTATION_K = 0.5;
 	public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
-	public static final double VELOCITY_SOUND_RADIUS = 20;
+	public static final double VELOCITY_SOUND_RADIUS = 16;
 	public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
+	private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
 	private final Set<Player> velocityUpdateReceivers = new HashSet<Player>();
 
 	private void updateVelocity(Player player) {
@@ -30,7 +31,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 				velocity = this.getProtocolVelocitySynched();
 			} else {
 				// Clear velocity
-				velocity = new Vector(0.0, 0.0, 0.0);
+				velocity = ZERO_VELOCITY;
 			}
 			// Send
 			PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), velocity));
@@ -41,6 +42,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 	public void makeHidden(Player player, boolean instant) {
 		super.makeHidden(player, instant);
 		this.velocityUpdateReceivers.remove(player);
+		PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), ZERO_VELOCITY));
 	}
 
 	@Override
@@ -165,7 +167,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 	@Override
 	public Vector getProtocolVelocity() {
 		if (!TrainCarts.minecartSoundEnabled) {
-			return new Vector(0.0, 0.0, 0.0);
+			return ZERO_VELOCITY;
 		}
 		return super.getProtocolVelocity();
 	}
