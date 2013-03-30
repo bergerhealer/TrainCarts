@@ -53,8 +53,8 @@ public class SignActionTeleport extends SignAction {
 					if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
 						//Allowed?
 						if (!this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
-							info.getGroup().teleportAndGo(destinationRail, direction);
 							this.teleportTimes.mark(sign);
+							info.getGroup().teleportAndGo(destinationRail, direction);
 						}
 					}
 				}
