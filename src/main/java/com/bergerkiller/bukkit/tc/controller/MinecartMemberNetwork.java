@@ -1,16 +1,54 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
 	public static final double ROTATION_K = 0.5;
 	public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
+	public static final double VELOCITY_SOUND_RADIUS = 20;
+	public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
+	private final Set<Player> velocityUpdateReceivers = new HashSet<Player>();
+
+	private void updateVelocity(Player player) {
+		final boolean inRange = TrainCarts.minecartSoundEnabled && getEntity().loc.distanceSquared(player) <= VELOCITY_SOUND_RADIUS_SQUARED;
+		if ((inRange ? velocityUpdateReceivers.add(player) : velocityUpdateReceivers.remove(player))) {
+			Vector velocity;
+			if (inRange) {
+				// Send the current velocity
+				velocity = this.getProtocolVelocitySynched();
+			} else {
+				// Clear velocity
+				velocity = new Vector(0.0, 0.0, 0.0);
+			}
+			// Send
+			PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), velocity));
+		}
+	}
+
+	@Override
+	public void makeHidden(Player player, boolean instant) {
+		super.makeHidden(player, instant);
+		this.velocityUpdateReceivers.remove(player);
+	}
+
+	@Override
+	public void makeVisible(Player player) {
+		super.makeVisible(player);
+		this.velocityUpdateReceivers.add(player);
+		this.updateVelocity(player);
+	}
 
 	@Override
 	public void onSync() {
@@ -28,22 +66,24 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 		}
 
 		// Update the entire group
+		int i;
 		MinecartGroup group = member.getGroup();
 		final int count = group.size();
-		EntityNetworkController<?>[] networkControllers = new EntityNetworkController<?>[count];
-		for (int i = 0; i < count; i++) {
-			networkControllers[i] = group.get(i).getEntity().getNetworkController();
-			if (networkControllers[i] == null) {
+		MinecartMemberNetwork[] networkControllers = new MinecartMemberNetwork[count];
+		for (i = 0; i < count; i++) {
+			EntityNetworkController<?> controller = group.get(i).getEntity().getNetworkController();
+			if (!(controller instanceof MinecartMemberNetwork)) {
 				// Assign a new one - probably a bug?
-				networkControllers[i] = new MinecartMemberNetwork();
-				group.get(i).getEntity().setNetworkController(networkControllers[i]);
+				controller = new MinecartMemberNetwork();
+				group.get(i).getEntity().setNetworkController(controller);
 			}
+			networkControllers[i] = (MinecartMemberNetwork) controller;
 		}
 
 		// Synchronize to the clients
 		if (this.getTicksSinceLocationSync() > ABSOLUTE_UPDATE_INTERVAL) {
 			// Perform absolute updates
-			for (EntityNetworkController<?> controller : networkControllers) {
+			for (MinecartMemberNetwork controller : networkControllers) {
 				controller.syncLocationAbsolute();
 				controller.syncVelocity();
 				controller.syncMeta();
@@ -53,7 +93,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 			// Perform relative updates
 			boolean needsSync = this.isUpdateTick();
 			if (!needsSync) {
-				for (EntityNetworkController<?> controller : networkControllers) {
+				for (i = 0; i < count; i++) {
+					MinecartMemberNetwork controller = networkControllers[i];
 					if (controller.getEntity().isPositionChanged()) {
 						needsSync = true;
 						break;
@@ -70,8 +111,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 				boolean rotated = false;
 				boolean velocity = false;
 				// Check whether changes are needed
-				for (int i = 0; i < count; i++) {
-					EntityNetworkController<?> controller = networkControllers[i];
+				for (i = 0; i < count; i++) {
+					MinecartMemberNetwork controller = networkControllers[i];
 					// Position
 					synchedPos[i] = controller.getProtocolPositionSynched();
 					livePos[i] = controller.getProtocolPosition();
@@ -86,21 +127,34 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 					velocity |= liveVel[i].distanceSquared(controller.getProtocolVelocitySynched()) > MIN_RELATIVE_VELOCITY_SQUARED;
 				}
 				// Perform actual updates
-				for (int i = 0; i < count; i++) {
-					EntityNetworkController<?> controller = networkControllers[i];
+				for (i = 0; i < count; i++) {
+					MinecartMemberNetwork controller = networkControllers[i];
+
+					// Synchronize location
 					if (rotated) {
 						// Update rotation with control system function
 						// This ensures that the Client animation doesn't glitch the rotation
 						liveRot[i] = liveRot[i].add(liveRot[i].subtract(synchedRot[i]).multiply(ROTATION_K));
 					}
-					// Synchronize location
 					controller.syncLocation(moved ? livePos[i] : null, rotated ? liveRot[i] : null);
 					controller.getEntity().setPositionChanged(false);
+
 					// Synchronize velocity
 					if (velocity) {
-						controller.syncVelocity(liveVel[i]);
+						controller.setProtocolVelocitySynched(liveVel[i]);
 						controller.getEntity().setVelocityChanged(false);
+						// Send packets to recipients
+						for (Player player : controller.velocityUpdateReceivers) {
+							PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(controller.getEntity().getEntityId(), liveVel[i]));
+						}
 					}
+					// Update the velocity update receivers
+					if (TrainCarts.minecartSoundEnabled) {
+						for (Player player : controller.getViewers()) {
+							controller.updateVelocity(player);
+						}
+					}
+
 					// Synchronize meta data
 					controller.syncMeta();
 				}
@@ -110,7 +164,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
 	@Override
 	public Vector getProtocolVelocity() {
-		if (TrainCarts.minecartSoundEnabled) {
+		if (!TrainCarts.minecartSoundEnabled) {
 			return new Vector(0.0, 0.0, 0.0);
 		}
 		return super.getProtocolVelocity();

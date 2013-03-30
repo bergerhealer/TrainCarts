@@ -657,7 +657,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				this.entity.setDamage(100);
 			}
 			if (this.entity.getDamage() > 40) {
-				// CraftBukkit start
+				// Some sort of validation check (what is the use...?)
+				if (this.entity.hasPassenger()) {
+					this.entity.setPassenger(this.entity.getPassenger());
+				}
+
+				// Send an event, pass in the drops to drop
 				List<ItemStack> drops = new ArrayList<ItemStack>(2);
 				if (TrainCarts.breakCombinedCarts) {
 					drops.addAll(this.entity.getBrokenDrops());
@@ -668,12 +673,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
 					this.entity.setDamage(40);
 					return;
-				}
-				// CraftBukkit end
-
-				// Some sort of validation check (what is the use...?)
-				if (this.entity.hasPassenger()) {
-					this.getEntity().setPassenger(this.entity.getPassenger());
 				}
 
 				// Spawn drops and die

@@ -498,7 +498,9 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onSignChange(SignChangeEvent event) {
-		if (TrainCarts.isWorldDisabled(event)) return;
+		if (TrainCarts.isWorldDisabled(event)) {
+			return;
+		}
 		SignAction.handleBuild(event);
 	}
 
