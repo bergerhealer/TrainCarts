@@ -86,8 +86,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	private final RailTracker railTracker = new RailTracker(this);
 	protected final ToggledState forcedBlockUpdate = new ToggledState(true);
 	private final ToggledState railActivated = new ToggledState(false);
-	private final ToggledState ignoreDie = new ToggledState(false);
-	private int teleportImmunityTick = 0;
+	protected final ToggledState ignoreDie = new ToggledState(false);
 	private boolean ignoreAllCollisions = false;
 	private int collisionEnterTimer = 0;
 	private CartProperties properties;
@@ -275,34 +274,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return new TrackMap(this.getBlock(), this.direction, size);
 	}
 
-	/*
-	 * Teleportation
-	 */
 	public void loadChunks() {
 		WorldUtil.loadChunks(entity.getWorld(), entity.loc.x.chunk(), entity.loc.z.chunk(), 2);
-	}
-	public void teleport(Block railsblock) {
-		this.teleport(railsblock.getLocation().add(0.5, 0.5, 0.5));
-	}
-	public void teleport(Location to) {
-		// === Teleport - set unloaded to true and false again to prevent group unloading ===
-		this.unloaded = true;
-		ignoreDie.set();
-		entity.teleport(to);
-		ignoreDie.clear();
-		this.unloaded = false;
-		// =======================
-		this.teleportImmunityTick = 10;
-		this.getRailTracker().refreshBlock();
-	}
-
-	/**
-	 * Gets whether this Minecart and the passenger has immunity as a result of teleportation
-	 * 
-	 * @return True if it is immune, False if not
-	 */
-	public boolean isTeleportImmune() {
-		return this.teleportImmunityTick > 0;
 	}
 
 	public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {
@@ -1000,9 +973,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		Iterator<AtomicInteger> times = collisionIgnoreTimes.values().iterator();
 		while (times.hasNext()) {			
 			if (times.next().decrementAndGet() <= 0) times.remove();
-		}
-		if (this.teleportImmunityTick > 0) {
-			this.teleportImmunityTick--;
 		}
 		if (this.collisionEnterTimer > 0) {
 			this.collisionEnterTimer--;

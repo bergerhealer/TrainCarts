@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
 	public static final double ROTATION_K = 0.5;
@@ -32,6 +33,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 		EntityNetworkController<?>[] networkControllers = new EntityNetworkController<?>[count];
 		for (int i = 0; i < count; i++) {
 			networkControllers[i] = group.get(i).getEntity().getNetworkController();
+			if (networkControllers[i] == null) {
+				// Assign a new one - probably a bug?
+				networkControllers[i] = new MinecartMemberNetwork();
+				group.get(i).getEntity().setNetworkController(networkControllers[i]);
+			}
 		}
 
 		// Synchronize to the clients
@@ -100,5 +106,13 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 				}
 			}
 		}
+	}
+
+	@Override
+	public Vector getProtocolVelocity() {
+		if (TrainCarts.minecartSoundEnabled) {
+			return new Vector(0.0, 0.0, 0.0);
+		}
+		return super.getProtocolVelocity();
 	}
 }

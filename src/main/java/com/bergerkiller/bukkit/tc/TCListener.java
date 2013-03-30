@@ -430,11 +430,16 @@ public class TCListener implements Listener {
 			return;
 		}
 		final Block block = event.getBlock();
-		if (Util.ISTCRAIL.get(block) && !isSupported(block)) {
-			// No valid supporting block - clear the active signs of this rails
-			onRailsBreak(block);
-			return;
-		} else if (MaterialUtil.ISSIGN.get(block)) {
+		final int type = block.getTypeId();
+		if (Util.ISTCRAIL.get(type) && !isSupported(block)) {
+			if (!isSupported(block)) {
+				// No valid supporting block - clear the active signs of this rails
+				onRailsBreak(block);
+			} else if (updateRails(block)) {
+				// Handle regular physics
+				event.setCancelled(true);
+			}
+		} else if (MaterialUtil.ISSIGN.get(type)) {
 			if (!isSupported(block)) {
 				// Sign is no longer supported - clear all sign actions
 				SignAction.handleDestroy(new SignActionEvent(block));
@@ -442,11 +447,18 @@ public class TCListener implements Listener {
 				// Check for potential redstone changes
 				triggerRedstoneChange(block, false, true);
 			}
-			return;
-		}
-		// Handle regular physics
-		if (updateRails(block)) {
-			event.setCancelled(true);
+		} else if (MaterialUtil.ISREDSTONETORCH.get(type)) {
+			// Send proper update events for all signs around this power source
+			for (BlockFace face : FaceUtil.RADIAL) {
+				final Block rel = event.getBlock().getRelative(face);
+				if (MaterialUtil.ISSIGN.get(rel)) {
+					CommonUtil.nextTick(new Runnable() {
+						public void run() {
+							triggerRedstoneChange(rel, false, true);
+						}
+					});
+				}
+			}
 		}
 	}
 
@@ -520,7 +532,7 @@ public class TCListener implements Listener {
 			return;
 		}
 		MinecartMember<?> member = MinecartMemberStore.get(event.getEntity().getVehicle());
-		if (member != null && member.isTeleportImmune()) {
+		if (member != null && member.getGroup().isTeleportImmune()) {
 			event.setCancelled(true);
 		}
 	}

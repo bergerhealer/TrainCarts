@@ -84,6 +84,7 @@ public class TrainCarts extends PluginBase {
 	public static double slowDownMultiplierNormal;
 	public static boolean refillAtStations;
 	public static boolean instantCreativeDestroy;
+	public static boolean minecartSoundEnabled;
 	private static String currencyFormat;
 	public static double manualMovementSpeed;
 	public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
@@ -246,6 +247,9 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("refillAtStations", "\nWhether storage minecarts get fuel when launching from stations");
 		refillAtStations = config.get("refillAtStations", true);
+
+		config.setHeader("minecartSoundEnabled", "\nWhether the minecart sound loop is played (disabling may reduce client lag");
+		minecartSoundEnabled = config.get("minecartSoundEnabled", true);
 
 		config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
 		config.addHeader("instantCreativeDestroy", "Note that manual minecart movement is not possible for creative players with this enabled");

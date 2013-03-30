@@ -48,6 +48,7 @@ public class MinecartGroup extends MinecartGroupStore {
 	private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
+	private int teleportImmunityTick = 0;
 	protected long lastSync = Long.MIN_VALUE;
 
 	protected MinecartGroup() {}
@@ -473,25 +474,36 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (LogicUtil.nullOrEmpty(locations) || locations.length != this.size()) {
 			return;
 		}
-		if (locations[0].getWorld() != getWorld()) {
-			this.getBlockTracker().clear();
-		}
+		this.teleportImmunityTick = 10;
+		this.getBlockTracker().clear();
 		this.getBlockTracker().updatePosition();
-
-		boolean needAvoidSmoothing = locations[0].getWorld() == this.getWorld();
 		this.breakPhysics();
 		if (reversed) {
 			for (int i = 0; i < locations.length; i++) {
-				this.get(i).teleport(locations[locations.length - i - 1]);
+				teleportMember(this.get(i), locations[locations.length - i - 1]);
 			}
 		} else {
 			for (int i = 0; i < locations.length; i++) {
-				this.get(i).teleport(locations[i]);
+				teleportMember(this.get(i), locations[i]);
 			}
 		}
-		if (needAvoidSmoothing) {
-			this.respawn();
-		}
+		this.getBlockTracker().refresh();
+	}
+	private void teleportMember(MinecartMember<?> member, Location location) {
+		member.unloaded = true;
+		member.ignoreDie.set();
+		member.getEntity().teleport(location);
+		member.ignoreDie.clear();
+		member.unloaded = false;
+		member.getRailTracker().refreshBlock();
+	}
+	/**
+	 * Gets whether this Minecart and the passenger has immunity as a result of teleportation
+	 * 
+	 * @return True if it is immune, False if not
+	 */
+	public boolean isTeleportImmune() {
+		return this.teleportImmunityTick > 0;
 	}
 
 	public void shareForce() {
@@ -635,6 +647,9 @@ public class MinecartGroup extends MinecartGroupStore {
 				return false;
 			}
 		}
+		if (this.isTeleportImmune()) {
+			return false;
+		}
 		return true;
 	}
 	public boolean isRemoved() {
@@ -770,6 +785,11 @@ public class MinecartGroup extends MinecartGroupStore {
 			for (MinecartMember<?> mm : this) {
 				mm.checkMissing();
 				mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() / (double) stepcount);
+			}
+
+			// Update some per-tick stuff
+			if (this.teleportImmunityTick > 0) {
+				this.teleportImmunityTick--;
 			}
 
 			// Update direction and executed actions prior to updates
