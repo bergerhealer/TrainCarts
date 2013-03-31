@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -36,7 +37,7 @@ public class SignActionEject extends SignAction {
 	public void eject(SignActionEvent info) {
 		// Read the offset
 		Vector offset = new Vector();
-		String[] offsettext = info.getLine(2).split("/");
+		String[] offsettext = Util.splitBySeparator(info.getLine(2));
 		if (offsettext.length == 3) {
 			offset.setX(ParseUtil.parseDouble(offsettext[0], 0.0));
 			offset.setY(ParseUtil.parseDouble(offsettext[1], 0.0));
@@ -51,7 +52,7 @@ public class SignActionEject extends SignAction {
 		// Read the rotation
 		float yaw = 0F;
 		float pitch = 0F;
-		String[] angletext = info.getLine(3).split("/");
+		String[] angletext = Util.splitBySeparator(info.getLine(3));
 		if (angletext.length == 2) {
 			yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
 			pitch = ParseUtil.parseFloat(angletext[1], 0.0f);

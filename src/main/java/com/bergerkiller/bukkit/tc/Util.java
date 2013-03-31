@@ -29,9 +29,21 @@ import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 public class Util {
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
 	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
+	private static final String SEPARATOR_REGEX = "[|/\\\\]";
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {
 		SafeField.set(Conversion.toItemHandle.convert(material), "maxStackSize", maxstacksize);
+	}
+
+	/**
+	 * Splits a text into separate parts delimited by the separator characters
+	 * 
+	 * @param text to split
+	 * @param limit of the split text
+	 * @return split parts
+	 */
+	public static String[] splitBySeparator(String text) {
+		return text.split(SEPARATOR_REGEX);
 	}
 
 	/**

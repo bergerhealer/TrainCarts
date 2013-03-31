@@ -13,7 +13,6 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
 	public static final double ROTATION_K = 0.5;
@@ -23,8 +22,13 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 	private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
 	private final Set<Player> velocityUpdateReceivers = new HashSet<Player>();
 
+	private boolean isSoundEnabled() {
+		MinecartMember<?> member = (MinecartMember<?>) entity.getController();
+		return (member == null || member.isUnloaded()) ? false : member.getGroup().getProperties().isSoundEnabled();
+	}
+
 	private void updateVelocity(Player player) {
-		final boolean inRange = TrainCarts.minecartSoundEnabled && getEntity().loc.distanceSquared(player) <= VELOCITY_SOUND_RADIUS_SQUARED;
+		final boolean inRange = isSoundEnabled() && getEntity().loc.distanceSquared(player) <= VELOCITY_SOUND_RADIUS_SQUARED;
 		if ((inRange ? velocityUpdateReceivers.add(player) : velocityUpdateReceivers.remove(player))) {
 			Vector velocity;
 			if (inRange) {
@@ -152,7 +156,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 						}
 					}
 					// Update the velocity update receivers
-					if (TrainCarts.minecartSoundEnabled) {
+					if (isSoundEnabled()) {
 						for (Player player : controller.getViewers()) {
 							controller.updateVelocity(player);
 						}
@@ -167,7 +171,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
 	@Override
 	public Vector getProtocolVelocity() {
-		if (TrainCarts.minecartSoundEnabled) {
+		if (isSoundEnabled()) {
 			final double maxSpeed = getEntity().getMaxSpeed();
 			Vector vel = super.getProtocolVelocity();
 			vel.setX(MathUtil.clamp(vel.getX(), maxSpeed));

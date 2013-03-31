@@ -43,6 +43,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	private boolean keepChunksLoaded = false;
 	private boolean allowManualMovement = false;
 	private boolean allowPlayerTake = true;
+	private boolean soundEnabled = true;
 	public CollisionMode mobCollision = CollisionMode.DEFAULT;
 	public CollisionMode playerCollision = CollisionMode.DEFAULT;
 	public CollisionMode miscCollision = CollisionMode.PUSH;
@@ -198,7 +199,25 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		}
 		this.keepChunksLoaded = state;
 	}
-	
+
+	/**
+	 * Sets whether ambient Minecart sounds are enabled
+	 * 
+	 * @param enabled state to set to
+	 */
+	public void setSoundEnabled(boolean enabled) {
+		this.soundEnabled = enabled;
+	}
+
+	/**
+	 * Gets whether ambient Minecart sounds are enabled
+	 * 
+	 * @return True if enabled, False if not
+	 */
+	public boolean isSoundEnabled() {
+		return soundEnabled;
+	}
+
 	/*
 	 * Carts
 	 */
@@ -600,7 +619,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
 	@Override
 	public void parseSet(String key, String arg) {
-		if (key.equals("mobcollision")) {
+		if (key.equals("sound") || key.equals("minecartsound")) {
+			this.soundEnabled = ParseUtil.parseBool(arg);
+		} else if (key.equals("mobcollision")) {
 			this.mobCollision = CollisionMode.parse(arg);
 		} else if (key.equals("playercollision")) {
 			this.playerCollision = CollisionMode.parse(arg);
