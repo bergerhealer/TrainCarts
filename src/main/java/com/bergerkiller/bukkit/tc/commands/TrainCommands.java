@@ -27,12 +27,18 @@ public class TrainCommands {
 	public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
 		if (cmd.equals("info") || cmd.equals("i")) {
 			info(p, prop);
+		} else if (cmd.equals("sound") || cmd.equals("soundenabled")) {
+			if (args.length == 1) {
+				Permission.COMMAND_SOUND.handle(p);
+				prop.setSoundEnabled(ParseUtil.parseBool(args[0]));
+			}
+			p.sendMessage(ChatColor.YELLOW + "Minecart sound enabled: " + ChatColor.WHITE + prop.isSoundEnabled());
 		} else if (cmd.equals("linking") || cmd.equals("link")) {
 			if (args.length == 1) {
 				Permission.COMMAND_SETLINKING.handle(p);
 				prop.setLinking(ParseUtil.parseBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can be linked:" + ChatColor.WHITE + prop.getLinking());
+			p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + prop.getLinking());
 		} else if (cmd.equals("playertake") || cmd.equals("allowplayertake")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYERTAKE.handle(p);

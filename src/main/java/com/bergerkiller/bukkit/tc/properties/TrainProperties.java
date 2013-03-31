@@ -703,6 +703,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		this.allowLinking = node.get("allowLinking", this.allowLinking);
 		this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
 		this.trainCollision = node.get("trainCollision", this.trainCollision);
+		this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
 		this.slowDown = node.get("slowDown", this.slowDown);
 		if (node.contains("collision")) {
 			this.mobCollision = node.get("collision.mobs", this.mobCollision);
@@ -733,6 +734,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 * @param source to load from
 	 */
 	public void load(TrainProperties source) {
+		this.soundEnabled = source.soundEnabled;
 		this.displayName = source.displayName;
 		this.allowLinking = source.allowLinking;
 		this.trainCollision = source.trainCollision;
@@ -748,6 +750,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
 	@Override
 	public void saveAsDefault(ConfigurationNode node) {
+		node.set("soundEnabled", this.soundEnabled);
 		node.set("displayName", this.displayName);
 		node.set("allowPlayerTake", this.allowPlayerTake);
 		node.set("allowLinking", this.allowLinking);
@@ -769,6 +772,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	@Override
 	public void save(ConfigurationNode node) {	
 		node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
+		node.set("soundEnabled", this.soundEnabled ? null : false);
 		node.set("allowPlayerTake", this.allowPlayerTake ? null : false);
 		node.set("allowLinking", this.allowLinking ? null : false);
 		node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
