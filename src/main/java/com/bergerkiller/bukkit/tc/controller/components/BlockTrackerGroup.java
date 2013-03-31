@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 /**
  * Keeps track of the active rails, signs and detector regions below a
@@ -126,29 +127,59 @@ public class BlockTrackerGroup extends BlockTracker {
 				MinecartMember<?> member = owner.head();
 				blockSpace.put(member.getBlockPos(), member);
 			} else {
-				for (int i = 0; i < owner.size() - 1; i++) {
+				int k;
+				// Go member by member, starting at the tail, ending at the head
+				for (int i = owner.size() - 1; i > 0; i--) {
 					MinecartMember<?> member = owner.get(i);
 					IntVector3 from = member.getBlockPos();
-					IntVector3 to = owner.get(i + 1).getBlockPos();
-					// Put member at various blocks
+					IntVector3 to = owner.get(i - 1).getBlockPos();
+					IntVector3 diff = to.subtract(from);
+
+					// Map the member to blocks in between, except 'to'
 					blockSpace.put(from, member);
-					if (to.x > from.x + 1) {
-						blockSpace.put(from.add(1, 0, 0), member);
-					} else if (to.x + 1 < from.x) {
-						blockSpace.put(from.add(-1, 0, 0), member);
-					}
-					if (to.y > from.y + 1) {
-						blockSpace.put(from.add(0, 1, 0), member);
-					} else if (to.y + 1 < from.y) {
-						blockSpace.put(from.add(0, -1, 0), member);
-					}
-					if (to.z > from.z + 1) {
-						blockSpace.put(from.add(0, 0, 1), member);
-					} else if (to.z + 1 < from.z) {
-						blockSpace.put(from.add(0, 0, -1), member);
+					if (diff.x == 0 && diff.z == 0) {
+						// Along y-axis
+						for (k = 1; k < diff.y; k++) {
+							blockSpace.put(from.add(0, k, 0), member);
+						}
+						for (k = -1; k > diff.y; k--) {
+							blockSpace.put(from.add(0, k, 0), member);
+						}
+					} else if (diff.x == 0 && diff.y == 0) {
+						// Along z-axis
+						for (k = 1; k < diff.z; k++) {
+							blockSpace.put(from.add(0, 0, k), member);
+						}
+						for (k = -1; k > diff.z; k--) {
+							blockSpace.put(from.add(0, 0, k), member);
+						}
+					} else if (diff.y == 0 && diff.z == 0) {
+						// Along x-axis
+						for (k = 1; k < diff.x; k++) {
+							blockSpace.put(from.add(k, 0, 0), member);
+						}
+						for (k = -1; k > diff.x; k--) {
+							blockSpace.put(from.add(k, 0, 0), member);
+						}
+					} else {
+						// Curve or other logic - use a Block Iterator for this
+						TrackIterator iter = member.getRailTracker().getTrackIterator();
+						final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
+						// Skip the first block
+						iter.next();
+						// Go and find the other blocks
+						for (k = 0; k < maxLength && iter.hasNext(); k++) {
+							final Block block = iter.next();
+							if (to.x == block.getX() && to.y == block.getY() && to.z == block.getZ()) {
+								// Found the end block
+								break;
+							}
+							// Put the member
+							blockSpace.put(new IntVector3(block), member);
+						}
 					}
 				}
-				blockSpace.put(owner.tail().getBlockPos(), owner.tail());
+				blockSpace.put(owner.head().getBlockPos(), owner.head());
 			}
 
 			// First clear the live active sign buffer of all members

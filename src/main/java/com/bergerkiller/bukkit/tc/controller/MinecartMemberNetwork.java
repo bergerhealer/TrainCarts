@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
@@ -166,9 +167,15 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
 	@Override
 	public Vector getProtocolVelocity() {
-		if (!TrainCarts.minecartSoundEnabled) {
+		if (TrainCarts.minecartSoundEnabled) {
+			final double maxSpeed = getEntity().getMaxSpeed();
+			Vector vel = super.getProtocolVelocity();
+			vel.setX(MathUtil.clamp(vel.getX(), maxSpeed));
+			vel.setY(MathUtil.clamp(vel.getY(), maxSpeed));
+			vel.setZ(MathUtil.clamp(vel.getZ(), maxSpeed));
+			return vel;
+		} else {
 			return ZERO_VELOCITY;
 		}
-		return super.getProtocolVelocity();
 	}
 }

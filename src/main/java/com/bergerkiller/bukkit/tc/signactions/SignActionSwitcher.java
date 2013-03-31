@@ -59,7 +59,7 @@ public class SignActionSwitcher extends SignAction {
 		if (!info.hasRailedMember()) {
 			return;
 		}
-		if ((doCart || doTrain) && info.isFacing()) {
+		if (info.isFacing()) {
 			//find out what statements to parse
 			List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
 			statements.add(new DirectionStatement(info.getLine(2), Direction.LEFT));

@@ -152,23 +152,26 @@ public class TrackIterator implements Iterator<Block> {
 	private boolean genNext() {
 		this.next = this.current.getRelative(this.currentdirection);
 
-		// Vertical rail logic
-		if (this.currentdirection == BlockFace.UP || this.currentdirection == BlockFace.DOWN) {
-			// Continuing on to the next vertical rail
-			if (Util.ISVERTRAIL.get(this.next)) {
-				this.nextdirection = this.currentdirection;
-				return true;
-			}
+		// Continuing on to the next vertical rail
+		if (FaceUtil.isVertical(this.currentdirection) && Util.ISVERTRAIL.get(this.next)) {
+			this.nextdirection = this.currentdirection;
+			return true;
+		}
 
-			// Continuing on to a possible slope above?
-			if (this.currentdirection == BlockFace.UP) {
-				BlockFace dir = Util.getVerticalRailDirection(this.current.getData());
-				Block nextSlope = this.next.getRelative(dir);
-				if (MaterialUtil.ISRAILS.get(nextSlope) && Util.isSloped(nextSlope.getData())) {
-					this.next = nextSlope;
+		// Continuing on to a possible slope above?
+		if (this.currentdirection == BlockFace.UP) {
+			final BlockFace dir = Util.getVerticalRailDirection(this.current.getData());
+			final Block nextSlope = this.next.getRelative(dir);
+			if (MaterialUtil.ISRAILS.get(nextSlope) && Util.isSloped(nextSlope.getData())) {
+				this.next = nextSlope;
+
+				// If vertical rail above, change next direction to up
+				if (Util.isVerticalAbove(this.next, dir)) {
+					this.nextdirection = BlockFace.UP;
+				} else {
 					this.nextdirection = BlockUtil.getRails(this.next).getDirection();
-					return true;
 				}
+				return true;
 			}
 		}
 

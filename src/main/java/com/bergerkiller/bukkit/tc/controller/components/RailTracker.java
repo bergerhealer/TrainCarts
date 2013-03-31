@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicGround;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 /**
  * Stores rail information of a Minecart Member
@@ -43,6 +44,16 @@ public class RailTracker {
 		this.lastBlock = this.block;
 		this.lastRailType = this.railType;
 		this.lastRailLogic = this.railLogic;
+	}
+
+	/**
+	 * Obtains a new track iterator iterating the tracks from this point towards the direction
+	 * the Minecart is moving.
+	 * 
+	 * @return forward track iterator
+	 */
+	public TrackIterator getTrackIterator() {
+		return new TrackIterator(this.block, this.owner.getDirectionTo());
 	}
 
 	/**
