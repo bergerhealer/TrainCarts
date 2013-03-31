@@ -14,7 +14,6 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
@@ -41,6 +40,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.RailType;
@@ -58,7 +58,6 @@ import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
@@ -763,63 +762,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public boolean onEntityCollision(Entity e) {
-		MinecartMember<?> mm1 = this;
-		if (mm1.isCollisionIgnored(e) || mm1.isUnloaded() || e.isDead() || this.entity.isDead() || this.getGroup().isMovementControlled()) {
+		if (this.isUnloaded() || this.getEntity().isDead()) {
 			return false;
 		}
-		MinecartMember<?> mm2 = MemberConverter.toMember.convert(e);
-		//colliding with a member in the group, or not?
-		if (mm2 != null) {
-			if (mm2.isUnloaded()) {
-				// The minecart is unloaded - ignore it
-				return false;
-			} else if (mm1.getGroup() == mm2.getGroup()) {
-				//Same group, but do prevent penetration
-				if (mm1.entity.loc.distance(mm2.entity) > 0.5) {
-					return false;
-				}
-			} else if (!mm1.getGroup().getProperties().getColliding()) {
-				//Allows train collisions?
-				return false;
-			} else if (!mm2.getGroup().getProperties().getColliding()) {
-				//Other train allows train collisions?
-				return false;
-			} else if (mm2.getGroup().isMovementControlled()) {
-				//Is this train targeting?
-				return false;
-			}
-			// Check if both minecarts are on the same vertical column
-			RailLogic logic1 = mm1.getRailLogic();
-			if (logic1 instanceof RailLogicVerticalSlopeDown) {
-				RailLogic logic2 = mm2.getRailLogic();
-				if (logic2 instanceof RailLogicVerticalSlopeDown) {
-					Block b1 = mm1.getBlock(logic1.getDirection());
-					Block b2 = mm2.getBlock(logic2.getDirection());
-					if (BlockUtil.equals(b1, b2)) {
-						return false;
-					}
-				}
-			}
-			return true;
-		} else if (e.isInsideVehicle() && e.getVehicle() instanceof Minecart) {
-			//Ignore passenger collisions
+		CollisionMode mode = this.getGroup().getProperties().getCollisionMode(e);
+		if (!mode.execute(this, e)) {
 			return false;
-		} else {
-			TrainProperties prop = this.getGroup().getProperties();
-			// Is it picking up this item?
-			if (e instanceof Item && this.getProperties().canPickup()) {
-				return false;
-			}
-
-			//No collision is allowed? (Owners override)
-			if (!prop.getColliding() && (!(e instanceof Player) || !prop.isOwner((Player) e))) {
-				return false;
-			}
-
-			// Collision modes
-			if (!prop.getCollisionMode(e).execute(this, e)) {
-				return false;
-			}
 		}
 		// Collision occurred, collided head-on? Stop the entire train
 		if (this.isHeadingTo(e)) {

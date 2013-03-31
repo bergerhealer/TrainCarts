@@ -36,9 +36,9 @@ public class TrainCommands {
 		} else if (cmd.equals("linking") || cmd.equals("link")) {
 			if (args.length == 1) {
 				Permission.COMMAND_SETLINKING.handle(p);
-				prop.setLinking(ParseUtil.parseBool(args[0]));
+				prop.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(args[0]));
 			}
-			p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + prop.getLinking());
+			p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + (prop.trainCollision == CollisionMode.LINK));
 		} else if (cmd.equals("playertake") || cmd.equals("allowplayertake")) {
 			if (args.length == 1) {
 				Permission.COMMAND_PLAYERTAKE.handle(p);
@@ -143,9 +143,12 @@ public class TrainCommands {
 					} else if (typeName.contains("misc")) {
 						prop.miscCollision = mode;
 						p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.miscCollision.getOperationName() + " misc entities");
+					} else if (typeName.contains("train")) {
+						prop.trainCollision = mode;
+						p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.trainCollision.getOperationName() + " other trains");
 					} else {
 						p.sendMessage(ChatColor.RED + "Unknown collidable type: " + args[0]);
-						p.sendMessage(ChatColor.YELLOW + "Allowed types: mob, player or misc");
+						p.sendMessage(ChatColor.YELLOW + "Allowed types: mob, player, misc or train");
 					}
 				} else {
 					p.sendMessage(ChatColor.RED + "Unknown collision mode: " + args[1]);
@@ -343,17 +346,17 @@ public class TrainCommands {
 			}
 		}
 		p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
-		p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + " " + prop.getLinking());
 		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
 		p.sendMessage(ChatColor.YELLOW + "Slow down over time: " + ChatColor.WHITE + prop.isSlowingDown());
-		p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + " " + prop.getColliding());
+		p.sendMessage(ChatColor.YELLOW + "Can collide: " + ChatColor.WHITE + " " + prop.getColliding());
 
 		// Collision states
 		MessageBuilder builder = new MessageBuilder();
 		builder.yellow("When colliding this train ");
 		builder.red(prop.mobCollision.getOperationName()).yellow(" mobs, ");
-		builder.red(prop.playerCollision.getOperationName()).yellow(" players and ");
-		builder.red(prop.miscCollision.getOperationName()).yellow(" misc entities");
+		builder.red(prop.playerCollision.getOperationName()).yellow(" players, ");
+		builder.red(prop.miscCollision.getOperationName()).yellow(" misc entities and ");
+		builder.red(prop.trainCollision.getOperationName()).yellow(" other trains");
 		builder.send(p);
 
 		p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");

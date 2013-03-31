@@ -172,6 +172,9 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	private static boolean fixDeprecation(FileConfiguration config) {
 		boolean changed = false;
 		for (ConfigurationNode node : config.getNodes()) {
+			if (node.contains("allowLinking")) {
+				node.set("collision.train", CollisionMode.fromLinking(node.get("allowLinking", true)));
+			}
 			if (node.contains("pushAway")) {
 				node.set("collision.mobs", CollisionMode.fromPushing(node.get("pushAway.mobs", false)).toString());
 				node.set("collision.players", CollisionMode.fromPushing(node.get("pushAway.players", false)).toString());

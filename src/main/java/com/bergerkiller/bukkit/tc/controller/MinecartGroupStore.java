@@ -13,7 +13,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Minecart;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
@@ -113,10 +112,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 		return null;
 	}
 
-	public static boolean link(Minecart m1, Minecart m2) {
-		return link(MinecartMemberStore.get(m1), MinecartMemberStore.get(m2));
-	}
-
 	public static boolean link(MinecartMember<?> m1, MinecartMember<?> m2) {
 		if (m1 == null || m2 == null || m1 == m2 || m1.getEntity().isDead() || m2.getEntity().isDead() || m1.isUnloaded() || m2.isUnloaded()) {
 			return false;
@@ -131,9 +126,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 			//Can the two groups bind?
 			TrainProperties prop1 = g1.getProperties();
 			TrainProperties prop2 = g2.getProperties();
-			if (!prop1.getLinking() || !prop2.getLinking()) {
-				return false;
-			}
 
 			//Is a powered minecart required?
 			if (prop1.requirePoweredMinecart || prop2.requirePoweredMinecart) {

@@ -1,18 +1,26 @@
 package com.bergerkiller.bukkit.tc;
 
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Minecart;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
+import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
 
 /**
- * A collision mode between a Minecart and a non-minecart Entity
+ * A collision mode between a Minecart and another Entity
  */
 public enum CollisionMode {
-	DEFAULT, PUSH, CANCEL, KILL, KILLNODROPS, ENTER;
+	DEFAULT, PUSH, CANCEL, KILL, KILLNODROPS, ENTER, LINK;
 
 	/**
 	 * Executes this collision mode
@@ -23,14 +31,61 @@ public enum CollisionMode {
 	 */
 	public boolean execute(MinecartMember<?> member, Entity entity) {
 		final CommonMinecart<?> minecart = member.getEntity();
+		final MinecartMember<?> other = MinecartMemberStore.get(entity);
+		// Some default exception rules
+		if (minecart.isDead() || member.isUnloaded() || entity.isDead() || member.getGroup().isMovementControlled() || member.isCollisionIgnored(entity)) {
+			return false;
+		}
+		// Ignore passengers
+		if (entity.isInsideVehicle() && entity.getVehicle() instanceof Minecart) {
+			return false;
+		}
+		// Exception rules for other Minecarts
+		if (other != null) {
+			if (other.isUnloaded() || other.getGroup().isMovementControlled()) {
+				return false;
+			}
+			// Ignore collisions with same group, do prevent penetration
+			if (member.getGroup() == other.getGroup()) {
+				return minecart.loc.distance(entity) < 0.5;
+			}
+			// Check if both minecarts are on the same vertical column
+			RailLogic logic1 = member.getRailLogic();
+			if (logic1 instanceof RailLogicVerticalSlopeDown) {
+				RailLogic logic2 = other.getRailLogic();
+				if (logic2 instanceof RailLogicVerticalSlopeDown) {
+					Block b1 = member.getBlock(logic1.getDirection());
+					Block b2 = other.getBlock(logic2.getDirection());
+					if (BlockUtil.equals(b1, b2)) {
+						return false;
+					}
+				}
+			}
+		}
 		switch (this) {
-			case ENTER : 
+			case ENTER :
 				if (!minecart.hasPassenger() && minecart.isVehicle() && Util.canBePassenger(entity) && member.canCollisionEnter()) {
 					minecart.setPassenger(entity);
 				}
 				return false;
 			case PUSH :
-				member.pushSideways(entity);
+				if (entity instanceof Minecart) {
+					// Push the minecart (only when moving towards it)
+					if (member.isHeadingTo(entity)) {
+						double force;
+						// Keeping distance
+						force = TrainCarts.cartDistance - member.getEntity().loc.distanceSquared(entity);
+						force *= TrainCarts.cartDistanceForcer;
+						// Difference in velocity
+						force += member.getForce() - entity.getVelocity().length();
+						// Apply
+						if (force > 0.0) {
+							member.push(entity, force);
+						}
+					}
+				} else {
+					member.pushSideways(entity);
+				}
 				return false;
 			case CANCEL :
 				return false;
@@ -46,6 +101,7 @@ public enum CollisionMode {
 						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getEntity().getEntity());
 						EntityUtil.setInvulnerable(entity, old);
 					} else {
+						EntityUtil.damage(entity, DamageCause.CUSTOM, Short.MAX_VALUE);
 						entity.remove();
 					}
 					if (this == KILLNODROPS) {
@@ -53,7 +109,20 @@ public enum CollisionMode {
 					}
 				}
 				return false;
+			case LINK :
+				if (other != null) {
+					// Perform default linking logic
+					return !MinecartGroupStore.link(member, other);
+				}
+				return true;
 			default :
+				if (other != null) {
+					// Perform default logic: Stop this train
+					if (member.isHeadingTo(entity)) {
+						member.getGroup().stop();
+					}
+					return false;
+				}
 				return true;
 		}
 	}
@@ -75,6 +144,8 @@ public enum CollisionMode {
 				return "kills without drops";
 			case ENTER :
 				return "takes in";
+			case LINK :
+				return "forms a group with";
 			default :
 				return "is stopped by";
 		}
@@ -97,10 +168,20 @@ public enum CollisionMode {
 	}
 
 	/**
+	 * Gets the Collision Mode as being a linking state
+	 * 
+	 * @param state of linking
+	 * @return LINK OR DEFAULT
+	 */
+	public static CollisionMode fromLinking(boolean state) {
+		return state ? LINK : DEFAULT;
+	}
+	
+	/**
 	 * Gets the Collision Mode as being a pushing state
 	 * 
 	 * @param state of pushing
-	 * @return PUSH or NONE
+	 * @return PUSH or DEFAULT
 	 */
 	public static CollisionMode fromPushing(boolean state) {
 		return state ? PUSH : DEFAULT;
@@ -110,7 +191,7 @@ public enum CollisionMode {
 	 * Gets the Collision Mode as being an entering state
 	 * 
 	 * @param state of entering
-	 * @return ENTER or NONE
+	 * @return ENTER or DEFAULT
 	 */
 	public static CollisionMode fromEntering(boolean state) {
 		return state ? ENTER : DEFAULT;

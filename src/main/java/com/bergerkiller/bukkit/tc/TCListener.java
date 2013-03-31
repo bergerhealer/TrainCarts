@@ -37,8 +37,6 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
-import com.bergerkiller.bukkit.common.controller.EntityController;
-import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -53,7 +51,6 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -256,45 +253,9 @@ public class TCListener implements Listener {
 			return;
 		}
 		try {
-			if (event.getVehicle() instanceof Minecart && !event.getVehicle().isDead()) {
-				EntityController<?> controller = CommonEntity.get(event.getVehicle()).getController();
-				if (!(controller instanceof MinecartMember)) {
-					return;
-				}
-				MinecartMember<?> mm1 = (MinecartMember<?>) controller;
-				if (mm1.isUnloaded()) {
-					event.setCancelled(true);
-					return;
-				}
-				MinecartGroup g1 = mm1.getGroup();
-				if (g1 == null || g1.isMovementControlled() || mm1.isCollisionIgnored(event.getEntity())) {
-					event.setCancelled(true);
-					return;
-				}
-				TrainProperties prop = g1.getProperties();
-				if (!prop.canCollide(event.getEntity())) {
-					event.setCancelled(true);
-					return;
-				}
-				if (event.getEntity() instanceof Minecart) {
-					MinecartMember<?> mm2 = MinecartMemberStore.get(event.getEntity());
-					if (mm2 == null || mm1 == mm2) {
-						event.setCancelled(true);
-						return;
-					}
-					if (mm2.isUnloaded()) {
-						event.setCancelled(true);
-						return;
-					}
-					MinecartGroup g2 = mm2.getGroup();
-					if (g1 == g2 || !g2.getProperties().canCollide(g1) || MinecartGroup.link(mm1, mm2) || g2.isMovementControlled()) {
-						event.setCancelled(true);
-					}
-				} else if (event.getEntity().getVehicle() instanceof Minecart) {
-					event.setCancelled(true);
-				} else if (!prop.getCollisionMode(event.getEntity()).execute(mm1, event.getEntity())) {
-					event.setCancelled(true);
-				}
+			MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
+			if (member != null) {
+				event.setCancelled(!member.onEntityCollision(event.getEntity()));
 			}
 		} catch (Throwable t) {
 			TrainCarts.plugin.handle(t);
