@@ -149,30 +149,32 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 	@Override
 	public void doPostMoveLogic() {
 		super.doPostMoveLogic();
-		// Update pushing direction
-		if (this.pushDirection != BlockFace.SELF) {
-			BlockFace dir = this.getDirection();
-			if (this.isOnVertical()) {
-				if (dir != this.pushDirection.getOppositeFace()) {
-					this.pushDirection = dir;
-				}
-			} else {
-				if (FaceUtil.isVertical(this.pushDirection) || FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
-					this.pushDirection = dir;
+		if (!this.isDerailed()) {
+			// Update pushing direction
+			if (this.pushDirection != BlockFace.SELF) {
+				BlockFace dir = this.getDirection();
+				if (this.isOnVertical()) {
+					if (dir != this.pushDirection.getOppositeFace()) {
+						this.pushDirection = dir;
+					}
+				} else {
+					if (FaceUtil.isVertical(this.pushDirection) || FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
+						this.pushDirection = dir;
+					}
 				}
 			}
-		}
 
-		// Velocity boost is applied
-		if (!getGroup().isMovementControlled()) {
-			if (this.pushDirection != BlockFace.SELF) {
-				double boost = 0.04 + TrainCarts.poweredCartBoost;
-				entity.vel.multiply(0.8);
-				entity.vel.x.add(boost * FaceUtil.cos(this.pushDirection));
-				entity.vel.y.add((boost + 0.04) * this.pushDirection.getModY());
-				entity.vel.z.add(boost * FaceUtil.sin(this.pushDirection));
-			} else if (this.getGroup().getProperties().isSlowingDown()) {
-				entity.vel.multiply(0.9);
+			// Velocity boost is applied
+			if (!getGroup().isMovementControlled()) {
+				if (this.pushDirection != BlockFace.SELF) {
+					double boost = 0.04 + TrainCarts.poweredCartBoost;
+					entity.vel.multiply(0.8);
+					entity.vel.x.add(boost * FaceUtil.cos(this.pushDirection));
+					entity.vel.y.add((boost + 0.04) * this.pushDirection.getModY());
+					entity.vel.z.add(boost * FaceUtil.sin(this.pushDirection));
+				} else if (this.getGroup().getProperties().isSlowingDown()) {
+					entity.vel.multiply(0.9);
+				}
 			}
 		}
 	}
