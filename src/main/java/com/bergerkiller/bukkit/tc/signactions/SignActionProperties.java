@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -49,11 +48,9 @@ public class SignActionProperties extends SignAction {
 	private static void parseSet(IProperties properties, SignActionEvent info) {
 		String mode = info.getLine(2).toLowerCase().trim();
 		String[] args = Util.splitBySeparator(info.getLine(3));
-		System.out.println("ARGS: " + Conversion.toString.convert(args));
-		if (args.length == 2) {
-			System.out.println("A");
+		if (args.length >= 2) {
 			properties.parseSet(mode, info.isPowered() ? args[0] : args[1]);
-		} else if (info.isPowered()) {
+		} else if (args.length == 1 && info.isPowered()) {
 			properties.parseSet(mode, args[0]);
 		}
 	}
