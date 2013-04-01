@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -590,7 +591,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 						this.direction = this.direction.getOppositeFace();
 					}
 				} else {
-					final float moveYaw = MathUtil.getLookAtYaw(movement);
+					final float moveYaw;
+					// Is the rail connected with the previous rails?
+					if (LogicUtil.contains(this.directionFrom, FaceUtil.getFaces(raildirection))) {
+						//       ^
+						// > ════╝════
+						moveYaw = MathUtil.getLookAtYaw(movement);
+					} else {
+						// > ════╚════ >
+						moveYaw = MathUtil.getLookAtYaw(getEntity().getVelocity());
+					}
 					// Compare with the movement direction to find out whether the opposite is needed
 					float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(this.direction));
 					float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(this.direction.getOppositeFace()));

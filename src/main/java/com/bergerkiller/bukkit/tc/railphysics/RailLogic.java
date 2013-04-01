@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -134,12 +135,13 @@ public abstract class RailLogic {
 				return RailLogicGround.INSTANCE;
 			}
 		}
-		Block rails = member.getBlock();
-		int typeId = rails.getTypeId();
+		Block railsBlock = member.getBlock();
+		int typeId = railsBlock.getTypeId();
 		if (MaterialUtil.ISRAILS.get(typeId)) {
-			BlockFace direction = BlockUtil.getRails(rails).getDirection();
-			if (Util.isSloped(rails.getData())) {
-				if (Util.isVerticalAbove(rails, direction)) {
+			Rails rails = BlockUtil.getRails(railsBlock);
+			BlockFace direction = rails.getDirection();
+			if (rails.isOnSlope()) {
+				if (Util.isVerticalAbove(railsBlock, direction)) {
 					// Slope-vertical logic
 					return RailLogicVerticalSlopeDown.get(direction);
 				} else {
@@ -152,19 +154,15 @@ public abstract class RailLogic {
 			}
 		} else if (MaterialUtil.ISPRESSUREPLATE.get(typeId)) {
 			// Get the direction of the rails to find out the logic to use
-			BlockFace dir = Util.getPlateDirection(rails);
+			BlockFace dir = Util.getPlateDirection(railsBlock);
 			if (dir == BlockFace.SELF) {
 				//set track direction based on direction of this cart
-				if (member.getEntity().vel.x.abs() > member.getEntity().vel.z.abs()) {
-					dir = BlockFace.EAST;
-				} else {
-					dir = BlockFace.SOUTH;
-				}
+				dir = FaceUtil.toRailsDirection(member.getDirectionTo());
 			}
 			return RailLogicHorizontal.get(dir);
 		} else if (Util.ISVERTRAIL.get(typeId)) {
 			// Vertical logic
-			return RailLogicVertical.get(Util.getVerticalRailDirection(rails.getData()));
+			return RailLogicVertical.get(Util.getVerticalRailDirection(railsBlock.getData()));
 		} else {
 			/*
 			// Vertical to slope?
