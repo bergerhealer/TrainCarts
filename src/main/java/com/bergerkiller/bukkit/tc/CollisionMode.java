@@ -45,9 +45,9 @@ public enum CollisionMode {
 			if (other.isUnloaded()) {
 				return false;
 			}
-			// Ignore collisions with same group, do prevent penetration
+			// Ignore collisions with same group
 			if (member.getGroup() == other.getGroup()) {
-				return minecart.loc.distance(entity) < 0.5;
+				return false;
 			}
 			// Check if both minecarts are on the same vertical column
 			RailLogic logic1 = member.getRailLogic();

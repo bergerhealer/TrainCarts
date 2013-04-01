@@ -137,46 +137,50 @@ public class BlockTrackerGroup extends BlockTracker {
 
 					// Map the member to blocks in between, except 'to'
 					blockSpace.put(from, member);
-					if (diff.x == 0 && diff.z == 0) {
-						// Along y-axis
-						for (k = 1; k < diff.y; k++) {
-							blockSpace.put(from.add(0, k, 0), member);
-						}
-						for (k = -1; k > diff.y; k--) {
-							blockSpace.put(from.add(0, k, 0), member);
-						}
-					} else if (diff.x == 0 && diff.y == 0) {
-						// Along z-axis
-						for (k = 1; k < diff.z; k++) {
-							blockSpace.put(from.add(0, 0, k), member);
-						}
-						for (k = -1; k > diff.z; k--) {
-							blockSpace.put(from.add(0, 0, k), member);
-						}
-					} else if (diff.y == 0 && diff.z == 0) {
-						// Along x-axis
-						for (k = 1; k < diff.x; k++) {
-							blockSpace.put(from.add(k, 0, 0), member);
-						}
-						for (k = -1; k > diff.x; k--) {
-							blockSpace.put(from.add(k, 0, 0), member);
-						}
-					} else {
-						// Curve or other logic - use a Block Iterator for this
-						TrackIterator iter = member.getRailTracker().getTrackIterator();
-						final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
-						// Skip the first block
-						iter.next();
-						// Go and find the other blocks
-						for (k = 0; k < maxLength && iter.hasNext(); k++) {
-							final Block block = iter.next();
-							if (to.x == block.getX() && to.y == block.getY() && to.z == block.getZ()) {
-								// Found the end block
-								break;
+					if (!member.isOnSlope()) {
+						if (diff.x == 0 && diff.z == 0) {
+							// Along y-axis
+							for (k = 1; k < diff.y; k++) {
+								blockSpace.put(from.add(0, k, 0), member);
 							}
-							// Put the member
-							blockSpace.put(new IntVector3(block), member);
+							for (k = -1; k > diff.y; k--) {
+								blockSpace.put(from.add(0, k, 0), member);
+							}
+							continue;
+						} else if (diff.x == 0 && diff.y == 0) {
+							// Along z-axis
+							for (k = 1; k < diff.z; k++) {
+								blockSpace.put(from.add(0, 0, k), member);
+							}
+							for (k = -1; k > diff.z; k--) {
+								blockSpace.put(from.add(0, 0, k), member);
+							}
+							continue;
+						} else if (diff.y == 0 && diff.z == 0) {
+							// Along x-axis
+							for (k = 1; k < diff.x; k++) {
+								blockSpace.put(from.add(k, 0, 0), member);
+							}
+							for (k = -1; k > diff.x; k--) {
+								blockSpace.put(from.add(k, 0, 0), member);
+							}
+							continue;
 						}
+					}
+					// Curve or other logic - use a Block Iterator for this
+					TrackIterator iter = member.getRailTracker().getTrackIterator();
+					final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
+					// Skip the first block
+					iter.next();
+					// Go and find the other blocks
+					for (k = 0; k < maxLength && iter.hasNext(); k++) {
+						final Block block = iter.next();
+						if (to.x == block.getX() && to.y == block.getY() && to.z == block.getZ()) {
+							// Found the end block
+							break;
+						}
+						// Put the member
+						blockSpace.put(new IntVector3(block), member);
 					}
 				}
 				blockSpace.put(owner.head().getBlockPos(), owner.head());
