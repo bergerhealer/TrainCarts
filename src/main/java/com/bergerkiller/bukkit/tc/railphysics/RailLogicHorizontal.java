@@ -54,7 +54,8 @@ public class RailLogicHorizontal extends RailLogic {
 	@Override
 	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
 		final BlockFace raildirection = this.getDirection();
-		if (this.isSloped() && Math.abs(movement.getX()) < 0.001 && Math.abs(movement.getZ()) < 0.001 && Math.abs(movement.getY()) > 0.001) {
+		final boolean isHorizontalMovement = Math.abs(movement.getX()) >= 0.001 || Math.abs(movement.getZ()) >= 0.001;
+		if (this.isSloped() && !isHorizontalMovement && Math.abs(movement.getY()) > 0.001) {
 			// Going from vertical down to a slope
 			if (movement.getY() > 0.0) {
 				return raildirection;
@@ -64,9 +65,17 @@ public class RailLogicHorizontal extends RailLogic {
 		} else {
 			BlockFace direction = FaceUtil.getRailsCartDirection(raildirection);
 			if (movement.getX() == 0 || movement.getZ() == 0) {
-				// Moving along one axis - simplified calculation
-				if (FaceUtil.getFaceYawDifference(direction, FaceUtil.getDirection(movement)) > 90) {
+				if (isHorizontalMovement) {
+					// Moving along one axis - simplified calculation
+					if (FaceUtil.getFaceYawDifference(direction, FaceUtil.getDirection(movement)) > 90) {
+						direction = direction.getOppositeFace();
+					}
+				} else if (this.isSloped()) {
+					// Assume gravity will take over
 					direction = direction.getOppositeFace();
+				} else {
+					// No idea, just use the previous value
+					direction = member.getDirection();
 				}
 			} else {
 				// Is the rail connected with the previous rails?
