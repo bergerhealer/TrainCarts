@@ -129,10 +129,11 @@ public class BlockTrackerGroup extends BlockTracker {
 			} else {
 				int k;
 				// Go member by member, starting at the tail, ending at the head
-				for (int i = owner.size() - 1; i > 0; i--) {
+				for (int i = 0; i < owner.size() - 1; i++) {
 					MinecartMember<?> member = owner.get(i);
+					MinecartMember<?> toMember = owner.get(i + 1);
 					IntVector3 from = member.getBlockPos();
-					IntVector3 to = owner.get(i - 1).getBlockPos();
+					IntVector3 to = toMember.getBlockPos();
 					IntVector3 diff = to.subtract(from);
 
 					// Map the member to blocks in between, except 'to'
@@ -168,14 +169,14 @@ public class BlockTrackerGroup extends BlockTracker {
 						}
 					}
 					// Curve or other logic - use a Block Iterator for this
-					TrackIterator iter = member.getRailTracker().getTrackIterator();
+					TrackIterator iter = toMember.getRailTracker().getTrackIterator();
 					final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
 					// Skip the first block
 					iter.next();
 					// Go and find the other blocks
 					for (k = 0; k < maxLength && iter.hasNext(); k++) {
 						final Block block = iter.next();
-						if (to.x == block.getX() && to.y == block.getY() && to.z == block.getZ()) {
+						if (from.x == block.getX() && from.y == block.getY() && from.z == block.getZ()) {
 							// Found the end block
 							break;
 						}
@@ -183,7 +184,7 @@ public class BlockTrackerGroup extends BlockTracker {
 						blockSpace.put(new IntVector3(block), member);
 					}
 				}
-				blockSpace.put(owner.head().getBlockPos(), owner.head());
+				blockSpace.put(owner.tail().getBlockPos(), owner.tail());
 			}
 
 			// First clear the live active sign buffer of all members

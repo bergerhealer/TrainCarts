@@ -550,7 +550,16 @@ public class MinecartGroup extends MinecartGroupStore {
 		if (this.size() == 1) {
 			this.get(0).updateDirection();
 		} else if (this.size() > 1) {
-			//Update yaw from other cart
+			// Update direction of the train as a whole
+			double fforce = 0;
+			for (MinecartMember<?> m : this) {
+				fforce += m.getForwardForce();
+			}
+			if (fforce < 0) {
+				Collections.reverse(this);
+			}
+
+			// Update direction of individual carts
 			tail().updateDirectionTo(tail(1));
 			for (int i = size() - 2;i >= 0;i--) {
 				get(i).updateDirectionFrom(get(i + 1));
@@ -558,28 +567,18 @@ public class MinecartGroup extends MinecartGroupStore {
 		}
 	}
 	public double getAverageForce() {
-		if (this.isEmpty()) return 0;
-		if (this.size() == 1) return this.get(0).getForce();
-		//Get the average forwarding force of all carts
+		if (this.isEmpty()) {
+			return 0;
+		}
+		if (this.size() == 1) {
+			return this.get(0).getForce();
+		}
+		//Get the average forward force of all carts
 		double force = 0;
-		double fforce = 0;
-		double f;
 		for (MinecartMember<?> m : this) {
-			f = m.getForwardForce();
-			fforce += f;
-			if (f < 0) {
-				force -= m.getForce();
-			} else {
-				force += m.getForce();
-			}
+			force += MathUtil.invert(m.getForce(), m.getForwardForce() < 0.0);
 		}
-		force /= size();
-		//Reverse
-		if (fforce < 0) {
-			Collections.reverse(this);
-			force = -force;
-		}
-		return force;
+		return force / (double) size();
 	}
 	public List<Material> getTypes() {
 		ArrayList<Material> types = new ArrayList<Material>(this.size());
@@ -742,6 +741,32 @@ public class MinecartGroup extends MinecartGroupStore {
 		return getBlockTracker().getMemberFromRails(position);
 	}
 
+	private boolean doConnectionCheck(int stepcount) {
+		//Validate positions in the group
+		for (int i = 0; i < this.size() - 1; i++) {
+			if (!get(i + 1).isFollowingOnTrack(get(i))) {
+				// Undo stepcount based velocity modifications
+				for (int j = i + 1; j < this.size(); j++) {
+					this.get(j).getEntity().vel.multiply(stepcount);
+				}
+				// Split
+				MinecartGroup gnew = this.split(i + 1);
+				if (gnew != null) { 
+					//what time do we want to prevent them from colliding too soon?
+					//needs to travel 2 blocks in the meantime
+					int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
+					for (MinecartMember<?> mm1 : gnew) {
+						for (MinecartMember<?> mm2: this) {
+							mm1.ignoreCollision(mm2.getEntity().getEntity(), time);
+						}
+					}
+				}
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public void doPhysics() {
 		try {
 			double totalforce = this.getAverageForce();
@@ -816,6 +841,10 @@ public class MinecartGroup extends MinecartGroupStore {
 				}
 			}
 			this.getBlockTracker().refresh();
+
+			if (!this.doConnectionCheck(stepcount)) {
+				return false;
+			}
 			this.updateDirection();
 
 			// Perform velocity updates
@@ -825,13 +854,10 @@ public class MinecartGroup extends MinecartGroupStore {
 
 			if (this.size() == 1) {
 				//Simplified calculation for single carts
-				this.updateDirection();
 				this.head().onPhysicsPostMove(1);
-				this.updateDirection();
 			} else {
 				//Get the average forwarding force of all carts
 				double force = this.getAverageForce();
-				this.updateDirection();
 
 				//Perform forward force or not? First check if we are not messing up...
 				boolean performUpdate = true;
@@ -879,35 +905,14 @@ public class MinecartGroup extends MinecartGroupStore {
 				} catch (ConcurrentModificationException ex) {
 					return true;
 				}
-
-				//Update order after position change
-				this.getAverageForce();
-
-				//update yaw and then the positions
-				this.updateDirection();
-
-				//Validate positions in the group
-				for (int i = 0; i < this.size() - 1; i++) {
-					if (!head(i + 1).isFollowingOnTrack(head(i))) {
-						for (int j = i + 1; j < this.size(); j++) {
-							this.get(j).getEntity().vel.multiply(stepcount);
-						}
-						MinecartGroup gnew = this.split(i + 1);
-						if (gnew != null) { 
-							//what time do we want to prevent them from colliding too soon?
-							//needs to travel 2 blocks in the meantime
-							int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
-							for (MinecartMember<?> mm1 : gnew) {
-								for (MinecartMember<?> mm2: this) {
-									mm1.ignoreCollision(mm2.getEntity().getEntity(), time);
-								}
-							}
-						}
-						return false;
-					}
-				}
 			}
 
+			// Update directions and perform connection checks after the position changes
+			this.updateDirection();
+			if (!this.doConnectionCheck(stepcount)) {
+				return false;
+			}
+	
 			// Check whether chunks are loaded, and load them if needed
 			// If chunks are not kept loaded, the member will unload the entire train
 			boolean canunload = this.canUnload();

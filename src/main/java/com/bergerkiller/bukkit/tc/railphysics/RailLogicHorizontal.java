@@ -69,8 +69,8 @@ public class RailLogicHorizontal extends RailLogic {
 					direction = direction.getOppositeFace();
 				}
 			} else {
-				final float moveYaw;
 				// Is the rail connected with the previous rails?
+				final float moveYaw;
 				if (LogicUtil.contains(member.getDirectionFrom(), FaceUtil.getFaces(raildirection))) {
 					//       ^
 					// > ════╝════
