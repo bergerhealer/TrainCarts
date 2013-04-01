@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonItem;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 /**
  * A dummy Item class that basically does nothing :)
@@ -19,13 +18,13 @@ public class VirtualItem {
 	private final ItemStack itemStack;
 
 	public VirtualItem(Location location, ItemStack itemstack) {
-		this.item = (CommonItem) CommonEntity.create(EntityType.DROPPED_ITEM);
-		this.item.last.set(this.item.loc.set(location));
-		this.item.vel.y.add(0.1);
-		this.item.setItemStack(itemstack);
-		this.itemStack = itemstack;
-		this.refresh();
-		this.item.setNetworkController(new DefaultEntityNetworkController());
+		item = (CommonItem) CommonEntity.create(EntityType.DROPPED_ITEM);
+		item.last.set(this.item.loc.set(location));
+		item.vel.y.add(0.1);
+		item.setItemStack(itemstack);
+		itemStack = itemstack;
+		refresh();
+		item.setNetworkController(new DefaultEntityNetworkController());
 	}
 
 	public void update(Vector dir) {
@@ -49,7 +48,7 @@ public class VirtualItem {
 
 	public void die() {
 		item.remove();
-		WorldUtil.getTracker(item.getWorld()).stopTracking(item.getEntity());
+		item.setNetworkController(null);
 	}
 
 	public ItemStack getItemStack() {

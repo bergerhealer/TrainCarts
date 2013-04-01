@@ -589,11 +589,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	 */
 	public MinecartGroup getGroup() {
 		if (this.group != null) {
-			if (this.group.isEmpty()) {
-				this.group = null;
-			} else {
-				return this.group;
-			}
+			return this.group;
 		}
 		MinecartMember<?> mm = this.getMember();
 		return mm == null ? null : mm.getGroup();

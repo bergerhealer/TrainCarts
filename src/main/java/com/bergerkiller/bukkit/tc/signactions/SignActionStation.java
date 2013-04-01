@@ -31,7 +31,7 @@ public class SignActionStation extends SignAction {
 			info.setLevers(false);
 			return;
 		}
-		if (!info.hasRails() || !info.hasGroup()) {
+		if (!info.hasRails() || !info.hasGroup() || info.getGroup().isEmpty()) {
 			return;
 		}
 		//Check if not already targeting
