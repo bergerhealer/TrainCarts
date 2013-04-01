@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -12,6 +15,15 @@ public class RailLogicAir extends RailLogic {
 
 	private RailLogicAir() {
 		super(BlockFace.SELF);
+	}
+
+	@Override
+	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
+		if (member.isMovingVerticalOnly()) {
+			return Util.getVerticalFace(movement.getY() > 0.0);
+		} else {
+			return FaceUtil.getDirection(movement);
+		}
 	}
 
 	@Override

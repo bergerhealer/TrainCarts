@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -46,6 +48,51 @@ public class RailLogicHorizontal extends RailLogic {
 			if (this.faces[i] == BlockFace.NORTH || this.faces[i] == BlockFace.SOUTH) {
 				this.faces[i] = this.faces[i].getOppositeFace();
 			}
+		}
+	}
+
+	@Override
+	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
+		final BlockFace raildirection = this.getDirection();
+		if (this.isSloped() && Math.abs(movement.getX()) < 0.001 && Math.abs(movement.getZ()) < 0.001 && Math.abs(movement.getY()) > 0.001) {
+			// Going from vertical down to a slope
+			if (movement.getY() > 0.0) {
+				return raildirection;
+			} else {
+				return raildirection.getOppositeFace();
+			}
+		} else {
+			BlockFace direction = FaceUtil.getRailsCartDirection(raildirection);
+			if (movement.getX() == 0 || movement.getZ() == 0) {
+				// Moving along one axis - simplified calculation
+				if (FaceUtil.getFaceYawDifference(direction, FaceUtil.getDirection(movement)) > 90) {
+					direction = direction.getOppositeFace();
+				}
+			} else {
+				final float moveYaw;
+				// Is the rail connected with the previous rails?
+				if (LogicUtil.contains(member.getDirectionFrom(), FaceUtil.getFaces(raildirection))) {
+					//       ^
+					// > ════╝════
+					moveYaw = MathUtil.getLookAtYaw(movement);
+				} else {
+					// > ════╚════ >
+					moveYaw = MathUtil.getLookAtYaw(member.getEntity().getVelocity());
+				}
+				// Compare with the movement direction to find out whether the opposite is needed
+				float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(direction));
+				float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(direction.getOppositeFace()));
+				// Compare with the previous direction to sort out equality problems
+				if (diff1 == diff2) {
+					diff1 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), direction);
+					diff2 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), direction.getOppositeFace());
+				}
+				// Use the opposite direction if needed
+				if (diff1 > diff2) {
+					direction = direction.getOppositeFace();
+				}
+			}
+			return direction;
 		}
 	}
 

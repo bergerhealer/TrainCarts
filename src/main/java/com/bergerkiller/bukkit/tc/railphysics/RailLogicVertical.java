@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class RailLogicVertical extends RailLogic {
@@ -16,6 +18,11 @@ public class RailLogicVertical extends RailLogic {
 
 	private RailLogicVertical(BlockFace direction) {
 		super(direction);
+	}
+
+	@Override
+	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
+		return Util.getVerticalFace(movement.getY() > 0.0);
 	}
 
 	@Override

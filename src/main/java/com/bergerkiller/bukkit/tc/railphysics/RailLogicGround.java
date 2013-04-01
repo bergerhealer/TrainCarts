@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.railphysics;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -12,6 +14,11 @@ public class RailLogicGround extends RailLogic {
 
 	private RailLogicGround() {
 		super(BlockFace.SELF);
+	}
+
+	@Override
+	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
+		return FaceUtil.getDirection(movement);
 	}
 
 	@Override

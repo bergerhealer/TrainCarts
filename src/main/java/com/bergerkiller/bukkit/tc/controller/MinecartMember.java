@@ -34,7 +34,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -566,69 +565,29 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.getDirectionDifference(comparer.getDirection());
 	}
 	public void updateDirection(Vector movement) {
-		if (this.isOnVertical()) {
-			this.directionTo = this.direction = Util.getVerticalFace(movement.getY() > 0.0);
-		} else if (this.isFlying() && this.isMovingVerticalOnly()) {
-			this.directionTo = this.direction = Util.getVerticalFace(movement.getY() > 0.0);
-		} else if (this.isDerailed()) {
-			this.direction = FaceUtil.getDirection(movement);
-			this.directionTo = FaceUtil.getDirection(movement, false);
-		} else {
-			final BlockFace raildirection = this.getRailDirection();
-			if (this.isOnSlope() && Math.abs(movement.getX()) < 0.001 && Math.abs(movement.getZ()) < 0.001 && Math.abs(movement.getY()) > 0.001) {
-				// Going from vertical down to a slope
-				if (movement.getY() > 0.0) {
-					this.direction = raildirection;
-				} else {
-					this.direction = raildirection.getOppositeFace();
-				}
-				this.directionTo = this.direction;
-			} else {
-				this.direction = FaceUtil.getRailsCartDirection(raildirection);
-				if (movement.getX() == 0 || movement.getZ() == 0) {
-					// Moving along one axis - simplified calculation
-					if (FaceUtil.getFaceYawDifference(this.direction, FaceUtil.getDirection(movement)) > 90) {
-						this.direction = this.direction.getOppositeFace();
-					}
-				} else {
-					final float moveYaw;
-					// Is the rail connected with the previous rails?
-					if (LogicUtil.contains(this.directionFrom, FaceUtil.getFaces(raildirection))) {
-						//       ^
-						// > ════╝════
-						moveYaw = MathUtil.getLookAtYaw(movement);
-					} else {
-						// > ════╚════ >
-						moveYaw = MathUtil.getLookAtYaw(getEntity().getVelocity());
-					}
-					// Compare with the movement direction to find out whether the opposite is needed
-					float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(this.direction));
-					float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(this.direction.getOppositeFace()));
-					// Compare with the previous direction to sort out equality problems
-					if (diff1 == diff2) {
-						diff1 = FaceUtil.getFaceYawDifference(this.directionFrom, this.direction);
-						diff2 = FaceUtil.getFaceYawDifference(this.directionFrom, this.direction.getOppositeFace());
-					}
-					// Use the opposite direction if needed
-					if (diff1 > diff2) {
-						this.direction = this.direction.getOppositeFace();
-					}
-				}
-				// The to direction using the rail direction and movement direction
-				if (this.direction == BlockFace.NORTH_EAST) {
-					this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
-				} else if (this.direction == BlockFace.SOUTH_EAST) {
-					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
-				} else if (this.direction == BlockFace.SOUTH_WEST) {
-					this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.SOUTH : BlockFace.WEST;
-				} else if (this.direction == BlockFace.NORTH_WEST) {
-					this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
-				} else {
-					this.directionTo = this.direction;
-				}
+		final RailLogic logic = this.getRailLogic();
+		this.direction = logic.getMovementDirection(this, movement);
+
+		// Calculate the to direction
+		if (FaceUtil.isSubCardinal(this.direction)) {
+			// Compare with the rail direction for curved rails
+			// TODO: Turn this into an understandable transformation
+			final BlockFace raildirection = logic.getDirection();
+			if (this.direction == BlockFace.NORTH_EAST) {
+				this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
+			} else if (this.direction == BlockFace.SOUTH_EAST) {
+				this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
+			} else if (this.direction == BlockFace.SOUTH_WEST) {
+				this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.SOUTH : BlockFace.WEST;
+			} else if (this.direction == BlockFace.NORTH_WEST) {
+				this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
 			}
+		} else {
+			// Simply set it for other types of rails
+			this.directionTo = this.direction;
 		}
-		// Force-update the from direction if it is invalidated
+
+		// Force-update the from direction if it was invalidated
 		if (this.directionFrom == BlockFace.SELF) {
 			this.directionFrom = this.directionTo;
 		}

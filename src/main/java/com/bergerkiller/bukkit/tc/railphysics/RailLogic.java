@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.railphysics;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -98,6 +99,15 @@ public abstract class RailLogic {
 			e.vel.setY(force * member.getDirection().getModY());
 		}
 	}
+
+	/**
+	 * Obtains the direction to which a Minecart is moving on this type of Rail Logic
+	 * 
+	 * @param member that is moving
+	 * @param movement that is preferred
+	 * @return the BlockFace direction
+	 */
+	public abstract BlockFace getMovementDirection(MinecartMember<?> member, Vector movement);
 
 	/**
 	 * Is called right before the minecart will perform the movement updates<br>

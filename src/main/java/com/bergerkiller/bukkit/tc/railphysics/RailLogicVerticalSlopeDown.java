@@ -24,11 +24,6 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
 	}
 
 	@Override
-	public boolean isSloped() {
-		return true;
-	}
-
-	@Override
 	public void onPostMove(MinecartMember<?> member) {
 		final CommonMinecart<?> entity = member.getEntity();
 		final IntVector3 block = member.getBlockPos();
