@@ -49,7 +49,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private final boolean poweron;
 
 	public SignActionEvent(Block signblock, MinecartMember<?> member) {
-		this(signblock, member.isDerailed() ? null : member.getBlock());
+		this(signblock);
 		this.member = member;
 		this.memberchecked = true;
 	}
@@ -407,8 +407,8 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (member == null) {
 			return false;
 		}
-		BlockFace dir = this.isAction(SignActionType.MEMBER_MOVE) ? member.getDirectionTo() : member.getDirectionFrom();
-		return !getMember().isMoving() || this.isWatchedDirection(dir);
+		final BlockFace dir = this.isAction(SignActionType.MEMBER_MOVE) ? member.getDirectionTo() : member.getDirectionFrom();
+		return !member.isMoving() || this.isWatchedDirection(dir);
 	}
 
 	/**
