@@ -80,7 +80,9 @@ public class RailLogicHorizontal extends RailLogic {
 			} else {
 				// Is the rail connected with the previous rails?
 				final float moveYaw;
-				if (LogicUtil.contains(member.getDirectionFrom(), FaceUtil.getFaces(raildirection))) {
+				if (!FaceUtil.isSubCardinal(direction) || FaceUtil.isVertical(member.getDirectionFrom()) 
+						|| LogicUtil.contains(member.getDirectionFrom(), FaceUtil.getFaces(raildirection))) {
+
 					//       ^
 					// > ════╝════
 					moveYaw = MathUtil.getLookAtYaw(movement);
