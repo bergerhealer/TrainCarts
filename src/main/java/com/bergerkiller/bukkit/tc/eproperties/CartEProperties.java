@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.eproperties;
 
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberMobSpawner;
 
 public class CartEProperties implements EProperties {
@@ -15,6 +16,15 @@ public class CartEProperties implements EProperties {
 		if(mode.equalsIgnoreCase("type")) {
 			if(this.validMob(text))
 				member.getSpawner().setMobName(text);
+		} else if(mode.equalsIgnoreCase("delay")) {
+			int delay = ParseUtil.parseInt(text, member.getSpawner().getSpawnDelay());
+			member.getSpawner().setSpawnDelay(delay);
+		} else if(mode.equalsIgnoreCase("mindelay")) {
+			int delay = ParseUtil.parseInt(text, member.getSpawner().getMinSpawnDelay());
+			member.getSpawner().setMinSpawnDelay(delay);
+		} else if(mode.equalsIgnoreCase("maxdelay")) {
+			int delay = ParseUtil.parseInt(text, member.getSpawner().getMaxSpawnDelay());
+			member.getSpawner().setMaxSpawnDelay(delay);
 		}
 	}
 	

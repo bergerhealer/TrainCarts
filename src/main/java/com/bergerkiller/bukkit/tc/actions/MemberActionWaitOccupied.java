@@ -24,13 +24,12 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 		this.start = head.getBlock();
 		this.delay = delay;
 		this.launchDistance = launchDistance;
-		this.start();
+		this.launchforce = this.getGroup().getAverageForce();
 	}
 
 	@Override
 	public void start() {
 		if (this.handleOccupied()) {
-			this.launchforce = this.getGroup().getAverageForce();
 			this.getGroup().stop(true);
 		} else {
 			breakCode = true;
