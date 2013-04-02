@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.eproperties;
 
-import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
+import org.bukkit.entity.EntityType;
+
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberMobSpawner;
 
