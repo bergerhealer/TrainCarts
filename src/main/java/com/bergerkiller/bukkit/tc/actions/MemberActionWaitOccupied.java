@@ -24,6 +24,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 		this.start = head.getBlock();
 		this.delay = delay;
 		this.launchDistance = launchDistance;
+		this.start();
 	}
 
 	@Override
