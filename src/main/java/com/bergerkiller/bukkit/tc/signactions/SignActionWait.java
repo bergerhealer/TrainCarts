@@ -29,6 +29,7 @@ public class SignActionWait extends SignAction {
 
 			//distance
 			if (MemberActionWaitOccupied.handleOccupied(info.getRails(), dir, info.getMember(), dist)) {
+				info.getGroup().stop(); //Make sure the group stops riding!
 				info.getGroup().clearActions();
 				info.getMember().addActionWaitOccupied(dist, delay, launchDistance);
 			}
