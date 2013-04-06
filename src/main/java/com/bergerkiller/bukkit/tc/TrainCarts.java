@@ -388,6 +388,7 @@ public class TrainCarts extends PluginBase {
 
 		//registering
 		this.register(TCListener.class);
+		this.register(RedstoneTracker.class);
 		this.register("train", "cart");
 		Conversion.register(MemberConverter.toMember);
 

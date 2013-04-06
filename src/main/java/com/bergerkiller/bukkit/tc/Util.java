@@ -465,4 +465,8 @@ public class Util {
 	public static boolean isCreativePlayer(Entity entity) {
 		return entity instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
 	}
+
+	public static boolean isSupported(Block block) {
+		return MaterialUtil.ISSOLID.get(BlockUtil.getAttachedBlock(block));
+	}
 }

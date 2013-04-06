@@ -17,7 +17,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
@@ -35,7 +34,6 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 
-import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
@@ -52,14 +50,11 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
-import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 
 public class TCListener implements Listener {
-	private static final BlockSet ignoredSigns = new BlockSet();
-	private BlockSet poweredBlocks = new BlockSet();
 	public static Player lastPlayer = null;
 	public static boolean cancelNextDrops = false;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
@@ -381,10 +376,6 @@ public class TCListener implements Listener {
 		}
 	}
 
-	private static boolean isSupported(Block block) {
-		return MaterialUtil.ISSOLID.get(BlockUtil.getAttachedBlock(block));
-	}
-
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
 		if (event.isCancelled()) {
@@ -392,8 +383,8 @@ public class TCListener implements Listener {
 		}
 		final Block block = event.getBlock();
 		final int type = block.getTypeId();
-		if (Util.ISTCRAIL.get(type) && !isSupported(block)) {
-			if (!isSupported(block)) {
+		if (Util.ISTCRAIL.get(type)) {
+			if (!Util.isSupported(block)) {
 				// No valid supporting block - clear the active signs of this rails
 				onRailsBreak(block);
 			} else if (updateRails(block)) {
@@ -401,24 +392,9 @@ public class TCListener implements Listener {
 				event.setCancelled(true);
 			}
 		} else if (MaterialUtil.ISSIGN.get(type)) {
-			if (!isSupported(block)) {
+			if (!Util.isSupported(block)) {
 				// Sign is no longer supported - clear all sign actions
 				SignAction.handleDestroy(new SignActionEvent(block));
-			} else {
-				// Check for potential redstone changes
-				triggerRedstoneChange(block, false, true);
-			}
-		} else if (MaterialUtil.ISREDSTONETORCH.get(type)) {
-			// Send proper update events for all signs around this power source
-			for (BlockFace face : FaceUtil.RADIAL) {
-				final Block rel = event.getBlock().getRelative(face);
-				if (MaterialUtil.ISSIGN.get(rel)) {
-					CommonUtil.nextTick(new Runnable() {
-						public void run() {
-							triggerRedstoneChange(rel, false, true);
-						}
-					});
-				}
 			}
 		}
 	}
@@ -465,30 +441,6 @@ public class TCListener implements Listener {
 		SignAction.handleBuild(event);
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
-		if (TrainCarts.isWorldDisabled(event)) {
-			return;
-		}
-		Material type = event.getBlock().getType();
-		if (BlockUtil.isType(type, Material.LEVER)) {
-			Block up = event.getBlock().getRelative(BlockFace.UP);
-			Block down = event.getBlock().getRelative(BlockFace.DOWN);
-			if (MaterialUtil.ISSIGN.get(up)) {
-				triggerRedstoneChange(up, event.getNewCurrent() > 0);
-			}
-			if (MaterialUtil.ISSIGN.get(down)) {
-				triggerRedstoneChange(down, event.getNewCurrent() > 0);
-			}
-			ignoreOutputLever(event.getBlock());
-		} else if (MaterialUtil.ISSIGN.get(type)) {
-			if (!ignoredSigns.isEmpty() && ignoredSigns.remove(event.getBlock())) {
-				return;
-			}
-			triggerRedstoneChange(event.getBlock(), event.getNewCurrent() > 0);
-		}
-	}
-
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityDamage(EntityDamageEvent event) {
 		if (event.isCancelled()) {
@@ -497,69 +449,6 @@ public class TCListener implements Listener {
 		MinecartMember<?> member = MinecartMemberStore.get(event.getEntity().getVehicle());
 		if (member != null && member.getGroup().isTeleportImmune()) {
 			event.setCancelled(true);
-		}
-	}
-
-	/**
-	 * Ignores signs of current-tick redstone changes caused by the lever
-	 * 
-	 * @param lever to ignore
-	 */
-	public void ignoreOutputLever(Block lever) {
-		// Ignore signs that are attached to the block the lever is attached to
-		Block att = BlockUtil.getAttachedBlock(lever);
-		for (BlockFace face : FaceUtil.ATTACHEDFACES) {
-			Block signblock = att.getRelative(face);
-			if (MaterialUtil.ISSIGN.get(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
-				if (ignoredSigns.isEmpty()) {
-					// clear this the next tick
-					CommonUtil.nextTick(new Runnable() {
-						public void run() {
-							ignoredSigns.clear();
-						}
-					});
-				}
-				ignoredSigns.add(signblock);
-			}
-		}
-	}
-
-	/**
-	 * Fires redstone change events for a sign
-	 * 
-	 * @param signblock to send the change for
-	 * @param isPowered (updated) state of the change
-	 */
-	public void triggerRedstoneChange(final Block signblock, boolean isPowered) {
-		triggerRedstoneChange(signblock, isPowered, false);
-	}
-
-	public void triggerRedstoneChange(final Block signblock, boolean isPowered, boolean forced) {
-		final SignActionEvent info = new SignActionEvent(signblock);
-		SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-		// Do not proceed if the sign disallows on/off changes
-		if (info.isPowerAlwaysOn()) {
-			return;
-		}
-		// Do not proceed if no on/off change happened
-		final boolean wasPowered = poweredBlocks.contains(signblock);
-		if (forced || wasPowered == isPowered) {
-			return;
-		}
-		// Invert the new power level if required
-		if (info.isPowerInverted()) {
-			isPowered = !isPowered;
-		}
-		// Powered mode has changed?
-		if (isPowered == info.isPowered()) {
-			// Update the powered blocks
-			if (wasPowered) {
-				poweredBlocks.remove(signblock);
-			} else {
-				poweredBlocks.add(signblock);
-			}
-			// Fire an event
-			SignAction.executeAll(info, isPowered ? SignActionType.REDSTONE_ON : SignActionType.REDSTONE_OFF);
 		}
 	}
 
