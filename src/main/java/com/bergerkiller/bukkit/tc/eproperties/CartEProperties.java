@@ -5,14 +5,19 @@ import org.bukkit.entity.EntityType;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberMobSpawner;
 
-public class CartEProperties implements EProperties {
+public class CartEProperties {
 	private MinecartMemberMobSpawner member;
 	
 	public CartEProperties(MinecartMemberMobSpawner member) {
 		this.member = member;
 	}
-	
-	@Override
+
+	/**
+	 * Parse the property to a cart
+	 * 
+	 * @param mode Property mode
+	 * @param value Property value
+	 */
 	public void parseSet(String mode, String text) {
 		if(mode.equalsIgnoreCase("type")) {
 			if(this.validMob(text))
@@ -28,7 +33,7 @@ public class CartEProperties implements EProperties {
 			member.getSpawner().setMaxSpawnDelay(delay);
 		}
 	}
-	
+
 	private boolean validMob(String text) {
 		try {
 			EntityType.valueOf(text.toUpperCase());

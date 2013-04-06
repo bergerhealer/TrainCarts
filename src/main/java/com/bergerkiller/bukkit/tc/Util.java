@@ -13,6 +13,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 
+import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -468,5 +469,13 @@ public class Util {
 
 	public static boolean isSupported(Block block) {
 		return MaterialUtil.ISSOLID.get(BlockUtil.getAttachedBlock(block));
+	}
+
+	public static boolean isValidEntity(String entityName) {
+		try {
+			return EntityType.valueOf(entityName) != null;
+		} catch (Exception ex) {
+			return false;
+		}
 	}
 }

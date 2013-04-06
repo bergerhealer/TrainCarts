@@ -46,7 +46,6 @@ public abstract class SignAction {
 		register(new SignActionTicket());
 		register(new SignActionAnnounce());
 		register(new SignActionEffect());
-		register(new SignActionEProperties());
 	}
 
 	public static void deinit() {

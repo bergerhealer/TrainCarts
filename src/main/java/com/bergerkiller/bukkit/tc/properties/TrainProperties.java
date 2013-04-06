@@ -612,7 +612,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	@Override
-	public void parseSet(String key, String arg) {
+	public boolean parseSet(String key, String arg) {
 		if (key.equals("sound") || key.equals("minecartsound")) {
 			this.soundEnabled = ParseUtil.parseBool(arg);
 		} else if (key.equals("mobcollision")) {
@@ -688,9 +688,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 				cprop.getOwners().remove(arg);
 			}
 		} else {
-			return;
+			return false;
 		}
-		this.tryUpdate();
+		return true;
 	}
 
 	@Override

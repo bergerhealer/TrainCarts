@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 /**
  * Contains train or cart property getters and setters
  */
-public interface IProperties {
+public interface IProperties extends IParsable {
 
 	/**
 	 * Gets the type name (train/cart) of these properties
@@ -177,14 +177,6 @@ public interface IProperties {
 	 * @return Block location of the minecart
 	 */
 	public BlockLocation getLocation();
-
-	/**
-	 * Sets a property denoted by the key by parsing the args specified
-	 * 
-	 * @param key of the property
-	 * @param value to set to
-	 */
-	public void parseSet(String key, String args);
 
 	/**
 	 * Loads the information from the Configuration Node specified

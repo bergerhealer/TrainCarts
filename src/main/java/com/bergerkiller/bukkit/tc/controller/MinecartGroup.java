@@ -37,11 +37,12 @@ import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
+import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
-public class MinecartGroup extends MinecartGroupStore {
+public class MinecartGroup extends MinecartGroupStore implements IParsable {
 	private static final long serialVersionUID = 3;
 
 	private final Queue<Action> actions = new LinkedList<Action>();
@@ -703,6 +704,11 @@ public class MinecartGroup extends MinecartGroupStore {
 		for (MinecartMember<?> mm : this) {
 			if (mm.isInChunk(world, cx, cz)) return true;
 		}
+		return false;
+	}
+
+	@Override
+	public boolean parseSet(String key, String args) {
 		return false;
 	}
 

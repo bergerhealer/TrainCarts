@@ -365,7 +365,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 
 	@Override
-	public void parseSet(String key, String arg) {
+	public boolean parseSet(String key, String arg) {
 		if (key.equals("addtag")) {
 			this.addTags(arg);
 		} else if (key.equals("settag")) {
@@ -389,9 +389,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			arg = arg.toLowerCase();
 			this.getOwners().remove(arg);
 		} else {
-			return;
+			return false;
 		}
-		this.tryUpdate();
+		return true;
 	}
 
 	/**
