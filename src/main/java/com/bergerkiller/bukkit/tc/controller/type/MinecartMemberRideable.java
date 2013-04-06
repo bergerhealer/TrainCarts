@@ -36,7 +36,7 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
 				}
 			}
 			oldPassenger = currentPassenger;
-			update();
+			this.onPropertiesChanged();
 		}
 	}
 }

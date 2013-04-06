@@ -57,12 +57,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return "train";
 	}
 
-	/**
-	 * Gets the Group associated with these Properties
-	 * 
-	 * @return the MinecartGroup these properties belong to, or null if not loaded
-	 */
-	public MinecartGroup getGroup() {
+	@Override
+	public MinecartGroup getHolder() {
 		MinecartGroup group = this.group.get();
 		if (group == null || group.isRemoved()) {
 			return this.group.set(MinecartGroup.get(this));
@@ -165,7 +161,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 * @param state to set to
 	 */
 	public void setKeepChunksLoaded(boolean state) {
-		if (state && !this.keepChunksLoaded && this.getGroup() == null) {
+		if (state && !this.keepChunksLoaded && this.getHolder() == null) {
 			// Load all the chunks of this group to trigger a restore
 			OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
 			if (group != null) {
@@ -560,7 +556,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	public boolean isLoaded() {
-		return this.getGroup() != null;
+		return this.getHolder() != null;
 	}
 
 	public boolean matchName(String expression) {
@@ -607,8 +603,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	public void tryUpdate() {
-		MinecartGroup g = this.getGroup();
-		if (g != null) g.update();
+		MinecartGroup g = this.getHolder();
+		if (g != null) g.onPropertiesChanged();
 	}
 
 	@Override

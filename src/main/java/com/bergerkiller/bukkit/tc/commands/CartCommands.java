@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
@@ -89,7 +90,7 @@ public class CartCommands {
 			}
 		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
 			Permission.COMMAND_DESTROY.handle(p);
-			MinecartMember<?> mm = prop.getMember();
+			MinecartMember<?> mm = prop.getHolder();
 			if (mm == null) {
 				CartPropertiesStore.remove(prop.getUUID());
 				OfflineGroupManager.removeMember(prop.getUUID());
@@ -161,7 +162,11 @@ public class CartCommands {
 		} else if (cmd.equals("path") || cmd.equals("route") || cmd.equals("pathinfo")) {
 			Permission.COMMAND_PATHINFO.handle(p);
 			Commands.showPathInfo(p, prop);
+		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[1])) {
+			p.sendMessage(ChatColor.GREEN + "Property has been updated!");
+			return true;
 		} else {
+			// Show help
 			if (!cmd.equals("help") && !cmd.equals("?")) {
 				p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
 			}
@@ -198,7 +203,7 @@ public class CartCommands {
 		Commands.info(p, prop);
 
 		// Loaded?
-		if (prop.getMember() == null) {
+		if (prop.getHolder() == null) {
 			p.sendMessage(ChatColor.RED + "The train of this cart is unloaded! To keep it loaded, use:");
 			p.sendMessage(ChatColor.YELLOW + "   /train keepchunksloaded true");
 		}

@@ -162,7 +162,7 @@ public class TCListener implements Listener {
 			}
 		});
 		mm.resetCollisionEnter();
-		mm.update();
+		mm.onPropertiesChanged();
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
@@ -212,7 +212,7 @@ public class TCListener implements Listener {
 				} else if (member.getGroup().getProperties().mobCollision != CollisionMode.ENTER) {
 					event.setCancelled(true);
 				}
-				member.update();
+				member.onPropertiesChanged();
 			}
 		}
 	}

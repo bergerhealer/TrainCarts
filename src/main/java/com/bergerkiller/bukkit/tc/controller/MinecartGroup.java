@@ -37,12 +37,12 @@ import com.bergerkiller.bukkit.tc.events.GroupUnloadEvent;
 import com.bergerkiller.bukkit.tc.events.MemberAddEvent;
 import com.bergerkiller.bukkit.tc.events.MemberBlockChangeEvent;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
-import com.bergerkiller.bukkit.tc.properties.IParsable;
+import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
-public class MinecartGroup extends MinecartGroupStore implements IParsable {
+public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
 	private static final long serialVersionUID = 3;
 
 	private final Queue<Action> actions = new LinkedList<Action>();
@@ -54,9 +54,7 @@ public class MinecartGroup extends MinecartGroupStore implements IParsable {
 
 	protected MinecartGroup() {}
 
-	/*
-	 * Properties
-	 */
+	@Override
 	public TrainProperties getProperties() {
 		if (this.prop == null) {
 			this.prop = TrainPropertiesStore.create();
@@ -712,15 +710,16 @@ public class MinecartGroup extends MinecartGroupStore implements IParsable {
 		return false;
 	}
 
+	@Override
+	public void onPropertiesChanged() {
+		this.getBlockTracker().update();
+	}
+
 	/**
 	 * Aborts any physics routines going on in this tick
 	 */
 	public void breakPhysics() {
 		this.breakPhysics = true;
-	}
-
-	public void update() {
-		this.getBlockTracker().update();
 	}
 
 	/*

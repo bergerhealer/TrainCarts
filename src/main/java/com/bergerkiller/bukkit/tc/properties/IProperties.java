@@ -200,4 +200,11 @@ public interface IProperties extends IParsable {
 	 * @param node to save to
 	 */
 	public void save(ConfigurationNode node);
+
+	/**
+	 * Gets the owner of these properties
+	 * 
+	 * @return properties holder
+	 */
+	public IPropertiesHolder getHolder();
 }

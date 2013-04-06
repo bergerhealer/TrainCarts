@@ -74,12 +74,6 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 		return false;
 	}
 
-	// TODO: Handle an event here
-	public void setItem(int index, ItemStack item) {
-		// getItems().set(index, item);
-		this.update();
-	}
-
 	@Override
 	public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
 		super.onPhysicsPostMove(speedFactor);

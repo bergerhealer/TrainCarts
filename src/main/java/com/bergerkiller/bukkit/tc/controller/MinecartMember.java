@@ -58,7 +58,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
-import com.bergerkiller.bukkit.tc.properties.IParsable;
+import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
@@ -69,7 +69,7 @@ import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
-public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IParsable {
+public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IPropertiesHolder {
 	public static final double GRAVITY_MULTIPLIER = 0.04;
 	public static final double VERTRAIL_MULTIPLIER = 0.02;
 	public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
@@ -106,9 +106,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		this.directionFrom = this.directionTo = FaceUtil.yawToFace(entity.loc.getYaw(), false);
 	}
 
-	/*
-	 * General getters and setters
-	 */
+	@Override
  	public CartProperties getProperties() {
  		if (this.properties == null) {
  			this.properties = CartProperties.get(this);
@@ -822,7 +820,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.getGroup().connect(this, with);
 	}
 
-	public void update() {
+	@Override
+	public void onPropertiesChanged() {
 		this.getBlockTracker().update();
 	}
 

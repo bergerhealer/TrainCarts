@@ -60,7 +60,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		return "cart";
 	}
 
-	public MinecartMember<?> getMember() {
+	@Override
+	public MinecartMember<?> getHolder() {
 		MinecartMember<?> member = this.member.get();
 		if (member == null || member.getEntity().isDead() || member.isUnloaded() || !member.getEntity().getUniqueId().equals(this.uuid)) {
 			return this.member.set(MinecartMemberStore.get(this.uuid));
@@ -69,9 +70,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		}
 	}
 	public MinecartGroup getGroup() {
-		MinecartMember<?> member = this.getMember();
+		MinecartMember<?> member = this.getHolder();
 		if (member == null) {
-			return this.group == null ? null : this.group.getGroup();
+			return this.group == null ? null : this.group.getHolder();
 		} else {
 			return member.getGroup();
 		}
@@ -81,8 +82,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 	
 	public void tryUpdate() {
-		MinecartMember<?> m = this.getMember();
-		if (m != null) m.update();
+		MinecartMember<?> m = this.getHolder();
+		if (m != null) m.onPropertiesChanged();
 	}
 
 	/**
@@ -256,7 +257,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
 	@Override
 	public BlockLocation getLocation() {
-		MinecartMember<?> member = this.getMember();
+		MinecartMember<?> member = this.getHolder();
 		if (member != null) {
 			return new BlockLocation(member.getEntity().getLocation().getBlock());
 		} else {

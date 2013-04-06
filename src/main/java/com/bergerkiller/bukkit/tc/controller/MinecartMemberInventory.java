@@ -11,6 +11,6 @@ public class MinecartMemberInventory extends EntityInventoryController<CommonMin
 	public void onItemSet(int index, ItemStack item) {
 		super.onItemSet(index, item);
 		// Mark the Entity as changed
-		((MinecartMember<?>) entity.getController()).update();
+		((MinecartMember<?>) entity.getController()).onPropertiesChanged();
 	}
 }

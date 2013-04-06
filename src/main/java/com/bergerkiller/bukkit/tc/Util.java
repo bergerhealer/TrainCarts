@@ -25,6 +25,9 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.properties.IParsable;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 
 public class Util {
@@ -475,6 +478,28 @@ public class Util {
 		try {
 			return EntityType.valueOf(entityName) != null;
 		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	public static boolean parseProperties(IParsable properties, String key, String args) {
+		IProperties prop;
+		IPropertiesHolder holder;
+		if (properties instanceof IPropertiesHolder) {
+			holder = ((IPropertiesHolder) properties);
+			prop = holder.getProperties();
+		} else if (properties instanceof IProperties) {
+			prop = (IProperties) properties;
+			holder = prop.getHolder();
+		} else {
+			return false;
+		}
+		if (holder == null) {
+			return prop.parseSet(key, args);
+		} else if (prop.parseSet(key, args) || holder.parseSet(key, args))  {
+			holder.onPropertiesChanged();
+			return true;
+		} else {
 			return false;
 		}
 	}
