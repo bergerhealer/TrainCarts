@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.statements;
 
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -69,6 +70,16 @@ public class StatementItems extends Statement {
 				} else if (Util.evaluate(count, itemname)) {
 					return true;
 				}
+			}
+			// Check for 'special' named items
+			count = 0;
+			for (ItemStack item : inv) {
+				if (ItemUtil.hasDisplayName(item) && ItemUtil.getDisplayName(item).equals(itemnamefixed)) {
+					count++;
+				}
+			}
+			if (count > 0 && Util.evaluate(count, itemname)) {
+				return true;
 			}
 		}
 		return false;

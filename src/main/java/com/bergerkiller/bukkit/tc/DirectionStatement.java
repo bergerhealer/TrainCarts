@@ -30,7 +30,7 @@ public class DirectionStatement {
 			final String dirText = text.substring(0, idx).toLowerCase(Locale.ENGLISH);
 			if (LogicUtil.contains(dirText, "c", "continue")) {
 				this.direction = Direction.fromFace(cartDirection);
-			} else if (LogicUtil.contains(dirText, "r", "reverse")) {
+			} else if (LogicUtil.contains(dirText, "i", "rev", "reverse", "inverse")) {
 				this.direction = Direction.fromFace(cartDirection.getOppositeFace());
 			} else {
 				this.direction = Direction.parse(dirText);
