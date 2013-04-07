@@ -6,6 +6,7 @@ import java.util.Iterator;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 
@@ -101,6 +102,9 @@ public class ItemAnimation {
 		}
 		if (object instanceof BlockState) {
 			object = ((BlockState) object).getBlock();
+		}
+		if (object instanceof DoubleChest) {
+			return ((DoubleChest) object).getLocation();
 		}
 		if (object instanceof Block) {
 			return ((Block) object).getLocation().add(0.5, 0.5, 0.5);

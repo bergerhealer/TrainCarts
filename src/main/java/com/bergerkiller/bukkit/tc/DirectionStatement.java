@@ -5,7 +5,6 @@ import java.util.Locale;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -37,7 +36,11 @@ public class DirectionStatement {
 				this.direction = Direction.parse(dirText);
 			}
 		}
-		this.number = ParseUtil.parseInt(this.text, null);
+		try {
+			this.number = Integer.parseInt(this.text);
+		} catch (NumberFormatException ex) {
+			this.number = null;
+		}
 	}
 
 	public boolean has(SignActionEvent event, MinecartMember<?> member) {
