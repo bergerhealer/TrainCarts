@@ -620,7 +620,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			this.entity.setVelocityChanged(true);
 			this.entity.setDamage(this.entity.getDamage() + damage * 10);
 			// Check whether the entity is a creative (insta-build) entity
-			if (TrainCarts.instantCreativeDestroy && Util.isCreativePlayer(damager)) {
+			if (TrainCarts.instantCreativeDestroy && Util.canInstantlyBuild(damager)) {
 				this.entity.setDamage(100);
 			}
 			if (this.entity.getDamage() > 40) {

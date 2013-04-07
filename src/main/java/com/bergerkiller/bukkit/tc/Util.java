@@ -466,7 +466,7 @@ public class Util {
 		}
 	}
 
-	public static boolean isCreativePlayer(Entity entity) {
+	public static boolean canInstantlyBuild(Entity entity) {
 		return entity instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
 	}
 

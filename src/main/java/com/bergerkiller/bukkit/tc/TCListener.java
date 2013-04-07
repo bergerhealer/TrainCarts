@@ -39,6 +39,8 @@ import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
@@ -438,10 +440,30 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onSignChange(SignChangeEvent event) {
-		if (TrainCarts.isWorldDisabled(event)) {
+		if (event.isCancelled() || TrainCarts.isWorldDisabled(event)) {
 			return;
 		}
 		SignAction.handleBuild(event);
+		if (event.isCancelled()) {
+			// Properly give the sign back to the player that placed it
+			// If this is impossible for whatever reason, just drop it
+			if (!Util.canInstantlyBuild(event.getPlayer())) {
+				ItemStack item = event.getPlayer().getItemInHand();
+				if (LogicUtil.nullOrEmpty(item)) {
+					event.getPlayer().setItemInHand(new ItemStack(Material.SIGN, 1));
+				} else if (item.getTypeId() == Material.SIGN.getId() && item.getAmount() < ItemUtil.getMaxSize(item)) {
+					ItemUtil.addAmount(item, 1);
+					event.getPlayer().setItemInHand(item);
+				} else {
+					// Drop the item
+					Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);
+					loc.getWorld().dropItemNaturally(loc, new ItemStack(Material.SIGN, 1));
+				}
+			}
+
+			// Break the block
+			event.getBlock().setType(Material.AIR);
+		}
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)

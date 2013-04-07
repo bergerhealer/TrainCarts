@@ -187,6 +187,8 @@ public abstract class SignAction {
 						member.getGroup().getBlockTracker().updatePosition();
 					}
 				}
+			} else {
+				event.setCancelled(true);
 			}
 			if (event.isCancelled()) {
 				return;

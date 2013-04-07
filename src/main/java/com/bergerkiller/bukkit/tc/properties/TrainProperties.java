@@ -652,10 +652,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.removeTags(arg);
 		} else if (key.equals("name") || key.equals("rename") || key.equals("setname")) {
 			String trainName = arg;
-			for (int i = 1; i < Integer.MAX_VALUE; i++) {
-				trainName = arg.replace("#", Integer.toString(i));
-				if (!TrainProperties.exists(trainName)) {
-					break;
+			if (arg.contains("#")) {
+				// Replace the numeric constant
+				for (int i = 1; i < Integer.MAX_VALUE; i++) {
+					trainName = arg.replace("#", Integer.toString(i));
+					if (!TrainProperties.exists(trainName)) {
+						break;
+					}
+				}
+			} else {
+				// No constant: append a number at the end
+				for (int i = 1; i < Integer.MAX_VALUE && !TrainProperties.exists(trainName); i++) {
+					trainName = arg + Integer.toString(i);
 				}
 			}
 			this.setName(trainName);

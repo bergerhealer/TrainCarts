@@ -21,7 +21,7 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
 		super.onDamage(damagesource, damage);
 		// If entity died and the source of the damage is 'igniting' the TNT, explode
 		// Also explode if the TNT minecart is moving really fast
-		if (entity.isDead() && !Util.isCreativePlayer(damagesource.getEntity()) && 
+		if (entity.isDead() && !Util.canInstantlyBuild(damagesource.getEntity()) && 
 				(damagesource.isFireDamage() || damagesource.isExplosive() || entity.isMovingFast())) {
 			// Important: set dead beforehand
 			ignoreDamage = true;
