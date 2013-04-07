@@ -304,14 +304,17 @@ public class TCListener implements Listener {
 					return;
 				}
 
-				// Place logic
+				// Place logic for special rail types
 				lastPlayer = event.getPlayer();
 				if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
-					//perform a manual Minecart spawn
 					BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
 					if (dir == BlockFace.SELF) {
 						dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
 					}
+					at.setYaw(FaceUtil.faceToYaw(dir));
+					MinecartMemberStore.spawnBy(at, event.getPlayer());
+				} else if (Util.ISVERTRAIL.get(id)) {
+					BlockFace dir = Util.getVerticalRailDirection(event.getClickedBlock().getData());
 					at.setYaw(FaceUtil.faceToYaw(dir));
 					MinecartMemberStore.spawnBy(at, event.getPlayer());
 				}

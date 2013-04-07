@@ -28,6 +28,13 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
 		final CommonMinecart<?> entity = member.getEntity();
 		final IntVector3 block = member.getBlockPos();
 
+		// First: check whether the Minecart is moving up this slope
+		// If moving down, simply use the Sloped logic in the underlying super Class
+		if (member.getDirectionTo() == this.getDirection().getOppositeFace()) {
+			super.onPostMove(member);
+			return;
+		}
+
 		double factor = 0.0;
 		if (this.alongZ) {
 			factor = this.getDirection().getModZ() * (block.midZ() - entity.loc.getZ());
