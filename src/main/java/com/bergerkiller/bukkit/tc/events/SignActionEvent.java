@@ -132,7 +132,7 @@ public class SignActionEvent extends Event implements Cancellable {
 					}
 				}
 			}
-		} else {
+		} else if (mainLine.endsWith("]")) {
 			String text = mainLine.substring(idx + 1, mainLine.length() - 1);
 			watchedFaces.addAll(Arrays.asList(Direction.parseAll(text, this.getFacing().getOppositeFace())));
 		}
