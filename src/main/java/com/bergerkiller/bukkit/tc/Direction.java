@@ -67,4 +67,17 @@ public enum Direction {
 		}
 		return NONE;
 	}
+
+	public static Direction fromFace(BlockFace face) {
+		switch (face) {
+			case NORTH : return NORTH;
+			case EAST : return EAST;
+			case SOUTH : return SOUTH;
+			case WEST : return WEST;
+			case UP : return UP;
+			case DOWN : return DOWN;
+			case SELF : return FORWARD;
+			default : return NONE;
+		}
+	}
 }

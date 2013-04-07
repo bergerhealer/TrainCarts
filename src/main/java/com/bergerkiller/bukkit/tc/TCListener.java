@@ -137,7 +137,6 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
-		System.out.println("EXIT?");
 		if (event.isCancelled() || TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) {
 			return;
 		}
@@ -316,6 +315,7 @@ public class TCListener implements Listener {
 				} else if (Util.ISVERTRAIL.get(id)) {
 					BlockFace dir = Util.getVerticalRailDirection(event.getClickedBlock().getData());
 					at.setYaw(FaceUtil.faceToYaw(dir));
+					at.setPitch(-90.0f);
 					MinecartMemberStore.spawnBy(at, event.getPlayer());
 				}
 			}

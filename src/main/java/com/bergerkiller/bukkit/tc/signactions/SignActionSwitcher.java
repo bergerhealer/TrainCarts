@@ -60,15 +60,16 @@ public class SignActionSwitcher extends SignAction {
 			return;
 		}
 		if (info.isFacing()) {
+			final BlockFace cartDirection = info.getCartDirection();
 			//find out what statements to parse
 			List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
-			statements.add(new DirectionStatement(info.getLine(2), Direction.LEFT));
-			statements.add(new DirectionStatement(info.getLine(3), Direction.RIGHT));
+			statements.add(new DirectionStatement(info.getLine(2), cartDirection, Direction.LEFT));
+			statements.add(new DirectionStatement(info.getLine(3), cartDirection, Direction.RIGHT));
 			//other signs below this sign we could parse?
 			for (Sign sign : info.findSignsBelow()) {
 				boolean valid = true;
 				for (String line : sign.getLines()) {
-					DirectionStatement stat = new DirectionStatement(line);
+					DirectionStatement stat = new DirectionStatement(line, cartDirection);
 					if (stat.direction == Direction.NONE) {
 						valid = false;
 						break;
@@ -86,7 +87,7 @@ public class SignActionSwitcher extends SignAction {
 				if (sign == null) break;
 				boolean valid = true;
 				for (String line : sign.getLines()) {
-					DirectionStatement stat = new DirectionStatement(line);
+					DirectionStatement stat = new DirectionStatement(line, cartDirection);
 					if (stat.direction == Direction.NONE) {
 						valid = false;
 						break;

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.events;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -136,16 +137,21 @@ public class SignActionEvent extends Event implements Cancellable {
 		} else {
 			// Find out by parsing the main line
 			mainLine = mainLine.substring(idx + 1);
-			Direction dir = Direction.parse(mainLine);
-			if (dir == Direction.NONE) {
-				for (char c : mainLine.toCharArray()) {
-					dir = Direction.parse(c);
-					if (dir != Direction.NONE) {
-						watchedFaces.add(dir.getDirection(this.getFacing()).getOppositeFace());
-					}
-				}
+			if (mainLine.equalsIgnoreCase("all") || mainLine.equals("*")) {
+				// All faces
+				watchedFaces.addAll(Arrays.asList(FaceUtil.BLOCK_SIDES));
 			} else {
-				watchedFaces.add(dir.getDirection(this.getFacing().getOppositeFace()));
+				Direction dir = Direction.parse(mainLine);
+				if (dir == Direction.NONE) {
+					for (char c : mainLine.toCharArray()) {
+						dir = Direction.parse(c);
+						if (dir != Direction.NONE) {
+							watchedFaces.add(dir.getDirection(this.getFacing()).getOppositeFace());
+						}
+					}
+				} else {
+					watchedFaces.add(dir.getDirection(this.getFacing().getOppositeFace()));
+				}
 			}
 		}
 		// Apply watched faces
