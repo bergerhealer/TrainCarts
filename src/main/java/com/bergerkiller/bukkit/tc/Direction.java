@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.LinkedHashSet;
+
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -79,5 +81,40 @@ public enum Direction {
 			case SELF : return FORWARD;
 			default : return NONE;
 		}
+	}
+
+	public static Direction[] parseAll(String text) {
+		if (text.equalsIgnoreCase("all") || text.equals("*")) {
+			Direction[] dirs = new Direction[FaceUtil.BLOCK_SIDES.length];
+			for (int i = 0; i < dirs.length; i++) {
+				dirs[i] = fromFace(FaceUtil.BLOCK_SIDES[i]);
+			}
+			return dirs;
+		} else {
+			LinkedHashSet<Direction> faces = new LinkedHashSet<Direction>();
+			Direction dir = Direction.parse(text);
+			if (dir == Direction.NONE) {
+				for (char c : text.toCharArray()) {
+					dir = Direction.parse(c);
+					if (dir == Direction.NONE) {
+						return new Direction[0];
+					} else {
+						faces.add(dir);
+					}
+				}
+			} else {
+				faces.add(dir);
+			}
+			return faces.toArray(new Direction[0]);
+		}
+	}
+
+	public static BlockFace[] parseAll(String text, BlockFace absoluteDirection) {
+		Direction[] dirs = parseAll(text);
+		BlockFace[] faces = new BlockFace[dirs.length];
+		for (int i = 0; i < faces.length; i++) {
+			faces[i] = dirs[i].getDirection(absoluteDirection);
+		}
+		return faces;
 	}
 }

@@ -131,28 +131,10 @@ public class SignActionEvent extends Event implements Cancellable {
 						}
 					}
 				}
-			} else {
-				watchedFaces.add(facing.getOppositeFace());
 			}
 		} else {
-			// Find out by parsing the main line
-			mainLine = mainLine.substring(idx + 1);
-			if (mainLine.equalsIgnoreCase("all") || mainLine.equals("*")) {
-				// All faces
-				watchedFaces.addAll(Arrays.asList(FaceUtil.BLOCK_SIDES));
-			} else {
-				Direction dir = Direction.parse(mainLine);
-				if (dir == Direction.NONE) {
-					for (char c : mainLine.toCharArray()) {
-						dir = Direction.parse(c);
-						if (dir != Direction.NONE) {
-							watchedFaces.add(dir.getDirection(this.getFacing()).getOppositeFace());
-						}
-					}
-				} else {
-					watchedFaces.add(dir.getDirection(this.getFacing().getOppositeFace()));
-				}
-			}
+			String text = mainLine.substring(idx + 1, mainLine.length() - 1);
+			watchedFaces.addAll(Arrays.asList(Direction.parseAll(text, this.getFacing().getOppositeFace())));
 		}
 		// Apply watched faces
 		if (watchedFaces.isEmpty()) {

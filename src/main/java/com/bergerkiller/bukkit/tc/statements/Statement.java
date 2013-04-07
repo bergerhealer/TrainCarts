@@ -76,6 +76,7 @@ public abstract class Statement {
 		register(new StatementMob());
 		register(new StatementRedstone());
 		register(new StatementPermission());
+		register(new StatementDirection());
 		register(new StatementTag()); //register lastly!
 	}
 
