@@ -624,17 +624,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				this.entity.setDamage(100);
 			}
 			if (this.entity.getDamage() > 40) {
-				// Some sort of validation check (what is the use...?)
-				if (this.entity.hasPassenger()) {
-					this.entity.setPassenger(this.entity.getPassenger());
-				}
-
 				// Send an event, pass in the drops to drop
 				List<ItemStack> drops = new ArrayList<ItemStack>(2);
-				if (TrainCarts.breakCombinedCarts) {
-					drops.addAll(this.entity.getBrokenDrops());
-				} else {
-					drops.add(new ItemStack(this.entity.getCombinedItem()));
+				if (TrainCarts.spawnItemDrops) {
+					if (TrainCarts.breakCombinedCarts) {
+						drops.addAll(this.entity.getBrokenDrops());
+					} else {
+						drops.add(new ItemStack(this.entity.getCombinedItem()));
+					}
 				}
 				VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(this.entity.getEntity(), damager);
 				if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
@@ -673,6 +670,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			if (!this.isUnloaded()) {
 				// Note: No getGroup() calls are allowed here!
 				// They may create new groups!
+				if (entity.hasPassenger()) {
+					this.eject();
+				}
 				if (this.group != null) {
 					entity.setDead(false);
 					this.getBlockTracker().clear();
