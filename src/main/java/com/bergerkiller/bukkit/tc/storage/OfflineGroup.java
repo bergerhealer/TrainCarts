@@ -25,13 +25,12 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 public class OfflineGroup {
 	public OfflineMember[] members;
 	public String name;
-	public final LongHashSet chunks = new LongHashSet();
-	public final LongHashSet loadedChunks = new LongHashSet();
+	public final LongHashSet chunks;
+	public final LongHashSet loadedChunks;
 	public UUID worldUUID;
 
-	public OfflineGroup() {}
 	public OfflineGroup(MinecartGroup group) {
-		this.members = new OfflineMember[group.size()];
+		this(group.size());
 		for (int i = 0;i < members.length;i++) {
 			this.members[i] = new OfflineMember(this, group.get(i));
 		}
@@ -44,6 +43,11 @@ public class OfflineGroup {
 			}
 		}
 		this.genChunks();
+	}
+	private OfflineGroup(int memberCount) {
+		this.members = new OfflineMember[memberCount];
+		this.chunks = new LongHashSet(memberCount);
+		this.loadedChunks = new LongHashSet(memberCount);
 	}
 
 	public boolean testFullyLoaded() {
@@ -107,8 +111,7 @@ public class OfflineGroup {
 		stream.writeUTF(this.name);
 	}
 	public static OfflineGroup readFrom(DataInputStream stream) throws IOException {
-		OfflineGroup wg = new OfflineGroup();
-		wg.members = new OfflineMember[stream.readInt()];
+		OfflineGroup wg = new OfflineGroup(stream.readInt());
 		for (int i = 0;i < wg.members.length;i++) {
 			wg.members[i] = OfflineMember.readFrom(stream);
 		}

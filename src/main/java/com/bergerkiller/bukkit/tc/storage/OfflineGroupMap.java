@@ -42,6 +42,8 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 		for (OfflineGroup group : groups) {
 			for (OfflineMember member : group.members) {
 				if (member.entityUID.equals(memberUUID)) {
+					// Undo previous registration
+					remove(group);
 					// Remove this member from the group
 					ArrayList<OfflineMember> members = new ArrayList<OfflineMember>();
 					for (OfflineMember m : group.members) {
@@ -49,9 +51,11 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 							members.add(m);
 						}
 					}
-					// Update the group with the missing minecart and new chunks
-					group.members = members.toArray(new OfflineMember[0]);
-					group.genChunks();
+					if (!members.isEmpty()) {
+						group.members = members.toArray(new OfflineMember[0]);
+						group.genChunks();
+						add(group);
+					}
 					// Finished
 					return true;
 				}
@@ -88,7 +92,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 			}
 		}
 	}
-	
+
 	public Set<OfflineGroup> remove(Chunk chunk) {
 		return remove(chunk.getX(), chunk.getZ());
 	}
