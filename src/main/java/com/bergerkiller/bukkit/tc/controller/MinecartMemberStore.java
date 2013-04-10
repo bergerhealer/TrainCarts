@@ -95,7 +95,9 @@ public abstract class MinecartMemberStore {
 		// Already assigned a controller?
 		CommonEntity<?> entity = CommonEntity.get(source);
 		if (entity.getController() instanceof MinecartMember) {
-			return (MinecartMember<?>) entity.getController();
+			MinecartMember member = (MinecartMember) entity.getController();
+			member.unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
+			return member;
 		}
 
 		// Check for conversion

@@ -217,11 +217,17 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		this.getProperties().add(member);
 	}
 	public void add(int index, MinecartMember<?> member) {
+		if (member.isUnloaded()) {
+			throw new IllegalArgumentException("Can not add unloaded members to groups");
+		}
 		super.add(index, member);
 		MemberAddEvent.call(member, this);
 		this.addMember(member);
 	}
 	public boolean add(MinecartMember<?> member) {
+		if (member.isUnloaded()) {
+			throw new IllegalArgumentException("Can not add unloaded members to groups");
+		}
 		super.add(member);
 		MemberAddEvent.call(member, this);
 		this.addMember(member);
@@ -231,6 +237,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		super.addAll(index, members);
 		MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
 		for (MinecartMember<?> m : memberArr) {
+			if (m.isUnloaded()) {
+				throw new IllegalArgumentException("Can not add unloaded members to groups");
+			}
 			MemberAddEvent.call(m, this);
 		}
 		for (MinecartMember<?> member : memberArr) {
@@ -242,6 +251,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		super.addAll(members);
 		MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
 		for (MinecartMember<?> m : memberArr) {
+			if (m.isUnloaded()) {
+				throw new IllegalArgumentException("Can not add unloaded members to groups");
+			}
 			MemberAddEvent.call(m, this);
 		}
 		for (MinecartMember<?> member : memberArr) {
@@ -489,11 +501,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		this.getBlockTracker().refresh();
 	}
 	private void teleportMember(MinecartMember<?> member, Location location) {
-		member.unloaded = true;
 		member.ignoreDie.set();
 		member.getEntity().teleport(location);
 		member.ignoreDie.clear();
-		member.unloaded = false;
 		member.getRailTracker().refreshBlock();
 	}
 	/**

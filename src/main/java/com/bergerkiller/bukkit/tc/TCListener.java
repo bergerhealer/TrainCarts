@@ -36,7 +36,7 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
-import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
+import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -184,15 +184,20 @@ public class TCListener implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	public void onEntityRemove(EntityRemoveEvent event) {
+	public void onEntityRemoveFromServer(EntityRemoveFromServerEvent event) {
 		if (event.getEntity() instanceof Minecart) {
 			MinecartMember<?> member = MinecartMemberStore.get(event.getEntity());
-			if (member == null || member.isUnloaded() || member.getEntity().isDead()) {
+			if (member == null) {
 				return;
 			}
 			MinecartGroup group = member.getGroup();
-			if (group != null && group.size() == 1) {
+			if (group == null) {
+				return;
+			}
+			if (group.size() == 1) {
 				group.unload();
+			} else {
+				group.remove(member);
 			}
 		}
 	}

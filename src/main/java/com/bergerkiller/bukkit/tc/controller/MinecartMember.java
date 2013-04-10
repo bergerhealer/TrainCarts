@@ -1136,7 +1136,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				} else {
 					newpitch = 0;
 				}
-			} else if (movedXZ) {
+			} else if (movedXZ && Math.abs(movedY) > 0.001) {
 				// Use movement for pitch (but only when moving horizontally)
 				newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
 			}
