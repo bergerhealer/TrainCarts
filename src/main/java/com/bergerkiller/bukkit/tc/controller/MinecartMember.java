@@ -675,32 +675,36 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public void onDie() {
-		// Die ignored?
-		if (this.ignoreDie.clear()) {
-			return;
-		}
-		if (!entity.isDead() || !this.died) {
-			super.onDie();
-			this.died = true;
-			if (!this.isUnloaded()) {
-				// Note: No getGroup() calls are allowed here!
-				// They may create new groups!
-				if (entity.hasPassenger()) {
-					this.eject();
-				}
-				if (this.group != null) {
-					entity.setDead(false);
-					this.getBlockTracker().clear();
-					entity.setDead(true);
-				}
-				if (entity.hasPassenger()) {
-					entity.setPassenger(null);
-				}
-				if (this.group != null) {
-					this.group.remove(this);
-				}
-				CartPropertiesStore.remove(entity.getUniqueId());
+		try {
+			// Die ignored?
+			if (this.ignoreDie.clear()) {
+				return;
 			}
+			if (!entity.isDead() || !this.died) {
+				super.onDie();
+				this.died = true;
+				if (!this.isUnloaded()) {
+					// Note: No getGroup() calls are allowed here!
+					// They may create new groups!
+					if (entity.hasPassenger()) {
+						this.eject();
+					}
+					if (this.group != null) {
+						entity.setDead(false);
+						this.getBlockTracker().clear();
+						entity.setDead(true);
+					}
+					if (entity.hasPassenger()) {
+						entity.setPassenger(null);
+					}
+					if (this.group != null) {
+						this.group.remove(this);
+					}
+					CartPropertiesStore.remove(entity.getUniqueId());
+				}
+			}
+		} catch (Throwable t) {
+			TrainCarts.plugin.handle(t);
 		}
 	}
 

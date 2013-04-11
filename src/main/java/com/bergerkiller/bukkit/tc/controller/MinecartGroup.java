@@ -811,11 +811,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 			}
 		} catch (GroupUnloadedException ex) {
 			//this group is gone
-		} catch (Exception ex) {
+		} catch (Throwable t) {
 			final TrainProperties p = getProperties();
 			TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
-			ex.printStackTrace();
-		} catch (Throwable t) {
 			TrainCarts.plugin.handle(t);
 		}
 	}

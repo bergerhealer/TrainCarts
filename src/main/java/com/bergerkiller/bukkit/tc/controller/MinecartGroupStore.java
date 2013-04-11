@@ -32,8 +32,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 	public static void doFixedTick() {
 		groupTickBuffer.clear();
 		groupTickBuffer.addAll(groups);
-		for (MinecartGroup group : groupTickBuffer) {
-			try {
+		try {
+			for (MinecartGroup group : groupTickBuffer) {
 				if (!group.ticked.clear()) {
 					// Ticked was False, tick it now
 					group.doPhysics();
@@ -42,9 +42,9 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 						member.getEntity().doPostTick();
 					}
 				}
-			} catch (Throwable t) {
-				t.printStackTrace();
 			}
+		} catch (Throwable t) {
+			TrainCarts.plugin.handle(t);
 		}
 	}
 
