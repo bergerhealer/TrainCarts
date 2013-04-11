@@ -278,20 +278,25 @@ public class OfflineGroupManager {
 				public void read(DataInputStream stream) throws IOException {
 					int totalgroups = 0;
 					int totalmembers = 0;
-					int worldcount = stream.readInt();
-					for (int i = 0; i < worldcount; i++) {
+					final int worldcount = stream.readInt();
+					for (int worldIdx = 0; worldIdx < worldcount; worldIdx++) {
 						UUID worldUID = StreamUtil.readUUID(stream);
-						int groupcount = stream.readInt();
+						final int groupcount = stream.readInt();
 						OfflineGroupManager man = get(worldUID);
-						for (int j = 0; j < groupcount; j++) {
+
+						// Read all the groups contained
+						for (int groupIdx = 0; groupIdx < groupcount; groupIdx++) {
 							OfflineGroup wg = OfflineGroup.readFrom(stream);
 							wg.worldUUID = worldUID;
-							for (OfflineMember wm : wg.members) hiddenMinecarts.add(wm.entityUID);
+
+							// Register the new offline group within (this) Manager
+							for (OfflineMember wm : wg.members) {
+								hiddenMinecarts.add(wm.entityUID);
+							}
 							man.groupmap.add(wg);
 							containedTrains.add(wg.name);
 							totalmembers += wg.members.length;
 						}
-
 						totalgroups += groupcount;
 					}
 					String msg = totalgroups + " Train";

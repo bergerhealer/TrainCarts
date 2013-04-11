@@ -126,7 +126,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	public Set<OfflineGroup> getOrCreate(long chunk) {
 		HashSet<OfflineGroup> rval = this.groupmap.get(chunk);
 		if (rval == null) {
-			rval = new HashSet<OfflineGroup>();
+			rval = new HashSet<OfflineGroup>(1);
 			this.groupmap.put(chunk, rval);
 		}
 		return rval;

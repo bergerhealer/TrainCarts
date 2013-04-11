@@ -46,8 +46,9 @@ public class OfflineGroup {
 	}
 	private OfflineGroup(int memberCount) {
 		this.members = new OfflineMember[memberCount];
-		this.chunks = new LongHashSet(memberCount);
-		this.loadedChunks = new LongHashSet(memberCount);
+		final int chunkCount = 25 + (int) ((double) (5 / 16) * (double) memberCount);
+		this.chunks = new LongHashSet(chunkCount);
+		this.loadedChunks = new LongHashSet(chunkCount);
 	}
 
 	public boolean testFullyLoaded() {
@@ -107,7 +108,9 @@ public class OfflineGroup {
 	 */
 	public void writeTo(DataOutputStream stream) throws IOException {
 		stream.writeInt(members.length);
-		for (OfflineMember member : members) member.writeTo(stream);
+		for (OfflineMember member : members) {
+			member.writeTo(stream);
+		}
 		stream.writeUTF(this.name);
 	}
 	public static OfflineGroup readFrom(DataInputStream stream) throws IOException {

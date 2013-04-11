@@ -706,17 +706,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				// Add in the previous chunks
 				for (cx = -2; cx <= 2; cx++) {
 					for (cz = -2; cz <= 2; cz++) {
-						unloadedChunks.add(prevcx + cx, prevcz + cz);
+						unloadedChunks.add(MathUtil.longHashToLong(prevcx + cx, prevcz + cz));
 					}
 				}
 				// Remove the current chunks
 				for (cx = -2; cx <= 2; cx++) {
 					for (cz = -2; cz <= 2; cz++) {
-						unloadedChunks.remove(newcx + cx, newcz + cz);
+						unloadedChunks.remove(MathUtil.longHashToLong(newcx + cx, newcz + cz));
 					}
 				}
 				// Queue-unload the chunks that are not kept loaded
-				for (long key : unloadedChunks.toArray()) {
+				for (long key : unloadedChunks) {
 					cx = MathUtil.longHashMsw(key);
 					cz = MathUtil.longHashLsw(key);
 					entity.getWorld().unloadChunkRequest(cx, cz, true);
