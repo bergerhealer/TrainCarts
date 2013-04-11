@@ -64,7 +64,6 @@ import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -209,6 +208,22 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (Math.abs(cx - entity.loc.x.chunk()) > 2) return false;
 		if (Math.abs(cz - entity.loc.z.chunk()) > 2) return false;
 		return true;
+	}
+
+	private int prevcx, prevcz;
+
+	protected void updateChunks(LongHashSet previousChunks, LongHashSet newChunks) {
+		int newcx = entity.loc.x.chunk();
+		int newcz = entity.loc.z.chunk();
+		int cx, cz;
+		for (cx = -2; cx <= 2; cx++) {
+			for (cz = -2; cz <= 2; cz++) {
+				previousChunks.add(prevcx + cx, prevcz + cz);
+				newChunks.add(newcx + cx, newcz + cz);
+			}
+		}
+		prevcx = newcx;
+		prevcz = newcz;
 	}
 
 	public boolean isSingle() {
@@ -689,45 +704,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
 
-	private int prevcx, prevcz;
-	protected void checkChunks(boolean canunload) throws GroupUnloadedException {
-		int newcx = entity.loc.x.chunk();
-		int newcz = entity.loc.z.chunk();
-		if (newcx != prevcx || newcz != prevcz) {
-			if (canunload) {
-				if (!WorldUtil.areChunksLoaded(entity.getWorld(), newcx, newcz, 2)) {
-					OfflineGroupManager.hideGroup(this.getGroup());
-					throw new GroupUnloadedException();
-				}
-			} else {
-				// Queue the chunks this minecart left for unloading
-				LongHashSet unloadedChunks = new LongHashSet(25);
-				int cx, cz;
-				// Add in the previous chunks
-				for (cx = -2; cx <= 2; cx++) {
-					for (cz = -2; cz <= 2; cz++) {
-						unloadedChunks.add(MathUtil.longHashToLong(prevcx + cx, prevcz + cz));
-					}
-				}
-				// Remove the current chunks
-				for (cx = -2; cx <= 2; cx++) {
-					for (cz = -2; cz <= 2; cz++) {
-						unloadedChunks.remove(MathUtil.longHashToLong(newcx + cx, newcz + cz));
-					}
-				}
-				// Queue-unload the chunks that are not kept loaded
-				for (long key : unloadedChunks) {
-					cx = MathUtil.longHashMsw(key);
-					cz = MathUtil.longHashLsw(key);
-					entity.getWorld().unloadChunkRequest(cx, cz, true);
-				}
-				this.loadChunks();
-			}
-			prevcx = newcx;
-			prevcz = newcz;
-		}
-	}
-
 	@Override
 	public boolean onEntityCollision(Entity e) {
 		if (this.isUnloaded() || this.getEntity().isDead()) {
@@ -939,9 +915,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		// Update the entity shape
 		entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
 
+		boolean passengerControlled = false;
+		if (getGroup().getProperties().isManualMovementAllowed() && entity.hasPassenger()) {
+			Vector vel = entity.getPassenger().getVelocity();
+			vel.setY(0.0);
+			if (vel.lengthSquared() > 1.0E-4 && entity.vel.xz.lengthSquared() < 0.01) {
+				entity.vel.xz.add(vel.multiply(0.1));
+				passengerControlled = true;
+			}
+		}
+
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
-		if (getRailType() == RailType.BRAKE && !getGroup().isMovementControlled()) {
+		if (getRailType() == RailType.BRAKE && !getGroup().isMovementControlled() && !passengerControlled) {
 			if (entity.vel.xz.lengthSquared() < 0.0009) {
 				entity.vel.multiply(0.0);
 			} else {
@@ -1104,6 +1090,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			g.remove();
 			super.onTick();
 		} else if (g.tail() == this) {
+			g.ticked.set();
 			g.doPhysics();
 		}
 	}

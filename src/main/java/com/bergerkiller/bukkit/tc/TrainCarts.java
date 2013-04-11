@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
@@ -89,6 +90,7 @@ public class TrainCarts extends PluginBase {
 	public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
+	private static Task fixGroupTickTask;
 
 	public static boolean EssentialsEnabled = false;
 	public static boolean SignLinkEnabled = false;
@@ -440,6 +442,13 @@ public class TrainCarts extends PluginBase {
 		// Start the path finding task
 		PathProvider.init();
 
+		// Hackish fix the chunk persistence failing
+		fixGroupTickTask = new Task(this) {
+			public void run() {
+				MinecartGroupStore.doFixedTick();
+			}
+		};
+
 		//Properly dispose of partly-referenced carts
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
@@ -480,6 +489,7 @@ public class TrainCarts extends PluginBase {
 		//Stop tasks
 		Task.stop(signtask);
 		Task.stop(cleanupTask);
+		Task.stop(fixGroupTickTask);
 
 		//update max item stack
 		if (maxMinecartStackSize != 1) {

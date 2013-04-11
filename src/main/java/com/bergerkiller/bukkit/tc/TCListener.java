@@ -232,14 +232,6 @@ public class TCListener implements Listener {
 					Player p = (Player) event.getAttacker();
 					if (mm.getProperties().hasOwnership(p)) {
 						CartPropertiesStore.setEditing(p, mm.getProperties());
-						// Manual movement
-						MinecartGroup group = mm.getGroup();
-						if (group.getProperties().isManualMovementAllowed()) {
-							// Get velocity modifier
-							float yaw = p.getLocation().getYaw();
-							mm.getEntity().setVelocity(MathUtil.getDirection(yaw, 0.0f).multiply(TrainCarts.manualMovementSpeed));
-							group.updateDirection();
-						}
 					} else {
 						event.setCancelled(true);
 					}

@@ -23,6 +23,22 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 	private static final long serialVersionUID = 1;
 	protected static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
+	private static List<MinecartGroup> groupTickBuffer = new ArrayList<MinecartGroup>(5);
+
+	/**
+	 * Called onPhysics for all Minecart Groups who didn't get ticked in the previous run
+	 * This is a sort of hack against the bugged issues on some server implementations
+	 */
+	public static void doFixedTick() {
+		groupTickBuffer.clear();
+		groupTickBuffer.addAll(groups);
+		for (MinecartGroup group : groupTickBuffer) {
+			if (!group.ticked.clear()) {
+				// Ticked was False, tick it now
+				group.doPhysics();
+			}
+		}
+	}
 
 	public static MinecartGroup create() {
 		MinecartGroup g = new MinecartGroup();
