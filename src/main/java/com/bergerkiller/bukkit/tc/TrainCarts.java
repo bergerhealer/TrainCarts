@@ -447,7 +447,7 @@ public class TrainCarts extends PluginBase {
 			public void run() {
 				MinecartGroupStore.doFixedTick();
 			}
-		};
+		}.start(1, 1);
 
 		//Properly dispose of partly-referenced carts
 		CommonUtil.nextTick(new Runnable() {

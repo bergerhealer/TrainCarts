@@ -33,9 +33,17 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 		groupTickBuffer.clear();
 		groupTickBuffer.addAll(groups);
 		for (MinecartGroup group : groupTickBuffer) {
-			if (!group.ticked.clear()) {
-				// Ticked was False, tick it now
-				group.doPhysics();
+			try {
+				if (!group.ticked.clear()) {
+					// Ticked was False, tick it now
+					group.doPhysics();
+					// Update the positions of the entities in the world(s)
+					for (MinecartMember<?> member : group) {
+						member.getEntity().doPostTick();
+					}
+				}
+			} catch (Throwable t) {
+				t.printStackTrace();
 			}
 		}
 	}

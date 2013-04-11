@@ -1089,8 +1089,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		} else if (g.isEmpty()) {
 			g.remove();
 			super.onTick();
-		} else if (g.tail() == this) {
-			g.ticked.set();
+		} else if (g.ticked.set()) {
 			g.doPhysics();
 		}
 	}
