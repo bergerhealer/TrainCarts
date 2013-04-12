@@ -1164,7 +1164,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public boolean isPlayerTakable() {
-		return this.isSingle() && this.group.getProperties().isPlayerTakeable();
+		return this.isSingle() && this.getGroup().getProperties().isPlayerTakeable();
 	}
 
 	@Override

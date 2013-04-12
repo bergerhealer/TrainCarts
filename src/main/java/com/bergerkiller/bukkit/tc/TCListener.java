@@ -43,6 +43,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -89,6 +90,23 @@ public class TCListener implements Listener {
 				if (mg.isInChunk(event.getChunk())) {
 					if (mg.canUnload()) {
 						this.expectUnload.add(mg);
+					} else {
+						event.setCancelled(true);
+						return;
+					}
+				}
+			}
+			// Double-check
+			for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
+				if (entity instanceof Minecart) {
+					MinecartMember<?> member = MinecartMemberStore.get(entity);
+					if (member == null || member.isUnloaded() || member.getEntity().isDead()) {
+						continue;
+					}
+					if (member.getGroup().canUnload()) {
+						if (!this.expectUnload.contains(member.getGroup())) {
+							this.expectUnload.add(member.getGroup());
+						}
 					} else {
 						event.setCancelled(true);
 						return;
