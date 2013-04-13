@@ -1106,19 +1106,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		final double movedX = entity.getMovedX();
 		final double movedY = entity.getMovedY();
 		final double movedZ = entity.getMovedZ();
-		final boolean movedXZ = entity.hasMovedHorizontally();
+		final boolean movedXZ = Math.abs(movedX) > 0.001 || Math.abs(movedZ) > 0.001;
 		final float oldyaw = entity.loc.getYaw();
 		float newyaw = oldyaw;
 		float newpitch = entity.loc.getPitch();
 		boolean orientPitch = true;
-		// Update yaw
-		if (movedXZ) {
-			newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
-		} else if (!isDerailed()) {
-			newyaw = FaceUtil.faceToYaw(this.getRailDirection());
-		}
-		// Update pitch
 		if (isDerailed()) {
+			// Update yaw
+			if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
+				newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
+			}
+			// Update pitch
 			if (entity.isOnGround()) {
 				// Reduce pitch over time
 				if (Math.abs(newpitch) > 0.1) {
@@ -1131,6 +1129,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
 			}
 		} else {
+			// Update yaw
+			if (movedXZ) {
+				newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
+			} else {
+				newyaw = FaceUtil.faceToYaw(this.getRailDirection());
+			}
+			// Update pitch
 			if (getRailLogic() instanceof RailLogicVertical) {
 				newpitch = -90.0f;
 			} else if (getRailLogic() instanceof RailLogicVerticalSlopeDown) {

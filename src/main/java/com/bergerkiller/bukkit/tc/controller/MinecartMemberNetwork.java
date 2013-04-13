@@ -141,7 +141,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 						MinecartMemberNetwork controller = networkControllers[i];
 
 						// Synchronize location
-						if (rotated) {
+						if (rotated && !group.get(i).isDerailed()) {
 							// Update rotation with control system function
 							// This ensures that the Client animation doesn't glitch the rotation
 							liveRot[i] = liveRot[i].add(liveRot[i].subtract(synchedRot[i]).multiply(ROTATION_K));
