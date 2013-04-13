@@ -83,9 +83,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 			for (i = 0; i < count; i++) {
 				EntityNetworkController<?> controller = group.get(i).getEntity().getNetworkController();
 				if (!(controller instanceof MinecartMemberNetwork)) {
-					// Assign a new one - probably a bug?
-					controller = new MinecartMemberNetwork();
-					group.get(i).getEntity().setNetworkController(controller);
+					// This is not good, but we can fix it...but not here
+					group.networkInvalid.set();
+					return;
 				}
 				networkControllers[i] = (MinecartMemberNetwork) controller;
 			}

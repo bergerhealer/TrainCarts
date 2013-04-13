@@ -65,20 +65,13 @@ public class SignActionAnnounce extends SignAction {
 		}
 	}
 
-	private static void appendWithSpace(StringBuilder builder, String part) {
-		if (!part.startsWith(" ") && builder.length() > 0 && builder.charAt(builder.length() - 1) != ' ') {
-			builder.append(' ');
-		}
-		builder.append(part);
-	}
-
 	public static String getMessage(SignActionEvent info) {
 		StringBuilder message = new StringBuilder(32);
-		appendWithSpace(message, info.getLine(2));
-		appendWithSpace(message, info.getLine(3));
+		message.append(info.getLine(2));
+		message.append(info.getLine(3));
 		for (Sign sign : info.findSignsBelow()) {
 			for (String line : sign.getLines()) {
-				appendWithSpace(message, line);
+				message.append(line);
 			}
 		}
 		return TrainCarts.getMessage(message.toString());

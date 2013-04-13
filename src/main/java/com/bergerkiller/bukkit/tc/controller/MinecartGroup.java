@@ -21,6 +21,7 @@ import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -57,6 +58,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 	private boolean breakPhysics = false;
 	private int teleportImmunityTick = 0;
 	protected long lastSync = Long.MIN_VALUE;
+	protected final ToggledState networkInvalid = new ToggledState();
 	protected final ToggledState ticked = new ToggledState();
 
 	protected MinecartGroup() {}
@@ -848,6 +850,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 			for (MinecartMember<?> mm : this) {
 				mm.checkMissing();
 				mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() / (double) stepcount);
+			}
+
+			// Set up a valid network controller if needed
+			if (networkInvalid.clear()) {
+				for (MinecartMember<?> m : this) {
+					EntityNetworkController<?> controller = m.getEntity().getNetworkController();
+					if (!(controller instanceof MinecartMemberNetwork)) {
+						m.getEntity().setNetworkController(new MinecartMemberNetwork());
+					}
+				}
 			}
 
 			// Update some per-tick stuff
