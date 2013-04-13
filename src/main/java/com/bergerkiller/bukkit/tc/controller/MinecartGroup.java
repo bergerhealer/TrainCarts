@@ -427,7 +427,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		this.remove();
 	}
 	public void unload() {
+		// Undo partial-unloading before calling the event
+		for (MinecartMember<?> member : this) {
+			member.group = this;
+			member.unloaded = false;
+		}
+
+		// Store the group offline
+		OfflineGroupManager.storeGroup(this);
+
+		// Event
 		GroupUnloadEvent.call(this);
+
+		// Unload
 		this.stop(true);
 		groups.remove(this);
 		for (MinecartMember<?> member : this) {
@@ -790,6 +802,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 	}
 
 	public void doPhysics() {
+		for (MinecartMember<?> m : this) {
+			if (m.isUnloaded()) {
+				this.unload();
+				return;
+			}
+		}
 		try {
 			double totalforce = this.getAverageForce();
 			double speedlimit = this.getProperties().getSpeedLimit();
@@ -952,7 +970,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 					cx = MathUtil.longHashMsw(chunk);
 					cz = MathUtil.longHashLsw(chunk);
 					if (!world.isChunkLoaded(cx, cz)) {
-						OfflineGroupManager.hideGroup(this);
+						this.unload();
 						throw new GroupUnloadedException();
 					}
 				}

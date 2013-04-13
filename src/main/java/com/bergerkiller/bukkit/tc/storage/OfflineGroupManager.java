@@ -26,7 +26,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class OfflineGroupManager {
@@ -372,30 +371,26 @@ public class OfflineGroupManager {
 	}
 
 	/**
-	 * Buffers the group and unlinks the members
-	 * @param group - The group to buffer
+	 * Stores the information of a group in this offline storage system
+	 * 
+	 * @param group to store
 	 */
-	public static void hideGroup(MinecartGroup group) {
-		if (group == null || !group.isValid()) return;
-		World world = group.getWorld();
-		if (world == null) return;
+	public static void storeGroup(MinecartGroup group) {
+		if (group == null || !group.isValid()) {
+			return;
+		}
+		final World world = group.getWorld();
+		if (world == null) {
+			return;
+		}
 		synchronized (managers) {
 			for (MinecartMember<?> mm : group) {
 				hiddenMinecarts.add(mm.getEntity().getUniqueId());
 			}
-			//==== add =====
 			OfflineGroup wg = new OfflineGroup(group);
 			wg.updateLoadedChunks(world);
 			get(world).groupmap.add(wg);
 			containedTrains.add(wg.name);
-			//==============
-			group.unload();
-		}
-	}
-	public static void hideGroup(Object member) {
-		MinecartMember<?> mm = MinecartMemberStore.get(member);
-		if (mm != null && !mm.getEntity().isDead()) {
-			 hideGroup(mm.getGroup());
 		}
 	}
 

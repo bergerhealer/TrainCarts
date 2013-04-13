@@ -502,13 +502,16 @@ public class TrainCarts extends PluginBase {
 
 		//undo replacements for correct native saving
 		for (MinecartGroup mg : MinecartGroup.getGroups()) {
-			OfflineGroupManager.hideGroup(mg);
+			mg.unload();
 		}
 
 		//entities left behind?
 		for (World world : WorldUtil.getWorlds()) {
 			for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
-				OfflineGroupManager.hideGroup(entity);
+				MinecartGroup group = MinecartGroup.get(entity);
+				if (group != null) {
+					group.unload();
+				}
 			}
 		}
 

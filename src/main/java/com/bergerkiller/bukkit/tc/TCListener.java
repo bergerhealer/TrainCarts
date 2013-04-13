@@ -125,7 +125,7 @@ public class TCListener implements Listener {
 			synchronized (this.expectUnload) {
 				for (MinecartGroup mg : this.expectUnload) {
 					if (mg.isInChunk(event.getChunk())) {
-						OfflineGroupManager.hideGroup(mg);
+						mg.unload();
 					}
 				}
 			}
@@ -144,7 +144,7 @@ public class TCListener implements Listener {
 		if (!event.isCancelled()) {
 			for (MinecartGroup group : MinecartGroup.getGroups()) {
 				if (group.getWorld() == event.getWorld()) {
-					OfflineGroupManager.hideGroup(group);
+					group.unload();
 				}
 			}
 		}
@@ -203,7 +203,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onEntityRemoveFromServer(EntityRemoveFromServerEvent event) {
-		if (event.getEntity() instanceof Minecart) {
+		if (event.getEntity() instanceof Minecart && !event.getEntity().isDead()) {
 			MinecartMember<?> member = MinecartMemberStore.get(event.getEntity());
 			if (member == null) {
 				return;
@@ -212,11 +212,8 @@ public class TCListener implements Listener {
 			if (group == null) {
 				return;
 			}
-			if (group.size() == 1) {
-				group.unload();
-			} else {
-				group.remove(member);
-			}
+			// Minecart was removed but was not dead - unload the group
+			group.unload();
 		}
 	}
 
