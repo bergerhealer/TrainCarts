@@ -435,11 +435,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 			member.unloaded = false;
 		}
 
-		// Store the group offline
-		OfflineGroupManager.storeGroup(this);
-
 		// Event
 		GroupUnloadEvent.call(this);
+
+		// Unload in detector regions
+		getBlockTracker().unload();
+
+		// Store the group offline
+		OfflineGroupManager.storeGroup(this);
 
 		// Unload
 		this.stop(true);

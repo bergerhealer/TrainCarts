@@ -10,6 +10,7 @@ public interface DetectorListener {
 	public void onEnter(final MinecartMember<?> member);
 	public void onLeave(final MinecartGroup group);
 	public void onEnter(final MinecartGroup group);
+	public void onUnload(final MinecartGroup group);
 	public void onUpdate(final MinecartMember<?> member);
 	public void onUpdate(final MinecartGroup group);
 }

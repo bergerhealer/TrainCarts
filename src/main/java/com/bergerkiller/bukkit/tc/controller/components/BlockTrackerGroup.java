@@ -85,6 +85,20 @@ public class BlockTrackerGroup extends BlockTracker {
 	}
 
 	@Override
+	public void unload() {
+		// Unload in detector regions
+		if (!this.detectorRegions.isEmpty()) {
+			for (DetectorRegion region : this.detectorRegions) {
+				region.unload(owner);
+			}
+			this.detectorRegions.clear();
+		}
+		for (MinecartMember<?> member : owner) {
+			member.getBlockTracker().unload();
+		}
+	}
+
+	@Override
 	public boolean isOnRails(Block railsBlock) {
 		return blockSpace.containsKey(new IntVector3(railsBlock));
 	}

@@ -181,6 +181,7 @@ public final class DetectorRegion {
 	public boolean isRegistered() {
 		return !this.listeners.isEmpty();
 	}
+
 	private void onLeave(MinecartMember<?> mm) {
 		this.setListenerBuffer();
 		for (DetectorListener listener : listenerBuffer) {
@@ -215,6 +216,15 @@ public final class DetectorRegion {
 		}
 		for (DetectorListener listener : listenerBuffer) {
 			listener.onEnter(group);
+		}
+	}
+
+	public void unload(MinecartGroup group) {
+		if (this.members.removeAll(group)) {
+			this.setListenerBuffer();
+			for (DetectorListener listener : listenerBuffer) {
+				listener.onUnload(group);
+			}
 		}
 	}
 

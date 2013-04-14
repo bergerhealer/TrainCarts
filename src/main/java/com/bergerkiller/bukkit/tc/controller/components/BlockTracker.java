@@ -51,6 +51,12 @@ public abstract class BlockTracker {
 	}
 
 	/**
+	 * Tells detector regions (and signs?) that the tracker owner has unloaded
+	 */
+	public void unload() {
+	}
+
+	/**
 	 * Tells all the Minecarts part of this Minecart Member or Group that something changed
 	 */
 	public void update() {

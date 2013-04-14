@@ -88,4 +88,10 @@ public class DetectorSignPair implements DetectorListener {
 		this.sign1.onUpdate(group);
 		this.sign2.onUpdate(group);
 	}
+
+	@Override
+	public void onUnload(MinecartGroup group) {
+		//TODO: Unloaded group storage system
+		this.onLeave(group);
+	}
 }
