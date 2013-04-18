@@ -3,21 +3,21 @@ package com.bergerkiller.bukkit.tc.storage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
-import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -31,7 +31,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 public class OfflineGroupManager {
 	public static Long lastUnloadChunk = null;
 	private static boolean chunkLoadReq = false;
-	private static boolean ignoreChunkLoad = false;
+	private static boolean isRefreshingGroups = false;
 	private static Set<String> containedTrains = new HashSet<String>();
 	private static HashSet<UUID> hiddenMinecarts = new HashSet<UUID>();
 	private static Map<UUID, OfflineGroupManager> managers = new HashMap<UUID, OfflineGroupManager>();
@@ -48,7 +48,10 @@ public class OfflineGroupManager {
 	}
 	public static void loadChunk(Chunk chunk) {
 		chunkLoadReq = true;
-		if (ignoreChunkLoad) return;
+		// Ignore chunk loads while refreshing
+		if (isRefreshingGroups) {
+			return;
+		}
 		synchronized (managers) {
 			OfflineGroupManager man = managers.get(chunk.getWorld().getUID());
 			if (man != null) {
@@ -61,9 +64,7 @@ public class OfflineGroupManager {
 							if (group.testFullyLoaded()) {
 								//a participant to be restored
 								if (group.updateLoadedChunks(chunk.getWorld())) {
-									man.groupmap.remove(group);
-									containedTrains.remove(group.name);
-									restoreGroup(group, chunk.getWorld());
+									man.restoreGroup(group, chunk.getWorld());
 								} else {
 									//add it again
 									man.groupmap.add(group);
@@ -107,66 +108,72 @@ public class OfflineGroupManager {
 				if (man.groupmap.isEmpty()) {
 					managers.remove(world.getUID());
 				} else {
-					ignoreChunkLoad = true;
 					man.refreshGroups(world);
-					ignoreChunkLoad = false;
 				}
 			}
 		}
 	}
 
 	public void refreshGroups(World world) {
-		chunkLoadReq = false;
+		// While refreshing, ignore incoming Chunk Load events
+		// We do not want the group map to change concurrently!
+		isRefreshingGroups = true;
+		List<OfflineGroup> groupsBuffer = new ArrayList<OfflineGroup>(this.groupmap.size());
 		try {
-			Iterator<OfflineGroup> iter = this.groupmap.values().iterator();
-			while (iter.hasNext()) {
-				OfflineGroup wg = iter.next();
-				if (checkChunks(wg, world)) {
-					containedTrains.remove(wg.name);
-					this.groupmap.remove(wg, true);
-					iter.remove();
-					restoreGroup(wg, world);
+			// Keep refreshing until no new chunks are being loaded
+			// Why? Keepchunksloaded trains can cause other trains to load
+			do {
+				chunkLoadReq = false;
+
+				// Go by all groups and try to restore them
+				groupsBuffer.clear();
+				groupsBuffer.addAll(this.groupmap.values());
+				for (OfflineGroup group : groupsBuffer) {
+					if (checkChunks(group, world)) {
+						restoreGroup(group, world);
+					}
 				}
-			}
-			if (chunkLoadReq) {
-				this.refreshGroups(world);
-			}
+			} while (chunkLoadReq);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
+		isRefreshingGroups = false;
 	}
 
-	private static boolean checkChunks(OfflineGroup g, World world) {
-		if (g.updateLoadedChunks(world)) {
-		} else if (TrainProperties.get(g.name).isKeepingChunksLoaded()) {
-			if (TrainCarts.keepChunksLoadedOnlyWhenMoving) {
-				boolean ismoving = false;
-				for (OfflineMember wm : g.members) {
-					if (Math.abs(wm.motX) > 0.001) {
-						ismoving = true;
-						break;
-					}
-					if (Math.abs(wm.motZ) > 0.001) {
-						ismoving = true;
-						break;
-					}
-				}
-				if (!ismoving) return false;
-			}
-			//load nearby chunks
-			for (OfflineMember wm : g.members) {
-				WorldUtil.loadChunks(world, wm.cx, wm.cz, 2);
-			}
-		} else {
+	/**
+	 * Checks whether the chunks of a group can be loaded, or loads these
+	 * chunks when keepChunksLoaded is set
+	 * 
+	 * @param group to check the chunks of
+	 * @param world the group is in
+	 * @return True if all the chunks of the group are (now) loaded, False if not
+	 */
+	private static boolean checkChunks(OfflineGroup group, World world) {
+		// Check whether all the chunks are loaded for this group
+		if (group.updateLoadedChunks(world)) {
+			return true;
+		}
+		// Keep chunks loaded property
+		if (!TrainProperties.get(group.name).isKeepingChunksLoaded()) {
 			return false;
+		}
+		if (TrainCarts.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
+			return false;
+		}
+		// Load nearby chunks
+		for (OfflineMember wm : group.members) {
+			WorldUtil.loadChunks(world, wm.cx, wm.cz, 2);
 		}
 		return true;
 	}
-	private static void restoreGroup(OfflineGroup g, World world) {
-		for (OfflineMember wm : g.members) {
+
+	private void restoreGroup(OfflineGroup group, World world) {
+		containedTrains.remove(group.name);
+		groupmap.remove(group);
+		for (OfflineMember wm : group.members) {
 			hiddenMinecarts.remove(wm.entityUID);
 		}
-		g.create(world);
+		group.create(world);
 	}
 
 	/*
@@ -235,7 +242,7 @@ public class OfflineGroupManager {
 	}
 
 	/**
-	 * Gets rid of all Minecraft that are stored in the chunk, but not in the World,
+	 * Gets rid of all Minecarts that are stored in the chunk, but not in the World,
 	 * resolving collision problems. (this should really never happen, but it is there just in case)
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked"})
@@ -308,36 +315,6 @@ public class OfflineGroupManager {
 					TrainCarts.plugin.log(Level.INFO, msg);
 				}
 			}.read();
-			TrainCarts.plugin.log(Level.INFO, "Loading chunks near trains...");
-			// Obtain all the chunks that have to be loaded
-			for (World world : Bukkit.getWorlds()) {
-				initChunks(world);
-			}
-		}
-	}
-
-	/**
-	 * Loads all the chunks near keep-chunks-loaded trains
-	 * 
-	 * @param World to load
-	 */
-	public static void initChunks(World world) {
-		OfflineGroupManager man = get(world);
-		Set<IntVector2> loaded = new HashSet<IntVector2>();
-		for (OfflineGroup group : man.groupmap) {
-			TrainProperties prop = TrainProperties.get(group.name);
-			if (prop.isKeepingChunksLoaded()) {
-				for (OfflineMember wm : group.members) {
-					for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
-						for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
-							loaded.add(new IntVector2(x, z));
-						}
-					}
-				}
-			}
-		}
-		for (IntVector2 coord : loaded) {
-			world.getChunkAt(coord.x, coord.z);
 		}
 	}
 

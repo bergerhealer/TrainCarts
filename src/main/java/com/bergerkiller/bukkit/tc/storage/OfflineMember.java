@@ -37,6 +37,10 @@ public class OfflineMember {
 		this.group = group;
 	}
 
+	public boolean isMoving() {
+		return Math.abs(motX) >= CommonEntity.MIN_MOVE_SPEED || Math.abs(motZ) >= CommonEntity.MIN_MOVE_SPEED;
+	}
+
 	public void setVelocity(double velocity) {
 		Vector vel = new Vector(this.motX, 0.0, this.motZ).normalize().multiply(velocity);
 		this.motX = vel.getX();

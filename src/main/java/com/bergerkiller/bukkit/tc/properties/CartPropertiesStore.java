@@ -109,6 +109,6 @@ public class CartPropertiesStore {
 	 * @return the Cart Properties for the Minecart
 	 */
 	public static CartProperties get(MinecartMember<?> member) {
-		return get(member.getEntity().getUniqueId(), member.getGroup().getProperties());
+		return get(member.getEntity().getUniqueId(), member.isUnloaded() ? null : member.getGroup().getProperties());
 	}
 }

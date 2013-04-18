@@ -136,7 +136,8 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldLoad(WorldLoadEvent event) {
-		OfflineGroupManager.initChunks(event.getWorld());
+		// Refresh the groups on this world
+		OfflineGroupManager.refresh(event.getWorld());
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)

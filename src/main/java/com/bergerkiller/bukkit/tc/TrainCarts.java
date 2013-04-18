@@ -437,6 +437,7 @@ public class TrainCarts extends PluginBase {
 		SignActionSpawn.init(getDataFolder() + File.separator + "spawnsigns.dat");
 
 		//Restore carts where possible
+		TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
 		OfflineGroupManager.refresh();
 
 		// Start the path finding task

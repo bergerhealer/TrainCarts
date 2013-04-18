@@ -12,6 +12,7 @@ import org.bukkit.World;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -46,17 +47,30 @@ public class OfflineGroup {
 	}
 	private OfflineGroup(int memberCount) {
 		this.members = new OfflineMember[memberCount];
-		final int chunkCount = 25 + (int) ((double) (5 / 16) * (double) memberCount);
+		// Obtain an average of the amount of elements to store for chunks
+		// Assume that each member adds 5 chunks every 10 carts
+		final int chunkCount = 25 + (int) ((double) (5 / 10) * (double) memberCount);
 		this.chunks = new LongHashSet(chunkCount);
 		this.loadedChunks = new LongHashSet(chunkCount);
 	}
 
+	public boolean isMoving() {
+		for (OfflineMember member : members) {
+			if (member.isMoving()) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public boolean testFullyLoaded() {
 		return this.loadedChunks.size() == this.chunks.size();
 	}
 	public boolean updateLoadedChunks(World world) {
 		this.loadedChunks.clear();
-		for (long chunk : this.chunks) {
+		final LongIterator iter = this.chunks.longIterator();
+		while (iter.hasNext()) {
+			long chunk = iter.next();
 			if (WorldUtil.isLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
 				this.loadedChunks.add(chunk);
 			}

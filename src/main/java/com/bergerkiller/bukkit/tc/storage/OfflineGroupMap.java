@@ -75,13 +75,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	}
 
 	public void remove(OfflineGroup group) {
-		remove(group, false);
-	}
-
-	public void remove(OfflineGroup group, boolean onlyFromMap) {
-		if (!onlyFromMap) {
-			this.groups.remove(group);
-		}
+		this.groups.remove(group);
 		for (long chunk : group.chunks) {
 			Set<OfflineGroup> groups = get(chunk);
 			if (groups != null) {
