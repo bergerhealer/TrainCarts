@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 /**
  * A class containing an array of Minecart Members
@@ -111,6 +112,7 @@ public class OfflineGroup {
 			TrainCarts.plugin.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' are missing! (externally edited?)");
 		}
 		if (rval.isEmpty()) {
+			TrainPropertiesStore.remove(this.name);
 			return null;
 		}
 		// Is a new group needed?

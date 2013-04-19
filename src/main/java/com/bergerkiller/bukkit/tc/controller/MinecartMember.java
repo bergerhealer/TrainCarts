@@ -101,8 +101,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
 		this.prevcx = entity.loc.x.chunk();
 		this.prevcz = entity.loc.z.chunk();
-		this.direction = FaceUtil.yawToFace(entity.loc.getYaw());
-		this.directionFrom = this.directionTo = FaceUtil.yawToFace(entity.loc.getYaw(), false);
+		this.updateDirection();
 	}
 
 	@Override
@@ -580,6 +579,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 	public void updateDirection(Vector movement) {
 		final RailLogic logic = this.getRailLogic();
+		final boolean fromInvalid = this.directionFrom == BlockFace.SELF;
+		// Just some value until it IS valid
+		if (fromInvalid) {
+			this.directionFrom = FaceUtil.getDirection(movement, false);
+		}
+		if (this.direction == null) {
+			this.direction = FaceUtil.getDirection(movement);
+		}
+		if (this.directionTo == null) {
+			this.directionTo = FaceUtil.getDirection(movement, false);
+		}
 		this.direction = logic.getMovementDirection(this, movement);
 
 		// Calculate the to direction
@@ -602,7 +612,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 
 		// Force-update the from direction if it was invalidated
-		if (this.directionFrom == BlockFace.SELF) {
+		if (fromInvalid) {
 			this.directionFrom = this.directionTo;
 		}
 	}

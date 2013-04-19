@@ -118,6 +118,8 @@ public class GlobalCommands {
 				if (group.isMoving()) {
 					moving++;
 				}
+				// Get properties: ensures that ALL trains are listed
+				group.getProperties();
 			}
 			count += OfflineGroupManager.getStoredCount();
 			int minecartCount = 0;
@@ -154,7 +156,7 @@ public class GlobalCommands {
 				String name = args[1];
 				TrainProperties prop = TrainProperties.exists(name) ? TrainProperties.get(name) : null;
 				if (prop != null && !prop.isEmpty()) {
-					if (prop.isOwner((Player) sender)) {
+					if (prop.hasOwnership((Player) sender)) {
 						CartPropertiesStore.setEditing((Player) sender, prop.get(0));
 						sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");	
 					} else {

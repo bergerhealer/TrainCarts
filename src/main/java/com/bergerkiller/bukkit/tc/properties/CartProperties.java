@@ -75,6 +75,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		return getHolder() != null;
 	}
 
+	@Override
+	public boolean restore() {
+		return getTrainProperties().restore() && hasHolder();
+	}
+
 	public MinecartGroup getGroup() {
 		MinecartMember<?> member = this.getHolder();
 		if (member == null) {

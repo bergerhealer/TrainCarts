@@ -209,6 +209,14 @@ public interface IProperties extends IParsable {
 	public IPropertiesHolder getHolder();
 
 	/**
+	 * Restores the Train of these properties if it is not already loaded.
+	 * After this call a holder is available, if there is not, then the train or cart is gone.
+	 * 
+	 * @return True if the train or cart was really restored, False if it got lost
+	 */
+	public boolean restore();
+
+	/**
 	 * Gets whether these properties have a valid (loaded) owner
 	 * 
 	 * @return True if an owner (holder) was found, False if not

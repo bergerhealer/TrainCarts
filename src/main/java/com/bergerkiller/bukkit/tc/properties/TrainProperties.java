@@ -72,6 +72,26 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return getHolder() != null;
 	}
 
+	@Override
+	public boolean restore() {
+		if (this.isLoaded()) {
+			return true;
+		}
+		// Load all the chunks of this group to trigger a restore
+		OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
+		if (group == null) {
+			TrainProperties.remove(getTrainName());
+			return false;
+		}
+		World world = Bukkit.getWorld(group.worldUUID);
+		if (world != null) {
+			for (long chunk : group.chunks) {
+				world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
+			}
+		}
+		return this.hasHolder();
+	}
+
 	/**
 	 * Gets the maximum speed this Train can move at
 	 * 
@@ -166,17 +186,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	 * @param state to set to
 	 */
 	public void setKeepChunksLoaded(boolean state) {
-		if (state && !this.keepChunksLoaded && this.getHolder() == null) {
-			// Load all the chunks of this group to trigger a restore
-			OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
-			if (group != null) {
-				World world = Bukkit.getWorld(group.worldUUID);
-				if (world != null) {
-					for (long chunk : group.chunks) {
-						world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
-					}
-				}
-			}
+		if (state && !this.keepChunksLoaded) {
+			restore();
 		}
 		this.keepChunksLoaded = state;
 	}

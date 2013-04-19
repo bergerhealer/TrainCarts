@@ -6,10 +6,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -319,6 +323,19 @@ public class TrainCommands {
 		} else if (cmd.equals("path") || cmd.equals("route") || cmd.equals("pathinfo")) {
 			Permission.COMMAND_PATHINFO.handle(p);
 			Commands.showPathInfo(p, prop);
+		} else if (cmd.equals("teleport") || cmd.equals("tp")) {
+			Permission.COMMAND_TELEPORT.handle(p);
+			if (!prop.restore()) {
+				p.sendMessage(ChatColor.RED + "Train location could not be found: Train is lost");
+			} else {
+				BlockLocation bloc = prop.getLocation();
+				World world = bloc.getWorld();
+				if (world == null) {
+					p.sendMessage(ChatColor.RED + "Train is on a world that is not loaded (" + bloc.world + ")");
+				} else {
+					EntityUtil.teleport(p, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
+				}
+			}
 		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[1])) {
 			p.sendMessage(ChatColor.GREEN + "Property has been updated!");
 			return true;
