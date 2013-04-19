@@ -7,17 +7,18 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
@@ -134,11 +135,14 @@ public class GlobalCommands {
 			builder.send(sender);
 			// Show additional information about owned trains to players
 			if (sender instanceof Player) {
-				if (args.length == 2 && LogicUtil.contains(args[1], "renamed", "rename", "ren", "name", "named")) {
-					list((Player) sender, true);
-				} else {
-					list((Player) sender, false);
+				StringBuilder statement = new StringBuilder();
+				for (int i = 1; i < args.length; i++) {
+					if (i > 1) {
+						statement.append(' ');
+					}
+					statement.append(args[i]);
 				}
+				list((Player) sender, statement.toString());
 			}
 			return true;
 		} else if (args[0].equals("edit")) {
@@ -163,20 +167,28 @@ public class GlobalCommands {
 			} else {
 				sender.sendMessage(ChatColor.RED + "Please enter the exact name of the train to edit");	
 			}
-			list((Player) sender, false);
+			list((Player) sender, "");
 			return true;
 		}
 		return false;
 	}
 
-	public static void list(Player player, boolean named) {
+	public static void list(Player player, String statement) {
 		MessageBuilder builder = new MessageBuilder();
 		builder.yellow("You are the proud owner of the following trains:");
 		builder.newLine().setSeparator(ChatColor.WHITE, " / ");
 		boolean found = false;
 		for (TrainProperties prop : TrainProperties.getAll()) {
-			if (!prop.isOwner(player)) continue;
-			if (named && !prop.isTrainRenamed()) continue;
+			if (!prop.hasOwnership(player)) {
+				continue;
+			}
+			if (prop.hasHolder() && statement.length() > 0) {
+				MinecartGroup group = prop.getHolder();
+				SignActionEvent event = new SignActionEvent(null, group);
+				if (!Statement.has(group, statement, event)) {
+					continue;
+				}
+			}
 			found = true;
 			if (prop.isLoaded()) {
 				builder.green(prop.getTrainName());
@@ -186,8 +198,6 @@ public class GlobalCommands {
 		}
 		if (found) {
 			builder.send(player);
-		} else if (named) {
-			player.sendMessage(ChatColor.RED + "You do not own any renamed trains you can edit.");
 		} else {
 			player.sendMessage(ChatColor.RED + "You do not own any trains you can edit.");
 		}

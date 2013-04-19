@@ -552,16 +552,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	public boolean isTrainRenamed() {
-		if (this.trainname.startsWith("train")) {
-			try {
-				Integer.parseInt(this.trainname.substring(5));
-			} catch (NumberFormatException ex) {return true;}
-		}
-		return false;
+		return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
 	}
 
 	public boolean isLoaded() {
-		return this.getHolder() != null;
+		return this.hasHolder();
 	}
 
 	public boolean matchName(String expression) {

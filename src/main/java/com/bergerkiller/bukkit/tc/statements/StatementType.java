@@ -5,6 +5,7 @@ import java.util.Locale;
 import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -13,7 +14,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 public class StatementType extends Statement {
 
 	private boolean isSize(String text) {
-		return text.contains("cartcount") || text.contains("trainsize");
+		return LogicUtil.contains(text, "cartcount", "trainsize", "length", "count", "size");
 	}
 
 	@Override

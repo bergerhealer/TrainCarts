@@ -63,7 +63,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		this(signblock, (Block) null);
 	}
 	public SignActionEvent(final Block signblock, Block railsblock) {
-		this(signblock, BlockUtil.getSign(signblock), railsblock);
+		this(signblock, signblock == null ? null : BlockUtil.getSign(signblock), railsblock);
 	}
 	public SignActionEvent(final Block signblock, final Sign sign, Block railsblock) {
 		this.signblock = signblock;
