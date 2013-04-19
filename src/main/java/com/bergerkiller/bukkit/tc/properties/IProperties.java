@@ -207,4 +207,11 @@ public interface IProperties extends IParsable {
 	 * @return properties holder
 	 */
 	public IPropertiesHolder getHolder();
+
+	/**
+	 * Gets whether these properties have a valid (loaded) owner
+	 * 
+	 * @return True if an owner (holder) was found, False if not
+	 */
+	public boolean hasHolder();
 }

@@ -234,12 +234,8 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
 		for (TrainProperties prop : trainProperties.values()) {
 			//does this train even exist?!
-			if (OfflineGroupManager.contains(prop.getTrainName())) {
-				ConfigurationNode train = config.getNode(prop.getTrainName());
-				prop.save(train);
-				if (train.isEmpty()) {
-					config.remove(prop.getTrainName());
-				}
+			if (prop.hasHolder() || OfflineGroupManager.contains(prop.getTrainName())) {
+				prop.save(config.getNode(prop.getTrainName()));
 			} else {
 				config.remove(prop.getTrainName());
 			}

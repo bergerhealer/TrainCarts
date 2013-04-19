@@ -132,14 +132,13 @@ public class GlobalCommands {
 			builder.yellow(moving).green(" are moving)");
 			builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
 			builder.send(sender);
+			// Show additional information about owned trains to players
 			if (sender instanceof Player) {
 				if (args.length == 2 && LogicUtil.contains(args[1], "renamed", "rename", "ren", "name", "named")) {
 					list((Player) sender, true);
 				} else {
 					list((Player) sender, false);
 				}
-			} else {
-				sender.sendMessage("Consoles don't own trains!");
 			}
 			return true;
 		} else if (args[0].equals("edit")) {

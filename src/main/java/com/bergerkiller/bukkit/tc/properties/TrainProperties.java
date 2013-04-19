@@ -67,6 +67,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		}
 	}
 
+	@Override
+	public boolean hasHolder() {
+		return getHolder() != null;
+	}
+
 	/**
 	 * Gets the maximum speed this Train can move at
 	 * 
