@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -620,7 +621,38 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
 	@Override
 	public boolean parseSet(String key, String arg) {
-		if (key.equals("sound") || key.equals("minecartsound")) {
+		if (key.equals("exitoffset")) {
+			Vector vec = Util.parseVector(arg, null);
+			if (vec != null) {
+				for (CartProperties prop : this) {
+					prop.exitOffset = vec;
+				}
+			}
+		} else if (key.equals("exityaw")) {
+			float yaw = ParseUtil.parseFloat(arg, 0.0f);
+			for (CartProperties prop : this) {
+				prop.exitYaw = yaw;
+			}
+		} else if (key.equals("exitpitch")) {
+			float pitch = ParseUtil.parseFloat(arg, 0.0f);
+			for (CartProperties prop : this) {
+				prop.exitPitch = pitch;
+			}
+		} else if (key.equals("exitrot") || key.equals("exitrotation")) {
+			String[] angletext = Util.splitBySeparator(arg);
+			float yaw = 0.0f;
+			float pitch = 0.0f;
+			if (angletext.length == 2) {
+				yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+				pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
+			} else if (angletext.length == 1) {
+				yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+			}
+			for (CartProperties prop : this) {
+				prop.exitYaw = yaw;
+				prop.exitPitch = pitch;
+			}
+		} else if (key.equals("sound") || key.equals("minecartsound")) {
 			this.soundEnabled = ParseUtil.parseBool(arg);
 		} else if (key.equals("mobcollision")) {
 			this.mobCollision = CollisionMode.parse(arg);

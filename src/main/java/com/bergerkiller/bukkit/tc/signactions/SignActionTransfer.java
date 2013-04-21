@@ -1,13 +1,19 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Locale;
 
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -17,11 +23,14 @@ import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
  * Deals with item transfer between chests/furnaces/dispensers/other and the train
  */
 public class SignActionTransfer extends SignAction {
+	public static final String DEPOSIT = "deposit";
+	public static final String COLLECT = "collect";
+	public static final String KEY_TYPE_TARGET = "target";
 
 	@Override
 	public boolean match(SignActionEvent info) {
-		return info.getMode() != SignActionMode.NONE && (!InteractType.parse("collect", info.getLine(1)).isEmpty() 
-				|| !InteractType.parse("deposit", info.getLine(1)).isEmpty());
+		return info.getMode() != SignActionMode.NONE && (!InteractType.parse(COLLECT, info.getLine(1)).isEmpty() 
+				|| !InteractType.parse(DEPOSIT, info.getLine(1)).isEmpty());
 	}
 
 	@Override
@@ -39,10 +48,10 @@ public class SignActionTransfer extends SignAction {
 		}
 		// Deposit or collect? Obtain the other inventories
 		boolean collect = true;
-		Collection<InventoryHolder> otherInvs = TransferSignUtil.findBlocks(info, "collect");
+		Collection<InventoryHolder> otherInvs = TransferSignUtil.findBlocks(info, COLLECT);
 		if (otherInvs.isEmpty()) {
 			collect = false;
-			otherInvs = TransferSignUtil.findBlocks(info, "deposit");
+			otherInvs = TransferSignUtil.findBlocks(info, DEPOSIT);
 			if (otherInvs.isEmpty()) {
 				// Nothing to do here
 				return;
@@ -56,8 +65,15 @@ public class SignActionTransfer extends SignAction {
 			return;
 		}
 
-		//get item parsers to use for transferring
+		// Get item parsers to use for transferring
+		// Make sure that the 'target' constant is properly updated
+		if (collect) {
+			setTargetConstant(trainInvs);
+		} else {
+			setTargetConstant(otherInvs);
+		}
 		ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
+		TrainCarts.plugin.putParsers(KEY_TYPE_TARGET, null);
 
 		// Perform the transfer logic (collect OR deposit)
 		if (collect) {
@@ -89,11 +105,11 @@ public class SignActionTransfer extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		Collection<InteractType> typesToCheck = InteractType.parse("collect", event.getLine(1));
+		Collection<InteractType> typesToCheck = InteractType.parse(COLLECT, event.getLine(1));
 		boolean collect = true;
 		if (typesToCheck.isEmpty()) {
 			collect = false;
-			typesToCheck = InteractType.parse("deposit", event.getLine(1));
+			typesToCheck = InteractType.parse(DEPOSIT, event.getLine(1));
 		}
 		String[] types = new String[typesToCheck.size()];
 		int i = 0;
@@ -109,5 +125,28 @@ public class SignActionTransfer extends SignAction {
 			return handleBuild(event, Permission.BUILD_DEPOSITOR, "storage minecart item depositor", 
 					"make trains put items into " + StringUtil.combineNames(types));
 		}
+	}
+
+	private static void setTargetConstant(Collection<InventoryHolder> inventories) {
+		HashSet<String> types = new HashSet<String>();
+		StringBuilder nameBuilder = new StringBuilder();
+		for (InventoryHolder holder : inventories) {
+			for (ItemStack item : holder.getInventory()) {
+				if (LogicUtil.nullOrEmpty(item)) {
+					continue;
+				}
+				nameBuilder.setLength(0);
+				nameBuilder.append(item.getType().toString().toLowerCase(Locale.ENGLISH));
+				nameBuilder.append(':');
+				nameBuilder.append(item.getDurability());
+				types.add(nameBuilder.toString());
+			}
+		}
+		ItemParser[] parsers = new ItemParser[types.size()];
+		Iterator<String> iter = types.iterator();
+		for (int i = 0; i < parsers.length; i++) {
+			parsers[i] = ItemParser.parse(iter.next());
+		}
+		TrainCarts.plugin.putParsers(KEY_TYPE_TARGET, parsers);
 	}
 }

@@ -220,6 +220,7 @@ public class SignActionSpawn extends SignAction {
 						mm.addActionLaunch(spawnDirection, 2, spawnForce);
 					}
 				}
+				group.updateDirection();
 				group.getProperties().setDefault("spawner");
 				GroupCreateEvent.call(group);
 			}

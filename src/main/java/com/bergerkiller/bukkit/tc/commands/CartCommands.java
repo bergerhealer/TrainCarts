@@ -179,7 +179,7 @@ public class CartCommands {
 					EntityUtil.teleport(p, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
 				}
 			}
-		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[1])) {
+		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
 			p.sendMessage(ChatColor.GREEN + "Property has been updated!");
 			return true;
 		} else {

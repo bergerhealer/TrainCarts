@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -39,6 +40,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private boolean allowPlayerExit = true;
 	private boolean allowPlayerEnter = true;
 	private String enterMessage = null;
+	public Vector exitOffset = new Vector(0.0, 0.0, 0.0);
+	public float exitYaw = 0.0f, exitPitch = 0.0f;
 	private String destination = "";
 	private String lastPathNode = "";
 	private boolean isPublic = true;
@@ -378,7 +381,28 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
 	@Override
 	public boolean parseSet(String key, String arg) {
-		if (key.equals("addtag")) {
+		if (key.equals("exitoffset")) {
+			Vector vec = Util.parseVector(arg, null);
+			if (vec != null) {
+				exitOffset = vec;
+			}
+		} else if (key.equals("exityaw")) {
+			exitYaw = ParseUtil.parseFloat(arg, 0.0f);
+		} else if (key.equals("exitpitch")) {
+			exitPitch = ParseUtil.parseFloat(arg, 0.0f);
+		} else if (key.equals("exitrot") || key.equals("exitrotation")) {
+			String[] angletext = Util.splitBySeparator(arg);
+			float yaw = 0.0f;
+			float pitch = 0.0f;
+			if (angletext.length == 2) {
+				yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+				pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
+			} else if (angletext.length == 1) {
+				yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+			}
+			exitYaw = yaw;
+			exitPitch = pitch;
+		} else if (key.equals("addtag")) {
 			this.addTags(arg);
 		} else if (key.equals("settag")) {
 			this.setTags(arg);
@@ -419,6 +443,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.tags.addAll(from.tags);
 		this.allowPlayerEnter = from.allowPlayerEnter;
 		this.allowPlayerExit = from.allowPlayerExit;
+		this.exitOffset = from.exitOffset.clone();
+		this.exitYaw = from.exitYaw;
+		this.exitPitch = from.exitPitch;
 	}
 
 	@Override
@@ -435,6 +462,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
 		this.isPublic = node.get("isPublic", this.isPublic);
 		this.pickUp = node.get("pickUp", this.pickUp);
+		this.exitOffset = node.get("exitOffset", this.exitOffset);
+		this.exitYaw = node.get("exitYaw", this.exitYaw);
+		this.exitPitch = node.get("exitPitch", this.exitPitch);
 		for (String blocktype : node.getList("blockBreakTypes", String.class)) {
 			Material mat = ParseUtil.parseMaterial(blocktype, null);
 			if (mat != null) {
@@ -451,6 +481,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		node.set("allowPlayerExit", this.allowPlayerExit);
 		node.set("isPublic", this.isPublic);
 		node.set("pickUp", this.pickUp);
+		node.set("exitOffset", this.exitOffset);
+		node.set("exitYaw", this.exitYaw);
+		node.set("exitPitch", this.exitPitch);
 		List<String> items = node.getList("blockBreakTypes", String.class);
 		for (Material mat : this.blockBreakTypes) {
 			items.add(mat.toString());
@@ -467,6 +500,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
 		node.set("isPublic", this.isPublic ? null : false);
 		node.set("pickUp", this.pickUp ? true : null);
+		node.set("exitOffset", this.exitOffset.lengthSquared() == 0.0 ? null : this.exitOffset);
+		node.set("exitYaw", this.exitYaw == 0.0f ? null : this.exitYaw);
+		node.set("exitPitch", this.exitPitch == 0.0f ? null : this.exitPitch);
 		if (this.blockBreakTypes.isEmpty()) {
 			node.remove("blockBreakTypes");
 		} else {

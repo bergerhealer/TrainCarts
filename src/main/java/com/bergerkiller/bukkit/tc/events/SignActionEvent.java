@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.events;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 
 import org.bukkit.Location;
@@ -593,6 +594,27 @@ public class SignActionEvent extends Event implements Cancellable {
 	 */
 	public boolean hasGroup() {
 		return this.getGroup() != null;
+	}
+
+	/**
+	 * Gets all the Minecart Members this sign (based on RC/train/cart type) is working on
+	 * 
+	 * @return all Minecart Members being worked on
+	 */
+	@SuppressWarnings("unchecked")
+	public Collection<MinecartMember<?>> getMembers() {
+		if (isTrainSign()) {
+			return hasGroup() ? getGroup() : Collections.EMPTY_LIST;
+		} else if (isCartSign()) {
+			return hasMember() ? Arrays.asList(getMember()) : Collections.EMPTY_LIST;
+		} else if (isRCSign()) {
+			ArrayList<MinecartMember<?>> members = new ArrayList<MinecartMember<?>>();
+			for (MinecartGroup group : getRCTrainGroups()) {
+				members.addAll(group);
+			}
+			return members;
+		}
+		return Collections.EMPTY_LIST;
 	}
 
 	public String getLine(int index) {

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -16,7 +17,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.Common;
@@ -43,6 +43,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -65,7 +66,6 @@ public class TrainCarts extends PluginBase {
 	public static boolean spawnItemDrops;
 	public static double poweredCartBoost;
 	public static double poweredRailBoost;
-	public static Vector exitOffset;
 	public static double pushAwayForce;
 	public static double launchForce;
 	public static boolean collisionIgnoreGlobalOwners;
@@ -98,7 +98,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean MyWorldsEnabled = false;
 
 	public static TrainCarts plugin;
-	private Task signtask, cleanupTask;
+	private Task signtask;
 	private FileConfiguration config;
 	private Map<String, ItemParser[]> parsers = new HashMap<String, ItemParser[]>();
 
@@ -119,7 +119,7 @@ public class TrainCarts extends PluginBase {
 	 * @return An array of associated item parsers
 	 */
 	public ItemParser[] getParsers(String key, int amount) {
-		ItemParser[] rval = parsers.get(key.toLowerCase());
+		ItemParser[] rval = parsers.get(key.toLowerCase(Locale.ENGLISH));
 		if (rval == null) {
 			// Not found - parse it from the key and amount
 			rval = new ItemParser[] {ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
@@ -137,14 +137,20 @@ public class TrainCarts extends PluginBase {
 		return rval;
 	}
 
+	public void putParsers(String key, ItemParser[] parsers) {
+		if (LogicUtil.nullOrEmpty(parsers)) {
+			this.parsers.remove(key.toLowerCase(Locale.ENGLISH));
+		} else {
+			this.parsers.put(key.toLowerCase(Locale.ENGLISH), parsers);
+		}
+	}
+
 	public static boolean canBreak(Material type) {
 		return plugin.allowedBlockBreakTypes.contains(type);
 	}
 
 	public void loadConfig() {
 		config = new FileConfiguration(this);
-
-		double exitx, exity, exitz;
 		config.load();
 		config.setHeader("This is the configuration file of TrainCarts");
 		config.addHeader("In here you can tweak TrainCarts to what you want");
@@ -185,12 +191,7 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("maxVelocity", "\nThe maximum velocity (blocks/tick) a minecart can possibly have set");
 		maxVelocity = config.get("maxVelocity", 5.0);
-		
-		config.setHeader("exitOffset", "\nThe XYZ offset used when a passenger exits a minecart");
-		exitx = config.get("exitOffset.x", 0.0);
-		exity = config.get("exitOffset.y", 0.0);
-		exitz = config.get("exitOffset.z", 0.0);
-		
+
 		config.setHeader("slowDownMultiplier", "\nThe multiplier used to slow down minecarts");
 		config.addHeader("slowDownMultiplier", "Normal is the default, slow is when the minecart is meant to slow down.");
 		slowDownMultiplierNormal = config.get("slowDownMultiplier.normal", 0.997);
@@ -346,12 +347,10 @@ public class TrainCarts extends PluginBase {
 		// ===========================================
 
 		for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
-			parsers.put(entry.getKey().toLowerCase(), Util.getParsers(entry.getValue()));
+			putParsers(entry.getKey(), Util.getParsers(entry.getValue()));
 			itemshort.setRead(entry.getKey());
 		}
 
-		exitOffset = new Vector(exitx, exity, exitz);
-		
 		config.trim();
 		config.save();
 	}
@@ -415,11 +414,11 @@ public class TrainCarts extends PluginBase {
 		//Load properties
 		TrainProperties.load();
 
-		//Convert Minecarts
-		MinecartMemberStore.convertAll();
-
 		//Load groups
 		OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
+
+		//Convert Minecarts
+		MinecartMemberStore.convertAll();
 
 		//Load destinations
 		PathNode.init(getDataFolder() + File.separator + "destinations.dat");
@@ -489,7 +488,6 @@ public class TrainCarts extends PluginBase {
 	public void disable() {
 		//Stop tasks
 		Task.stop(signtask);
-		Task.stop(cleanupTask);
 		Task.stop(fixGroupTickTask);
 
 		//update max item stack

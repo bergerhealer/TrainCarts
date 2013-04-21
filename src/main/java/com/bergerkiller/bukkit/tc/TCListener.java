@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -60,6 +61,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 public class TCListener implements Listener {
 	public static Player lastPlayer = null;
 	public static boolean cancelNextDrops = false;
+	public static boolean ignoreNextEject = false;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
 	private EntityMap<Player, Long> lastHitTimes = new EntityMap<Player, Long>();
 	private static final boolean DEBUG_DO_TRACKTEST = false;
@@ -158,7 +160,7 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onVehicleExit(VehicleExitEvent event) {
-		if (event.isCancelled() || TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) {
+		if (event.isCancelled() || TrainCarts.isWorldDisabled(event.getVehicle().getWorld()) || ignoreNextEject) {
 			return;
 		}
 		MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
@@ -166,9 +168,9 @@ public class TCListener implements Listener {
 			return;
 		}
 		Location mloc = mm.getEntity().getLocation();
-		mloc.setYaw(mloc.getYaw() + 180);
+		mloc.setYaw(FaceUtil.faceToYaw(mm.getDirection()));
 		mloc.setPitch(0.0f);
-		final Location loc = MathUtil.move(mloc, TrainCarts.exitOffset);
+		final Location loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
 		final Entity e = event.getExited();
 		//teleport
 		CommonUtil.nextTick(new Runnable() {
@@ -204,17 +206,34 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onEntityRemoveFromServer(EntityRemoveFromServerEvent event) {
-		if (event.getEntity() instanceof Minecart && !event.getEntity().isDead()) {
-			MinecartMember<?> member = MinecartMemberStore.get(event.getEntity());
-			if (member == null) {
-				return;
+		if (event.getEntity() instanceof Minecart) {
+			if (event.getEntity().isDead()) {
+				OfflineGroupManager.removeMember(event.getEntity().getUniqueId());
+			} else {
+				MinecartMember<?> member = MinecartMemberStore.get(event.getEntity());
+				if (member == null) {
+					return;
+				}
+				MinecartGroup group = member.getGroup();
+				if (group == null) {
+					return;
+				}
+				// Minecart was removed but was not dead - unload the group
+				// This really should never happen - Chunk/World unload events take care of this
+				// If it does happen, it implies that a chunk unloaded without raising an event
+				if (group.canUnload()) {
+					TrainCarts.plugin.log(Level.WARNING, "Train '" + group.getProperties().getTrainName() + "' forcibly unloaded!");
+				} else {
+					TrainCarts.plugin.log(Level.WARNING, "Train '" + group.getProperties().getTrainName() + "' had to be restored after unexpected unload");
+				}
+				group.unload();
+				// For the next tick: update the storage system to restore trains here and there
+				CommonUtil.nextTick(new Runnable() {
+					public void run() {
+						OfflineGroupManager.refresh();
+					}
+				});
 			}
-			MinecartGroup group = member.getGroup();
-			if (group == null) {
-				return;
-			}
-			// Minecart was removed but was not dead - unload the group
-			group.unload();
 		}
 	}
 

@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -44,6 +45,7 @@ import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.RailType;
+import com.bergerkiller.bukkit.tc.TCListener;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.Action;
@@ -64,6 +66,7 @@ import com.bergerkiller.bukkit.tc.railphysics.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -571,6 +574,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public BlockFace getRailDirection() {
 		return this.getRailLogic().getDirection();
 	}
+	public void invalidateDirection() {
+		this.direction = this.directionTo = null;
+		this.directionFrom = BlockFace.SELF;
+	}
 	public int getDirectionDifference(BlockFace dircomparer) {
 		return FaceUtil.getFaceYawDifference(this.getDirection(), dircomparer);
 	}
@@ -615,6 +622,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (fromInvalid) {
 			this.directionFrom = this.directionTo;
 		}
+	}
+	public void updateDirection(BlockFace movement) {
+		this.updateDirection(FaceUtil.faceToVector(movement));
 	}
 	public void updateDirection() {
 		this.updateDirection(this.entity.getVelocity());
@@ -783,6 +793,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	/**
+	 * Ejects the passenger with the offset, yaw and pitch as specified in the properties.
+	 * The passenger is ejected relative to the train.
+	 */
+	public void ejectWithOffset() {
+		Location loc = entity.getLocation();
+		loc.setYaw(FaceUtil.faceToYaw(getDirection()));
+		loc.setPitch(0.0f);
+		loc = MathUtil.move(loc, getProperties().exitOffset);
+		loc.setYaw(loc.getYaw() + getProperties().exitYaw + 90.0f);
+		loc.setPitch(loc.getPitch() + getProperties().exitPitch);
+		eject(loc);
+	}
+
+	/**
 	 * Ejects the passenger of this Minecart and teleports him to the offset and rotation specified
 	 * 
 	 * @param offset to teleport to
@@ -800,9 +824,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	 */
 	public void eject(final Location to) {
 		if (entity.hasPassenger()) {
+			TCListener.ignoreNextEject = true;
 			final Entity passenger = this.entity.getPassenger();
 			this.eject();
 			EntityUtil.teleportNextTick(passenger, to);
+			TCListener.ignoreNextEject = false;
 		}
 	}
 
@@ -812,7 +838,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public void onPropertiesChanged() {
-		this.getBlockTracker().update();
+		if (!this.isUnloaded()) {
+			this.getBlockTracker().update();
+		}
 	}
 
 	public boolean isIgnoringCollisions() {
@@ -834,6 +862,25 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public void reverse() {
 		entity.vel.multiply(-1.0);
 		this.direction = this.direction.getOppositeFace();
+	}
+
+	public void updateUnloaded() {
+		unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
+		if (!unloaded) {
+			// Check a 5x5 chunk area around this Minecart to see if it is loaded
+			World world = entity.getWorld();
+			int midX = entity.loc.x.chunk();
+			int midZ = entity.loc.z.chunk();
+			int cx, cz;
+			for (cx = -2; cx <= 2; cx++) {
+				for (cz = -2; cz <= 2; cz++) {
+					if (!WorldUtil.isLoaded(world, cx + midX, cz + midZ)) {
+						unloaded = true;
+						return;
+					}
+				}
+			}
+		}
 	}
 
 	/**

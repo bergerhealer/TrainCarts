@@ -8,9 +8,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -35,54 +33,36 @@ public class SignActionEject extends SignAction {
 	}
 
 	public void eject(SignActionEvent info) {
-		// Read the offset
+		final boolean hasSettings = !info.getLine(2).isEmpty() || !info.getLine(3).isEmpty();
 		Vector offset = new Vector();
-		String[] offsettext = Util.splitBySeparator(info.getLine(2));
-		if (offsettext.length == 3) {
-			offset.setX(ParseUtil.parseDouble(offsettext[0], 0.0));
-			offset.setY(ParseUtil.parseDouble(offsettext[1], 0.0));
-			offset.setZ(ParseUtil.parseDouble(offsettext[2], 0.0));
-		} else if (offsettext.length == 1) {
-			offset.setY(ParseUtil.parseDouble(offsettext[0], 0.0));
-		}
-		if (offset.length() > TrainCarts.maxEjectDistance) {
-			offset.normalize().multiply(TrainCarts.maxEjectDistance);
-		}
-
-		// Read the rotation
 		float yaw = 0F;
 		float pitch = 0F;
-		String[] angletext = Util.splitBySeparator(info.getLine(3));
-		if (angletext.length == 2) {
-			yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
-			pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
-		} else if (angletext.length == 1) {
-			yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+		if (hasSettings) {
+			// Read the offset
+			offset = Util.parseVector(info.getLine(2), offset);
+
+			// Read the rotation
+			String[] angletext = Util.splitBySeparator(info.getLine(3));
+			if (angletext.length == 2) {
+				yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+				pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
+			} else if (angletext.length == 1) {
+				yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+			}
+
+			// Convert to sign-relative-space
+			float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
+			offset = MathUtil.rotate(signyawoffset, 0F, offset);
+			yaw += signyawoffset + 90F;
 		}
 
-		// Convert to sign-relative-space
-		float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
-		offset = MathUtil.rotate(signyawoffset, 0F, offset);
-		yaw += signyawoffset + 90F;
-
 		// Actually eject
-		if (info.isTrainSign()) {
-			if (info.isRCSign()) {
-				for (MinecartGroup group : info.getRCTrainGroups()) {
-					for (MinecartMember<?> mm : group) {
-						mm.eject(offset, yaw, pitch);
-					}
-				}
+		for (MinecartMember<?> mm : info.getMembers()) {
+			if (hasSettings) {
+				mm.eject(offset, yaw, pitch);
 			} else {
-				MinecartGroup group = info.getGroup();
-				if (group != null) {
-					for (MinecartMember<?> mm : group) {
-						mm.eject(offset, yaw, pitch);
-					}
-				}
+				mm.ejectWithOffset();
 			}
-		} else {
-			info.getMember().eject(offset, yaw, pitch);
 		}
 	}
 

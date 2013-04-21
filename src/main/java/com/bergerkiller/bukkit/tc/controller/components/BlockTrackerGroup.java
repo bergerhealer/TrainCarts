@@ -162,7 +162,7 @@ public class BlockTrackerGroup extends BlockTracker {
 								blockSpace.put(from.add(0, k, 0), member);
 							}
 							continue;
-						} else if (diff.x == 0 && diff.y == 0) {
+						} else if (diff.y == 0 && diff.x == 0) {
 							// Along z-axis
 							for (k = 1; k < diff.z; k++) {
 								blockSpace.put(from.add(0, 0, k), member);

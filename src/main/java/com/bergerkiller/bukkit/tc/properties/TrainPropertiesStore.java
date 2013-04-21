@@ -46,7 +46,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		if (expression != null && !expression.isEmpty()) {
 			String[] elements = expression.split("\\*");
 			boolean first = expression.startsWith("*");
-			boolean last = expression.startsWith("*");
+			boolean last = expression.endsWith("*");
 			for (TrainProperties prop : getAll()) {
 				if (prop.matchName(elements, first, last)) {
 					rval.add(prop);

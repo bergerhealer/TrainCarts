@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -161,8 +162,11 @@ public class OfflineGroupManager {
 			return false;
 		}
 		// Load nearby chunks
-		for (OfflineMember wm : group.members) {
-			WorldUtil.loadChunks(world, wm.cx, wm.cz, 2);
+		LongIterator iter = group.chunks.longIterator();
+		long chunk;
+		while (iter.hasNext()) {
+			chunk = iter.next();
+			world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
 		}
 		return true;
 	}
@@ -185,6 +189,16 @@ public class OfflineGroupManager {
 			return 0;
 		}
 		int count = 0;
+		// Remove groups
+		for (MinecartGroup g : MinecartGroup.getGroups()) {
+			if (g.getWorld() == world) {
+				if (!g.isEmpty()) {
+					count++;
+				}
+				g.destroy();
+			}
+		}
+		// Remove remaining offline groups
 		synchronized (managers) {
 			OfflineGroupManager man = managers.remove(world.getUID());
 			if (man != null) {
@@ -208,14 +222,7 @@ public class OfflineGroupManager {
 				}
 			}
 		}
-		for (MinecartGroup g : MinecartGroup.getGroups()) {
-			if (g.getWorld() == world) {
-				if (!g.isEmpty()) {
-					count++;
-				}
-				g.destroy();
-			}
-		}
+		// Remove (bugged) Minecarts
 		destroyMinecarts(world);
 		removeBuggedMinecarts(world);
 		return count;
@@ -234,9 +241,16 @@ public class OfflineGroupManager {
 	}
 
 	private static void destroyMinecarts(World world) {
-		for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
-			if (!e.isDead() && e instanceof Minecart) {
+		for (Entity e : WorldUtil.getEntities(world)) {
+			if (e instanceof Minecart) {
 				e.remove();
+			}
+		}
+		for (Chunk chunk : WorldUtil.getChunks(world)) {
+			for (Entity e : WorldUtil.getEntities(chunk)) {
+				if (e instanceof Minecart) {
+					e.remove();
+				}
 			}
 		}
 	}

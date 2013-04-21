@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecartMobSpawner;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartTNT;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -34,7 +35,6 @@ import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberHopper;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberMobSpawner;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberRideable;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberTNT;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
 public abstract class MinecartMemberStore {
 
@@ -87,7 +87,7 @@ public abstract class MinecartMemberStore {
 	 * @param source minecart to convert
 	 * @return Minecart Member conversion
 	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
+	@SuppressWarnings("rawtypes")
 	public static MinecartMember<?> convert(Minecart source) {
 		if (source.isDead()) {
 			return null;
@@ -96,7 +96,7 @@ public abstract class MinecartMemberStore {
 		CommonEntity<?> entity = CommonEntity.get(source);
 		if (entity.getController() instanceof MinecartMember) {
 			MinecartMember member = (MinecartMember) entity.getController();
-			member.unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
+			member.updateUnloaded();
 			return member;
 		}
 
@@ -112,12 +112,13 @@ public abstract class MinecartMemberStore {
 			return null;
 		}
 
-		// Unloaded?
-		newController.unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
-
 		// Set controllers and done
 		entity.setController(newController);
 		entity.setNetworkController(new MinecartMemberNetwork());
+
+		// Unloaded?
+		newController.updateUnloaded();
+
 		return newController;
 	}
 
@@ -204,6 +205,8 @@ public abstract class MinecartMemberStore {
 		}
 		entity.setController(controller);
 		entity.spawn(at, new MinecartMemberNetwork());
+		controller.invalidateDirection();
+		controller.updateDirection(FaceUtil.yawToFace(at.getYaw()));
 		return controller;
 	}
 

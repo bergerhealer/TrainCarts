@@ -12,6 +12,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.util.Vector;
 
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
@@ -480,6 +481,27 @@ public class Util {
 		} catch (Exception ex) {
 			return false;
 		}
+	}
+
+	public static Vector parseVector(String text, Vector def) {
+		String[] offsettext = splitBySeparator(text);
+		Vector offset = new Vector();
+		if (offsettext.length == 3) {
+			offset.setX(ParseUtil.parseDouble(offsettext[0], 0.0));
+			offset.setY(ParseUtil.parseDouble(offsettext[1], 0.0));
+			offset.setZ(ParseUtil.parseDouble(offsettext[2], 0.0));
+		} else if (offsettext.length == 2) {
+			offset.setX(ParseUtil.parseDouble(offsettext[0], 0.0));
+			offset.setZ(ParseUtil.parseDouble(offsettext[1], 0.0));
+		} else if (offsettext.length == 1) {
+			offset.setY(ParseUtil.parseDouble(offsettext[0], 0.0));
+		} else {
+			return def;
+		}
+		if (offset.length() > TrainCarts.maxEjectDistance) {
+			offset.normalize().multiply(TrainCarts.maxEjectDistance);
+		}
+		return offset;
 	}
 
 	public static boolean parseProperties(IParsable properties, String key, String args) {
