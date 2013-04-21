@@ -65,7 +65,8 @@ public enum InteractType {
 					}
 				}
 			}
-		} else if (name.startsWith(root)) {
+		}
+		if (name.startsWith(root) && typesToCheck.isEmpty()) {
 			typesToCheck.add(CHEST);
 			typesToCheck.add(FURNACE);
 			typesToCheck.add(DISPENSER);

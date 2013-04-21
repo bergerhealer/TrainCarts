@@ -79,6 +79,7 @@ public class TrainCarts extends PluginBase {
 	public static int maxDetectorLength;
 	public static int maxMinecartStackSize;
 	public static int defaultTransferRadius;
+	public static int maxTransferRadius;
 	public static boolean showTransferAnimations;
 	public static boolean slowDownEmptyCarts;
 	public static double slowDownMultiplierSlow;
@@ -240,9 +241,12 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("maxMinecartStackSize", "\nThe maximum amount of minecart items that can be stacked in one item");
 		maxMinecartStackSize = config.get("maxMinecartStackSize", 64);
-		
+
+		config.setHeader("maxTransferRadius", "\nThe maximum radius chest/furnace sign systems look for the needed blocks");
+		maxTransferRadius = config.get("maxTransferRadius", 5);
+
 		config.setHeader("defaultTransferRadius", "\nThe default radius chest/furnace sign systems look for the needed blocks");
-		defaultTransferRadius = MathUtil.clamp(config.get("defaultTransferRadius", 2), 1, 5);
+		defaultTransferRadius = MathUtil.clamp(config.get("defaultTransferRadius", 2), 1, maxTransferRadius);
 
 		config.setHeader("slowDownEmptyCarts", "\nWhether or not empty minecarts slow down faster than occupied minecarts");
 		slowDownEmptyCarts = config.get("slowDownEmptyCarts", false);

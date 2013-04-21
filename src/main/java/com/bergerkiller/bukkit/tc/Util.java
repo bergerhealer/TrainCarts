@@ -154,36 +154,39 @@ public class Util {
 	}
 
 	public static Block getRailsFromSign(Block signblock) {
-		int id;
 		if (signblock == null) {
 			return null;
-		} else {
-			id = signblock.getTypeId();
-			if (id == Material.WALL_SIGN.getId()) {
-				signblock = BlockUtil.getAttachedBlock(signblock);
-			} else if (id != Material.SIGN_POST.getId()) {
-				return null;
-			}
 		}
-		Block mainBlock = signblock;
+
+		final int id = signblock.getTypeId();
+		final Block mainBlock;
+		if (id == Material.WALL_SIGN.getId()) {
+			mainBlock = BlockUtil.getAttachedBlock(signblock);
+		} else if (id == Material.SIGN_POST.getId()) {
+			mainBlock = signblock.getRelative(BlockFace.UP);
+		} else {
+			return null;
+		}
+		boolean hasSigns;
 		for (BlockFace dir : possibleFaces) {
-			signblock = mainBlock.getRelative(dir);
-			if (ISTCRAIL.get(signblock)) {
-				return signblock;
-			}
+			Block block = mainBlock;
+			hasSigns = true;
 			while (true) {
-				if (ISTCRAIL.get(signblock)) {
-					return signblock;
-				} else if (hasAttachedSigns(signblock)) {
-					signblock = signblock.getRelative(dir);
-				} else {
-					signblock = signblock.getRelative(dir);
-					if (ISTCRAIL.get(signblock)) {
-						return signblock;
-					} else {
-						break;
-					}
+				// Go to the next block
+				block = block.getRelative(dir);
+
+				// Check for rails
+				if (dir == BlockFace.UP ? ISTCRAIL.get(block) : ISVERTRAIL.get(block)) {
+					return block;
 				}
+
+				// End of the loop?
+				if (!hasSigns) {
+					break;
+				}
+
+				// Go to the next block
+				hasSigns = hasAttachedSigns(block);
 			}
 		}
 		return null;

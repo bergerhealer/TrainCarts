@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import org.bukkit.block.BlockFace;
@@ -11,6 +13,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Dispenser;
 import org.bukkit.block.Furnace;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -19,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -34,6 +38,7 @@ import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
  * Utilities for dealing with item transfers between different containers
  */
 public class TransferSignUtil {
+	private static final HashSet<InventoryHolder> chestsBuffer = new HashSet<InventoryHolder>();
 
 	public static Inventory getInventory(SignActionEvent info) {
 		if (info.isCartSign()) {
@@ -165,6 +170,11 @@ public class TransferSignUtil {
 	}
 
 	public static Collection<BlockState> getBlockStates(SignActionEvent info, int radius) {
+		if (radius <= 0) {
+			return Collections.emptyList();
+		} else if (radius > TrainCarts.maxTransferRadius) {
+			radius = TrainCarts.maxTransferRadius;
+		}
 		int radX = radius;
 		int radZ = radius;
 		BlockFace dir = info.getRailDirection();
@@ -173,7 +183,30 @@ public class TransferSignUtil {
 		} else if (FaceUtil.isAlongZ(dir)) {
 			radZ = 0;
 		}
-		return BlockUtil.getBlockStates(info.getRails(), radX, radius, radZ);
+		Collection<BlockState> states = BlockUtil.getBlockStates(info.getRails(), radX, radius, radZ);
+		// Get rid of twice-stored double chests
+		try {
+			Iterator<BlockState> iter = states.iterator();
+			while (iter.hasNext()) {
+				BlockState next = iter.next();
+				if (!(next instanceof Chest)) {
+					continue;
+				}
+				DoubleChestInventory inventory = CommonUtil.tryCast(((Chest) next).getInventory(), DoubleChestInventory.class);
+				if (inventory == null) {
+					continue;
+				}
+				if (chestsBuffer.add(inventory.getLeftSide().getHolder()) &&
+						chestsBuffer.add(inventory.getRightSide().getHolder())) {
+					continue;
+				}
+				// Already added chest(s), disregard
+				iter.remove();
+			}
+		} finally {
+			chestsBuffer.clear();
+		}
+		return states;
 	}
 
 	/**
