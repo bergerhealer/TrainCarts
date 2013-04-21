@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -137,8 +138,10 @@ public class SignActionTransfer extends SignAction {
 				}
 				nameBuilder.setLength(0);
 				nameBuilder.append(item.getType().toString().toLowerCase(Locale.ENGLISH));
-				nameBuilder.append(':');
-				nameBuilder.append(item.getDurability());
+				if (MaterialUtil.HASDATA.get(item)) {
+					nameBuilder.append(':');
+					nameBuilder.append(item.getDurability());
+				}
 				types.add(nameBuilder.toString());
 			}
 		}

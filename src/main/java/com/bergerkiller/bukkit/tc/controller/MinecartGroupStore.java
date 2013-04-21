@@ -64,6 +64,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 		}
 		for (MinecartMember<?> member : members) {
 			if (member != null && !member.getEntity().isDead()) {
+				member.unloaded = false;
 				g.add(member);
 			}
 		}
