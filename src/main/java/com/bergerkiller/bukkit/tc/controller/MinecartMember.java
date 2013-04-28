@@ -755,10 +755,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (getRailType() == RailType.VERTICAL && FaceUtil.isVertical(hitFace)) {
 			// Check if the collided block has vertical rails
 			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
-				return false;
+				// Stop the train
+				this.getGroup().stop();
+				return true;
 			}
 		}
-		// Handle collision
+		// Handle collision (ignore UP/DOWN, recalculate hitFace for this)
+		hitFace = FaceUtil.getDirection(block, this.getBlock(), false);
 		final BlockFace hitToFace = hitFace.getOppositeFace();
 		if (!this.isTurned() && hitToFace == this.getDirectionTo()) {
 			// Some blocks are ignored when moving on slopes
