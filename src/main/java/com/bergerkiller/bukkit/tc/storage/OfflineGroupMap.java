@@ -11,8 +11,10 @@ import org.bukkit.Chunk;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 
+/**
+ * Maps all the Offline Groups to chunk coordinates, allowing faster chunk access for restoring trains
+ */
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
-	
 	private Set<OfflineGroup> groups = new HashSet<OfflineGroup>();
 	private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<HashSet<OfflineGroup>>();
 
@@ -20,15 +22,15 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 	public Iterator<OfflineGroup> iterator() {
 		return this.groups.iterator();
 	}
-	
+
 	public int size() {
 		return this.groups.size();
 	}
-	
+
 	public boolean isEmpty() {
 		return this.groups.isEmpty();
 	}
-	
+
 	public void add(OfflineGroup group) {
 		this.groups.add(group);
 		for (long chunk : group.chunks) {
@@ -104,19 +106,19 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 		}
 		return rval;
 	}
-	
+
 	public Set<OfflineGroup> get(Chunk chunk) {
 		return get(chunk.getX(), chunk.getZ());
 	}
-	
+
 	public Set<OfflineGroup> get(int x, int z) {
 		return this.get(MathUtil.longHashToLong(x, z));
 	}
-	
+
 	public Set<OfflineGroup> get(long chunk) {
 		return this.groupmap.get(chunk);
 	}
-	
+
 	public Set<OfflineGroup> getOrCreate(long chunk) {
 		HashSet<OfflineGroup> rval = this.groupmap.get(chunk);
 		if (rval == null) {
@@ -125,9 +127,8 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
 		}
 		return rval;
 	}
-	
+
 	public Set<OfflineGroup> values() {
 		return this.groups;
 	}
-
 }

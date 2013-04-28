@@ -46,6 +46,7 @@ public class OfflineGroup {
 		}
 		this.genChunks();
 	}
+
 	private OfflineGroup(int memberCount) {
 		this.members = new OfflineMember[memberCount];
 		// Obtain an average of the amount of elements to store for chunks
@@ -63,10 +64,11 @@ public class OfflineGroup {
 		}
 		return false;
 	}
-	
+
 	public boolean testFullyLoaded() {
 		return this.loadedChunks.size() == this.chunks.size();
 	}
+
 	public boolean updateLoadedChunks(World world) {
 		this.loadedChunks.clear();
 		final LongIterator iter = this.chunks.longIterator();
@@ -81,6 +83,7 @@ public class OfflineGroup {
 		}
 		return this.testFullyLoaded();
 	}
+
 	public void genChunks() {
 		this.chunks.clear();
 		for (OfflineMember wm : this.members) {
@@ -93,15 +96,16 @@ public class OfflineGroup {
 	}
 
 	/**
-	 * Tries to find all Minecarts based on their UID
-	 * @param w
+	 * Tries to find all Minecarts based on their UID and creates a new group
+	 * 
+	 * @param world to find the Minecarts in
 	 * @return An array of Minecarts
 	 */
-	public MinecartGroup create(World w) {
+	public MinecartGroup create(World world) {
 		ArrayList<MinecartMember<?>> rval = new ArrayList<MinecartMember<?>>(this.members.length);
 		int missingNo = 0;
 		for (OfflineMember member : this.members) {
-			MinecartMember<?> mm = member.create(w);
+			MinecartMember<?> mm = member.create(world);
 			if (mm != null) {
 				rval.add(mm);
 			} else {
@@ -129,6 +133,7 @@ public class OfflineGroup {
 		}
 		stream.writeUTF(this.name);
 	}
+
 	public static OfflineGroup readFrom(DataInputStream stream) throws IOException {
 		OfflineGroup wg = new OfflineGroup(stream.readInt());
 		for (int i = 0;i < wg.members.length;i++) {

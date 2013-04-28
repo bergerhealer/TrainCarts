@@ -137,9 +137,18 @@ public class TrackIterator implements Iterator<Block> {
 						this.nextdirection = p[0];
 					}
 				}
-			} else if (rails.isOnSlope() && direction == railsDirection && Util.isVerticalAbove(startblock, direction)) {
-				// Vertical rail above - check
-				this.nextdirection = BlockFace.UP;
+			} else if (rails.isOnSlope()) {
+				// Fix up directions on slopes
+				if (direction == railsDirection && Util.isVerticalAbove(startblock, direction)) {
+					// Vertical rail above
+					this.nextdirection = BlockFace.UP;
+				} else if (direction != railsDirection && direction != railsDirection.getOppositeFace()) {
+					// Invalid direction - go 'down' the slope
+					this.nextdirection = railsDirection.getOppositeFace();
+				}
+			} else if (direction != railsDirection && direction != railsDirection.getOppositeFace()) {
+				// South-west rule
+				this.nextdirection = railsDirection;
 			}
 		}
 	}

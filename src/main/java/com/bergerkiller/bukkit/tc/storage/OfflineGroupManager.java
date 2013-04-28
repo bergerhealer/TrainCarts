@@ -34,8 +34,10 @@ public class OfflineGroupManager {
 	private static boolean chunkLoadReq = false;
 	private static boolean isRefreshingGroups = false;
 	private static Set<String> containedTrains = new HashSet<String>();
-	private static HashSet<UUID> hiddenMinecarts = new HashSet<UUID>();
+	private static HashSet<UUID> containedMinecarts = new HashSet<UUID>();
 	private static Map<UUID, OfflineGroupManager> managers = new HashMap<UUID, OfflineGroupManager>();
+	private OfflineGroupMap groupmap = new OfflineGroupMap();
+
 	public static OfflineGroupManager get(UUID uuid) {
 		OfflineGroupManager rval = managers.get(uuid);
 		if (rval == null) {
@@ -44,9 +46,11 @@ public class OfflineGroupManager {
 		}
 		return rval;
 	}
+
 	public static OfflineGroupManager get(World world) {
 		return get(world.getUID());
 	}
+
 	public static void loadChunk(Chunk chunk) {
 		chunkLoadReq = true;
 		// Ignore chunk loads while refreshing
@@ -77,6 +81,7 @@ public class OfflineGroupManager {
 			}
 		}
 	}
+
 	public static void unloadChunk(Chunk chunk) {
 		synchronized (managers) {
 			OfflineGroupManager man = managers.get(chunk.getWorld().getUID());
@@ -95,13 +100,12 @@ public class OfflineGroupManager {
 		}
 	}
 
-	private OfflineGroupMap groupmap = new OfflineGroupMap();
-
 	public static void refresh() {
 		for (World world : WorldUtil.getWorlds()) {
 			refresh(world);
 		}
 	}
+
 	public static void refresh(World world) {
 		synchronized (managers) {
 			OfflineGroupManager man = managers.get(world.getUID());
@@ -175,7 +179,7 @@ public class OfflineGroupManager {
 		containedTrains.remove(group.name);
 		groupmap.remove(group);
 		for (OfflineMember wm : group.members) {
-			hiddenMinecarts.remove(wm.entityUID);
+			containedMinecarts.remove(wm.entityUID);
 		}
 		group.create(world);
 	}
@@ -207,7 +211,7 @@ public class OfflineGroupManager {
 					containedTrains.remove(wg.name);
 					TrainProperties.remove(wg.name);
 					for (OfflineMember wm : wg.members) {
-						hiddenMinecarts.remove(wm.entityUID);
+						containedMinecarts.remove(wm.entityUID);
 						// Load the chunk this minecart is in and remove it
 						// We already de-linked the group map, so no worry for replacements
 						Chunk chunk = world.getChunkAt(wm.cx, wm.cz);
@@ -232,7 +236,7 @@ public class OfflineGroupManager {
 		// Disabled worlds don't store anything in them anyway
 		TrainProperties.clearAll();
 		containedTrains.clear();
-		hiddenMinecarts.clear();
+		containedMinecarts.clear();
 		int count = 0;
 		for (World world : WorldUtil.getWorlds()) {
 			count += destroyAll(world);
@@ -283,7 +287,7 @@ public class OfflineGroupManager {
 	
 	public static void deinit() {
 		managers.clear();
-		hiddenMinecarts.clear();
+		containedMinecarts.clear();
 		containedTrains.clear();
 	}
 
@@ -311,7 +315,7 @@ public class OfflineGroupManager {
 
 							// Register the new offline group within (this) Manager
 							for (OfflineMember wm : wg.members) {
-								hiddenMinecarts.add(wm.entityUID);
+								containedMinecarts.add(wm.entityUID);
 							}
 							man.groupmap.add(wg);
 							containedTrains.add(wg.name);
@@ -376,7 +380,7 @@ public class OfflineGroupManager {
 		}
 		synchronized (managers) {
 			for (MinecartMember<?> mm : group) {
-				hiddenMinecarts.add(mm.getEntity().getUniqueId());
+				containedMinecarts.add(mm.getEntity().getUniqueId());
 			}
 			OfflineGroup wg = new OfflineGroup(group);
 			wg.updateLoadedChunks(world);
@@ -392,7 +396,7 @@ public class OfflineGroupManager {
 	 * @param uniqueId of the Minecart
 	 */
 	public static boolean containsMinecart(UUID uniqueId) {
-		return hiddenMinecarts.contains(uniqueId);
+		return containedMinecarts.contains(uniqueId);
 	}
 
 	public static int getStoredCount() {
@@ -420,7 +424,7 @@ public class OfflineGroupManager {
 
 	public static void removeMember(UUID memberUUID) {
 		synchronized (managers) {
-			if (hiddenMinecarts.remove(memberUUID)) {
+			if (containedMinecarts.remove(memberUUID)) {
 				for (OfflineGroupManager manager : managers.values()) {
 					if (manager.groupmap.removeCart(memberUUID)) {
 						break;
@@ -437,7 +441,7 @@ public class OfflineGroupManager {
 				OfflineGroup group = manager.groupmap.remove(groupName);
 				if (group != null) {
 					for (OfflineMember member : group.members) {
-						hiddenMinecarts.remove(member.entityUID);
+						containedMinecarts.remove(member.entityUID);
 					}
 					break;
 				}
@@ -457,6 +461,7 @@ public class OfflineGroupManager {
 		}
 		return null;
 	}
+
 	public static OfflineMember findMember(String groupName, UUID uuid) {
 		OfflineGroup group = findGroup(groupName);
 		if (group != null) {

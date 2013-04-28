@@ -749,21 +749,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (Util.ISVERTRAIL.get(block)) {
 			return false;
 		}
-		if (getRailType() == RailType.VERTICAL && hitFace != BlockFace.UP && hitFace != BlockFace.DOWN) {
+		if (this.isDerailed()) {
+			return true;
+		}
+		if (getRailType() == RailType.VERTICAL && FaceUtil.isVertical(hitFace)) {
 			// Check if the collided block has vertical rails
 			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
 				return false;
 			}
 		}
 		// Handle collision
-		if (!this.isTurned() && hitFace.getOppositeFace() == this.getDirectionTo() && !this.isDerailed()) {
-			// Cancel collisions with blocks at the heading of sloped rails
-			if (this.isOnSlope() && hitFace == this.getRailDirection().getOppositeFace()) {
-				// Vertical rail above?
-				if (Util.isVerticalAbove(this.getBlock(), this.getRailDirection())) {
+		final BlockFace hitToFace = hitFace.getOppositeFace();
+		if (!this.isTurned() && hitToFace == this.getDirectionTo()) {
+			// Some blocks are ignored when moving on slopes
+			if (this.isOnSlope()) {
+				// Cancel collisions with blocks at the heading of sloped rails when going up vertically
+				if (hitToFace == this.getRailDirection() && Util.isVerticalAbove(this.getBlock(), this.getRailDirection())) {
 					return false;
 				}
+
+				// Cancel collisions with blocks 'right above' the next rail when going down the slope
+				if (hitFace == this.getRailDirection()) {
+					IntVector3 diff = new IntVector3(block).subtract(this.getBlockPos());
+					if (diff.y == 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
+						return false;
+					}
+				}
 			}
+
 			// Stop the train
 			this.getGroup().stop();
 		}
@@ -1226,7 +1239,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public boolean isPlayerTakable() {
-		return this.isSingle() && this.getGroup().getProperties().isPlayerTakeable();
+		return this.isSingle() && (this.isUnloaded() || this.getGroup().getProperties().isPlayerTakeable());
 	}
 
 	@Override
