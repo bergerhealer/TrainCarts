@@ -585,18 +585,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.getDirectionDifference(comparer.getDirection());
 	}
 	public void updateDirection(Vector movement) {
-		final RailLogic logic = this.getRailLogic();
-		final boolean fromInvalid = this.directionFrom == BlockFace.SELF;
-		// Just some value until it IS valid
-		if (fromInvalid) {
-			this.directionFrom = FaceUtil.getDirection(movement, false);
-		}
+		// Take care of invalid directions before continuing
 		if (this.direction == null) {
 			this.direction = FaceUtil.getDirection(movement);
 		}
 		if (this.directionTo == null) {
 			this.directionTo = FaceUtil.getDirection(movement, false);
 		}
+		final boolean fromInvalid = this.directionFrom == BlockFace.SELF;
+		if (fromInvalid) {
+			this.directionFrom = this.directionTo;
+		}
+
+		// Obtain logic and the associated direction
+		final RailLogic logic = this.getRailLogic();
 		this.direction = logic.getMovementDirection(this, movement);
 
 		// Calculate the to direction
