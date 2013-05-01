@@ -20,7 +20,14 @@ import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
  * A collision mode between a Minecart and another Entity
  */
 public enum CollisionMode {
-	DEFAULT, PUSH, CANCEL, KILL, KILLNODROPS, ENTER, LINK;
+	DEFAULT("is stopped by"), PUSH("pushes"), CANCEL("ignores"), KILL("kills"), 
+	KILLNODROPS("kills without drops"), ENTER("takes in"), LINK("forms a group with");
+
+	private final String operationName;
+
+	private CollisionMode(String operationName) {
+		this.operationName = operationName;
+	}
 
 	/**
 	 * Executes this collision mode
@@ -136,22 +143,7 @@ public enum CollisionMode {
 	 * @return collision operation name
 	 */
 	public String getOperationName() {
-		switch (this) {
-			case PUSH :
-				return "pushes";
-			case CANCEL :
-				return "ignores";
-			case KILL :
-				return "kills";
-			case KILLNODROPS :
-				return "kills without drops";
-			case ENTER :
-				return "takes in";
-			case LINK :
-				return "forms a group with";
-			default :
-				return "is stopped by";
-		}
+		return this.operationName;
 	}
 
 	/**

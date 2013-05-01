@@ -88,6 +88,7 @@ public class TrainCarts extends PluginBase {
 	public static boolean instantCreativeDestroy;
 	private static String currencyFormat;
 	public static double manualMovementSpeed;
+	public static boolean allMinecartsAreTrainCarts;
 	public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
@@ -223,6 +224,10 @@ public class TrainCarts extends PluginBase {
 		collisionIgnoreOwners = config.get("collision.ignoreOwners", true);
 		collisionIgnoreGlobalOwners = config.get("collision.ignoreGlobalOwners", false);
 		pushAwayForce = config.get("collision.pushAwayForce", 0.2);
+
+		config.setHeader("allMinecartsAreTrainCarts", "\nWhether or not all minecarts spawned on the server turn into TrainCarts' Minecarts");
+		config.addHeader("allMinecartsAreTrainCarts", "Note that the TrainCart placement permission is then no longer active");
+		allMinecartsAreTrainCarts = config.get("allMinecartsAreTrainCarts", false);
 
 		config.setHeader("useCoalFromStorageCart", "\nWhether or not powered minecarts obtain their coal from attached storage minecarts");
 		useCoalFromStorageCart = config.get("useCoalFromStorageCart", false);

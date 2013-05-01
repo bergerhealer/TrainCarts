@@ -259,7 +259,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		return false;
 	}
 	public boolean hasOwnership(Player player) {
-		if (!CartProperties.canHaveOwnership(player)) return false;
 		if (CartProperties.hasGlobalOwnership(player)) return true;
 		if (!this.hasOwners()) return true;
 		return this.isOwner(player);

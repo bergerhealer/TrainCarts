@@ -24,7 +24,7 @@ public class SignActionDestination extends SignAction {
 		//get the train this player is editing
 		CartProperties cprop = CartProperties.getEditing(player);
 		if (cprop == null) {
-			if (CartProperties.canHaveOwnership(player)) {
+			if (Permission.COMMAND_PROPERTIES.has(player)) {
 				player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
 			} else {
 				player.sendMessage(ChatColor.RED + "You are not allowed to own trains!");

@@ -143,9 +143,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	 * Owners
 	 */
 	public boolean hasOwnership(Player player) {
-		if (!canHaveOwnership(player)) {
-			return false;
-		}
 		if (!this.hasOwners()) {
 			return true;
 		}
@@ -156,9 +153,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 	public static boolean hasGlobalOwnership(Player player) {
 		return Permission.COMMAND_GLOBALPROPERTIES.has(player);
-	}
-	public static boolean canHaveOwnership(Player player) {
-		return Permission.COMMAND_PROPERTIES.has(player) || hasGlobalOwnership(player);
 	}
 
 	@Override

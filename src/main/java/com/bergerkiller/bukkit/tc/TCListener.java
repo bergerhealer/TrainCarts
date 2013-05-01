@@ -84,7 +84,7 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	public void onChunkUnloadLow(ChunkUnloadEvent event) {
 		synchronized (this.expectUnload) {
 			this.expectUnload.clear();
@@ -118,22 +118,20 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkUnload(ChunkUnloadEvent event) {
-		if (!event.isCancelled()) {
-			// This chunk is still referenced, ensure that it is really gone
-			OfflineGroupManager.lastUnloadChunk = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
-			// Unload groups
-			synchronized (this.expectUnload) {
-				for (MinecartGroup mg : this.expectUnload) {
-					if (mg.isInChunk(event.getChunk())) {
-						mg.unload();
-					}
+		// This chunk is still referenced, ensure that it is really gone
+		OfflineGroupManager.lastUnloadChunk = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
+		// Unload groups
+		synchronized (this.expectUnload) {
+			for (MinecartGroup mg : this.expectUnload) {
+				if (mg.isInChunk(event.getChunk())) {
+					mg.unload();
 				}
 			}
-			OfflineGroupManager.unloadChunk(event.getChunk());
-			OfflineGroupManager.lastUnloadChunk = null;
 		}
+		OfflineGroupManager.unloadChunk(event.getChunk());
+		OfflineGroupManager.lastUnloadChunk = null;
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -142,13 +140,11 @@ public class TCListener implements Listener {
 		OfflineGroupManager.refresh(event.getWorld());
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onWorldUnload(WorldUnloadEvent event) {
-		if (!event.isCancelled()) {
-			for (MinecartGroup group : MinecartGroup.getGroups()) {
-				if (group.getWorld() == event.getWorld()) {
-					group.unload();
-				}
+		for (MinecartGroup group : MinecartGroup.getGroups()) {
+			if (group.getWorld() == event.getWorld()) {
+				group.unload();
 			}
 		}
 	}
@@ -158,9 +154,9 @@ public class TCListener implements Listener {
 		OfflineGroupManager.loadChunk(event.getChunk());
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onVehicleExit(VehicleExitEvent event) {
-		if (event.isCancelled() || TrainCarts.isWorldDisabled(event.getVehicle().getWorld()) || ignoreNextEject) {
+		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld()) || ignoreNextEject) {
 			return;
 		}
 		MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
@@ -190,6 +186,13 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityAdd(EntityAddEvent event) {
 		if (!MinecartMemberStore.canConvert(event.getEntity())) {
+			return;
+		}
+		// If placed by a player, only allow conversion for players that have the permissions
+		if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId()) 
+				&& !TrainCarts.allMinecartsAreTrainCarts
+				&& (lastPlayer == null || !Permission.GENERAL_PLACE_TRAINCART.has(lastPlayer))) {
+			// No conversion allowed
 			return;
 		}
 		MinecartMember<?> member = MinecartMemberStore.convert((Minecart) event.getEntity());
@@ -237,45 +240,41 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onVehicleEnter(VehicleEnterEvent event) {
-		if (!event.isCancelled()) {
-			MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
-			if (member != null && !member.getEntity().isDead() && !member.isUnloaded()) {
-				CartProperties prop = member.getProperties();
-				if (event.getEntered() instanceof Player) {
-					Player player = (Player) event.getEntered();
-					if (prop.getPlayersEnter() && (prop.isPublic() || prop.isOwner(player))) {
-						prop.showEnterMessage(player);
-					} else {
-						event.setCancelled(true);
-					}
-				} else if (member.getGroup().getProperties().mobCollision != CollisionMode.ENTER) {
+		MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
+		if (member != null && !member.getEntity().isDead() && !member.isUnloaded()) {
+			CartProperties prop = member.getProperties();
+			if (event.getEntered() instanceof Player) {
+				Player player = (Player) event.getEntered();
+				if (prop.getPlayersEnter() && (prop.isPublic() || prop.isOwner(player))) {
+					prop.showEnterMessage(player);
+				} else {
 					event.setCancelled(true);
 				}
-				member.onPropertiesChanged();
+			} else if (member.getGroup().getProperties().mobCollision != CollisionMode.ENTER) {
+				event.setCancelled(true);
 			}
+			member.onPropertiesChanged();
 		}
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onVehicleDamage(VehicleDamageEvent event) {
-		if (event.getAttacker() != null && event.getAttacker() instanceof Player) {
-			if (!event.isCancelled()) {
-				MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
-				if (mm != null) {
-					Player p = (Player) event.getAttacker();
-					if (mm.getProperties().hasOwnership(p)) {
-						CartPropertiesStore.setEditing(p, mm.getProperties());
-					} else {
-						event.setCancelled(true);
-					}
+		if (event.getAttacker() instanceof Player) {
+			MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+			if (mm != null) {
+				Player p = (Player) event.getAttacker();
+				if (mm.getProperties().hasOwnership(p)) {
+					CartPropertiesStore.setEditing(p, mm.getProperties());
+				} else {
+					event.setCancelled(true);
 				}
 			}
 		}
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event) {
 		if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld())) {
 			return;
@@ -292,7 +291,9 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteract(PlayerInteractEvent event) {
-		if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) return;
+		if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) {
+			return;
+		}
 		try {
 			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 				int id = event.getClickedBlock().getTypeId();
@@ -391,20 +392,18 @@ public class TCListener implements Listener {
 		}
 	}
 	
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockBreak(BlockBreakEvent event) {
-		if (!event.isCancelled()) {
-			if (MaterialUtil.ISSIGN.get(event.getBlock())) {
-				SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
-			} else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
-				onRailsBreak(event.getBlock());
-			}
+		if (MaterialUtil.ISSIGN.get(event.getBlock())) {
+			SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
+		} else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
+			onRailsBreak(event.getBlock());
 		}
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockPlace(final BlockPlaceEvent event) {
-		if (!event.isCancelled() && MaterialUtil.ISRAILS.get(event.getBlockPlaced())) {
+		if (MaterialUtil.ISRAILS.get(event.getBlockPlaced())) {
 			CommonUtil.nextTick(new Runnable() {
 				public void run() {
 					updateRails(event.getBlockPlaced());
@@ -413,11 +412,8 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
-		if (event.isCancelled()) {
-			return;
-		}
 		final Block block = event.getBlock();
 		final int type = block.getTypeId();
 		if (Util.ISTCRAIL.get(type)) {

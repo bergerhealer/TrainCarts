@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -29,17 +30,18 @@ public class Commands {
 			return true;
 		}
 		try {
-			if (GlobalCommands.execute(sender, args)) return true;
+			if (GlobalCommands.execute(sender, args)) {
+				return true;
+			}
+			if (!(sender instanceof Player)) {
+				return false;
+			}
+			Permission.COMMAND_PROPERTIES.handle(sender);
 			//editing?
-			if (!(sender instanceof Player)) return false;
 			Player player = (Player) sender;
 			CartProperties cprop = CartProperties.getEditing(player);
 			if (cprop == null) {
-				if (CartProperties.canHaveOwnership(player)) {
-					player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
-				} else {
-					player.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
-				}
+				player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
 				return true;
 			}
 			String cmd = args[0];
