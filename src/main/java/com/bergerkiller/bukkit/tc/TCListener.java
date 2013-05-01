@@ -190,8 +190,7 @@ public class TCListener implements Listener {
 		}
 		// If placed by a player, only allow conversion for players that have the permissions
 		if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId()) 
-				&& !TrainCarts.allMinecartsAreTrainCarts
-				&& (lastPlayer == null || !Permission.GENERAL_PLACE_TRAINCART.has(lastPlayer))) {
+				&& !TrainCarts.allMinecartsAreTrainCarts && lastPlayer == null) {
 			// No conversion allowed
 			return;
 		}
@@ -298,6 +297,9 @@ public class TCListener implements Listener {
 			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 				int id = event.getClickedBlock().getTypeId();
 				if (!Util.ISTCRAIL.get(id)) {
+					return;
+				}
+				if (!TrainCarts.allMinecartsAreTrainCarts && !Permission.GENERAL_PLACE_TRAINCART.has(event.getPlayer())) {
 					return;
 				}
 				ItemStack item = event.getPlayer().getItemInHand();
