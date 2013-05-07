@@ -841,6 +841,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 				m.onPhysicsPreMove();
 			}
 
+			// Direction can change as a result of gravity
+			this.updateDirection();
+
 			if (this.size() == 1) {
 				//Simplified calculation for single carts
 				this.head().onPhysicsPostMove(1);

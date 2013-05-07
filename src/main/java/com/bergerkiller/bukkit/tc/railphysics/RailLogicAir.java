@@ -5,7 +5,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -21,7 +20,7 @@ public class RailLogicAir extends RailLogic {
 	@Override
 	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
 		if (member.isMovingVerticalOnly()) {
-			return Util.getVerticalFace(movement.getY() > 0.0);
+			return FaceUtil.getVertical(movement.getY() > 0.0);
 		} else {
 			return FaceUtil.getDirection(movement);
 		}
