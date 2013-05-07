@@ -7,23 +7,23 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MemberAction extends Action {
-	private final MinecartMember<?> member;
-
-	public MemberAction(final MinecartMember<?> member) {
-		this.member = member;
-	}
+	private MinecartMember<?> member;
 
 	@Override
 	public boolean doTick() {
 		return getEntity().isDead() ? true : super.doTick();
 	}
-
+	
 	public MinecartGroup getGroup() {
 		return this.member.getGroup();
 	}
 
 	public MinecartMember<?> getMember() {
 		return this.member;
+	}
+
+	public void setMember(MinecartMember<?> member) {
+		this.member = member;
 	}
 
 	public CommonMinecart<?> getEntity() {

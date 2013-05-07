@@ -217,7 +217,7 @@ public class SignActionSpawn extends SignAction {
 					MinecartMember<?> mm = MinecartMemberStore.spawn(locs[i], types.get(i));
 					group.add(mm);
 					if (spawnForce != 0 && i == 0) {
-						mm.addActionLaunch(spawnDirection, 2, spawnForce);
+						mm.getActions().addActionLaunch(spawnDirection, 2, spawnForce);
 					}
 				}
 				group.updateDirection();

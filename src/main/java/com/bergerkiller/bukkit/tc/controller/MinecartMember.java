@@ -50,13 +50,7 @@ import com.bergerkiller.bukkit.tc.RailType;
 import com.bergerkiller.bukkit.tc.TCListener;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.actions.Action;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchDirection;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchLocation;
-import com.bergerkiller.bukkit.tc.actions.MemberActionWaitDistance;
-import com.bergerkiller.bukkit.tc.actions.MemberActionWaitLocation;
-import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
+import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -88,6 +82,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	protected MinecartGroup group;
 	protected boolean died = false;
 	private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
+	private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
 	private final RailTracker railTracker = new RailTracker(this);
 	protected final ToggledState forcedBlockUpdate = new ToggledState(true);
 	private final ToggledState railActivated = new ToggledState(false);
@@ -327,37 +322,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	/*
-	 * Scheduled Actions
-	 */
-	public <A extends Action> A addAction(A action) {
-		return this.getGroup().addAction(action);
-	}
-	public MemberActionWaitDistance addActionWaitDistance(double distance) {
-		return this.addAction(new MemberActionWaitDistance(this, distance));
-	}
-	public MemberActionWaitLocation addActionWaitLocation(Location location) {
-		return this.addAction(new MemberActionWaitLocation(this, location));
-	}
-	public MemberActionWaitLocation addActionWaitLocation(Location location, double radius) {
-		return this.addAction(new MemberActionWaitLocation(this, location, radius));
-	}
-	public MemberActionLaunch addActionLaunch(double distance, double targetvelocity) {
-		return this.addAction(new MemberActionLaunch(this, distance, targetvelocity));
-	}
-	public MemberActionLaunchLocation addActionLaunch(Location destination, double targetvelocity) {
-		return this.addAction(new MemberActionLaunchLocation(this, targetvelocity, destination));
-	}
-	public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
-		return this.addActionLaunch(entity.getLocation().add(offset), targetvelocity);
-	}
-	public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
-		return this.addAction(new MemberActionLaunchDirection(this, targetdistance, targetvelocity, direction));
-	}
-	public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance) {
-		return this.addAction(new MemberActionWaitOccupied(this, maxsize, launchDelay, launchDistance));
-	}
-
-	/*
 	 * Actions
 	 */
 	public void pushSideways(org.bukkit.entity.Entity entity) {
@@ -401,6 +365,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		} else if (this.isUnloaded()) {
 			throw new MemberMissingException();
 		}
+	}
+
+	/**
+	 * Obtains the Action Tracker that keeps track of actions for this Minecart
+	 * 
+	 * @return action tracker
+	 */
+	public ActionTrackerMember getActions() {
+		return actionTracker;
 	}
 
 	/**
@@ -856,6 +829,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
 
+	/**
+	 * Checks whether this Minecart Member is being controlled externally by an action.
+	 * If this is True, the default physics such as gravity and slowing-down factors are not applied.
+	 * 
+	 * @return True if movement is controlled, False if not
+	 */
+	public boolean isMovementControlled() {
+		return getActions().isMovementControlled() || getGroup().getActions().isMovementControlled();
+	}
+
 	public boolean isIgnoringCollisions() {
 		return this.ignoreAllCollisions;
 	}
@@ -974,7 +957,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 
 		// Perform gravity
-		if (!getGroup().isMovementControlled()) {
+		if (!isMovementControlled()) {
 			entity.vel.y.subtract(getRailLogic().getGravityMultiplier(this));
 		}
 
@@ -1001,7 +984,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 		// Slow down on unpowered booster tracks
 		// Note: HAS to be in PreUpdate, otherwise glitches occur!
-		if (getRailType() == RailType.BRAKE && !getGroup().isMovementControlled() && !passengerControlled) {
+		if (getRailType() == RailType.BRAKE && !isMovementControlled() && !passengerControlled) {
 			if (entity.vel.xz.lengthSquared() < 0.0009) {
 				entity.vel.multiply(0.0);
 			} else {
@@ -1087,7 +1070,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			}
 
 			// Launching on powered booster tracks
-			if (getRailType() == RailType.BOOST && !getGroup().isMovementControlled()) {
+			if (getRailType() == RailType.BOOST && !isMovementControlled()) {
 				double motLength = entity.vel.xz.length();
 				if (motLength > 0.01) {
 					// Simple motion boosting when already moving

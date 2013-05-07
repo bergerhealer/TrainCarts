@@ -1,16 +1,23 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 public class MemberActionLaunchLocation extends MemberActionLaunchDirection implements MovementAction {
 	private final Location target;
 
-	public MemberActionLaunchLocation(final MinecartMember<?> member, double targetvelocity, Location target) {
-		super(member, member.getEntity().loc.distance(target), targetvelocity, member.getDirection());
+	public MemberActionLaunchLocation(double targetvelocity, Location target) {
+		super(0.0, targetvelocity, BlockFace.SELF);
 		this.target = target.clone();
+	}
+
+	@Override
+	public void bind() {
+		super.bind();
+		this.setTargetDistance(getMember().getEntity().loc.distance(target));
+		this.setDirection(getMember().getDirection());
 	}
 
 	@Override

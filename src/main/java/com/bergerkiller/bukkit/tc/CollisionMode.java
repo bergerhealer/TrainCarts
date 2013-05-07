@@ -68,7 +68,7 @@ public enum CollisionMode {
 					}
 				}
 			}
-		} else if (member.getGroup().isMovementControlled()) {
+		} else if (member.isMovementControlled()) {
 			// For other entity types - ignore collision
 			return false;
 		}

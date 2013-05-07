@@ -1,12 +1,9 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-
 public class MemberActionWaitDistance extends MemberAction implements WaitAction {
 	private double distance;
 
-	public MemberActionWaitDistance(final MinecartMember<?> member, double distance) {
-		super(member);
+	public MemberActionWaitDistance(double distance) {
 		this.distance = distance;
 	}
 

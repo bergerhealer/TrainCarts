@@ -29,12 +29,12 @@ public class SignActionWait extends SignAction {
 
 			//distance
 			if (MemberActionWaitOccupied.handleOccupied(info.getRails(), dir, info.getMember(), dist)) {
-				info.getGroup().clearActions();
-				info.getMember().addActionWaitOccupied(dist, delay, launchDistance);
+				info.getGroup().getActions().clear();
+				info.getMember().getActions().addActionWaitOccupied(dist, delay, launchDistance);
 			}
 		} else if (info.isAction(SignActionType.REDSTONE_OFF)) {
 			if (!info.hasRailedMember()) return;
-			info.getGroup().clearActions();
+			info.getGroup().getActions().clear();
 		}
 	}
 

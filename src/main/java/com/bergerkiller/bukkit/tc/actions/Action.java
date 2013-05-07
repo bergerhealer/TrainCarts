@@ -16,6 +16,12 @@ public class Action {
 		return true;
 	}
 
+	/**
+	 * Called right after this Action is bound to a group or member
+	 */
+	public void bind() {
+	}
+
 	public void start() {
 		// Default implementation does nothing here
 	}

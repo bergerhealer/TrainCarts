@@ -1,12 +1,6 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-
 public class GroupActionSizzle extends GroupAction {
-
-	public GroupActionSizzle(MinecartGroup group) {
-		super(group);
-	}
 
 	@Override
 	public void start() {

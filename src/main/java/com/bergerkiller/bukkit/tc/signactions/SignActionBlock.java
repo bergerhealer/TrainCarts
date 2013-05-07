@@ -22,7 +22,7 @@ public class SignActionBlock extends SignAction {
 		if (info.getMode() != SignActionMode.NONE && info.hasRailedMember()) {
 			if (info.isAction(SignActionType.GROUP_LEAVE) || (info.isAction(SignActionType.REDSTONE_CHANGE) && !info.isPowered())) {
 				// Remove the wait state when the train leaves or the sign lost power to block
-				GroupActionWaitState action = CommonUtil.tryCast(info.getGroup().getCurrentAction(), GroupActionWaitState.class);
+				GroupActionWaitState action = CommonUtil.tryCast(info.getGroup().getActions().getCurrentAction(), GroupActionWaitState.class);
 				if (action != null) {
 					action.stop();
 				}
@@ -34,12 +34,12 @@ public class SignActionBlock extends SignAction {
 					if (direction != Direction.NONE) {
 						long delay = ParseUtil.parseTime(info.getLine(2));
 						BlockFace trainDirection = direction.getDirection(info.getFacing(), info.getCartDirection());
-						info.getGroup().clearActions();
-						info.getGroup().addActionWaitState();
+						info.getGroup().getActions().clear();
+						info.getGroup().getActions().addActionWaitState();
 						if (delay > 0) {
-							info.getGroup().addActionWait(delay);
+							info.getGroup().getActions().addActionWait(delay);
 						}
-						info.getMember().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());
+						info.getMember().getActions().addActionLaunch(trainDirection, 2.0, info.getGroup().getAverageForce());
 					}
 				}
 				// Stop the train, if right after moving, also cancel a previous positional change

@@ -25,8 +25,8 @@ public class SignActionStation extends SignAction {
 			return;
 		}
 		if (info.isAction(SignActionType.GROUP_LEAVE)) {
-			if (info.getGroup().isWaitAction()) {
-				info.getGroup().clearActions();
+			if (info.getGroup().getActions().isWaitAction()) {
+				info.getGroup().getActions().clear();
 			}
 			info.setLevers(false);
 			return;
@@ -43,65 +43,65 @@ public class SignActionStation extends SignAction {
 
 		//What do we do?
 		if (station.getInstruction() == null) {
-			info.getGroup().clearActions();
+			info.getGroup().getActions().clear();
 		} else if (station.getInstruction() == BlockFace.SELF) {
 			MinecartMember<?> centerMember = station.getCenterCart();
 			// Do not allow redstone changes to center a launching train
-			if (info.isAction(SignActionType.REDSTONE_CHANGE) && (info.getGroup().isMovementControlled() || info.getGroup().isMoving())) {
+			if (info.isAction(SignActionType.REDSTONE_CHANGE) && (centerMember.isMovementControlled() || info.getGroup().isMoving())) {
 				return;
 			}
 
 			//Brake
 			//TODO: ADD CHECK?!
-			group.clearActions();		
+			group.getActions().clear();		
 			BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), centerMember.getDirectionTo());
 			if (station.getNextDirection() == Direction.NONE || trainDirection != group.head().getDirectionTo()) {
-				centerMember.addActionLaunch(info.getRailLocation(), 0);
+				centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
 			}
 			if (station.getNextDirection() != Direction.NONE) {
 				//Actual launching here
 				if (station.hasDelay()) {
-					centerMember.addActionLaunch(info.getRailLocation(), 0);
+					centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
 					if (TrainCarts.playSoundAtStation) {
-						group.addActionSizzle();
+						group.getActions().addActionSizzle();
 					}
-					info.getGroup().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-					group.addActionWait(station.getDelay());
+					info.getGroup().getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+					group.getActions().addActionWait(station.getDelay());
 				} else if (group.head().getDirectionTo() != trainDirection) {
-					centerMember.addActionLaunch(info.getRailLocation(), 0);
+					centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
 				}
 				if (TrainCarts.refillAtStations) {
-					group.addActionRefill();
+					group.getActions().addActionRefill();
 				}
-				centerMember.addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
+				centerMember.getActions().addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
 			} else {
-				centerMember.addActionLaunch(info.getRailLocation(), 0);
-				group.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+				centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
+				group.getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 				if (TrainCarts.playSoundAtStation) {
-					group.addActionSizzle();
+					group.getActions().addActionSizzle();
 				}
-				group.addActionWaitForever();
+				group.getActions().addActionWaitForever();
 			}
 		} else {
 			//Launch
-			group.clearActions();
-			MinecartMember<?>  head = group.head();
+			group.getActions().clear();
+			MinecartMember<?> head = group.head();
 
 			if (station.hasDelay() || (head.isMoving() && head.getDirection() != station.getInstruction())) {
 				//Reversing or has delay, need to center it in the middle first
-				station.getCenterCart().addActionLaunch(info.getRailLocation(), 0);
+				station.getCenterCart().getActions().addActionLaunch(info.getRailLocation(), 0);
 			}
 			if (station.hasDelay()) {
 				if (TrainCarts.playSoundAtStation) {
-					group.addActionSizzle();
+					group.getActions().addActionSizzle();
 				}
-				group.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-				group.addActionWait(station.getDelay());
+				group.getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+				group.getActions().addActionWait(station.getDelay());
 			}
 			if (TrainCarts.refillAtStations) {
-				group.addActionRefill();
+				group.getActions().addActionRefill();
 			}
-			station.getCenterCart().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
+			station.getCenterCart().getActions().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
 		}
 	}
 

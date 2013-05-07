@@ -11,8 +11,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 	private double targetvelocity;
 	private double startvelocity;
 
-	public MemberActionLaunch(final MinecartMember<?> member, double targetdistance, double targetvelocity) {
-		super(member);
+	public MemberActionLaunch(double targetdistance, double targetvelocity) {
 		this.distance = 0;
 		this.targetdistance = targetdistance;
 		this.targetvelocity = targetvelocity;

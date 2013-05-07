@@ -6,9 +6,7 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -31,7 +29,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.actions.*;
+import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -52,8 +50,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 	private static final HashSet<IntVector2> previousChunksBuffer = new HashSet<IntVector2>(50);
 	private static final HashSet<IntVector2> newChunksBuffer = new HashSet<IntVector2>(50);
 
-	private final Queue<Action> actions = new LinkedList<Action>();
 	private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
+	private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
 	private TrainProperties prop = null;
 	private boolean breakPhysics = false;
 	private int teleportImmunityTick = 0;
@@ -84,74 +82,17 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		this.prop = properties;
 	}
 
-	/*
-	 * Actions
-	 */
-	public boolean hasAction() {
-		return this.actions.size() > 0;
-	}
-	public void clearActions() {
-		this.actions.clear();
-	}
-	public Action removeAction() {
-		return this.actions.remove();
-	}
-	public <T extends Action> T addAction(T action) {
-		this.actions.offer(action);
-		return action;
-	}
-	public Action getCurrentAction() {
-		if (this.hasAction()) {
-			return this.actions.peek();
-		} else {
-			return null;
-		}
-	}
-	private void updateAction() {
-		if (!this.hasAction()) return;
-		if (this.actions.peek().doTick()) {
-			this.actions.remove();
-		}
-	}
-	public GroupActionWaitDelay addActionWait(long delay) {
-		return this.addAction(new GroupActionWaitDelay(this, delay));
-	}
-	public GroupActionWaitTill addActionWaitTill(long time) {
-		return this.addAction(new GroupActionWaitTill(this, time));
-	}
-	public GroupActionWaitTicks addActionWaitTicks(int ticks) {
-		return this.addAction(new GroupActionWaitTicks(this, ticks));
-	}
-	public GroupActionWaitForever addActionWaitForever() {
-		return this.addAction(new GroupActionWaitForever(this));
-	}
-	public GroupActionWaitState addActionWaitState() {
-		return this.addAction(new GroupActionWaitState(this));
-	}
-	public GroupActionSizzle addActionSizzle() {
-		return this.addAction(new GroupActionSizzle(this));
-	}
-	public GroupActionRefill addActionRefill() {
-		return this.addAction(new GroupActionRefill(this));
-	}
-	public boolean isWaitAction() {
-		Action a = this.actions.peek();
-		return a == null ? false : a instanceof WaitAction;
+	public BlockTrackerGroup getBlockTracker() {
+		return this.blockTracker;
 	}
 
 	/**
-	 * Gets whether an action is controlling this train.
-	 * When this is True, no physics should be applied.
+	 * Gets the Action Tracker that keeps track of the actions of this Group
 	 * 
-	 * @return True if movement is controlled by an action, False if not
+	 * @return action tracker
 	 */
-	public boolean isMovementControlled() {
-		final Action a = this.actions.peek();
-		return a instanceof MovementAction && ((MovementAction) a).isMovementSuppressed();
-	}
-
-	public BlockTrackerGroup getBlockTracker() {
-		return this.blockTracker;
+	public ActionTrackerGroup getActions() {
+		return this.actionTracker;
 	}
 
 	public MinecartMember<?> head(int index) {
@@ -333,16 +274,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		MemberRemoveEvent.call(member);
 		super.remove(index);
 		this.getProperties().remove(member);
+		this.getActions().removeActions(member);
 		this.getBlockTracker().updatePosition();
-		Action a;
-		for (Iterator<Action> actionit = this.actions.iterator(); actionit.hasNext();) {
-			a = actionit.next();
-			if (a instanceof MemberAction) {
-				if (((MemberAction) a).getMember() == member) {
-					actionit.remove();
-				}
-			}
-		}
 		member.group = null;
 		return member;
 	}
@@ -399,7 +332,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 	@Override
 	public void clear() {
 		this.getBlockTracker().clear();
-		this.clearActions();
+		this.getActions().clear();
 		for (MinecartMember<?> mm : this.toArray()) {
 			this.getProperties().remove(mm);
 			if (mm.getEntity().isDead()) {
@@ -490,9 +423,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		double force = this.getAverageForce();
 		this.teleport(start, direction);
 		this.stop();
-		this.clearActions();
+		this.getActions().clear();
 		if (Math.abs(force) > 0.01) {
-			this.tail().addActionLaunch(direction, 1.0, force);
+			this.tail().getActions().addActionLaunch(direction, 1.0, force);
 		}
 	}
 
@@ -872,7 +805,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
 			// Update direction and executed actions prior to updates
 			this.updateDirection();
-			this.updateAction();
+			this.getActions().doTick();
+			for (MinecartMember<?> member : this) {
+				member.getActions().doTick();
+			}
 
 			// Perform block updates prior to doing the movement calculations
 			// First initialize all blocks and handle block change event

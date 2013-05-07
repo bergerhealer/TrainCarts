@@ -17,13 +17,16 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 	private int counter = 20;
 	private boolean breakCode = false;
 
-	public MemberActionWaitOccupied(final MinecartMember<?> head, final int maxsize, final long delay, final double launchDistance) {
-		super(head);
+	public MemberActionWaitOccupied(final int maxsize, final long delay, final double launchDistance) {
 		this.maxsize = maxsize;
-		this.direction = head.getDirectionTo();
-		this.start = head.getBlock();
 		this.delay = delay;
 		this.launchDistance = launchDistance;
+	}
+
+	@Override
+	public void bind() {
+		this.direction = getMember().getDirectionTo();
+		this.start = getMember().getBlock();
 		this.launchforce = this.getGroup().getAverageForce();
 	}
 
@@ -59,9 +62,9 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 			if (!this.handleOccupied()) {
 				//launch
 				if (this.delay > 0) {
-					this.getGroup().addActionWait(this.delay);
+					this.getGroup().getActions().addActionWait(this.delay);
 				}
-				this.getMember().addActionLaunch(this.direction, this.launchDistance, this.launchforce);
+				this.getMember().getActions().addActionLaunch(this.direction, this.launchDistance, this.launchforce);
 				return true;
 			} else {
 				//this.wasoccupied = this.handleOccupied();

@@ -196,8 +196,8 @@ public class SignActionEvent extends Event implements Cancellable {
 				// Launch in the other direction
 				double force = this.member.getForce();
 				this.getGroup().stop();
-				this.getGroup().clearActions();
-				this.member.addActionLaunch(to, 1, force);
+				this.getGroup().getActions().clear();
+				this.member.getActions().addActionLaunch(to, 1, force);
 			}
 		}
 	}

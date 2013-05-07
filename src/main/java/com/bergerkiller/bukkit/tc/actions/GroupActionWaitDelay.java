@@ -1,12 +1,10 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-
 public class GroupActionWaitDelay extends GroupActionWaitTill implements WaitAction {
 	private long delay;
 
-	public GroupActionWaitDelay(MinecartGroup group, long delayMS) {
-		super(group, System.currentTimeMillis() + delayMS);
+	public GroupActionWaitDelay(long delayMS) {
+		super(System.currentTimeMillis() + delayMS);
 		this.delay = delayMS;
 	}
 

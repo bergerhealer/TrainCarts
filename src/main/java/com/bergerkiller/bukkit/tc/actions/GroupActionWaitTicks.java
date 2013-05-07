@@ -1,12 +1,9 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-
 public class GroupActionWaitTicks extends GroupActionWaitForever {
 	private int ticks;
 
-	public GroupActionWaitTicks(MinecartGroup group, int ticks) {
-		super(group);
+	public GroupActionWaitTicks(int ticks) {
 		this.ticks = ticks;
 	}
 

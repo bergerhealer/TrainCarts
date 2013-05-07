@@ -158,8 +158,8 @@ public class SignActionSwitcher extends SignAction {
 					if (PathProvider.isProcessing()) {
 						double currentForce = info.getGroup().getAverageForce();
 						// Add an action to let the train wait until the node IS explored
-						info.getGroup().addAction(new GroupActionWaitPathFinding(info, node, destination));
-						info.getMember().addActionLaunch(info.getMember().getDirectionFrom(), 1.0, currentForce);
+						info.getGroup().getActions().addAction(new GroupActionWaitPathFinding(info, node, destination));
+						info.getMember().getActions().addActionLaunch(info.getMember().getDirectionFrom(), 1.0, currentForce);
 						info.getGroup().stop();
 					} else {
 						// Switch the rails to the right direction

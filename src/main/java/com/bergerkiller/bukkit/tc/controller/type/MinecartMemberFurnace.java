@@ -165,7 +165,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 			}
 
 			// Velocity boost is applied
-			if (!getGroup().isMovementControlled()) {
+			if (!isMovementControlled()) {
 				if (this.pushDirection != BlockFace.SELF) {
 					double boost = 0.04 + TrainCarts.poweredCartBoost;
 					entity.vel.multiply(0.8);

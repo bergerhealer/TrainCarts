@@ -68,7 +68,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
 	
 		MinecartGroup group = member.getGroup();
 		// Velocity modifier for sloped tracks
-		if (group.getProperties().isSlowingDown() && !group.isMovementControlled()) {
+		if (group.getProperties().isSlowingDown() && !member.isMovementControlled()) {
 			entity.vel.xz.subtract(this.getDirection(), MinecartMember.SLOPE_VELOCITY_MULTIPLIER);
 		}
 		entity.vel.xz.add(this.getDirection(), entity.vel.getY());

@@ -5,7 +5,7 @@ import org.bukkit.World;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
 public class GroupAction extends Action {
-	private final MinecartGroup group;
+	private MinecartGroup group;
 
 	@Override
 	public boolean doTick() {
@@ -15,12 +15,12 @@ public class GroupAction extends Action {
 		return super.doTick();
 	}
 
-	public GroupAction(final MinecartGroup group) {
-		this.group = group;
-	}
-
 	public MinecartGroup getGroup() {
 		return this.group;
+	}
+
+	public void setGroup(MinecartGroup group) {
+		this.group = group;
 	}
 
 	public World getWorld() {

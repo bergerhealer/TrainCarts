@@ -18,7 +18,6 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 	private final String destination;
 
 	public GroupActionWaitPathFinding(SignActionEvent info, PathNode from, String destination) {
-		super(info.getGroup());
 		this.info = info;
 		this.from = from;
 		this.destination = destination;

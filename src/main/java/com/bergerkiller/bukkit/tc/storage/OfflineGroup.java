@@ -38,8 +38,8 @@ public class OfflineGroup {
 		}
 		this.name = group.getProperties().getTrainName();
 		this.worldUUID = group.getWorld().getUID();
-		if (group.getCurrentAction() instanceof MemberActionLaunch) {
-			double vel = ((MemberActionLaunch) group.getCurrentAction()).getTargetVelocity();
+		if (group.getActions().getCurrentAction() instanceof MemberActionLaunch) {
+			double vel = ((MemberActionLaunch) group.getActions().getCurrentAction()).getTargetVelocity();
 			for (OfflineMember member : this.members) {
 				member.setVelocity(vel);
 			}
