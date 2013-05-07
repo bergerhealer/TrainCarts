@@ -4,6 +4,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -24,6 +25,13 @@ public class RailLogicAir extends RailLogic {
 		} else {
 			return FaceUtil.getDirection(movement);
 		}
+	}
+
+	@Override
+	public void setForwardVelocity(MinecartMember<?> member, double force) {
+		Vector vel = member.getEntity().vel.vector();
+		MathUtil.setVectorLength(vel, force);
+		member.getEntity().vel.set(vel);
 	}
 
 	@Override

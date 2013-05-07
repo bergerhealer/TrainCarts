@@ -192,6 +192,9 @@ public class RailTracker {
 					// Y offset
 					final double transOffset = 0.01; // How high above the slope to teleport to
 					entity.loc.setY(this.blockPos.y + transOffset);
+					// Convert Y-velocity into XZ-velocity
+					entity.vel.xz.add(rails.getDirection(), entity.vel.getY());
+					entity.vel.y.setZero();
 				}
 			}
 		}

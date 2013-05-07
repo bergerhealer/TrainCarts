@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
-public class SignActionBlock extends SignAction {
+public class SignActionBlocker extends SignAction {
 
 	@Override
 	public boolean match(SignActionEvent info) {

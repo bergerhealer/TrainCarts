@@ -443,7 +443,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.getRailLogic().isSloped();
 	}
 	public boolean isFlying() {
-		return getRailType() == RailType.NONE && !entity.isOnGround();
+		return isDerailed() && !entity.isOnGround();
 	}
 	public boolean isMovingHorizontally() {
 		return entity.isMovingHorizontally();
@@ -452,7 +452,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.isMovingVertically() && !this.isMovingHorizontally();
 	}
 	public boolean isMovingVertically() {
-		return Math.abs(MathUtil.wrapAngle(entity.loc.getPitch())) == 90f && (entity.vel.getY() > 0.001 || (entity.vel.getY() < -0.001 && !entity.isOnGround()));
+		// When flying we can assume that we are moving vertically - always
+		return isFlying() || entity.isMovingVertically();
 	}
 	public boolean isNearOf(MinecartMember<?> member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;

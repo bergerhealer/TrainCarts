@@ -33,6 +33,7 @@ public abstract class SignAction {
 		register(new SignActionProperties());
 		register(new SignActionTrigger());
 		register(new SignActionTeleport());
+		register(new SignActionJumper());
 		register(new SignActionEject());
 		register(new SignActionDestroy());
 		register(new SignActionTransfer());
@@ -40,7 +41,7 @@ public abstract class SignAction {
 		register(new SignActionCraft());
 		register(new SignActionDetector());
 		register(new SignActionDestination());
-		register(new SignActionBlock());
+		register(new SignActionBlocker());
 		register(new SignActionWait());
 		register(new SignActionElevator());
 		register(new SignActionTicket());

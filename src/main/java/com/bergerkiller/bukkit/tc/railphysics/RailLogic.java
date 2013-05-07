@@ -150,18 +150,24 @@ public abstract class RailLogic {
 		if (MaterialUtil.ISRAILS.get(typeId)) {
 			Rails rails = BlockUtil.getRails(railsBlock);
 			BlockFace direction = rails.getDirection();
-			if (rails.isOnSlope()) {
-				if (Util.isVerticalAbove(railsBlock, direction)) {
-					// Slope-vertical logic
-					return RailLogicVerticalSlopeDown.get(direction);
-				} else {
-					// Sloped logic
-					return RailLogicSloped.get(direction);
-				}
-			} else {
-				// Horizontal logic
-				return RailLogicHorizontal.get(direction);
+
+			// Slope-vertical logic
+			if (rails.isOnSlope() && Util.isVerticalAbove(railsBlock, direction)) {
+				return RailLogicVerticalSlopeDown.get(direction);
 			}
+
+			// Flying up from the rails (this is here to allow upward jumps)
+			if (member.getEntity().vel.getY() > 0.0) {
+				return RailLogicAir.INSTANCE;
+			}
+
+			// Sloped logic
+			if (rails.isOnSlope()) {
+				return RailLogicSloped.get(direction);
+			}
+
+			// Horizontal logic
+			return RailLogicHorizontal.get(direction);
 		} else if (MaterialUtil.ISPRESSUREPLATE.get(typeId)) {
 			// Get the direction of the rails to find out the logic to use
 			BlockFace dir = Util.getPlateDirection(railsBlock);
