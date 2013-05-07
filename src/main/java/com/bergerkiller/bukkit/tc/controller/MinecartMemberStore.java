@@ -114,7 +114,9 @@ public abstract class MinecartMemberStore {
 
 		// Set controllers and done
 		entity.setController(newController);
-		entity.setNetworkController(new MinecartMemberNetwork());
+		if (TrainCarts.useNetworkSynchronizer) {
+			entity.setNetworkController(new MinecartMemberNetwork());
+		}
 
 		// Unloaded?
 		newController.updateUnloaded();
@@ -204,7 +206,11 @@ public abstract class MinecartMemberStore {
 			throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
 		}
 		entity.setController(controller);
-		entity.spawn(at, new MinecartMemberNetwork());
+		if (TrainCarts.useNetworkSynchronizer) {
+			entity.spawn(at, new MinecartMemberNetwork());
+		} else {
+			entity.spawn(at);
+		}
 		controller.invalidateDirection();
 		controller.updateDirection(FaceUtil.yawToFace(at.getYaw()));
 		return controller;

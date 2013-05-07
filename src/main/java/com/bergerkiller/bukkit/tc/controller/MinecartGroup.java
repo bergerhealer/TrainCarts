@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,14 +21,13 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
-import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -49,8 +49,8 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
 	private static final long serialVersionUID = 3;
-	private static final LongHashSet previousChunksBuffer = new LongHashSet(50);
-	private static final LongHashSet newChunksBuffer = new LongHashSet(50);
+	private static final HashSet<IntVector2> previousChunksBuffer = new HashSet<IntVector2>(50);
+	private static final HashSet<IntVector2> newChunksBuffer = new HashSet<IntVector2>(50);
 
 	private final Queue<Action> actions = new LinkedList<Action>();
 	private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
@@ -974,16 +974,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 				mm.updateChunks(previousChunksBuffer, newChunksBuffer);
 			}
 			int cx, cz;
-			long chunk;
+			IntVector2 chunk;
 			final World world = getWorld();
-			LongIterator iter;
+			Iterator<IntVector2> iter;
 			if (this.canUnload()) {
 				// Check whether the new chunks are unloaded
-				iter = newChunksBuffer.longIterator();
+				iter = newChunksBuffer.iterator();
 				while (iter.hasNext()) {
 					chunk = iter.next();
-					cx = MathUtil.longHashMsw(chunk);
-					cz = MathUtil.longHashLsw(chunk);
+					cx = chunk.x;
+					cz = chunk.z;
 					if (!world.isChunkLoaded(cx, cz)) {
 						this.unload();
 						throw new GroupUnloadedException();
@@ -991,22 +991,22 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 				}
 			} else {
 				// Mark previous chunks for unload
-				iter = previousChunksBuffer.longIterator();
+				iter = previousChunksBuffer.iterator();
 				while (iter.hasNext()) {
 					chunk = iter.next();
 					if (!newChunksBuffer.contains(chunk)) {
-						cx = MathUtil.longHashMsw(chunk);
-						cz = MathUtil.longHashLsw(chunk);
+						cx = chunk.x;
+						cz = chunk.z;
 						world.unloadChunkRequest(cx, cz);
 					}
 				}
 				// Load the new chunks
-				iter = newChunksBuffer.longIterator();
+				iter = newChunksBuffer.iterator();
 				while (iter.hasNext()) {
 					chunk = iter.next();
 					if (!previousChunksBuffer.contains(chunk)) {
-						cx = MathUtil.longHashMsw(chunk);
-						cz = MathUtil.longHashLsw(chunk);
+						cx = chunk.x;
+						cz = chunk.z;
 						world.getChunkAt(cx, cz);
 					}
 				}

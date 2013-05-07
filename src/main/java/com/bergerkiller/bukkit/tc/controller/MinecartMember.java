@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,6 +30,7 @@ import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -40,7 +43,6 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
-import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.MemberMissingException;
@@ -67,6 +69,7 @@ import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -96,14 +99,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	protected boolean unloaded = false;
 	public boolean vertToSlope = false;
 	protected SoundLoop<?> soundLoop;
+	private ChunkArea lastChunks, currentChunks;
 
 	@Override
 	public void onAttached() {
 		super.onAttached();
 		this.railTracker.onAttached();
 		this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
-		this.prevcx = entity.loc.x.chunk();
-		this.prevcz = entity.loc.z.chunk();
+		this.lastChunks = new ChunkArea(entity.loc.x.chunk(), entity.loc.z.chunk());
+		this.currentChunks = new ChunkArea(lastChunks);
 		this.updateDirection();
 	}
 
@@ -212,20 +216,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return true;
 	}
 
-	private int prevcx, prevcz;
-
-	protected void updateChunks(LongHashSet previousChunks, LongHashSet newChunks) {
-		int newcx = entity.loc.x.chunk();
-		int newcz = entity.loc.z.chunk();
-		int cx, cz;
-		for (cx = -2; cx <= 2; cx++) {
-			for (cz = -2; cz <= 2; cz++) {
-				previousChunks.add(prevcx + cx, prevcz + cz);
-				newChunks.add(newcx + cx, newcz + cz);
-			}
-		}
-		prevcx = newcx;
-		prevcz = newcz;
+	protected void updateChunks(Set<IntVector2> previousChunks, Set<IntVector2> newChunks) {
+		previousChunks.addAll(Arrays.asList(this.lastChunks.getChunks()));
+		newChunks.addAll(Arrays.asList(this.currentChunks.getChunks()));
+		this.lastChunks.update(this.currentChunks);
+		this.currentChunks.update(entity.loc.x.chunk(), entity.loc.z.chunk());
 	}
 
 	public boolean isSingle() {

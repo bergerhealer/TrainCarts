@@ -11,6 +11,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -135,6 +136,11 @@ public class TCListener implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
+	public void onChunkLoad(ChunkLoadEvent event) {
+		OfflineGroupManager.loadChunk(event.getChunk());
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldLoad(WorldLoadEvent event) {
 		// Refresh the groups on this world
 		OfflineGroupManager.refresh(event.getWorld());
@@ -147,11 +153,6 @@ public class TCListener implements Listener {
 				group.unload();
 			}
 		}
-	}
-
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onChunkLoad(ChunkLoadEvent event) {
-		OfflineGroupManager.loadChunk(event.getChunk());
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -260,15 +261,20 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onVehicleDamage(VehicleDamageEvent event) {
-		if (event.getAttacker() instanceof Player) {
-			MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
-			if (mm != null) {
-				Player p = (Player) event.getAttacker();
-				if (mm.getProperties().hasOwnership(p)) {
-					CartPropertiesStore.setEditing(p, mm.getProperties());
-				} else {
-					event.setCancelled(true);
-				}
+		MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+		if (mm == null) {
+			return;
+		}
+		Entity attacker = event.getAttacker();
+		if (attacker instanceof Projectile) {
+			attacker = ((Projectile) attacker).getShooter();
+		}
+		if (attacker instanceof Player) {
+			Player p = (Player) attacker;
+			if (mm.getProperties().hasOwnership(p)) {
+				CartPropertiesStore.setEditing(p, mm.getProperties());
+			} else {
+				event.setCancelled(true);
 			}
 		}
 	}

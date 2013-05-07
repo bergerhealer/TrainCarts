@@ -89,6 +89,7 @@ public class TrainCarts extends PluginBase {
 	private static String currencyFormat;
 	public static double manualMovementSpeed;
 	public static boolean allMinecartsAreTrainCarts;
+	public static boolean useNetworkSynchronizer;
 	public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
@@ -240,6 +241,11 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("keepChunksLoadedOnlyWhenMoving", "\nWhether or not chunks are only kept loaded when the train is moving");
 		keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
+
+		config.setHeader("useNetworkSynchronizer", "\nAdvanced: Whether trains use a different way of server->client synchronization");
+		config.addHeader("useNetworkSynchronizer", "With this enabled, trains are expected to move smoother with less bumping");
+		config.addHeader("useNetworkSynchronizer", "With this disabled, no smoothing is applied. Only disable it if it causes problems/incompatibility");
+		useNetworkSynchronizer = config.get("useNetworkSynchronizer", true);
 
 		config.setHeader("maxDetectorLength", "\nThe maximum length a detector region (between two detectors) can be");
 		maxDetectorLength = config.get("maxDetectorLength", 2000);

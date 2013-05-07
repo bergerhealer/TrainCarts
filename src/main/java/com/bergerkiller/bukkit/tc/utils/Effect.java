@@ -1,46 +1,45 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.Sound;
 
+import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class Effect {
-	private static final Map<String, Integer> DIR_NAMES = new HashMap<String, Integer>();
-	private static final Map<String, Integer> DISK_NAMES = new HashMap<String, Integer>();
+	private static final StringMap<Integer> DIR_NAMES = new StringMap<Integer>();
+	private static final StringMap<Integer> DISK_NAMES = new StringMap<Integer>();
 	static {
 		// Smoke
-		DIR_NAMES.put("U", 4);
-		DIR_NAMES.put("M", 4);
-		DIR_NAMES.put("N", 7);
-		DIR_NAMES.put("E", 3);
-		DIR_NAMES.put("S", 1);
-		DIR_NAMES.put("W", 5);
-		DIR_NAMES.put("NE", 6);
-		DIR_NAMES.put("SE", 0);
-		DIR_NAMES.put("NW", 8);
-		DIR_NAMES.put("SW", 2);
+		DIR_NAMES.putUpper("U", 4);
+		DIR_NAMES.putUpper("M", 4);
+		DIR_NAMES.putUpper("N", 7);
+		DIR_NAMES.putUpper("E", 3);
+		DIR_NAMES.putUpper("S", 1);
+		DIR_NAMES.putUpper("W", 5);
+		DIR_NAMES.putUpper("NE", 6);
+		DIR_NAMES.putUpper("SE", 0);
+		DIR_NAMES.putUpper("NW", 8);
+		DIR_NAMES.putUpper("SW", 2);
 		// Record disks
-		DISK_NAMES.put("NONE", 0);
-		DISK_NAMES.put("13", 2256);
-		DISK_NAMES.put("CAT", 2257);
-		DISK_NAMES.put("BLOCKS", 2258);
-		DISK_NAMES.put("CHIRP", 2259);
-		DISK_NAMES.put("FAR", 2260);
-		DISK_NAMES.put("MALL", 2261);
-		DISK_NAMES.put("MELLOHI", 2262);
-		DISK_NAMES.put("STAL", 2263);
-		DISK_NAMES.put("STRAD", 2264);
-		DISK_NAMES.put("WARD", 2265);
-		DISK_NAMES.put("11", 2266);
-		DISK_NAMES.put("WAIT", 2267);
+		DISK_NAMES.putUpper("NONE", 0);
+		DISK_NAMES.putUpper("13", 2256);
+		DISK_NAMES.putUpper("CAT", 2257);
+		DISK_NAMES.putUpper("BLOCKS", 2258);
+		DISK_NAMES.putUpper("CHIRP", 2259);
+		DISK_NAMES.putUpper("FAR", 2260);
+		DISK_NAMES.putUpper("MALL", 2261);
+		DISK_NAMES.putUpper("MELLOHI", 2262);
+		DISK_NAMES.putUpper("STAL", 2263);
+		DISK_NAMES.putUpper("STRAD", 2264);
+		DISK_NAMES.putUpper("WARD", 2265);
+		DISK_NAMES.putUpper("11", 2266);
+		DISK_NAMES.putUpper("WAIT", 2267);
 	}
 
 	public final List<String> effects = new ArrayList<String>();
