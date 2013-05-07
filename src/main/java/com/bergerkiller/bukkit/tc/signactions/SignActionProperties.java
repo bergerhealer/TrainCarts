@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import java.util.Locale;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -47,8 +48,15 @@ public class SignActionProperties extends SignAction {
 		return true;
 	}
 
+	private static boolean argsUsesSeparator(String mode) {
+		return LogicUtil.contains(mode, "exitoffset", "exitrot", "exitrotation");
+	}
+
 	private static boolean parseSet(IParsable properties, SignActionEvent info) {
 		String mode = info.getLine(2).toLowerCase(Locale.ENGLISH).trim();
+		if (argsUsesSeparator(mode)) {
+			return Util.parseProperties(properties, mode, info.getLine(3));
+		}
 		String[] args = Util.splitBySeparator(info.getLine(3));
 		if (args.length >= 2) {
 			return Util.parseProperties(properties, mode, info.isPowered() ? args[0] : args[1]);
