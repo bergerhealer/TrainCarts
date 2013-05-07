@@ -57,6 +57,6 @@ public class SignActionJumper extends SignAction {
 
 	public static void jump(MinecartMember<?> member, Vector offset) {
 		//TODO: Proper jumping action for accurate (block location) jump
-		member.getEntity().vel.add(offset);
+		member.getEntity().vel.set(offset);
 	}
 }
