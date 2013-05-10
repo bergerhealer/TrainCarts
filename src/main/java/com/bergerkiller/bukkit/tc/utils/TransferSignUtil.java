@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
@@ -25,6 +27,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.tc.InteractType;
@@ -169,21 +172,20 @@ public class TransferSignUtil {
 		return startAmount - amountToTransfer;
 	}
 
-	public static Collection<BlockState> getBlockStates(SignActionEvent info, int radius) {
-		if (radius <= 0) {
-			return Collections.emptyList();
-		} else if (radius > TrainCarts.maxTransferRadius) {
-			radius = TrainCarts.maxTransferRadius;
-		}
-		int radX = radius;
-		int radZ = radius;
+	public static Collection<BlockState> getBlockStates(SignActionEvent info, int radWidth, int radHeight) {
+		// Obtain the BlockFaces using absolute width and height
+		final Block centerBlock = info.getRails();
+		int radX = Math.abs(radWidth);
+		int radY = Math.abs(radHeight);
+		int radZ = Math.abs(radWidth);
 		BlockFace dir = info.getRailDirection();
 		if (FaceUtil.isAlongX(dir)) {
 			radX = 0;
 		} else if (FaceUtil.isAlongZ(dir)) {
 			radZ = 0;
 		}
-		Collection<BlockState> states = BlockUtil.getBlockStates(info.getRails(), radX, radius, radZ);
+		List<BlockState> states = new ArrayList<BlockState>(BlockUtil.getBlockStates(centerBlock, radX, radY, radZ));
+
 		// Get rid of twice-stored double chests
 		try {
 			Iterator<BlockState> iter = states.iterator();
@@ -206,6 +208,26 @@ public class TransferSignUtil {
 		} finally {
 			chestsBuffer.clear();
 		}
+
+		// Sort the resulting states based on distance from the center
+		final boolean widthInv = radWidth < 0;
+		final boolean heightInv = radHeight < 0;
+		Collections.sort(states, new Comparator<BlockState>() {
+
+			public int getIndex(BlockState state) {
+				int dx = MathUtil.invert(Math.abs(centerBlock.getX() - state.getX()), widthInv);
+				int dy = MathUtil.invert(Math.abs(centerBlock.getY() - state.getY()), heightInv);
+				int dz = MathUtil.invert(Math.abs(centerBlock.getZ() - state.getZ()), widthInv);
+				// Magical formula timez!
+				return dx + 16 * dz + 256 * dy;
+			}
+
+			@Override
+			public int compare(BlockState o1, BlockState o2) {
+				return getIndex(o1) - getIndex(o2);
+			}
+		});
+		
 		return states;
 	}
 
@@ -222,14 +244,30 @@ public class TransferSignUtil {
 			return Collections.emptyList();
 		}
 
-		//get the block types to collect and the radius (2nd line)
-		int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
+		// Parse radius width and height (negative allowed for reversed sorting)
+		int radWidth = TrainCarts.defaultTransferRadius;
+		int radHeight = TrainCarts.defaultTransferRadius;
+		int radStartIndex = info.getLine(1).lastIndexOf(' ');
+		if (radStartIndex != -1) {
+			String radText = info.getLine(1).substring(radStartIndex + 1);
+			String[] parts = radText.split(":");
+			if (parts.length == 1) {
+				radWidth = radHeight = ParseUtil.parseInt(radText, TrainCarts.defaultTransferRadius);
+			} else if (parts.length == 2) {
+				radWidth = ParseUtil.parseInt(parts[0], TrainCarts.defaultTransferRadius);
+				radHeight = ParseUtil.parseInt(parts[1], TrainCarts.defaultTransferRadius);
+			}
+		}
+		// Limit radius
+		radWidth = MathUtil.clamp(radWidth, TrainCarts.maxTransferRadius);
+		radHeight = MathUtil.clamp(radHeight, TrainCarts.maxTransferRadius);
 
-		//get the tile entities to collect
-		Collection<BlockState> found = TransferSignUtil.getBlockStates(info, radius);
+		// Get the blocks to collect/deposit using radiuses previously parsed
+		Collection<BlockState> found = TransferSignUtil.getBlockStates(info, radWidth, radHeight);
 		if (found.isEmpty()) {
 			return Collections.emptyList();
 		}
+
 		List<InventoryHolder> rval = new ArrayList<InventoryHolder>(found.size());
 		// This weird for loop is needed because typesToCheck is not a set!
 		// The order in which inventories are added is of importance
@@ -260,7 +298,7 @@ public class TransferSignUtil {
 					break;
 				}
 				case GROUNDITEM : {
-					rval.add(new GroundItemsState(info.getRails(), radius));
+					rval.add(new GroundItemsState(info.getRails(), Math.abs(radWidth)));
 					break;
 				}
 			}

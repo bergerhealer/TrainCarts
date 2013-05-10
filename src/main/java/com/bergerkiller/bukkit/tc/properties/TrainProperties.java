@@ -14,6 +14,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -424,6 +425,23 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	}
 
 	@Override
+	public void setSpawnItemDrops(boolean spawnDrops) {
+		for (CartProperties prop : this) {
+			prop.setSpawnItemDrops(spawnDrops);
+		}
+	}
+
+	@Override
+	public boolean getSpawnItemDrops() {
+		for (CartProperties prop : this) {
+			if (prop.getSpawnItemDrops()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public boolean hasDestination() {
 		for (CartProperties prop : this) {
 			if (prop.hasDestination()) return true;
@@ -637,7 +655,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			for (CartProperties prop : this) {
 				prop.exitPitch = pitch;
 			}
-		} else if (key.equals("exitrot") || key.equals("exitrotation")) {
+		} else if (LogicUtil.contains(key, "exitrot", "exitrotation")) {
 			String[] angletext = Util.splitBySeparator(arg);
 			float yaw = 0.0f;
 			float pitch = 0.0f;
@@ -661,13 +679,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.miscCollision = CollisionMode.parse(arg);
 		} else if (key.equals("traincollision")) {
 			this.trainCollision = CollisionMode.parse(arg);
-		} else if (key.equals("collision") || key.equals("collide")) {
+		} else if (LogicUtil.contains(key, "collision", "collide")) {
 			this.setColliding(ParseUtil.parseBool(arg));
-		} else if (key.equals("linking") || key.equals("link")) {
+		} else if (LogicUtil.contains(key, "linking", "link")) {
 			this.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(arg));
-		} else if (key.equals("slow") || key.equals("slowdown")) {
+		} else if (LogicUtil.contains(key, "slow", "slowdown")) {
 			this.setSlowingDown(ParseUtil.parseBool(arg));
-		} else if (key.equals("setdefault") || key.equals("default")) {
+		} else if (LogicUtil.contains(key, "setdefault", "default")) {
 			this.setDefault(arg);
 		} else if (key.equals("pushmobs")) {
 			this.mobCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
@@ -675,14 +693,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.playerCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
 		} else if (key.equals("pushmisc")) {
 			this.miscCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-		} else if (key.equals("push") || key.equals("pushing")) {
+		} else if (LogicUtil.contains(key, "push", "pushing")) {
 			CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
 			this.playerCollision = this.mobCollision = this.miscCollision = mode;
-		} else if (key.equals("speedlimit") || key.equals("maxspeed")) {
+		} else if (LogicUtil.contains(key, "speedlimit", "maxspeed")) {
 			this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
-		} else if (key.equals("allowmanual") || key.equals("manualmove") || key.equals("manual")) {
+		} else if (LogicUtil.contains(key, "allowmanual", "manualmove", "manual")) {
 			this.allowManualMovement = ParseUtil.parseBool(arg);
-		} else if (key.equals("keepcloaded") || key.equals("loadchunks") || key.equals("keeploaded")) {
+		} else if (LogicUtil.contains(key, "keepcloaded", "loadchunks", "keeploaded")) {
 			this.keepChunksLoaded = ParseUtil.parseBool(arg);
 		} else if (key.equals("addtag")) {
 			this.addTags(arg);
@@ -692,7 +710,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.setDestination(arg);
 		} else if (key.equals("remtag")) {
 			this.removeTags(arg);
-		} else if (key.equals("name") || key.equals("rename") || key.equals("setname")) {
+		} else if (LogicUtil.contains(key, "name", "rename", "setname")) {
 			// No constant: append a number at the end
 			if (!arg.contains("#")) {
 				arg = arg + "#";
@@ -706,9 +724,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 				}
 			}
 			this.setName(trainName);
-		} else if (key.equals("dname") || key.equals("displayname") || key.equals("setdisplayname") || key.equals("setdname")) {
+		} else if (LogicUtil.contains(key, "dname", "displayname", "setdisplayname", "setdname")) {
 			this.setDisplayName(arg);
-		} else if (key.equals("mobenter") || key.equals("mobsenter")) {
+		} else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {
 			this.mobCollision = CollisionMode.fromEntering(ParseUtil.parseBool(arg));
 		} else if (key.equals("playerenter")) {
 			this.setPlayersEnter(ParseUtil.parseBool(arg));
@@ -730,6 +748,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			for (CartProperties cprop : this) {
 				cprop.getOwners().remove(arg);
 			}
+		} else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
+			this.setSpawnItemDrops(ParseUtil.parseBool(arg));
 		} else {
 			return false;
 		}

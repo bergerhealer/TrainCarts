@@ -55,7 +55,7 @@ public class SignActionSpawn extends SignAction {
 
 	@Override
 	public void execute(SignActionEvent info) {
-		if (info.isAction(SignActionType.REDSTONE_ON)) {
+		if (info.isAction(SignActionType.REDSTONE_ON) && getSpawnTime(info) == 0) {
 			spawn(info);
 		}
 	}

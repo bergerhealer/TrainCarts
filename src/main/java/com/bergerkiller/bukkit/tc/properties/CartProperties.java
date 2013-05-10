@@ -46,6 +46,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private String lastPathNode = "";
 	private boolean isPublic = true;
 	private boolean pickUp = false;
+	private boolean spawnItemDrops = true;
 	private SoftReference<MinecartMember<?>> member = new SoftReference<MinecartMember<?>>();
 	protected TrainProperties group = null;
 
@@ -264,6 +265,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 
 	@Override
+	public void setSpawnItemDrops(boolean spawnDrops) {
+		this.spawnItemDrops = spawnDrops;
+	}
+
+	@Override
+	public boolean getSpawnItemDrops() {
+		return this.spawnItemDrops;
+	}
+
+	@Override
 	public BlockLocation getLocation() {
 		MinecartMember<?> member = this.getHolder();
 		if (member != null) {
@@ -384,7 +395,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			exitYaw = ParseUtil.parseFloat(arg, 0.0f);
 		} else if (key.equals("exitpitch")) {
 			exitPitch = ParseUtil.parseFloat(arg, 0.0f);
-		} else if (key.equals("exitrot") || key.equals("exitrotation")) {
+		} else if (LogicUtil.contains(key, "exitrot", "exitrotation")) {
 			String[] angletext = Util.splitBySeparator(arg);
 			float yaw = 0.0f;
 			float pitch = 0.0f;
@@ -418,6 +429,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		} else if (key.equals("remowner")) {
 			arg = arg.toLowerCase();
 			this.getOwners().remove(arg);
+		} else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
+			this.setSpawnItemDrops(ParseUtil.parseBool(arg));
 		} else {
 			return false;
 		}
@@ -440,6 +453,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.exitOffset = from.exitOffset.clone();
 		this.exitYaw = from.exitYaw;
 		this.exitPitch = from.exitPitch;
+		this.spawnItemDrops = from.spawnItemDrops;
 	}
 
 	@Override
@@ -456,6 +470,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
 		this.isPublic = node.get("isPublic", this.isPublic);
 		this.pickUp = node.get("pickUp", this.pickUp);
+		this.spawnItemDrops = node.get("spawnItemDrops", this.spawnItemDrops);
 		this.exitOffset = node.get("exitOffset", this.exitOffset);
 		this.exitYaw = node.get("exitYaw", this.exitYaw);
 		this.exitPitch = node.get("exitPitch", this.exitPitch);
@@ -484,6 +499,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		}
 		node.set("destination", this.hasDestination() ? this.destination : "");
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : "");
+		node.set("spawnItemDrops", this.spawnItemDrops);
 	}
 
 	@Override
@@ -508,6 +524,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		node.set("destination", this.hasDestination() ? this.destination : null);
 		node.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
+		node.set("spawnItemDrops", this.spawnItemDrops ? null : false);
 	}
 
 	@Override

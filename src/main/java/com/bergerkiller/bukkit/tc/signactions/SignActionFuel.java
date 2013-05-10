@@ -42,7 +42,7 @@ public class SignActionFuel extends SignAction {
 		//get nearby chests
 		int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
 		List<Chest> chests = new ArrayList<Chest>();
-		for (BlockState state : TransferSignUtil.getBlockStates(info, radius)) {
+		for (BlockState state : TransferSignUtil.getBlockStates(info, radius, radius)) {
 			if (state instanceof Chest) {
 				chests.add((Chest) state);
 			}

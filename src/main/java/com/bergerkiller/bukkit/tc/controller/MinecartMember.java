@@ -632,7 +632,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			if (this.entity.getDamage() > 40) {
 				// Send an event, pass in the drops to drop
 				List<ItemStack> drops = new ArrayList<ItemStack>(2);
-				if (TrainCarts.spawnItemDrops) {
+				if (getProperties().getSpawnItemDrops()) {
 					if (TrainCarts.breakCombinedCarts) {
 						drops.addAll(this.entity.getBrokenDrops());
 					} else {

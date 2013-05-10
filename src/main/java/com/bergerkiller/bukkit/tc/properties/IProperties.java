@@ -125,6 +125,20 @@ public interface IProperties extends IParsable {
 	public void setPlayersExit(boolean state);
 
 	/**
+	 * Sets whether items are dropped when this cart is broken
+	 * 
+	 * @param spawnDrops to set to
+	 */
+	public void setSpawnItemDrops(boolean spawnDrops);
+
+	/**
+	 * Gets whether items are dropped when this cart is broken
+	 * 
+	 * @return True if items are dropped, False if not
+	 */
+	public boolean getSpawnItemDrops();
+
+	/**
 	 * Clears the destination set
 	 */
 	public void clearDestination();

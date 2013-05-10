@@ -79,13 +79,13 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 		super.onPhysicsPostMove(speedFactor);
 		if (this.getProperties().canPickup()) {
 			Inventory inv = entity.getInventory();
+			double distance;
 			for (Entity e : entity.getNearbyEntities(2.0)) {
 				if (!(e instanceof Item) || EntityUtil.isIgnored(e)) {
 					continue;
 				}
-				Item item = (Item) e;
-				ItemStack stack = item.getItemStack();
-				double distance = entity.loc.distance(e);
+				ItemStack stack = ((Item) e).getItemStack();
+				distance = entity.loc.distanceSquared(e);
 				if (ItemUtil.testTransfer(stack, inv) == stack.getAmount()) {
 					if (distance < 0.7) {
 						ItemUtil.transfer(stack, inv, Integer.MAX_VALUE);
@@ -102,13 +102,11 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 						} else if (distance > 0.75) {
 							factor = 0.5;
 						} else {
-							factor = 0.25;
+							factor = 0.1;
 						}
 						this.push(e, -factor / distance);
-						continue;
 					}
 				}
-				this.push(e, 1 / distance);
 			}
 		}
 	}

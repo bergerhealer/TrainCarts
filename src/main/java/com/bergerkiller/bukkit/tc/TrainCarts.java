@@ -63,7 +63,6 @@ public class TrainCarts extends PluginBase {
 	public static double nearCartDistanceFactor;
 	public static double maxCartDistance;
 	public static boolean breakCombinedCarts;
-	public static boolean spawnItemDrops;
 	public static double poweredCartBoost;
 	public static double poweredRailBoost;
 	public static double pushAwayForce;
@@ -182,9 +181,6 @@ public class TrainCarts extends PluginBase {
 
 		config.setHeader("breakCombinedCarts", "\nWhether or not the combined carts (powered/storage minecarts) break up into two items");
 		breakCombinedCarts = config.get("breakCombinedCarts", false);
-
-		config.setHeader("spawnItemDrops", "\nWhether or not items drop when the minecarts break");
-		spawnItemDrops = config.get("spawnItemDrops", true);
 
 		config.setHeader("poweredCartBoost", "\nA performance boost to give to powered minecarts (0 = normal speed)");
 		poweredCartBoost = config.get("poweredCartBoost", 0.1);
