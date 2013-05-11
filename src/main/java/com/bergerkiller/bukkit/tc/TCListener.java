@@ -249,7 +249,7 @@ public class TCListener implements Listener {
 			CartProperties prop = member.getProperties();
 			if (event.getEntered() instanceof Player) {
 				Player player = (Player) event.getEntered();
-				if (prop.getPlayersEnter() && (prop.isPublic() || prop.isOwner(player))) {
+				if (prop.getPlayersEnter() && (prop.isPublic() || prop.hasOwnership(player))) {
 					prop.showEnterMessage(player);
 				} else {
 					event.setCancelled(true);

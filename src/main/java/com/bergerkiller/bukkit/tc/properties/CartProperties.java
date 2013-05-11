@@ -18,6 +18,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -35,6 +36,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
 	private final UUID uuid;
 	private final Set<String> owners = new HashSet<String>();
+	private final Set<String> ownerPermissions = new HashSet<String>();
 	private final Set<String> tags = new HashSet<String>();
 	private final Set<Material> blockBreakTypes = new HashSet<Material>();
 	private boolean allowPlayerExit = true;
@@ -143,15 +145,19 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	/*
 	 * Owners
 	 */
+	@Override
 	public boolean hasOwnership(Player player) {
-		if (!this.hasOwners()) {
+		if (hasGlobalOwnership(player) || this.isOwnedByEveryone() || this.isOwner(player)) {
 			return true;
 		}
-		if (hasGlobalOwnership(player)) {
-			return true;
+		for (String ownerPermission : this.getOwnerPermissions()) {
+			if (CommonUtil.hasPermission(player, ownerPermission)) {
+				return true;
+			}
 		}
-		return this.isOwner(player);
+		return false;
 	}
+
 	public static boolean hasGlobalOwnership(Player player) {
 		return Permission.COMMAND_GLOBALPROPERTIES.has(player);
 	}
@@ -162,8 +168,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	}
 
 	public boolean isOwner(String player) {
-		return this.owners.contains(player);
+		return this.owners.contains(player.toLowerCase());
 	}
+
 	public void setOwner(String player) {
 		this.setOwner(player, true);
 	}
@@ -183,15 +190,42 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		}
 		this.setOwner(player.getName().toLowerCase(), owner);
 	}
+
+	@Override
+	public boolean isOwnedByEveryone() {
+		return !this.hasOwners() && !this.hasOwnerPermissions();
+	}
+
+	@Override
+	public Set<String> getOwnerPermissions() {
+		return this.ownerPermissions;
+	}
+
+	@Override
+	public void clearOwnerPermissions() {
+		this.ownerPermissions.clear();
+	}
+
+	@Override
+	public boolean hasOwnerPermissions() {
+		return !this.ownerPermissions.isEmpty();
+	}
+
+	@Override
 	public Set<String> getOwners() {
 		return this.owners;
 	}
+
+	@Override
 	public void clearOwners() {
 		this.owners.clear();
 	}
+
+	@Override
 	public boolean hasOwners() {
 		return !this.owners.isEmpty();
 	}
+
 	public boolean sharesOwner(CartProperties properties) {
 		if (!this.hasOwners()) return true;
 		if (!properties.hasOwners()) return true;
@@ -419,10 +453,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			this.setPlayersEnter(ParseUtil.parseBool(arg));
 		} else if (key.equals("playerexit")) {
 			this.setPlayersExit(ParseUtil.parseBool(arg));
+		} else if (key.equals("setownerperm")) {
+			this.clearOwnerPermissions();
+			this.getOwnerPermissions().add(arg);
+		} else if (key.equals("addownerperm")) {
+			this.getOwnerPermissions().add(arg);
+		} else if (key.equals("remownerperm")) {
+			this.getOwnerPermissions().remove(arg);
 		} else if (key.equals("setowner")) {
 			arg = arg.toLowerCase();
-			this.getOwners().clear();
-			this.getOwners().add(arg);
+			this.setOwner(arg);
 		} else if (key.equals("addowner")) {
 			arg = arg.toLowerCase();
 			this.getOwners().add(arg);
@@ -446,6 +486,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.destination = from.destination;
 		this.owners.clear();
 		this.owners.addAll(from.owners);
+		this.ownerPermissions.clear();
+		this.ownerPermissions.addAll(from.ownerPermissions);
 		this.tags.clear();
 		this.tags.addAll(from.tags);
 		this.allowPlayerEnter = from.allowPlayerEnter;
@@ -461,6 +503,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		for (String owner : node.getList("owners", String.class)) {
 			this.owners.add(owner.toLowerCase());
 		}
+		this.ownerPermissions.addAll(node.getList("ownerPermissions", String.class));
 		for (String tag : node.getList("tags", String.class)) {
 			this.tags.add(tag);
 		}
@@ -485,6 +528,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	@Override
 	public void saveAsDefault(ConfigurationNode node) {
 		node.set("owners", new ArrayList<String>(this.owners));
+		node.set("ownerPermissions",  new ArrayList<String>(this.ownerPermissions));
 		node.set("tags", new ArrayList<String>(this.tags));
 		node.set("allowPlayerEnter", this.allowPlayerEnter);
 		node.set("allowPlayerExit", this.allowPlayerExit);
@@ -505,6 +549,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	@Override
 	public void save(ConfigurationNode node) {
 		node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
+		node.set("ownerPermissions", this.ownerPermissions.isEmpty() ? null : new ArrayList<String>(this.ownerPermissions));
 		node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
 		node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
 		node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	

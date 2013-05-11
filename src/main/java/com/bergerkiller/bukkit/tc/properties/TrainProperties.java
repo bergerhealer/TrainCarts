@@ -253,42 +253,74 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	/*
 	 * Owners
 	 */
+	@Override
+	public boolean isOwnedByEveryone() {
+		return !this.hasOwners() && !this.hasOwnerPermissions();
+	}
+
+	@Override
 	public boolean hasOwners() {
 		for (CartProperties prop : this) {
 			if (prop.hasOwners()) return true;
 		}
 		return false;
 	}
+
+	@Override
 	public boolean hasOwnership(Player player) {
-		if (CartProperties.hasGlobalOwnership(player)) return true;
-		if (!this.hasOwners()) return true;
-		return this.isOwner(player);
+		return CartProperties.hasGlobalOwnership(player) || this.isOwnedByEveryone() || this.isOwner(player);
 	}
 
 	@Override
 	public boolean isOwner(Player player) {
-		boolean hasowner = false;
 		for (CartProperties prop : this) {
-			if (prop.isOwner(player)) return true;
-			if (prop.hasOwners()) hasowner = true;
+			if (prop.isOwner(player)) {
+				return true;
+			}
 		}
-		return !hasowner;
+		return false;
 	}	
-	public boolean isDirectOwner(Player player) {
-		return this.isDirectOwner(player.getName().toLowerCase());
-	}
-	public boolean isDirectOwner(String player) {
+
+	@Override
+	public boolean hasOwnerPermissions() {
 		for (CartProperties prop : this) {
-			if (prop.isOwner(player)) return true;
+			if (prop.hasOwnerPermissions()) {
+				return true;
+			}
 		}
 		return false;
 	}
+
+	@Override
+	public Set<String> getOwnerPermissions() {
+		Set<String> rval = new HashSet<String>();
+		for (CartProperties cprop : this) {
+			rval.addAll(cprop.getOwnerPermissions());
+		}
+		return rval;
+	}
+
+	@Override
 	public Set<String> getOwners() {
 		Set<String> rval = new HashSet<String>();
 		for (CartProperties cprop : this) {
 			rval.addAll(cprop.getOwners());
 		}
 		return rval;
+	}
+
+	@Override
+	public void clearOwners() {
+		for (CartProperties prop : this) {
+			prop.clearOwners();
+		}
+	}
+
+	@Override
+	public void clearOwnerPermissions() {
+		for (CartProperties prop : this) {
+			prop.clearOwnerPermissions();
+		}
 	}
 
 	/**
@@ -511,7 +543,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 						return CollisionMode.DEFAULT;
 					}
 				}
-				if (this.isOwner((Player) entity)) {
+				if (this.hasOwnership((Player) entity)) {
 					return CollisionMode.DEFAULT;
 				}
 			}
@@ -520,31 +552,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			return this.mobCollision;
 		} else {
 			return this.miscCollision;
-		}
-	}
-
-	/*
-	 * Collision settings
-	 */
-	public boolean canCollide(MinecartMember<?> with) {
-		return this.canCollide(with.getGroup());
-	}
-	public boolean canCollide(MinecartGroup with) {
-		return this.collision && with != null && with.getProperties().collision;
-	}
-	public boolean canCollide(Entity with) {
-		MinecartMember<?> mm = MinecartMemberStore.get(with);
-		if (mm == null || mm.getEntity().isDead()) {
-			if (this.collision) {
-				return true;
-			}
-			if (with instanceof Player) {
-				return this.isOwner((Player) with);
-			} else {
-				return false;
-			}
-		} else {
-			return this.canCollide(mm);
 		}
 	}
 
@@ -732,10 +739,23 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.setPlayersEnter(ParseUtil.parseBool(arg));
 		} else if (key.equals("playerexit")) {
 			this.setPlayersExit(ParseUtil.parseBool(arg));
+		} else if (key.equals("setownerperm")) {
+			for (CartProperties prop : this) {
+				prop.clearOwnerPermissions();
+				prop.getOwnerPermissions().add(arg);
+			}
+		} else if (key.equals("addownerperm")) {
+			for (CartProperties prop : this) {
+				prop.getOwnerPermissions().add(arg);
+			}
+		} else if (key.equals("remownerperm")) {
+			for (CartProperties prop : this) {
+				prop.getOwnerPermissions().remove(arg);
+			}
 		} else if (key.equals("setowner")) {
 			arg = arg.toLowerCase();
 			for (CartProperties cprop : this) {
-				cprop.getOwners().clear();
+				cprop.clearOwners();
 				cprop.getOwners().add(arg);
 			}
 		} else if (key.equals("addowner")) {

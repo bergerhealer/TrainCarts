@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.bukkit.entity.Player;
 
@@ -61,6 +62,61 @@ public interface IProperties extends IParsable {
 	public void setTags(String... tags);
 
 	/**
+	 * Checks whether a given player has ownership, and can alter these
+	 * properties or use the owner of these properties
+	 * 
+	 * @param player to check
+	 * @return True if the player has ownership, False if not
+	 */
+	public boolean hasOwnership(Player player);
+
+	/**
+	 * Checks whether owners are set for (some of) the carts of this train
+	 * 
+	 * @return True if owners are set, False if not
+	 */
+	public boolean hasOwners();
+
+	/**
+	 * Gets a Set of all player owner names (lower cased)
+	 * 
+	 * @return owners
+	 */
+	public Set<String> getOwners();
+
+	/**
+	 * Checks whether owner permissions are set for (some of) the carts of this train
+	 * 
+	 * @return True if owner permissions are set, False if not
+	 */
+	public boolean hasOwnerPermissions();
+
+	/**
+	 * Gets a Set of all permission nodes granting players ownership
+	 * 
+	 * @return owner permissions
+	 */
+	public Set<String> getOwnerPermissions();
+
+	/**
+	 * Clears all owners set
+	 */
+	public void clearOwners();
+
+	/**
+	 * Clears all permission nodes used to define owners
+	 */
+	public void clearOwnerPermissions();
+
+	/**
+	 * Gets whether these properties can be altered by everyone.
+	 * This is the case when no owners nor owner permissions are set.
+	 * 
+	 * @return True if owned by everyone, False if not
+	 */
+	public boolean isOwnedByEveryone();
+
+	/**
 	 * Gets all the tags set
 	 * 
 	 * @return collection of set tags
@@ -68,7 +124,8 @@ public interface IProperties extends IParsable {
 	public Collection<String> getTags();
 
 	/**
-	 * Gets whether a certain player is an owner set in these properties
+	 * Gets whether a certain player is an owner set in these properties.
+	 * This does not use ANY permissions set for the player, it's a mere lookup!
 	 * 
 	 * @param player to test
 	 * @return True if it is an Owner, False if not

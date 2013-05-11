@@ -109,20 +109,35 @@ public class Commands {
 		msg.send(p);
 	}
 
-	public static void info(Player p, IProperties prop) {
-		p.sendMessage(ChatColor.YELLOW + "Tags: " + ChatColor.WHITE + (prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));
-		if (prop.hasDestination()) {
-			p.sendMessage(ChatColor.YELLOW + "This minecart will attempt to reach: " + ChatColor.WHITE + prop.getDestination());
-		}
-		if (prop.getPlayersEnter()) {
-			p.sendMessage(ChatColor.YELLOW + "Players entering trains: " + ChatColor.WHITE + "Allowed");
+	public static void info(MessageBuilder message, IProperties prop) {
+		// Ownership information
+		message.newLine();
+		if (!prop.hasOwners() && !prop.hasOwnerPermissions()) {
+			message.yellow("Owned by: ").white("Everyone");
 		} else {
-			p.sendMessage(ChatColor.YELLOW + "Players entering trains: " + ChatColor.WHITE + "Denied");
+			if (prop.hasOwners()) {
+				message.yellow("Owned by: ").white(StringUtil.combineNames(prop.getOwners()));
+			}
+			if (prop.hasOwnerPermissions()) {
+				message.yellow("Owned by players with the permissions: ");
+				message.setSeparator(ChatColor.YELLOW, " / ").setIndent(4);
+				for (String ownerPerm : prop.getOwnerPermissions()) {
+					message.white(ownerPerm);
+				}
+				message.clearSeparator().setIndent(0);
+			}
 		}
-		p.sendMessage(ChatColor.YELLOW + "Can be exited by players: " + ChatColor.WHITE + prop.getPlayersExit());
+
+		// Tags and other information
+		message.newLine().yellow("Tags: ").white((prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));
+		if (prop.hasDestination()) {
+			message.newLine().yellow("This minecart will attempt to reach: ").white(prop.getDestination());
+		}
+		message.newLine().yellow("Players entering trains: ").white(prop.getPlayersEnter() ? "Allowed" : "Denied");
+		message.newLine().yellow("Can be exited by players: ").white(prop.getPlayersExit());
 		BlockLocation loc = prop.getLocation();
 		if (loc != null) {
-			p.sendMessage(ChatColor.YELLOW + "Current location: " + ChatColor.WHITE + "[" + loc.x + "/" + loc.y + "/" + loc.z + "] in world " + loc.world);
+			message.newLine().yellow("Current location: ").white("[", loc.x, "/", loc.y, "/", loc.z, "] in world ", loc.world);
 		}
 	}
 }

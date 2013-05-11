@@ -39,7 +39,7 @@ public class SignActionDestination extends SignAction {
 		} else {
 			return false;
 		}
-		if (!prop.isOwner(player)) {
+		if (!prop.hasOwnership(player)) {
 			player.sendMessage(ChatColor.RED + "You don't own this train!");
 		} else {
 			String dest = info.getLine(2);

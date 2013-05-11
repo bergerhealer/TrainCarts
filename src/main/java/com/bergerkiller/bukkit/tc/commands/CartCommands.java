@@ -66,6 +66,29 @@ public class CartCommands {
 				}
 				p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as owners of this minecart!");
 			}
+		} else if (cmd.equals("setownerperm") || cmd.equals("setownerpermission") || cmd.equals("setownerpermissions")) {
+			Permission.COMMAND_SETOWNERS.handle(p);
+			prop.clearOwnerPermissions();
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.YELLOW + "All owner permissions for this minecart have been cleared!");
+			} else {
+				for (String ownerPerm : args) {
+					prop.getOwnerPermissions().add(ownerPerm);
+				}
+				p.sendMessage(ChatColor.YELLOW + "You set the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " for this minecart");
+				p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
+			}
+		} else if (cmd.equals("addownerperm") || cmd.equals("addownerpermission") || cmd.equals("addownerpermissions")) {
+			Permission.COMMAND_SETOWNERS.handle(p);
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.YELLOW + "Please specify the permission nodes to add!");
+			} else {
+				for (String ownerPerm : args) {
+					prop.getOwnerPermissions().add(ownerPerm);
+				}
+				p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this minecart");
+				p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
+			}
 		} else if (cmd.equals("addtags") || cmd.equals("addtag")) {
 			Permission.COMMAND_SETTAGS.handle(p);
 			if (args.length == 0) {
@@ -204,26 +227,30 @@ public class CartCommands {
 	}
 
 	public static void info(Player p, CartProperties prop) {
-		p.sendMessage(" ");
+		MessageBuilder message = new MessageBuilder();
+	
 		//warning message not taken
 		if (!prop.hasOwners()) {
-			p.sendMessage(ChatColor.YELLOW + "Note: This minecart is not owned, claim it using /cart claim!");
+			message.newLine().yellow("Note: This minecart is not owned, claim it using /cart claim!");
 		}
-		p.sendMessage(ChatColor.YELLOW + "Picks up nearby items: " + ChatColor.WHITE + prop.canPickup());
+		message.yellow("Picks up nearby items: ").white(prop.canPickup());
 		if (prop.hasBlockBreakTypes()) {
-			p.sendMessage(ChatColor.YELLOW + "Breaks blocks: " + ChatColor.WHITE + StringUtil.combineNames(prop.getBlockBreakTypes()));
+			message.newLine().yellow("Breaks blocks: ").white(StringUtil.combineNames(prop.getBlockBreakTypes()));
 		}
-		p.sendMessage(ChatColor.YELLOW + "Enter message: " + ChatColor.WHITE + (prop.hasEnterMessage() ? prop.getEnterMessage() : "None"));
-		p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + (prop.hasOwners() ? StringUtil.combineNames(prop.getOwners()) : "None"));
+		message.newLine().yellow("Enter message: ").white((prop.hasEnterMessage() ? prop.getEnterMessage() : "None"));
 
 		// Remaining common info
-		Commands.info(p, prop);
+		Commands.info(message, prop);
 
 		// Loaded?
 		if (prop.getHolder() == null) {
-			p.sendMessage(ChatColor.RED + "The train of this cart is unloaded! To keep it loaded, use:");
-			p.sendMessage(ChatColor.YELLOW + "   /train keepchunksloaded true");
+			message.newLine().red("The train of this cart is unloaded! To keep it loaded, use:");
+			message.newLine().yellow("   /train keepchunksloaded true");
 		}
+
+		// Send
+		p.sendMessage(" ");
+		message.send(p);
 	}
 	
 }

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,6 +63,51 @@ public class TrainCommands {
 				prop.setManualMovementAllowed(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "Players can move carts by damaging them: " + ChatColor.WHITE + prop.isManualMovementAllowed());
+		} else if (cmd.equals("setownerperm") || cmd.equals("setownerpermission") || cmd.equals("setownerpermissions")) {
+			Permission.COMMAND_SETOWNERS.handle(p);
+			prop.clearOwnerPermissions();
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.YELLOW + "All owner permissions for this minecart have been cleared!");
+			} else {
+				int changed = 0;
+				for (CartProperties cprop : prop) {
+					if (cprop.hasOwnership(p)) {
+						changed++;
+						cprop.getOwnerPermissions().addAll(Arrays.asList(args));
+					}
+				}
+				if (changed == 0) {
+					p.sendMessage(ChatColor.RED + "You do not have ownership over any of the carts in the train");
+				} else {
+					p.sendMessage(ChatColor.YELLOW + "You set the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " for this minecart");
+					p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
+					if (changed < prop.size()) {
+						p.sendMessage(ChatColor.YELLOW + "Some (" + changed + "/" + prop.size() + ") carts have the permission set (lacking ownership)");
+					}
+				}
+			}
+		} else if (cmd.equals("addownerperm") || cmd.equals("addownerpermission") || cmd.equals("addownerpermissions")) {
+			Permission.COMMAND_SETOWNERS.handle(p);
+			if (args.length == 0) {
+				p.sendMessage(ChatColor.YELLOW + "Please specify the permission nodes to add!");
+			} else {
+				int changed = 0;
+				for (CartProperties cprop : prop) {
+					if (cprop.hasOwnership(p)) {
+						changed++;
+						cprop.getOwnerPermissions().addAll(Arrays.asList(args));
+					}
+				}
+				if (changed == 0) {
+					p.sendMessage(ChatColor.RED + "You do not have ownership over any of the carts in the train");
+				} else {
+					p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this train");
+					p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this train");
+					if (changed < prop.size()) {
+						p.sendMessage(ChatColor.YELLOW + "Some (" + changed + "/" + prop.size() + ") carts have the permission set (lacking ownership)");
+					}
+				}
+			}
 		} else if (cmd.equals("claim") || cmd.equals("addowner") || cmd.equals("setowner") || cmd.equals("addowners") || cmd.equals("setowners")) {
 			Permission.COMMAND_SETOWNERS.handle(p);
 			//claim as many carts as possible
@@ -79,10 +125,8 @@ public class TrainCommands {
 				}
 			}
 			for (CartProperties cprop : prop) {
-				if (!CartProperties.hasGlobalOwnership(p)) {
-					if (cprop.hasOwners()) {
-						if (!cprop.isOwner(p)) continue;
-					}
+				if (!cprop.hasOwnership(p)) {
+					continue;
 				}
 				//claim
 				if (clear) cprop.clearOwners();
@@ -360,41 +404,38 @@ public class TrainCommands {
 	}
 
 	public static void info(Player p, TrainProperties prop) {
-		p.sendMessage(" ");
-		if (!prop.isDirectOwner(p)) {
+		MessageBuilder message = new MessageBuilder();
+
+		if (!prop.isOwner(p)) {
 			if (!prop.hasOwners()) {
-				p.sendMessage(ChatColor.YELLOW + "Note: This train is not owned, claim it using /train claim!");
+				message.newLine().yellow("Note: This train is not owned, claim it using /train claim!");
 			}
 		}
-		p.sendMessage(ChatColor.YELLOW + "Train name: " + ChatColor.WHITE + prop.getTrainName());
-		p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
-		p.sendMessage(ChatColor.YELLOW + "Slow down over time: " + ChatColor.WHITE + prop.isSlowingDown());
-		p.sendMessage(ChatColor.YELLOW + "Can collide: " + ChatColor.WHITE + " " + prop.getColliding());
+		message.newLine().yellow("Train name: ").white(prop.getTrainName());
+		message.newLine().yellow("Keep nearby chunks loaded: ").white(prop.isKeepingChunksLoaded());
+		message.newLine().yellow("Slow down over time: ").white(prop.isSlowingDown());
+		message.newLine().yellow("Can collide: ").white(prop.getColliding());
 
 		// Collision states
-		MessageBuilder builder = new MessageBuilder();
-		builder.yellow("When colliding this train ");
-		builder.red(prop.mobCollision.getOperationName()).yellow(" mobs, ");
-		builder.red(prop.playerCollision.getOperationName()).yellow(" players, ");
-		builder.red(prop.miscCollision.getOperationName()).yellow(" misc entities and ");
-		builder.red(prop.trainCollision.getOperationName()).yellow(" other trains");
-		builder.send(p);
+		message.newLine().yellow("When colliding this train ");
+		message.red(prop.mobCollision.getOperationName()).yellow(" mobs, ");
+		message.red(prop.playerCollision.getOperationName()).yellow(" players, ");
+		message.red(prop.miscCollision.getOperationName()).yellow(" misc entities and ");
+		message.red(prop.trainCollision.getOperationName()).yellow(" other trains");
 
-		p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
-		if (prop.hasOwners()) {
-			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + " " + StringUtil.combineNames(prop.getOwners()));
-		} else {
-			p.sendMessage(ChatColor.YELLOW + "Owned by: " + ChatColor.WHITE + "Everyone");
-		}
+		message.newLine().yellow("Maximum speed: ").white(prop.getSpeedLimit(), " blocks/tick");
 
 		// Remaining common info
-		Commands.info(p, prop);
+		Commands.info(message, prop);
 
 		// Loaded message
 		if (prop.getHolder() == null) {
-			p.sendMessage(ChatColor.RED + "This train is unloaded! To keep it loaded, use:");
-			p.sendMessage(ChatColor.YELLOW + "   /train keepchunksloaded true");
+			message.newLine().red("This train is unloaded! To keep it loaded, use:");
+			message.newLine().yellow("   /train keepchunksloaded true");
 		}
+
+		// Send
+		message.send(p);
 	}
 	
 }
