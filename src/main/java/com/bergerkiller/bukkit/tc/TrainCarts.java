@@ -85,6 +85,7 @@ public class TrainCarts extends PluginBase {
 	public static double slowDownMultiplierNormal;
 	public static boolean refillAtStations;
 	public static boolean instantCreativeDestroy;
+	public static boolean allowRailEditing;
 	private static String currencyFormat;
 	public static double manualMovementSpeed;
 	public static boolean allMinecartsAreTrainCarts;
@@ -264,6 +265,9 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
 		config.addHeader("instantCreativeDestroy", "Note that manual minecart movement is not possible for creative players with this enabled");
 		instantCreativeDestroy = config.get("instantCreativeDestroy", false);
+
+		config.setHeader("allowRailEditing", "\nWhether players (with build permissions) can edit existing rails by right-clicking on them");
+		allowRailEditing = config.get("allowRailEditing", true);
 
 		config.setHeader("manualMovementSpeed", "\nWhat velocity to set when a player tries to manually move a train (by damaging it)");
 		manualMovementSpeed = config.get("manualMovementSpeed", 12.0);

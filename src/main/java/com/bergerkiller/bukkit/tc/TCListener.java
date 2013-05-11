@@ -17,6 +17,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockCanBuildEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
@@ -67,6 +68,7 @@ public class TCListener implements Listener {
 	private EntityMap<Player, Long> lastHitTimes = new EntityMap<Player, Long>();
 	private static final boolean DEBUG_DO_TRACKTEST = false;
 	private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
+	private static final long TRACK_CLICK_INTERVAL = 300; // Interval in MS where right-click rail interaction is allowed
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerQuit(PlayerQuitEvent event) {
@@ -294,73 +296,81 @@ public class TCListener implements Listener {
 		}
 	}
 
+	private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<Player, BlockFace>();
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) {
 			return;
 		}
 		try {
-			if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-				int id = event.getClickedBlock().getTypeId();
-				if (!Util.ISTCRAIL.get(id)) {
-					return;
-				}
-				if (!TrainCarts.allMinecartsAreTrainCarts && !Permission.GENERAL_PLACE_TRAINCART.has(event.getPlayer())) {
-					return;
-				}
+			// Keep track of when a player interacts to detect spamming
+			long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE).longValue();
+			long time = System.currentTimeMillis();
+			long clickInterval = time - lastHitTime;
+			lastHitTimes.put(event.getPlayer(), time);
+
+			// Handle interaction
+			if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) {
 				ItemStack item = event.getPlayer().getItemInHand();
-				if (item == null || !MaterialUtil.ISMINECART.get(item)) {
-					return;
-				}
+				// Note: Null arguments are handled by MaterialProperty.get
+				if (MaterialUtil.ISMINECART.get(item) || Util.ISTCRAIL.get(item)) {
+					// Obtain the clicked block
+					Block clickedBlock = event.getClickedBlock();
+					if (clickedBlock == null) {
+						// Use ray tracing to obtain the correct block
 
-				// handle permission
-				if (!Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
-					event.setCancelled(true);
-					return;
-				}
-
-				// Track map debugging logic
-				if (DEBUG_DO_TRACKTEST) {
-					// Track map test
-					TrackMap map = new TrackMap(event.getClickedBlock(), FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
-					while (map.hasNext()) {
-						map.next();
+						// SADLY, getTargetBlock is broken! Huray!
+						//clickedBlock = event.getPlayer().getTargetBlock(null, 5);
+						clickedBlock = Util.rayTrace(event.getPlayer());
 					}
-					byte data = 0;
-					for (Block block : map) {
-						block.setTypeIdAndData(Material.WOOL.getId(), data, false);
-						data++;
-						if (data == 16) {
-							data = 0;
+					int id = clickedBlock == null ? 0 : clickedBlock.getTypeId();
+					if (Util.ISTCRAIL.get(id)) {
+						if (MaterialUtil.ISMINECART.get(item)) {
+							// Handle the interaction with rails while holding a minecart
+							// Place a TrainCart/Minecart on top of the rails, and handles permissions
+							handleMinecartPlacement(event, id);
+						} else if (id == item.getTypeId() && MaterialUtil.ISRAILS.get(id) && TrainCarts.allowRailEditing && clickInterval >= TRACK_CLICK_INTERVAL) {
+							if (CommonUtil.callEvent(new BlockCanBuildEvent(clickedBlock, id, true)).isBuildable()) {
+								// Edit the rails to make a connection/face the direction the player clicked
+								BlockFace direction = FaceUtil.getDirection(event.getPlayer().getLocation().getDirection(), false);
+								BlockFace lastDirection = LogicUtil.fixNull(lastClickedDirection.get(event.getPlayer()), direction);
+								Rails rails = BlockUtil.getRails(clickedBlock);
+								// First check whether we are clicking towards an up-slope block
+								if (MaterialUtil.ISSOLID.get(clickedBlock.getRelative(direction))) {
+									// Sloped logic
+									if (rails.isOnSlope()) {
+										if (rails.getDirection() == direction) {
+											// Switch between sloped and flat
+											rails.setDirection(direction, false);
+										} else {
+											// Other direction slope
+											rails.setDirection(direction, true);
+										}
+									} else {
+										// Set to slope
+										rails.setDirection(direction, true);
+									}
+								} else if (id == Material.RAILS.getId()) {
+									// This needs advanced logic for curves and everything!
+									BlockFace[] faces = FaceUtil.getFaces(rails.getDirection());
+									if (!LogicUtil.contains(direction.getOppositeFace(), faces)) {
+										// Try to make a connection towards this point
+										// Which of the two faces do we sacrifice?
+										BlockFace otherFace = faces[0] == lastDirection.getOppositeFace() ? faces[0] : faces[1];
+										rails.setDirection(FaceUtil.combine(otherFace, direction.getOppositeFace()), false);
+									}
+								} else {
+									// Simple switching (straight tracks)
+									rails.setDirection(direction, false);
+								}
+								// Update
+								clickedBlock.setData(rails.getData());
+								lastClickedDirection.put(event.getPlayer(), direction);
+							}
 						}
-					}
-					event.setCancelled(true);
-					return;
-				}
-
-				Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
-
-				// No minecart blocking it?
-				if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
-					event.setCancelled(true);
-					return;
-				}
-
-				// Place logic for special rail types
-				lastPlayer = event.getPlayer();
-				if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
-					BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
-					if (dir == BlockFace.SELF) {
-						dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
-					}
-					at.setYaw(FaceUtil.faceToYaw(dir));
-					MinecartMemberStore.spawnBy(at, event.getPlayer());
-				} else if (Util.ISVERTRAIL.get(id)) {
-					BlockFace dir = Util.getVerticalRailDirection(event.getClickedBlock().getData());
-					at.setYaw(FaceUtil.faceToYaw(dir));
-					at.setPitch(-90.0f);
-					MinecartMemberStore.spawnBy(at, event.getPlayer());
-				}
+					}	
+				}			
 			}
 			final boolean isLeftClick = event.getAction() == Action.LEFT_CLICK_BLOCK;			
 			if ((isLeftClick || (event.getAction() == Action.RIGHT_CLICK_BLOCK)) && MaterialUtil.ISSIGN.get(event.getClickedBlock())) {
@@ -368,12 +378,9 @@ public class TCListener implements Listener {
 				// Prevent creative players instantly destroying signs after clicking
 				if (isLeftClick && event.getPlayer().getGameMode() == GameMode.CREATIVE) {
 					// Deny left-clicking at a too high interval
-					Long lastHitTime = lastHitTimes.get(event.getPlayer());
-					long time = System.currentTimeMillis();
-					if (lastHitTime != null && (lastHitTime.longValue() + SIGN_CLICK_INTERVAL) >= time) {
+					if (clickInterval < SIGN_CLICK_INTERVAL) {
 						clickAllowed = false;
 					}
-					lastHitTimes.put(event.getPlayer(), time);
 				}
 				if (clickAllowed) {
 					SignAction.handleClick(event);
@@ -384,6 +391,62 @@ public class TCListener implements Listener {
 		}
 	}
 
+	private void handleMinecartPlacement(PlayerInteractEvent event, int railTypeId) {
+		// handle permission
+		if (!Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
+			event.setCancelled(true);
+			return;
+		}
+
+		// Track map debugging logic
+		if (DEBUG_DO_TRACKTEST) {
+			// Track map test
+			TrackMap map = new TrackMap(event.getClickedBlock(), FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
+			while (map.hasNext()) {
+				map.next();
+			}
+			byte data = 0;
+			for (Block block : map) {
+				block.setTypeIdAndData(Material.WOOL.getId(), data, false);
+				data++;
+				if (data == 16) {
+					data = 0;
+				}
+			}
+			event.setCancelled(true);
+			return;
+		}
+
+		Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
+
+		// No minecart blocking it?
+		if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
+			event.setCancelled(true);
+			return;
+		}
+
+		// IS the placement of a TrainCart allowed?
+		if (!TrainCarts.allMinecartsAreTrainCarts && !Permission.GENERAL_PLACE_TRAINCART.has(event.getPlayer())) {
+			return;
+		}
+
+		// Place logic for special rail types
+		lastPlayer = event.getPlayer();
+		if (MaterialUtil.ISPRESSUREPLATE.get(railTypeId)) {
+			BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
+			if (dir == BlockFace.SELF) {
+				dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
+			}
+			at.setYaw(FaceUtil.faceToYaw(dir));
+			MinecartMemberStore.spawnBy(at, event.getPlayer());
+		} else if (Util.ISVERTRAIL.get(railTypeId)) {
+			BlockFace dir = Util.getVerticalRailDirection(event.getClickedBlock().getData());
+			at.setYaw(FaceUtil.faceToYaw(dir));
+			at.setPitch(-90.0f);
+			MinecartMemberStore.spawnBy(at, event.getPlayer());
+		}
+	}
+	
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		try {

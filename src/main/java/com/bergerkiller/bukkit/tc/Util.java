@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -12,14 +13,23 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.reflection.ClassTemplate;
+import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
+import com.bergerkiller.bukkit.common.reflection.MethodAccessor;
+import com.bergerkiller.bukkit.common.reflection.NMSClassTemplate;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.VectorRef;
+import com.bergerkiller.bukkit.common.reflection.classes.WorldRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -527,5 +537,44 @@ public class Util {
 		} else {
 			return false;
 		}
+	}
+
+	/*
+	 * The below code will be moved to BKCommonLib during 1.5.2 - DO NOT FORGET!
+	 */
+	private static final ClassTemplate<?> movingObjectPosTemplate = NMSClassTemplate.create("MovingObjectPosition");
+	private static final Class<?> vec3DClass = CommonUtil.getNMSClass("Vec3D");
+	private static final MethodAccessor<Object> worldRayTrace = WorldRef.TEMPLATE.getMethod("rayTrace", vec3DClass, vec3DClass, boolean.class);
+	private static final FieldAccessor<Integer> mobObjPosX = movingObjectPosTemplate.getField("b");
+	private static final FieldAccessor<Integer> mobObjPosY = movingObjectPosTemplate.getField("c");
+	private static final FieldAccessor<Integer> mobObjPosZ = movingObjectPosTemplate.getField("d");
+	private static final MethodAccessor<Float> entityPlayerGetheadHeight = EntityPlayerRef.TEMPLATE.getMethod("getHeadHeight");
+
+	public static Block rayTrace(World world, double startX, double startY, double startZ, double endX, double endY, double endZ) {
+		Object startVec = VectorRef.newVec(startX, startY, startZ);
+		Object endVec = VectorRef.newVec(endX, endY, endZ);
+		Object movingObjectPosition = worldRayTrace.invoke(Conversion.toWorldHandle.convert(world), startVec, endVec, false);
+		if (movingObjectPosition == null) {
+			return null;
+		}
+		return world.getBlockAt(mobObjPosX.get(movingObjectPosition), mobObjPosY.get(movingObjectPosition), mobObjPosZ.get(movingObjectPosition));
+	}
+
+	public static Block rayTrace(Location startLocation, Vector direction, double maxLength) {
+		final double startX = startLocation.getX();
+		final double startY = startLocation.getY();
+		final double startZ = startLocation.getZ();
+		final double endX = startX + direction.getX() * maxLength;
+		final double endY = startY + direction.getY() * maxLength;
+		final double endZ = startZ + direction.getZ() * maxLength;
+		return rayTrace(startLocation.getWorld(), startX, startY, startZ, endX, endY, endZ);
+	}
+
+	public static Block rayTrace(Location startLocation, double maxLength) {
+		return rayTrace(startLocation, startLocation.getDirection(), maxLength);
+	}
+
+	public static Block rayTrace(Player player) {
+		return rayTrace(player.getLocation().add(0.0, entityPlayerGetheadHeight.invoke(Conversion.toEntityHandle.convert(player)), 0.0), 5.0);
 	}
 }
