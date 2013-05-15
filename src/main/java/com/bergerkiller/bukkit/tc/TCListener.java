@@ -329,7 +329,7 @@ public class TCListener implements Listener {
 						if (MaterialUtil.ISMINECART.get(item)) {
 							// Handle the interaction with rails while holding a minecart
 							// Place a TrainCart/Minecart on top of the rails, and handles permissions
-							handleMinecartPlacement(event, id);
+							handleMinecartPlacement(event, clickedBlock, id);
 						} else if (id == item.getTypeId() && MaterialUtil.ISRAILS.get(id) && TrainCarts.allowRailEditing && clickInterval >= TRACK_CLICK_INTERVAL) {
 							if (CommonUtil.callEvent(new BlockCanBuildEvent(clickedBlock, id, true)).isBuildable()) {
 								// Edit the rails to make a connection/face the direction the player clicked
@@ -391,7 +391,7 @@ public class TCListener implements Listener {
 		}
 	}
 
-	private void handleMinecartPlacement(PlayerInteractEvent event, int railTypeId) {
+	private void handleMinecartPlacement(PlayerInteractEvent event, Block clickedBlock, int railTypeId) {
 		// handle permission
 		if (!Permission.GENERAL_PLACE_MINECART.has(event.getPlayer())) {
 			event.setCancelled(true);
@@ -401,7 +401,7 @@ public class TCListener implements Listener {
 		// Track map debugging logic
 		if (DEBUG_DO_TRACKTEST) {
 			// Track map test
-			TrackMap map = new TrackMap(event.getClickedBlock(), FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
+			TrackMap map = new TrackMap(clickedBlock, FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
 			while (map.hasNext()) {
 				map.next();
 			}
@@ -417,7 +417,7 @@ public class TCListener implements Listener {
 			return;
 		}
 
-		Location at = event.getClickedBlock().getLocation().add(0.5, 0.5, 0.5);
+		Location at = clickedBlock.getLocation().add(0.5, 0.5, 0.5);
 
 		// No minecart blocking it?
 		if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
@@ -431,22 +431,24 @@ public class TCListener implements Listener {
 		}
 
 		// Place logic for special rail types
-		lastPlayer = event.getPlayer();
 		if (MaterialUtil.ISPRESSUREPLATE.get(railTypeId)) {
-			BlockFace dir = Util.getPlateDirection(event.getClickedBlock());
+			BlockFace dir = Util.getPlateDirection(clickedBlock);
 			if (dir == BlockFace.SELF) {
 				dir = FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false);
 			}
 			at.setYaw(FaceUtil.faceToYaw(dir));
 			MinecartMemberStore.spawnBy(at, event.getPlayer());
 		} else if (Util.ISVERTRAIL.get(railTypeId)) {
-			BlockFace dir = Util.getVerticalRailDirection(event.getClickedBlock().getData());
+			BlockFace dir = Util.getVerticalRailDirection(clickedBlock.getData());
 			at.setYaw(FaceUtil.faceToYaw(dir));
 			at.setPitch(-90.0f);
 			MinecartMemberStore.spawnBy(at, event.getPlayer());
+		} else {
+			// Set ownership and convert during the upcoming minecart spawning (entity add) event
+			lastPlayer = event.getPlayer();
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		try {
