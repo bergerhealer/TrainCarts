@@ -124,9 +124,11 @@ public class TrainCarts extends PluginBase {
 	public ItemParser[] getParsers(String key, int amount) {
 		ItemParser[] rval = parsers.get(key.toLowerCase(Locale.ENGLISH));
 		if (rval == null) {
-			// Not found - parse it from the key and amount
-			rval = new ItemParser[] {ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
-		} else if (amount == -1) {
+			return new ItemParser[] {ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
+		}
+		// Clone to avoid altering the values in the map
+		rval = LogicUtil.cloneArray(rval);
+		if (amount == -1) {
 			// Set to any amount
 			for (int i = 0; i < rval.length; i++) {
 				rval[i] = rval[i].setAmount(-1);

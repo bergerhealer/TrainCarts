@@ -35,7 +35,13 @@ public class DirectionStatement {
 			} else {
 				this.direction = Direction.parse(dirText);
 			}
+			// If direction parsing fails, resolve back to alternative text and direction
+			if (this.direction == Direction.NONE) {
+				this.text = text;
+				this.direction = alternative;
+			}
 		}
+		// Number (counter) statements
 		try {
 			this.number = Integer.parseInt(this.text);
 		} catch (NumberFormatException ex) {
