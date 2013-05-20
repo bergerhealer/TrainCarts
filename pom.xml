@@ -72,20 +72,18 @@
 
   <!-- Build -->
   <build>
-    <!-- Resources -->
-    <resources>
-	  <resource>
-	    <directory>src/main/java/</directory>
-		<includes>
-          <include>**</include>
-		</includes>
-        <!-- Don't add source files to target jar -->
-	    <excludes>
-		  <exclude>com/bergerkiller/bukkit/**/*.java</exclude>
-		</excludes>
-	  </resource>
+	<!-- Resources (the filtering allows us to use project properties in plugin.yml) -->
+	<resources>
+      <resource>
+        <directory>src/main/java</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>plugin.yml</include>
+        </includes>
+      </resource>
 	</resources>
 	<defaultGoal>clean install</defaultGoal>
+
 	<!-- Plugins -->
 	<plugins>
 	  <!-- Compiler plugin -->
