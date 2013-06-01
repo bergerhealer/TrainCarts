@@ -17,7 +17,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
-	public static final double ROTATION_K = 0.5;
+	public static final double ROTATION_K = 0.55;
 	public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
 	public static final double VELOCITY_SOUND_RADIUS = 16;
 	public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;

@@ -90,6 +90,7 @@ public class TrainCarts extends PluginBase {
 	public static double manualMovementSpeed;
 	public static boolean allMinecartsAreTrainCarts;
 	public static boolean useNetworkSynchronizer;
+	public static boolean allowVerticalPitch;
 	public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
 	public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
 	public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
@@ -267,6 +268,10 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
 		config.addHeader("instantCreativeDestroy", "Note that manual minecart movement is not possible for creative players with this enabled");
 		instantCreativeDestroy = config.get("instantCreativeDestroy", false);
+
+		config.setHeader("allowVerticalPitch", "\nWhether minecarts are allowed to have a 90-degree pitch angle when going up vertical rails");
+		config.addHeader("allowVerticalPitch", "When disabled, minecarts will keep a 0-degree pitch angle instead");
+		allowVerticalPitch = config.get("allowVerticalPitch", true);
 
 		config.setHeader("allowRailEditing", "\nWhether players (with build permissions) can edit existing rails by right-clicking on them");
 		allowRailEditing = config.get("allowRailEditing", true);

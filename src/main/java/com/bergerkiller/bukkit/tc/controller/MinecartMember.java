@@ -1184,23 +1184,32 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			}
 		} else {
 			// Update yaw
-			if (movedXZ) {
-				newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
-			} else {
+			BlockFace dir = this.getDirection();
+			if (FaceUtil.isVertical(dir)) {
 				newyaw = FaceUtil.faceToYaw(this.getRailDirection());
+			} else {
+				newyaw = FaceUtil.faceToYaw(this.getDirection());
 			}
 			// Update pitch
 			if (getRailLogic() instanceof RailLogicVertical) {
-				newpitch = -90.0f;
+				newpitch = TrainCarts.allowVerticalPitch ? -90.0f : 0.0f;
 			} else if (getRailLogic() instanceof RailLogicVerticalSlopeDown) {
 				newpitch = -45.0f;
 			} else if (getRailLogic().isSloped()) {
+				if (movedXZ && Math.abs(movedY) > 0.001) {
+					// Use movement for pitch (but only when moving horizontally)
+					newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+				}
+				// This was the old method, where pitch is inverted to make players look up/down properly
+				/*
 				newpitch = 0.8f * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
 				orientPitch = false;
+				*/
 			} else {
 				newpitch = 0.0f;
 			}
 		}
+
 		// Fix yaw based on the previous yaw angle
 		if (MathUtil.getAngleDifference(oldyaw, newyaw) > 90.0f) {
 			while ((newyaw - oldyaw) >= 90.0f) {
@@ -1213,6 +1222,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				newpitch = -newpitch;
 			}
 		}
+
+		// Fix up wrap-around angles
+		while ((newyaw - oldyaw) <= -180.0f) {
+			newyaw += 360.0f;
+		}
+		while ((newyaw - oldyaw) > 180.0f) {
+			newyaw -= 360.0f;
+		}
+
 		entity.setRotation(newyaw, newpitch);
 	}
 
