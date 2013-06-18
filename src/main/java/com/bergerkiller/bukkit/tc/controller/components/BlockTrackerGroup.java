@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -25,7 +25,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackIterator;
  * MinecartGroup
  */
 public class BlockTrackerGroup extends BlockTracker {
-	private static final Set<Block> groupSignBuffer = new HashSet<Block>();
+	private static final Set<Block> groupSignBuffer = new LinkedHashSet<Block>();
 	private final MinecartGroup owner;
 	private final Map<IntVector3, MinecartMember<?>> blockSpace = new LinkedHashMap<IntVector3, MinecartMember<?>>();
 	private final ToggledState needsPositionUpdate = new ToggledState(true);
