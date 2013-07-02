@@ -59,7 +59,8 @@ public class SignActionSwitcher extends SignAction {
 		if (!info.hasRailedMember()) {
 			return;
 		}
-		if (info.isFacing()) {
+		final boolean facing = info.isFacing();
+		if (facing && info.isPowered()) {
 			final BlockFace cartDirection = info.getCartDirection();
 			//find out what statements to parse
 			List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
@@ -132,15 +133,15 @@ public class SignActionSwitcher extends SignAction {
 				}
 			}
 			info.setLevers(dir != Direction.NONE);
-			if (dir != Direction.NONE && info.isPowered()) {
+			if (dir != Direction.NONE) {
 				//handle this direction
 				info.setRailsTo(dir);
 				return; //don't do destination stuff
 			}
 		}
 
-		//handle destination alternatively
-		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && info.hasMember()) {
+		// Handle destination alternatively
+		if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && (facing || !info.isWatchedDirectionsDefined())) {
 			PathNode node = PathNode.getOrCreate(info);
 			if (node != null) {
 				String destination = null;

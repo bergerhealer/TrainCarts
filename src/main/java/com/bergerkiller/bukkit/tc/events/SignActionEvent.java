@@ -47,6 +47,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	private boolean cancelled = false;
 	private boolean railschecked = false;
 	private final BlockFace[] watchedDirections;
+	private final boolean directionsDefined;
 	private final boolean powerinv;
 	private final boolean poweron;
 
@@ -80,6 +81,7 @@ public class SignActionEvent extends Event implements Cancellable {
 			this.poweron = false;
 			this.facing = null;
 			this.watchedDirections = FaceUtil.AXIS;
+			this.directionsDefined = false;
 			return;
 		} else {
 			// Sign available - initialize the sign
@@ -91,7 +93,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		HashSet<BlockFace> watchedFaces = new HashSet<BlockFace>(4);
 		// Find out what directions are watched by this sign
 		int idx = mainLine.indexOf(':');
-		if (idx == -1) {
+		if (this.directionsDefined = (idx == -1)) {
 			// find out using the rails above and sign facing
 			if (this.hasRails()) {
 				if (this.isVerticalRails()) {
@@ -553,6 +555,17 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.member = member;
 		this.memberchecked = true;
 		this.group = member.getGroup();
+	}
+
+	/**
+	 * Gets whether the watched directions of this Sign are defined on the first line.
+	 * If this returns True, user-specified watched directions are used.
+	 * If this returns False, environment-specific watched directions are used.
+	 * 
+	 * @return True if defined, False if not
+	 */
+	public boolean isWatchedDirectionsDefined() {
+		return this.directionsDefined;
 	}
 
 	/**

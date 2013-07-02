@@ -3,10 +3,10 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -68,17 +68,16 @@ public class SignActionTicket extends SignAction {
 
 					if (mode.equalsIgnoreCase("add")) {
 						account.add(money);
-						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You received " + getCurrencyText(money) + " in your bank account!");
+						Localization.TICKET_ADD.message(player, getCurrencyText(money));
 					} else if (mode.equalsIgnoreCase("check")) {
-						double getbal = account.balance();
-						player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You currently have " + getCurrencyText(getbal) + " in your bank account!");
+						Localization.TICKET_CHECK.message(player, getCurrencyText(account.balance()));
 					} else if (mode.equalsIgnoreCase("buy")) {
 						if (account.hasUnder(money)) {
-							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.RED + " You can't afford a Ticket for " + getCurrencyText(money) + " , sorry.");
+							Localization.TICKET_BUYFAIL.message(player, getCurrencyText(money));
 							member.eject();
 						} else {
 							account.subtract(money);
-							player.sendMessage(ChatColor.WHITE + "[*iG*~Ticket System]" + ChatColor.YELLOW + " You bought a Ticket for " + getCurrencyText(money) + " .");
+							Localization.TICKET_BUY.message(player, getCurrencyText(money));
 						}
 					}
 				}

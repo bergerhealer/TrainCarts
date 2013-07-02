@@ -554,6 +554,11 @@ public class TrainCarts extends PluginBase {
 	}
 
 	@Override
+	public void localization() {
+		this.loadLocales(Localization.class);
+	}
+
+	@Override
 	public void permissions() {
 		this.loadPermissions(Permission.class);
 	}

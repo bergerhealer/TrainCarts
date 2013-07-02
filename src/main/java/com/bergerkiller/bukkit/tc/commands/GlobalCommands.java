@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -201,7 +202,7 @@ public class GlobalCommands {
 		if (found) {
 			builder.send(player);
 		} else {
-			player.sendMessage(ChatColor.RED + "You do not own any trains you can edit.");
+			Localization.EDIT_NONEFOUND.message(player);
 		}
 	}
 }

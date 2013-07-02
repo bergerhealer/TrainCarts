@@ -38,7 +38,7 @@ public class SignActionSpawn extends SignAction {
 		addSpawnType('m', EntityType.MINECART);
 		addSpawnType('s', EntityType.MINECART_CHEST);
 		addSpawnType('p', EntityType.MINECART_FURNACE);
-		addSpawnType('h', EntityType.MINECART_FURNACE);
+		addSpawnType('h', EntityType.MINECART_HOPPER);
 		addSpawnType('t', EntityType.MINECART_TNT);
 		addSpawnType('e', EntityType.MINECART_MOB_SPAWNER);
 	}

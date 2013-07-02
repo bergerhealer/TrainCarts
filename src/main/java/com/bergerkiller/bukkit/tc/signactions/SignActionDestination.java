@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -25,9 +25,9 @@ public class SignActionDestination extends SignAction {
 		CartProperties cprop = CartProperties.getEditing(player);
 		if (cprop == null) {
 			if (Permission.COMMAND_PROPERTIES.has(player)) {
-				player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+				Localization.EDIT_NOSELECT.message(player);
 			} else {
-				player.sendMessage(ChatColor.RED + "You are not allowed to own trains!");
+				Localization.EDIT_NOTALLOWED.message(player);
 			}
 			return true;
 		}
@@ -40,11 +40,11 @@ public class SignActionDestination extends SignAction {
 			return false;
 		}
 		if (!prop.hasOwnership(player)) {
-			player.sendMessage(ChatColor.RED + "You don't own this train!");
+			Localization.EDIT_NOTOWNED.message(player);
 		} else {
 			String dest = info.getLine(2);
 			prop.setDestination(dest);
-			player.sendMessage(ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as your destination!");
+			Localization.SELECT_DESTINATION.message(player, dest);
 		}
 		return true;
 	}

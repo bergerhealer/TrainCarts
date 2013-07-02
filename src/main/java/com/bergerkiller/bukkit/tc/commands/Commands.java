@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -26,7 +27,7 @@ public class Commands {
 
 	public static boolean execute(CommandSender sender, String command, String[] args) {
 		if (args.length == 0) {
-			sender.sendMessage("TrainCarts " + TrainCarts.plugin.getVersion() + " - See WIKI page for more information");
+			Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getVersion());
 			return true;
 		}
 		try {
@@ -41,7 +42,7 @@ public class Commands {
 			Player player = (Player) sender;
 			CartProperties cprop = CartProperties.getEditing(player);
 			if (cprop == null) {
-				player.sendMessage(ChatColor.YELLOW + "You haven't selected a train to edit yet!");
+				Localization.EDIT_NOSELECT.message(player);
 				return true;
 			}
 			String cmd = args[0];
@@ -51,7 +52,7 @@ public class Commands {
 				if (prop.hasOwnership(player)) {
 					return TrainCommands.execute(player, prop, cmd, args);
 				} else {
-					player.sendMessage(ChatColor.RED + "You don't own this train!");
+					Localization.EDIT_NOTOWNED.message(player);
 					return true;
 				}
 			} else if (command.equalsIgnoreCase("cart")) {
@@ -59,14 +60,14 @@ public class Commands {
 				if (prop.hasOwnership(player)) {
 					return CartCommands.execute(player, prop, cmd, args);
 				} else {
-					player.sendMessage(ChatColor.RED + "You don't own this minecart!");
+					Localization.EDIT_NOTOWNED.message(player);
 					return true;
 				}
 			} else {
 				return false;
 			}
 		} catch (NoPermissionException ex) {
-			sender.sendMessage(ChatColor.RED + "You do not have permission, ask an admin to do this for you.");
+			Localization.COMMAND_NOPERM.message(sender);
 			return true;
 		}
 	}
