@@ -93,7 +93,8 @@ public class SignActionEvent extends Event implements Cancellable {
 		HashSet<BlockFace> watchedFaces = new HashSet<BlockFace>(4);
 		// Find out what directions are watched by this sign
 		int idx = mainLine.indexOf(':');
-		if (this.directionsDefined = (idx == -1)) {
+		this.directionsDefined = (idx != -1);
+		if (!this.directionsDefined) {
 			// find out using the rails above and sign facing
 			if (this.hasRails()) {
 				if (this.isVerticalRails()) {
