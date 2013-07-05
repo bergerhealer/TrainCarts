@@ -222,7 +222,7 @@ public class TrainCarts extends PluginBase {
 		config.setHeader("collision.ignoreOwners", "If train owners are ignored");
 		config.setHeader("collision.ignoreGlobalOwners", "If global train owners are ignored");
 		config.setHeader("collision.pushAwayForce", "The amount of force at which minecarts push away others");
-		collisionIgnoreOwners = config.get("collision.ignoreOwners", true);
+		collisionIgnoreOwners = config.get("collision.ignoreOwners", false);
 		collisionIgnoreGlobalOwners = config.get("collision.ignoreGlobalOwners", false);
 		pushAwayForce = config.get("collision.pushAwayForce", 0.2);
 
