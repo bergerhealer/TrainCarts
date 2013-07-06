@@ -22,6 +22,11 @@ public class RailLogicGround extends RailLogic {
 	}
 
 	@Override
+	public boolean hasVerticalMovement() {
+		return true;
+	}
+
+	@Override
 	public void onPreMove(MinecartMember<?> member) {
 		// Apply ground friction
 		member.getEntity().vel.multiply(member.getEntity().getDerailedVelocityMod());

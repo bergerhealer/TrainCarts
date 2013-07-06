@@ -33,6 +33,7 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityController;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -443,7 +444,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.getRailLogic().isSloped();
 	}
 	public boolean isFlying() {
-		return isDerailed() && !entity.isOnGround() && entity.vel.getY() != 0.0;
+		return isDerailed() && !entity.isOnGround();
 	}
 	public boolean isMovingHorizontally() {
 		return entity.isMovingHorizontally();
@@ -452,8 +453,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.isMovingVertically() && !this.isMovingHorizontally();
 	}
 	public boolean isMovingVertically() {
-		// When flying we can assume that we are moving vertically - always
-		return isFlying() || entity.isMovingVertically();
+		if (entity.isOnGround()) {
+			// On the ground, are we possibly moving upwards (away from ground)?
+			return entity.vel.getY() > CommonEntity.MIN_MOVE_SPEED;
+		} else {
+			// Not on the ground, if derailed we are flying, otherwise check for vertical movement
+			return isDerailed() || entity.isMovingVertically();
+		}
 	}
 	public boolean isNearOf(MinecartMember<?> member) {
 		double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
