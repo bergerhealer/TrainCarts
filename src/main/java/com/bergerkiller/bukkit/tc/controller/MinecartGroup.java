@@ -455,7 +455,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 				teleportMember(this.get(i), locations[i]);
 			}
 		}
-		this.getBlockTracker().refresh();
+		this.getBlockTracker().updatePosition();
 	}
 	private void teleportMember(MinecartMember<?> member, Location location) {
 		member.ignoreDie.set();

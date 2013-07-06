@@ -104,7 +104,7 @@ public class BlockTrackerGroup extends BlockTracker {
 	}
 
 	/**
-	 * Tells that this Block Tracker needs to be updated at some point
+	 * Tells that this Block Tracker's Block Space (signs, detectors) needs to be updated at some point
 	 */
 	public void updatePosition() {
 		needsPositionUpdate.set();

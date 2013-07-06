@@ -54,20 +54,17 @@ public class GlobalCommands {
 			return true;
 		} else if (args[0].equals("removeall") || args[0].equals("destroyall")) {
 			Permission.COMMAND_DESTROYALL.handle(sender);
-			if (args.length == 2) {
+			if (args.length == 1) {
+				// Destroy all trains on the entire server
+				int count = OfflineGroupManager.destroyAll();
+				sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
+			} else {
+				// Destroy the trains on a single world
 				String cname = args[1].toLowerCase();
-				World w = null;
-				for (World world : Bukkit.getServer().getWorlds()) {
-					String wname = world.getName().toLowerCase();
-					if (wname.equals(cname)) {
-						w = world;
-						break;
-					}
-				}
+				World w = Bukkit.getWorld(cname);
 				if (w == null) {
 					for (World world : Bukkit.getServer().getWorlds()) {
-						String wname = world.getName().toLowerCase();
-						if (wname.contains(cname)) {
+						if (world.getName().toLowerCase().contains(cname)) {
 							w = world;
 							break;
 						}
@@ -79,9 +76,6 @@ public class GlobalCommands {
 				} else {
 					sender.sendMessage(ChatColor.RED + "World not found!");
 				}
-			} else {
-				int count = OfflineGroupManager.destroyAll();
-				sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");	
 			}
 			return true;
 		} else if (args[0].equals("reroute")) {
