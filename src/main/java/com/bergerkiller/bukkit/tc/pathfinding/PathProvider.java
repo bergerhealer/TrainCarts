@@ -131,7 +131,7 @@ public class PathProvider extends Task {
 					} else if (event.isType("destination")) {
 						newNodeLocation = new BlockLocation(nextRail);
 						newNodeName = event.getLine(2);
-					} else if (event.isType("blocker") && event.isWatchedDirection(iter.currentDirection())) {
+					} else if (event.isType("blocker") && event.isWatchedDirection(iter.currentDirection()) && event.isPowerAlwaysOn()) {
 						return true;
 					} else {
 						continue;

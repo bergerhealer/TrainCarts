@@ -443,7 +443,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.getRailLogic().isSloped();
 	}
 	public boolean isFlying() {
-		return isDerailed() && !entity.isOnGround();
+		return isDerailed() && !entity.isOnGround() && entity.vel.getY() != 0.0;
 	}
 	public boolean isMovingHorizontally() {
 		return entity.isMovingHorizontally();
