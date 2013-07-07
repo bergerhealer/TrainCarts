@@ -60,7 +60,7 @@ public class SignActionSwitcher extends SignAction {
 			return;
 		}
 		final boolean facing = info.isFacing();
-		if (facing && info.isPowered()) {
+		if (facing) {
 			final BlockFace cartDirection = info.getCartDirection();
 			//find out what statements to parse
 			List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
@@ -133,7 +133,7 @@ public class SignActionSwitcher extends SignAction {
 				}
 			}
 			info.setLevers(dir != Direction.NONE);
-			if (dir != Direction.NONE) {
+			if (dir != Direction.NONE && info.isPowered()) {
 				//handle this direction
 				info.setRailsTo(dir);
 				return; //don't do destination stuff
