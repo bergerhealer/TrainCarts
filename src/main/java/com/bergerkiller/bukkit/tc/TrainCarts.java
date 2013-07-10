@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
@@ -31,17 +32,20 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -103,6 +107,7 @@ public class TrainCarts extends PluginBase {
 
 	public static TrainCarts plugin;
 	private Task signtask;
+	private TCPacketListener packetListener;
 	private FileConfiguration config;
 	private Map<String, ItemParser[]> parsers = new HashMap<String, ItemParser[]>();
 
@@ -410,6 +415,7 @@ public class TrainCarts extends PluginBase {
 		plugin = this;
 
 		//registering
+		this.register(packetListener = new TCPacketListener(), PacketType.PLAYER_INPUT);
 		this.register(TCListener.class);
 		this.register(RedstoneTracker.class);
 		this.register("train", "cart");
@@ -508,6 +514,10 @@ public class TrainCarts extends PluginBase {
 	}
 
 	public void disable() {
+		//Unregister listeners
+		this.unregister(packetListener);
+		packetListener = null;
+
 		//Stop tasks
 		Task.stop(signtask);
 		Task.stop(fixGroupTickTask);
@@ -612,5 +622,22 @@ public class TrainCarts extends PluginBase {
 	}
 	public static boolean isWorldDisabled(String worldname) {
 		return plugin.disabledWorlds.contains(worldname.toLowerCase());
+	}
+
+	public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
+		try {
+			MinecartMember<?> newMinecart = MinecartMemberStore.get(newVehicle);
+			if (newMinecart != null) {
+				CartPropertiesStore.setEditing(player, newMinecart.getProperties());
+			}
+			// Allow exiting the current minecart
+			MinecartMember<?> entered = MinecartMemberStore.get(player.getVehicle());
+			if (entered != null && !entered.getProperties().getPlayersExit()) {
+				return false;
+			}
+		} catch (Throwable t) {
+			TrainCarts.plugin.handle(t);
+		}
+		return true;
 	}
 }

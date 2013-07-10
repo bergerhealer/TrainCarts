@@ -449,22 +449,11 @@ public class TCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-		try {
-			MinecartMember<?> mm = MinecartMemberStore.get(event.getRightClicked());
-			if (mm != null) {
-				CartPropertiesStore.setEditing(event.getPlayer(), mm.getProperties());
-				MinecartMember<?> entered = MinecartMemberStore.get(event.getPlayer().getVehicle());
-				if (entered != null && !entered.getProperties().getPlayersExit()) {
-					event.setCancelled(true);
-				}
-			}
-		} catch (Throwable t) {
-			TrainCarts.plugin.handle(t);
-		}
+		event.setCancelled(!TrainCarts.handlePlayerVehicleChange(event.getPlayer(), event.getRightClicked()));
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (MaterialUtil.ISSIGN.get(event.getBlock())) {

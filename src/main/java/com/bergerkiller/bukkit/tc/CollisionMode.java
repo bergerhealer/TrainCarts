@@ -111,7 +111,7 @@ public enum CollisionMode {
 						((LivingEntity) entity).damage(Short.MAX_VALUE, member.getEntity().getEntity());
 						EntityUtil.setInvulnerable(entity, old);
 					} else {
-						EntityUtil.damage(entity, DamageCause.CUSTOM, Short.MAX_VALUE);
+						EntityUtil.damage(entity, DamageCause.CUSTOM, (double) Short.MAX_VALUE);
 						entity.remove();
 					}
 					if (this == KILLNODROPS) {
