@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>TrainCarts</artifactId>
-  <version>1.72.8</version>
+  <version>1.72.9-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>TrainCarts</name>
@@ -31,13 +31,13 @@
     <dependency>
       <groupId>org.bukkit</groupId>
       <artifactId>bukkit</artifactId>
-      <version>1.5.2-R0.1</version>
+      <version>1.6.2-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>MyWorlds</artifactId>
-      <version>1.61</version>
+      <version>1.62</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
@@ -52,14 +52,14 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>SignLink</artifactId>
-      <version>1.32</version>
+      <version>1.33</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.52-SNAPSHOT</version>
+      <version>1.54-SNAPSHOT</version>
       <scope>provided</scope>
   	</dependency>
     <dependency>
