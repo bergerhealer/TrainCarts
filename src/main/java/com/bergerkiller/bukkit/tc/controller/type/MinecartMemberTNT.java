@@ -14,7 +14,7 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
 	private boolean ignoreDamage = false;
 
 	@Override
-	public void onDamage(DamageSource damagesource, int damage) {
+	public void onDamage(DamageSource damagesource, double damage) {
 		if (entity.isDead() || ignoreDamage) {
 			return;
 		}

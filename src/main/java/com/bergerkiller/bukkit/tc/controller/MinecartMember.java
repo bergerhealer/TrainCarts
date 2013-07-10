@@ -614,7 +614,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	@Override
-	public void onDamage(DamageSource damagesource, int damage) {
+	public void onDamage(DamageSource damagesource, double damage) {
 		if (this.entity.isDead()) {
 			return;
 		}
