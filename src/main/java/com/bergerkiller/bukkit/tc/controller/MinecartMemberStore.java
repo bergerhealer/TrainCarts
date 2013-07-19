@@ -14,7 +14,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.collections.ClassMap;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
+import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
+import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
@@ -37,6 +40,16 @@ import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberRideable;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberTNT;
 
 public abstract class MinecartMemberStore {
+	private static ClassMap<Class<?>> controllers = new ClassMap<Class<?>>();
+
+	static {
+		controllers.put(CommonMinecartRideable.class, MinecartMemberRideable.class);
+		controllers.put(CommonMinecartFurnace.class, MinecartMemberFurnace.class);
+		controllers.put(CommonMinecartChest.class, MinecartMemberChest.class);
+		controllers.put(CommonMinecartHopper.class, MinecartMemberHopper.class);
+		controllers.put(CommonMinecartTNT.class, MinecartMemberTNT.class);
+		controllers.put(CommonMinecartMobSpawner.class, MinecartMemberMobSpawner.class);
+	}
 
 	/**
 	 * Converts all Minecarts on all enabled worlds into Minecart Members
@@ -114,9 +127,7 @@ public abstract class MinecartMemberStore {
 
 		// Set controllers and done
 		entity.setController(newController);
-		if (TrainCarts.useNetworkSynchronizer) {
-			entity.setNetworkController(new MinecartMemberNetwork());
-		}
+		entity.setNetworkController(createNetworkController(entity));
 
 		// Unloaded?
 		newController.updateUnloaded();
@@ -125,23 +136,18 @@ public abstract class MinecartMemberStore {
 	}
 
 	/**
-	 * Tries to find a minecart member by UUID
+	 * Creates a suitable Minecart Member Network controller for an Entity.
+	 * Network settings are used to select the right one.
 	 * 
-	 * @param uuid of the minecart
-	 * @return Minecart Member, or null if not found
+	 * @param entity to create a network controller for
+	 * @return new Network Controller
 	 */
-	public static MinecartMember<?> getFromUID(UUID uuid) {
-		for (org.bukkit.World world : WorldUtil.getWorlds()) {
-			MinecartMember<?> member = MemberConverter.toMember.convert(EntityUtil.getEntity(world, uuid));
-			if (member != null && !member.isUnloaded()) {
-				return member;
-			}
+	public static EntityNetworkController<?> createNetworkController(CommonEntity<?> entity) {
+		if (TrainCarts.useNetworkSynchronizer) {
+			return new MinecartMemberNetwork();
+		} else {
+			return new DefaultEntityNetworkController();
 		}
-		return null;
-	}
-
-	public static MinecartMember<?> get(Object o) {
-		return MemberConverter.toMember.convert(o);
 	}
 
 	/**
@@ -151,19 +157,14 @@ public abstract class MinecartMemberStore {
 	 * @return new MinecartMember instance suitable for the type of Entity, or null if none found
 	 */
 	public static MinecartMember<?> createController(CommonEntity<?> entity) {
-		if (entity instanceof CommonMinecartRideable) {
-			return new MinecartMemberRideable();
-		} else if (entity instanceof CommonMinecartFurnace) {
-			return new MinecartMemberFurnace();
-		} else if (entity instanceof CommonMinecartChest) {
-			return new MinecartMemberChest();
-		} else if (entity instanceof CommonMinecartHopper) {
-			return new MinecartMemberHopper();
-		} else if (entity instanceof CommonMinecartTNT) {
-			return new MinecartMemberTNT();
-		} else if (entity instanceof CommonMinecartMobSpawner) {
-			return new MinecartMemberMobSpawner();
-		} else {
+		Class<?> controllerClass = controllers.get(entity);
+		if (controllerClass == null) {
+			return null;
+		}
+		try {
+			return (MinecartMember<?>) controllerClass.newInstance();
+		} catch (Throwable t) {
+			TrainCarts.plugin.handle(t);
 			return null;
 		}
 	}
@@ -206,14 +207,30 @@ public abstract class MinecartMemberStore {
 			throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
 		}
 		entity.setController(controller);
-		if (TrainCarts.useNetworkSynchronizer) {
-			entity.spawn(at, new MinecartMemberNetwork());
-		} else {
-			entity.spawn(at);
-		}
+		entity.spawn(at, createNetworkController(entity));
 		controller.invalidateDirection();
 		controller.updateDirection(FaceUtil.yawToFace(at.getYaw()));
 		return controller;
+	}
+
+	/**
+	 * Tries to find a minecart member by UUID
+	 * 
+	 * @param uuid of the minecart
+	 * @return Minecart Member, or null if not found
+	 */
+	public static MinecartMember<?> getFromUID(UUID uuid) {
+		for (org.bukkit.World world : WorldUtil.getWorlds()) {
+			MinecartMember<?> member = MemberConverter.toMember.convert(EntityUtil.getEntity(world, uuid));
+			if (member != null && !member.isUnloaded()) {
+				return member;
+			}
+		}
+		return null;
+	}
+
+	public static MinecartMember<?> get(Object o) {
+		return MemberConverter.toMember.convert(o);
 	}
 
 	public static MinecartMember<?> getAt(Block block) {

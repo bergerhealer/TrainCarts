@@ -7,11 +7,12 @@ import java.util.logging.Level;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.bases.IntVector2;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -24,6 +25,22 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 	private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
 	private final Set<Player> velocityUpdateReceivers = new HashSet<Player>();
 
+	public MinecartMemberNetwork() {
+		final VectorAbstract velLiveBase = this.velLive;
+		this.velLive = new VectorAbstract() {
+			public double getX() {return convertVelocity(velLiveBase.getX());}
+			public double getY() {return convertVelocity(velLiveBase.getY());}
+			public double getZ() {return convertVelocity(velLiveBase.getZ());}
+			public VectorAbstract setX(double x) {velLiveBase.setX(x); return this;}
+			public VectorAbstract setY(double y) {velLiveBase.setY(y); return this;}
+			public VectorAbstract setZ(double z) {velLiveBase.setZ(z); return this;}
+		};
+	}
+
+	private double convertVelocity(double velocity) {
+		return isSoundEnabled() ? MathUtil.clamp(velocity, getEntity().getMaxSpeed()) : 0.0;
+	}
+
 	private boolean isSoundEnabled() {
 		MinecartMember<?> member = (MinecartMember<?>) entity.getController();
 		return (member == null || member.isUnloaded()) ? false : member.getGroup().getProperties().isSoundEnabled();
@@ -31,17 +48,17 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
 	private void updateVelocity(Player player) {
 		final boolean inRange = isSoundEnabled() && getEntity().loc.distanceSquared(player) <= VELOCITY_SOUND_RADIUS_SQUARED;
-		if ((inRange ? velocityUpdateReceivers.add(player) : velocityUpdateReceivers.remove(player))) {
-			Vector velocity;
+		if (LogicUtil.addOrRemove(velocityUpdateReceivers, player, inRange)) {
+			CommonPacket velocityPacket;
 			if (inRange) {
 				// Send the current velocity
-				velocity = this.getProtocolVelocitySynched();
+				velocityPacket = getVelocityPacket(velSynched.getX(), velSynched.getY(), velSynched.getZ());
 			} else {
 				// Clear velocity
-				velocity = ZERO_VELOCITY;
+				velocityPacket = getVelocityPacket(0.0, 0.0, 0.0);
 			}
 			// Send
-			PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), velocity));
+			PacketUtil.sendPacket(player, velocityPacket);
 		}
 	}
 
@@ -96,7 +113,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 				for (MinecartMemberNetwork controller : networkControllers) {
 					controller.syncLocationAbsolute();
 					controller.syncVelocity();
-					controller.syncMeta();
+					controller.syncMetaData();
 					controller.getEntity().setPositionChanged(false);
 				}
 			} else {
@@ -112,30 +129,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 					}
 				}
 				if (needsSync) {
-					final IntVector3[] synchedPos = new IntVector3[count];
-					final IntVector2[] synchedRot = new IntVector2[count];
-					final IntVector3[] livePos = new IntVector3[count];
-					final IntVector2[] liveRot = new IntVector2[count];
-					final Vector[] liveVel = new Vector[count];
 					boolean moved = false;
 					boolean rotated = false;
-					boolean velocity = false;
+
 					// Check whether changes are needed
 					for (i = 0; i < count; i++) {
-						MinecartMemberNetwork controller = networkControllers[i];
-						// Position
-						synchedPos[i] = controller.getProtocolPositionSynched();
-						livePos[i] = controller.getProtocolPosition();
-						moved |= livePos[i].subtract(synchedPos[i]).abs().greaterEqualThan(MIN_RELATIVE_CHANGE);
-						// Rotation
-						synchedRot[i] = controller.getProtocolRotationSynched();
-						liveRot[i] = controller.getProtocolRotation();
-						rotated |= liveRot[i].subtract(synchedRot[i]).abs().greaterEqualThan(MIN_RELATIVE_CHANGE);
-						// Velocity
-						liveVel[i] = controller.getProtocolVelocity();
-						velocity |= controller.getEntity().isVelocityChanged();
-						velocity |= liveVel[i].distanceSquared(controller.getProtocolVelocitySynched()) > MIN_RELATIVE_VELOCITY_SQUARED;
+						MinecartMemberNetwork controller = networkControllers[i];						
+						moved |= controller.isPositionChanged(MIN_RELATIVE_CHANGE);
+						rotated |= controller.isRotationChanged(MIN_RELATIVE_CHANGE);
 					}
+
 					// Perform actual updates
 					for (i = 0; i < count; i++) {
 						MinecartMemberNetwork controller = networkControllers[i];
@@ -144,20 +147,25 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 						if (rotated && !group.get(i).isDerailed()) {
 							// Update rotation with control system function
 							// This ensures that the Client animation doesn't glitch the rotation
-							liveRot[i] = liveRot[i].add(liveRot[i].subtract(synchedRot[i]).multiply(ROTATION_K));
+							locLive.addYaw((int) (ROTATION_K * (locLive.getYaw() - locSynched.getYaw())));
+							locLive.addPitch((int) (ROTATION_K * (locLive.getPitch() - locSynched.getPitch())));
 						}
-						controller.syncLocation(moved ? livePos[i] : null, rotated ? liveRot[i] : null);
+						controller.syncLocation(moved, rotated);
 						controller.getEntity().setPositionChanged(false);
 
 						// Synchronize velocity
-						if (velocity) {
-							controller.setProtocolVelocitySynched(liveVel[i]);
+						if (controller.getEntity().isVelocityChanged() || controller.isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
+							// Reset dirty velocity
 							controller.getEntity().setVelocityChanged(false);
+
 							// Send packets to recipients
+							velSynched.set(velLive);
+							CommonPacket velocityPacket = getVelocityPacket(velSynched.getX(), velSynched.getY(), velSynched.getZ());
 							for (Player player : controller.velocityUpdateReceivers) {
-								PacketUtil.sendPacket(player, PacketFields.ENTITY_VELOCITY.newInstance(controller.getEntity().getEntityId(), liveVel[i]));
+								PacketUtil.sendPacket(player, velocityPacket);
 							}
 						}
+
 						// Update the velocity update receivers
 						if (isSoundEnabled()) {
 							for (Player player : controller.getViewers()) {
@@ -166,27 +174,13 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 						}
 
 						// Synchronize meta data
-						controller.syncMeta();
+						controller.syncMetaData();
 					}
 				}
 			}
 		} catch (Throwable t) {
 			TrainCarts.plugin.log(Level.SEVERE, "Failed to synchronize a network controller:");
 			TrainCarts.plugin.handle(t);
-		}
-	}
-
-	@Override
-	public Vector getProtocolVelocity() {
-		if (isSoundEnabled()) {
-			final double maxSpeed = getEntity().getMaxSpeed();
-			Vector vel = super.getProtocolVelocity();
-			vel.setX(MathUtil.clamp(vel.getX(), maxSpeed));
-			vel.setY(MathUtil.clamp(vel.getY(), maxSpeed));
-			vel.setZ(MathUtil.clamp(vel.getZ(), maxSpeed));
-			return vel;
-		} else {
-			return ZERO_VELOCITY;
 		}
 	}
 }
