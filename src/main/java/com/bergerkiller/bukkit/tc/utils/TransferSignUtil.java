@@ -179,7 +179,9 @@ public class TransferSignUtil {
 		int radY = Math.abs(radHeight);
 		int radZ = Math.abs(radWidth);
 		BlockFace dir = info.getRailDirection();
-		if (FaceUtil.isAlongX(dir)) {
+		if (FaceUtil.isVertical(dir)) {
+			radY = 0;
+		} else if (FaceUtil.isAlongX(dir)) {
 			radX = 0;
 		} else if (FaceUtil.isAlongZ(dir)) {
 			radZ = 0;

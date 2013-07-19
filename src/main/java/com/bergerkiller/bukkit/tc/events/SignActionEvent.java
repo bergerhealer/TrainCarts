@@ -370,10 +370,13 @@ public class SignActionEvent extends Event implements Cancellable {
 	public BlockFace getRailDirection() {
 		if (!this.hasRails()) return null;
 		if (this.raildirection == null) {
-			if (MaterialUtil.ISRAILS.get(this.railsblock)) {
+			int id = this.railsblock.getTypeId();
+			if (MaterialUtil.ISRAILS.get(id)) {
 				this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
-			} else if (MaterialUtil.ISPRESSUREPLATE.get(this.railsblock)) {
+			} else if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
 				this.raildirection = Util.getPlateDirection(this.railsblock);
+			} else if (Util.ISVERTRAIL.get(id)) {
+				this.raildirection = BlockFace.UP;
 			}
 		}
 		return this.raildirection;
