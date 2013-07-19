@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -13,6 +15,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 
 public class SignActionBlockChanger extends SignAction {
+	private static final int BLOCK_OFFSET_NONE = Integer.MAX_VALUE;
 
 	@Override
 	public boolean match(SignActionEvent info) {
@@ -25,15 +28,16 @@ public class SignActionBlockChanger extends SignAction {
 			return;
 		}
 		ItemParser[] blocks = Util.getParsers(info.getLine(2), info.getLine(3));
+		int blockOffset = ParseUtil.parseInt(info.getLine(1), BLOCK_OFFSET_NONE);
 		if (info.isTrainSign() && info.hasGroup() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
-			setBlocks(info.getGroup(), blocks);
+			setBlocks(info.getGroup(), blocks, blockOffset);
 		} else if (info.isCartSign() && info.hasMember() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
 			List<MinecartMember<?>> tmp = new ArrayList<MinecartMember<?>>(1);
 			tmp.add(info.getMember());
-			setBlocks(tmp, blocks);
+			setBlocks(tmp, blocks, blockOffset);
 		} else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
 			for (MinecartGroup group : info.getRCTrainGroups()) {
-				setBlocks(group, blocks);
+				setBlocks(group, blocks, blockOffset);
 			}
 		} else {
 			return;
@@ -57,7 +61,7 @@ public class SignActionBlockChanger extends SignAction {
 		return true;
 	}
 
-	private static void setBlocks(List<MinecartMember<?>> members, ItemParser[] blocks) {
+	private static void setBlocks(List<MinecartMember<?>> members, ItemParser[] blocks, int blockOffset) {
 		Iterator<MinecartMember<?>> iter = members.iterator();
 		while (true) {
 			for (ItemParser block : blocks) {
@@ -66,7 +70,11 @@ public class SignActionBlockChanger extends SignAction {
 					if (!iter.hasNext()) {
 						return;
 					}
-					iter.next().getEntity().setBlock(block.getTypeId(), block.getData());
+					CommonMinecart<?> entity = iter.next().getEntity();
+					entity.setBlock(block.getTypeId(), block.getData());
+					if (blockOffset != BLOCK_OFFSET_NONE) {
+						entity.setBlockOffset(blockOffset);
+					}
 				}
 			}
 		}
