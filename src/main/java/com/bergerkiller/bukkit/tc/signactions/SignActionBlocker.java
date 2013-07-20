@@ -51,9 +51,7 @@ public class SignActionBlocker extends SignAction {
 	@Override
 	public boolean build(SignChangeActionEvent event) {
 		if (event.getMode() != SignActionMode.NONE) {
-			if (event.isType("blocker")) {
-				return handleBuild(event, Permission.BUILD_BLOCKER, "train blocker", "block trains coming from a certain direction");
-			}
+			return handleBuild(event, Permission.BUILD_BLOCKER, "train blocker", "block trains coming from a certain direction");
 		}
 		return false;
 	}

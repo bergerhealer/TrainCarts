@@ -21,6 +21,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -172,6 +173,32 @@ public class TransferSignUtil {
 		return startAmount - amountToTransfer;
 	}
 
+	public static IntVector2 readRadius(String text) {
+		// Parse radius width and height (negative allowed for reversed sorting)
+		int radWidth = TrainCarts.defaultTransferRadius;
+		int radHeight = TrainCarts.defaultTransferRadius;
+		int radStartIndex = text.lastIndexOf(' ');
+		if (radStartIndex != -1) {
+			String radText = text.substring(radStartIndex + 1);
+			String[] parts = radText.split(":");
+			if (parts.length == 1) {
+				radWidth = radHeight = ParseUtil.parseInt(radText, TrainCarts.defaultTransferRadius);
+			} else if (parts.length == 2) {
+				radWidth = ParseUtil.parseInt(parts[0], TrainCarts.defaultTransferRadius);
+				radHeight = ParseUtil.parseInt(parts[1], TrainCarts.defaultTransferRadius);
+			}
+		}
+		// Limit radius
+		radWidth = MathUtil.clamp(radWidth, TrainCarts.maxTransferRadius);
+		radHeight = MathUtil.clamp(radHeight, TrainCarts.maxTransferRadius);
+		// Done
+		return new IntVector2(radWidth, radHeight);
+	}
+
+	public static Collection<BlockState> getBlockStates(SignActionEvent info, IntVector2 radius) {
+		return getBlockStates(info, radius.x, radius.z);
+	}
+
 	public static Collection<BlockState> getBlockStates(SignActionEvent info, int radWidth, int radHeight) {
 		// Obtain the BlockFaces using absolute width and height
 		final Block centerBlock = info.getRails();
@@ -247,25 +274,10 @@ public class TransferSignUtil {
 		}
 
 		// Parse radius width and height (negative allowed for reversed sorting)
-		int radWidth = TrainCarts.defaultTransferRadius;
-		int radHeight = TrainCarts.defaultTransferRadius;
-		int radStartIndex = info.getLine(1).lastIndexOf(' ');
-		if (radStartIndex != -1) {
-			String radText = info.getLine(1).substring(radStartIndex + 1);
-			String[] parts = radText.split(":");
-			if (parts.length == 1) {
-				radWidth = radHeight = ParseUtil.parseInt(radText, TrainCarts.defaultTransferRadius);
-			} else if (parts.length == 2) {
-				radWidth = ParseUtil.parseInt(parts[0], TrainCarts.defaultTransferRadius);
-				radHeight = ParseUtil.parseInt(parts[1], TrainCarts.defaultTransferRadius);
-			}
-		}
-		// Limit radius
-		radWidth = MathUtil.clamp(radWidth, TrainCarts.maxTransferRadius);
-		radHeight = MathUtil.clamp(radHeight, TrainCarts.maxTransferRadius);
+		IntVector2 radius = readRadius(info.getLine(1));
 
 		// Get the blocks to collect/deposit using radiuses previously parsed
-		Collection<BlockState> found = TransferSignUtil.getBlockStates(info, radWidth, radHeight);
+		Collection<BlockState> found = TransferSignUtil.getBlockStates(info, radius);
 		if (found.isEmpty()) {
 			return Collections.emptyList();
 		}
@@ -300,7 +312,7 @@ public class TransferSignUtil {
 					break;
 				}
 				case GROUNDITEM : {
-					rval.add(new GroundItemsState(info.getRails(), Math.abs(radWidth)));
+					rval.add(new GroundItemsState(info.getRails(), Math.abs(radius.x)));
 					break;
 				}
 			}
