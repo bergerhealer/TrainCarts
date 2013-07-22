@@ -140,49 +140,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 					}
 
 					// Perform actual updates
-					int posX, posY, posZ, rotYaw, rotPitch;
 					for (i = 0; i < count; i++) {
-						MinecartMemberNetwork controller = networkControllers[i];
-
-						// Read live location
-						posX = controller.locLive.getX();
-						posY = controller.locLive.getY();
-						posZ = controller.locLive.getZ();
-						rotYaw = controller.locLive.getYaw();
-						rotPitch = controller.locLive.getPitch();
-
-						// Synchronize location
-						if (rotated && !group.get(i).isDerailed()) {
-							// Update rotation with control system function
-							// This ensures that the Client animation doesn't glitch the rotation
-							rotYaw += ROTATION_K * (controller.locLive.getYaw() - controller.locSynched.getYaw());
-							rotPitch += ROTATION_K * (controller.locLive.getPitch() - controller.locSynched.getPitch());
-						}
-						controller.getEntity().setPositionChanged(false);
-						controller.syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
-
-						// Synchronize velocity
-						if (controller.getEntity().isVelocityChanged() || controller.isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
-							// Reset dirty velocity
-							controller.getEntity().setVelocityChanged(false);
-
-							// Send packets to recipients
-							controller.velSynched.set(controller.velLive);
-							CommonPacket velocityPacket = getVelocityPacket(controller.velSynched.getX(), controller.velSynched.getY(), controller.velSynched.getZ());
-							for (Player player : controller.velocityUpdateReceivers) {
-								PacketUtil.sendPacket(player, velocityPacket);
-							}
-						}
-
-						// Update the velocity update receivers
-						if (isSoundEnabled()) {
-							for (Player player : controller.getViewers()) {
-								controller.updateVelocity(player);
-							}
-						}
-
-						// Synchronize meta data
-						controller.syncMetaData();
+						networkControllers[i].syncSelf(group.get(i), moved, rotated);
 					}
 				}
 			}
@@ -190,5 +149,47 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 			TrainCarts.plugin.log(Level.SEVERE, "Failed to synchronize a network controller:");
 			TrainCarts.plugin.handle(t);
 		}
+	}
+
+	public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated) {
+		// Read live location
+		int posX = locLive.getX();
+		int posY = locLive.getY();
+		int posZ = locLive.getZ();
+		int rotYaw = locLive.getYaw();
+		int rotPitch = locLive.getPitch();
+
+		// Synchronize location
+		if (rotated && !member.isDerailed()) {
+			// Update rotation with control system function
+			// This ensures that the Client animation doesn't glitch the rotation
+			rotYaw += ROTATION_K * (locLive.getYaw() - locSynched.getYaw());
+			rotPitch += ROTATION_K * (locLive.getPitch() - locSynched.getPitch());
+		}
+		getEntity().setPositionChanged(false);
+		syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
+
+		// Synchronize velocity
+		if (getEntity().isVelocityChanged() || isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
+			// Reset dirty velocity
+			getEntity().setVelocityChanged(false);
+
+			// Send packets to recipients
+			velSynched.set(velLive);
+			CommonPacket velocityPacket = getVelocityPacket(velSynched.getX(), velSynched.getY(), velSynched.getZ());
+			for (Player player : velocityUpdateReceivers) {
+				PacketUtil.sendPacket(player, velocityPacket);
+			}
+		}
+
+		// Update the velocity update receivers
+		if (isSoundEnabled()) {
+			for (Player player : getViewers()) {
+				updateVelocity(player);
+			}
+		}
+
+		// Synchronize meta data
+		syncMetaData();
 	}
 }

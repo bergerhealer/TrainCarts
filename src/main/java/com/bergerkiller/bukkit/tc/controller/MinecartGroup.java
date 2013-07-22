@@ -683,6 +683,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 	}
 
 	/**
+	 * Gets the maximum amount of ticks a member of this group has lived
+	 * 
+	 * @return maximum amount of lived ticks
+	 */
+	public int getTicksLived() {
+		int ticksLived = 0;
+		for (MinecartMember<?> member : this) {
+			ticksLived = Math.max(ticksLived, member.getEntity().getTicksLived());
+		}
+		return ticksLived;
+	}
+
+	/**
 	 * Aborts any physics routines going on in this tick
 	 */
 	public void breakPhysics() {

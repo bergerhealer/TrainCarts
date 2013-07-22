@@ -174,9 +174,14 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 			//Event
 			if (GroupLinkEvent.call(g1, g2).isCancelled()) return false;
 
-			//Transfer properties
-			if (g1.size() > g2.size()) {
+			//Transfer properties if needed
+			if (g1.size() > g2.size() || (g1.size() == g2.size() && g1.getTicksLived() > g2.getTicksLived())) {
+				// Transfer properties
 				g2.getProperties().load(g1.getProperties());
+				// Transfer name, assigning a random name to the removed properties
+				String name = g1.getProperties().getTrainName();
+				g1.getProperties().setName(TrainProperties.generateTrainName());
+				g2.getProperties().setName(name);
 			}
 
 			//Clear targets and active signs

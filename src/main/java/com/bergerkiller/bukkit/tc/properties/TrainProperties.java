@@ -718,30 +718,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		} else if (key.equals("remtag")) {
 			this.removeTags(arg);
 		} else if (LogicUtil.contains(key, "name", "rename", "setname")) {
-			String trainName = arg;
-			// No constant: append a number at the end or use full name
-			boolean replaceNumber = true;
-			if (!trainName.contains("#")) {
-				// If possible, set the name as it is
-				if (TrainProperties.exists(arg)) {
-					// Already exists, append number
-					trainName = trainName + "#";
-				} else {
-					// Doesn't exist, use the name
-					replaceNumber = false;
-				}
-			}
-			// Replace the numeric constant
-			if (replaceNumber) {
-				for (int i = 1; i < Integer.MAX_VALUE; i++) {
-					trainName = arg.replace("#", Integer.toString(i));
-					if (!TrainProperties.exists(trainName)) {
-						break;
-					}
-				}
-			}
-			// Apply
-			this.setName(trainName);
+			this.setName(generateTrainName(arg));
 		} else if (LogicUtil.contains(key, "dname", "displayname", "setdisplayname", "setdname")) {
 			this.setDisplayName(arg);
 		} else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {

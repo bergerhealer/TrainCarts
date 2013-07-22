@@ -108,23 +108,56 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	}
 
 	/**
+	 * Generates a new train name using the default format.
+	 * 
+	 * @return generated (unused) train name
+	 */
+	public static String generateTrainName() {
+		return generateTrainName("train#");
+	}
+
+	/**
+	 * Generates a new train name using the format specified.
+	 * The location for the generated number is denoted using a '#'-character.
+	 * If none is set and the name is taken, a number is appended at the end of the name.
+	 * 
+	 * @param format to use for the name
+	 * @return generated (unused) train name
+	 */
+	public static String generateTrainName(String format) {
+		// No constant: append a number at the end or use full name
+		if (!format.contains("#")) {
+			// If possible, set the name as it is
+			if (exists(format)) {
+				// Already exists, append number
+				format = format + "#";
+			} else {
+				// Doesn't exist, use it directly
+				return format;
+			}
+		}
+		// Replace the numeric constant
+		String trainName = format;
+		for (int i = 1; i < Integer.MAX_VALUE; i++) {
+			trainName = format.replace("#", Integer.toString(i));
+			if (!TrainProperties.exists(trainName)) {
+				break;
+			}
+		}
+		return trainName;
+	}
+
+	/**
 	 * Creates a new TrainProperties value using a random name
 	 * 
 	 * @return new Train Properties
 	 */
 	public static TrainProperties create() {
-		String name;
-		for (int i = trainProperties.size(); i < Integer.MAX_VALUE; i++) {
-			name = "train" + i;
-			if (!exists(name)) {
-				TrainProperties prop = new TrainProperties(name);
-				prop.setDefault();
-				trainProperties.put(name, prop);
-				return prop;
-			}
-		}
-		// this should never fire...
-		return get("randname" + (int) (Math.random() * 100000));
+		String name = generateTrainName();
+		TrainProperties prop = new TrainProperties(name);
+		prop.setDefault();
+		trainProperties.put(name, prop);
+		return prop;
 	}
 
 	/**
