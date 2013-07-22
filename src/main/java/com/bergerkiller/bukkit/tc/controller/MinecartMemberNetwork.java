@@ -145,18 +145,18 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 						MinecartMemberNetwork controller = networkControllers[i];
 
 						// Read live location
-						posX = locLive.getX();
-						posY = locLive.getY();
-						posZ = locLive.getZ();
-						rotYaw = locLive.getYaw();
-						rotPitch = locLive.getPitch();
+						posX = controller.locLive.getX();
+						posY = controller.locLive.getY();
+						posZ = controller.locLive.getZ();
+						rotYaw = controller.locLive.getYaw();
+						rotPitch = controller.locLive.getPitch();
 
 						// Synchronize location
 						if (rotated && !group.get(i).isDerailed()) {
 							// Update rotation with control system function
 							// This ensures that the Client animation doesn't glitch the rotation
-							rotYaw += ROTATION_K * (locLive.getYaw() - locSynched.getYaw());
-							rotPitch += ROTATION_K * (locLive.getPitch() - locSynched.getPitch());
+							rotYaw += ROTATION_K * (controller.locLive.getYaw() - controller.locSynched.getYaw());
+							rotPitch += ROTATION_K * (controller.locLive.getPitch() - controller.locSynched.getPitch());
 						}
 						controller.getEntity().setPositionChanged(false);
 						controller.syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
@@ -167,8 +167,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 							controller.getEntity().setVelocityChanged(false);
 
 							// Send packets to recipients
-							velSynched.set(velLive);
-							CommonPacket velocityPacket = getVelocityPacket(velSynched.getX(), velSynched.getY(), velSynched.getZ());
+							controller.velSynched.set(controller.velLive);
+							CommonPacket velocityPacket = getVelocityPacket(controller.velSynched.getX(), controller.velSynched.getY(), controller.velSynched.getZ());
 							for (Player player : controller.velocityUpdateReceivers) {
 								PacketUtil.sendPacket(player, velocityPacket);
 							}
