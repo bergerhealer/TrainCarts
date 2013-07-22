@@ -140,18 +140,26 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 					}
 
 					// Perform actual updates
+					int posX, posY, posZ, rotYaw, rotPitch;
 					for (i = 0; i < count; i++) {
 						MinecartMemberNetwork controller = networkControllers[i];
+
+						// Read live location
+						posX = locLive.getX();
+						posY = locLive.getY();
+						posZ = locLive.getZ();
+						rotYaw = locLive.getYaw();
+						rotPitch = locLive.getPitch();
 
 						// Synchronize location
 						if (rotated && !group.get(i).isDerailed()) {
 							// Update rotation with control system function
 							// This ensures that the Client animation doesn't glitch the rotation
-							locLive.addYaw((int) (ROTATION_K * (locLive.getYaw() - locSynched.getYaw())));
-							locLive.addPitch((int) (ROTATION_K * (locLive.getPitch() - locSynched.getPitch())));
+							rotYaw += ROTATION_K * (locLive.getYaw() - locSynched.getYaw());
+							rotPitch += ROTATION_K * (locLive.getPitch() - locSynched.getPitch());
 						}
-						controller.syncLocation(moved, rotated);
 						controller.getEntity().setPositionChanged(false);
+						controller.syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
 
 						// Synchronize velocity
 						if (controller.getEntity().isVelocityChanged() || controller.isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
