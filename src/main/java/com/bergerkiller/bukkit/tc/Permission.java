@@ -39,6 +39,7 @@ public class Permission extends PermissionEnum {
 	public static final Permission COMMAND_PLAYERTAKE = new Permission("train.command.playertake", PermissionDefault.OP, "Whether the player can change if players take Minecarts with them when they leave");
 	public static final Permission COMMAND_SOUND = new Permission("train.command.soundenabled", PermissionDefault.OP, "Whether the player can turn Minecart sound on or off");
 	public static final Permission COMMAND_TELEPORT = new Permission("train.command.teleport", PermissionDefault.OP, "Whether the player can teleport to where trains are");
+	public static final Permission COMMAND_CHANGEBLOCK = new Permission("train.command.changeblock", PermissionDefault.OP, "Whether the player can alter the type of block displayed in a minecart");
 	public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
 	public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
 	public static final Permission BUILD_TRIGGER = new Permission("train.build.trigger", PermissionDefault.OP, "The player can build train triggers");

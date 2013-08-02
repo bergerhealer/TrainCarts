@@ -1,15 +1,10 @@
-package com.bergerkiller.bukkit.tc.railphysics;
+package com.bergerkiller.bukkit.tc.rails.logic;
 
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 /**
@@ -128,71 +123,5 @@ public abstract class RailLogic {
 	 * @param member that moved
 	 */
 	public void onPostMove(MinecartMember<?> member) {
-	}
-
-	/**
-	 * Tries to find out the rail logic for the minecart specified
-	 * 
-	 * @param member to get the rail logic for
-	 * @return Rail Logic
-	 */
-	public static RailLogic get(MinecartMember<?> member) {
-		if (member.isDerailed()) {
-			// Two no-rail logic types
-			if (member.isFlying()) {
-				return RailLogicAir.INSTANCE;
-			} else {
-				return RailLogicGround.INSTANCE;
-			}
-		}
-		Block railsBlock = member.getBlock();
-		int typeId = railsBlock.getTypeId();
-		if (MaterialUtil.ISRAILS.get(typeId)) {
-			Rails rails = BlockUtil.getRails(railsBlock);
-			BlockFace direction = rails.getDirection();
-
-			// Slope-vertical logic
-			if (rails.isOnSlope() && Util.isVerticalAbove(railsBlock, direction)) {
-				return RailLogicVerticalSlopeDown.get(direction);
-			}
-
-			// Flying up from the rails (this is here to allow upward jumps)
-			if (member.getEntity().vel.getY() > 0.0) {
-				return RailLogicAir.INSTANCE;
-			}
-
-			// Sloped logic
-			if (rails.isOnSlope()) {
-				return RailLogicSloped.get(direction);
-			}
-
-			// Horizontal logic
-			return RailLogicHorizontal.get(direction);
-		} else if (MaterialUtil.ISPRESSUREPLATE.get(typeId)) {
-			// Get the direction of the rails to find out the logic to use
-			BlockFace dir = Util.getPlateDirection(railsBlock);
-			if (dir == BlockFace.SELF) {
-				//set track direction based on direction of this cart
-				dir = FaceUtil.toRailsDirection(member.getDirectionTo());
-			}
-			return RailLogicHorizontal.get(dir);
-		} else if (Util.ISVERTRAIL.get(typeId)) {
-			// Vertical logic
-			return RailLogicVertical.get(Util.getVerticalRailDirection(railsBlock.getData()));
-		} else {
-			/*
-			// Vertical to slope?
-			Block below = rails.getRelative(BlockFace.DOWN);
-			if (Util.ISVERTRAIL.get(below)) {
-				BlockFace dir = Util.getVerticalRailDirection(below.getData());
-				Rails r = BlockUtil.getRails(rails.getRelative(dir));
-				if (r != null && r.isOnSlope() && r.getDirection() == dir) {
-					return RailLogicVerticalSlopeUp.get(dir);
-				}
-			}
-			*/
-		}
-		// Default, this should never be reached
-		return RailLogicGround.INSTANCE;
 	}
 }

@@ -15,88 +15,6 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
 public class TrackIterator implements Iterator<Block> {
-	public static boolean isConnected(Block rail1, Block rail2, boolean bothways) {
-		// Initial conditions
-		if (rail1 == null || rail2 == null) {
-			return false;
-		} else if (BlockUtil.equals(rail1, rail2)) {
-			return true;
-		}
-		// Use types to find out the directions to look
-		int rail1type = rail1.getTypeId();
-		int rail2type = rail2.getTypeId();
-		if (!Util.ISTCRAIL.get(rail1type) || !Util.ISTCRAIL.get(rail2type)) {
-			return false;
-		}
-		BlockFace dir1, dir2;
-		if (Util.ISVERTRAIL.get(rail1type)) {
-			dir1 = Util.getVerticalFace(rail2.getY() > rail1.getY());
-		} else {
-			dir1 = FaceUtil.getDirection(rail1, rail2, false);
-		}
-		if (Util.ISVERTRAIL.get(rail2type)) {
-			dir2 = Util.getVerticalFace(rail1.getY() > rail2.getY());
-		} else {
-			dir2 = FaceUtil.getDirection(rail2, rail1, false);
-		}
-		// Find rails
-		if (bothways) {
-			return canReach(rail1, rail2, dir1) && canReach(rail2, rail1, dir2);
-		} else {
-			return canReach(rail1, rail2, dir1) || canReach(rail2, rail1, dir2);
-		}
-	}
-
-	private static boolean canReach(Block rail, Block destination, BlockFace preferredFace) {
-		// Initial conditions
-		if (rail == null || destination == null || !Util.ISTCRAIL.get(destination)) {
-			return false;
-		} else if (BlockUtil.equals(rail, destination)) {
-			return true;
-		}
-		BlockFace dir;
-		int railType = rail.getTypeId();
-		if (MaterialUtil.ISRAILS.get(railType)) {
-			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
-		} else if (Util.ISVERTRAIL.get(railType)) {
-			dir = BlockFace.UP;
-		} else if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
-			dir = Util.getPlateDirection(rail).getOppositeFace();
-			if (dir == BlockFace.SELF) dir = preferredFace; 
-		} else {
-			return false;
-		}
-		BlockFace[] faces = FaceUtil.getFaces(dir);
-		if (faces[0] == preferredFace) {
-			if (canReach(rail, faces[0], destination)) return true;
-			if (canReach(rail, faces[1], destination)) return true;
-		} else {
-			if (canReach(rail, faces[1], destination)) return true;
-			if (canReach(rail, faces[0], destination)) return true;
-		}
-		return false;
-	}
-	public static boolean canReach(Block rail, BlockFace direction, Block destination) {
-		TrackIterator iter = createFinder(rail, direction, destination);
-		while (iter.hasNext()) {
-			if (BlockUtil.equals(iter.next(), destination)) return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Creates a track iterator which is meant to find a destination block from a starting block
-	 * 
-	 * @param startBlock to start iterating from
-	 * @param direction to start iterating to
-	 * @param destination to try to find
-	 * @return Track Iterator to find the destination
-	 */
-	public static TrackIterator createFinder(Block startBlock, BlockFace direction, Block destination) {
-		final int maxDistance = Math.max(BlockUtil.getManhattanDistance(startBlock, destination, true), 2);
-		return new TrackIterator(startBlock, direction, maxDistance, false);
-	}
-
 	/*
 	 * The 'current' is only to return in functions
 	 * The 'next' will replace current and is regenerated
@@ -305,6 +223,7 @@ public class TrackIterator implements Iterator<Block> {
 		return this.next;
 	}
 
+	@Override
 	public Block next() {
 		this.current = this.next;
 		this.currentdirection = this.nextdirection;
@@ -313,8 +232,92 @@ public class TrackIterator implements Iterator<Block> {
 		}
 		return this.current;
 	}
-	
+
+	@Override
 	public void remove() {
 		throw new UnsupportedOperationException("TrackIterator.remove is not supported");
+	}
+
+	public static boolean isConnected(Block rail1, Block rail2, boolean bothways) {
+		// Initial conditions
+		if (rail1 == null || rail2 == null) {
+			return false;
+		} else if (BlockUtil.equals(rail1, rail2)) {
+			return true;
+		}
+		// Use types to find out the directions to look
+		int rail1type = rail1.getTypeId();
+		int rail2type = rail2.getTypeId();
+		if (!Util.ISTCRAIL.get(rail1type) || !Util.ISTCRAIL.get(rail2type)) {
+			return false;
+		}
+		BlockFace dir1, dir2;
+		if (Util.ISVERTRAIL.get(rail1type)) {
+			dir1 = Util.getVerticalFace(rail2.getY() > rail1.getY());
+		} else {
+			dir1 = FaceUtil.getDirection(rail1, rail2, false);
+		}
+		if (Util.ISVERTRAIL.get(rail2type)) {
+			dir2 = Util.getVerticalFace(rail1.getY() > rail2.getY());
+		} else {
+			dir2 = FaceUtil.getDirection(rail2, rail1, false);
+		}
+		// Find rails
+		if (bothways) {
+			return canReach(rail1, rail2, dir1) && canReach(rail2, rail1, dir2);
+		} else {
+			return canReach(rail1, rail2, dir1) || canReach(rail2, rail1, dir2);
+		}
+	}
+
+	public static boolean canReach(Block rail, BlockFace direction, Block destination) {
+		TrackIterator iter = createFinder(rail, direction, destination);
+		while (iter.hasNext()) {
+			if (BlockUtil.equals(iter.next(), destination)) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Creates a track iterator which is meant to find a destination block from a starting block
+	 * 
+	 * @param startBlock to start iterating from
+	 * @param direction to start iterating to
+	 * @param destination to try to find
+	 * @return Track Iterator to find the destination
+	 */
+	public static TrackIterator createFinder(Block startBlock, BlockFace direction, Block destination) {
+		final int maxDistance = Math.max(BlockUtil.getManhattanDistance(startBlock, destination, true), 2);
+		return new TrackIterator(startBlock, direction, maxDistance, false);
+	}
+
+	private static boolean canReach(Block rail, Block destination, BlockFace preferredFace) {
+		// Initial conditions
+		if (rail == null || destination == null || !Util.ISTCRAIL.get(destination)) {
+			return false;
+		} else if (BlockUtil.equals(rail, destination)) {
+			return true;
+		}
+		BlockFace dir;
+		int railType = rail.getTypeId();
+		if (MaterialUtil.ISRAILS.get(railType)) {
+			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
+		} else if (Util.ISVERTRAIL.get(railType)) {
+			dir = BlockFace.UP;
+		} else if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
+			dir = Util.getPlateDirection(rail).getOppositeFace();
+			if (dir == BlockFace.SELF) dir = preferredFace; 
+		} else {
+			return false;
+		}
+		BlockFace[] faces = FaceUtil.getFaces(dir);
+		if (faces[0] == preferredFace) {
+			if (canReach(rail, faces[0], destination)) return true;
+			if (canReach(rail, faces[1], destination)) return true;
+		} else {
+			if (canReach(rail, faces[1], destination)) return true;
+			if (canReach(rail, faces[0], destination)) return true;
+		}
+		return false;
 	}
 }

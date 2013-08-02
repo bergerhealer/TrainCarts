@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.railphysics;
+package com.bergerkiller.bukkit.tc.rails.logic;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;

@@ -13,8 +13,8 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
-import com.bergerkiller.bukkit.tc.railphysics.RailLogic;
-import com.bergerkiller.bukkit.tc.railphysics.RailLogicVerticalSlopeDown;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeDown;
 
 /**
  * A collision mode between a Minecart and another Entity

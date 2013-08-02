@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -61,7 +62,11 @@ public class SignActionBlockChanger extends SignAction {
 		return true;
 	}
 
-	private static void setBlocks(List<MinecartMember<?>> members, ItemParser[] blocks, int blockOffset) {
+	public static void setBlocks(Collection<MinecartMember<?>> members, String blocksText) {
+		setBlocks(members, Util.getParsers(blocksText), BLOCK_OFFSET_NONE);
+	}
+
+	public static void setBlocks(Collection<MinecartMember<?>> members, ItemParser[] blocks, int blockOffset) {
 		Iterator<MinecartMember<?>> iter = members.iterator();
 		while (true) {
 			for (ItemParser block : blocks) {

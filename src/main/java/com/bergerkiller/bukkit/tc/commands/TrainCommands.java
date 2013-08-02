@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -22,9 +23,11 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
@@ -379,6 +382,20 @@ public class TrainCommands {
 				} else {
 					EntityUtil.teleport(p, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
 				}
+			}
+		} else if (LogicUtil.contains(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
+			Permission.COMMAND_CHANGEBLOCK.handle(p);
+			MinecartGroup members = prop.getHolder();
+			if (members == null) {
+				p.sendMessage(ChatColor.RED + "The selected train is unloaded: we can not change it at this time!");
+			} else if (args.length == 0) {
+				for (MinecartMember<?> member : members) {
+					member.getEntity().setBlock(0);
+				}
+				p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks cleared!");
+			} else {
+				SignActionBlockChanger.setBlocks(members, StringUtil.combine(" ", args));
+				p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
 			}
 		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
 			p.sendMessage(ChatColor.GREEN + "Property has been updated!");
