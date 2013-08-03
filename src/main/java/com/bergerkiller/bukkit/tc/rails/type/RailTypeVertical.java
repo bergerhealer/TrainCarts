@@ -3,8 +3,10 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -15,6 +17,16 @@ public class RailTypeVertical extends RailType {
 	@Override
 	public boolean isRail(int typeId, int data) {
 		return Util.ISVERTRAIL.get(typeId);
+	}
+
+	@Override
+	public Block findRail(Block pos) {
+		if (isRail(pos)) {
+			return pos;
+		} else if (isRail(pos, BlockFace.DOWN)) {
+			return pos.getRelative(BlockFace.DOWN);
+		}
+		return null;
 	}
 
 	@Override
@@ -35,6 +47,45 @@ public class RailTypeVertical extends RailType {
 			}
 		}
 		return next;
+	}
+
+	@Override
+	public Block findMinecartPos(Block trackBlock) {
+		return trackBlock;
+	}
+
+	@Override
+	public BlockFace[] getPossibleDirections(Block trackBlock) {
+		return new BlockFace[] {BlockFace.UP, BlockFace.DOWN};
+	}
+
+	@Override
+	public BlockFace getDirection(Block railsBlock) {
+		return BlockFace.UP;
+	}
+
+	@Override
+	public BlockFace getSignColumnDirection(Block railsBlock) {
+		return Util.getVerticalRailDirection(railsBlock.getData());
+	}
+
+	@Override
+	public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
+		if (currentDirection == BlockFace.UP) {
+			Block next = currentTrack.getRelative(BlockFace.UP);
+			if (!Util.ISTCRAIL.get(next)) {
+				// Check for a possible sloped rail leading up from next
+				BlockFace dir = Util.getVerticalRailDirection(currentTrack.getData());
+				Block possible = next.getRelative(dir);
+				Rails rails = BlockUtil.getRails(possible);
+				if (rails != null && rails.isOnSlope() && rails.getDirection() == dir) {
+					return possible;
+				}
+			}
+			return next;
+		} else {
+			return currentTrack.getRelative(BlockFace.DOWN);
+		}
 	}
 
 	@Override

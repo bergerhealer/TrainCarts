@@ -155,7 +155,7 @@ public class RailTracker {
 
 		// Find the rail - first step
 		this.railType = RailType.NONE;
-		for (RailType type : RailType.getAll()) {
+		for (RailType type : RailType.values()) {
 			IntVector3 pos = type.findRail(owner, world, this.blockPos);
 			if (pos != null) {
 				this.railType = type;

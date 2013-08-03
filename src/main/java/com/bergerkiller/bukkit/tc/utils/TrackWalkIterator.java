@@ -59,8 +59,9 @@ public class TrackWalkIterator {
 	}
 	
 	private void genDirection() {
-		Block old = this.iter.current();
-		Block next = this.iter.next();
+		Block old = this.iter.currentPos();
+		this.iter.next();
+		Block next = this.iter.currentPos();
 		this.direction = new Vector(next.getX() - old.getX(), next.getY() - old.getY(), next.getZ() - old.getZ());
 		this.remainingdistance = 1.0;
 	}

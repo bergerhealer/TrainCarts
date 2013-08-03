@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -370,21 +371,32 @@ public class SignActionEvent extends Event implements Cancellable {
 	public BlockFace getRailDirection() {
 		if (!this.hasRails()) return null;
 		if (this.raildirection == null) {
-			int id = this.railsblock.getTypeId();
-			if (MaterialUtil.ISRAILS.get(id)) {
-				this.raildirection = BlockUtil.getRails(this.railsblock).getDirection();
-			} else if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
-				this.raildirection = Util.getPlateDirection(this.railsblock);
-			} else if (Util.ISVERTRAIL.get(id)) {
-				this.raildirection = BlockFace.UP;
-			}
+			this.raildirection = RailType.getType(this.railsblock).getDirection(this.railsblock);
 		}
 		return this.raildirection;
 	}
+
+	/**
+	 * Gets the center location of the rails where the minecart is centered at the rails
+	 * 
+	 * @return Center location
+	 */
+	public Location getCenterLocation() {
+		if (!this.hasRails()) return null;
+		RailType type = RailType.getType(this.railsblock);
+		return type.findMinecartPos(this.railsblock).getLocation().add(0.5, 0, 0.5);
+	}
+
+	/**
+	 * Gets the Location of the rails
+	 * 
+	 * @return Rail location, or null if there are no rails
+	 */
 	public Location getRailLocation() {
 		if (!this.hasRails()) return null;
 		return this.railsblock.getLocation().add(0.5, 0, 0.5);
 	}
+
 	public Location getLocation() {
 		return this.signblock.getLocation();
 	}

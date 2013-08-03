@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
@@ -184,18 +186,21 @@ public class BlockTrackerGroup extends BlockTracker {
 					}
 					// Curve or other logic - use a Block Iterator for this
 					TrackIterator iter = toMember.getRailTracker().getTrackIterator();
-					final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
-					// Skip the first block
-					iter.next();
-					// Go and find the other blocks
-					for (k = 0; k < maxLength && iter.hasNext(); k++) {
-						final Block block = iter.next();
-						if (from.x == block.getX() && from.y == block.getY() && from.z == block.getZ()) {
-							// Found the end block
-							break;
+					if (iter.hasNext()) {
+						// Skip the first block
+						iter.next();
+
+						// Go and find the other blocks
+						final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
+						for (k = 0; k < maxLength && iter.hasNext(); k++) {
+							final Block block = iter.next();
+							if (from.x == block.getX() && from.y == block.getY() && from.z == block.getZ()) {
+								// Found the end block
+								break;
+							}
+							// Put the member
+							blockSpace.put(new IntVector3(block), member);
 						}
-						// Put the member
-						blockSpace.put(new IntVector3(block), member);
 					}
 				}
 				blockSpace.put(owner.tail().getBlockPos(), owner.tail());
@@ -209,9 +214,13 @@ public class BlockTrackerGroup extends BlockTracker {
 			// Add all active signs to the block tracker of all members
 			World world = owner.getWorld();
 			for (Entry<IntVector3, MinecartMember<?>> entry : blockSpace.entrySet()) {
-				Block block = entry.getKey().toBlock(world);
-				if (Util.ISTCRAIL.get(block)) {
-					Util.addSignsFromRails(entry.getValue().getBlockTracker().liveActiveSigns, block);
+				IntVector3 pos = entry.getKey();
+				for (RailType type : RailType.values()) {
+					if (type.isRail(world, pos.x, pos.y, pos.z)) {
+						Block block = pos.toBlock(world);
+						List<Block> signs = entry.getValue().getBlockTracker().liveActiveSigns;
+						Util.addSignsFromRails(signs, block, type.getSignColumnDirection(block));
+					}
 				}
 			}
 

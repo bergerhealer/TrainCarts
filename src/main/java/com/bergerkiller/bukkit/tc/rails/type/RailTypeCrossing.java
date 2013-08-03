@@ -18,6 +18,21 @@ public class RailTypeCrossing extends RailTypeHorizontal {
 	}
 
 	@Override
+	public BlockFace[] getPossibleDirections(Block trackBlock) {
+		BlockFace dir = getDirection(trackBlock);
+		if (dir == BlockFace.SELF) {
+			return FaceUtil.RADIAL;
+		} else {
+			return RailTypeRegular.getPossibleDirections(dir);
+		}
+	}
+
+	@Override
+	public BlockFace getDirection(Block railsBlock) {
+		return Util.getPlateDirection(railsBlock);
+	}
+
+	@Override
 	public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
 		// Get the direction of the rails to find out the logic to use
 		BlockFace dir = Util.getPlateDirection(railsBlock);

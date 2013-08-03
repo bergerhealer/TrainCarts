@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.bukkit.block.Block;
@@ -11,18 +12,15 @@ import org.bukkit.material.Rails;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 public class TrackIterator implements Iterator<Block> {
 	/*
 	 * The 'current' is only to return in functions
 	 * The 'next' will replace current and is regenerated
 	 */
-	private Block current;
-	private BlockFace currentdirection;
-	private Block next;
-	private BlockFace nextdirection;
+	private TrackMovingPoint movingPoint;
 	private int distance;
 	private final int maxdistance;
 	private final boolean onlyInLoadedChunks;
@@ -37,200 +35,88 @@ public class TrackIterator implements Iterator<Block> {
 	public TrackIterator(Block startblock, BlockFace direction, final int maxdistance, final boolean onlyInLoadedChunks) {
 		this.maxdistance = maxdistance;
 		this.onlyInLoadedChunks = onlyInLoadedChunks;
-		this.nextdirection = direction;
-		this.next = startblock;
-		this.distance = 0;
-		//adjust direction if moving into a curve
-		Rails rails = BlockUtil.getRails(this.next);
-		if (rails != null) {
-			final BlockFace railsDirection = rails.getDirection();
-			if (rails.isCurve()) {
-				// Make sure curve directions are properly adjusted
-				BlockFace[] p = FaceUtil.getFaces(railsDirection.getOppositeFace());
-				if (p[0] != this.nextdirection && p[1] != this.nextdirection) {
-					BlockFace from = this.nextdirection.getOppositeFace();
-					if (p[0] == from) {
-						this.nextdirection = p[1];
-					} else if (p[1] == from) {
-						this.nextdirection = p[0];
-					}
-				}
-			} else if (rails.isOnSlope()) {
-				// Fix up directions on slopes
-				if (direction == railsDirection && Util.isVerticalAbove(startblock, direction)) {
-					// Vertical rail above
-					this.nextdirection = BlockFace.UP;
-				} else if (direction != railsDirection && direction != railsDirection.getOppositeFace()) {
-					// Invalid direction - go 'down' the slope
-					this.nextdirection = railsDirection.getOppositeFace();
-				}
-			} else if (direction != railsDirection && direction != railsDirection.getOppositeFace()) {
-				// South-west rule
-				this.nextdirection = railsDirection;
-			}
-		}
+		this.reset(startblock, direction);
 	}
 
 	/**
-	 * Generates the next block and direction from the current block and direction
+	 * Resets this iterator, allowing it to be used again.
 	 * 
-	 * @return True if a next block was found, False if not
+	 * @param startBlock to set to
+	 * @param startDirection to set to
+	 * @return this Track Iterator
 	 */
-	private boolean genNext() {
-		this.next = this.current.getRelative(this.currentdirection);
-
-		// Continuing on to the next vertical rail
-		if (FaceUtil.isVertical(this.currentdirection) && Util.ISVERTRAIL.get(this.next)) {
-			this.nextdirection = this.currentdirection;
-			return true;
-		}
-
-		// Continuing on to a possible slope above?
-		if (this.currentdirection == BlockFace.UP) {
-			final BlockFace dir = Util.getVerticalRailDirection(this.current.getData());
-			final Block nextSlope = this.next.getRelative(dir);
-			if (MaterialUtil.ISRAILS.get(nextSlope) && Util.isSloped(nextSlope.getData())) {
-				this.next = nextSlope;
-
-				// If vertical rail above, change next direction to up
-				if (Util.isVerticalAbove(this.next, dir)) {
-					this.nextdirection = BlockFace.UP;
-				} else {
-					this.nextdirection = BlockUtil.getRails(this.next).getDirection();
-				}
-				return true;
-			}
-		}
-
-		// Look at the current level, below and above to find rails
-		if (!Util.ISTCRAIL.get(this.next)) {
-			if (!Util.ISTCRAIL.get(this.next = this.next.getRelative(BlockFace.UP))) {
-				if (!Util.ISTCRAIL.get(this.next = this.next.getRelative(0, -2, 0))) {
-					return false;
-				}
-			}
-		}
-
-		// Found normal rails here
-		Rails rails = BlockUtil.getRails(this.next);
-		if (rails == null) {
-			// handle non-rails blocks
-			int type = this.next.getTypeId();
-			// Pressure plate
-			if (MaterialUtil.ISPRESSUREPLATE.get(type)) {
-				this.nextdirection = this.currentdirection;
-				return true;
-			}
-			// Vertical rail
-			if (Util.ISVERTRAIL.get(type)) {
-				this.nextdirection = Util.getVerticalFace(this.next.getY() > this.current.getY());
-				return true;
-			}
-		} else {
-			final BlockFace railsDirection = rails.getDirection();
-			// Special slope logic
-			if (rails.isOnSlope()) {
-				// Moving down a vertical rail onto a slope - fix direction
-				if (this.currentdirection == BlockFace.DOWN) {
-					this.nextdirection = railsDirection.getOppositeFace();
-					return true;
-				}
-
-				// If vertical rail above, change next direction to up
-				if (Util.isVerticalAbove(this.next, this.currentdirection)) {
-					this.nextdirection = BlockFace.UP;
-					return true;
-				}
-			}
-
-			// Get a set of possible directions to go to
-			BlockFace[] possible = FaceUtil.getFaces(railsDirection.getOppositeFace());
-
-			// simple forward - always true
-			for (BlockFace newdir : possible) {
-				if (newdir == this.currentdirection) {
-					this.nextdirection = this.currentdirection;
-					return true;
-				}
-			}
-
-			// Get connected faces
-			BlockFace dir = this.currentdirection.getOppositeFace();
-			if (possible[0].equals(dir)) {
-				this.nextdirection = possible[1];
-			} else if (possible[1].equals(dir)) {
-				this.nextdirection = possible[0];
-				// south-east rule
-			} else if (possible[0] == BlockFace.SOUTH || possible[0] == BlockFace.EAST) {
-				this.nextdirection = possible[0];
-			} else {
-				this.nextdirection = possible[1];
-			}
-			return true;
-		}
-		return false;
+	public TrackIterator reset(Block startBlock, BlockFace startDirection) {
+		this.coordinates.clear();
+		this.distance = 0;
+		this.movingPoint = new TrackMovingPoint(startBlock, startDirection);
+		return this;
 	}
-	
+
 	public int getDistance() {
 		return this.distance;
 	}
-	
+
+	@Override
 	public boolean hasNext() {
-		return this.next != null && this.nextdirection != null;
+		return this.movingPoint.hasNext() && this.distance <= this.maxdistance;
 	}
 
-	private boolean genNextBlock() {
-		if (this.distance >= this.maxdistance || this.current == null && this.currentdirection == null) {
-			return false;
-		}
+	private void genNextBlock() {
+		// If specified, be sure to stay within loaded chunks
 		if (this.onlyInLoadedChunks) {
-			//loaded?
-			int x = this.current.getX() + this.currentdirection.getModX();
-			int z = this.current.getZ() + this.currentdirection.getModZ();
-			if (!this.current.getWorld().isChunkLoaded(x >> 4, z >> 4)) {
-				return false;
+			int x = this.movingPoint.current.getX() + this.movingPoint.currentDirection.getModX();
+			int z = this.movingPoint.current.getZ() + this.movingPoint.currentDirection.getModZ();
+			if (!this.movingPoint.current.getWorld().isChunkLoaded(x >> 4, z >> 4)) {
+				this.movingPoint.next(false);
+				return;
 			}
 		}
-		if (genNext() && this.coordinates.add(new IntVector3(this.next))) {
-			this.distance++;
-			return true;
+		// We are still in loaded chunks, go on!
+		this.movingPoint.next();
+		if (this.movingPoint.hasNext()) {
+			// If already contained, skip it
+			if (!this.coordinates.add(new IntVector3(this.movingPoint.nextTrack))) {
+				this.movingPoint.clearNext();
+			}
 		}
-		return false;
 	}
 
 	public void stop() {
-		this.next = null;
-		this.nextdirection = null;
+		this.movingPoint.clearNext();
 	}
 
 	public BlockFace currentDirection() {
-		return this.currentdirection;
+		return this.movingPoint.currentDirection;
+	}
+
+	public Block currentPos() {
+		return this.movingPoint.current;
 	}
 
 	public Block current() {
-		return this.current;
+		return this.movingPoint.currentTrack;
 	}
 
 	public Rails currentRails() {
-		return BlockUtil.getRails(this.current);
+		return BlockUtil.getRails(this.current());
 	}
 
 	public BlockFace peekNextDirection() {
-		return this.nextdirection;
+		return this.movingPoint.nextDirection;
 	}
 
 	public Block peekNext() {
-		return this.next;
+		return this.movingPoint.nextTrack;
 	}
 
 	@Override
 	public Block next() {
-		this.current = this.next;
-		this.currentdirection = this.nextdirection;
-		if (!this.genNextBlock()) {
-			this.stop();
+		if (!this.hasNext()) {
+			throw new NoSuchElementException("No next track is available");
 		}
-		return this.current;
+		this.genNextBlock();
+		this.distance++;
+		return this.current();
 	}
 
 	@Override
@@ -238,43 +124,38 @@ public class TrackIterator implements Iterator<Block> {
 		throw new UnsupportedOperationException("TrackIterator.remove is not supported");
 	}
 
-	public static boolean isConnected(Block rail1, Block rail2, boolean bothways) {
-		// Initial conditions
-		if (rail1 == null || rail2 == null) {
-			return false;
-		} else if (BlockUtil.equals(rail1, rail2)) {
-			return true;
+	/**
+	 * Tries to find a specific Block, calling {@link #next()} until no longer possible.
+	 * 
+	 * @param railsBlock to find
+	 * @return True if the railsBlock was found, False if not
+	 */
+	public boolean tryFind(Block railsBlock) {
+		while (hasNext()) {
+			if (BlockUtil.equals(next(), railsBlock)) {
+				return true;
+			}
 		}
-		// Use types to find out the directions to look
-		int rail1type = rail1.getTypeId();
-		int rail2type = rail2.getTypeId();
-		if (!Util.ISTCRAIL.get(rail1type) || !Util.ISTCRAIL.get(rail2type)) {
-			return false;
-		}
-		BlockFace dir1, dir2;
-		if (Util.ISVERTRAIL.get(rail1type)) {
-			dir1 = Util.getVerticalFace(rail2.getY() > rail1.getY());
-		} else {
-			dir1 = FaceUtil.getDirection(rail1, rail2, false);
-		}
-		if (Util.ISVERTRAIL.get(rail2type)) {
-			dir2 = Util.getVerticalFace(rail1.getY() > rail2.getY());
-		} else {
-			dir2 = FaceUtil.getDirection(rail2, rail1, false);
-		}
-		// Find rails
-		if (bothways) {
-			return canReach(rail1, rail2, dir1) && canReach(rail2, rail1, dir2);
-		} else {
-			return canReach(rail1, rail2, dir1) || canReach(rail2, rail1, dir2);
-		}
+		return false;
 	}
 
-	public static boolean canReach(Block rail, BlockFace direction, Block destination) {
-		TrackIterator iter = createFinder(rail, direction, destination);
-		while (iter.hasNext()) {
-			if (BlockUtil.equals(iter.next(), destination)) return true;
+	private boolean canReach(Block rail, Block destination, BlockFace[] faces, BlockFace preferredFace) {
+		// First, check the preferred face
+		for (BlockFace face : faces) {
+			if (face == preferredFace) {
+				if (this.reset(rail, face).tryFind(destination)) {
+					return true;
+				}
+				break;
+			}
 		}
+		// Now, check the other faces
+		for (BlockFace face : faces) {
+			if (face != preferredFace && this.reset(rail, face).tryFind(destination)) {
+				return true;
+			}
+		}
+		// No connection was found
 		return false;
 	}
 
@@ -287,37 +168,72 @@ public class TrackIterator implements Iterator<Block> {
 	 * @return Track Iterator to find the destination
 	 */
 	public static TrackIterator createFinder(Block startBlock, BlockFace direction, Block destination) {
-		final int maxDistance = Math.max(BlockUtil.getManhattanDistance(startBlock, destination, true), 2);
+		final int maxDistance = BlockUtil.getManhattanDistance(startBlock, destination, true) + 2;
 		return new TrackIterator(startBlock, direction, maxDistance, false);
 	}
 
-	private static boolean canReach(Block rail, Block destination, BlockFace preferredFace) {
+	public static boolean canReach(Block rail, BlockFace direction, Block destination) {
+		return createFinder(rail, direction, destination).tryFind(destination);
+	}
+
+	/**
+	 * Checks whether two rails are connected, allowing Minecarts to move between the two
+	 * 
+	 * @param rail1
+	 * @param rail2
+	 * @param bothways - True to require a connection both from r1 to r2 and r2 to r1
+	 * @return True if a connection exists, False if not
+	 */
+	public static boolean isConnected(Block rail1, Block rail2, boolean bothways) {
 		// Initial conditions
-		if (rail == null || destination == null || !Util.ISTCRAIL.get(destination)) {
+		if (rail1 == null || rail2 == null) {
 			return false;
-		} else if (BlockUtil.equals(rail, destination)) {
+		} else if (BlockUtil.equals(rail1, rail2)) {
 			return true;
 		}
-		BlockFace dir;
-		int railType = rail.getTypeId();
-		if (MaterialUtil.ISRAILS.get(railType)) {
-			dir = BlockUtil.getRails(rail).getDirection().getOppositeFace();
-		} else if (Util.ISVERTRAIL.get(railType)) {
-			dir = BlockFace.UP;
-		} else if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
-			dir = Util.getPlateDirection(rail).getOppositeFace();
-			if (dir == BlockFace.SELF) dir = preferredFace; 
-		} else {
+
+		// Use rail types to find out the directions to look
+		RailType rail1type = RailType.getType(rail1);
+		RailType rail2type = RailType.getType(rail2);
+		if (rail1type == RailType.NONE || rail2type == RailType.NONE) {
 			return false;
 		}
-		BlockFace[] faces = FaceUtil.getFaces(dir);
-		if (faces[0] == preferredFace) {
-			if (canReach(rail, faces[0], destination)) return true;
-			if (canReach(rail, faces[1], destination)) return true;
-		} else {
-			if (canReach(rail, faces[1], destination)) return true;
-			if (canReach(rail, faces[0], destination)) return true;
+		BlockFace[] rail1dirs = rail1type.getPossibleDirections(rail1);
+		BlockFace[] rail2dirs = rail2type.getPossibleDirections(rail2);
+		if (rail1dirs.length == 0 || rail2dirs.length == 0) {
+			return false;
 		}
-		return false;
+
+		// Figure out where a Minecart is located on this Rail
+		Block pos1 = rail1type.findMinecartPos(rail1);
+		Block pos2 = rail1type.findMinecartPos(rail2);
+
+		// Figure out which direction is more likely to lead to the other
+		BlockFace dir1 = getPreferredDirection(rail1dirs, pos1, pos2);
+		BlockFace dir2 = getPreferredDirection(rail2dirs, pos2, pos1);
+
+		// Now, start looking into the directions
+		final int maxDistance = BlockUtil.getManhattanDistance(pos1, pos2, true) + 2;
+		TrackIterator iter = new TrackIterator(null, null, maxDistance, false);
+		if (bothways) {
+			return iter.canReach(rail1, rail2, rail1dirs, dir1) && iter.canReach(rail2, rail1, rail2dirs, dir2);
+		} else {
+			return iter.canReach(rail1, rail2, rail1dirs, dir1) || iter.canReach(rail2, rail1, rail2dirs, dir2);
+		}
+	}
+
+	private static BlockFace getPreferredDirection(BlockFace[] directions, Block from, Block to) {
+		boolean preferred;
+		for (BlockFace dir : directions) {
+			if (FaceUtil.isVertical(dir)) {
+				preferred = (dir == Util.getVerticalFace(to.getY() > from.getY()));
+			} else {
+				preferred = (dir == FaceUtil.getDirection(from, to, false));		
+			}
+			if (preferred) {
+				return dir;	
+			}
+		}
+		return directions[0];
 	}
 }

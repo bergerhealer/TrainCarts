@@ -55,56 +55,76 @@ public class RailLogicHorizontal extends RailLogic {
 	public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
 		final BlockFace raildirection = this.getDirection();
 		final boolean isHorizontalMovement = Math.abs(movement.getX()) >= 0.001 || Math.abs(movement.getZ()) >= 0.001;
-		if (this.isSloped() && !isHorizontalMovement && Math.abs(movement.getY()) > 0.001) {
-			// Going from vertical down to a slope
-			if (movement.getY() > 0.0) {
-				return raildirection;
+
+		// Special logic for sloped rails (they don't need expensive calculations)
+		if (this.isSloped()) {
+			if (isHorizontalMovement) {
+				// Deal with minecarts moving on straight slopes
+				BlockFace moveDir = FaceUtil.getDirection(movement);
+				BlockFace dir = moveDir.getOppositeFace() == member.getDirectionTo() ? moveDir : member.getDirectionTo();
+				if (dir == raildirection) {
+					// Distinctively moving UP the slope!
+					return raildirection;
+				} else {
+					// Hitting the side or moving down: move down the slope
+					return raildirection.getOppositeFace();
+				}
 			} else {
-				return raildirection.getOppositeFace();
+				// Deal with vertically moving or standing still minecarts on slopes
+				if (Math.abs(movement.getY()) > 0.001) {
+					// Going from vertical to a slope
+					if (movement.getY() > 0.0) {
+						return raildirection;
+					} else {
+						return raildirection.getOppositeFace();
+					}
+				} else {
+					// Gravity sends it down the slope at some point
+					return raildirection.getOppositeFace();
+				}
+			}
+		}
+
+		BlockFace direction = FaceUtil.getRailsCartDirection(raildirection);
+		if (movement.getX() == 0 || movement.getZ() == 0) {
+			if (isHorizontalMovement) {
+				if (FaceUtil.getFaceYawDifference(direction, FaceUtil.getDirection(movement)) > 90) {
+					direction = direction.getOppositeFace();
+				}
+			} else if (this.isSloped()) {
+				// Assume gravity will take over
+				direction = direction.getOppositeFace();
+			} else {
+				// No idea, just use the previous value
+				direction = member.getDirection();
 			}
 		} else {
-			BlockFace direction = FaceUtil.getRailsCartDirection(raildirection);
-			if (movement.getX() == 0 || movement.getZ() == 0) {
-				if (isHorizontalMovement) {
-					// Moving along one axis - simplified calculation
-					if (FaceUtil.getFaceYawDifference(direction, FaceUtil.getDirection(movement)) > 90) {
-						direction = direction.getOppositeFace();
-					}
-				} else if (this.isSloped()) {
-					// Assume gravity will take over
-					direction = direction.getOppositeFace();
-				} else {
-					// No idea, just use the previous value
-					direction = member.getDirection();
-				}
-			} else {
-				// Is the rail connected with the previous rails?
-				final float moveYaw;
-				if (!FaceUtil.isSubCardinal(direction) || FaceUtil.isVertical(member.getDirectionFrom()) 
-						|| LogicUtil.contains(member.getDirectionFrom(), FaceUtil.getFaces(raildirection))) {
+			// Is the rail connected with the previous rails?
+			final float moveYaw;
+			if (!FaceUtil.isSubCardinal(direction) || FaceUtil.isVertical(member.getDirectionFrom()) 
+					|| LogicUtil.contains(member.getDirectionFrom(), FaceUtil.getFaces(raildirection))) {
 
-					//       ^
-					// > ════╝════
-					moveYaw = MathUtil.getLookAtYaw(movement);
-				} else {
-					// > ════╚════ >
-					moveYaw = MathUtil.getLookAtYaw(member.getEntity().getVelocity());
-				}
-				// Compare with the movement direction to find out whether the opposite is needed
-				float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(direction));
-				float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(direction.getOppositeFace()));
-				// Compare with the previous direction to sort out equality problems
-				if (diff1 == diff2) {
-					diff1 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), direction);
-					diff2 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), direction.getOppositeFace());
-				}
-				// Use the opposite direction if needed
-				if (diff1 > diff2) {
-					direction = direction.getOppositeFace();
-				}
+				//       ^
+				// > ════╝════
+				moveYaw = MathUtil.getLookAtYaw(movement);
+			} else {
+				// > ════╚════ >
+				moveYaw = MathUtil.getLookAtYaw(member.getEntity().getVelocity());
 			}
-			return direction;
+			// Compare with the movement direction to find out whether the opposite is needed
+			float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(direction));
+			float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(direction.getOppositeFace()));
+			// Compare with the previous direction to sort out equality problems
+			if (diff1 == diff2) {
+				diff1 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), direction);
+				diff2 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), direction.getOppositeFace());
+			}
+			// Use the opposite direction if needed
+			if (diff1 > diff2) {
+				direction = direction.getOppositeFace();
+			}
 		}
+		return direction;
 	}
 
 	@Override

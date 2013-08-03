@@ -38,6 +38,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.collections.EntityMap;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -319,10 +320,7 @@ public class TCListener implements Listener {
 					Block clickedBlock = event.getClickedBlock();
 					if (clickedBlock == null) {
 						// Use ray tracing to obtain the correct block
-
-						// SADLY, getTargetBlock is broken! Huray!
-						//clickedBlock = event.getPlayer().getTargetBlock(null, 5);
-						clickedBlock = Util.rayTrace(event.getPlayer());
+						clickedBlock = CommonEntity.get(event.getPlayer()).getTargetBlock();
 					}
 					int id = clickedBlock == null ? 0 : clickedBlock.getTypeId();
 					if (Util.ISTCRAIL.get(id)) {

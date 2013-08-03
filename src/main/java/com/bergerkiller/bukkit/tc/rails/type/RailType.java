@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 
 public abstract class RailType {
 	private static final List<RailType> values = new ArrayList<RailType>();
+	public static final RailTypeVertical VERTICAL = new RailTypeVertical();
 	public static final RailTypeActivator ACTIVATOR_ON = new RailTypeActivator(true);
 	public static final RailTypeActivator ACTIVATOR_OFF = new RailTypeActivator(false);
 	public static final RailTypeCrossing CROSSING = new RailTypeCrossing();
@@ -23,7 +24,6 @@ public abstract class RailType {
 	public static final RailTypeDetector DETECTOR = new RailTypeDetector();
 	public static final RailTypePowered BRAKE = new RailTypePowered(false);
 	public static final RailTypePowered BOOST = new RailTypePowered(true);
-	public static final RailTypeVertical VERTICAL = new RailTypeVertical();
 	public static final RailTypeNone NONE = new RailTypeNone();
 
 	static {
@@ -69,6 +69,16 @@ public abstract class RailType {
 	}
 
 	/**
+	 * Checks whether the Block specified denote this type of Rail
+	 * 
+	 * @param block to check
+	 * @return True if it is this Rail, False if not
+	 */
+	public boolean isRail(Block block) {
+		return isRail(block.getWorld(), block.getX(), block.getY(), block.getZ());
+	}
+
+	/**
 	 * Tries to find this Rail Type near the Minecart at the Block position specified.
 	 * 
 	 * @param member to find the rail for
@@ -77,6 +87,57 @@ public abstract class RailType {
 	 * @return the Rail position (of this type) the Minecart is on
 	 */
 	public abstract IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos);
+
+	/**
+	 * Tries to find this Rail Type near a 'next' Block returned by {@link #getNextPos(Block, BlockFace)}.
+	 * Unlike {@link #findRail(MinecartMember, World, IntVector3)} this method
+	 * does not allow special adjustments based on Minecart information.
+	 * 
+	 * @param pos Block a Minecart is 'at'
+	 * @return the rail of this type, or null if not found
+	 */
+	public abstract Block findRail(Block pos);
+
+	/**
+	 * Gets the Block where a Minecart would be if it was using this rail.
+	 * This is the inverse of {@link #findRail(Block)}.
+	 * 
+	 * @param trackBlock where this Rail Type is at
+	 * @return Minecart position
+	 */
+	public abstract Block findMinecartPos(Block trackBlock);
+
+	/**
+	 * Gets an array containing all possible directions a Minecart can move on the trackBlock.
+	 * 
+	 * @param trackBlock to use
+	 * @return all possible directions the Minecart can move
+	 */
+	public abstract BlockFace[] getPossibleDirections(Block trackBlock);
+
+	/**
+	 * Gets the next Block while moving on this type of Rail.
+	 * The goal of this method is to find out where Minecarts that enter this rail
+	 * end up at when moving forward.
+	 * 
+	 * @param currentTrack of this rail type the 'Minecart' is using to drive on
+	 * @param currentDirection the 'Minecart' is moving
+	 * @return next Block to go to after moving over this rail
+	 */
+	public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
+		return currentTrack.getRelative(currentDirection);
+	}
+
+	/**
+	 * Obtains the direction of this type of Rails.
+	 * This is the direction along minecarts move.
+	 * 
+	 * @param railsBlock to get it for
+	 * @return rails Direction
+	 */
+	public abstract BlockFace getDirection(Block railsBlock);
+
+	public abstract BlockFace getSignColumnDirection(Block railsBlock);
 
 	/**
 	 * Obtains the Rail Logic to use for the Minecart at the (previously calculated) rail position in a World.
@@ -116,7 +177,25 @@ public abstract class RailType {
 	 * 
 	 * @return Rail Types
 	 */
-	public static Collection<RailType> getAll() {
+	public static Collection<RailType> values() {
 		return values;
+	}
+
+	/**
+	 * Tries to find the Rail Type a specific rails block represents.
+	 * If none is identified, NONE is returned.
+	 * 
+	 * @param railsBlock to get the RailType of
+	 * @return the RailType, or NONE if not found
+	 */
+	public static RailType getType(Block railsBlock) {
+		if (railsBlock != null) {
+			for (RailType type : values()) {
+				if (type.isRail(railsBlock)) {
+					return type;
+				}
+			}
+		}
+		return NONE;
 	}
 }

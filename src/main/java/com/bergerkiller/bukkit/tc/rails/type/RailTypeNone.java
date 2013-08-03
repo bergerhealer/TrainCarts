@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -22,6 +23,31 @@ public class RailTypeNone extends RailType {
 	@Override
 	public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
 		return pos;
+	}
+
+	@Override
+	public Block findMinecartPos(Block trackBlock) {
+		return trackBlock;
+	}
+
+	@Override
+	public BlockFace[] getPossibleDirections(Block trackBlock) {
+		return new BlockFace[0];
+	}
+
+	@Override
+	public Block findRail(Block pos) {
+		return pos;
+	}
+
+	@Override
+	public BlockFace getDirection(Block railsBlock) {
+		return BlockFace.SELF;
+	}
+
+	@Override
+	public BlockFace getSignColumnDirection(Block railsBlock) {
+		return BlockFace.SELF;
 	}
 
 	@Override

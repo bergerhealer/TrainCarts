@@ -56,26 +56,26 @@ public class SignActionStation extends SignAction {
 			group.getActions().clear();		
 			BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), centerMember.getDirectionTo());
 			if (station.getNextDirection() == Direction.NONE || trainDirection != group.head().getDirectionTo()) {
-				centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
+				centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
 			}
 			if (station.getNextDirection() != Direction.NONE) {
 				//Actual launching here
 				if (station.hasDelay()) {
-					centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
+					centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
 					if (TrainCarts.playSoundAtStation) {
 						group.getActions().addActionSizzle();
 					}
 					info.getGroup().getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 					group.getActions().addActionWait(station.getDelay());
 				} else if (group.head().getDirectionTo() != trainDirection) {
-					centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
+					centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
 				}
 				if (TrainCarts.refillAtStations) {
 					group.getActions().addActionRefill();
 				}
 				centerMember.getActions().addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
 			} else {
-				centerMember.getActions().addActionLaunch(info.getRailLocation(), 0);
+				centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
 				group.getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
 				if (TrainCarts.playSoundAtStation) {
 					group.getActions().addActionSizzle();
@@ -89,7 +89,7 @@ public class SignActionStation extends SignAction {
 
 			if (station.hasDelay() || (head.isMoving() && head.getDirection() != station.getInstruction())) {
 				//Reversing or has delay, need to center it in the middle first
-				station.getCenterCart().getActions().addActionLaunch(info.getRailLocation(), 0);
+				station.getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
 			}
 			if (station.hasDelay()) {
 				if (TrainCarts.playSoundAtStation) {

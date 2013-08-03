@@ -47,7 +47,7 @@ public class SignActionEffect extends SignAction {
 			}
 		} else if (info.isAction(SignActionType.REDSTONE_ON)) {
 			if (info.hasRails()) {
-				eff.play(info.getRailLocation());
+				eff.play(info.getCenterLocation());
 			} else {
 				eff.play(info.getLocation().add(0.0, 2.0, 0.0));
 			}

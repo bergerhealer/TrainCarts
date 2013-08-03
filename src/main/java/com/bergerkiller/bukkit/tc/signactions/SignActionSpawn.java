@@ -162,7 +162,7 @@ public class SignActionSpawn extends SignAction {
 			BlockFace spawnDirection = null;
 			if (types.size() == 1) {
 				// Single-minecart spawning logic
-				locs[0] = info.getRailLocation();
+				locs[0] = info.getCenterLocation();
 				if (MinecartMemberStore.getAt(locs[0]) == null) {
 					for (BlockFace direction : info.getWatchedDirections()) {
 						direction = direction.getOppositeFace();
@@ -180,7 +180,7 @@ public class SignActionSpawn extends SignAction {
 				// Multiple-minecart spawning logic
 				for (BlockFace direction : info.getWatchedDirections()) {
 					direction = direction.getOppositeFace();
-					TrackWalkIterator iter = new TrackWalkIterator(info.getRailLocation(), direction);
+					TrackWalkIterator iter = new TrackWalkIterator(info.getCenterLocation(), direction);
 					boolean occupied = false;
 					for (int i = 0; i < types.size(); i++) {
 						if (!iter.hasNext()) {
