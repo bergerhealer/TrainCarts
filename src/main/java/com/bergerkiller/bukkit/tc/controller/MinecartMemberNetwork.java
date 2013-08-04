@@ -163,8 +163,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 		if (rotated && !member.isDerailed()) {
 			// Update rotation with control system function
 			// This ensures that the Client animation doesn't glitch the rotation
-			rotYaw += ROTATION_K * (locLive.getYaw() - locSynched.getYaw());
-			rotPitch += ROTATION_K * (locLive.getPitch() - locSynched.getPitch());
+			rotYaw += getAngleKFactor(locLive.getYaw(), locSynched.getYaw());
+			rotPitch += getAngleKFactor(locLive.getPitch(), locSynched.getPitch());
 		}
 		getEntity().setPositionChanged(false);
 		syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
@@ -191,5 +191,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
 		// Synchronize meta data
 		syncMetaData();
+	}
+
+	private static int getAngleKFactor(int angle1, int angle2) {
+		int diff = angle1 - angle2;
+		while (diff <= -128) {
+			diff += 256;
+		}
+		while (diff > 128) {
+			diff -= 256;
+		}
+		return (int) (ROTATION_K * diff);
 	}
 }

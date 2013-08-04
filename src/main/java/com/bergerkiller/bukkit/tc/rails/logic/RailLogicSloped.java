@@ -22,16 +22,16 @@ public class RailLogicSloped extends RailLogicHorizontal {
 		}
 	}
 
-	private final double startY, endY;
+	private final double dy, startY;
 
 	protected RailLogicSloped(BlockFace direction) {
 		super(direction);
 		if (direction == BlockFace.SOUTH || direction == BlockFace.EAST) {
-			this.startY = -0.5;
-			this.endY = 0.0;
-		} else {
+			this.dy = 1.0;
 			this.startY = 0.0;
-			this.endY = -0.5;
+		} else {
+			this.dy = -1.0;
+			this.startY = 1.0;
 		}
 	}
 
@@ -73,23 +73,13 @@ public class RailLogicSloped extends RailLogicHorizontal {
 	public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
 		Vector pos = super.getFixedPosition(entity, x, y, z, railPos);
 		// Adjust the Y-position to match this rail
-		double y1 = railPos.midY() + startY;
-		double y2 = railPos.midY() + endY;
-		double yDelta = 2.0 * (y2 - y1);
 		double stage = 0.0;
 		if (alongZ) {
 			stage = z - (double) railPos.z;
 		} else if (alongX) {
 			stage = x - (double) railPos.x;
 		}
-		double newY = y1 + yDelta * stage;
-		if (yDelta < 0.0) {
-			newY += 1.0;
-		}
-		if (yDelta > 0.0) {
-			newY += 0.5;
-		}
-		pos.setY(newY);
+		pos.setY(railPos.midY() + startY + dy * stage);
 		return pos;
 	}
 
@@ -125,18 +115,6 @@ public class RailLogicSloped extends RailLogicHorizontal {
 		// Perform remaining positioning updates
 		super.onPreMove(member);
 		entity.loc.y.add(1.0);
-	}
-
-	/**
-	 * Gets the 3D-fixed position of a Minecart on this sloped rail, adjusting for the incline.
-	 * 
-	 * @param x - coordinate of the Minecart
-	 * @param y - coordinate of the Minecart
-	 * @param z - coordinate of the Minecart
-	 * @return fixed position of the Minecart
-	 */
-	public Vector getSlopedPosition(CommonMinecart<?> entity, double x, double y, double z) {
-		return entity.getSlopedPosition(x, y, z);
 	}
 
 	/**
