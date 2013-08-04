@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -31,6 +32,11 @@ public class RailLogicVertical extends RailLogic {
 	}
 
 	@Override
+	public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
+		return new Vector(railPos.midX(), y, railPos.midZ());
+	}
+
+	@Override
 	public void setForwardVelocity(MinecartMember<?> member, double force) {
 		member.getEntity().vel.setY(member.getDirection().getModY() * force);
 	}
@@ -52,8 +58,7 @@ public class RailLogicVertical extends RailLogic {
 		entity.vel.y.add(entity.vel.xz.length() * member.getDirection().getModY());
 		entity.vel.xz.setZero();
 		// Position update
-		entity.loc.x.set(member.getBlockPos().midX());
-		entity.loc.z.set(member.getBlockPos().midZ());
+		entity.loc.set(this.getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()));
 	}
 
 	/**

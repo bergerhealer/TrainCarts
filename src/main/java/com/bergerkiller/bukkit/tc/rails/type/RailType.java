@@ -118,15 +118,16 @@ public abstract class RailType {
 	/**
 	 * Gets the next Block while moving on this type of Rail.
 	 * The goal of this method is to find out where Minecarts that enter this rail
-	 * end up at when moving forward.
+	 * end up at when moving forward.<br><br>
+	 * 
+	 * If the result is null, then this Rail Type forcibly disallows that direction
+	 * from being used, and no movement was possible.
 	 * 
 	 * @param currentTrack of this rail type the 'Minecart' is using to drive on
 	 * @param currentDirection the 'Minecart' is moving
 	 * @return next Block to go to after moving over this rail
 	 */
-	public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-		return currentTrack.getRelative(currentDirection);
-	}
+	public abstract Block getNextPos(Block currentTrack, BlockFace currentDirection);
 
 	/**
 	 * Obtains the direction of this type of Rails.

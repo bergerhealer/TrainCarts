@@ -36,7 +36,6 @@ public class SignActionEvent extends Event implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
 	private final Block signblock;
 	private Block railsblock;
-	private boolean verticalRail;
 	private final SignActionMode mode;
 	private SignActionType actionType;
 	private final BlockFace facing;
@@ -74,7 +73,6 @@ public class SignActionEvent extends Event implements Cancellable {
 		this.mode = SignActionMode.fromSign(this.sign);
 		this.railsblock = railsblock;
 		this.railschecked = this.railsblock != null;
-		this.verticalRail = Util.ISVERTRAIL.get(this.railsblock);
 		String mainLine;
 		if (this.sign == null) {
 			// No sign available - set default values and abort
@@ -98,7 +96,7 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (!this.directionsDefined) {
 			// find out using the rails above and sign facing
 			if (this.hasRails()) {
-				if (this.isVerticalRails()) {
+				if (FaceUtil.isVertical(this.getRailDirection())) {
 					watchedFaces.add(BlockFace.UP);
 					watchedFaces.add(BlockFace.DOWN);
 				} else {
@@ -354,7 +352,6 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Block getRails() {
 		if (!this.railschecked) {
 			this.railsblock = Util.getRailsFromSign(this.signblock);
-			this.verticalRail = this.railsblock != null && Util.ISVERTRAIL.get(this.railsblock);
 			this.railschecked = true;
 		}
 		return this.railsblock;
@@ -364,9 +361,6 @@ public class SignActionEvent extends Event implements Cancellable {
 	}
 	public boolean hasRails() {
 		return this.getRails() != null;
-	}
-	public boolean isVerticalRails() {
-		return this.verticalRail;
 	}
 	public BlockFace getRailDirection() {
 		if (!this.hasRails()) return null;
@@ -459,35 +453,16 @@ public class SignActionEvent extends Event implements Cancellable {
 		if (!this.hasRails()) {
 			return false;
 		}
-		// Slope upwards? Then offset the rails block
-		Block railsBlock = this.railsblock;
-		if (MaterialUtil.ISRAILS.get(railsBlock)) {
-			Rails rails = BlockUtil.getRails(railsBlock);
-			if (rails.isOnSlope() && rails.getDirection() == direction) {
-				railsBlock = railsBlock.getRelative(BlockFace.UP);
-			}
+		// Get the next minecart Block position
+		Block posBlock = RailType.getType(getRails()).getNextPos(getRails(), direction);
+		if (posBlock == null) {
+			return false;
 		}
-		// Check the connection
-		Block block = Util.getRailsBlock(railsBlock.getRelative(direction));
-		if (block != null) {
-			int id = block.getTypeId();
-			if (MaterialUtil.ISPRESSUREPLATE.get(id)) {
-				// Connection if on the same level
-				return block.getY() == railsBlock.getY();
-			} else if (Util.ISVERTRAIL.get(id)) {
-				// Never a vertical connection
-				return false;
-			} else if (MaterialUtil.ISRAILS.get(id)) {
-				Rails rails = BlockUtil.getRails(block);
-				if (rails.isOnSlope()) {
-					if (block.getY() < railsBlock.getY()) {
-						return rails.getDirection() == direction.getOppositeFace();
-					} else {
-						return rails.getDirection() == direction;
-					}
-				} else {
-					return LogicUtil.contains(direction, FaceUtil.getFaces(rails.getDirection()));
-				}
+		for (RailType type : RailType.values()) {
+			Block railsBlock = type.findRail(posBlock);
+			if (railsBlock != null) {
+				// Check that the next block allows a connection with this Block
+				return LogicUtil.contains(direction.getOppositeFace(), type.getPossibleDirections(railsBlock));
 			}
 		}
 		return false;

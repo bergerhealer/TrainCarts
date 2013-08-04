@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -24,6 +26,11 @@ public class RailLogicGround extends RailLogic {
 	@Override
 	public boolean hasVerticalMovement() {
 		return true;
+	}
+
+	@Override
+	public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
+		return new Vector(x, y, z);
 	}
 
 	@Override

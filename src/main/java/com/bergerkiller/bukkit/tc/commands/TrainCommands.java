@@ -397,6 +397,23 @@ public class TrainCommands {
 				SignActionBlockChanger.setBlocks(members, StringUtil.combine(" ", args));
 				p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
 			}
+		} else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
+			Permission.COMMAND_CHANGEBLOCK.handle(p);
+			MinecartGroup members = prop.getHolder();
+			if (members == null) {
+				p.sendMessage(ChatColor.RED + "The selected train is unloaded: we can not change it at this time!");
+			} else if (args.length == 0) {
+				for (MinecartMember<?> member : members) {
+					member.getEntity().setBlockOffset(9);
+				}
+				p.sendMessage(ChatColor.YELLOW + "The selected train has its block offset reset!");
+			} else {
+				int offset = ParseUtil.parseInt(args[0], 9);
+				for (MinecartMember<?> member : members) {
+					member.getEntity().setBlockOffset(offset);
+				}
+				p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
+			}
 		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
 			p.sendMessage(ChatColor.GREEN + "Property has been updated!");
 			return true;

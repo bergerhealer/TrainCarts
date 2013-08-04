@@ -32,8 +32,8 @@ public class Station {
 		this.railsBlock = info.getRails();
 
 		// Vertical or horizontal rail logic
-		if (info.isVerticalRails()) {
-			this.railDirection = BlockFace.DOWN;
+		this.railDirection = info.getRailDirection();
+		if (FaceUtil.isVertical(this.railDirection)) {
 			// Up, down or center based on redstone power
 			boolean up = info.isPowered(BlockFace.UP);
 			boolean down = info.isPowered(BlockFace.DOWN);
@@ -47,7 +47,6 @@ public class Station {
 				this.instruction = null;
 			}
 		} else {
-			this.railDirection = info.getRailDirection();
 			if (FaceUtil.isSubCardinal(this.railDirection) && FaceUtil.isSubCardinal(info.getFacing())) {				
 				// Sub-cardinal checks: Both directions have two possible powered sides
 				final BlockFace[] faces = FaceUtil.getFaces(this.railDirection);
@@ -102,7 +101,7 @@ public class Station {
 		if (length == 0.0 && this.instruction != null) {
 			// Manually calculate the length
 			// Use the amount of straight blocks
-			if (info.isVerticalRails()) {
+			if (FaceUtil.isVertical(this.railDirection)) {
 				length = this.calcVerticalLength();
 			} else if (FaceUtil.isSubCardinal(this.railDirection)) {
 				length = this.calcDiagonalLength();

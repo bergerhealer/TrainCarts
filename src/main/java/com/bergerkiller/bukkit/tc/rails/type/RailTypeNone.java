@@ -41,6 +41,11 @@ public class RailTypeNone extends RailType {
 	}
 
 	@Override
+	public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
+		return null;
+	}
+
+	@Override
 	public BlockFace getDirection(Block railsBlock) {
 		return BlockFace.SELF;
 	}

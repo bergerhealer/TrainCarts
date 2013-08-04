@@ -3,7 +3,10 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -103,6 +106,30 @@ public abstract class RailLogic {
 	 * @return the BlockFace direction
 	 */
 	public abstract BlockFace getMovementDirection(MinecartMember<?> member, Vector movement);
+
+	/**
+	 * Gets the position of the Minecart when snapped to the rails
+	 * 
+	 * @param entity of the Minecart
+	 * @param x - position of the Minecart
+	 * @param y - position of the Minecart
+	 * @param z - position of the Minecart
+	 * @param railPos - position of the Rail
+	 * @return fixed position of the Minecart on this type of rail logic
+	 */
+	public abstract Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos);
+
+	/**
+	 * Gets the position of the Minecart when snapped to the rails
+	 * 
+	 * @param entity of the Minecart
+	 * @param position of the Minecart
+	 * @param railPos - position of the Rail
+	 * @return fixed position of the Minecart on this type of rail logic
+	 */
+	public Vector getFixedPosition(CommonMinecart<?> entity, LocationAbstract position, IntVector3 railPos) {
+		return getFixedPosition(entity, position.getX(), position.getY(), position.getZ(), railPos);
+	}
 
 	/**
 	 * Is called right before the minecart will perform the movement updates<br>

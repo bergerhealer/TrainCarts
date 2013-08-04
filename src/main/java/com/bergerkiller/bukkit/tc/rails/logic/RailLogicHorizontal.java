@@ -3,7 +3,8 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -49,6 +50,27 @@ public class RailLogicHorizontal extends RailLogic {
 				this.faces[i] = this.faces[i].getOppositeFace();
 			}
 		}
+	}
+
+	@Override
+	public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
+		double newLocX = railPos.midX() + this.startX;
+		double newLocY = railPos.midY();
+		double newLocZ = railPos.midZ() + this.startZ;
+		if (this.alongZ) {
+			// Moving along the X-axis
+			newLocZ += this.dz * (entity.loc.getZ() - railPos.z);
+		} else if (this.alongX) {
+			// Moving along the Z-axis
+			newLocX += this.dx * (entity.loc.getX() - railPos.x);
+		} else {
+			// Curve
+			double factor = 2.0 * (this.dx * (entity.loc.getX() - newLocX) + this.dz * (entity.loc.getZ() - newLocZ));
+			newLocX += factor * this.dx;
+			newLocZ += factor * this.dz;
+		}
+		// Calculate the Y-position
+		return new Vector(newLocX, newLocY, newLocZ);
 	}
 
 	@Override
@@ -129,7 +151,7 @@ public class RailLogicHorizontal extends RailLogic {
 
 	@Override
 	public void onPreMove(MinecartMember<?> member) {
-		final CommonEntity<?> entity = member.getEntity();
+		final CommonMinecart<?> entity = member.getEntity();
 		// Apply velocity modifiers
 		final boolean invert;
 		if (this.curved) {
@@ -143,22 +165,10 @@ public class RailLogicHorizontal extends RailLogic {
 		final double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, entity.vel.getX(), entity.vel.getZ()), invert);
 		entity.vel.set(railFactor * this.dx, 0.0, railFactor * this.dz);
 
-		double newLocX = member.getBlockPos().midX() + this.startX;
-		double newLocY = (double) member.getBlockPos().y + (double) entity.getHeight();
-		double newLocZ = member.getBlockPos().midZ() + this.startZ;
-		if (this.alongZ) {
-			// Moving along the X-axis
-			newLocZ += this.dz * (entity.loc.getZ() - member.getBlockPos().z);
-		} else if (this.alongX) {
-			// Moving along the Z-axis
-			newLocX += this.dx * (entity.loc.getX() - member.getBlockPos().x);
-		} else {
-			// Curve
-			double factor = 2.0 * (this.dx * (entity.loc.getX() - newLocX) + this.dz * (entity.loc.getZ() - newLocZ));
-			newLocX += factor * this.dx;
-			newLocZ += factor * this.dz;
-		}
-		entity.loc.set(newLocX, newLocY, newLocZ);
+		// Adjust position of Entity on rail
+		IntVector3 railPos = member.getBlockPos();
+		entity.loc.set(getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), railPos));
+		entity.loc.y.add((double) entity.getHeight() - 0.5);
 	}
 
 	/**

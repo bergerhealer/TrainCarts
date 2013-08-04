@@ -726,10 +726,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (Util.ISVERTRAIL.get(block)) {
 			return false;
 		}
-		if (this.isDerailed()) {
+		RailType type = getRailType();
+		if (type == RailType.NONE) {
 			return true;
 		}
-		if (getRailType() == RailType.VERTICAL && FaceUtil.isVertical(hitFace)) {
+		if (type == RailType.VERTICAL && FaceUtil.isVertical(hitFace)) {
 			// Check if the collided block has vertical rails
 			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
 				// Stop the train
@@ -738,20 +739,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			}
 		}
 		// Handle collision (ignore UP/DOWN, recalculate hitFace for this)
-		hitFace = FaceUtil.getDirection(block, this.getBlock(), false);
+		Block posBlock = type.findMinecartPos(getBlock());
+		hitFace = FaceUtil.getDirection(block, posBlock, false);
 		final BlockFace hitToFace = hitFace.getOppositeFace();
 		if (!this.isTurned() && hitToFace == this.getDirectionTo()) {
 			// Some blocks are ignored when moving on slopes
 			if (this.isOnSlope()) {
 				// Cancel collisions with blocks at the heading of sloped rails when going up vertically
-				if (hitToFace == this.getRailDirection() && Util.isVerticalAbove(this.getBlock(), this.getRailDirection())) {
+				if (hitToFace == this.getRailDirection() && Util.isVerticalAbove(posBlock, this.getRailDirection())) {
 					return false;
 				}
 
 				// Cancel collisions with blocks 'right above' the next rail when going down the slope
 				if (hitFace == this.getRailDirection()) {
-					IntVector3 diff = new IntVector3(block).subtract(this.getBlockPos());
-					if (diff.y == 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
+					IntVector3 diff = new IntVector3(block).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
+					if (diff.y >= 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
 						return false;
 					}
 				}

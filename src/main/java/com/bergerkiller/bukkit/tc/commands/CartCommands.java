@@ -220,6 +220,19 @@ public class CartCommands {
 				SignActionBlockChanger.setBlocks(members, StringUtil.combine(" ", args));
 				p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block updated!");
 			}
+		} else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
+			Permission.COMMAND_CHANGEBLOCK.handle(p);
+			MinecartMember<?> member = prop.getHolder();
+			if (member == null) {
+				p.sendMessage(ChatColor.RED + "The selected minecart is unloaded: we can not change it at this time!");
+			} else if (args.length == 0) {
+				member.getEntity().setBlockOffset(9);
+				p.sendMessage(ChatColor.YELLOW + "The selected minecart has its block offset reset!");
+			} else {
+				int offset = ParseUtil.parseInt(args[0], 9);
+				member.getEntity().setBlockOffset(offset);
+				p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block offset updated!");
+			}
 		} else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
 			p.sendMessage(ChatColor.GREEN + "Property has been updated!");
 			return true;
