@@ -722,44 +722,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	}
 
 	@Override
-	public boolean onBlockCollision(org.bukkit.block.Block block, BlockFace hitFace) {
-		if (Util.ISVERTRAIL.get(block)) {
+	public boolean onBlockCollision(org.bukkit.block.Block hitBlock, BlockFace hitFace) {
+		if (!RailType.getType(hitBlock).onCollide(this, hitBlock, hitFace)) {
 			return false;
 		}
-		RailType type = getRailType();
-		if (type == RailType.NONE) {
-			return true;
+		if (!getRailType().onBlockCollision(this, getBlock(), hitBlock, hitFace)) {
+			return false;
 		}
-		if (type == RailType.VERTICAL && FaceUtil.isVertical(hitFace)) {
-			// Check if the collided block has vertical rails
-			if (Util.ISVERTRAIL.get(block.getRelative(hitFace))) {
-				// Stop the train
-				this.getGroup().stop();
-				return true;
-			}
-		}
-		// Handle collision (ignore UP/DOWN, recalculate hitFace for this)
-		Block posBlock = type.findMinecartPos(getBlock());
-		hitFace = FaceUtil.getDirection(block, posBlock, false);
-		final BlockFace hitToFace = hitFace.getOppositeFace();
-		if (!this.isTurned() && hitToFace == this.getDirectionTo()) {
-			// Some blocks are ignored when moving on slopes
-			if (this.isOnSlope()) {
-				// Cancel collisions with blocks at the heading of sloped rails when going up vertically
-				if (hitToFace == this.getRailDirection() && Util.isVerticalAbove(posBlock, this.getRailDirection())) {
-					return false;
-				}
-
-				// Cancel collisions with blocks 'right above' the next rail when going down the slope
-				if (hitFace == this.getRailDirection()) {
-					IntVector3 diff = new IntVector3(block).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
-					if (diff.y >= 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
-						return false;
-					}
-				}
-			}
-
-			// Stop the train
+		// Stop the entire Group if hitting head-on
+		if (hitFace.getOppositeFace() == this.getDirectionTo()) {
 			this.getGroup().stop();
 		}
 		return true;

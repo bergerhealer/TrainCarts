@@ -7,12 +7,15 @@ import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 
 public class RailTypeVertical extends RailType {
+
+
 
 	@Override
 	public boolean isRail(int typeId, int data) {
@@ -55,8 +58,25 @@ public class RailTypeVertical extends RailType {
 	}
 
 	@Override
+	public boolean onBlockCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock, BlockFace hitFace) {
+		if (!super.onBlockCollision(member, railsBlock, hitBlock, hitFace)) {
+			return false;
+		}
+		// Check if the collided block has vertical rails below when hitting it
+		if (FaceUtil.isVertical(hitFace) && Util.ISVERTRAIL.get(hitBlock.getRelative(hitFace))) {
+			return false;
+		}
+		return true;
+	}
+
+	@Override
 	public BlockFace[] getPossibleDirections(Block trackBlock) {
 		return new BlockFace[] {BlockFace.UP, BlockFace.DOWN};
+	}
+
+	@Override
+	public boolean onCollide(MinecartMember<?> with, Block block, BlockFace hitFace) {
+		return false;
 	}
 
 	@Override

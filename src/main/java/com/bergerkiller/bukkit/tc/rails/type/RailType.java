@@ -150,6 +150,31 @@ public abstract class RailType {
 	public abstract RailLogic getLogic(MinecartMember<?> member, Block railsBlock);
 
 	/**
+	 * Handles collision with this Rail Type
+	 * 
+	 * @param with Minecart that his this Rail
+	 * @param block of this Rail
+	 * @param hitFace of this Rail
+	 * @return True if collision is allowed, False if not
+	 */
+	public boolean onCollide(MinecartMember<?> with, Block block, BlockFace hitFace) {
+		return true;
+	}
+
+	/**
+	 * Handles a Minecart colliding with a Block while using this Rail Type.
+	 * 
+	 * @param member that collided
+	 * @param railsBlock the member is driving on
+	 * @param hitBlock the Minecart hit
+	 * @param hitFace the Minecart hit
+	 * @return True if collision is allowed, False if not
+	 */
+	public boolean onBlockCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock, BlockFace hitFace) {
+		return true;
+	}
+
+	/**
 	 * Unregisters a Rail Type so it can no longer be used
 	 * 
 	 * @param type to unregister
