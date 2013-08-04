@@ -514,7 +514,7 @@ public class SignActionEvent extends Event implements Cancellable {
 				this.member = this.hasRails() ? MinecartMemberStore.getAt(this.railsblock) : null;
 				this.memberchecked = true;
 			}
-			if (this.group != null && !this.group.isEmpty()) {
+			if (this.member == null && this.group != null && !this.group.isEmpty()) {
 				if (this.actionType == SignActionType.GROUP_LEAVE) {
 					this.member = this.group.tail();
 				} else {
