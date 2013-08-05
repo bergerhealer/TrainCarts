@@ -53,6 +53,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
+import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
@@ -65,7 +66,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
-import com.bergerkiller.bukkit.tc.utils.SoundLoop;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 
@@ -934,6 +934,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		// Kill entity if falling into the void
 		if (entity.loc.getY() < -64.0D) {
 			this.onDie();
+			throw new MemberMissingException();
 		}
 
 		// Perform gravity

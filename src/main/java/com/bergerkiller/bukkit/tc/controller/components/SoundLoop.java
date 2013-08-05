@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.utils;
+package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.Random;
 

@@ -18,8 +18,8 @@ import com.bergerkiller.bukkit.tc.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
-import com.bergerkiller.bukkit.tc.utils.PoweredCartSoundLoop;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
 	private BlockFace pushDirection;
