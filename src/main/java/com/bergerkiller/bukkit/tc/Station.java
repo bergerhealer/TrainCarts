@@ -4,18 +4,24 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
 
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 /**
  * Represents the Station sign information
  */
 public class Station {
+	private final SignActionEvent info;
 	private final double length;
 	private final long delay;
 	private final BlockFace instruction;
@@ -26,6 +32,7 @@ public class Station {
 	private final Block railsBlock;
 
 	public Station(SignActionEvent info) {
+		this.info = info;
 		this.delay = ParseUtil.parseTime(info.getLine(2));
 		this.nextDirection = Direction.parse(info.getLine(3));
 		this.centerCart = info.isCartSign() ? info.getMember() : info.getGroup().middle();
@@ -287,5 +294,98 @@ public class Station {
 	 */
 	public MinecartMember<?> getCenterCart() {
 		return this.centerCart;
+	}
+
+	/**
+	 * Waits a train for a specific amount of time.
+	 * This causes the train to play the station sound, refill the fuel
+	 * and toggle the station levers on.
+	 * 
+	 * @param delay to wait, use 0 for no delay, MAX_VALUE to wait forever.
+	 */
+	public void waitTrain(long delay) {
+		ActionTrackerGroup actions = info.getGroup().getActions();
+		if (TrainCarts.playSoundAtStation) {
+			actions.addActionSizzle();
+		}
+		if (TrainCarts.refillAtStations) {
+			actions.addActionRefill();
+		}
+		actions.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+		if (delay == Long.MAX_VALUE) {
+			actions.addActionWaitForever();
+		} else if (delay > 0) {
+			actions.addActionWait(delay);
+		}
+	}
+
+	/**
+	 * Orders the train to center above this Station
+	 */
+	public void centerTrain() {
+		CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
+		if (stationInfo.cartDir != null) {
+			// Launch the center cart into the direction of the station
+			getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0);
+		} else {
+			// Alternative: get as close as possible (may fail)
+			getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
+		}
+	}
+
+	/**
+	 * Launches the train so that the middle or front cart is the distance away from this station
+	 * 
+	 * @param direction to launch into
+	 * @param distance to launch
+	 */
+	public void launchTo(BlockFace direction, double distance) {
+		// Apply distance correction from center cart to station
+		CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
+		double newDistance = distance;
+		BlockFace newDirection = direction;
+		// Adjust the direction and distance
+		if (stationInfo.centerDir == direction) {
+			// Adjust the direction and distance
+			newDistance += stationInfo.distance;
+			newDirection = stationInfo.cartDir;
+		}
+		getCenterCart().getActions().addActionLaunch(newDirection, newDistance, TrainCarts.launchForce);
+	}
+
+	private CartToStationInfo getCartToStationInfo(MinecartMember<?> member) {
+		CartToStationInfo info = new CartToStationInfo();
+		info.cartBlock = member.getBlock();
+		BlockFace[] possible = RailType.getType(info.cartBlock).getPossibleDirections(info.cartBlock);
+		TrackIterator iter = new TrackIterator(null, null, (int) member.getGroup().length(), true);
+		info.distance = Integer.MAX_VALUE;
+		for (BlockFace dir : possible) {
+			iter.reset(info.cartBlock, dir);
+			if (iter.tryFind(this.info.getRails()) && iter.getDistance() < info.distance) {
+				info.distance = iter.getDistance();
+				info.cartDir = dir;
+				info.centerDir = iter.currentDirection();
+			}
+		}
+		// Adjust the distance based on member-block position
+		if (info.cartDir != null) {
+			// Adjust for the small offset of the cart from the original block
+			CommonMinecart<?> entity = member.getEntity();
+			double subX = entity.loc.getX() - (entity.loc.x.getFloor() + 0.5);
+			double subY = entity.loc.getY() - (entity.loc.y.getFloor() + 0.5);
+			double subZ = entity.loc.getZ() - (entity.loc.z.getFloor() + 0.5);
+			double sub = info.cartDir.getModX() * subX + info.cartDir.getModY() * subY + info.cartDir.getModZ() * subZ;
+
+			// Launch the center cart into the direction of the station
+			info.distance -=  sub + 0.5;
+		}
+		return info;
+	}
+
+	private static class CartToStationInfo {
+		public Block cartBlock;
+		public BlockFace cartDir;
+		public BlockFace centerDir;
+		public double distance;
 	}
 }

@@ -27,16 +27,16 @@ public class TrackMovingPoint {
 	 * @param startDirection to start moving into
 	 */
 	public TrackMovingPoint(Block startBlock, BlockFace startDirection) {
-		this.nextTrack = startBlock;
-		this.nextDirection = startDirection;
+		this.currentTrack = this.nextTrack = startBlock;
+		this.currentDirection = this.nextDirection = startDirection;
 		this.hasNext = false;
 		if (this.nextTrack == null || this.nextDirection == null) {
 			return;
 		}
 		for (RailType type : RailType.values()) {
 			if (type.isRail(this.nextTrack)) {
-				this.next = type.findMinecartPos(this.nextTrack);
-				this.nextRail = type;
+				this.current = this.next = type.findMinecartPos(this.nextTrack);
+				this.currentRail = this.nextRail = type;
 				this.hasNext = true;
 				break;
 			}

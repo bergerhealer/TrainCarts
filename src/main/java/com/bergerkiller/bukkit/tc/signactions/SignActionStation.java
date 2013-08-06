@@ -5,8 +5,6 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Station;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -43,7 +41,10 @@ public class SignActionStation extends SignAction {
 
 		//What do we do?
 		if (station.getInstruction() == null) {
-			info.getGroup().getActions().clear();
+			// Clear actions, but only if requested to do so because of a redstone change
+			if (info.isAction(SignActionType.REDSTONE_CHANGE)) {
+				info.getGroup().getActions().clear();
+			}
 		} else if (station.getInstruction() == BlockFace.SELF) {
 			MinecartMember<?> centerMember = station.getCenterCart();
 			// Do not allow redstone changes to center a launching train
@@ -55,32 +56,19 @@ public class SignActionStation extends SignAction {
 			//TODO: ADD CHECK?!
 			group.getActions().clear();		
 			BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), centerMember.getDirectionTo());
-			if (station.getNextDirection() == Direction.NONE || trainDirection != info.getMember().getDirectionTo()) {
-				centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
-			}
 			if (station.getNextDirection() != Direction.NONE) {
-				//Actual launching here
+				// Actual launching here
 				if (station.hasDelay()) {
-					centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
-					if (TrainCarts.playSoundAtStation) {
-						group.getActions().addActionSizzle();
-					}
-					info.getGroup().getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-					group.getActions().addActionWait(station.getDelay());
-				} else if (group.head().getDirectionTo() != trainDirection) {
-					centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
+					station.centerTrain();
+					station.waitTrain(station.getDelay());
+				} else if (info.getMember().getDirectionTo() != trainDirection) {
+					// Order the train to center prior to launching again
+					station.centerTrain();
 				}
-				if (TrainCarts.refillAtStations) {
-					group.getActions().addActionRefill();
-				}
-				centerMember.getActions().addActionLaunch(trainDirection, station.getLength(), TrainCarts.launchForce);
+				station.launchTo(trainDirection, station.getLength());
 			} else {
-				centerMember.getActions().addActionLaunch(info.getCenterLocation(), 0);
-				group.getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-				if (TrainCarts.playSoundAtStation) {
-					group.getActions().addActionSizzle();
-				}
-				group.getActions().addActionWaitForever();
+				station.centerTrain();
+				station.waitTrain(Long.MAX_VALUE);
 			}
 		} else {
 			//Launch
@@ -89,19 +77,12 @@ public class SignActionStation extends SignAction {
 
 			if (station.hasDelay() || (head.isMoving() && info.getMember().getDirection() != station.getInstruction())) {
 				//Reversing or has delay, need to center it in the middle first
-				station.getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
+				station.centerTrain();
 			}
 			if (station.hasDelay()) {
-				if (TrainCarts.playSoundAtStation) {
-					group.getActions().addActionSizzle();
-				}
-				group.getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
-				group.getActions().addActionWait(station.getDelay());
+				station.waitTrain(station.getDelay());
 			}
-			if (TrainCarts.refillAtStations) {
-				group.getActions().addActionRefill();
-			}
-			station.getCenterCart().getActions().addActionLaunch(station.getInstruction(), station.getLength(), TrainCarts.launchForce);
+			station.launchTo(station.getInstruction(), station.getLength());
 		}
 	}
 
