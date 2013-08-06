@@ -12,6 +12,7 @@ import org.bukkit.material.Rails;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
@@ -22,6 +23,7 @@ public class TrackIterator implements Iterator<Block> {
 	 */
 	private TrackMovingPoint movingPoint;
 	private int distance;
+	private double cartDistance;
 	private final int maxdistance;
 	private final boolean onlyInLoadedChunks;
 	private Set<IntVector3> coordinates = new HashSet<IntVector3>();
@@ -48,12 +50,31 @@ public class TrackIterator implements Iterator<Block> {
 	public TrackIterator reset(Block startBlock, BlockFace startDirection) {
 		this.coordinates.clear();
 		this.distance = 0;
+		this.cartDistance = 0.0;
 		this.movingPoint = new TrackMovingPoint(startBlock, startDirection);
 		return this;
 	}
 
+	/**
+	 * Gets the distance travelled in full blocks, that is, from block to block
+	 * it is incremented by one. It returns how many times a successful {@link #next()}
+	 * was executed.
+	 * 
+	 * @return Block Distance
+	 */
 	public int getDistance() {
 		return this.distance;
+	}
+
+	/**
+	 * Gets the total amount of distance when travelled by cart.
+	 * This is equal as or less than the {@link #getDistance()} method returns.
+	 * Unlike getDistance(), getCartDistance() adds less distance for curves.
+	 * 
+	 * @return Cart Distance
+	 */
+	public double getCartDistance() {
+		return this.cartDistance;
 	}
 
 	@Override
@@ -114,8 +135,17 @@ public class TrackIterator implements Iterator<Block> {
 		if (!this.hasNext()) {
 			throw new NoSuchElementException("No next track is available");
 		}
+		BlockFace oldDirection = this.currentDirection();
 		this.genNextBlock();
+		BlockFace newDirection = this.currentDirection();
 		this.distance++;
+		if (oldDirection == newDirection || oldDirection == newDirection.getOppositeFace()) {
+			// Took a straight piece
+			this.cartDistance += 1.0;
+		} else {
+			// Took a curve
+			this.cartDistance += MathUtil.HALFROOTOFTWO;
+		}
 		return this.current();
 	}
 

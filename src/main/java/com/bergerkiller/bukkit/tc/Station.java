@@ -2,12 +2,9 @@ package com.bergerkiller.bukkit.tc;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.material.Rails;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
@@ -30,6 +27,7 @@ public class Station {
 	private final boolean valid;
 	private final BlockFace railDirection;
 	private final Block railsBlock;
+	private boolean wasCentered = false;
 
 	public Station(SignActionEvent info) {
 		this.info = info;
@@ -108,13 +106,7 @@ public class Station {
 		if (length == 0.0 && this.instruction != null) {
 			// Manually calculate the length
 			// Use the amount of straight blocks
-			if (FaceUtil.isVertical(this.railDirection)) {
-				length = this.calcVerticalLength();
-			} else if (FaceUtil.isSubCardinal(this.railDirection)) {
-				length = this.calcDiagonalLength();
-			} else {
-				length = this.calcHorizontalLength();
-			}
+			length = calcStationLength();
 			if (length == 0.0) {
 				length++;
 			}
@@ -123,108 +115,66 @@ public class Station {
 		this.valid = true;
 	}
 
-	private double calcDiagonalLength() {
-		double length = 0.0;
-		// Count the amount of zig-zagging curved tracks
-		final BlockFace[] toCheck;
-		if (this.instruction == BlockFace.SELF) {
-			toCheck = new BlockFace[] {FaceUtil.rotate(this.railDirection, -2), FaceUtil.rotate(this.railDirection, 2)};
-		} else {
-			toCheck = new BlockFace[] {this.instruction};
-		}
-		for (BlockFace direction : toCheck) {
-			double tlength = 0.0;
-			// Find out the starting offset
-			final BlockFace[] dirs = FaceUtil.getFaces(direction);
-			BlockFace[] railDirs = FaceUtil.getFaces(this.railDirection);
-			BlockFace railDirection = this.railDirection;
-
-			Block b = this.railsBlock;
-			for (int i = 0; i < 20; i++) {
-				// Invert the direction
-				railDirection = railDirection.getOppositeFace();
-				railDirs[0] = railDirs[0].getOppositeFace();
-				railDirs[1] = railDirs[1].getOppositeFace();
-				// Obtain the new offset
-				final BlockFace offset;
-				if (LogicUtil.contains(railDirs[0], dirs)) {
-					offset = railDirs[0];
-				} else {
-					offset = railDirs[1];
-				}
-				// Check if the new block is the expected curve direction
-				b = b.getRelative(offset);
-				Rails rr = BlockUtil.getRails(b);
-				if (rr == null || rr.getDirection() != railDirection) {
-					break;
-				}
-				tlength += MathUtil.HALFROOTOFTWO;
-			}
-
-			// Update the length
-			if (tlength > length) {
-				length = tlength;
-			}
-		}
-		return length;
-	}
-
-	private double calcVerticalLength() {
-		double length = 0.0;
-		// Count the amount of vertical tracks
-		final BlockFace[] toCheck;
-		if (this.instruction == BlockFace.SELF) {
-			toCheck = new BlockFace[] {BlockFace.DOWN, BlockFace.UP};
-		} else {
-			toCheck = new BlockFace[] {this.instruction};
-		}
-		for (BlockFace face : toCheck) {
-			int tlength = 0;
-			// Get the type of rail required
-			Block b = this.railsBlock;
-			for (int i = 0; i < 20; i++) {
-				// Next until invalid
-				b = b.getRelative(face);
-				if (!Util.ISVERTRAIL.get(b)) {
-					break;
-				}
-				tlength++;
-			}
-			// Update the length
-			if (tlength > length) {
-				length = tlength;
-			}
-		}
-		return length;
-	}
-
-	private double calcHorizontalLength() {
-		double length = 0.0;
+	private double calcStationLength() {
 		// Count the amount of horizontal tracks
 		final BlockFace[] toCheck;
 		if (this.instruction == BlockFace.SELF) {
-			toCheck = FaceUtil.getFaces(this.railDirection);
+			toCheck = RailType.getType(this.railsBlock).getPossibleDirections(this.railsBlock);
 		} else {
 			toCheck = new BlockFace[] {this.instruction};
 		}
+		double length = 0.0;
+		TrackIterator iter = new TrackIterator(null, null, 20, false);
 		for (BlockFace face : toCheck) {
-			int tlength = 0;
-			// Get the type of rail required
-			BlockFace checkface = FaceUtil.toRailsDirection(face);
-
-			Block b = this.railsBlock;
-			for (int i = 0; i < 20; i++) {
-				// Next until invalid
-				b = b.getRelative(face);
-				Rails rr = BlockUtil.getRails(b);
-				if (rr == null || rr.getDirection() != checkface) {
-					break;
+			double trackLength = 0.0;
+			iter.reset(this.railsBlock, face);
+			// Skip the start block, abort if no start block was found
+			if (iter.hasNext()) {
+				iter.next();
+			} else {
+				continue;
+			}
+			// Two modes: diagonal and straight
+			if (FaceUtil.isSubCardinal(this.railDirection)) {
+				// Diagonal mode
+				BlockFace lastFace = null;
+				int lastAngle = Integer.MAX_VALUE;
+				while (iter.hasNext()) {
+					iter.next();
+					// Check that the direction alternates
+					if (lastFace == null) {
+						// Start block: store it's information
+						lastFace = iter.currentDirection();
+					} else {
+						BlockFace newFace = iter.currentDirection();
+						int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) - FaceUtil.faceToYaw(lastFace));
+						if (Math.abs(newAngle) != 90) {
+							// Not a 90-degree angle!
+							break;
+						}
+						if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) {
+							// Not the exact opposite from last time
+							break;
+						}
+						lastFace = newFace;
+						lastAngle = newAngle;
+					}
+					trackLength += MathUtil.HALFROOTOFTWO;
 				}
-				tlength++;
+			} else {
+				// Straight mode
+				while (iter.hasNext()) {
+					iter.next();
+					// Check that the direction stays the same
+					if (iter.currentDirection() != face) {
+						break;
+					}
+					trackLength++;
+				}
 			}
 			// Update the length
-			if (tlength > length) {
-				length = tlength;
+			if (trackLength > length) {
+				length = trackLength;
 			}
 		}
 		return length;
@@ -323,6 +273,13 @@ public class Station {
 	 * Orders the train to center above this Station
 	 */
 	public void centerTrain() {
+		// If cart is already in range of the station, order it to stop right now
+		if (!info.getGroup().getActions().hasAction() && 
+				getCenterCart().getEntity().loc.distance(this.railsBlock) < 0.5) {
+			getCenterCart().stop();
+			return;
+		}
+
 		CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
 		if (stationInfo.cartDir != null) {
 			// Launch the center cart into the direction of the station
@@ -331,6 +288,7 @@ public class Station {
 			// Alternative: get as close as possible (may fail)
 			getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
 		}
+		this.wasCentered = true;
 	}
 
 	/**
@@ -340,17 +298,20 @@ public class Station {
 	 * @param distance to launch
 	 */
 	public void launchTo(BlockFace direction, double distance) {
-		// Apply distance correction from center cart to station
-		CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
 		double newDistance = distance;
 		BlockFace newDirection = direction;
-		// Adjust the direction and distance
-		if (stationInfo.centerDir == direction) {
+		if (!wasCentered) {
+			// Apply distance correction from center cart to station
+			CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
 			// Adjust the direction and distance
-			newDistance += stationInfo.distance;
-			newDirection = stationInfo.cartDir;
+			if (stationInfo.centerDir == direction) {
+				// Adjust the direction and distance
+				newDistance += stationInfo.distance;
+				newDirection = stationInfo.cartDir;
+			}
 		}
 		getCenterCart().getActions().addActionLaunch(newDirection, newDistance, TrainCarts.launchForce);
+		this.wasCentered = false;
 	}
 
 	private CartToStationInfo getCartToStationInfo(MinecartMember<?> member) {
@@ -361,8 +322,8 @@ public class Station {
 		info.distance = Integer.MAX_VALUE;
 		for (BlockFace dir : possible) {
 			iter.reset(info.cartBlock, dir);
-			if (iter.tryFind(this.info.getRails()) && iter.getDistance() < info.distance) {
-				info.distance = iter.getDistance();
+			if (iter.tryFind(this.info.getRails()) && iter.getCartDistance() < info.distance) {
+				info.distance = iter.getCartDistance();
 				info.cartDir = dir;
 				info.centerDir = iter.currentDirection();
 			}
@@ -374,10 +335,14 @@ public class Station {
 			double subX = entity.loc.getX() - (entity.loc.x.getFloor() + 0.5);
 			double subY = entity.loc.getY() - (entity.loc.y.getFloor() + 0.5);
 			double subZ = entity.loc.getZ() - (entity.loc.z.getFloor() + 0.5);
-			double sub = info.cartDir.getModX() * subX + info.cartDir.getModY() * subY + info.cartDir.getModZ() * subZ;
+			info.distance -= info.cartDir.getModX() * subX + info.cartDir.getModY() * subY + info.cartDir.getModZ() * subZ;
 
-			// Launch the center cart into the direction of the station
-			info.distance -=  sub + 0.5;
+			// Ignore start block and adjust the distance to be at the middle of the Block
+			if (FaceUtil.isSubCardinal(this.railDirection)) {
+				info.distance -= MathUtil.HALFROOTOFTWO;
+			} else {
+				info.distance -= 0.5;
+			}
 		}
 		return info;
 	}
