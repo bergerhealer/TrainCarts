@@ -47,11 +47,8 @@ public class RedstoneTracker implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
-		if (event.isCancelled()) {
-			return;
-		}
 		final Block block = event.getBlock();
 		final int type = block.getTypeId();
 		if (MaterialUtil.ISSIGN.get(type)) {

@@ -12,13 +12,20 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.material.MaterialData;
+import org.bukkit.material.Stairs;
 import org.bukkit.util.Vector;
 
 import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
+import com.bergerkiller.bukkit.common.reflection.MethodAccessor;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
+import com.bergerkiller.bukkit.common.reflection.SafeMethod;
+import com.bergerkiller.bukkit.common.reflection.classes.BlockRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -38,6 +45,8 @@ public class Util {
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
 	public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
 	private static final String SEPARATOR_REGEX = "[|/\\\\]";
+	private static final FieldAccessor<Object> blockMaterial = BlockRef.TEMPLATE.getField("material");
+	private static final MethodAccessor<Boolean> materialBuildable = new SafeMethod<Boolean>(Common.NMS_ROOT + ".Material.isBuildable");
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {
 		SafeField.set(Conversion.toItemHandle.convert(material), "maxStackSize", maxstacksize);
@@ -476,8 +485,59 @@ public class Util {
 		return entity instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
 	}
 
+	/**
+	 * Checks whether a Block supports placement/attachment of solid blocks on a particular face.
+	 * Note that signs do not use this logic - they allow pretty much any sort of attachment.
+	 * 
+	 * @param block to check
+	 * @param face to check
+	 * @return True if supported, False if not
+	 */
+	public static boolean isSupportedFace(Block block, BlockFace face) {
+		int type = block.getTypeId();
+		if (MaterialUtil.ISSOLID.get(type)) {
+			return true;
+		}
+		// Special block types that only support one face at a time
+		MaterialData data = BlockUtil.getData(type, block.getData());
+
+		// Steps only support TOP or BOTTOM
+		if (MaterialUtil.isType(type, Material.WOOD_STEP, Material.STEP)) {
+			return face == FaceUtil.getVertical((data.getData() & 0x8) == 0x8);
+		}
+
+		// Stairs only support the non-exit side + the up/down
+		if (data instanceof Stairs) {
+			if (FaceUtil.isVertical(face)) {
+				return face == FaceUtil.getVertical(((Stairs) data).isInverted());
+			} else {
+				// For some strange reason...stairs don't support attachments to the back
+				//return face == ((Stairs) data).getFacing().getOppositeFace();
+				return false;
+			}
+		}
+
+		// Unsupported/unknown Block
+		return false;
+	}
+
 	public static boolean isSupported(Block block) {
-		return MaterialUtil.ISSOLID.get(BlockUtil.getAttachedBlock(block));
+		BlockFace attachedFace = BlockUtil.getAttachedFace(block);
+		Block attached = block.getRelative(attachedFace);
+		if (MaterialUtil.ISSIGN.get(block)) {
+			// Only check the 'isBuildable' state of the Material
+			Object attachedHandle = Conversion.toBlockHandle.convert(attached);
+			if (attachedHandle == null) {
+				return false;
+			}
+			Object material = blockMaterial.get(attachedHandle);
+			if (material == null) {
+				return false;
+			}
+			return materialBuildable.invoke(material);
+		}
+		// For all other cases, check whether the side is properly supported
+		return isSupportedFace(attached, attachedFace.getOppositeFace());
 	}
 
 	public static boolean isValidEntity(String entityName) {
