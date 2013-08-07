@@ -153,9 +153,11 @@ public class SignActionSwitcher extends SignAction {
 				}
 				if (prop != null) {
 					destination = prop.getDestination();
-					prop.setLastPathNode(node.name);
+					prop.setLastPathNode(node.getName());
 				}
-				if (!LogicUtil.nullOrEmpty(destination)) {
+				// Continue with path finding if a valid destination is specified
+				// If the current node denotes the destination - don't switch!
+				if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
 					if (PathProvider.isProcessing()) {
 						double currentForce = info.getGroup().getAverageForce();
 						// Add an action to let the train wait until the node IS explored
@@ -186,7 +188,14 @@ public class SignActionSwitcher extends SignAction {
 
 	@Override
 	public void destroy(SignActionEvent event) {
-		PathNode.clear(event.getRails());
+		// Remove the switcher name (location toString) from the available node names
+		Block rails = event.getRails();
+		if (rails != null) {
+			PathNode node = PathNode.get(rails);
+			if (node != null) {
+				node.removeName(node.location.toString());
+			}
+		}
 	}
 
 	@Override

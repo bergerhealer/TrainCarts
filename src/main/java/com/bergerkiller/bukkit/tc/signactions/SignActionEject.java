@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.Action;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -22,7 +21,7 @@ public class SignActionEject extends SignAction {
 	}
 
 	@Override
-	public boolean click(SignActionEvent info, Player player, Action action) {
+	public boolean click(SignActionEvent info, Player player) {
 		MinecartMember<?> member = MinecartMemberStore.get(player.getVehicle());
 		if (member == null) {
 			return false;

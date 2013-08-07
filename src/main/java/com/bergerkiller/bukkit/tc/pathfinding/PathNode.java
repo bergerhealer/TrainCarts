@@ -5,9 +5,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -17,8 +19,8 @@ import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -66,21 +68,10 @@ public class PathNode {
 	public static PathNode get(final String name) {
 		return nodes.get(name);
 	}
-	public static PathNode remove(final String name) {
-		PathNode node = nodes.remove(name);
-		if (node != null) node.remove();
-		return node;
-	}
 	public static PathNode remove(Block railsblock) {
 		if (railsblock == null) return null;
 		PathNode node = blockNodes.remove(railsblock);
 		if (node != null) node.remove();
-		return node;
-	}
-	public static PathNode clear(Block railsblock) {
-		if (railsblock == null) return null;
-		PathNode node = blockNodes.get(railsblock);
-		if (node != null) node.clear();
 		return node;
 	}
 	public static PathNode getOrCreate(SignActionEvent event) {
@@ -116,47 +107,35 @@ public class PathNode {
 			return null;
 		}
 		PathNode node = get(name);
+		if (node != null) {
+			return node;
+		}
+		node = blockNodes.get(location);
 		if (node == null) {
 			// Create a new node
 			node = new PathNode(name, location);
-			nodes.put(node.name, node);
-			blockNodes.put(location, node);
-			// Start exploration
-			Block nodeBlock = location.getBlock();
-			if (nodeBlock != null) {
-				Block startBlock;
-				for (BlockFace dir : FaceUtil.AXIS) {
-					startBlock = Util.getRailsBlock(nodeBlock.getRelative(dir));
-					if (startBlock == null) {
-						continue;
-					}
-					PathProvider.schedule(node, startBlock, dir);
-				}
-			}
+			node.addToMapping();
+			PathProvider.schedule(node);
+		} else {
+			// Add the name to the existing node
+			node.addName(name);
 		}
 		return node;
 	}
-	
+
 	private PathNode(final String name, final BlockLocation location) {
 		this.location = location;
-		this.name = name == null ? location.toString() : name;
+		if (!LogicUtil.nullOrEmpty(name)) {
+			LogicUtil.addArray(this.names, name.split("\n", -1));
+		}
 	}
 
 	public int index;
-	public final String name;
 	public final BlockLocation location;
+	private final Set<String> names = new HashSet<String>();
 	private final List<PathConnection> neighbors = new ArrayList<PathConnection>(3);
 	private int lastDistance;
 	private PathConnection lastTaken;
-
-	/**
-	 * Gets whether this Path Node has a special name assigned which differs from the default (location)
-	 * 
-	 * @return True if named, False if not
-	 */
-	public boolean isNamed() {
-		return !this.name.equals(this.location.toString());
-	}
 
 	/**
 	 * Tries to find a connection from this node to the node specified
@@ -178,6 +157,7 @@ public class PathNode {
 	public PathConnection findConnection(PathNode destination) {
 		for (PathNode node : nodes.values()) {
 			node.lastDistance = Integer.MAX_VALUE;
+			node.lastTaken = null;
 		}
 		int maxDistance = Integer.MAX_VALUE;
 		int distance;
@@ -286,16 +266,133 @@ public class PathNode {
 		}
 	}
 
+	/**
+	 * Removes a single available name that was usable by this Path Node.
+	 * If no names are left, the node is removed entirely.
+	 * 
+	 * @param name to remove
+	 */
+	public void removeName(String name) {
+		if (!this.names.remove(name)) {
+			return;
+		}
+		nodes.remove(name);
+		if (PathProvider.DEBUG_MODE) {
+			String dbg = "NODE " + location + " NO LONGER HAS NAME " + name;
+			if (this.names.isEmpty()) {
+				dbg += " AND IS NOW BEING REMOVED (NO NAMES)";
+			}
+			System.out.println(dbg);
+		}
+		if (this.names.isEmpty()) {
+			this.remove();
+		}
+	}
+
+	/**
+	 * Removes this node and all names associated with it.
+	 */
 	public void remove() {
 		this.clear();
 		//remove globally
-		nodes.remove(this.name);
+		for (String name : this.names) {
+			nodes.remove(name);
+		}
 		blockNodes.remove(this.location);
+	}
+
+	/**
+	 * Checks whether this node contains a name
+	 * 
+	 * @param name to check
+	 * @return True if the name is contained, False if not
+	 */
+	public boolean containsName(String name) {
+		return this.names.contains(name);
+	}
+
+	/**
+	 * Checks whether all this node contains is a switcher sign,
+	 * and no other signs (destinations) are set.
+	 * 
+	 * @return True if only a switcher sign is contained, False if not
+	 */
+	public boolean containsOnlySwitcher() {
+		return this.names.size() == 1 && this.containsSwitcher();
+	}
+
+	/**
+	 * Checks whether this node is covered by a switcher sign
+	 * 
+	 * @return True if a switcher sign is contained, False if not
+	 */
+	public boolean containsSwitcher() {
+		return this.names.contains(this.location.toString());
+	}
+
+	/**
+	 * Gets a name of this Node, using get on this name will result in this node being returned.
+	 * Returns null if this node contains no name (and is invalid)
+	 * 
+	 * @return Reverse-lookup-able Node name
+	 */
+	public String getName() {
+		if (this.names.isEmpty()) {
+			return null;
+		} else {
+			return this.names.iterator().next();
+		}
+	}
+
+	/**
+	 * Gets the Display name of this Path Node, which covers the names given or the location
+	 * if this is an unnamed node.
+	 * 
+	 * @return Node display name
+	 */
+	public String getDisplayName() {
+		String locDName = "[" + this.location.x + "/" + this.location.y + "/" + this.location.z + "]";
+		// No name at all - use location as name
+		if (this.names.isEmpty()) {
+			return locDName;
+		}
+
+		// Get all names except the location name
+		String locName = this.location.toString();
+		if (this.names.size() == 1) {
+			// Show this one name
+			return this.names.iterator().next().replace(locName, locDName);
+		} else {
+			// Show a list of names
+			StringBuilder builder = new StringBuilder(this.names.size() * 15);
+			builder.append('{');
+			for (String name : this.names) {
+				if (builder.length() > 1) {
+					builder.append("/");
+				}
+				builder.append(name.replace(locName, locDName));
+			}
+			builder.append('}');
+			return builder.toString();
+		}
 	}
 
 	@Override
 	public String toString() {
-		return "[" + this.name + "]";
+		return this.getDisplayName();
+	}
+
+	public void addName(String name) {
+		if (this.names.add(name)) {
+			nodes.put(name, this);
+		}
+	}
+
+	private void addToMapping() {
+		for (String name : this.names) {
+			nodes.put(name, this);
+		}
+		blockNodes.put(this.location, this);
 	}
 
 	public static void deinit() {
@@ -317,8 +414,7 @@ public class PathNode {
 						name = loc.toString();
 					}
 					parr[i] = new PathNode(name, loc);
-					nodes.put(parr[i].name, parr[i]);
-					blockNodes.put(loc, parr[i]);
+					parr[i].addToMapping();
 				}
 				//generating connections
 				for (PathNode node : parr) {
@@ -338,10 +434,10 @@ public class PathNode {
 				int i = 0;
 				for (PathNode node : nodes.values()) {
 					node.index = i;
-					if (node.name.equals(node.location.toString())) {
-						stream.writeShort(0);
+					if (node.containsOnlySwitcher()) {
+						stream.writeUTF("");
 					} else {
-						stream.writeUTF(node.name);
+						stream.writeUTF(StringUtil.combine("\n", node.names));
 					}
 					stream.writeUTF(node.location.world);
 					stream.writeInt(node.location.x);

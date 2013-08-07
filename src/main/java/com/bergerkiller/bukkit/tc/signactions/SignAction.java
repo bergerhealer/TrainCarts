@@ -4,13 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -115,14 +113,13 @@ public abstract class SignAction {
 	}
 
 	/**
-	 * Handles a player clicking this action sign
+	 * Handles a player right-clicking this action sign
 	 * 
 	 * @param info related to the event
 	 * @param player that clicked
-	 * @param action that was performed
 	 * @return True if handled, False if not
 	 */
-	public boolean click(SignActionEvent info, Player player, Action action) {
+	public boolean click(SignActionEvent info, Player player) {
 		return false;
 	}
 
@@ -137,21 +134,20 @@ public abstract class SignAction {
 		actions.remove(action);
 	}
 
-	public static void handleClick(PlayerInteractEvent event) {
-		SignActionEvent info = new SignActionEvent(event.getClickedBlock());
+	/**
+	 * Handles right-click interaction with a Sign
+	 * 
+	 * @param clickedSign
+	 * @param player that clicked
+	 * @return Whether the click was handled (and the original interaction should be cancelled)
+	 */
+	public static boolean handleClick(Block clickedSign, Player player) {
+		SignActionEvent info = new SignActionEvent(clickedSign);
 		if (info.getSign() == null) {
-			return;
+			return false;
 		}
-		final boolean canCauseAction = event.getAction() == Action.RIGHT_CLICK_BLOCK ||
-				(event.getAction() == Action.LEFT_CLICK_BLOCK && event.getPlayer().getGameMode() == GameMode.CREATIVE);
-
 		SignAction action = getSignAction(info);
-		if (action != null && action.click(info, event.getPlayer(), event.getAction()) && canCauseAction) {
-			if (action.click(info, event.getPlayer(), event.getAction())) {
-				// Prevent the action from being executed
-				event.setCancelled(true);
-			}
-		}
+		return action != null && action.click(info, player);
 	}
 
 	public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname) {

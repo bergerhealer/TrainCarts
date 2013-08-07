@@ -92,16 +92,11 @@ public class Commands {
 					PathNode[] route = first.findRoute(last);
 					msg.yellow("Route: ");
 					if (route.length == 0) {
-						msg.red(first.name + " /=/ " + last.name + " (not found)");
+						msg.red(first.getDisplayName() + " /=/ " + last.getDisplayName() + " (not found)");
 					} else {
 						msg.setSeparator(ChatColor.YELLOW, " -> ");
 						for (PathNode node : route) {
-							if (node.isNamed()) {
-								msg.green(node.name);
-							} else {
-								BlockLocation l = node.location;
-								msg.green("[" + l.x + "/" + l.y + "/" + l.z + "]");
-							}
+							msg.green(node.getDisplayName());
 						}
 					}
 				}				

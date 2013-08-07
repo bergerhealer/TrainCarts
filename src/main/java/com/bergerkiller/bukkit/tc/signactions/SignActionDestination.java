@@ -1,8 +1,8 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.Action;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -20,7 +20,7 @@ public class SignActionDestination extends SignAction {
 	}
 
 	@Override
-	public boolean click(SignActionEvent info, Player player, Action action) {
+	public boolean click(SignActionEvent info, Player player) {
 		//get the train this player is editing
 		CartProperties cprop = CartProperties.getEditing(player);
 		if (cprop == null) {
@@ -87,7 +87,13 @@ public class SignActionDestination extends SignAction {
 
 	@Override
 	public void destroy(SignActionEvent event) {
-		PathNode.clear(event.getRails());
+		String name = event.getLine(2);
+		if (!LogicUtil.nullOrEmpty(name)) {
+			PathNode node = PathNode.get(name);
+			if (node != null) {
+				node.removeName(name);
+			}
+		}
 	}
 
 	@Override
