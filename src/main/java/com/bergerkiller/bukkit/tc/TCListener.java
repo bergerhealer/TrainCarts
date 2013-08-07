@@ -67,9 +67,10 @@ public class TCListener implements Listener {
 	public static boolean ignoreNextEject = false;
 	private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
 	private EntityMap<Player, Long> lastHitTimes = new EntityMap<Player, Long>();
+	private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<Player, BlockFace>();
 	private static final boolean DEBUG_DO_TRACKTEST = false;
 	private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
-	private static final long TRACK_CLICK_INTERVAL = 300; // Interval in MS where right-click rail interaction is allowed
+	private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerQuit(PlayerQuitEvent event) {
@@ -297,8 +298,6 @@ public class TCListener implements Listener {
 		}
 	}
 
-	private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<Player, BlockFace>();
-
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) {
@@ -328,7 +327,7 @@ public class TCListener implements Listener {
 							// Handle the interaction with rails while holding a minecart
 							// Place a TrainCart/Minecart on top of the rails, and handles permissions
 							handleMinecartPlacement(event, clickedBlock, id);
-						} else if (id == item.getTypeId() && MaterialUtil.ISRAILS.get(id) && TrainCarts.allowRailEditing && clickInterval >= TRACK_CLICK_INTERVAL) {
+						} else if (id == item.getTypeId() && MaterialUtil.ISRAILS.get(id) && TrainCarts.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
 							if (CommonUtil.callEvent(new BlockCanBuildEvent(clickedBlock, id, true)).isBuildable()) {
 								// Edit the rails to make a connection/face the direction the player clicked
 								BlockFace direction = FaceUtil.getDirection(event.getPlayer().getLocation().getDirection(), false);
@@ -449,6 +448,18 @@ public class TCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+		if (!(event.getRightClicked() instanceof Minecart)) {
+			return;
+		}
+		// Check that we are not spam-clicking (for block placement, that is!)
+		long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE).longValue();
+		long time = System.currentTimeMillis();
+		long clickInterval = time - lastHitTime;
+		if (clickInterval < MAX_INTERACT_INTERVAL) {
+			event.setCancelled(true);
+			return;
+		}
+		// Handle the vehicle change
 		event.setCancelled(!TrainCarts.handlePlayerVehicleChange(event.getPlayer(), event.getRightClicked()));
 	}
 
