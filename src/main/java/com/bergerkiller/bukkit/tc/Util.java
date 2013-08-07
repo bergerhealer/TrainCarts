@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
@@ -31,6 +32,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class Util {
 	public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
@@ -527,5 +529,82 @@ public class Util {
 		} else {
 			return false;
 		}
+	}
+
+	/**
+	 * Obtains the maximum straight length achieved from a particular block.
+	 * This length is limited to 20 blocks.
+	 * 
+	 * @param railsBlock to calculate from
+	 * @param direction to look into, use SELF to check all possible directions
+	 * @return straight length
+	 */
+	public static double calculateStraightLength(Block railsBlock, BlockFace direction) {
+		// Read track information and parameters
+		RailType type = RailType.getType(railsBlock);
+		boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock));
+		final BlockFace[] toCheck;
+		if (direction == BlockFace.SELF) {
+			toCheck = type.getPossibleDirections(railsBlock);
+		} else {
+			toCheck = new BlockFace[] {direction};
+		}
+		double length = 0.0;
+		TrackIterator iter = new TrackIterator(null, null, 20, false);
+
+		// Check all directions
+		for (BlockFace face : toCheck) {
+			double trackLength = 0.0;
+			iter.reset(railsBlock, face);
+			// Skip the start block, abort if no start block was found
+			if (iter.hasNext()) {
+				iter.next();
+			} else {
+				continue;
+			}
+			// Two modes: diagonal and straight
+			if (diagonal) {
+				// Diagonal mode
+				BlockFace lastFace = null;
+				int lastAngle = Integer.MAX_VALUE;
+				while (iter.hasNext()) {
+					iter.next();
+					// Check that the direction alternates
+					if (lastFace == null) {
+						// Start block: store it's information
+						lastFace = iter.currentDirection();
+					} else {
+						BlockFace newFace = iter.currentDirection();
+						int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) - FaceUtil.faceToYaw(lastFace));
+						if (Math.abs(newAngle) != 90) {
+							// Not a 90-degree angle!
+							break;
+						}
+						if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) {
+							// Not the exact opposite from last time
+							break;
+						}
+						lastFace = newFace;
+						lastAngle = newAngle;
+					}
+					trackLength += MathUtil.HALFROOTOFTWO;
+				}
+			} else {
+				// Straight mode
+				while (iter.hasNext()) {
+					iter.next();
+					// Check that the direction stays the same
+					if (iter.currentDirection() != face) {
+						break;
+					}
+					trackLength++;
+				}
+			}
+			// Update the length
+			if (trackLength > length) {
+				length = trackLength;
+			}
+		}
+		return length;
 	}
 }

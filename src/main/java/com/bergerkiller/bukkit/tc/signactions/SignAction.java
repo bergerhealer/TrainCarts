@@ -27,6 +27,7 @@ public abstract class SignAction {
 	public static void init() {
 		actions = new ArrayList<SignAction>();
 		register(new SignActionStation());
+		register(new SignActionLauncher());
 		register(new SignActionSwitcher());
 		register(new SignActionSpawn());
 		register(new SignActionBlockChanger());

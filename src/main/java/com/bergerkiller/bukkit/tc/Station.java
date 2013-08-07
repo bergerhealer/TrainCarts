@@ -106,78 +106,13 @@ public class Station {
 		if (length == 0.0 && this.instruction != null) {
 			// Manually calculate the length
 			// Use the amount of straight blocks
-			length = calcStationLength();
+			length = Util.calculateStraightLength(this.railsBlock, this.instruction);
 			if (length == 0.0) {
 				length++;
 			}
 		}
 		this.length = length;
 		this.valid = true;
-	}
-
-	private double calcStationLength() {
-		// Count the amount of horizontal tracks
-		final BlockFace[] toCheck;
-		if (this.instruction == BlockFace.SELF) {
-			toCheck = RailType.getType(this.railsBlock).getPossibleDirections(this.railsBlock);
-		} else {
-			toCheck = new BlockFace[] {this.instruction};
-		}
-		double length = 0.0;
-		TrackIterator iter = new TrackIterator(null, null, 20, false);
-		for (BlockFace face : toCheck) {
-			double trackLength = 0.0;
-			iter.reset(this.railsBlock, face);
-			// Skip the start block, abort if no start block was found
-			if (iter.hasNext()) {
-				iter.next();
-			} else {
-				continue;
-			}
-			// Two modes: diagonal and straight
-			if (FaceUtil.isSubCardinal(this.railDirection)) {
-				// Diagonal mode
-				BlockFace lastFace = null;
-				int lastAngle = Integer.MAX_VALUE;
-				while (iter.hasNext()) {
-					iter.next();
-					// Check that the direction alternates
-					if (lastFace == null) {
-						// Start block: store it's information
-						lastFace = iter.currentDirection();
-					} else {
-						BlockFace newFace = iter.currentDirection();
-						int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) - FaceUtil.faceToYaw(lastFace));
-						if (Math.abs(newAngle) != 90) {
-							// Not a 90-degree angle!
-							break;
-						}
-						if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) {
-							// Not the exact opposite from last time
-							break;
-						}
-						lastFace = newFace;
-						lastAngle = newAngle;
-					}
-					trackLength += MathUtil.HALFROOTOFTWO;
-				}
-			} else {
-				// Straight mode
-				while (iter.hasNext()) {
-					iter.next();
-					// Check that the direction stays the same
-					if (iter.currentDirection() != face) {
-						break;
-					}
-					trackLength++;
-				}
-			}
-			// Update the length
-			if (trackLength > length) {
-				length = trackLength;
-			}
-		}
-		return length;
 	}
 
 	/**
