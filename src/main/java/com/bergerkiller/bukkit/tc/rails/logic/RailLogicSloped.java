@@ -97,13 +97,14 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
 		// Stop movement if colliding with a block at the slope
 		double blockedDistance = Double.MAX_VALUE;
-		Block heading = member.getBlock(this.getDirection().getOppositeFace());
+		Block inside = member.getRailType().findMinecartPos(member.getBlock());
+		Block heading = inside.getRelative(this.getDirection().getOppositeFace());
 		if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
 			if (MaterialUtil.SUFFOCATES.get(heading)) {
 				blockedDistance = entity.loc.xz.distance(heading) - 1.0;
 			}
 		} else if (member.isHeadingTo(this.getDirection())) {
-			Block above = member.getBlock(BlockFace.UP);
+			Block above = inside.getRelative(BlockFace.UP);
 			if (MaterialUtil.SUFFOCATES.get(above)) {
 				blockedDistance = entity.loc.xz.distance(above);
 			}
