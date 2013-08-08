@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -75,14 +77,36 @@ public class SignActionDestination extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
+		boolean succ = false;
 		if (event.isTrainSign()) {
-			return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");
+			succ = handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");
 		} else if (event.isCartSign()) {
-			return handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
+			succ = handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
 		} else if (event.isRCSign()) {
-			return handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
+			succ = handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
 		}
-		return false;
+		if (succ && !event.getLine(2).isEmpty()) {
+			PathNode node = PathNode.get(event.getLine(2));
+			if (node != null) {
+				Player p = event.getPlayer();
+				p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
+				p.sendMessage(ChatColor.RED + "Please remove either sign and use /train reroute to fix");
+
+				// Send location message
+				BlockLocation loc = node.location;
+				StringBuilder locMsg = new StringBuilder(100);
+				locMsg.append(ChatColor.RED).append("Other sign is ");
+				if (loc.getWorld() != event.getPlayer().getWorld()) {
+					locMsg.append("on world ").append(ChatColor.WHITE).append(node.location.world);
+					locMsg.append(' ').append(ChatColor.RED);
+				}
+				locMsg.append("at ").append(ChatColor.WHITE);
+				locMsg.append('[').append(loc.x).append('/').append(loc.y);
+				locMsg.append('/').append(loc.z).append(']');
+				p.sendMessage(locMsg.toString());
+			}
+		}
+		return succ;
 	}
 
 	@Override

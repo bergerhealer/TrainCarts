@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 public class PathProvider extends Task {
-	public static boolean DEBUG_MODE = true;
+	public static boolean DEBUG_MODE = false;
 	private static final int STEP_COUNT = 100; // Steps performed per timing check
 	private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
 	private static PathProvider task;
