@@ -485,6 +485,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		Collections.reverse(this);
 	}
 	public void setForwardForce(double force) {
+		if (force == 0.0) {
+			this.stop();
+			return;
+		}
 		final double currvel = this.head().getForce();
 		if (currvel <= 0.01 || Math.abs(force) < 0.01) {
 			for (MinecartMember<?> mm : this) {
@@ -750,6 +754,18 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 			}
 		}
 		return true;
+	}
+
+	public void logCartInfo(String header) {
+		StringBuilder msg = new StringBuilder(size() * 7 + 10);
+		msg.append(header);
+		for (MinecartMember<?> member : this) {
+			msg.append(" [");
+			msg.append(member.getDirection());
+			msg.append(" - ").append(member.getEntity().vel);
+			msg.append("]");
+		}
+		System.out.println(msg);
 	}
 
 	public void doPhysics() {

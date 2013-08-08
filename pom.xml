@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>TrainCarts</artifactId>
-  <version>1.72.9-SNAPSHOT</version>
+  <version>1.72.9</version>
   <packaging>jar</packaging>
 
   <name>TrainCarts</name>
@@ -59,7 +59,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.54-SNAPSHOT</version>
+      <version>1.54</version>
       <scope>provided</scope>
   	</dependency>
     <dependency>

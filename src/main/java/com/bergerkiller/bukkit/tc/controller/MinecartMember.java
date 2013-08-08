@@ -32,6 +32,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -39,7 +40,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
@@ -62,6 +62,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeDown;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.type.RailTypeActivator;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -74,7 +75,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public static final double VERTRAIL_MULTIPLIER = 0.02;
 	public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
 	public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
-	public static final double POWERED_RAIL_START_BOOST = 0.02;
 	public static final double MIN_VEL_FOR_SLOPE = 0.05;
 
 	private BlockFace direction;
@@ -606,11 +606,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 	public void updateDirection() {
 		this.updateDirection(this.entity.getVelocity());
 	}
+	public void updateDirectionFromTo(LocationAbstract from, LocationAbstract to) {
+		this.updateDirection(from.offsetTo(to.getX(), to.getY(), to.getZ()));
+	}
 	public void updateDirectionTo(MinecartMember<?> member) {
-		this.updateDirection(this.entity.loc.offsetTo(member.entity));
+		this.updateDirectionFromTo(this.entity.last, member.entity.last);
 	}
 	public void updateDirectionFrom(MinecartMember<?> member) {
-		this.updateDirection(member.entity.loc.offsetTo(this.entity));
+		this.updateDirectionFromTo(member.entity.last, this.entity.last);
 	}
 
 	@Override
@@ -953,25 +956,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		// Update the entity shape
 		entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
 
-		boolean passengerControlled = false;
 		if (getGroup().getProperties().isManualMovementAllowed() && entity.hasPassenger()) {
 			Vector vel = entity.getPassenger().getVelocity();
 			vel.setY(0.0);
 			if (vel.lengthSquared() > 1.0E-4 && entity.vel.xz.lengthSquared() < 0.01) {
 				entity.vel.xz.add(vel.multiply(0.1));
-				passengerControlled = true;
 			}
 		}
 
-		// Slow down on unpowered booster tracks
-		// Note: HAS to be in PreUpdate, otherwise glitches occur!
-		if (getRailType() == RailType.BRAKE && !isMovementControlled() && !passengerControlled) {
-			if (entity.vel.xz.lengthSquared() < 0.0009) {
-				entity.vel.multiply(0.0);
-			} else {
-				entity.vel.multiply(0.5);
-			}
-		}
+		// Perform any pre-movement rail updates
+		getRailType().onPreMove(this);
 	}
 
 	/**
@@ -1034,45 +1028,23 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 					entity.vel.multiply(TrainCarts.slowDownMultiplierSlow);
 				}
 			}
-
-			// Perform Rails-specific logic
-			if (getRailType() == RailType.ACTIVATOR_ON) {
-				// Activating the Minecart
-				this.onActivatorUpdate(true);
-				if (railActivated.set()) {
-					this.onActivate();
-				}
-			} else if (getRailType() == RailType.ACTIVATOR_OFF) {
-				// De-activating the Minecart
-				this.onActivatorUpdate(false);
-				railActivated.clear();
-			} else {
-				railActivated.clear();
-			}
-
-			// Launching on powered booster tracks
-			if (getRailType() == RailType.BOOST && !isMovementControlled()) {
-				double motLength = entity.vel.xz.length();
-				if (motLength > 0.01) {
-					// Simple motion boosting when already moving
-					entity.vel.xz.add(entity.vel.xz, TrainCarts.poweredRailBoost / motLength);
-				} else {
-					// Launch away from a suffocating block
-					BlockFace dir = this.getRailDirection();
-					org.bukkit.block.Block block = this.getBlock();
-					boolean pushFrom1 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir.getOppositeFace()));
-					boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
-					// If pushing from both directions, block all movement
-					if (pushFrom1 && pushFrom2) {
-						entity.vel.xz.setZero();
-					} else if (pushFrom1 != pushFrom2) {
-						// Boosting to the open spot
-						final double boost = MathUtil.invert(POWERED_RAIL_START_BOOST, pushFrom2);
-						entity.vel.xz.set(boost * dir.getModX(), boost * dir.getModZ());
-					}
-				}
-			}
 		}
+
+		// Activator rail logic here - we can't do it in the rail properly
+		if (this.getRailType() instanceof RailTypeActivator) {
+			final boolean powered = ((RailTypeActivator) this.getRailType()).isPowered();
+			this.onActivatorUpdate(powered);
+			if (powered && this.railActivated.set()) {
+				this.onActivate();
+			} else {
+				this.railActivated.clear();
+			}
+		} else {
+			this.railActivated.clear();
+		}
+
+		// Perform post-movement rail logic
+		getRailType().onPostMove(this);
 
 		// Update rotation
 		this.onRotationUpdate();

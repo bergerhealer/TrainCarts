@@ -129,8 +129,6 @@ public class RailTracker {
 	 * Creates a snapshot of the Rail Logic for the entire next run
 	 */
 	public void snapshotRailLogic() {
-		this.lastRailType = this.railType;
-		this.lastRailLogic = this.railLogic;
 		this.railLogic = this.railType.getLogic(this.owner, this.block);
 		if (this.railLogic instanceof RailLogicVertical) {
 			this.railType = RailType.VERTICAL;
@@ -144,6 +142,8 @@ public class RailTracker {
 	public void refreshBlock() {
 		// Store the last rail information
 		this.lastBlock = this.block;
+		this.lastRailType = this.railType;
+		this.lastRailLogic = this.railLogic;
 
 		// Obtain the current, live block information
 		final CommonMinecart<?> entity = owner.getEntity();

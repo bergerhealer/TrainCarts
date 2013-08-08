@@ -30,9 +30,15 @@ public class RailLogicAir extends RailLogic {
 
 	@Override
 	public void setForwardVelocity(MinecartMember<?> member, double force) {
-		Vector vel = member.getEntity().vel.vector();
-		MathUtil.setVectorLength(vel, force);
-		member.getEntity().vel.set(vel);
+		if (member.isMovementControlled()) {
+			// Be sure to use the direction, we are being controlled!
+			super.setForwardVelocity(member, force);
+		} else {
+			// Simply set vector length
+			Vector vel = member.getEntity().vel.vector();
+			MathUtil.setVectorLength(vel, force);
+			member.getEntity().vel.set(vel);
+		}
 	}
 
 	@Override
@@ -49,13 +55,15 @@ public class RailLogicAir extends RailLogic {
 	public void onPreMove(MinecartMember<?> member) {
 		// Only do this logic if the head is is not moving vertically
 		// Or if this member is the head, of course
-		if (member.isMovingVerticalOnly()) {
+		if (member.isMovingVerticalOnly() && member.getEntity().vel.getY() > 0.0) {
 			MinecartMember<?> head = member.getGroup().head();
 			if (member != head && head.isMovingVerticalOnly()) {
 				return;
 			}
 		}
 		// Apply flying friction
-		member.getEntity().vel.multiply(member.getEntity().getFlyingVelocityMod());
+		if (!member.isMovementControlled()) {
+			member.getEntity().vel.multiply(member.getEntity().getFlyingVelocityMod());
+		}
 	}
 }

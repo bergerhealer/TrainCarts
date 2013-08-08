@@ -47,12 +47,12 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
 	@Override
 	public boolean update() {	
-		//Derailed?
-		if (this.getMember().isDerailed()) {
+		// Abort when derailed. We do permit vertical 'air-launching'
+		if (this.getMember().isDerailed() && !this.getMember().isMovingVerticalOnly()) {
 			return true;
 		}
 
-		//Did any of the carts in the group stop?
+		// Did any of the carts in the group stop?
 		if (this.distance != 0) {
 			for (MinecartMember<?> mm : this.getGroup()) {
 				if (mm.getForceSquared() < minVelocityForLaunch * minVelocityForLaunch) {
@@ -67,13 +67,8 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
 		//Reached the target distance?
 		if (this.distance > this.targetdistance - 0.2) {
-			if (this.targetvelocity == 0) {
-				//Stop if target velocity was 0
-				this.getGroup().stop();
-			} else {
-				//Launch at full speed
-				this.getGroup().setForwardForce(this.targetvelocity);
-			}
+			// Finish with the desired end-velocity
+			this.getGroup().setForwardForce(this.targetvelocity);
 			return true;
 		} else {
 			//Get the velocity to set the carts to

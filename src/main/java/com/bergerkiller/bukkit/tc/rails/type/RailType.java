@@ -150,6 +150,24 @@ public abstract class RailType {
 	public abstract RailLogic getLogic(MinecartMember<?> member, Block railsBlock);
 
 	/**
+	 * Called right before a Minecart is moved from one point to the other.
+	 * This is called after the pre-movement updates performed by rail logic.
+	 * 
+	 * @param member that is about to be moved
+	 */
+	public void onPreMove(MinecartMember<?> member) {
+	}
+
+	/**
+	 * Called right after a Minecart was moved from one point to the other.
+	 * This is called after the post-movement updates performed by rail logic.
+	 * 
+	 * @param member that just moved
+	 */
+	public void onPostMove(MinecartMember<?> member) {
+	}
+
+	/**
 	 * Handles collision with this Rail Type
 	 * 
 	 * @param with Minecart that his this Rail
