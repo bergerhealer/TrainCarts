@@ -38,6 +38,7 @@ import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberHopper;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberMobSpawner;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberRideable;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberTNT;
+import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 
 public abstract class MinecartMemberStore {
 	private static ClassMap<Class<?>> controllers = new ClassMap<Class<?>>();
@@ -197,7 +198,11 @@ public abstract class MinecartMemberStore {
 		}
 
 		// spawn and fire event
-		return spawn(at, type);
+		MinecartMember<?> spawned = spawn(at, type);
+		if (spawned != null && !spawned.getEntity().isDead()) {
+			spawned.getGroup().getProperties().setDefault(player);
+		}
+		return spawned;
 	}
 
 	public static MinecartMember<?> spawn(Location at, EntityType type) {
@@ -210,7 +215,7 @@ public abstract class MinecartMemberStore {
 		entity.spawn(at, createNetworkController(entity));
 		controller.invalidateDirection();
 		controller.updateDirection(FaceUtil.yawToFace(at.getYaw()));
-		return controller;
+		return MemberSpawnEvent.call(controller).getMember();
 	}
 
 	/**

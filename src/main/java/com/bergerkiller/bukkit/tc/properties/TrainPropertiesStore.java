@@ -2,16 +2,21 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -293,11 +298,24 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 	 * @return Default properties configuration node, or null if not found
 	 */
 	public static ConfigurationNode getDefaultsByPlayer(Player player) {
+		Set<ConfigurationNode> specialNodes = new TreeSet<ConfigurationNode>(new Comparator<ConfigurationNode>() {
+			@Override
+			public int compare(ConfigurationNode o1, ConfigurationNode o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		});
 		for (ConfigurationNode node : defconfig.getNodes()) {
-			if (player.hasPermission("train.properties." + node.getName())) {
-				return node;
+			if (LogicUtil.contains(node.getName(), "default", "spawner")) {
+				continue;
+			}
+			if (CommonUtil.hasPermission(player, "train.properties." + node.getName())) {
+				specialNodes.add(node);
 			}
 		}
-		return null;
+		if (specialNodes.isEmpty()) {
+			return defconfig.getNode("default");
+		} else {
+			return specialNodes.iterator().next();
+		}
 	}
 }
