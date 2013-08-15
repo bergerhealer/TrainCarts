@@ -29,6 +29,7 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -36,6 +37,7 @@ import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.reflection.SafeMethod;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -624,11 +626,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		final Entity damager = damagesource.getEntity();
 		try {
 			// Call CraftBukkit event
-			VehicleDamageEvent event = new VehicleDamageEvent(this.entity.getEntity(), damager, damage);
-			if (CommonUtil.callEvent(event).isCancelled()) {
-				return;
+			if (Common.MC_VERSION.equals("1.5.2")) {
+				VehicleDamageEvent event = new VehicleDamageEvent(this.entity.getEntity(), damager, (int) damage);
+				if (CommonUtil.callEvent(event).isCancelled()) {
+					return;
+				}
+				damage = new SafeMethod<Integer>(event, "getDamage").invoke(event);
+			} else {
+				VehicleDamageEvent event = new VehicleDamageEvent(this.entity.getEntity(), damager, damage);
+				if (CommonUtil.callEvent(event).isCancelled()) {
+					return;
+				}
+				damage = event.getDamage();
 			}
-			damage = event.getDamage();
 			// Play shaking animation and logic
 			this.entity.setShakingDirection(-this.entity.getShakingDirection());
 			this.entity.setShakingFactor(10);
