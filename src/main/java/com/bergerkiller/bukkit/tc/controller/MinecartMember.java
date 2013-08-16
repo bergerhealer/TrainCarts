@@ -1126,7 +1126,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		final float oldyaw = entity.loc.getYaw();
 		float newyaw = oldyaw;
 		float newpitch = entity.loc.getPitch();
-		boolean orientPitch = true;
+		boolean orientPitch = false;
 		if (isDerailed()) {
 			// Update yaw
 			if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
@@ -1140,9 +1140,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				} else {
 					newpitch = 0;
 				}
+				orientPitch = true;
 			} else if (movedXZ && Math.abs(movedY) > 0.001) {
 				// Use movement for pitch (but only when moving horizontally)
 				newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+				orientPitch = true;
 			}
 		} else {
 			// Update yaw
@@ -1155,12 +1157,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			// Update pitch
 			if (getRailLogic() instanceof RailLogicVertical) {
 				newpitch = TrainCarts.allowVerticalPitch ? -90.0f : 0.0f;
+				orientPitch = true;
 			} else if (getRailLogic() instanceof RailLogicVerticalSlopeDown) {
 				newpitch = -45.0f;
+				orientPitch = true;
 			} else if (getRailLogic().isSloped()) {
 				if (movedXZ && Math.abs(movedY) > 0.001) {
 					// Use movement for pitch (but only when moving horizontally)
 					newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+					orientPitch = true;
 				}
 				// This was the old method, where pitch is inverted to make players look up/down properly
 				/*
@@ -1169,6 +1174,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 				*/
 			} else {
 				newpitch = 0.0f;
+				orientPitch = true;
 			}
 		}
 

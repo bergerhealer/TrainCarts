@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.reflection.SafeMethod;
 import com.bergerkiller.bukkit.common.reflection.classes.BlockRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -47,9 +48,10 @@ public class Util {
 	private static final String SEPARATOR_REGEX = "[|/\\\\]";
 	private static final FieldAccessor<Object> blockMaterial = BlockRef.TEMPLATE.getField("material");
 	private static final MethodAccessor<Boolean> materialBuildable = new SafeMethod<Boolean>(Common.NMS_ROOT + ".Material.isBuildable");
+	private static final FieldAccessor<Integer> itemMaxSizeField = new SafeField<Integer>(CommonUtil.getNMSClass("Item"), "maxStackSize");
 
 	public static void setItemMaxSize(Material material, int maxstacksize) {
-		SafeField.set(Conversion.toItemHandle.convert(material), "maxStackSize", maxstacksize);
+		itemMaxSizeField.set(Conversion.toItemHandle.convert(material), maxstacksize);
 	}
 
 	/**

@@ -47,4 +47,10 @@ public class RailTypeCrossing extends RailTypeHorizontal {
 		}
 		return RailLogicHorizontal.get(dir);
 	}
+
+	@Override
+	public void onPostMove(MinecartMember<?> member) {
+		super.onPostMove(member);
+		member.getEntity().loc.y.add(0.17);
+	}
 }
