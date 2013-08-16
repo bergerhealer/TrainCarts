@@ -210,7 +210,7 @@ public class Station {
 	public void centerTrain() {
 		// If cart is already in range of the station, order it to stop right now
 		if (!info.getGroup().getActions().hasAction() && 
-				getCenterCart().getEntity().loc.distance(this.railsBlock) < 0.5) {
+				getCenterCart().getEntity().loc.distance(this.railsBlock) < 0.3) {
 			getCenterCart().stop();
 			return;
 		}

@@ -58,6 +58,8 @@ public class BlockTrackerMember extends BlockTracker {
 	@Override
 	public void update() {
 		super.update();
-		owner.getGroup().getBlockTracker().update();
+		if (!owner.getEntity().isDead() && !owner.isUnloaded()) {
+			owner.getGroup().getBlockTracker().update();
+		}
 	}
 }

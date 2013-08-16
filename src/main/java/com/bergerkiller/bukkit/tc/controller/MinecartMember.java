@@ -817,9 +817,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public void onPropertiesChanged() {
-		if (!this.isUnloaded()) {
-			this.getBlockTracker().update();
-		}
+		this.getBlockTracker().update();
 	}
 
 	/**
