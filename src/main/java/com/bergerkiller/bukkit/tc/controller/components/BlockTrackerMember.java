@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -58,8 +59,12 @@ public class BlockTrackerMember extends BlockTracker {
 	@Override
 	public void update() {
 		super.update();
-		if (!owner.getEntity().isDead() && !owner.isUnloaded()) {
-			owner.getGroup().getBlockTracker().update();
+		if (!owner.isUnloaded()) {
+			MinecartGroup group = owner.getGroup();
+			// Member owner could be dead and have no group
+			if (group != null) {
+				group.getBlockTracker().update();
+			}
 		}
 	}
 }

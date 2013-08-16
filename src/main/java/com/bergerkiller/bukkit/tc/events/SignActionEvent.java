@@ -454,7 +454,11 @@ public class SignActionEvent extends Event implements Cancellable {
 			return false;
 		}
 		// Get the next minecart Block position
-		Block posBlock = RailType.getType(getRails()).getNextPos(getRails(), direction);
+		RailType currentType = RailType.getType(getRails());
+		if (!LogicUtil.contains(direction, currentType.getPossibleDirections(getRails()))) {
+			return false;
+		}
+		Block posBlock = currentType.getNextPos(getRails(), direction);
 		if (posBlock == null) {
 			return false;
 		}
