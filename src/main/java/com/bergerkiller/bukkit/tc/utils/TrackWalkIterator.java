@@ -6,6 +6,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /*
@@ -79,6 +80,9 @@ public class TrackWalkIterator {
 			} else {
 				//move a bit past this block
 				this.next.add(this.direction.clone().multiply(d));
+				if (!FaceUtil.isVertical(this.iter.currentDirection())) {
+					this.next.setY(MathUtil.ceil(this.next.getY()));
+				}
 				this.remainingdistance -= d;
 				BlockFace dir = FaceUtil.getDirection(this.direction.getX(), this.direction.getZ(), false);
 				this.next.setYaw(FaceUtil.faceToYaw(dir));
