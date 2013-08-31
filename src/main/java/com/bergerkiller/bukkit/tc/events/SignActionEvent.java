@@ -378,7 +378,7 @@ public class SignActionEvent extends Event implements Cancellable {
 	public Location getCenterLocation() {
 		if (!this.hasRails()) return null;
 		RailType type = RailType.getType(this.railsblock);
-		return type.findMinecartPos(this.railsblock).getLocation().add(0.5, 0, 0.5);
+		return type.findMinecartPos(this.railsblock).getLocation().add(0.5, 0.5, 0.5);
 	}
 
 	/**

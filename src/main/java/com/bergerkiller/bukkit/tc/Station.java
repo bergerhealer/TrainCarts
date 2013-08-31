@@ -215,7 +215,7 @@ public class Station {
 			return;
 		}
 
-		CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
+		CartToStationInfo stationInfo = getCartToStationInfo();
 		if (stationInfo.cartDir != null) {
 			// Launch the center cart into the direction of the station
 			getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0);
@@ -237,7 +237,7 @@ public class Station {
 		BlockFace newDirection = direction;
 		if (!wasCentered) {
 			// Apply distance correction from center cart to station
-			CartToStationInfo stationInfo = getCartToStationInfo(getCenterCart());
+			CartToStationInfo stationInfo = getCartToStationInfo();
 			// Adjust the direction and distance
 			if (stationInfo.centerDir == direction) {
 				// Adjust the direction and distance
@@ -249,7 +249,8 @@ public class Station {
 		this.wasCentered = false;
 	}
 
-	private CartToStationInfo getCartToStationInfo(MinecartMember<?> member) {
+	private CartToStationInfo getCartToStationInfo() {
+		MinecartMember<?> member = getCenterCart();
 		CartToStationInfo info = new CartToStationInfo();
 		info.cartBlock = member.getBlock();
 		BlockFace[] possible = RailType.getType(info.cartBlock).getPossibleDirections(info.cartBlock);
@@ -277,6 +278,11 @@ public class Station {
 				info.distance -= MathUtil.HALFROOTOFTWO;
 			} else {
 				info.distance -= 0.5;
+			}
+
+			// Adjust distance for even-count trains (center is in between two carts then!)
+			if (this.info.isTrainSign() && (member.getGroup().size() & 1) == 0) {
+				info.distance -= 0.5 * TrainCarts.cartDistance;
 			}
 		}
 		return info;
