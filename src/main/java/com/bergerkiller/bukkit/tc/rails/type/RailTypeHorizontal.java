@@ -62,16 +62,15 @@ public abstract class RailTypeHorizontal extends RailType {
 			}
 
 			// Cancel collisions with blocks at the heading of sloped rails when going up vertically
-			if (hitToFace == member.getRailDirection() && Util.isVerticalAbove(posBlock, member.getRailDirection())) {
+			BlockFace railDirection = this.getDirection(railsBlock);
+			if (hitToFace == railDirection && Util.isVerticalAbove(posBlock, railDirection)) {
 				return false;
 			}
 
 			// Cancel collisions with blocks 'right above' the next rail when going down the slope
-			if (hitFace == member.getRailDirection()) {
-				IntVector3 diff = new IntVector3(hitBlock).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
-				if (diff.y >= 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
-					return false;
-				}
+			IntVector3 diff = new IntVector3(hitBlock).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
+			if (diff.y >= 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
+				return false;
 			}
 		}
 		return true;
