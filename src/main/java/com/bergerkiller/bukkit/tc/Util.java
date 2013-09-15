@@ -128,11 +128,11 @@ public class Util {
 	public static void addSignsFromRails(List<Block> rval, Block railsBlock, BlockFace signDirection) {
 		final boolean hasSignPost = FaceUtil.isVertical(signDirection);
 
-		//ignore mid-sections
+		// Ignore mid-sections
 		Block currentBlock = railsBlock.getRelative(signDirection);
 		addAttachedSigns(currentBlock, rval);
 		currentBlock = currentBlock.getRelative(signDirection);
-		//loop downwards
+		// Keep going into the sign direction
 		while (true) {
 			if (hasSignPost && currentBlock.getTypeId() == Material.SIGN_POST.getId()) {
 				// Found a sign post - add it and continue
@@ -148,18 +148,21 @@ public class Util {
 	public static boolean hasAttachedSigns(final Block middle) {
 		return addAttachedSigns(middle, null);
 	}
+
 	public static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
 		boolean found = false;
 		Block b;
+		int typeId;
 		for (BlockFace face : FaceUtil.AXIS) {
 			b = middle.getRelative(face);
-			if (b.getTypeId() == Material.WALL_SIGN.getId()) {
-				if (BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
-					if (rval != null) {
-						rval.add(b);
-					}
-					found = true;
+			typeId = b.getTypeId();
+			if ((typeId == Material.WALL_SIGN.getId() && BlockUtil.getAttachedFace(b) == face.getOppositeFace()) ||
+					(typeId == Material.SIGN_POST.getId() && face == BlockFace.UP)) {
+				if (rval != null) {
+					rval.add(b);
 				}
+				found = true;
+				continue;
 			}
 		}
 		return found;
