@@ -536,6 +536,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return true;
 	}
 
+	/**
+	 * Gets whether this Minecart Member is heading into the same direction as specified
+	 * 
+	 * @param direction to test against
+	 * @return True if heading in the same direction, False if not
+	 */
+	public boolean isDirectionTo(BlockFace direction) {
+		return this.directionTo == direction || this.direction == direction;
+	}
+
 	/*
 	 * Directional functions
 	 */

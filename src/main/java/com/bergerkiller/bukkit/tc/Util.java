@@ -151,18 +151,13 @@ public class Util {
 
 	public static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
 		boolean found = false;
-		Block b;
-		int typeId;
 		for (BlockFace face : FaceUtil.AXIS) {
-			b = middle.getRelative(face);
-			typeId = b.getTypeId();
-			if ((typeId == Material.WALL_SIGN.getId() && BlockUtil.getAttachedFace(b) == face.getOppositeFace()) ||
-					(typeId == Material.SIGN_POST.getId() && face == BlockFace.UP)) {
+			Block b = middle.getRelative(face);
+			if (MaterialUtil.ISSIGN.get(b) && BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+				found = true;
 				if (rval != null) {
 					rval.add(b);
 				}
-				found = true;
-				continue;
 			}
 		}
 		return found;
