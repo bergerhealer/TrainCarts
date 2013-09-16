@@ -74,11 +74,11 @@ public class StatementItems extends Statement {
 			// Check for 'special' named items
 			count = 0;
 			for (ItemStack item : inv) {
-				if (ItemUtil.hasDisplayName(item) && ItemUtil.getDisplayName(item).equals(itemnamefixed)) {
-					count++;
+				if (item != null && ItemUtil.hasDisplayName(item) && ItemUtil.getDisplayName(item).equals(itemnamefixed)) {
+					count += item.getAmount();
 				}
 			}
-			if (count > 0 && Util.evaluate(count, itemname)) {
+			if (Util.evaluate(count, itemname)) {
 				return true;
 			}
 		}
