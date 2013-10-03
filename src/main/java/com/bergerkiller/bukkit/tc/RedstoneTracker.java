@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.logging.Level;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -42,8 +44,7 @@ public class RedstoneTracker implements Listener {
 				}
 			}
 		} catch (Throwable t) {
-			t.printStackTrace();
-			System.out.println("ERROR: " + event.getChunk());
+			TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
 		}
 	}
 

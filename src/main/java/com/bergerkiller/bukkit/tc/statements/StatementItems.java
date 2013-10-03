@@ -53,7 +53,7 @@ public class StatementItems extends Statement {
 			opidx = Util.getOperatorIndex(itemname);
 			String itemnamefixed;
 			if (opidx > 0) {
-				itemnamefixed = itemname.substring(0, opidx - 1);
+				itemnamefixed = itemname.substring(0, opidx);
 			} else {
 				itemnamefixed = itemname;
 			}

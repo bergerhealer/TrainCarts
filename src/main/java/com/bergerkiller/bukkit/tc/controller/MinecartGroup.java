@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -506,33 +507,52 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 	public boolean canConnect(MinecartMember<?> mm, int at) {
 		if (this.size() == 1) return true;
 		if (this.size() == 0) return false;
+		CommonMinecart<?> connectedEnd;
+		CommonMinecart<?> otherEnd;
 		if (at == 0) {
-			//compare the head
-			return this.head().isNearOf(mm);
+			// Compare the head
+			if (this.head().isNearOf(mm)) {
+				return false;
+			}
+			connectedEnd = this.head().getEntity();
+			otherEnd = this.tail().getEntity();
 		} else if (at == this.size() - 1) {
 			//compare the tail
-			return this.tail().isNearOf(mm);
+			if (!this.tail().isNearOf(mm)) {
+				return false;
+			}
+			connectedEnd = this.tail().getEntity();
+			otherEnd = this.head().getEntity();
 		} else {
 			return false;
 		}
+		// Verify connected end is closer than the opposite end of this Train
+		// This ensures that no wrongful connections are made in curves
+		return connectedEnd.loc.distanceSquared(mm.getEntity()) < otherEnd.loc.distanceSquared(mm.getEntity());
 	}
 	public void updateDirection() {
 		if (this.size() == 1) {
 			this.get(0).updateDirection();
 		} else if (this.size() > 1) {
-			// Update direction of the train as a whole
+			// Update direction of individual carts
+			tail().updateDirectionTo(tail(1));
+			for (int i = size() - 2;i >= 0;i--) {
+				get(i).updateDirectionFrom(get(i + 1));
+			}
+
+			// Check whether the train has reversed
 			double fforce = 0;
 			for (MinecartMember<?> m : this) {
 				fforce += m.getForwardForce();
 			}
 			if (fforce < 0) {
 				Collections.reverse(this);
-			}
 
-			// Update direction of individual carts
-			tail().updateDirectionTo(tail(1));
-			for (int i = size() - 2;i >= 0;i--) {
-				get(i).updateDirectionFrom(get(i + 1));
+				// Redo cart direction calculation with altered order
+				tail().updateDirectionTo(tail(1));
+				for (int i = size() - 2;i >= 0;i--) {
+					get(i).updateDirectionFrom(get(i + 1));
+				}
 			}
 		}
 	}
@@ -864,7 +884,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 				return false;
 			}
 			this.updateDirection();
-
+			
 			// Perform velocity updates
 			for (MinecartMember<?> m : this) {
 				m.onPhysicsPreMove();
@@ -898,33 +918,29 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
 				//Apply force factors to carts from last cart and perform post positional updates
 				if (this.size() < 2) return false;
-				try {
-					int i = 1;
-					double distance, threshold, forcer;
-					MinecartMember<?> after;
-					for (MinecartMember<?> member : this) {
-						after = this.get(i);
-						distance = member.getEntity().loc.distance(after.getEntity());
-						if (member.getDirectionDifference(after) >= 45 || member.getEntity().loc.getPitchDifference(after.getEntity()) > 10) {
-							threshold = TrainCarts.turnedCartDistance;
-							forcer = TrainCarts.turnedCartDistanceForcer;
-						} else {
-							threshold = TrainCarts.cartDistance;
-							forcer = TrainCarts.cartDistanceForcer;
-						}
-						if (distance < threshold) {
-							forcer *= TrainCarts.nearCartDistanceFactor;
-						}
-						member.onPhysicsPostMove(1 + (forcer * (threshold - distance)));
-						if (this.breakPhysics) return true;
-						if (i++ == this.size() - 1) {
-							this.tail().onPhysicsPostMove(1);
-							if (this.breakPhysics) return true;
-							break;
-						}
+				int i = 1;
+				double distance, threshold, forcer;
+				MinecartMember<?> after;
+				for (MinecartMember<?> member : this) {
+					after = this.get(i);
+					distance = member.getEntity().loc.distance(after.getEntity());
+					if (member.getDirectionDifference(after) >= 45 || member.getEntity().loc.getPitchDifference(after.getEntity()) > 10) {
+						threshold = TrainCarts.turnedCartDistance;
+						forcer = TrainCarts.turnedCartDistanceForcer;
+					} else {
+						threshold = TrainCarts.cartDistance;
+						forcer = TrainCarts.cartDistanceForcer;
 					}
-				} catch (ConcurrentModificationException ex) {
-					return true;
+					if (distance < threshold) {
+						forcer *= TrainCarts.nearCartDistanceFactor;
+					}
+					member.onPhysicsPostMove(1 + (forcer * (threshold - distance)));
+					if (this.breakPhysics) return true;
+					if (i++ == this.size() - 1) {
+						this.tail().onPhysicsPostMove(1);
+						if (this.breakPhysics) return true;
+						break;
+					}
 				}
 			}
 

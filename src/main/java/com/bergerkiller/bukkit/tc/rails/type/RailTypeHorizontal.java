@@ -69,7 +69,8 @@ public abstract class RailTypeHorizontal extends RailType {
 
 			// Cancel collisions with blocks 'right above' the next rail when going down the slope
 			IntVector3 diff = new IntVector3(hitBlock).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
-			if (diff.y >= 1 && diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ()) {
+			if (diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ() &&
+					(diff.y > 1 || (diff.y == 1 && railDirection != hitToFace))) {
 				return false;
 			}
 		}

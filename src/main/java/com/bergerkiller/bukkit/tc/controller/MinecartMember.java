@@ -579,20 +579,33 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (this.directionTo == null) {
 			this.directionTo = FaceUtil.getDirection(movement, false);
 		}
+		// Obtain logic and the associated direction
+		this.updateDirection(this.getRailLogic().getMovementDirection(this, movement));
+	}
+	public void updateDirection(BlockFace movement) {
+		// Take care of invalid directions before continuing
+		if (this.direction == null) {
+			this.direction = movement;
+		}
+		if (this.directionTo == null) {
+			if (FaceUtil.isSubCardinal(movement)) {
+				this.directionTo = FaceUtil.getDirection(this.getEntity().getVelocity(), false);
+			} else {
+				this.directionTo = movement;
+			}
+		}
 		final boolean fromInvalid = this.directionFrom == BlockFace.SELF;
 		if (fromInvalid) {
 			this.directionFrom = this.directionTo;
 		}
-
 		// Obtain logic and the associated direction
-		final RailLogic logic = this.getRailLogic();
-		this.direction = logic.getMovementDirection(this, movement);
+		this.direction = movement;
 
 		// Calculate the to direction
 		if (FaceUtil.isSubCardinal(this.direction)) {
 			// Compare with the rail direction for curved rails
 			// TODO: Turn this into an understandable transformation
-			final BlockFace raildirection = logic.getDirection();
+			final BlockFace raildirection = this.getRailDirection();
 			if (this.direction == BlockFace.NORTH_EAST) {
 				this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
 			} else if (this.direction == BlockFace.SOUTH_EAST) {
@@ -611,9 +624,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		if (fromInvalid) {
 			this.directionFrom = this.directionTo;
 		}
-	}
-	public void updateDirection(BlockFace movement) {
-		this.updateDirection(FaceUtil.faceToVector(movement));
 	}
 	public void updateDirection() {
 		this.updateDirection(this.entity.getVelocity());
@@ -753,7 +763,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 			return false;
 		}
 		// Stop the entire Group if hitting head-on
-		if (hitFace.getOppositeFace() == this.getDirectionTo()) {
+		final boolean hitHeadOn;
+		IntVector3 delta = new IntVector3(hitBlock).subtract(this.getEntity().loc.block());
+		if (FaceUtil.isVertical(this.getDirectionTo())) {
+			hitHeadOn = delta.x == 0 && delta.z == 0 && delta.y == this.getDirectionTo().getModY();
+		} else {
+			hitHeadOn = delta.x == this.getDirectionTo().getModX() && delta.z == this.getDirectionTo().getModZ();
+		}
+		if (hitHeadOn) {
 			this.getGroup().stop();
 		}
 		return true;
@@ -857,8 +874,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		}
 	}
 	public void reverse() {
-		entity.vel.multiply(-1.0);
-		this.direction = this.direction.getOppositeFace();
+		reverse(true);
+	}
+	public void reverse(boolean reverseVelocity) {
+		if (reverseVelocity) {
+			entity.vel.multiply(-1.0);
+		}
+		this.updateDirection(this.getDirection().getOppositeFace());
 	}
 
 	public void updateUnloaded() {
