@@ -522,7 +522,17 @@ public class SignActionEvent extends Event implements Cancellable {
 				if (this.actionType == SignActionType.GROUP_LEAVE) {
 					this.member = this.group.tail();
 				} else {
-					this.member = this.group.head();
+					// Get the Minecart in the group that contains this sign
+					for (MinecartMember<?> member : this.group) {
+						if (member.getBlockTracker().containsSign(this.signblock)) {
+							this.member = member;
+							break;
+						}
+					}
+					// Fallback: use head
+					if (this.member == null) {
+						this.member = this.group.head();
+					}
 				}
 			}
 		}

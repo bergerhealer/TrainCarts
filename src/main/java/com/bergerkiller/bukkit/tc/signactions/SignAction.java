@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -13,6 +14,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -236,7 +238,12 @@ public abstract class SignAction {
 			}
 			SignAction action = getSignAction(info);
 			if (action != null && (facing || action.overrideFacing())) {
-				action.execute(info);
+				try {
+					action.execute(info);
+				} catch (Throwable t) {
+					TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() + 
+							" for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
+				}
 			}
 		}
 	}
