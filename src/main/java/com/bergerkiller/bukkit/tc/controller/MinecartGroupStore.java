@@ -138,7 +138,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 	}
 
 	public static boolean link(MinecartMember<?> m1, MinecartMember<?> m2) {
-		if (m1 == null || m2 == null || m1 == m2 || m1.getEntity().isDead() || m2.getEntity().isDead() || m1.isUnloaded() || m2.isUnloaded()) {
+		if (m1 == null || m2 == null || m1 == m2 || !m1.isInteractable() || !m2.isInteractable()) {
 			return false;
 		}
 		MinecartGroup g1 = m1.getGroup();

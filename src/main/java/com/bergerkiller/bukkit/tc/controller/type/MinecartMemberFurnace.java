@@ -40,6 +40,9 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 
 	@Override
 	public boolean onInteractBy(HumanEntity human) {
+		if (!this.isInteractable()) {
+			return true;
+		}
 		ItemStack itemstack = human.getItemInHand();
 		if (itemstack != null && itemstack.getTypeId() == Material.COAL.getId()) {
 			ItemUtil.subtractAmount(itemstack, 1);
@@ -56,7 +59,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 				this.pushDirection = dir.getOppositeFace();
 			}
 		}
-		if (this.getGroup().isMoving()) {
+		if (this.isMoving()) {
 			if (this.pushDirection == this.getDirection().getOppositeFace()) {
 				this.getGroup().reverse();
 				// Prevent push direction being inverted

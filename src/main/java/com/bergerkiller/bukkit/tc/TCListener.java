@@ -107,7 +107,7 @@ public class TCListener implements Listener {
 			for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
 				if (entity instanceof Minecart) {
 					MinecartMember<?> member = MinecartMemberStore.get(entity);
-					if (member == null || member.isUnloaded() || member.getEntity().isDead()) {
+					if (member == null || !member.isInteractable()) {
 						continue;
 					}
 					if (member.getGroup().canUnload()) {
@@ -247,7 +247,7 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onVehicleEnter(VehicleEnterEvent event) {
 		MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
-		if (member != null && !member.getEntity().isDead() && !member.isUnloaded()) {
+		if (member != null && member.isInteractable()) {
 			CartProperties prop = member.getProperties();
 			if (event.getEntered() instanceof Player) {
 				Player player = (Player) event.getEntered();

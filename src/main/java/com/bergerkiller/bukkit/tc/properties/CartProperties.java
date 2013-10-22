@@ -69,7 +69,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	@Override
 	public MinecartMember<?> getHolder() {
 		MinecartMember<?> member = this.member.get();
-		if (member == null || member.getEntity().isDead() || member.isUnloaded() || !member.getEntity().getUniqueId().equals(this.uuid)) {
+		if (member == null || !member.isInteractable() || !member.getEntity().getUniqueId().equals(this.uuid)) {
 			return this.member.set(MinecartMemberStore.get(this.uuid));
 		} else {
 			return member;

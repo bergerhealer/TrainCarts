@@ -203,6 +203,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 		return this.unloaded;
 	}
 
+	/**
+	 * Gets whether this Minecart allows player and world interaction.
+	 * Unloaded or dead minecarts do not allow world interaction.
+	 * 
+	 * @return True if interactable, False if not
+	 */
+	public boolean isInteractable() {
+		return !this.entity.isDead() && !this.isUnloaded();
+	}
+
 	public boolean isInChunk(Chunk chunk) {
 		return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
 	}
@@ -740,7 +750,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
 	@Override
 	public boolean onEntityCollision(Entity e) {
-		if (this.isUnloaded() || this.getEntity().isDead()) {
+		if (!this.isInteractable()) {
 			return false;
 		}
 		CollisionMode mode = this.getGroup().getProperties().getCollisionMode(e);

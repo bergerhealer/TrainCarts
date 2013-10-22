@@ -536,7 +536,7 @@ public class SignActionEvent extends Event implements Cancellable {
 				}
 			}
 		}
-		if (this.member == null || this.member.getEntity().isDead() || this.member.isUnloaded()) {
+		if (this.member == null || !this.member.isInteractable()) {
 			return null; 
 		}
 		return this.member;

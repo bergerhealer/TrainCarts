@@ -40,7 +40,7 @@ public enum CollisionMode {
 		final CommonMinecart<?> minecart = member.getEntity();
 		final MinecartMember<?> other = MinecartMemberStore.get(entity);
 		// Some default exception rules
-		if (minecart.isDead() || member.isUnloaded() || entity.isDead() || member.isCollisionIgnored(entity)) {
+		if (!member.isInteractable() || entity.isDead() || member.isCollisionIgnored(entity)) {
 			return false;
 		}
 		// Ignore passengers
@@ -49,7 +49,7 @@ public enum CollisionMode {
 		}
 		// Exception rules for other Minecarts
 		if (other != null) {
-			if (other.isUnloaded()) {
+			if (!other.isInteractable()) {
 				return false;
 			}
 			// Ignore collisions with same group

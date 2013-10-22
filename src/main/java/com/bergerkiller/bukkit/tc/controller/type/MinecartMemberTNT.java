@@ -15,7 +15,7 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
 
 	@Override
 	public void onDamage(DamageSource damagesource, double damage) {
-		if (entity.isDead() || ignoreDamage) {
+		if (!this.isInteractable() || ignoreDamage) {
 			return;
 		}
 		super.onDamage(damagesource, damage);
@@ -26,6 +26,8 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
 			// Important: set dead beforehand
 			ignoreDamage = true;
 			entity.explode();
+			// Entity explosion MAY have been cancelled, re-enable for the future
+			ignoreDamage = false;
 		}
 	}
 
