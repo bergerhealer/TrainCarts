@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -44,13 +45,13 @@ public class SignActionCraft extends SignAction {
 		}
 		World world = info.getWorld();
 		Block m = info.getRails();
-		int id;
+		Material type;
 		Block w = null;
 		for (int x = -radX; x <= radX && w == null; x++) {
 			for (int y = -radY; y <= radY && w == null; y++) {
 				for (int z = -radZ; z <= radZ && w == null; z++) {
-					id = world.getBlockTypeIdAt(m.getX() + x, m.getY() + y, m.getZ() + z);
-					if (id == Material.WORKBENCH.getId()) {
+					type = WorldUtil.getBlockType(world, m.getX() + x, m.getY() + y, m.getZ() + z);
+					if (type == Material.WORKBENCH) {
 						w = m.getRelative(x, y, z);
 					}
 				}

@@ -72,7 +72,7 @@ public class SignActionFuel extends SignAction {
 					Inventory inv = chest.getInventory();
 					for (i = 0; i < inv.getSize(); i++) {
 						org.bukkit.inventory.ItemStack item = inv.getItem(i);
-						if (!LogicUtil.nullOrEmpty(item) && item.getTypeId() == Material.COAL.getId()) {
+						if (!LogicUtil.nullOrEmpty(item) && item.getType() == Material.COAL) {
 							ItemUtil.subtractAmount(item, 1);
 							inv.setItem(i, item);
 							found = true;

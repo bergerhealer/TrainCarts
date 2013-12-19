@@ -44,7 +44,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 			return true;
 		}
 		ItemStack itemstack = human.getItemInHand();
-		if (itemstack != null && itemstack.getTypeId() == Material.COAL.getId()) {
+		if (itemstack != null && itemstack.getType() == Material.COAL) {
 			ItemUtil.subtractAmount(itemstack, 1);
 			human.setItemInHand(itemstack);
 			addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
@@ -101,7 +101,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 				Inventory inv = ((MinecartMemberChest) mm).getEntity().getInventory();
 				for (int i = 0; i < inv.getSize(); i++) {
 					ItemStack item = inv.getItem(i);
-					if (LogicUtil.nullOrEmpty(item) || item.getTypeId() != Material.COAL.getId()) {
+					if (LogicUtil.nullOrEmpty(item) || item.getType() != Material.COAL) {
 						continue;
 					}
 					ItemUtil.subtractAmount(item, 1);

@@ -14,7 +14,7 @@ public class RailTypeActivator extends RailTypeRegular {
 	}
 
 	@Override
-	public boolean isRail(int typeId, int data) {
-		return typeId == Material.ACTIVATOR_RAIL.getId() && ((data & 0x8) == 0x8) == isPowered;
+	public boolean isRail(Material type, int data) {
+		return type == Material.ACTIVATOR_RAIL && ((data & 0x8) == 0x8) == isPowered;
 	}
 }

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -15,11 +16,9 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 
 public class RailTypeVertical extends RailType {
 
-
-
 	@Override
-	public boolean isRail(int typeId, int data) {
-		return Util.ISVERTRAIL.get(typeId);
+	public boolean isRail(Material type, int data) {
+		return Util.ISVERTRAIL.get(type);
 	}
 
 	@Override
@@ -86,7 +85,7 @@ public class RailTypeVertical extends RailType {
 
 	@Override
 	public BlockFace getSignColumnDirection(Block railsBlock) {
-		return Util.getVerticalRailDirection(railsBlock.getData());
+		return Util.getVerticalRailDirection(railsBlock);
 	}
 
 	@Override
@@ -95,7 +94,7 @@ public class RailTypeVertical extends RailType {
 			Block next = currentTrack.getRelative(BlockFace.UP);
 			if (!Util.ISTCRAIL.get(next)) {
 				// Check for a possible sloped rail leading up from next
-				BlockFace dir = Util.getVerticalRailDirection(currentTrack.getData());
+				BlockFace dir = Util.getVerticalRailDirection(currentTrack);
 				Block possible = next.getRelative(dir);
 				Rails rails = BlockUtil.getRails(possible);
 				if (rails != null && rails.isOnSlope() && rails.getDirection() == dir) {
@@ -110,6 +109,6 @@ public class RailTypeVertical extends RailType {
 
 	@Override
 	public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
-		return RailLogicVertical.get(Util.getVerticalRailDirection(railsBlock.getData()));
+		return RailLogicVertical.get(Util.getVerticalRailDirection(railsBlock));
 	}
 }

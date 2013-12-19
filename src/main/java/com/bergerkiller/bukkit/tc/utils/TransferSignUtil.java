@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
@@ -101,7 +102,7 @@ public class TransferSignUtil {
 			}
 		} else {
 			// Is the parser fuel or heatable?
-			boolean heatable = RecipeUtil.isHeatableItem(parser.getTypeId());
+			boolean heatable = RecipeUtil.isHeatableItem(parser.getItemStack(1));
 			boolean fuel = RecipeUtil.isFuelItem(parser.getTypeId());
 			if (heatable && fuel) {
 				if (isFuelPreferred) {
@@ -147,7 +148,7 @@ public class TransferSignUtil {
 			if (!p.hasAmount()) {
 				// Fill the minimal amount needed to burn all the heatables in the furnace
 				ItemStack cookeditem = to.getItem(0);
-				if (cookeditem == null || cookeditem.getTypeId() == 0) continue;
+				if (cookeditem == null || cookeditem.getType() == Material.AIR) continue;
 				int fuelNeeded = cookeditem.getAmount() * 200;
 				if (fuelNeeded == 0) continue; //nothing to cook
 				//===================================================
@@ -155,10 +156,10 @@ public class TransferSignUtil {
 				if (fuelNeeded <= 0) continue; //we got enough
 				//===================================================
 				int fuelPerItem = 0;
-				if (fuel.getTypeId() == 0) {
-					fuelPerItem = RecipeUtil.getFuelTime(p.getTypeId());
+				if (fuel.getType() == Material.AIR) {
+					fuelPerItem = RecipeUtil.getFuelTime(p.getItemStack(1));
 				} else {
-					fuelPerItem = RecipeUtil.getFuelTime(fuel.getTypeId());
+					fuelPerItem = RecipeUtil.getFuelTime(fuel);
 				}
 				//====================================================
 				if (fuelPerItem == 0) continue;

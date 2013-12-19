@@ -134,7 +134,7 @@ public class Util {
 		currentBlock = currentBlock.getRelative(signDirection);
 		// Keep going into the sign direction
 		while (true) {
-			if (hasSignPost && currentBlock.getTypeId() == Material.SIGN_POST.getId()) {
+			if (hasSignPost && MaterialUtil.isType(currentBlock, Material.SIGN_POST)) {
 				// Found a sign post - add it and continue
 				rval.add(currentBlock);
 			} else if (!addAttachedSigns(currentBlock, rval)) {
@@ -168,11 +168,11 @@ public class Util {
 			return null;
 		}
 
-		final int id = signblock.getTypeId();
+		final Material type = signblock.getType();
 		final Block mainBlock;
-		if (id == Material.WALL_SIGN.getId()) {
+		if (type == Material.WALL_SIGN) {
 			mainBlock = BlockUtil.getAttachedBlock(signblock);
-		} else if (id == Material.SIGN_POST.getId()) {
+		} else if (type == Material.SIGN_POST) {
 			mainBlock = signblock;
 		} else {
 			return null;
@@ -210,14 +210,14 @@ public class Util {
 		World world = from.getWorld();
 		if (mode == BlockFace.DOWN) {
 			for (int y = sy - 1; y > 0; --y) {
-				if (ISTCRAIL.get(world.getBlockTypeIdAt(x, y, z))) {
+				if (ISTCRAIL.get(world, x, y, z)) {
 					return world.getBlockAt(x, y, z);
 				}
 			}
 		} else if (mode == BlockFace.UP) {
 			int height = world.getMaxHeight();
 			for (int y = sy + 1; y < height; y++) {
-				if (ISTCRAIL.get(world.getBlockTypeIdAt(x, y, z))) {
+				if (ISTCRAIL.get(world, x, y, z)) {
 					return world.getBlockAt(x, y, z);
 				}
 			}
@@ -226,7 +226,7 @@ public class Util {
 	}
 
 	public static ItemParser[] getParsers(String... items) {
-		return getParsers(StringUtil.combine(";", items));
+		return getParsers(StringUtil.join(";", items));
 	}
 
 	public static ItemParser[] getParsers(final String items) {
@@ -354,7 +354,17 @@ public class Util {
 	 */
 	public static boolean isVerticalAbove(Block rails, BlockFace direction) {
 		Block above = rails.getRelative(BlockFace.UP);
-		return Util.ISVERTRAIL.get(above) && getVerticalRailDirection(above.getData()) == direction;
+		return Util.ISVERTRAIL.get(above) && getVerticalRailDirection(above) == direction;
+	}
+
+	/**
+	 * Gets the direction a vertical rail pushes the minecart (the wall side)
+	 * 
+	 * @param block of the vertical rail
+	 * @return the direction the minecart is pushed
+	 */
+	public static BlockFace getVerticalRailDirection(Block railsBlock) {
+		return getVerticalRailDirection(MaterialUtil.getRawData(railsBlock));
 	}
 
 	/**
@@ -494,16 +504,17 @@ public class Util {
 	 * @return True if supported, False if not
 	 */
 	public static boolean isSupportedFace(Block block, BlockFace face) {
-		int type = block.getTypeId();
+		Material type = block.getType();
 		if (MaterialUtil.ISSOLID.get(type)) {
 			return true;
 		}
 		// Special block types that only support one face at a time
-		MaterialData data = BlockUtil.getData(type, block.getData());
+		int rawData = MaterialUtil.getRawData(block);
+		MaterialData data = BlockUtil.getData(type, rawData);
 
 		// Steps only support TOP or BOTTOM
 		if (MaterialUtil.isType(type, Material.WOOD_STEP, Material.STEP)) {
-			return face == FaceUtil.getVertical((data.getData() & 0x8) == 0x8);
+			return face == FaceUtil.getVertical((rawData & 0x8) == 0x8);
 		}
 
 		// Stairs only support the non-exit side + the up/down

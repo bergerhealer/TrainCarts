@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -34,6 +36,13 @@ public abstract class RailType {
 		}
 	}
 
+	public RailType() {
+		if (!CommonUtil.isMethodOverrided(RailType.class, this, "isRail", int.class, int.class) &&
+				!CommonUtil.isMethodOverrided(RailType.class, this, "isRail", Material.class, int.class)) {
+			throw new RuntimeException("Either isRail(int, int) or isRail(Material, int) has to be overrided!");
+		}
+	}
+
 	/**
 	 * Checks whether the block type Id and data given denote this type of Rail.
 	 * 
@@ -41,7 +50,21 @@ public abstract class RailType {
 	 * @param data of the Block
 	 * @return True if it is this type of Rail, False if not
 	 */
-	public abstract boolean isRail(int typeId, int data);
+	@Deprecated
+	public boolean isRail(int typeId, int data) {
+		return isRail(MaterialUtil.getType(typeId), data);
+	}
+
+	/**
+	 * Checks whether the block type and data given denote this type of Rail.
+	 * 
+	 * @param type of the Block
+	 * @param data of the Block
+	 * @return True if it is this type of Rail, False if not
+	 */
+	public boolean isRail(Material type, int data) {
+		return isRail(MaterialUtil.getTypeId(type), data);
+	}
 
 	/**
 	 * Checks whether the Block specified denote this type of Rail
@@ -53,7 +76,7 @@ public abstract class RailType {
 	 * @return True if it is this Rail, False if not
 	 */
 	public boolean isRail(World world, int x, int y, int z) {
-		return isRail(WorldUtil.getBlockTypeId(world, x, y, z), WorldUtil.getBlockData(world, x, y, z));
+		return isRail(WorldUtil.getBlockType(world, x, y, z), WorldUtil.getBlockData(world, x, y, z));
 	}
 
 	/**

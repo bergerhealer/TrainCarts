@@ -5,10 +5,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 
+import org.bukkit.Material;
+import org.bukkit.block.BlockState;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -100,6 +103,12 @@ public class SignActionTransfer extends SignAction {
 			// Go through all item parsers, handling them one by one
 			for (int i = 0; i < parsers.length; i++) {
 				TransferSignUtil.transferAllItems(trainInvs, otherInvs, parsers[i], i >= fuelHalfIndex);
+			}
+		}
+		// Perform physics on the 'other' inventories if they are blocks
+		for (InventoryHolder holder : otherInvs) {
+			if (holder instanceof BlockState) {
+				BlockUtil.applyPhysics(((BlockState) holder).getBlock(), Material.AIR);
 			}
 		}
 	}

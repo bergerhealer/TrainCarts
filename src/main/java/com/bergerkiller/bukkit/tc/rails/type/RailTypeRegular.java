@@ -32,8 +32,8 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeDown;
 public class RailTypeRegular extends RailTypeHorizontal {
 
 	@Override
-	public boolean isRail(int typeId, int data) {
-		return typeId == Material.RAILS.getId();
+	public boolean isRail(Material type, int data) {
+		return type == Material.RAILS;
 	}
 
 	@Override
@@ -46,11 +46,11 @@ public class RailTypeRegular extends RailTypeHorizontal {
 			RailTracker railTracker = member.getRailTracker();
 			if (railTracker.getLastRailType() == RailType.VERTICAL) {
 				IntVector3 nextPos = pos.add(railTracker.getLastLogic().getDirection());
-				int typeId = WorldUtil.getBlockTypeId(world, nextPos);
+				Material type = WorldUtil.getBlockType(world, nextPos.x, nextPos.y, nextPos.z);
 				int data = WorldUtil.getBlockData(world, nextPos);
-				if (this.isRail(typeId, data)) {
+				if (this.isRail(type, data)) {
 					// Check that the direction of the rail is correct
-					Rails rails = CommonUtil.tryCast(BlockUtil.getData(typeId, (byte) data), Rails.class);
+					Rails rails = CommonUtil.tryCast(BlockUtil.getData(type, data), Rails.class);
 					BlockFace lastDirection = railTracker.getLastLogic().getDirection();
 					if (rails != null && rails.isOnSlope() && rails.getDirection() == lastDirection) {
 						// We got a winner!
@@ -170,7 +170,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
 			if (railDirection == currentDirection) {
 				// Moving up the slope
 				Block above = currentTrack.getRelative(BlockFace.UP);
-				if (Util.ISVERTRAIL.get(above) && Util.getVerticalRailDirection(above.getData()) == currentDirection) {
+				if (Util.ISVERTRAIL.get(above) && Util.getVerticalRailDirection(above) == currentDirection) {
 					// Go to vertical rails above
 					return above;
 				} else {

@@ -237,7 +237,7 @@ public class TrainCommands {
 			if (args.length == 0) {
 				p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
 			} else {
-				String newname = StringUtil.combine(" ", args);
+				String newname = StringUtil.join(" ", args);
 				if (TrainProperties.exists(newname)) {
 					p.sendMessage(ChatColor.RED + "This name is already taken!");
 				} else {
@@ -250,7 +250,7 @@ public class TrainCommands {
 			if (args.length == 0) {
 				p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
 			} else {
-				prop.setDisplayName(StringUtil.ampToColor(StringUtil.combine(" ", args)));
+				prop.setDisplayName(StringUtil.ampToColor(StringUtil.join(" ", args)));
 				p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.getDisplayName() + ChatColor.YELLOW + "!");
 			}
 		} else if (cmd.equals("addtags") || cmd.equals("addtag")) {
@@ -276,7 +276,7 @@ public class TrainCommands {
 				prop.clearDestination();
 				p.sendMessage(ChatColor.YELLOW + "The destination for all minecarts in this train has been cleared!");
 			} else {
-				String dest = StringUtil.combine(" ", args);
+				String dest = StringUtil.join(" ", args);
 				prop.setDestination(dest);
 				p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as destination for all the minecarts in this train!");
 			}
@@ -390,11 +390,11 @@ public class TrainCommands {
 				p.sendMessage(ChatColor.RED + "The selected train is unloaded: we can not change it at this time!");
 			} else if (args.length == 0) {
 				for (MinecartMember<?> member : members) {
-					member.getEntity().setBlock(0);
+					member.getEntity().setBlock(Material.AIR);
 				}
 				p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks cleared!");
 			} else {
-				SignActionBlockChanger.setBlocks(members, StringUtil.combine(" ", args));
+				SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args));
 				p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
 			}
 		} else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {

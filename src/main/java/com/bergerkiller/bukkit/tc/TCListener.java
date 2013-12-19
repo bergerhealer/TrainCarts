@@ -17,7 +17,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockCanBuildEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
@@ -348,14 +347,14 @@ public class TCListener implements Listener {
 	public boolean onRightClick(Block clickedBlock, Player player, ItemStack heldItem, long clickInterval) {
 		// Handle interaction with minecart or rails onto another Block
 		if (MaterialUtil.ISMINECART.get(heldItem) || Util.ISTCRAIL.get(heldItem)) {
-			int id = clickedBlock == null ? 0 : clickedBlock.getTypeId();
-			if (Util.ISTCRAIL.get(id)) {
+			Material type = clickedBlock == null ? Material.AIR : clickedBlock.getType();
+			if (Util.ISTCRAIL.get(type)) {
 				if (MaterialUtil.ISMINECART.get(heldItem)) {
 					// Handle the interaction with rails while holding a minecart
 					// Place a TrainCart/Minecart on top of the rails, and handles permissions
-					return handleMinecartPlacement(player, clickedBlock, id);
-				} else if (id == heldItem.getTypeId() && MaterialUtil.ISRAILS.get(id) && TrainCarts.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
-					if (CommonUtil.callEvent(new BlockCanBuildEvent(clickedBlock, id, true)).isBuildable()) {
+					return handleMinecartPlacement(player, clickedBlock, type);
+				} else if (type == heldItem.getType() && MaterialUtil.ISRAILS.get(type) && TrainCarts.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
+					if (BlockUtil.canBuildBlock(clickedBlock, type)) {
 						// Edit the rails to make a connection/face the direction the player clicked
 						BlockFace direction = FaceUtil.getDirection(player.getLocation().getDirection(), false);
 						BlockFace lastDirection = LogicUtil.fixNull(lastClickedDirection.get(player), direction);
@@ -375,7 +374,7 @@ public class TCListener implements Listener {
 								// Set to slope
 								rails.setDirection(direction, true);
 							}
-						} else if (id == Material.RAILS.getId()) {
+						} else if (type == Material.RAILS) {
 							// This needs advanced logic for curves and everything!
 							BlockFace[] faces = FaceUtil.getFaces(rails.getDirection());
 							if (!LogicUtil.contains(direction.getOppositeFace(), faces)) {
@@ -389,7 +388,7 @@ public class TCListener implements Listener {
 							rails.setDirection(direction, false);
 						}
 						// Update
-						clickedBlock.setData(rails.getData());
+						BlockUtil.setData(clickedBlock, rails);
 						lastClickedDirection.put(player, direction);
 					}
 				}
@@ -407,10 +406,10 @@ public class TCListener implements Listener {
 	/**
 	 * @param player that placed the Minecart
 	 * @param clickedBlock to spawn a Minecart on
-	 * @param railTypeId that was clicked
+	 * @param railType that was clicked
 	 * @return True to allow default logic to continue, False to suppress it
 	 */
-	private boolean handleMinecartPlacement(Player player, Block clickedBlock, int railTypeId) {
+	private boolean handleMinecartPlacement(Player player, Block clickedBlock, Material railType) {
 		// handle permission
 		if (!Permission.GENERAL_PLACE_MINECART.has(player)) {
 			return false;
@@ -425,7 +424,7 @@ public class TCListener implements Listener {
 			}
 			byte data = 0;
 			for (Block block : map) {
-				block.setTypeIdAndData(Material.WOOL.getId(), data, false);
+				BlockUtil.setTypeAndRawData(block, Material.WOOL, data, false);
 				data++;
 				if (data == 16) {
 					data = 0;
@@ -447,15 +446,15 @@ public class TCListener implements Listener {
 		}
 
 		// Place logic for special rail types
-		if (MaterialUtil.ISPRESSUREPLATE.get(railTypeId)) {
+		if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
 			BlockFace dir = Util.getPlateDirection(clickedBlock);
 			if (dir == BlockFace.SELF) {
 				dir = FaceUtil.yawToFace(player.getLocation().getYaw() - 90, false);
 			}
 			at.setYaw(FaceUtil.faceToYaw(dir));
 			MinecartMemberStore.spawnBy(at, player);
-		} else if (Util.ISVERTRAIL.get(railTypeId)) {
-			BlockFace dir = Util.getVerticalRailDirection(clickedBlock.getData());
+		} else if (Util.ISVERTRAIL.get(railType)) {
+			BlockFace dir = Util.getVerticalRailDirection(clickedBlock);
 			at.setYaw(FaceUtil.faceToYaw(dir));
 			at.setPitch(-90.0f);
 			MinecartMemberStore.spawnBy(at, player);
@@ -506,7 +505,7 @@ public class TCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
 		final Block block = event.getBlock();
-		final int type = block.getTypeId();
+		final Material type = block.getType();
 		if (Util.ISTCRAIL.get(type)) {
 			if (!Util.isSupported(block)) {
 				// No valid supporting block - clear the active signs of this rails
@@ -536,7 +535,7 @@ public class TCListener implements Listener {
 				return false;
 			}
 			BlockFace railDir = rails.getDirection();
-			BlockFace dir = Util.getVerticalRailDirection(vertRail.getData());
+			BlockFace dir = Util.getVerticalRailDirection(vertRail);
 			// No other directions going on for this rail?
 			if (railDir != dir && railDir != dir.getOppositeFace()) {
 				if (Util.getRailsBlock(below.getRelative(railDir)) != null) {
@@ -550,7 +549,7 @@ public class TCListener implements Listener {
 			// Direction we are about to connect is supported?
 			if (MaterialUtil.SUFFOCATES.get(below.getRelative(dir))) {
 				rails.setDirection(dir, true);
-				below.setData(rails.getData());
+				BlockUtil.setData(below, rails);
 			}
 			return true;
 		}
@@ -570,7 +569,7 @@ public class TCListener implements Listener {
 				ItemStack item = event.getPlayer().getItemInHand();
 				if (LogicUtil.nullOrEmpty(item)) {
 					event.getPlayer().setItemInHand(new ItemStack(Material.SIGN, 1));
-				} else if (item.getTypeId() == Material.SIGN.getId() && item.getAmount() < ItemUtil.getMaxSize(item)) {
+				} else if (MaterialUtil.isType(item, Material.SIGN) && item.getAmount() < ItemUtil.getMaxSize(item)) {
 					ItemUtil.addAmount(item, 1);
 					event.getPlayer().setItemInHand(item);
 				} else {

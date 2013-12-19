@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -13,8 +14,8 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 public class RailTypeCrossing extends RailTypeHorizontal {
 
 	@Override
-	public boolean isRail(int typeId, int data) {
-		return MaterialUtil.ISPRESSUREPLATE.get(typeId);
+	public boolean isRail(Material type, int data) {
+		return MaterialUtil.ISPRESSUREPLATE.get(type);
 	}
 
 	@Override

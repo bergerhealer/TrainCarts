@@ -76,7 +76,7 @@ public class SignActionBlockChanger extends SignAction {
 						return;
 					}
 					CommonMinecart<?> entity = iter.next().getEntity();
-					entity.setBlock(block.getTypeId(), block.getData());
+					entity.setBlock(block.getType(), block.getData());
 					if (blockOffset != BLOCK_OFFSET_NONE) {
 						entity.setBlockOffset(blockOffset);
 					}

@@ -29,24 +29,16 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 		if (item == null)
 			return false;
 		if (item.hasData()) {
-			return this.hasItem(item.getTypeId(), item.getData());
+			return this.hasItem(item.getType(), item.getData());
 		} else {
-			return this.hasItem(item.getTypeId());
+			return this.hasItem(item.getType());
 		}
 	}
 
 	public boolean hasItem(Material type, int data) {
-		return this.hasItem(type.getId(), data);
-	}
-
-	public boolean hasItem(Material type) {
-		return this.hasItem(type.getId());
-	}
-
-	public boolean hasItem(int typeid) {
 		for (ItemStack stack : this.entity.getInventory()) {
 			if (!LogicUtil.nullOrEmpty(stack)) {
-				if (stack.getTypeId() == typeid) {
+				if (stack.getType() == type && stack.getDurability() == data) {
 					return true;
 				}
 			}
@@ -54,10 +46,10 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 		return false;
 	}
 
-	public boolean hasItem(int typeid, int data) {
+	public boolean hasItem(Material type) {
 		for (ItemStack stack : this.entity.getInventory()) {
 			if (!LogicUtil.nullOrEmpty(stack)) {
-				if (stack.getTypeId() == typeid && stack.getDurability() == data) {
+				if (stack.getType() == type) {
 					return true;
 				}
 			}

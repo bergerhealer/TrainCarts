@@ -77,7 +77,7 @@ public enum PowerState {
 			}
 		} else if (type == Material.REDSTONE_WIRE) {
 			if (useSignLogic || from == BlockFace.UP || (from != BlockFace.DOWN && !isDistracted(block, from))) {
-				return (block.getData() != 0) ? ON : OFF;
+				return (MaterialUtil.getRawData(block) != 0) ? ON : OFF;
 			} else {
 				return NONE;
 			}
@@ -89,7 +89,7 @@ public enum PowerState {
 		}
 		// Power source read-out
 		if (MaterialUtil.ISPOWERSOURCE.get(type)) {
-			MaterialData dat = type.getNewData(block.getData());
+			MaterialData dat = BlockUtil.getData(block);
 			if (dat instanceof Redstone) {
 				return ((Redstone) dat).isPowered() ? ON : OFF;
 			} else if (dat instanceof PressureSensor) {

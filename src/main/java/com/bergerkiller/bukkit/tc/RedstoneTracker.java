@@ -51,7 +51,7 @@ public class RedstoneTracker implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
 		final Block block = event.getBlock();
-		final int type = block.getTypeId();
+		final Material type = block.getType();
 		if (MaterialUtil.ISSIGN.get(type)) {
 			if (Util.isSupported(block)) {
 				// Check for potential redstone changes

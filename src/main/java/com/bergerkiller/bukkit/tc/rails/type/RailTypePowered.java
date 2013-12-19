@@ -61,7 +61,7 @@ public class RailTypePowered extends RailTypeRegular {
 	}
 
 	@Override
-	public boolean isRail(int typeId, int data) {
-		return typeId == Material.POWERED_RAIL.getId() && ((data & 0x8) == 0x8) == isPowered;
+	public boolean isRail(Material type, int data) {
+		return type == Material.POWERED_RAIL && ((data & 0x8) == 0x8) == isPowered;
 	}
 }

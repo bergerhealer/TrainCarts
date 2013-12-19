@@ -116,7 +116,7 @@ public class CartCommands {
 				prop.clearDestination();
 				p.sendMessage(ChatColor.YELLOW + "The destination for this minecart has been cleared!");
 			} else {
-				prop.setDestination(StringUtil.combine(" ", args[0]));
+				prop.setDestination(StringUtil.join(" ", args[0]));
 				p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + args[0] + ChatColor.YELLOW + " as destination for this minecart!");
 			}
 		} else if (cmd.equals("remove") || cmd.equals("destroy")) {
@@ -212,12 +212,12 @@ public class CartCommands {
 			if (member == null) {
 				p.sendMessage(ChatColor.RED + "The selected minecart is unloaded: we can not change it at this time!");
 			} else if (args.length == 0) {
-				member.getEntity().setBlock(0);
+				member.getEntity().setBlock(Material.AIR);
 				p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block cleared!");
 			} else {
 				List<MinecartMember<?>> members = new ArrayList<MinecartMember<?>>(1);
 				members.add(member);
-				SignActionBlockChanger.setBlocks(members, StringUtil.combine(" ", args));
+				SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args));
 				p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block updated!");
 			}
 		} else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {

@@ -437,7 +437,7 @@ public class PathNode {
 					if (node.containsOnlySwitcher()) {
 						stream.writeUTF("");
 					} else {
-						stream.writeUTF(StringUtil.combine("\n", node.names));
+						stream.writeUTF(StringUtil.join("\n", node.names));
 					}
 					stream.writeUTF(node.location.world);
 					stream.writeInt(node.location.x);
