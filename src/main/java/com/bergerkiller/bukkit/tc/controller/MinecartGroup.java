@@ -511,7 +511,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 		CommonMinecart<?> otherEnd;
 		if (at == 0) {
 			// Compare the head
-			if (this.head().isNearOf(mm)) {
+			if (!this.head().isNearOf(mm)) {
 				return false;
 			}
 			connectedEnd = this.head().getEntity();

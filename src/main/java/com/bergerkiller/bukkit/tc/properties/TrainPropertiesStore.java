@@ -145,7 +145,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		String trainName = format;
 		for (int i = 1; i < Integer.MAX_VALUE; i++) {
 			trainName = format.replace("#", Integer.toString(i));
-			if (!TrainProperties.exists(trainName)) {
+			if (!exists(trainName)) {
 				break;
 			}
 		}
@@ -212,6 +212,8 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
 		for (ConfigurationNode node : config.getNodes()) {
 			if (node.contains("allowLinking")) {
 				node.set("collision.train", CollisionMode.fromLinking(node.get("allowLinking", true)));
+				node.remove("allowLinking");
+				changed = true;
 			}
 			if (node.contains("pushAway")) {
 				node.set("collision.mobs", CollisionMode.fromPushing(node.get("pushAway.mobs", false)).toString());
