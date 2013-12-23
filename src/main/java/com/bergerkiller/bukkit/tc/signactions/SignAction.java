@@ -36,6 +36,7 @@ public abstract class SignAction {
 		register(new SignActionTeleport());
 		register(new SignActionJumper());
 		register(new SignActionEject());
+		register(new SignActionEnter());
 		register(new SignActionDestroy());
 		register(new SignActionTransfer());
 		register(new SignActionFuel());
@@ -87,10 +88,10 @@ public abstract class SignAction {
 	/**
 	 * Fired when a sign is being built
 	 * 
-	 * @param info event
+	 * @param event containing relevant Build information
 	 * @return True if building is allowed, False if not
 	 */
-	public abstract boolean build(SignChangeActionEvent info);
+	public abstract boolean build(SignChangeActionEvent event);
 
 	/**
 	 * Whether the remote control format is supported for this sign
