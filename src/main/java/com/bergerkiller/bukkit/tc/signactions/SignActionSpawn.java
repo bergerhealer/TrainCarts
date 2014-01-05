@@ -78,7 +78,7 @@ public class SignActionSpawn extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if ((handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) && hasCartPerms(event)) {
+		if (hasCartPerms(event) && (handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone"))) {
 			long interval = getSpawnTime(event);
 			if (interval > 0 && (Permission.SPAWNER_AUTOMATIC.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use automatic signs"))) {
 				event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
