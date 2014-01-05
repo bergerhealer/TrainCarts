@@ -80,7 +80,7 @@ public class SignActionSpawn extends SignAction {
 	public boolean build(SignChangeActionEvent event) {
 		if ((handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) && hasCartPerms(event)) {
 			long interval = getSpawnTime(event);
-			if (interval > 0) {
+			if (interval > 0 && (Permission.SPAWNER_AUTOMATIC.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use automatic signs"))) {
 				event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
 				SpawnSign sign = new SpawnSign(event.getBlock(), interval);
 				spawnSigns.put(event.getBlock(), sign);
@@ -135,18 +135,20 @@ public class SignActionSpawn extends SignAction {
 		String[] bits = getArgs(event);
 		if (bits.length >= 2) {
 			// Choose
-			if (bits[1].contains(":") && (Permission.SPAWNER_AUTOMATIC.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use automatic signs"))) {
+			if (bits[1].contains(":")) {
 				return ParseUtil.parseTime(bits[1]);
 			} else {
 				return ParseUtil.parseTime(bits[0]);
 			}
-		} else if (bits.length >= 1 && bits[0].contains(":") && (Permission.SPAWNER_AUTOMATIC.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use automatic signs"))) {
+		} else if (bits.length >= 1 && bits[0].contains(":")) {
 			return ParseUtil.parseTime(bits[0]);
 		}
 		return 0;
 		
 	}
 
+
+	
 	public static boolean hasCartPerms(SignChangeActionEvent event){
 		Permission perm;
 		for (char cart : (event.getLine(2) + event.getLine(3)).toCharArray()) {
