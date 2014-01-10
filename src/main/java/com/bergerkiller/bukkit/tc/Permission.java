@@ -42,6 +42,13 @@ public class Permission extends PermissionEnum {
 	public static final Permission COMMAND_CHANGEBLOCK = new Permission("train.command.changeblock", PermissionDefault.OP, "Whether the player can alter the type of block displayed in a minecart");
 	public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
 	public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
+	public static final Permission SPAWNER_AUTOMATIC = new Permission("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts");
+	public static final Permission SPAWNER_REGULAR = new Permission("train.spawner.regular", PermissionDefault.TRUE, "The player can build spawners which create regular minecarts");
+	public static final Permission SPAWNER_POWERED = new Permission("train.spawner.powered", PermissionDefault.TRUE, "The player can build spawners which create powered minecarts");
+	public static final Permission SPAWNER_STORAGE = new Permission("train.spawner.storage", PermissionDefault.TRUE, "The player can build spawners which create minecarts with chests");
+	public static final Permission SPAWNER_TNT = new Permission("train.spawner.tnt", PermissionDefault.TRUE, "The player can build spawners which create minecarts with TNT");
+	public static final Permission SPAWNER_HOPPER = new Permission("train.spawner.hopper", PermissionDefault.TRUE, "The player can build spawners which create minecarts with hoppers");
+	public static final Permission SPAWNER_SPAWNER = new Permission("train.spawner.spawner", PermissionDefault.TRUE, "The player can build spawners which create minecarts with spawners");
 	public static final Permission BUILD_TRIGGER = new Permission("train.build.trigger", PermissionDefault.OP, "The player can build train triggers");
 	public static final Permission BUILD_DESTINATION = new Permission("train.build.destination", PermissionDefault.OP, "The player can build destinations");
 	public static final Permission BUILD_SWITCHER = new Permission("train.build.switcher", PermissionDefault.OP, "The player can build track switchers");

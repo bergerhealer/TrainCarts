@@ -42,6 +42,22 @@ public class SignActionSpawn extends SignAction {
 		addSpawnType('t', EntityType.MINECART_TNT);
 		addSpawnType('e', EntityType.MINECART_MOB_SPAWNER);
 	}
+	
+	private static HashMap<String, Permission> minecartPerms = new HashMap<String, Permission>();
+	static {
+		addPermType('m', Permission.SPAWNER_REGULAR);
+		addPermType('s', Permission.SPAWNER_STORAGE);
+		addPermType('p', Permission.SPAWNER_POWERED);
+		addPermType('h', Permission.SPAWNER_HOPPER);
+		addPermType('t', Permission.SPAWNER_TNT);
+		addPermType('e', Permission.SPAWNER_SPAWNER);
+	}
+	
+	
+	public static void addPermType(char character, Permission perm) {
+		minecartPerms.put(Character.toString(character).toLowerCase(Locale.ENGLISH), perm);
+		minecartPerms.put(Character.toString(character).toUpperCase(Locale.ENGLISH), perm);
+	}
 
 	public static void addSpawnType(char character, EntityType type) {
 		minecartTypes.put(Character.toString(character).toLowerCase(Locale.ENGLISH), type);
@@ -62,9 +78,9 @@ public class SignActionSpawn extends SignAction {
 
 	@Override
 	public boolean build(SignChangeActionEvent event) {
-		if (handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) {
+		if (hasCartPerms(event) && (handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone"))) {
 			long interval = getSpawnTime(event);
-			if (interval > 0) {
+			if (interval > 0 && (Permission.SPAWNER_AUTOMATIC.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use automatic signs"))) {
 				event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
 				SpawnSign sign = new SpawnSign(event.getBlock(), interval);
 				spawnSigns.put(event.getBlock(), sign);
@@ -128,6 +144,23 @@ public class SignActionSpawn extends SignAction {
 			return ParseUtil.parseTime(bits[0]);
 		}
 		return 0;
+		
+	}
+
+
+	
+	public static boolean hasCartPerms(SignChangeActionEvent event){
+		Permission perm;
+		for (char cart : (event.getLine(2) + event.getLine(3)).toCharArray()) {
+			perm = minecartPerms.get(Character.toString(cart));
+			if (perm.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of this type")){
+				continue;
+			}
+			else{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public static void spawn(SignActionEvent info) {
