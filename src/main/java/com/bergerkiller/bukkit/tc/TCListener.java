@@ -268,13 +268,16 @@ public class TCListener implements Listener {
 		if (mm == null) {
 			return;
 		}
-		if(mm.getProperties().isInvincible()) {
-			event.setCancelled(true);
-			return;
-		}
 		Entity attacker = event.getAttacker();
 		if (attacker instanceof Projectile) {
 			attacker = ((Projectile) attacker).getShooter();
+		}
+		if(attacker instanceof Player && Permission.BREAK_MINECART_ANY.has((Player) attacker)) {
+			return;
+		}
+		if(mm.getProperties().isInvincible()) {
+			event.setCancelled(true);
+			return;
 		}
 		if (attacker instanceof Player) {
 			Player p = (Player) attacker;
