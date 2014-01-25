@@ -73,6 +73,8 @@ public class Permission extends PermissionEnum {
 	public static final Permission BUILD_ENTER = new Permission("train.build.enter", PermissionDefault.OP, "The player can build a sign that can make nearby players/mobs enter a train");
 	public static final Permission GENERAL_PLACE_MINECART = new Permission("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts");
 	public static final Permission GENERAL_PLACE_TRAINCART = new Permission("train.place.traincart", PermissionDefault.TRUE, "The player can place TrainCarts minecarts");
+	public static final Permission BREAK_MINECART_SELF = new Permission("train.break.self", PermissionDefault.TRUE, "The player can break their own minecarts");
+	public static final Permission BREAK_MINECART_ANY = new Permission("train.break.any", PermissionDefault.OP, "The player can break any minecart, owned by anyone");
 	public static final Permission GENERAL_PROPERTIES_ADMIN = new Permission("train.properties.admin", PermissionDefault.OP, "Carts placed by this player get the admin properties");
 
 	private Permission(final String node, final PermissionDefault permdefault, final String desc) {

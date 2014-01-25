@@ -278,7 +278,7 @@ public class TCListener implements Listener {
 		}
 		if (attacker instanceof Player) {
 			Player p = (Player) attacker;
-			if (mm.getProperties().hasOwnership(p)) {
+			if ((mm.getProperties().hasOwnership(p) && Permission.BREAK_MINECART_SELF.has(p)) || Permission.BREAK_MINECART_ANY.has(p)) {
 				CartPropertiesStore.setEditing(p, mm.getProperties());
 			} else {
 				event.setCancelled(true);
