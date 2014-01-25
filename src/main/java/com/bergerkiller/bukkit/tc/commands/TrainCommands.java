@@ -60,6 +60,12 @@ public class TrainCommands {
 				prop.setKeepChunksLoaded(ParseUtil.parseBool(args[0]));
 			}
 			p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
+		} else if (cmd.equals("invincible")) {
+			if(args.length == 1) {
+				Permission.COMMAND_INVINCIBLE.handle(p);
+				prop.setInvincible(ParseUtil.parseBool(args[0]));
+			}
+			p.sendMessage(ChatColor.YELLOW + "Train invincible: " + ChatColor.WHITE + prop.isInvincible());
 		} else if (cmd.equals("manualmove") || cmd.equals("allowmanual") || cmd.equals("manual") || cmd.equals("allowmanualmovement")) {
 			if (args.length == 1) {
 				Permission.COMMAND_MANUALMOVE.handle(p);

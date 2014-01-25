@@ -193,7 +193,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 		}
 		this.keepChunksLoaded = state;
 	}
-
+	
 	/**
 	 * Sets whether ambient Minecart sounds are enabled
 	 * 
@@ -435,6 +435,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			prop.setPlayersExit(state);
 		}
 	}
+	
+	@Override
+	public void setInvincible(boolean enabled) {
+		for (CartProperties prop : this) {
+			prop.setInvincible(enabled);
+		}
+	}
 
 	@Override
 	public boolean getPlayersEnter() {
@@ -450,6 +457,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 	public boolean getPlayersExit() {
 		for (CartProperties prop : this) {
 			if (prop.getPlayersExit()) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean isInvincible() {
+		for (CartProperties prop : this) {
+			if (prop.isInvincible()) {
 				return true;
 			}
 		}
@@ -727,6 +744,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 			this.setPlayersEnter(ParseUtil.parseBool(arg));
 		} else if (key.equals("playerexit")) {
 			this.setPlayersExit(ParseUtil.parseBool(arg));
+		} else if(LogicUtil.contains(key, "invincible", "godmode")) {
+			this.setInvincible(ParseUtil.parseBool(arg));
 		} else if (key.equals("setownerperm")) {
 			for (CartProperties prop : this) {
 				prop.clearOwnerPermissions();

@@ -180,6 +180,20 @@ public interface IProperties extends IParsable {
 	 * @param state to set to
 	 */
 	public void setPlayersExit(boolean state);
+	
+	/**
+	 * Gets wether train is invincible
+	 * 
+	 * @return True or False
+	 */
+	public boolean isInvincible();
+	
+	/**
+	 * Sets wether the train is invincible
+	 * 
+	 * @param enabled to set to
+	 */
+	public void setInvincible(boolean enabled);
 
 	/**
 	 * Sets whether items are dropped when this cart is broken

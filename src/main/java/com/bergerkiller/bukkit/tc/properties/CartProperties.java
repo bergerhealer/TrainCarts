@@ -41,6 +41,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 	private final Set<Material> blockBreakTypes = new HashSet<Material>();
 	private boolean allowPlayerExit = true;
 	private boolean allowPlayerEnter = true;
+	private boolean invincible = false;
 	private String enterMessage = null;
 	public Vector exitOffset = new Vector(0.0, 0.0, 0.0);
 	public float exitYaw = 0.0f, exitPitch = 0.0f;
@@ -453,6 +454,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 			this.setPlayersEnter(ParseUtil.parseBool(arg));
 		} else if (key.equals("playerexit")) {
 			this.setPlayersExit(ParseUtil.parseBool(arg));
+		} else if (LogicUtil.contains(key, "invincible", "godmode")) {
+			this.setInvincible(ParseUtil.parseBool(arg));
 		} else if (key.equals("setownerperm")) {
 			this.clearOwnerPermissions();
 			this.getOwnerPermissions().add(arg);
@@ -492,6 +495,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.tags.addAll(from.tags);
 		this.allowPlayerEnter = from.allowPlayerEnter;
 		this.allowPlayerExit = from.allowPlayerExit;
+		this.invincible = from.invincible;
 		this.exitOffset = from.exitOffset.clone();
 		this.exitYaw = from.exitYaw;
 		this.exitPitch = from.exitPitch;
@@ -511,6 +515,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		this.lastPathNode = node.get("lastPathNode", this.lastPathNode);
 		this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
 		this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
+		this.invincible = node.get("invincible", this.invincible);
 		this.isPublic = node.get("isPublic", this.isPublic);
 		this.pickUp = node.get("pickUp", this.pickUp);
 		this.spawnItemDrops = node.get("spawnItemDrops", this.spawnItemDrops);
@@ -532,6 +537,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		node.set("tags", new ArrayList<String>(this.tags));
 		node.set("allowPlayerEnter", this.allowPlayerEnter);
 		node.set("allowPlayerExit", this.allowPlayerExit);
+		node.set("invincible", this.invincible);
 		node.set("isPublic", this.isPublic);
 		node.set("pickUp", this.pickUp);
 		node.set("exitOffset", this.exitOffset);
@@ -553,6 +559,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
 		node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
 		node.set("allowPlayerExit", this.allowPlayerExit ? null : false);	
+		node.set("invincible", this.invincible ? true : null);
 		node.set("isPublic", this.isPublic ? null : false);
 		node.set("pickUp", this.pickUp ? true : null);
 		node.set("exitOffset", this.exitOffset.lengthSquared() == 0.0 ? null : this.exitOffset);
@@ -570,6 +577,24 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 		node.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
 		node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
 		node.set("spawnItemDrops", this.spawnItemDrops ? null : false);
+	}
+	
+	/**
+	 * Gets wether this Train is invincible or not
+	 * 
+	 * @return True if enabled, False if not
+	 */
+	public boolean isInvincible() {
+		return this.invincible;
+	}
+	
+	/**
+	 * Sets wether this Train can be damages
+	 * 
+	 * @param enabled state to set to
+	 */
+	public void setInvincible(boolean enabled) {
+		this.invincible = enabled;
 	}
 
 	@Override

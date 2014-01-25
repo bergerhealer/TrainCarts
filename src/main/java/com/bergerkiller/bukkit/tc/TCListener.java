@@ -268,6 +268,10 @@ public class TCListener implements Listener {
 		if (mm == null) {
 			return;
 		}
+		if(mm.getProperties().isInvincible()) {
+			event.setCancelled(true);
+			return;
+		}
 		Entity attacker = event.getAttacker();
 		if (attacker instanceof Projectile) {
 			attacker = ((Projectile) attacker).getShooter();

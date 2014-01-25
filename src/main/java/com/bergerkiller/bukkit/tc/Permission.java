@@ -24,6 +24,7 @@ public class Permission extends PermissionEnum {
 	public static final Permission COMMAND_PICKUP = new Permission("train.command.pickup", PermissionDefault.TRUE, "The player can set if his owned storage carts pick up items");
 	public static final Permission COMMAND_SETLINKING = new Permission("train.command.setlinking", PermissionDefault.TRUE, "The player can set if his owned trains can link to other trains");
 	public static final Permission COMMAND_KEEPCHUNKSLOADED = new Permission("train.command.keepchunksloaded", PermissionDefault.OP, "The player can if his owned trains keep nearby chunks loaded");
+	public static final Permission COMMAND_INVINCIBLE = new Permission("train.command.invincible", PermissionDefault.OP, "The player can if his owned trains make it invincible");
 	public static final Permission COMMAND_PUSHING = new Permission("train.command.pushing", PermissionDefault.TRUE, "The player can if his owned trains push away certain entities");
 	public static final Permission COMMAND_SLOWDOWN = new Permission("train.command.slowdown", PermissionDefault.TRUE, "The player can if his owned trains slow down over time");
 	public static final Permission COMMAND_SETCOLLIDE = new Permission("train.command.setcollide", PermissionDefault.TRUE, "The player can if his owned trains can collide");
