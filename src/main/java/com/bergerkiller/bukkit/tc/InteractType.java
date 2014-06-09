@@ -7,7 +7,7 @@ import java.util.LinkedHashSet;
  * An active type of Object to interact with
  */
 public enum InteractType {
-	CHEST, FURNACE, DISPENSER, GROUNDITEM;
+	CHEST, FURNACE, DISPENSER, GROUNDITEM, DROPPER;
 
 	/**
 	 * Parses all the active interactables represented by the root and name
@@ -24,16 +24,20 @@ public enum InteractType {
 				typesToCheck.add(CHEST);
 			} else if (name.startsWith("dispenser out")) {
 				typesToCheck.add(DISPENSER);
-			} else if (name.startsWith("furnace out")) {
-				typesToCheck.add(FURNACE);
+            } else if (name.startsWith("dropper out")) {
+                typesToCheck.add(DROPPER);
+            } else if (name.startsWith("furnace out")) {
+                typesToCheck.add(FURNACE);
 			} else if (name.startsWith("pickup") || name.startsWith("pick up")) {
 				typesToCheck.add(GROUNDITEM);
 			}
 		} else if (root.equals("deposit")) {
 			if (name.startsWith("chest in")) {
 				typesToCheck.add(CHEST);
-			} else if (name.startsWith("dispenser in")) {
-				typesToCheck.add(DISPENSER);
+            } else if (name.startsWith("dispenser in")) {
+                typesToCheck.add(DISPENSER);
+            } else if (name.startsWith("dropper in")) {
+                typesToCheck.add(DROPPER);
 			} else if (name.startsWith("furnace in")) {
 				typesToCheck.add(FURNACE);
 			} else if (name.startsWith("smelt")) {
@@ -48,8 +52,10 @@ public enum InteractType {
 				typesToCheck.add(CHEST);
 			} else if (types.startsWith("furn")) {
 				typesToCheck.add(FURNACE);
-			} else if (types.startsWith("disp")) {
-				typesToCheck.add(DISPENSER);
+            } else if (types.startsWith("disp")) {
+                typesToCheck.add(DISPENSER);
+            } else if (types.startsWith("drop")) {
+                typesToCheck.add(DROPPER);
 			} else if (types.startsWith("ground")) {
 				typesToCheck.add(GROUNDITEM);
 			} else {
@@ -70,6 +76,7 @@ public enum InteractType {
 			typesToCheck.add(CHEST);
 			typesToCheck.add(FURNACE);
 			typesToCheck.add(DISPENSER);
+			typesToCheck.add(DROPPER);
 		}
 		return typesToCheck;
 	}
