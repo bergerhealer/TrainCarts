@@ -15,6 +15,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Dispenser;
+import org.bukkit.block.Dropper;
 import org.bukkit.block.Furnace;
 import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.FurnaceInventory;
@@ -311,6 +312,13 @@ public class TransferSignUtil {
 						}
 					}
 					break;
+				}
+				case DROPPER : {
+				    for(BlockState state : found) {
+				        if (state instanceof Dropper) {
+				            rval.add((Dropper) state);
+				        }
+				    }
 				}
 				case GROUNDITEM : {
 					rval.add(new GroundItemsState(info.getRails(), Math.abs(radius.x)));
