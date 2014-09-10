@@ -688,10 +688,10 @@ public class SignActionEvent extends Event implements Cancellable {
 	 * Checks the first line of this sign to see if it starts with one of the sign types specified
 	 * 
 	 * @param signtypes to check against
-	 * @return True if the first line starts with any of the types, False if not
+	 * @return True if the first line starts with any of the types AND the sign has a valid mode, False if not
 	 */
 	public boolean isType(String... signtypes) {
-		return isLine(1, signtypes);
+	    return (this.mode != SignActionMode.NONE) && isLine(1, signtypes);
 	}
 
 	@Override
