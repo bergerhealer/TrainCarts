@@ -7,23 +7,23 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementVelocity extends Statement {
 
-	@Override
-	public boolean match(String text) {
-		return text.startsWith("vel") || text.startsWith("speed");
-	}
+    @Override
+    public boolean match(String text) {
+        return text.startsWith("vel") || text.startsWith("speed");
+    }
 
-	@Override
-	public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
-		return Util.evaluate(member.getForce(), text);
-	}
+    @Override
+    public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
+        return Util.evaluate(member.getForce(), text);
+    }
 
-	@Override
-	public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
-		return Util.evaluate(group.getAverageForce(), text);
-	}
+    @Override
+    public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
+        return Util.evaluate(group.getAverageForce(), text);
+    }
 
-	@Override
-	public boolean matchArray(String text) {
-		return false;
-	}
+    @Override
+    public boolean matchArray(String text) {
+        return false;
+    }
 }

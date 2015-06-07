@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
  */
 public class AveragedItemParser extends ItemParser {
 
-	public AveragedItemParser(ItemParser itemParser, int multiplier) {
-		super(itemParser.getType(), itemParser.hasAmount() ? itemParser.getAmount() * multiplier : multiplier, itemParser.getData());
-	}
+    public AveragedItemParser(ItemParser itemParser, int multiplier) {
+        super(itemParser.getType(), itemParser.hasAmount() ? itemParser.getAmount() * multiplier : multiplier, itemParser.getData());
+    }
 }

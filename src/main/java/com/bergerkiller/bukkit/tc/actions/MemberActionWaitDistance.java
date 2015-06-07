@@ -1,20 +1,20 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 public class MemberActionWaitDistance extends MemberAction implements WaitAction {
-	private double distance;
+    private double distance;
 
-	public MemberActionWaitDistance(double distance) {
-		this.distance = distance;
-	}
+    public MemberActionWaitDistance(double distance) {
+        this.distance = distance;
+    }
 
-	@Override
-	public boolean update() {
-		this.distance -= this.getEntity().getMovedXZDistance();
-		return this.distance <= 0;
-	}
+    @Override
+    public boolean update() {
+        this.distance -= this.getEntity().getMovedXZDistance();
+        return this.distance <= 0;
+    }
 
-	@Override
-	public boolean isMovementSuppressed() {
-		return true;
-	}
+    @Override
+    public boolean isMovementSuppressed() {
+        return true;
+    }
 }

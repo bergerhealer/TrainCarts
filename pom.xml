@@ -1,131 +1,136 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.bergerkiller.bukkit</groupId>
-  <artifactId>TrainCarts</artifactId>
-  <version>1.73.1-SNAPSHOT</version>
-  <packaging>jar</packaging>
+    <groupId>com.bergerkiller.bukkit</groupId>
+    <artifactId>TrainCarts</artifactId>
+    <version>1.73.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
-  <name>TrainCarts</name>
-  <url>https://github.com/bergerhealer/traincarts/</url>
+    <name>TrainCarts</name>
+    <url>https://github.com/bergerhealer/traincarts/</url>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
-  <repositories>
-    <!-- Repo for access to CraftBukkit -->
-    <repository>
-      <id>spigot-repo</id>
-      <url>http://repo.md-5.net/content/groups/public/</url>
-    </repository>
-    <repository>
-      <id>bukkit-repo</id>
-      <url>http://hub.spigotmc.org/nexus/content/groups/public/</url>
-    </repository>
-    <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
-    <repository>
-      <id>mg-dev-repo</id>
-      <url>http://maven.mg-dev.eu/</url>
-    </repository>
-  </repositories>
+    <repositories>
+        <!-- Repo for access to CraftBukkit -->
+        <repository>
+            <id>spigot-repo</id>
+            <url>http://repo.md-5.net/content/groups/public/</url>
+        </repository>
+        <repository>
+            <id>bukkit-repo</id>
+            <url>http://hub.spigotmc.org/nexus/content/groups/public/</url>
+        </repository>
+        <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
+        <repository>
+            <id>mg-dev-repo</id>
+            <url>http://maven.mg-dev.eu/</url>
+        </repository>
+    </repositories>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.bukkit</groupId>
-      <artifactId>bukkit</artifactId>
-      <version>1.8.7-R0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.earth2me</groupId>
-      <artifactId>essentials</artifactId>
-      <version>2.10.1</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/lib/Essentials.jar</systemPath>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.bergerkiller.bukkit</groupId>
-      <artifactId>SignLink</artifactId>
-      <version>1.35-SNAPSHOT</version>
-      <scope>provided</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.bergerkiller.bukkit</groupId>
-      <artifactId>BKCommonLib</artifactId>
-      <version>1.62-SNAPSHOT</version>
-      <scope>provided</scope>
-  	</dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>org.bukkit</groupId>
+            <artifactId>bukkit</artifactId>
+            <version>1.8.7-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.earth2me</groupId>
+            <artifactId>essentials</artifactId>
+            <version>2.10.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/Essentials.jar</systemPath>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.bergerkiller.bukkit</groupId>
+            <artifactId>SignLink</artifactId>
+            <version>1.35-SNAPSHOT</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.bergerkiller.bukkit</groupId>
+            <artifactId>MyWorlds</artifactId>
+            <version>1.67-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bergerkiller.bukkit</groupId>
+            <artifactId>BKCommonLib</artifactId>
+            <version>1.62-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-  <!-- Build -->
-  <build>
-	<!-- Resources (the filtering allows us to use project properties in plugin.yml) -->
-	<resources>
-      <resource>
-        <directory>src/main/java</directory>
-        <filtering>true</filtering>
-        <includes>
-          <include>plugin.yml</include>
-        </includes>
-      </resource>
-	</resources>
-	<defaultGoal>clean install</defaultGoal>
+    <!-- Build -->
+    <build>
+        <!-- Resources (the filtering allows us to use project properties in plugin.yml) -->
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+        </resources>
+        <defaultGoal>clean install</defaultGoal>
 
-	<!-- Plugins -->
-	<plugins>
+        <!-- Plugins -->
+        <plugins>
 
-      <!-- Copy artifacts to non-versioned jar name -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>com.bergerkiller.bukkit</groupId>
-                  <artifactId>TrainCarts</artifactId>
-                  <version>${project.version}</version>
-                  <type>jar</type>
-                  <overWrite>true</overWrite>
-                  <outputDirectory>${project.build.directory}</outputDirectory>
-                  <destFileName>${project.name}.jar</destFileName>
-                </artifactItem>
-              </artifactItems>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+            <!-- Copy artifacts to non-versioned jar name -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.bergerkiller.bukkit</groupId>
+                                    <artifactId>TrainCarts</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>${project.name}.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
-	  <!-- Compiler plugin -->
-	  <plugin>
-	    <groupId>org.apache.maven.plugins</groupId>
-		<artifactId>maven-compiler-plugin</artifactId>
-		<version>3.1</version>
-		<configuration>
-		  <source>1.7</source>
-		  <target>1.7</target>
-		  <showWarnings>true</showWarnings>
-		  <showDeprecation>true</showDeprecation>
-		</configuration>
-      </plugin>
-    </plugins>
-  </build>
+            <!-- Compiler plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
