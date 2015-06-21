@@ -117,13 +117,39 @@ public class SignActionSpawn extends SignAction {
 
     public static boolean hasCartPerms(SignChangeActionEvent event) {
         Permission perm;
+        boolean validCartTypeSpecified = false; // If no valid cart types failed, fail
+        int cartAmountSpecified = -1;           // Keep track of numbers, to avoid things like "0m"
         for (char cart : (event.getLine(2) + event.getLine(3)).toCharArray()) {
+            if (Character.isDigit(cart)) {
+                if (cartAmountSpecified == -1) {
+                    // This is the first digit of the cart specification
+                    cartAmountSpecified = Character.getNumericValue(cart);
+                } else {
+                    // This is the second, third, ... digit of the cart specification
+                    cartAmountSpecified = (10 * cartAmountSpecified) + Character.getNumericValue(cart);
+                }
+                continue;
+            }
             perm = minecartPerms.get(Character.toString(cart));
-            if (perm.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of this type")) {
+            if (perm == null) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Invalid minecart type (" + Character.toString(cart) + ")");
+                return false;
+            }
+            if (perm.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of type " + Character.toString(cart))) {
+                if (cartAmountSpecified != 0) {
+                    validCartTypeSpecified = true;
+                } else {
+                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Warning: You have specified 0 minecarts of type " + Character.toString(cart));
+                }
+                cartAmountSpecified = -1;
                 continue;
             } else {
                 return false;
             }
+        }
+        if (! validCartTypeSpecified) {
+            event.getPlayer().sendMessage(ChatColor.RED + "No valid minecart types were specified");
+            return false;
         }
         return true;
     }
