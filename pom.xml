@@ -61,7 +61,7 @@
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>BKCommonLib</artifactId>
-            <version>1.62-SNAPSHOT</version>
+            <version>1.63-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
