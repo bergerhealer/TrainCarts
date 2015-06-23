@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -83,6 +84,9 @@ public class SignActionEvent extends Event implements Cancellable {
             return;
         } else {
             // Sign available - initialize the sign
+            if (TrainCarts.parseOldSigns) {
+                convertFirstLine();
+            }
             mainLine = this.getLine(0);
             this.poweron = mainLine.startsWith("[+");
             this.powerinv = mainLine.startsWith("[!");
@@ -649,6 +653,18 @@ public class SignActionEvent extends Event implements Cancellable {
             return members;
         }
         return Collections.EMPTY_LIST;
+    }
+
+    /*
+     * Add [] around first line, if [] are not present and first line
+     * looks like a valid TrainCarts sign.
+     */
+    public void convertFirstLine() {
+        String firstLineOriginal = this.sign.getLine(0);
+        String firstLineConverted = SignActionMode.convertOldSignString(firstLineOriginal);
+        if (! firstLineOriginal.equals(firstLineConverted)) {
+            this.setLine(0, firstLineConverted);
+        }
     }
 
     public String getLine(int index) {
