@@ -82,6 +82,7 @@ public class TrainCarts extends PluginBase {
     public static boolean SignLinkEnabled = false;
     public static boolean MinecartManiaEnabled = false;
     public static boolean MyWorldsEnabled = false;
+    public static boolean parseOldSigns;
     public static TrainCarts plugin;
     private static String currencyFormat;
     private static Task fixGroupTickTask;
@@ -396,6 +397,18 @@ public class TrainCarts extends PluginBase {
         //parser shortcuts
         config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
         ConfigurationNode itemshort = config.getNode("itemShortcuts");
+
+        /*
+         * Signs created before Minecraft 1.8 with (for example) "[train]" will have the brackets stripped.
+         * TrainCarts will not recognize these causing trains to ignore all "old" signs in the world.
+         * Here is a flag to recognize "train" and "!train" etc. on the top line of signs and re-add in
+         * the missing [].
+         */
+        config.setHeader("parseOldSigns", "\nParse signs made in Minecraft 1.7 and before without re-creating");
+        if (config.contains("parseOldSigns")) {
+            parseOldSigns = config.get("parseOldSigns", false);
+        }
+
         parsers.clear();
 
         // ================= Defaults ===============
