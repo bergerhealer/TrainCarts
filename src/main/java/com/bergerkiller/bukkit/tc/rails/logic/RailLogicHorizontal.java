@@ -65,7 +65,7 @@ public class RailLogicHorizontal extends RailLogic {
     @Override
     public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
         double newLocX = railPos.midX() + this.startX;
-        double newLocY = railPos.midY() - 0.699999988079071;
+        double newLocY = railPos.midY() - 0.69;
         double newLocZ = railPos.midZ() + this.startZ;
         if (this.alongZ) {
             // Moving along the X-axis
