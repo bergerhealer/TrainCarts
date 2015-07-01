@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.logging.Level;
+
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -9,6 +11,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeDown;
+
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -20,7 +23,8 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
  */
 public enum CollisionMode {
     DEFAULT("is stopped by"), PUSH("pushes"), CANCEL("ignores"), KILL("kills"),
-    KILLNODROPS("kills without drops"), ENTER("takes in"), LINK("forms a group with");
+    KILLNODROPS("kills without drops"), ENTER("takes in"), LINK("forms a group with"),
+    DAMAGE("damages"), DAMAGENODROPS("damages without drops"), SKIP("do not process");
 
     private final String operationName;
 
@@ -124,25 +128,23 @@ public enum CollisionMode {
                 }
                 return false;
             case PUSH:
-                if (entity instanceof Minecart) {
-                    // Push the minecart (only when moving towards it)
-                    if (member.isHeadingTo(entity)) {
-                        double force;
-                        // Keeping distance
-                        force = TrainCarts.cartDistance - member.getEntity().loc.distanceSquared(entity);
-                        force *= TrainCarts.cartDistanceForcer;
-                        // Difference in velocity
-                        force += member.getForce() - entity.getVelocity().length();
-                        // Apply
-                        if (force > 0.0) {
-                            member.push(entity, force);
-                        }
-                    }
-                } else {
-                    member.pushSideways(entity);
-                }
+                push(member, entity);
                 return false;
             case CANCEL:
+                return false;
+            case DAMAGE:
+            case DAMAGENODROPS:
+                if (member.isMoving() && member.isHeadingTo(entity)) {
+                    if (this == DAMAGENODROPS) {
+                        TCListener.cancelNextDrops = true;
+                    }
+                    Double minecartEnergy = member.getForceSquared() * member.getProperties().getTrainProperties().getCollisionDamage();
+                    damage(member, entity, minecartEnergy);
+                    push(member, entity);
+                    if (this == DAMAGENODROPS) {
+                        TCListener.cancelNextDrops = false;
+                    }
+                }
                 return false;
             case KILLNODROPS:
             case KILL:
@@ -150,15 +152,7 @@ public enum CollisionMode {
                     if (this == KILLNODROPS) {
                         TCListener.cancelNextDrops = true;
                     }
-                    if (entity instanceof LivingEntity) {
-                        boolean old = EntityUtil.isInvulnerable(entity);
-                        EntityUtil.setInvulnerable(entity, false);
-                        ((LivingEntity) entity).damage(Short.MAX_VALUE, member.getEntity().getEntity());
-                        EntityUtil.setInvulnerable(entity, old);
-                    } else {
-                        EntityUtil.damage(entity, DamageCause.CUSTOM, (double) Short.MAX_VALUE);
-                        entity.remove();
-                    }
+                    damage(member, entity, (double) Short.MAX_VALUE);
                     if (this == KILLNODROPS) {
                         TCListener.cancelNextDrops = false;
                     }
@@ -170,6 +164,10 @@ public enum CollisionMode {
                     return !MinecartGroupStore.link(member, other);
                 }
                 return true;
+            case SKIP:
+                // Should not ever be called. If it is, do nothing.
+                TrainCarts.plugin.log(Level.WARNING, "Collision mode SKIP should not be called");
+                return false;
             default:
                 if (other != null) {
                     // Perform default logic: Stop this train
@@ -179,6 +177,44 @@ public enum CollisionMode {
                     return false;
                 }
                 return true;
+        }
+    }
+
+    /*
+     * Push something after a minecart hits it
+     */
+    private void push(MinecartMember<?> member, Entity entity) {
+        if (entity instanceof Minecart) {
+            // Push the minecart (only when moving towards it)
+            if (member.isHeadingTo(entity)) {
+                double force;
+                // Keeping distance
+                force = TrainCarts.cartDistance - member.getEntity().loc.distanceSquared(entity);
+                force *= TrainCarts.cartDistanceForcer;
+                // Difference in velocity
+                force += member.getForce() - entity.getVelocity().length();
+                // Apply
+                if (force > 0.0) {
+                    member.push(entity, force);
+                }
+            }
+        } else {
+            member.pushSideways(entity);
+        }
+    }
+
+    /*
+     * Impart damage to an entity that a minecart hits
+     */
+    private void damage(MinecartMember<?> member, Entity entity, Double damageAmount) {
+        if (entity instanceof LivingEntity) {
+            boolean old = EntityUtil.isInvulnerable(entity);
+            EntityUtil.setInvulnerable(entity, false);
+            ((LivingEntity) entity).damage(damageAmount, member.getEntity().getEntity());
+            EntityUtil.setInvulnerable(entity, old);
+        } else {
+            EntityUtil.damage(entity, DamageCause.CUSTOM, (double) Short.MAX_VALUE);
+            entity.remove();
         }
     }
 

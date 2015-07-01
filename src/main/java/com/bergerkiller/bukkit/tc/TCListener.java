@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -236,6 +237,7 @@ public class TCListener implements Listener {
         MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
         if (member != null && member.isInteractable()) {
             CartProperties prop = member.getProperties();
+
             if (event.getEntered() instanceof Player) {
                 Player player = (Player) event.getEntered();
                 if (prop.getPlayersEnter() && (prop.isPublic() || prop.hasOwnership(player))) {
@@ -243,8 +245,11 @@ public class TCListener implements Listener {
                 } else {
                     event.setCancelled(true);
                 }
-            } else if (member.getGroup().getProperties().mobCollision != CollisionMode.ENTER) {
-                event.setCancelled(true);
+            } else {
+                CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
+                if (x != CollisionMode.ENTER) {
+                    event.setCancelled(true);
+                }
             }
             member.onPropertiesChanged();
         }
