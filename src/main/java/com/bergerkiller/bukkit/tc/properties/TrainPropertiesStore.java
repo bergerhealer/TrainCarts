@@ -206,8 +206,22 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
                 node.remove("allowLinking");
                 changed = true;
             }
+            if (node.contains("collision.mobs")) {
+                for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                    if (collisionConfigObject.isAddToConfigFile()) {
+                        node.set("collision." + collisionConfigObject.getMobType(), node.get("collision.mobs", CollisionMode.DEFAULT).toString());
+                    }
+                }
+                node.remove("collision.mobs");
+                changed = true;
+            }
             if (node.contains("pushAway")) {
-                node.set("collision.mobs", CollisionMode.fromPushing(node.get("pushAway.mobs", false)).toString());
+                for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                    if (collisionConfigObject.isAddToConfigFile()) {
+                        String mobType = collisionConfigObject.getMobType();
+                        node.set("collision." + mobType, CollisionMode.fromPushing(node.get("pushAway." + mobType, false)).toString());
+                    }
+                }
                 node.set("collision.players", CollisionMode.fromPushing(node.get("pushAway.players", false)).toString());
                 node.set("collision.misc", CollisionMode.fromPushing(node.get("pushAway.misc", true)).toString());
                 node.remove("pushAway");
@@ -215,9 +229,29 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
             }
             if (node.contains("allowMobsEnter")) {
                 if (node.get("allowMobsEnter", false)) {
-                    node.set("collision.mobs", CollisionMode.ENTER.toString());
+                    for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                        if (collisionConfigObject.isAddToConfigFile()) {
+                            String mobType = collisionConfigObject.getMobType();
+                            node.set("collision." + mobType, CollisionMode.ENTER.toString());
+                        }
+                    }
                 }
                 node.remove("allowMobsEnter");
+                changed = true;
+            }
+            if (node.contains("mobenter") || node.contains("mobsenter")) {
+                if (node.get("mobenter", false) || node.get("mobsenter", false)) {
+                    if (node.get("allowMobsEnter", false)) {
+                        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                            if (collisionConfigObject.isAddToConfigFile()) {
+                                String mobType = collisionConfigObject.getMobType();
+                                node.set("collision." + mobType, CollisionMode.ENTER.toString());
+                            }
+                        }
+                    }
+                }
+                node.remove("mobenter");
+                node.remove("mobenters");
                 changed = true;
             }
         }
