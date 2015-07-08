@@ -563,7 +563,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (entity instanceof Player) {
             GameMode playerGameMode = ((Player) entity).getGameMode();
-            if (playerGameMode == GameMode.CREATIVE || playerGameMode == GameMode.SPECTATOR) {
+            if (playerGameMode == GameMode.SPECTATOR) {
                 return CollisionMode.CANCEL;
             }
             if (TrainCarts.collisionIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
@@ -574,6 +574,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 }
                 if (this.hasOwnership((Player) entity)) {
                     return CollisionMode.DEFAULT;
+                }
+            }
+            // Don't kill or damage players in creative
+            if (playerGameMode == GameMode.CREATIVE) {
+                if (this.playerCollision == CollisionMode.KILL || this.playerCollision == CollisionMode.KILLNODROPS ||
+                        this.playerCollision == CollisionMode.DAMAGE || this.playerCollision == CollisionMode.DAMAGENODROPS) {
+                    return CollisionMode.PUSH;
                 }
             }
             return this.playerCollision;
