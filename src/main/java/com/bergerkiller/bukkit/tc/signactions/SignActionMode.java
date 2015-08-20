@@ -64,7 +64,7 @@ public enum SignActionMode {
         if (name.startsWith("!") || name.startsWith("+")) {
             name = name.substring(1);
         }
-        if (name.startsWith("train") || name.startsWith("t ") || name.startsWith("cart")) {
+        if (name.startsWith("train") || name.startsWith("t ") || name.startsWith("cart") || name.startsWith("Train") || name.startsWith("T ") || name.startsWith("Cart")) {
             return String.format("[%s]", nameIn);
         }
         return nameIn;
