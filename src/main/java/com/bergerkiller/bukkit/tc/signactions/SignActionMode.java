@@ -25,6 +25,14 @@ public enum SignActionMode {
                 return TRAIN;
             } else if (name.startsWith("cart")) {
                 return CART;
+            } else if (name.startsWith("Train ") && name.length() > 6) {
+                return RCTRAIN;
+            } else if (name.startsWith("T ") && name.length() > 2) {
+                return RCTRAIN;
+            } else if (name.startsWith("Train")) {
+                return TRAIN;
+            } else if (name.startsWith("Cart")) {
+                return CART;
             }
         }
         return NONE;
