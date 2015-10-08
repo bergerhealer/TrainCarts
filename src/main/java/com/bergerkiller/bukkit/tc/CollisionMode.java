@@ -125,35 +125,37 @@ public enum CollisionMode {
         }
 
         // Determine if the player is pushing the train or getting run over by it
-        if (entity instanceof Player && this != SKIP) {
-            // Get train's X and Z velocity
-            double trainX = member.getLimitedVelocity().getX();
-            double trainZ = member.getLimitedVelocity().getZ();
+        if (this != CANCEL) {
+            if (entity instanceof Player && this != SKIP) {
+                // Get train's X and Z velocity
+                double trainX = member.getLimitedVelocity().getX();
+                double trainZ = member.getLimitedVelocity().getZ();
 
-            // Get player's X and Z velocity
-            double playerSpeed = ((Player) entity).getWalkSpeed();
-            Vector playerVelocity = ((Player) entity).getEyeLocation().getDirection();
-            playerVelocity.multiply(playerSpeed);
-            double playerX = playerVelocity.getX();
-            double playerZ = playerVelocity.getZ();
+                // Get player's X and Z velocity
+                double playerSpeed = ((Player) entity).getWalkSpeed();
+                Vector playerVelocity = ((Player) entity).getEyeLocation().getDirection();
+                playerVelocity.multiply(playerSpeed);
+                double playerX = playerVelocity.getX();
+                double playerZ = playerVelocity.getZ();
 
             /*
              * Make sure the player is moving before comparing speeds and directions.
              * If the player is not moving, then the train is running over the player,
              * and fall through to the regular logic below.
              */
-            if (Math.abs(playerX) + Math.abs(playerZ) > 0.03) {
-                if (Math.abs(trainX) + Math.abs(trainZ) < 0.03) {
-                    // Train isn't moving (much if at all). Return true to let player push train.
-                    return true;
-                }
-                if (Math.abs(trainX) > Math.abs(trainZ) && playerX * trainX > 0 && Math.abs(playerX) > Math.abs(trainX)) {
-                    // Player moving in same direction as train, faster than train. Return true to push train.
-                    return true;
-                }
-                if (Math.abs(trainX) <= Math.abs(trainZ) && playerZ * trainZ >= 0 && Math.abs(playerZ) > Math.abs(trainZ)) {
-                    // Player moving in same direction as train, faster than train. Return true to push train.
-                    return true;
+                if (Math.abs(playerX) + Math.abs(playerZ) > 0.03) {
+                    if (Math.abs(trainX) + Math.abs(trainZ) < 0.03) {
+                        // Train isn't moving (much if at all). Return true to let player push train.
+                        return true;
+                    }
+                    if (Math.abs(trainX) > Math.abs(trainZ) && playerX * trainX > 0 && Math.abs(playerX) > Math.abs(trainX)) {
+                        // Player moving in same direction as train, faster than train. Return true to push train.
+                        return true;
+                    }
+                    if (Math.abs(trainX) <= Math.abs(trainZ) && playerZ * trainZ >= 0 && Math.abs(playerZ) > Math.abs(trainZ)) {
+                        // Player moving in same direction as train, faster than train. Return true to push train.
+                        return true;
+                    }
                 }
             }
         }
