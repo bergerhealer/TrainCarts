@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import org.bukkit.Bukkit;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +34,7 @@ public class SignActionBlockChanger extends SignAction {
                     }
                     CommonMinecart<?> entity = iter.next().getEntity();
                     entity.setBlock(block.getType(), block.getData());
+
                     if (blockOffset != BLOCK_OFFSET_NONE) {
                         entity.setBlockOffset(blockOffset);
                     }
@@ -51,6 +53,7 @@ public class SignActionBlockChanger extends SignAction {
         if (!info.isPowered()) {
             return;
         }
+
         ItemParser[] blocks = Util.getParsers(info.getLine(2), info.getLine(3));
         int blockOffset = ParseUtil.parseInt(info.getLine(1), BLOCK_OFFSET_NONE);
         if (info.isTrainSign() && info.hasGroup() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {

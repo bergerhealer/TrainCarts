@@ -86,9 +86,9 @@ public class RailLogicSloped extends RailLogicHorizontal {
         // Adjust the Y-position to match this rail
         double stage = 0.0;
         if (alongZ) {
-            stage = z - (double) railPos.z;
+            stage = z - (double) railPos.z - 0.15;
         } else if (alongX) {
-            stage = x - (double) railPos.x;
+            stage = x - (double) railPos.x - 0.15;
         }
         pos.setY(railPos.midY() + startY + dy * stage);
         return pos;

@@ -75,7 +75,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private boolean ignoreAllCollisions = false;
     private int collisionEnterTimer = 0;
     private CartProperties properties;
-    private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<UUID, AtomicInteger>();
+    private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
     private ChunkArea lastChunks, currentChunks;
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {

@@ -51,7 +51,6 @@ public class Util {
      * Splits a text into separate parts delimited by the separator characters
      *
      * @param text  to split
-     * @param limit of the split text
      * @return split parts
      */
     public static String[] splitBySeparator(String text) {
@@ -243,7 +242,7 @@ public class Util {
                     type = type.substring(idx + 1);
                 }
             }
-            // Obtain the item parsers for this type and amount, apply a possible multiplier
+            // Obtain the item parsers for this item and amount, apply a possible multiplier
             ItemParser[] keyparsers = TrainCarts.plugin.getParsers(type, amount);
             if (multiIndex != -1) {
                 // Convert to proper multiplied versions
@@ -351,7 +350,7 @@ public class Util {
     /**
      * Gets the direction a vertical rail pushes the minecart (the wall side)
      *
-     * @param block of the vertical rail
+     * @param railsBlock of the vertical rail
      * @return the direction the minecart is pushed
      */
     public static BlockFace getVerticalRailDirection(Block railsBlock) {
