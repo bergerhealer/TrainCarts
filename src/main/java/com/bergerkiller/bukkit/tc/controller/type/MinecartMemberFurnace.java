@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
@@ -17,7 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
-    private BlockFace pushDirection;
+    private int pushDirection = 0;
     private int fuelCheckCounter = 0;
 
     @Override
@@ -26,11 +27,6 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         this.soundLoop = new PoweredCartSoundLoop(this);
         double pushX = entity.getPushX();
         double pushZ = entity.getPushZ();
-        if (MathUtil.lengthSquared(pushX, pushZ) < 0.001) {
-            this.pushDirection = BlockFace.SELF;
-        } else {
-            this.pushDirection = FaceUtil.getDirection(pushX, pushZ, true);
-        }
     }
 
     @Override
@@ -45,22 +41,24 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
             addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
         }
         if (this.isOnVertical()) {
-            this.pushDirection = Util.getVerticalFace((entity.loc.getY() - EntityUtil.getLocY(human)) > 0.0);
+            boolean isCartAbove = (entity.loc.getY() - EntityUtil.getLocY(human)) > 0.0;
+            boolean isCartUpward = this.getDirection() == BlockFace.UP;
+            this.pushDirection = (isCartAbove == isCartUpward) ? 1 : -1;
         } else {
             BlockFace dir = FaceUtil.getRailsCartDirection(this.getRailDirection());
             if (MathUtil.isHeadingTo(dir, new Vector(entity.loc.getX() - EntityUtil.getLocX(human), 0.0, entity.loc.getZ() - EntityUtil.getLocZ(human)))) {
-                this.pushDirection = dir;
+                this.pushDirection = -1;
             } else {
-                this.pushDirection = dir.getOppositeFace();
+                this.pushDirection = 1;
             }
         }
-        if (this.isMoving()) {
+        /*if (this.isMoving()) {
             if (this.pushDirection == this.getDirection().getOppositeFace()) {
                 this.getGroup().reverse();
                 // Prevent push direction being inverted
                 this.pushDirection = this.pushDirection.getOppositeFace();
             }
-        }
+        }*/
         return true;
     }
 
@@ -68,9 +66,9 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         int newFuelTicks = entity.getFuelTicks() + fuelTicks;
         if (newFuelTicks <= 0) {
             newFuelTicks = 0;
-            this.pushDirection = BlockFace.SELF;
-        } else if (this.pushDirection == BlockFace.SELF) {
-            this.pushDirection = this.getDirection();
+            this.pushDirection = 0;
+        } else if (this.pushDirection == 0) {
+            this.pushDirection = 1;
         }
         entity.setFuelTicks(newFuelTicks);
     }
@@ -111,17 +109,20 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     @Override
     public void reverse() {
         super.reverse();
-        this.pushDirection = this.pushDirection.getOppositeFace();
+        this.pushDirection = -1 * pushDirection;
     }
 
     @Override
     public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove(speedFactor);
+        BlockFace pd = getDirection();
+        if (pushDirection == -1) pd = pd.getOppositeFace();
+        else if (pushDirection == 0) pd = BlockFace.SELF;
         // Fuel update routines
         if (entity.hasFuel()) {
             entity.addFuelTicks(-1);
-            entity.setPushX(pushDirection.getModX());
-            entity.setPushZ(pushDirection.getModZ());
+            entity.setPushX(pd.getModX());
+            entity.setPushZ(pd.getModZ());
             if (!entity.hasFuel()) {
                 //TrainCarts - Actions to be done when empty
                 if (this.onCoalUsed()) {
@@ -139,7 +140,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         }
         if (!entity.hasFuel()) {
             entity.setFuelTicks(0);
-            this.pushDirection = BlockFace.SELF;
+            this.pushDirection = 0;
         }
         entity.setSmoking(entity.hasFuel());
     }
@@ -149,7 +150,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         super.doPostMoveLogic();
         if (!this.isDerailed()) {
             // Update pushing direction
-            if (this.pushDirection != BlockFace.SELF) {
+            /*if (this.pushDirection != 0) {
                 BlockFace dir = this.getDirection();
                 if (this.isOnVertical()) {
                     if (dir != this.pushDirection.getOppositeFace()) {
@@ -160,16 +161,20 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
                         this.pushDirection = dir;
                     }
                 }
-            }
+            }*/
 
             // Velocity boost is applied
             if (!isMovementControlled()) {
-                if (this.pushDirection != BlockFace.SELF) {
+                if (this.pushDirection != 0) {
+                    BlockFace pd = getDirection();
+                    if (pushDirection == -1) pd = pd.getOppositeFace();
+                    else if (pushDirection == 0) pd = BlockFace.SELF;
+
                     double boost = 0.04 + TrainCarts.poweredCartBoost;
                     entity.vel.multiply(0.8);
-                    entity.vel.x.add(boost * FaceUtil.cos(this.pushDirection));
-                    entity.vel.y.add((boost + 0.04) * this.pushDirection.getModY());
-                    entity.vel.z.add(boost * FaceUtil.sin(this.pushDirection));
+                    entity.vel.x.add(boost * FaceUtil.cos(pd));
+                    entity.vel.y.add((boost + 0.04) * pd.getModY());
+                    entity.vel.z.add(boost * FaceUtil.sin(pd));
                 } else if (this.getGroup().getProperties().isSlowingDown()) {
                     entity.vel.multiply(0.9);
                 }
