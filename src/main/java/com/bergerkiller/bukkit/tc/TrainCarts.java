@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -186,6 +187,7 @@ public class TrainCarts extends PluginBase {
      */
     public ItemParser[] getParsers(String key, int amount) {
         ItemParser[] rval = parsers.get(key.toLowerCase(Locale.ENGLISH));
+
         if (rval == null) {
             return new ItemParser[]{ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
         }
