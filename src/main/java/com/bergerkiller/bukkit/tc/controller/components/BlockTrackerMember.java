@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class BlockTrackerMember extends BlockTracker {
     private final MinecartMember<?> owner;
-    protected List<Block> liveActiveSigns = new ArrayList<Block>();
+    protected List<Block> liveActiveSigns = new ArrayList<>();
 
     public BlockTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;

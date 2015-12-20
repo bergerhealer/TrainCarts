@@ -61,10 +61,7 @@ public class RailTypeVertical extends RailType {
             return false;
         }
         // Check if the collided block has vertical rails below when hitting it
-        if (FaceUtil.isVertical(hitFace) && Util.ISVERTRAIL.get(hitBlock.getRelative(hitFace))) {
-            return false;
-        }
-        return true;
+        return !(FaceUtil.isVertical(hitFace) && Util.ISVERTRAIL.get(hitBlock.getRelative(hitFace)));
     }
 
     @Override

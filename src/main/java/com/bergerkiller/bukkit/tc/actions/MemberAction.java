@@ -10,7 +10,7 @@ public class MemberAction extends Action {
 
     @Override
     public boolean doTick() {
-        return getEntity().isDead() ? true : super.doTick();
+        return getEntity().isDead() || super.doTick();
     }
 
     public MinecartGroup getGroup() {

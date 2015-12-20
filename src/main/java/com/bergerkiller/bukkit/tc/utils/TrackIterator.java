@@ -25,7 +25,7 @@ public class TrackIterator implements Iterator<Block> {
     private TrackMovingPoint movingPoint;
     private int distance;
     private double cartDistance;
-    private Set<IntVector3> coordinates = new HashSet<IntVector3>();
+    private Set<IntVector3> coordinates = new HashSet<>();
 
     public TrackIterator(Block startblock, BlockFace direction) {
         this(startblock, direction, false);
@@ -61,8 +61,8 @@ public class TrackIterator implements Iterator<Block> {
     /**
      * Checks whether two rails are connected, allowing Minecarts to move between the two
      *
-     * @param rail1
-     * @param rail2
+     * @param rail1 rail one
+     * @param rail2 rail two
      * @param bothways - True to require a connection both from r1 to r2 and r2 to r1
      * @return True if a connection exists, False if not
      */

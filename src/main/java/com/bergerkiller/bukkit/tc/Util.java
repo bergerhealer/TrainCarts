@@ -220,7 +220,7 @@ public class Util {
     }
 
     public static ItemParser[] getParsers(final String items) {
-        List<ItemParser> parsers = new ArrayList<ItemParser>();
+        List<ItemParser> parsers = new ArrayList<>();
         int multiIndex, multiplier = -1;
         for (String type : items.split(";")) {
             type = type.trim();

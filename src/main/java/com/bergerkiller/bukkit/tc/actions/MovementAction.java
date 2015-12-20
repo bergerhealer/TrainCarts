@@ -11,5 +11,5 @@ public interface MovementAction {
      *
      * @return True if movement is suppressed, False if not
      */
-    public boolean isMovementSuppressed();
+    boolean isMovementSuppressed();
 }

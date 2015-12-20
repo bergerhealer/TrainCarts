@@ -24,7 +24,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -87,12 +86,12 @@ public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
     private static String currencyFormat;
     private static Task fixGroupTickTask;
-    private Set<Material> allowedBlockBreakTypes = new HashSet<Material>();
-    private Set<String> disabledWorlds = new HashSet<String>();
+    private Set<Material> allowedBlockBreakTypes = new HashSet<>();
+    private Set<String> disabledWorlds = new HashSet<>();
     private Task signtask;
     private TCPacketListener packetListener;
     private FileConfiguration config;
-    private Map<String, ItemParser[]> parsers = new HashMap<String, ItemParser[]>();
+    private Map<String, ItemParser[]> parsers = new HashMap<>();
 
     public static boolean canBreak(Material type) {
         return plugin.allowedBlockBreakTypes.contains(type);
@@ -363,10 +362,7 @@ public class TrainCarts extends PluginBase {
         config.addHeader("disabledWorlds", "World names are not case-sensitive");
         this.disabledWorlds.clear();
         if (!config.contains("disabledWorlds")) {
-            ArrayList<String> defworlds = new ArrayList<String>();
-            defworlds.add("DefaultWorld1");
-            defworlds.add("DefaultWorld2");
-            config.set("disabledWorlds", defworlds);
+            config.set("disabledWorlds", Arrays.asList("DefaultWorld1", "DefaultWorld2"));
         }
         for (String world : config.getList("disabledWorlds", String.class)) {
             this.disabledWorlds.add(world.toLowerCase());
@@ -451,25 +447,29 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
-        if (pluginName.equals("SignLink")) {
-            Task.stop(signtask);
-            if (SignLinkEnabled = enabled) {
-                log(Level.INFO, "SignLink detected, support for arrival signs added!");
-                signtask = new Task(this) {
-                    public void run() {
-                        ArrivalSigns.updateAll();
-                    }
-                };
-                signtask.start(0, 10);
-            } else {
-                signtask = null;
-            }
-        } else if (pluginName.equals("My Worlds")) {
-            if (MyWorldsEnabled = enabled) {
-                log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
-            }
-        } else if (pluginName.equals("Essentials")) {
-            EssentialsEnabled = enabled;
+        switch (pluginName) {
+            case "SignLink":
+                Task.stop(signtask);
+                if (SignLinkEnabled = enabled) {
+                    log(Level.INFO, "SignLink detected, support for arrival signs added!");
+                    signtask = new Task(this) {
+                        public void run() {
+                            ArrivalSigns.updateAll();
+                        }
+                    };
+                    signtask.start(0, 10);
+                } else {
+                    signtask = null;
+                }
+                break;
+            case "My Worlds":
+                if (MyWorldsEnabled = enabled) {
+                    log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
+                }
+                break;
+            case "Essentials":
+                EssentialsEnabled = enabled;
+                break;
         }
     }
 

@@ -9,8 +9,8 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberMissingException;
+import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
@@ -36,8 +36,8 @@ import java.util.logging.Level;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
     private static final long serialVersionUID = 3;
-    private static final HashSet<IntVector2> previousChunksBuffer = new HashSet<IntVector2>(50);
-    private static final HashSet<IntVector2> newChunksBuffer = new HashSet<IntVector2>(50);
+    private static final HashSet<IntVector2> previousChunksBuffer = new HashSet<>(50);
+    private static final HashSet<IntVector2> newChunksBuffer = new HashSet<>(50);
     protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
     private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
@@ -214,7 +214,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public boolean containsIndex(int index) {
-        return this.isEmpty() ? false : index >= 0 && index < this.size();
+        return !this.isEmpty() && (index >= 0 && index < this.size());
     }
 
     public World getWorld() {
@@ -236,13 +236,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public boolean isValid() {
-        if (this.size() == 0) return false;
-        if (this.size() == 1) return true;
-        if (this.getProperties().requirePoweredMinecart) {
-            return this.size(EntityType.MINECART_FURNACE) > 0;
-        } else {
-            return true;
-        }
+        return this.size() != 0 && (this.size() == 1 || !this.getProperties().requirePoweredMinecart || this.size(EntityType.MINECART_FURNACE) > 0);
     }
 
     /**
@@ -265,8 +259,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     public boolean remove(Object o) {
         int index = this.indexOf(o);
-        if (index == -1) return false;
-        return this.remove(index) != null;
+        return index != -1 && this.remove(index) != null;
     }
 
     private MinecartMember<?> removeMember(int index) {
@@ -589,7 +582,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public List<Material> getTypes() {
-        ArrayList<Material> types = new ArrayList<Material>(this.size());
+        ArrayList<Material> types = new ArrayList<>(this.size());
         for (MinecartMember<?> mm : this) {
             types.add(mm.getEntity().getCombinedItem());
         }
@@ -633,11 +626,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public boolean isMoving() {
-        if (this.isEmpty()) {
-            return false;
-        } else {
-            return this.head().isMoving();
-        }
+        return !this.isEmpty() && this.head().isMoving();
     }
 
     /**
@@ -658,10 +647,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return false;
             }
         }
-        if (this.isTeleportImmune()) {
-            return false;
-        }
-        return true;
+        return !this.isTeleportImmune();
     }
 
     public boolean isRemoved() {

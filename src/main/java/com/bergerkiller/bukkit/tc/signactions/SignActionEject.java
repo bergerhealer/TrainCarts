@@ -68,7 +68,9 @@ public class SignActionEject extends SignAction {
     public void execute(SignActionEvent info) {
         boolean isRemote = false;
         if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
+            //TODO: Add something here or remove
         } else if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
+            //TODO: Add something here or remove
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             isRemote = true;
         } else {

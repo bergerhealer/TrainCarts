@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 public abstract class MinecartMemberStore {
-    private static ClassMap<Class<?>> controllers = new ClassMap<Class<?>>();
+    private static ClassMap<Class<?>> controllers = new ClassMap<>();
 
     static {
         controllers.put(CommonMinecartRideable.class, MinecartMemberRideable.class);
@@ -41,7 +41,7 @@ public abstract class MinecartMemberStore {
      * Converts all Minecarts on all enabled worlds into Minecart Members
      */
     public static void convertAll() {
-        List<Minecart> minecarts = new ArrayList<Minecart>();
+        List<Minecart> minecarts = new ArrayList<>();
         for (org.bukkit.World world : WorldUtil.getWorlds()) {
             if (TrainCarts.isWorldDisabled(world)) {
                 continue;

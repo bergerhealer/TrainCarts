@@ -25,7 +25,6 @@ public class RailLogicVertical extends RailLogic {
      * Gets the vertical rail logic for the direction specified
      *
      * @param direction of the rail
-     * @param upSlope   whether the minecart went up from a slope
      * @return Rail Logic
      */
     public static RailLogicVertical get(BlockFace direction) {

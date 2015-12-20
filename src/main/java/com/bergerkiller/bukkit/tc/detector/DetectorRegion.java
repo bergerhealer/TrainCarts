@@ -20,14 +20,14 @@ import java.util.*;
 import java.util.logging.Level;
 
 public final class DetectorRegion {
-    private static List<DetectorListener> listenerBuffer = new ArrayList<DetectorListener>();
-    private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<UUID, DetectorRegion>();
-    private static BlockMap<List<DetectorRegion>> regions = new BlockMap<List<DetectorRegion>>();
+    private static List<DetectorListener> listenerBuffer = new ArrayList<>();
+    private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<>();
+    private static BlockMap<List<DetectorRegion>> regions = new BlockMap<>();
     private final UUID id;
     private final String world;
     private final Set<IntVector3> coordinates;
-    private final Set<MinecartMember<?>> members = new HashSet<MinecartMember<?>>();
-    private final List<DetectorListener> listeners = new ArrayList<DetectorListener>(1);
+    private final Set<MinecartMember<?>> members = new HashSet<>();
+    private final List<DetectorListener> listeners = new ArrayList<>(1);
 
     private DetectorRegion(final UUID uniqueId, final String world, final Set<IntVector3> coordinates) {
         this.world = world;
@@ -37,7 +37,7 @@ public final class DetectorRegion {
         for (IntVector3 coord : this.coordinates) {
             List<DetectorRegion> list = regions.get(world, coord);
             if (list == null) {
-                list = new ArrayList<DetectorRegion>(1);
+                list = new ArrayList<>(1);
                 regions.put(world, coord, list);
             }
             list.add(this);
@@ -56,6 +56,7 @@ public final class DetectorRegion {
 
     public static List<DetectorRegion> handleMove(MinecartMember<?> mm, Block from, Block to) {
         if (from == to) {
+            // Minecart is not moving
         } else if (from.getWorld() != to.getWorld()) {
             handleLeave(mm, from);
         } else {
@@ -99,7 +100,7 @@ public final class DetectorRegion {
     public static DetectorRegion create(Collection<Block> blocks) {
         if (blocks.isEmpty()) return null;
         World world = null;
-        Set<IntVector3> coords = new HashSet<IntVector3>(blocks.size());
+        Set<IntVector3> coords = new HashSet<>(blocks.size());
         for (Block b : blocks) {
             if (world == null) {
                 world = b.getWorld();
@@ -134,7 +135,7 @@ public final class DetectorRegion {
     public static List<DetectorRegion> getRegions(Block at) {
         List<DetectorRegion> rval = regions.get(at);
         if (rval == null) {
-            return new ArrayList<DetectorRegion>(0);
+            return new ArrayList<>(0);
         } else {
             return rval;
         }
@@ -156,7 +157,7 @@ public final class DetectorRegion {
                     UUID id = StreamUtil.readUUID(stream);
                     String world = stream.readUTF();
                     coordcount = stream.readInt();
-                    Set<IntVector3> coords = new HashSet<IntVector3>(coordcount);
+                    Set<IntVector3> coords = new HashSet<>(coordcount);
                     for (; coordcount > 0; --coordcount) {
                         coords.add(IntVector3.read(stream));
                     }
@@ -201,7 +202,7 @@ public final class DetectorRegion {
     }
 
     public Set<MinecartGroup> getGroups() {
-        Set<MinecartGroup> rval = new HashSet<MinecartGroup>();
+        Set<MinecartGroup> rval = new HashSet<>();
         for (MinecartMember<?> mm : this.members) {
             if (mm.getGroup() == null) continue;
             rval.add(mm.getGroup());

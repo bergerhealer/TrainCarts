@@ -22,9 +22,9 @@ import java.util.Map.Entry;
  * MinecartGroup
  */
 public class BlockTrackerGroup extends BlockTracker {
-    private static final Set<Block> groupSignBuffer = new LinkedHashSet<Block>();
+    private static final Set<Block> groupSignBuffer = new LinkedHashSet<>();
     private final MinecartGroup owner;
-    private final Map<IntVector3, MinecartMember<?>> blockSpace = new LinkedHashMap<IntVector3, MinecartMember<?>>();
+    private final Map<IntVector3, MinecartMember<?>> blockSpace = new LinkedHashMap<>();
     private final ToggledState needsPositionUpdate = new ToggledState(true);
 
     public BlockTrackerGroup(MinecartGroup owner) {

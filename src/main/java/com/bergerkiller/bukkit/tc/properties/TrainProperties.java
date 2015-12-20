@@ -37,8 +37,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         EMPTY.add(CartProperties.EMPTY);
     }
 
-    private final SoftReference<MinecartGroup> group = new SoftReference<MinecartGroup>();
-    private Map<CollisionConfig, CollisionMode> collisionModes = new HashMap<CollisionConfig, CollisionMode>();
+    private final SoftReference<MinecartGroup> group = new SoftReference<>();
+    private Map<CollisionConfig, CollisionMode> collisionModes = new HashMap<>();
     public CollisionMode playerCollision = CollisionMode.DEFAULT;
     public CollisionMode miscCollision = CollisionMode.PUSH;
     public CollisionMode trainCollision = CollisionMode.LINK;

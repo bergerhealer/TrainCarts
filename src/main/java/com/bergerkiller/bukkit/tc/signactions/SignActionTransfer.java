@@ -31,7 +31,7 @@ public class SignActionTransfer extends SignAction {
     public static final String KEY_TYPE_TARGET = "target";
 
     private static void setTargetConstant(Collection<InventoryHolder> inventories) {
-        HashSet<String> types = new HashSet<String>();
+        HashSet<String> types = new HashSet<>();
         StringBuilder nameBuilder = new StringBuilder();
         for (InventoryHolder holder : inventories) {
             for (ItemStack item : holder.getInventory()) {

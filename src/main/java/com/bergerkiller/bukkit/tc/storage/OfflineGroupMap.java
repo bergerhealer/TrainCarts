@@ -10,8 +10,8 @@ import java.util.*;
  * Maps all the Offline Groups to chunk coordinates, allowing faster chunk access for restoring trains
  */
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
-    private Set<OfflineGroup> groups = new HashSet<OfflineGroup>();
-    private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<HashSet<OfflineGroup>>();
+    private Set<OfflineGroup> groups = new HashSet<>();
+    private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<>();
 
     @Override
     public Iterator<OfflineGroup> iterator() {
@@ -42,7 +42,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
                     // Undo previous registration
                     remove(group);
                     // Remove this member from the group
-                    ArrayList<OfflineMember> members = new ArrayList<OfflineMember>();
+                    ArrayList<OfflineMember> members = new ArrayList<>();
                     for (OfflineMember m : group.members) {
                         if (!m.entityUID.equals(memberUUID)) {
                             members.add(m);
@@ -117,7 +117,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
     public Set<OfflineGroup> getOrCreate(long chunk) {
         HashSet<OfflineGroup> rval = this.groupmap.get(chunk);
         if (rval == null) {
-            rval = new HashSet<OfflineGroup>(1);
+            rval = new HashSet<>(1);
             this.groupmap.put(chunk, rval);
         }
         return rval;

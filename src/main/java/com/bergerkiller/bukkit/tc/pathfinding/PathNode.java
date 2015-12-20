@@ -18,11 +18,11 @@ import java.io.IOException;
 import java.util.*;
 
 public class PathNode {
-    private static BlockMap<PathNode> blockNodes = new BlockMap<PathNode>();
-    private static Map<String, PathNode> nodes = new HashMap<String, PathNode>();
+    private static BlockMap<PathNode> blockNodes = new BlockMap<>();
+    private static Map<String, PathNode> nodes = new HashMap<>();
     public final BlockLocation location;
-    private final Set<String> names = new HashSet<String>();
-    private final List<PathConnection> neighbors = new ArrayList<PathConnection>(3);
+    private final Set<String> names = new HashSet<>();
+    private final List<PathConnection> neighbors = new ArrayList<>(3);
     public int index;
     private int lastDistance;
     private PathConnection lastTaken;
@@ -174,7 +174,7 @@ public class PathNode {
             public void read(DataInputStream stream) throws IOException {
                 //initializing the nodes
                 int count = stream.readInt();
-                nodes = new HashMap<String, PathNode>(count);
+                nodes = new HashMap<>(count);
                 blockNodes.clear();
                 PathNode[] parr = new PathNode[count];
                 for (int i = 0; i < count; i++) {
@@ -276,7 +276,7 @@ public class PathNode {
         if (findConnection(destination) == null) {
             return new PathNode[0];
         }
-        List<PathNode> route = new ArrayList<PathNode>();
+        List<PathNode> route = new ArrayList<>();
         route.add(this);
         PathConnection conn = this.lastTaken;
         while (conn != null) {

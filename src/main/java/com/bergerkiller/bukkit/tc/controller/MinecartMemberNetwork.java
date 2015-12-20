@@ -22,7 +22,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
     private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
-    private final Set<Player> velocityUpdateReceivers = new HashSet<Player>();
+    private final Set<Player> velocityUpdateReceivers = new HashSet<>();
 
     public MinecartMemberNetwork() {
         final VectorAbstract velLiveBase = this.velLive;
@@ -73,7 +73,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     private boolean isSoundEnabled() {
         MinecartMember<?> member = (MinecartMember<?>) entity.getController();
-        return (member == null || member.isUnloaded()) ? false : member.getGroup().getProperties().isSoundEnabled();
+        return !(member == null || member.isUnloaded()) && member.getGroup().getProperties().isSoundEnabled();
     }
 
     private void updateVelocity(Player player) {

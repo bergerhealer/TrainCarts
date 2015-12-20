@@ -56,9 +56,9 @@ public class TCListener implements Listener {
     public static Player lastPlayer = null;
     public static boolean cancelNextDrops = false;
     public static boolean ignoreNextEject = false;
-    private ArrayList<MinecartGroup> expectUnload = new ArrayList<MinecartGroup>();
-    private EntityMap<Player, Long> lastHitTimes = new EntityMap<Player, Long>();
-    private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<Player, BlockFace>();
+    private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
+    private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
+    private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
@@ -265,7 +265,7 @@ public class TCListener implements Listener {
         if (attacker instanceof Projectile) {
             attacker = (Entity) ((Projectile) attacker).getShooter();
         }
-        if (attacker instanceof Player && Permission.BREAK_MINECART_ANY.has((Player) attacker)) {
+        if (attacker instanceof Player && Permission.BREAK_MINECART_ANY.has(attacker)) {
             return;
         }
         if (mm.getProperties().isInvincible()) {
@@ -318,7 +318,7 @@ public class TCListener implements Listener {
             }
 
             // Keep track of when a player interacts to detect spamming
-            long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE).longValue();
+            long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE);
             long time = System.currentTimeMillis();
             long clickInterval = time - lastHitTime;
             lastHitTimes.put(event.getPlayer(), time);
@@ -338,9 +338,9 @@ public class TCListener implements Listener {
     /**
      * Executes right-click Block logic
      *
-     * @param clickedBlock
-     * @param player
-     * @param heldItem
+     * @param clickedBlock right-clicked block
+     * @param player player that interacted
+     * @param heldItem item the player held
      * @param clickInterval in MS since the last right-click
      * @return True to allow default logic to continue, False to suppress it
      */
@@ -396,11 +396,7 @@ public class TCListener implements Listener {
         }
 
         // Handle right-click interaction with signs
-        if (MaterialUtil.ISSIGN.get(clickedBlock) && clickInterval >= SIGN_CLICK_INTERVAL &&
-                SignAction.handleClick(clickedBlock, player)) {
-            return false;
-        }
-        return true;
+        return !(MaterialUtil.ISSIGN.get(clickedBlock) && clickInterval >= SIGN_CLICK_INTERVAL && SignAction.handleClick(clickedBlock, player));
     }
 
     /**
@@ -471,7 +467,7 @@ public class TCListener implements Listener {
             return;
         }
         // Check that we are not spam-clicking (for block placement, that is!)
-        long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE).longValue();
+        long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE);
         long time = System.currentTimeMillis();
         long clickInterval = time - lastHitTime;
         if (clickInterval < MAX_INTERACT_INTERVAL) {

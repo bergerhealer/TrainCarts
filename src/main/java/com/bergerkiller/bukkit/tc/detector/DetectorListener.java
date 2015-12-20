@@ -4,21 +4,21 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public interface DetectorListener {
-    public void onRegister(DetectorRegion region);
+    void onRegister(DetectorRegion region);
 
-    public void onUnregister(DetectorRegion region);
+    void onUnregister(DetectorRegion region);
 
-    public void onLeave(final MinecartMember<?> member);
+    void onLeave(final MinecartMember<?> member);
 
-    public void onEnter(final MinecartMember<?> member);
+    void onEnter(final MinecartMember<?> member);
 
-    public void onLeave(final MinecartGroup group);
+    void onLeave(final MinecartGroup group);
 
-    public void onEnter(final MinecartGroup group);
+    void onEnter(final MinecartGroup group);
 
-    public void onUnload(final MinecartGroup group);
+    void onUnload(final MinecartGroup group);
 
-    public void onUpdate(final MinecartMember<?> member);
+    void onUpdate(final MinecartMember<?> member);
 
-    public void onUpdate(final MinecartGroup group);
+    void onUpdate(final MinecartGroup group);
 }

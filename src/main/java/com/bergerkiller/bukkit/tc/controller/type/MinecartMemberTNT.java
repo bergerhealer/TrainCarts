@@ -2,8 +2,8 @@ package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartTNT;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
-import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberMissingException;
+import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Effect;

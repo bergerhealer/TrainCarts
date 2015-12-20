@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class Effect {
-    private static final StringMap<Integer> DIR_NAMES = new StringMap<Integer>();
-    private static final StringMap<Integer> DISK_NAMES = new StringMap<Integer>();
+    private static final StringMap<Integer> DIR_NAMES = new StringMap<>();
+    private static final StringMap<Integer> DISK_NAMES = new StringMap<>();
 
     static {
         // Smoke
@@ -42,7 +42,7 @@ public class Effect {
         DISK_NAMES.putUpper("WAIT", 2267);
     }
 
-    public final List<String> effects = new ArrayList<String>();
+    public final List<String> effects = new ArrayList<>();
     public float pitch = 1.0f, volume = 1.0f;
     public int range;
 
@@ -64,7 +64,7 @@ public class Effect {
     private void play(Location location, org.bukkit.Effect effect, int data) {
         try {
             location.getWorld().playEffect(location, effect, data);
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
         }
     }
 
@@ -82,7 +82,7 @@ public class Effect {
                 if (data == null) {
                     try {
                         data = ParseUtil.parseInt(name, null);
-                    } catch (NumberFormatException ex) {
+                    } catch (NumberFormatException ignored) {
                     }
                 }
                 if (data == null) {
@@ -103,7 +103,7 @@ public class Effect {
                 if (data == null) {
                     try {
                         data = ParseUtil.parseInt(name, null);
-                    } catch (NumberFormatException ex) {
+                    } catch (NumberFormatException ignored) {
                     }
                 }
                 if (data == null) {

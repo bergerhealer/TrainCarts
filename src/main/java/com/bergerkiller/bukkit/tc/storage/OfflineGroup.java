@@ -111,7 +111,7 @@ public class OfflineGroup {
      * @return An array of Minecarts
      */
     public MinecartGroup create(World world) {
-        ArrayList<MinecartMember<?>> rval = new ArrayList<MinecartMember<?>>(this.members.length);
+        ArrayList<MinecartMember<?>> rval = new ArrayList<>(this.members.length);
         int missingNo = 0;
         for (OfflineMember member : this.members) {
             MinecartMember<?> mm = member.create(world);

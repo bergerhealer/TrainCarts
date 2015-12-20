@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc;
+package com.bergerkiller.bukkit.tc.exception;
 
 public class GroupUnloadedException extends RuntimeException {
 

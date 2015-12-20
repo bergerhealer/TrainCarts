@@ -25,7 +25,7 @@ public abstract class SignAction {
     private static List<SignAction> actions;
 
     public static void init() {
-        actions = new ArrayList<SignAction>();
+        actions = new ArrayList<>();
         register(new SignActionStation());
         register(new SignActionLauncher());
         register(new SignActionSwitcher());
@@ -70,13 +70,13 @@ public abstract class SignAction {
         return null;
     }
 
-    public static final <T extends SignAction> T register(T action) {
+    public static <T extends SignAction> T register(T action) {
         if (actions == null) return action;
         actions.add(action);
         return action;
     }
 
-    public static final void unregister(SignAction action) {
+    public static void unregister(SignAction action) {
         if (actions == null) return;
         actions.remove(action);
     }
@@ -84,7 +84,7 @@ public abstract class SignAction {
     /**
      * Handles right-click interaction with a Sign
      *
-     * @param clickedSign
+     * @param clickedSign that was right-clicked
      * @param player      that clicked
      * @return Whether the click was handled (and the original interaction should be cancelled)
      */
@@ -161,12 +161,12 @@ public abstract class SignAction {
         }
     }
 
-    public static final void executeAll(SignActionEvent info, SignActionType actiontype) {
+    public static void executeAll(SignActionEvent info, SignActionType actiontype) {
         info.setAction(actiontype);
         executeAll(info);
     }
 
-    public static final void executeAll(SignActionEvent info) {
+    public static void executeAll(SignActionEvent info) {
         if (info == null || info.getSign() == null) {
             return;
         }
@@ -175,8 +175,7 @@ public abstract class SignAction {
         if (!CommonUtil.callEvent(info).isCancelled() && actions != null) {
             //facing?
             boolean facing;
-            if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF,
-                    SignActionType.MEMBER_UPDATE, SignActionType.GROUP_UPDATE)) {
+            if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF, SignActionType.MEMBER_UPDATE, SignActionType.GROUP_UPDATE)) {
                 facing = true;
             } else {
                 facing = info.isFacing();

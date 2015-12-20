@@ -92,7 +92,7 @@ public class SignActionEvent extends Event implements Cancellable {
             this.powerinv = mainLine.startsWith("[!");
             this.facing = BlockUtil.getFacing(this.signblock);
         }
-        HashSet<BlockFace> watchedFaces = new HashSet<BlockFace>(4);
+        HashSet<BlockFace> watchedFaces = new HashSet<>(4);
         // Find out what directions are watched by this sign
         int idx = mainLine.indexOf(':');
         this.directionsDefined = (idx != -1);
@@ -296,10 +296,7 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public boolean isPowered() {
-        if (this.poweron) {
-            return true;
-        }
-        return this.isPoweredRaw(this.powerinv);
+        return this.poweron || this.isPoweredRaw(this.powerinv);
     }
 
     /**
@@ -330,7 +327,6 @@ public class SignActionEvent extends Event implements Cancellable {
             if (!found) return !invert;
         }
         if (invert) {
-            boolean def = true;
             for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
                 if (face == att) continue;
                 PowerState state = this.getPower(face);
@@ -340,10 +336,9 @@ public class SignActionEvent extends Event implements Cancellable {
                     case ON:
                         return false; //def = false; continue;
                     case OFF:
-                        continue; //return true;
                 }
             }
-            return def;
+            return true;
         } else {
             for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
                 if (face == att) continue;
@@ -450,7 +445,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return Signs below this sign
      */
     public Sign[] findSignsBelow() {
-        ArrayList<Sign> below = new ArrayList<Sign>(1);
+        ArrayList<Sign> below = new ArrayList<>(1);
         //other signs below this sign we could parse?
         Block signblock = this.getBlock();
         while (MaterialUtil.ISSIGN.get(signblock = signblock.getRelative(BlockFace.DOWN))) {
@@ -644,9 +639,9 @@ public class SignActionEvent extends Event implements Cancellable {
         if (isTrainSign()) {
             return hasGroup() ? getGroup() : Collections.EMPTY_LIST;
         } else if (isCartSign()) {
-            return hasMember() ? Arrays.asList(getMember()) : Collections.EMPTY_LIST;
+            return hasMember() ? Collections.singletonList(getMember()) : Collections.EMPTY_LIST;
         } else if (isRCSign()) {
-            ArrayList<MinecartMember<?>> members = new ArrayList<MinecartMember<?>>();
+            ArrayList<MinecartMember<?>> members = new ArrayList<>();
             for (MinecartGroup group : getRCTrainGroups()) {
                 members.addAll(group);
             }

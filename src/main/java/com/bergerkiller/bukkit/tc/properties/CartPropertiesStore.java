@@ -11,13 +11,13 @@ import java.util.UUID;
  * Stores all the Cart Properties available by Minecart UUID
  */
 public class CartPropertiesStore {
-    protected static HashMap<String, CartProperties> editing = new HashMap<String, CartProperties>();
-    private static HashMap<UUID, CartProperties> properties = new HashMap<UUID, CartProperties>();
+    protected static HashMap<String, CartProperties> editing = new HashMap<>();
+    private static HashMap<UUID, CartProperties> properties = new HashMap<>();
 
     /**
      * Gets the properties of the Minecart the specified player is currently editing
      *
-     * @param player
+     * @param player that is editing
      * @return the Cart Properties the player is editing
      */
     public static CartProperties getEditing(Player player) {
@@ -37,7 +37,7 @@ public class CartPropertiesStore {
     /**
      * Sets the properties of the Minecart the specified player is currently editing
      *
-     * @param player
+     * @param player that is editing
      * @param properties to set to
      */
     public static void setEditing(Player player, CartProperties properties) {

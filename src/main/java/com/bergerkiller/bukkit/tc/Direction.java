@@ -16,7 +16,7 @@ public enum Direction {
 
     private final String[] aliases;
 
-    private Direction(String... aliases) {
+    Direction(String... aliases) {
         this.aliases = aliases;
     }
 
@@ -63,7 +63,7 @@ public enum Direction {
             }
             return dirs;
         } else {
-            LinkedHashSet<Direction> faces = new LinkedHashSet<Direction>();
+            LinkedHashSet<Direction> faces = new LinkedHashSet<>();
             Direction dir = Direction.parse(text);
             if (dir == Direction.NONE) {
                 for (char c : text.toCharArray()) {

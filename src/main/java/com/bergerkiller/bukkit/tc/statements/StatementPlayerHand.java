@@ -36,7 +36,7 @@ public class StatementPlayerHand extends StatementItems {
 
     @Override
     public Inventory getInventory(MinecartGroup group) {
-        ArrayList<org.bukkit.inventory.ItemStack> items = new ArrayList<org.bukkit.inventory.ItemStack>();
+        ArrayList<org.bukkit.inventory.ItemStack> items = new ArrayList<>();
         for (MinecartMember<?> member : group) {
             if (member.getEntity().hasPlayerPassenger()) {
                 ItemStack item = member.getPlayerInventory().getItemInHand();

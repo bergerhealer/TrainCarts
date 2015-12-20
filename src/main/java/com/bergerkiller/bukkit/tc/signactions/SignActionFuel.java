@@ -40,7 +40,7 @@ public class SignActionFuel extends SignAction {
 
         //get nearby chests
         int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
-        List<Chest> chests = new ArrayList<Chest>();
+        List<Chest> chests = new ArrayList<>();
         for (BlockState state : TransferSignUtil.getBlockStates(info, radius, radius)) {
             if (state instanceof Chest) {
                 chests.add((Chest) state);
@@ -54,12 +54,12 @@ public class SignActionFuel extends SignAction {
         if (dotrain) {
             carts = info.getGroup();
         } else {
-            carts = new ArrayList<MinecartMember<?>>(1);
+            carts = new ArrayList<>(1);
             carts.add(info.getMember());
         }
 
         int i;
-        boolean found = false;
+        boolean found;
         for (MinecartMember<?> cart : carts) {
             if (!(cart instanceof MinecartMemberFurnace)) {
                 continue;
@@ -92,9 +92,6 @@ public class SignActionFuel extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.getMode() != SignActionMode.NONE) {
-            return handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", "fuel the powered minecart using coal from a chest");
-        }
-        return false;
+        return event.getMode() != SignActionMode.NONE && handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", "fuel the powered minecart using coal from a chest");
     }
 }

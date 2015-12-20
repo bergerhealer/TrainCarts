@@ -119,7 +119,7 @@ public class TrainCommands {
             //claim as many carts as possible
             int changed = 0;
             boolean clear = !cmd.equals("addowner") && !cmd.equals("addowners");
-            List<String> toadd = new ArrayList<String>();
+            List<String> toadd = new ArrayList<>();
             if (cmd.equals("claim")) {
                 toadd.add(p.getName().toLowerCase());
             } else if (args.length == 0) {
@@ -216,7 +216,7 @@ public class TrainCommands {
                     }
                 } else {
                     p.sendMessage(ChatColor.RED + "Unknown collision mode: " + args[1]);
-                    ArrayList<String> modes = new ArrayList<String>();
+                    ArrayList<String> modes = new ArrayList<>();
                     for (CollisionMode cmode : CollisionMode.values()) {
                         modes.add(cmode.toString().toLowerCase());
                     }
@@ -305,21 +305,13 @@ public class TrainCommands {
         } else if (cmd.equals("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             boolean pub;
-            if (args.length == 0) {
-                pub = true;
-            } else {
-                pub = ParseUtil.parseBool(args[0]);
-            }
+            pub = args.length == 0 || ParseUtil.parseBool(args[0]);
             prop.setPublic(pub);
             p.sendMessage(ChatColor.YELLOW + "The selected train can be used by everyone: " + ChatColor.WHITE + pub);
         } else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             boolean pub;
-            if (args.length == 0) {
-                pub = false;
-            } else {
-                pub = !ParseUtil.parseBool(args[0]);
-            }
+            pub = args.length != 0 && !ParseUtil.parseBool(args[0]);
             prop.setPublic(pub);
             p.sendMessage(ChatColor.YELLOW + "The selected train can only be used by the respective owners: " + ChatColor.WHITE + !pub);
         } else if (cmd.equals("pickup")) {
@@ -331,7 +323,8 @@ public class TrainCommands {
         } else if (cmd.equals("default") || cmd.equals("def")) {
             Permission.COMMAND_DEFAULT.handle(p);
             if (args.length == 0) {
-
+                p.sendMessage(ChatColor.RED + "Not enough args!");
+                return true;
             } else {
                 prop.setDefault(args[0]);
                 p.sendMessage(ChatColor.GREEN + "Train properties has been re-set to the defaults named '" + args[0] + "'!");
@@ -339,7 +332,7 @@ public class TrainCommands {
         } else if (cmd.equals("break")) {
             Permission.COMMAND_BREAKBLOCK.handle(p);
             if (args.length == 0) {
-                Set<Material> types = new HashSet<Material>();
+                Set<Material> types = new HashSet<>();
                 for (CartProperties cprop : prop) types.addAll(cprop.getBlockBreakTypes());
                 p.sendMessage(ChatColor.YELLOW + "This train breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
             } else {
@@ -351,7 +344,7 @@ public class TrainCommands {
                     boolean lastIsBool = ParseUtil.isBool(args[args.length - 1]);
                     if (lastIsBool) asBreak = ParseUtil.parseBool(args[args.length - 1]);
                     int count = lastIsBool ? args.length - 1 : args.length;
-                    Set<Material> mats = new HashSet<Material>();
+                    Set<Material> mats = new HashSet<>();
                     for (int i = 0; i < count; i++) {
                         Material mat = ParseUtil.parseMaterial(args[i], null);
                         if (mat != null) {

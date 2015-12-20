@@ -63,9 +63,6 @@ public class SignActionTeleport extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.hasRails()) {
-            return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
-        }
-        return false;
+        return event.hasRails() && handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
     }
 }

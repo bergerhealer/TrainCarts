@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class SignActionDetector extends SignAction {
-    private static BlockMap<DetectorSignPair> detectors = new BlockMap<DetectorSignPair>();
+    private static BlockMap<DetectorSignPair> detectors = new BlockMap<>();
 
     public static void removeDetector(Block at) {
         DetectorSignPair dec = detectors.get(at);
@@ -64,7 +64,7 @@ public class SignActionDetector extends SignAction {
     public static void save(String filename) {
         new DataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
-                Set<DetectorSignPair> detectorset = new HashSet<DetectorSignPair>(detectors.size() / 2);
+                Set<DetectorSignPair> detectorset = new HashSet<>(detectors.size() / 2);
                 for (DetectorSignPair dec : detectors.values()) {
                     detectorset.add(dec);
                 }
@@ -125,7 +125,7 @@ public class SignActionDetector extends SignAction {
         final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
-        Block endsign = null;
+        Block endsign;
         SignActionEvent info;
         while (map.hasNext()) {
             for (Block signblock : Util.getSignsFromRails(map.next())) {

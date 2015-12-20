@@ -39,7 +39,6 @@ public class RailLogicSloped extends RailLogicHorizontal {
      * Gets the sloped rail logic for the the sloped track leading up on the direction specified
      *
      * @param direction    of the sloped rail
-     * @param wasVertical, whether it was a change from vertical to sloped
      * @return Rail Logic
      */
     public static RailLogicSloped get(BlockFace direction) {

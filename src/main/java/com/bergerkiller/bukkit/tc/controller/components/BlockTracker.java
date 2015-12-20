@@ -10,9 +10,9 @@ import java.util.*;
  * Keeps track of the active rails, signs and detector regions
  */
 public abstract class BlockTracker {
-    protected static final Set<Block> blockBuffer = new HashSet<Block>();
-    protected final Set<Block> activeSigns = new LinkedHashSet<Block>();
-    protected final List<DetectorRegion> detectorRegions = new ArrayList<DetectorRegion>(0);
+    protected static final Set<Block> blockBuffer = new HashSet<>();
+    protected final Set<Block> activeSigns = new LinkedHashSet<>();
+    protected final List<DetectorRegion> detectorRegions = new ArrayList<>(0);
     protected final ToggledState needsUpdate = new ToggledState();
 
     public Collection<Block> getActiveSigns() {

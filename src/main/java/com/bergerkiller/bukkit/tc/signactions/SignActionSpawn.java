@@ -31,9 +31,9 @@ import java.util.HashMap;
 import java.util.Locale;
 
 public class SignActionSpawn extends SignAction {
-    private static BlockMap<SpawnSign> spawnSigns = new BlockMap<SpawnSign>();
-    private static HashMap<String, EntityType> minecartTypes = new HashMap<String, EntityType>();
-    private static HashMap<String, Permission> minecartPerms = new HashMap<String, Permission>();
+    private static BlockMap<SpawnSign> spawnSigns = new BlockMap<>();
+    private static HashMap<String, EntityType> minecartTypes = new HashMap<>();
+    private static HashMap<String, Permission> minecartPerms = new HashMap<>();
 
     static {
         addSpawnType('m', EntityType.MINECART);
@@ -142,7 +142,6 @@ public class SignActionSpawn extends SignAction {
                     event.getPlayer().sendMessage(ChatColor.YELLOW + "Warning: You have specified 0 minecarts of type " + Character.toString(cart));
                 }
                 cartAmountSpecified = -1;
-                continue;
             } else {
                 return false;
             }
@@ -159,7 +158,7 @@ public class SignActionSpawn extends SignAction {
             final double spawnForce = getSpawnForce(info);
 
             //Get the cart types to spawn
-            ArrayList<EntityType> types = new ArrayList<EntityType>();
+            ArrayList<EntityType> types = new ArrayList<>();
             StringBuilder amountBuilder = new StringBuilder();
             EntityType type;
             for (char cart : (info.getLine(2) + info.getLine(3)).toCharArray()) {

@@ -18,7 +18,7 @@ public enum InteractType {
      */
     public static Collection<InteractType> parse(String root, String name) {
         name = name.toLowerCase();
-        LinkedHashSet<InteractType> typesToCheck = new LinkedHashSet<InteractType>();
+        LinkedHashSet<InteractType> typesToCheck = new LinkedHashSet<>();
         if (root.equals("collect")) {
             if (name.startsWith("chest out")) {
                 typesToCheck.add(CHEST);

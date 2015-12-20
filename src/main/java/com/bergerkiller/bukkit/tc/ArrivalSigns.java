@@ -17,8 +17,8 @@ import org.bukkit.entity.Player;
 import java.util.HashMap;
 
 public class ArrivalSigns {
-    private static HashMap<String, TimeSign> timerSigns = new HashMap<String, TimeSign>();
-    private static BlockMap<TimeCalculation> timeCalculations = new BlockMap<TimeCalculation>();
+    private static HashMap<String, TimeSign> timerSigns = new HashMap<>();
+    private static BlockMap<TimeCalculation> timeCalculations = new BlockMap<>();
     private static Task updateTask;
 
     public static TimeSign getTimer(String name) {

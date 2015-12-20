@@ -15,8 +15,8 @@ import java.util.*;
 
 public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     private static final long serialVersionUID = 1;
-    protected static HashSet<MinecartGroup> groups = new HashSet<MinecartGroup>();
-    private static List<MinecartGroup> groupTickBuffer = new ArrayList<MinecartGroup>(5);
+    protected static HashSet<MinecartGroup> groups = new HashSet<>();
+    private static List<MinecartGroup> groupTickBuffer = new ArrayList<>(5);
 
     /**
      * Called onPhysics for all Minecart Groups who didn't get ticked in the previous run
@@ -104,7 +104,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
      * @return a Collection of MinecartGroup that match
      */
     public static Collection<MinecartGroup> matchAll(String expression) {
-        List<MinecartGroup> rval = new ArrayList<MinecartGroup>();
+        List<MinecartGroup> rval = new ArrayList<>();
         if (expression != null && !expression.isEmpty()) {
             String[] elements = expression.split("\\*");
             boolean first = expression.startsWith("*");

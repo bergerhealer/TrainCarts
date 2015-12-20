@@ -28,10 +28,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     public static final CartProperties EMPTY = new CartProperties(UUID.randomUUID(), null);
 
     private final UUID uuid;
-    private final Set<String> owners = new HashSet<String>();
-    private final Set<String> ownerPermissions = new HashSet<String>();
-    private final Set<String> tags = new HashSet<String>();
-    private final Set<Material> blockBreakTypes = new HashSet<Material>();
+    private final Set<String> owners = new HashSet<>();
+    private final Set<String> ownerPermissions = new HashSet<>();
+    private final Set<String> tags = new HashSet<>();
+    private final Set<Material> blockBreakTypes = new HashSet<>();
     public Vector exitOffset = new Vector(0.0, 0.0, 0.0);
     public float exitYaw = 0.0f, exitPitch = 0.0f;
     protected TrainProperties group = null;
@@ -44,7 +44,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private boolean isPublic = true;
     private boolean pickUp = false;
     private boolean spawnItemDrops = true;
-    private SoftReference<MinecartMember<?>> member = new SoftReference<MinecartMember<?>>();
+    private SoftReference<MinecartMember<?>> member = new SoftReference<>();
 
     protected CartProperties(UUID uuid, TrainProperties group) {
         this.uuid = uuid;
@@ -108,7 +108,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return Collection of editing player names
      */
     public Collection<String> getEditing() {
-        ArrayList<String> players = new ArrayList<String>();
+        ArrayList<String> players = new ArrayList<>();
         for (Map.Entry<String, CartProperties> entry : editing.entrySet()) {
             if (entry.getValue() == this) {
                 players.add(entry.getKey());
@@ -124,7 +124,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      */
     public Collection<Player> getEditingPlayers() {
         Collection<String> names = getEditing();
-        ArrayList<Player> players = new ArrayList<Player>(names.size());
+        ArrayList<Player> players = new ArrayList<>(names.size());
         for (String name : names) {
             Player p = Bukkit.getServer().getPlayer(name);
             if (p != null) {
@@ -273,9 +273,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void addTags(String... tags) {
-        for (String tag : tags) {
-            this.tags.add(tag);
-        }
+        Collections.addAll(this.tags, tags);
     }
 
     @Override
@@ -480,7 +478,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     /**
      * Loads the information from the properties specified
      *
-     * @param properties to load from
+     * @param from to load from
      */
     public void load(CartProperties from) {
         this.destination = from.destination;
@@ -529,9 +527,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void saveAsDefault(ConfigurationNode node) {
-        node.set("owners", new ArrayList<String>(this.owners));
-        node.set("ownerPermissions", new ArrayList<String>(this.ownerPermissions));
-        node.set("tags", new ArrayList<String>(this.tags));
+        node.set("owners", new ArrayList<>(this.owners));
+        node.set("ownerPermissions", new ArrayList<>(this.ownerPermissions));
+        node.set("tags", new ArrayList<>(this.tags));
         node.set("allowPlayerEnter", this.allowPlayerEnter);
         node.set("allowPlayerExit", this.allowPlayerExit);
         node.set("invincible", this.invincible);
@@ -551,9 +549,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void save(ConfigurationNode node) {
-        node.set("owners", this.owners.isEmpty() ? null : new ArrayList<String>(this.owners));
-        node.set("ownerPermissions", this.ownerPermissions.isEmpty() ? null : new ArrayList<String>(this.ownerPermissions));
-        node.set("tags", this.tags.isEmpty() ? null : new ArrayList<String>(this.tags));
+        node.set("owners", this.owners.isEmpty() ? null : new ArrayList<>(this.owners));
+        node.set("ownerPermissions", this.ownerPermissions.isEmpty() ? null : new ArrayList<>(this.ownerPermissions));
+        node.set("tags", this.tags.isEmpty() ? null : new ArrayList<>(this.tags));
         node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
         node.set("allowPlayerExit", this.allowPlayerExit ? null : false);
         node.set("invincible", this.invincible ? true : null);

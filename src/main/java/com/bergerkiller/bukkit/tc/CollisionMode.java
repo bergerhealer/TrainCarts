@@ -30,7 +30,7 @@ public enum CollisionMode {
 
     private final String operationName;
 
-    private CollisionMode(String operationName) {
+    CollisionMode(String operationName) {
         this.operationName = operationName;
     }
 

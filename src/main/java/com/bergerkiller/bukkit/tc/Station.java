@@ -156,7 +156,7 @@ public class Station {
      * - This is the direction to launch to if it has to launch<br>
      * - This is null if the station should do nothing and release the train
      *
-     * @return
+     * @return instruction
      */
     public BlockFace getInstruction() {
         return this.instruction;

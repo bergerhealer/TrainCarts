@@ -19,7 +19,7 @@ import org.bukkit.entity.Player;
 public class Commands {
 
     public static void permission(CommandSender sender, String node) throws NoPermissionException {
-        if (sender instanceof Player && !((Player) sender).hasPermission(node)) {
+        if (sender instanceof Player && !sender.hasPermission(node)) {
             throw new NoPermissionException();
         }
     }
@@ -55,9 +55,8 @@ public class Commands {
                     return true;
                 }
             } else if (command.equalsIgnoreCase("cart")) {
-                CartProperties prop = cprop;
-                if (prop.hasOwnership(player)) {
-                    return CartCommands.execute(player, prop, cmd, args);
+                if (cprop.hasOwnership(player)) {
+                    return CartCommands.execute(player, cprop, cmd, args);
                 } else {
                     Localization.EDIT_NOTOWNED.message(player);
                     return true;

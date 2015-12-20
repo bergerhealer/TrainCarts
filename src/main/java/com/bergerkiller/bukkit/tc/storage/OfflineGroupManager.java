@@ -25,9 +25,9 @@ public class OfflineGroupManager {
     public static Long lastUnloadChunk = null;
     private static boolean chunkLoadReq = false;
     private static boolean isRefreshingGroups = false;
-    private static Set<String> containedTrains = new HashSet<String>();
-    private static HashSet<UUID> containedMinecarts = new HashSet<UUID>();
-    private static Map<UUID, OfflineGroupManager> managers = new HashMap<UUID, OfflineGroupManager>();
+    private static Set<String> containedTrains = new HashSet<>();
+    private static HashSet<UUID> containedMinecarts = new HashSet<>();
+    private static final Map<UUID, OfflineGroupManager> managers = new HashMap<>();
     private OfflineGroupMap groupmap = new OfflineGroupMap();
 
     public static OfflineGroupManager get(UUID uuid) {
@@ -172,9 +172,7 @@ public class OfflineGroupManager {
                         // Load the chunk this minecart is in and remove it
                         // We already de-linked the group map, so no worry for replacements
                         Chunk chunk = world.getChunkAt(wm.cx, wm.cz);
-                        Iterator<Entity> iter = WorldUtil.getEntities(chunk).iterator();
-                        while (iter.hasNext()) {
-                            Entity next = iter.next();
+                        for (Entity next : WorldUtil.getEntities(chunk)) {
                             if (next.getUniqueId().equals(wm.entityUID)) {
                                 next.remove();
                             }
@@ -223,7 +221,7 @@ public class OfflineGroupManager {
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static void removeBuggedMinecarts(World world) {
-        Set<org.bukkit.entity.Entity> toRemove = new HashSet<org.bukkit.entity.Entity>();
+        Set<org.bukkit.entity.Entity> toRemove = new HashSet<>();
         Set worldentities = new HashSet(WorldUtil.getEntities(world));
         for (Chunk chunk : WorldUtil.getChunks(world)) {
             // Remove entities that are falsely added
@@ -439,7 +437,7 @@ public class OfflineGroupManager {
         // While refreshing, ignore incoming Chunk Load events
         // We do not want the group map to change concurrently!
         isRefreshingGroups = true;
-        List<OfflineGroup> groupsBuffer = new ArrayList<OfflineGroup>(this.groupmap.size());
+        List<OfflineGroup> groupsBuffer = new ArrayList<>(this.groupmap.size());
         try {
             // Keep refreshing until no new chunks are being loaded
             // Why? Keepchunksloaded trains can cause other trains to load

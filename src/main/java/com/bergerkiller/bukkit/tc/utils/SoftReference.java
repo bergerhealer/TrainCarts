@@ -16,7 +16,7 @@ public class SoftReference<T> {
     /**
      * Sets the reference to the given value
      *
-     * @param value
+     * @param value given value
      * @return the value
      */
     public T set(T value) {

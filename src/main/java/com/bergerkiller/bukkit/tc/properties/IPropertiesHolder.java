@@ -7,10 +7,10 @@ public interface IPropertiesHolder extends IParsable {
      *
      * @return the Properties
      */
-    public IProperties getProperties();
+    IProperties getProperties();
 
     /**
      * Called when certain properties have changed
      */
-    public void onPropertiesChanged();
+    void onPropertiesChanged();
 }

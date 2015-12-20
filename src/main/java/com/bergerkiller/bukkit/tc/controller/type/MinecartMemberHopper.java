@@ -1,8 +1,8 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
-import com.bergerkiller.bukkit.tc.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.MemberMissingException;
+import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberInventory;
 

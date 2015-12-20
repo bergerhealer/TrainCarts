@@ -165,7 +165,7 @@ public class CartCommands {
                     boolean lastIsBool = ParseUtil.isBool(args[args.length - 1]);
                     if (lastIsBool) asBreak = ParseUtil.parseBool(args[args.length - 1]);
                     int count = lastIsBool ? args.length - 1 : args.length;
-                    Set<Material> mats = new HashSet<Material>();
+                    Set<Material> mats = new HashSet<>();
                     for (int i = 0; i < count; i++) {
                         Material mat = ParseUtil.parseMaterial(args[i], null);
                         if (mat != null) {
@@ -214,7 +214,7 @@ public class CartCommands {
                 member.getEntity().setBlock(Material.AIR);
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block cleared!");
             } else {
-                List<MinecartMember<?>> members = new ArrayList<MinecartMember<?>>(1);
+                List<MinecartMember<?>> members = new ArrayList<>(1);
                 members.add(member);
                 SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args));
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block updated!");

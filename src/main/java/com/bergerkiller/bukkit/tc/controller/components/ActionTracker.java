@@ -14,7 +14,7 @@ import java.util.Queue;
  * Stores actions and updates them per tick
  */
 public class ActionTracker {
-    private final Queue<Action> actions = new LinkedList<Action>();
+    private final Queue<Action> actions = new LinkedList<>();
 
     public boolean hasAction() {
         return this.actions.size() > 0;

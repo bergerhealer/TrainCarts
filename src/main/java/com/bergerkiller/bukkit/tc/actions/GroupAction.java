@@ -8,10 +8,7 @@ public class GroupAction extends Action {
 
     @Override
     public boolean doTick() {
-        if (this.group.isEmpty()) {
-            return true;
-        }
-        return super.doTick();
+        return this.group.isEmpty() || super.doTick();
     }
 
     public MinecartGroup getGroup() {

@@ -52,7 +52,7 @@ public class SignActionTicket extends SignAction {
                 if (isTrain) {
                     members = info.getGroup();
                 } else {
-                    members = new ArrayList<MinecartMember<?>>(1);
+                    members = new ArrayList<>(1);
                     members.add(info.getMember());
                 }
                 for (MinecartMember<?> member : members) {
@@ -87,9 +87,6 @@ public class SignActionTicket extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.getMode() != SignActionMode.NONE) {
-            return handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
-        }
-        return false;
+        return event.getMode() != SignActionMode.NONE && handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
     }
 }

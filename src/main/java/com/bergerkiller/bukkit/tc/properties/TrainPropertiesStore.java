@@ -20,7 +20,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
     private static final String propertiesFile = "TrainProperties.yml";
     private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
     private static FileConfiguration defconfig = null;
-    private static HashMap<String, TrainProperties> trainProperties = new HashMap<String, TrainProperties>();
+    private static HashMap<String, TrainProperties> trainProperties = new HashMap<>();
 
     /**
      * Gets all the TrainProperties available
@@ -38,7 +38,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
      * @return a Collection of TrainProperties that match
      */
     public static Collection<TrainProperties> matchAll(String expression) {
-        List<TrainProperties> rval = new ArrayList<TrainProperties>();
+        List<TrainProperties> rval = new ArrayList<>();
         if (expression != null && !expression.isEmpty()) {
             String[] elements = expression.split("\\*");
             boolean first = expression.startsWith("*");
@@ -163,7 +163,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
      * @return True if TrainProperties exist, False if not
      */
     public static boolean exists(String trainname) {
-        return trainProperties == null ? false : trainProperties.containsKey(trainname);
+        return trainProperties != null && trainProperties.containsKey(trainname);
     }
 
     /**
@@ -195,7 +195,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
     /**
      * Fixes deprecated properties from all nodes in a File configuration
      *
-     * @param node to fix
+     * @param config to fix
      * @return True if changes occurred, False if not
      */
     private static boolean fixDeprecation(FileConfiguration config) {
@@ -325,7 +325,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
      * @return Default properties configuration node, or null if not found
      */
     public static ConfigurationNode getDefaultsByPlayer(Player player) {
-        Set<ConfigurationNode> specialNodes = new TreeSet<ConfigurationNode>(new Comparator<ConfigurationNode>() {
+        Set<ConfigurationNode> specialNodes = new TreeSet<>(new Comparator<ConfigurationNode>() {
             @Override
             public int compare(ConfigurationNode o1, ConfigurationNode o2) {
                 return o1.getName().compareTo(o2.getName());

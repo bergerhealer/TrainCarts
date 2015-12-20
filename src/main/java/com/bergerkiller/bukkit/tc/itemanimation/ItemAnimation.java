@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class ItemAnimation {
-    private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<ItemAnimation>();
+    private static final ArrayList<ItemAnimation> runningAnimations = new ArrayList<>();
     private static Task task;
     private final Object from;
     private final Object to;

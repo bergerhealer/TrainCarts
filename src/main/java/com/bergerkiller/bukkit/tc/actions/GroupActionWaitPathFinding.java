@@ -26,7 +26,7 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
     public boolean update() {
         if (PathProvider.isProcessing()) {
             if (this.failCounter++ == 20) {
-                HashSet<Player> receivers = new HashSet<Player>();
+                HashSet<Player> receivers = new HashSet<>();
                 for (MinecartMember<?> member : this.getGroup()) {
                     // Editing
                     receivers.addAll(member.getProperties().getEditingPlayers());

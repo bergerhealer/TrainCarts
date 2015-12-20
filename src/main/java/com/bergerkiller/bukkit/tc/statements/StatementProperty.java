@@ -10,9 +10,10 @@ import com.bergerkiller.bukkit.tc.properties.CollisionConfig;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class StatementProperty extends Statement {
-    private ArrayList<String> properties = new ArrayList<String>();
+    private ArrayList<String> properties = new ArrayList<>();
     private String[] maxspeed;
     private String[] playerEnter;
     private String[] playerExit;
@@ -26,9 +27,7 @@ public class StatementProperty extends Statement {
     }
 
     private String[] add(String... properties) {
-        for (String property : properties) {
-            this.properties.add(property);
-        }
+        Collections.addAll(this.properties, properties);
         return properties;
     }
 

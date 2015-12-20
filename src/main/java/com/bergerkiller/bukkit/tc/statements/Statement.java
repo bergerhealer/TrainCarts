@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Statement {
-    private static List<Statement> statements = new ArrayList<Statement>();
+    private static List<Statement> statements = new ArrayList<>();
 
     public static String[] parseArray(String text) {
         return text.split(";", -1);

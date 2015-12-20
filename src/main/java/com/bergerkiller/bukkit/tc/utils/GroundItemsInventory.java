@@ -21,7 +21,7 @@ import java.util.Random;
  * If this item is set, a new item is spawned
  */
 public class GroundItemsInventory extends InventoryBase {
-    private final List<Item> items = new ArrayList<Item>();
+    private final List<Item> items = new ArrayList<>();
     private final Location location;
 
     public GroundItemsInventory(Block block, double range) {

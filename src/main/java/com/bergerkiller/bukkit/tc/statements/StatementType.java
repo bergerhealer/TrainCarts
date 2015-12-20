@@ -23,10 +23,7 @@ public class StatementType extends Statement {
 
     @Override
     public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
-        if (isSize(text.toLowerCase(Locale.ENGLISH))) {
-            return true;
-        }
-        return member.getEntity().getType() == Conversion.toMinecartType.convert(text);
+        return isSize(text.toLowerCase(Locale.ENGLISH)) || member.getEntity().getType() == Conversion.toMinecartType.convert(text);
     }
 
     @Override
@@ -35,11 +32,7 @@ public class StatementType extends Statement {
             return Util.evaluate(group.size(), text);
         }
         final EntityType type = Conversion.toMinecartType.convert(text);
-        if (type == null) {
-            return false;
-        } else {
-            return Util.evaluate(group.size(type), text);
-        }
+        return type != null && Util.evaluate(group.size(type), text);
     }
 
     @Override

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SignActionSwitcher extends SignAction {
-    private BlockMap<AtomicInteger> switchedTimes = new BlockMap<AtomicInteger>();
+    private BlockMap<AtomicInteger> switchedTimes = new BlockMap<>();
 
     private AtomicInteger getSwitchedTimes(Block signblock) {
         AtomicInteger i = switchedTimes.get(signblock);
@@ -63,7 +63,7 @@ public class SignActionSwitcher extends SignAction {
         if (facing) {
             final BlockFace cartDirection = info.getCartDirection();
             //find out what statements to parse
-            List<DirectionStatement> statements = new ArrayList<DirectionStatement>();
+            List<DirectionStatement> statements = new ArrayList<>();
             statements.add(new DirectionStatement(info.getLine(2), cartDirection, Direction.LEFT));
             statements.add(new DirectionStatement(info.getLine(3), cartDirection, Direction.RIGHT));
             //other signs below this sign we could parse?

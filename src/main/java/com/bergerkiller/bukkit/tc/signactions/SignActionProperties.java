@@ -24,11 +24,8 @@ public class SignActionProperties extends SignAction {
         String[] args = Util.splitBySeparator(info.getLine(3));
         if (args.length >= 2) {
             return Util.parseProperties(properties, mode, info.isPowered() ? args[0] : args[1]);
-        } else if (args.length == 1 && info.isPowered()) {
-            return Util.parseProperties(properties, mode, args[0]);
-        } else {
-            return false;
-        }
+        } else
+            return args.length == 1 && info.isPowered() && Util.parseProperties(properties, mode, args[0]);
     }
 
     @Override

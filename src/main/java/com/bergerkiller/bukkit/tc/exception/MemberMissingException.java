@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc;
+package com.bergerkiller.bukkit.tc.exception;
 
 /**
  * Exception thrown when a member can no longer be accessed

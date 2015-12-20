@@ -16,6 +16,8 @@ import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -217,10 +219,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
-        if (world != entity.getWorld()) return false;
-        if (Math.abs(cx - entity.loc.x.chunk()) > 2) return false;
-        if (Math.abs(cz - entity.loc.z.chunk()) > 2) return false;
-        return true;
+        return world == entity.getWorld() && Math.abs(cx - entity.loc.x.chunk()) <= 2 && Math.abs(cz - entity.loc.z.chunk()) <= 2;
     }
 
     protected void updateChunks(Set<IntVector2> previousChunks, Set<IntVector2> newChunks) {
@@ -310,18 +309,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (member != null) {
             return this.isCollisionIgnored(member);
         }
-        if (this.ignoreAllCollisions) {
-            return true;
-        }
-        return collisionIgnoreTimes.containsKey(entity.getUniqueId());
+        return this.ignoreAllCollisions || collisionIgnoreTimes.containsKey(entity.getUniqueId());
     }
 
     public boolean isCollisionIgnored(MinecartMember<?> member) {
-        if (this.ignoreAllCollisions || member.ignoreAllCollisions) {
-            return true;
-        }
-        return this.collisionIgnoreTimes.containsKey(member.entity.getUniqueId()) ||
-                member.collisionIgnoreTimes.containsKey(this.entity.getUniqueId());
+        return this.ignoreAllCollisions || member.ignoreAllCollisions || this.collisionIgnoreTimes.containsKey(member.entity.getUniqueId()) || member.collisionIgnoreTimes.containsKey(this.entity.getUniqueId());
     }
 
     public void ignoreCollision(org.bukkit.entity.Entity entity, int ticktime) {
@@ -701,7 +693,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
             if (this.entity.getDamage() > 40) {
                 // Send an event, pass in the drops to drop
-                List<ItemStack> drops = new ArrayList<ItemStack>(2);
+                List<ItemStack> drops = new ArrayList<>(2);
                 if (getProperties().getSpawnItemDrops()) {
                     if (TrainCarts.breakCombinedCarts) {
                         drops.addAll(this.entity.getBrokenDrops());
@@ -727,7 +719,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Tells the Minecart to ignore the very next call to {@link onDie()}
+     * Tells the Minecart to ignore the very next call to {@link this.onDie()}
      * This is needed to avoid passengers removing their Minecarts.
      */
     public void ignoreNextDie() {

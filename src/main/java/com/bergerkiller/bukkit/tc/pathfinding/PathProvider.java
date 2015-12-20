@@ -24,8 +24,8 @@ public class PathProvider extends Task {
     private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
     private static PathProvider task;
-    private Set<PathNode> pendingNodes = new LinkedHashSet<PathNode>();
-    private Queue<PathFindOperation> pendingOperations = new LinkedList<PathFindOperation>();
+    private Set<PathNode> pendingNodes = new LinkedHashSet<>();
+    private Queue<PathFindOperation> pendingOperations = new LinkedList<>();
 
     private PathProvider(JavaPlugin plugin) {
         super(plugin);

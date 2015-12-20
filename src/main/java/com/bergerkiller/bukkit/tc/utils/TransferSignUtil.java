@@ -20,7 +20,7 @@ import java.util.*;
  * Utilities for dealing with item transfers between different containers
  */
 public class TransferSignUtil {
-    private static final HashSet<InventoryHolder> chestsBuffer = new HashSet<InventoryHolder>();
+    private static final HashSet<InventoryHolder> chestsBuffer = new HashSet<>();
 
     public static Inventory getInventory(SignActionEvent info) {
         if (info.isCartSign()) {
@@ -37,12 +37,12 @@ public class TransferSignUtil {
     public static Collection<InventoryHolder> getInventories(SignActionEvent info) {
         if (info.isCartSign()) {
             if (info.getMember() instanceof MinecartMemberChest) {
-                return Arrays.asList((InventoryHolder) info.getMember().getEntity().getEntity());
+                return Collections.singletonList((InventoryHolder) info.getMember().getEntity().getEntity());
             } else {
                 return Collections.emptyList();
             }
         } else {
-            Collection<InventoryHolder> trainInvs = new ArrayList<InventoryHolder>(info.getGroup().size());
+            Collection<InventoryHolder> trainInvs = new ArrayList<>(info.getGroup().size());
             for (MinecartMember<?> member : info.getGroup()) {
                 if (member instanceof MinecartMemberChest) {
                     trainInvs.add((InventoryHolder) member.getEntity().getEntity());
@@ -54,8 +54,8 @@ public class TransferSignUtil {
 
     public static int depositInFurnace(Inventory from, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
         final Inventory to = toFurnace.getInventory();
-        List<ItemParser> heatables = new ArrayList<ItemParser>();
-        List<ItemParser> fuels = new ArrayList<ItemParser>();
+        List<ItemParser> heatables = new ArrayList<>();
+        List<ItemParser> fuels = new ArrayList<>();
         if (!parser.hasType()) {
             // Add all heatables and fuels
             for (ItemParser p : TrainCarts.plugin.getParsers("heatable", 1)) {
@@ -132,7 +132,7 @@ public class TransferSignUtil {
                 fuelNeeded -= toFurnace.getCookTime();
                 if (fuelNeeded <= 0) continue; //we got enough
                 //===================================================
-                int fuelPerItem = 0;
+                int fuelPerItem;
                 if (fuel.getType() == Material.AIR) {
                     fuelPerItem = RecipeUtil.getFuelTime(p.getItemStack(1));
                 } else {
@@ -191,7 +191,7 @@ public class TransferSignUtil {
         } else if (FaceUtil.isAlongZ(dir)) {
             radZ = 0;
         }
-        List<BlockState> states = new ArrayList<BlockState>(BlockUtil.getBlockStates(centerBlock, radX, radY, radZ));
+        List<BlockState> states = new ArrayList<>(BlockUtil.getBlockStates(centerBlock, radX, radY, radZ));
 
         // Get rid of twice-stored double chests
         try {
@@ -260,7 +260,7 @@ public class TransferSignUtil {
             return Collections.emptyList();
         }
 
-        List<InventoryHolder> rval = new ArrayList<InventoryHolder>(found.size());
+        List<InventoryHolder> rval = new ArrayList<>(found.size());
         // This weird for loop is needed because typesToCheck is not a set!
         // The order in which inventories are added is of importance
         for (InteractType type : typesToCheck) {

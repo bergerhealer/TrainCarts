@@ -23,7 +23,7 @@ public class SignActionEffect extends SignAction {
             if (args.length == 2) {
                 eff.volume = (float) ParseUtil.parseDouble(args[1], 1.0);
             }
-        } catch (NumberFormatException ex) {
+        } catch (NumberFormatException ignored) {
         }
         return eff;
     }
