@@ -2,18 +2,19 @@ package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.MainHand;
 import org.bukkit.util.Vector;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
@@ -29,11 +30,11 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public boolean onInteractBy(HumanEntity human, ItemStack is, MainHand hand) {
+    public boolean onInteractBy(HumanEntity human) {
         if (!this.isInteractable()) {
             return true;
         }
-        ItemStack itemstack = human.getItemOnCursor(); //TODO CHECK IF FIXED
+        ItemStack itemstack = human.getItemInHand();
         if (itemstack != null && itemstack.getType() == Material.COAL) {
             ItemUtil.subtractAmount(itemstack, 1);
             human.setItemInHand(itemstack);

@@ -4,7 +4,7 @@
 
     <groupId>com.bergerkiller.bukkit</groupId>
     <artifactId>TrainCarts</artifactId>
-    <version>1.76-SNAPSHOT</version>
+    <version>1.75-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>TrainCarts</name>
@@ -18,11 +18,11 @@
         <!-- Repo for access to CraftBukkit -->
         <repository>
             <id>spigot-repo</id>
-            <url>https://repo.md-5.net/content/groups/public/</url>
+            <url>http://repo.md-5.net/content/groups/public/</url>
         </repository>
         <repository>
             <id>bukkit-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+            <url>http://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
         <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
         <repository>
@@ -35,16 +35,8 @@
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
-            <version>1.9-R0.1-SNAPSHOT</version>
+            <version>1.8.8-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>craftbukkit</artifactId>
-            <version>1.9-R0.1-SNAPSHOT</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/spigot-1.9.jar</systemPath>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.earth2me</groupId>
@@ -69,7 +61,7 @@
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>BKCommonLib</artifactId>
-            <version>1.70-SNAPSHOT</version>
+            <version>1.66-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
