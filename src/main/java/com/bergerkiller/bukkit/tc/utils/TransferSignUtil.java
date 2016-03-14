@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.*;
 import org.bukkit.inventory.*;
@@ -380,6 +381,23 @@ public class TransferSignUtil {
                 @Override
                 public void setItem(int index, ItemStack item) {
                     finv.setResult(item);
+                }
+
+                @Override
+                public ItemStack[] getStorageContents() {
+                    //TODO IMPLEMENT
+                    return new ItemStack[0];
+                }
+
+                @Override
+                public void setStorageContents(ItemStack[] itemStacks) throws IllegalArgumentException {
+                    //TODO IMPLEMENT
+                }
+
+                @Override
+                public Location getLocation() {
+                    //TODO IMPLEMENT
+                    return null;
                 }
             };
         }

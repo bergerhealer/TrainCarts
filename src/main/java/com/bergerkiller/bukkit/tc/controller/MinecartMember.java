@@ -719,7 +719,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Tells the Minecart to ignore the very next call to {@link this.onDie()}
+     * Tells the Minecart to ignore the very next call to {@link #onDie()}
      * This is needed to avoid passengers removing their Minecarts.
      */
     public void ignoreNextDie() {

@@ -87,6 +87,17 @@ public class GroundItemsInventory extends InventoryBase {
     }
 
     @Override
+    public ItemStack[] getStorageContents() {
+        //TODO IMPLEMENT
+        return new ItemStack[0];
+    }
+
+    @Override
+    public void setStorageContents(ItemStack[] itemStacks) throws IllegalArgumentException {
+        //TODO IMPLEMENT
+    }
+
+    @Override
     public ItemStack getItem(int index) {
         if (index == this.items.size()) {
             return null;
