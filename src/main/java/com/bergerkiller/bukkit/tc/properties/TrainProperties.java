@@ -535,6 +535,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             cprop.setLastPathNode(nodeName);
         }
     }
+    public Set<CollisionMode> getAllCollisionModes() {
+        return (Set<CollisionMode>) this.collisionModes.values();
+    }
 
     /**
      * Gets the Collision Mode for colliding with the Entity specified
@@ -542,10 +545,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param entity to collide with
      * @return Collision Mode
      */
-    public Set<CollisionMode> getAllCollisionModes() {
-        return (Set<CollisionMode>) this.collisionModes.values();
-    }
-
     public CollisionMode getCollisionMode(Entity entity) {
         if (!this.getColliding() || entity.isDead()) {
             return CollisionMode.CANCEL;
