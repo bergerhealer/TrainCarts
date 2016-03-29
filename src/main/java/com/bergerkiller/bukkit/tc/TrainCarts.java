@@ -167,6 +167,21 @@ public class TrainCarts extends PluginBase {
         }
         return true;
     }
+    
+    private static Economy _eco = null;
+    public static Economy getEco() {
+        return _eco;
+    }
+    
+    private boolean setupEconomy() {
+        try {
+            RegisteredServiceProvider<Economy> economyProvider = getServer().getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy.class);
+            if (economyProvider != null) {
+                _eco = economyProvider.getProvider();
+            }
+        } catch(NoClassDefFoundError ex) {}
+        return (_eco != null);
+    }
 
     /**
      * Writes the latest changes in message shortcuts to file
@@ -529,6 +544,9 @@ public class TrainCarts extends PluginBase {
 
         //Load spawn sign locations
         SignActionSpawn.init(getDataFolder() + File.separator + "spawnsigns.dat");
+        
+        if(setupEconomy())
+            TrainCarts.plugin.log(Level.INFO, "Found Vault... It can be use.");
 
         //Restore carts where possible
         TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
