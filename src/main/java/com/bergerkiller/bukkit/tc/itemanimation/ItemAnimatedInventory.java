@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc.itemanimation;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+
 import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 
 /**
  * Redirects calls to a base inventory, while showing item animations during item transfers
@@ -13,17 +16,30 @@ public class ItemAnimatedInventory extends InventoryBase {
     private final Inventory source;
     private final ItemStack[] original;
     private Object other, self;
+    private Entity holder;
+    private Location loc;
 
-    public ItemAnimatedInventory(Inventory inventory, Object self, Object other) {
+    public ItemAnimatedInventory(Entity holder, Inventory inventory, Object self, Object other) {
         this.other = other;
         this.self = self;
         this.source = inventory;
         this.original = ItemUtil.getClonedContents(inventory);
+        this.holder = holder;
+    }
+    public ItemAnimatedInventory(Location loc, Inventory inventory, Object self, Object other) {
+        this.other = other;
+        this.self = self;
+        this.source = inventory;
+        this.original = ItemUtil.getClonedContents(inventory);
+        this.loc = loc;
     }
 
-    public static Inventory convert(Inventory inventory, Object self, Object other) {
-        return new ItemAnimatedInventory(inventory, self, other);
+    public static Inventory convert(Entity holder, Inventory inventory, Object self, Object other) {
+        return new ItemAnimatedInventory(holder, inventory, self, other);
     }
+    public static Inventory convert(Location location, Inventory inventory, Object self, Object other) {
+    	return new ItemAnimatedInventory(location, inventory, self, other);
+	}
 
     @Override
     public void setItem(int index, ItemStack newitem) {
@@ -77,4 +93,10 @@ public class ItemAnimatedInventory extends InventoryBase {
     public int getSize() {
         return this.source.getSize();
     }
+
+	@Override
+	public Location getLocation() {
+		if(holder==null)return loc;
+		return holder.getLocation();
+	}
 }

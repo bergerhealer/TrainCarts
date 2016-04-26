@@ -64,7 +64,7 @@ public class SignActionCraft extends SignAction {
             }
 
             if (TrainCarts.showTransferAnimations) {
-                inventory = ItemAnimatedInventory.convert(inventory, info.getMember(), w);
+                inventory = ItemAnimatedInventory.convert(w.getLocation(), inventory, info.getMember(), w);
             }
 
             // craft
