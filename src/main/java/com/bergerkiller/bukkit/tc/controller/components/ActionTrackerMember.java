@@ -80,6 +80,10 @@ public class ActionTrackerMember extends ActionTracker {
     }
 
     public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance) {
-        return addGroupAction(new MemberActionWaitOccupied(maxsize, launchDelay, launchDistance));
+        return addActionWaitOccupied(maxsize, launchDelay, launchDistance, null, null);
+    }
+
+    public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance, BlockFace launchDirection, Double launchVelocity) { // Use Double to allow null
+        return addGroupAction(new MemberActionWaitOccupied(maxsize, launchDelay, launchDistance, launchDirection, launchVelocity));
     }
 }
