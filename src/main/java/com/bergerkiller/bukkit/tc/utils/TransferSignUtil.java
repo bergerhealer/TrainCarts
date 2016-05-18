@@ -385,7 +385,17 @@ public class TransferSignUtil {
                     finv.setResult(item);
                 }
 
-				@Override
+                @Override
+                public ItemStack[] getStorageContents() {
+                    return finv.getStorageContents();
+                }
+
+                @Override
+                public void setStorageContents(ItemStack[] itemStacks) throws IllegalArgumentException {
+                    finv.setStorageContents(itemStacks);
+                }
+
+                @Override
 				public Location getLocation() {
 					return finv.getLocation();
 				}

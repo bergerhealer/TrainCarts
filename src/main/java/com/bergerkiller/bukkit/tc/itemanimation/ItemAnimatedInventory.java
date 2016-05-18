@@ -16,7 +16,7 @@ public class ItemAnimatedInventory extends InventoryBase {
     private final Inventory source;
     private final ItemStack[] original;
     private Object other, self;
-    private Entity holder;
+    private Entity holder = null;
     private Location loc;
 
     public ItemAnimatedInventory(Entity holder, Inventory inventory, Object self, Object other) {
@@ -77,6 +77,16 @@ public class ItemAnimatedInventory extends InventoryBase {
         }
     }
 
+    @Override
+    public ItemStack[] getStorageContents() {
+        return source.getStorageContents();
+    }
+
+    @Override
+    public void setStorageContents(ItemStack[] itemStacks) throws IllegalArgumentException {
+        source.setStorageContents();
+    }
+
     public Object getSelfAt(int index) {
         if (this.source instanceof GroundItemsInventory) {
             return ((GroundItemsInventory) this.source).getEntity(index);
@@ -97,6 +107,6 @@ public class ItemAnimatedInventory extends InventoryBase {
 	@Override
 	public Location getLocation() {
 		if(holder==null)return loc;
-		return holder.getLocation();
+		return (holder == null) ? loc : holder.getLocation();
 	}
 }

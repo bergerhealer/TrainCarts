@@ -5,6 +5,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MainHand;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
@@ -20,8 +21,6 @@ import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 
-import net.minecraft.server.v1_9_R1.EnumHand;
-
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
     private int pushDirection = 0;
     private int fuelCheckCounter = 0;
@@ -35,14 +34,14 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public boolean onInteractBy(HumanEntity human, net.minecraft.server.v1_9_R1.ItemStack stack, EnumHand hand) {
+    public boolean onInteractBy(HumanEntity human, ItemStack is, MainHand hand) {
         if (!this.isInteractable()) {
             return true;
         }
-        ItemStack itemstack = human.getItemInHand();
+        ItemStack itemstack = human.getItemOnCursor();
         if (itemstack != null && itemstack.getType() == Material.COAL) {
             ItemUtil.subtractAmount(itemstack, 1);
-            human.setItemInHand(itemstack);
+            human.setItemOnCursor(itemstack);
             addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
         }
         if (this.isOnVertical()) {
