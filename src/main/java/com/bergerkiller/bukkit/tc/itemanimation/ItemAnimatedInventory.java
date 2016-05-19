@@ -84,7 +84,7 @@ public class ItemAnimatedInventory extends InventoryBase {
 
     @Override
     public void setStorageContents(ItemStack[] itemStacks) throws IllegalArgumentException {
-        source.setStorageContents();
+        source.setStorageContents(itemStacks);
     }
 
     public Object getSelfAt(int index) {
