@@ -10,16 +10,20 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     private final int maxsize;
     private final long delay;
     private final double launchDistance;
+    private final BlockFace launchDirection;
+    private final Double launchVelocity;
     private BlockFace direction;
     private Block start;
     private double launchforce;
     private int counter = 20;
     private boolean breakCode = false;
 
-    public MemberActionWaitOccupied(final int maxsize, final long delay, final double launchDistance) {
+    public MemberActionWaitOccupied(final int maxsize, final long delay, final double launchDistance, BlockFace launchDirection, Double launchVelocity) {
         this.maxsize = maxsize;
         this.delay = delay;
         this.launchDistance = launchDistance;
+        this.launchDirection = launchDirection;
+        this.launchVelocity = launchVelocity;
     }
 
     public static boolean handleOccupied(Block start, BlockFace direction, MinecartMember<?> ignore, int maxdistance) {
@@ -60,11 +64,17 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
         if (breakCode) return true;
         if (counter++ >= 20) {
             if (!this.handleOccupied()) {
-                //launch
+                // Add Delay
                 if (this.delay > 0) {
                     this.getGroup().getActions().addActionWait(this.delay);
                 }
-                this.getMember().getActions().addActionLaunch(this.direction, this.launchDistance, this.launchforce);
+
+                // Launch
+                if (this.launchVelocity != null && this.launchDirection != null) {
+                    this.getMember().getActions().addActionLaunch(this.launchDirection, this.launchDistance, this.launchVelocity);
+                } else {
+                    this.getMember().getActions().addActionLaunch(this.direction, this.launchDistance, this.launchforce);
+                }
                 return true;
             } else {
                 //this.wasoccupied = this.handleOccupied();
