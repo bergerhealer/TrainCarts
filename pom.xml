@@ -18,16 +18,16 @@
         <!-- Repo for access to CraftBukkit -->
         <repository>
             <id>spigot-repo</id>
-            <url>http://repo.md-5.net/content/groups/public/</url>
+            <url>https://repo.md-5.net/content/groups/public/</url>
         </repository>
         <repository>
             <id>bukkit-repo</id>
-            <url>http://hub.spigotmc.org/nexus/content/groups/public/</url>
+            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
         <!-- Repo for access to BKCommonLib, MyWorlds and SignLink -->
         <repository>
             <id>mg-dev-repo</id>
-            <url>http://maven.mg-dev.eu/</url>
+            <url>https://maven.mg-dev.eu/</url>
         </repository>
     </repositories>
 
