@@ -21,12 +21,15 @@ public class SignActionWait extends SignAction {
     public void execute(SignActionEvent info) {
         if (info.isAction(SignActionType.GROUP_ENTER) && info.isPowered()) {
             if (!info.hasRailedMember()) return;
+
             int dist = Math.min(ParseUtil.parseInt(info.getLine(1), 100), TrainCarts.maxDetectorLength);
+
             long delay = ParseUtil.parseTime(info.getLine(2));
             String[] launchData = Util.splitBySeparator(info.getLine(3));
             double launchDistance;
             BlockFace launchDirection = null;
             Double launchVelocity = null;
+
             if (launchData.length == 3) {
                 launchDistance = ParseUtil.parseDouble(launchData[0], 2.0);
                 launchDirection = Direction.parse(launchData[1]).getDirection(info.getFacing(), info.getCartDirection());
@@ -47,6 +50,7 @@ public class SignActionWait extends SignAction {
             }
         } else if (info.isAction(SignActionType.REDSTONE_OFF)) {
             if (!info.hasRailedMember()) return;
+
             info.getGroup().getActions().clear();
         }
     }
