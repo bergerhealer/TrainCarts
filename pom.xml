@@ -43,7 +43,7 @@
             <artifactId>craftbukkit</artifactId>
             <version>1.9-R0.1-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/spigot-1.9.jar</systemPath>
+            <systemPath>${project.basedir}/lib/spigot-1.9.2.jar</systemPath>
             <optional>true</optional>
         </dependency>
         <dependency>
