@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 public class SignActionWait extends SignAction {
@@ -21,12 +23,12 @@ public class SignActionWait extends SignAction {
     public void execute(SignActionEvent info) {
         if (info.isAction(SignActionType.GROUP_ENTER) && info.isPowered()) {
             if (!info.hasRailedMember()) return;
-            int dist = Math.min(ParseUtil.parseInt(info.getLine(1), 100), TrainCarts.maxDetectorLength);
-            long delay = ParseUtil.parseTime(info.getLine(2));
+
+            BlockFace launchDirection = null;
             String[] launchData = Util.splitBySeparator(info.getLine(3));
             double launchDistance;
-            BlockFace launchDirection = null;
             Double launchVelocity = null;
+
             if (launchData.length == 3) {
                 launchDistance = ParseUtil.parseDouble(launchData[0], 2.0);
                 launchDirection = Direction.parse(launchData[1]).getDirection(info.getFacing(), info.getCartDirection());
@@ -37,16 +39,64 @@ public class SignActionWait extends SignAction {
                 launchDistance = 2.0;
             }
 
+
+
+            // Second line without the name of the sign
+            String distanceData = info.getLine(1);
+            if (distanceData.startsWith("waiter "))
+                distanceData = distanceData.replaceFirst("waiter ", "");
+            else if (distanceData.startsWith("waiter"))
+                distanceData = distanceData.replaceFirst("waiter", "");
+            else if (distanceData.startsWith("wait "))
+                distanceData = distanceData.replaceFirst("wait ", "");
+            else if (distanceData.startsWith("wait"))
+                distanceData = distanceData.replaceFirst("wait", "");
+
+            int distance = 0;
+
+            // Check if the distance is not a number
+            if (distanceData.matches("[a-zA-Z]+")) {
+                TrackIterator iterator = new TrackIterator(info.getRails(),
+                        launchDirection != null ? launchDirection : info.getCartDirection());
+
+                findTrack:
+                while (iterator.hasNext()) {
+                    distance++;
+                    if (distance > TrainCarts.maxDetectorLength) {
+                        break;
+                    }
+
+                    for (Block block : Util.getSignsFromRails(iterator.next())) {
+                        if (block.equals(info.getBlock()))
+                            break;
+
+                        SignActionEvent sign = new SignActionEvent(block);
+                        if (sign.isType(distanceData)) {
+                            // Found sign
+                            break findTrack;
+                        }
+                    }
+                }
+
+                // Store distance
+                info.setLine(1, "waiter" + String.valueOf(distance));
+            } else {
+                distance = ParseUtil.parseInt(info.getLine(1), 100);
+            }
+
+            long delay = ParseUtil.parseTime(info.getLine(2));
+
             //allowed?
             BlockFace dir = info.getMember().getDirectionTo();
 
             //distance
-            if (MemberActionWaitOccupied.handleOccupied(info.getRails(), dir, info.getMember(), dist)) {
+            if (MemberActionWaitOccupied.handleOccupied(info.getRails(), dir, info.getMember(), distance)) {
                 info.getGroup().getActions().clear();
-                info.getMember().getActions().addActionWaitOccupied(dist, delay, launchDistance, launchDirection, launchVelocity);
+                info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity);
             }
         } else if (info.isAction(SignActionType.REDSTONE_OFF)) {
             if (!info.hasRailedMember()) return;
+
             info.getGroup().getActions().clear();
         }
     }
