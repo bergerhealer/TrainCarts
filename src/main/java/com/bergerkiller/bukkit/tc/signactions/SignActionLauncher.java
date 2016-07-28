@@ -25,6 +25,10 @@ public class SignActionLauncher extends SignAction {
         // Parse the launch speed
         double velocity = ParseUtil.parseDouble(info.getLine(2), TrainCarts.launchForce);
 
+        if (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-")) {
+            velocity += info.getMember().getForce();
+        }
+
         // Parse the launch distance
         double distance = ParseUtil.parseDouble(info.getLine(1), 1.0);
 
