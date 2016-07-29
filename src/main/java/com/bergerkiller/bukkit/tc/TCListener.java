@@ -297,7 +297,7 @@ public class TCListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) {
             return;
