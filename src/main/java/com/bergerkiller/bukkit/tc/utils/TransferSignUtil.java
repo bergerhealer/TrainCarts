@@ -10,6 +10,9 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.*;
 import org.bukkit.inventory.*;
@@ -381,12 +384,27 @@ public class TransferSignUtil {
                 public void setItem(int index, ItemStack item) {
                     finv.setResult(item);
                 }
+
+                @Override
+                public ItemStack[] getStorageContents() {
+                    return finv.getStorageContents();
+                }
+
+                @Override
+                public void setStorageContents(ItemStack[] itemStacks) throws IllegalArgumentException {
+                    finv.setStorageContents(itemStacks);
+                }
+
+                @Override
+				public Location getLocation() {
+					return finv.getLocation();
+				}
             };
         }
 
         // Do not deposit using animations for ground items, it shows duplicates which looks bad
         if (TrainCarts.showTransferAnimations && !(from instanceof GroundItemsInventory)) {
-            from = ItemAnimatedInventory.convert(from, fromHolder, toHolder);
+            from = ItemAnimatedInventory.convert(from.getLocation(), from, fromHolder, toHolder);
         }
 
         // Depositing into a furnace or other type of inventory?

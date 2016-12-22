@@ -1,21 +1,25 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
-import com.bergerkiller.bukkit.common.utils.*;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
-import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MainHand;
 import org.bukkit.util.Vector;
+
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
+import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
+import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
+import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
     private int pushDirection = 0;
@@ -30,14 +34,14 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public boolean onInteractBy(HumanEntity human) {
+    public boolean onInteractBy(HumanEntity human, ItemStack is, MainHand hand) {
         if (!this.isInteractable()) {
             return true;
         }
-        ItemStack itemstack = human.getItemInHand();
+        ItemStack itemstack = human.getItemOnCursor();
         if (itemstack != null && itemstack.getType() == Material.COAL) {
             ItemUtil.subtractAmount(itemstack, 1);
-            human.setItemInHand(itemstack);
+            human.setItemOnCursor(itemstack);
             addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
         }
         if (this.isOnVertical()) {
