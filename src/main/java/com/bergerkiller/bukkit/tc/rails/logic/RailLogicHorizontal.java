@@ -23,10 +23,16 @@ public class RailLogicHorizontal extends RailLogic {
 
     private final double dx, dz;
     private final double startX, startZ;
+    private final BlockFace[] cartFaces;
     private final BlockFace[] faces;
+    private final BlockFace[] ends;
 
     protected RailLogicHorizontal(BlockFace direction) {
         super(direction);
+        // Motion faces for the rails cart direction
+        this.cartFaces = FaceUtil.getFaces(this.getCartDirection());
+        // The ends of the rail, where the rail can be connected to other rails
+        this.ends = FaceUtil.getFaces(direction.getOppositeFace());
         // Fix north/west, they are non-existent
         direction = FaceUtil.toRailsDirection(direction);
         // Faces and direction
@@ -44,7 +50,7 @@ public class RailLogicHorizontal extends RailLogic {
         final double startFactor = MathUtil.invert(0.5, !this.curved);
         this.startX = startFactor * faces[0].getModX();
         this.startZ = startFactor * faces[0].getModZ();
-        // Invert north and south (is for some reason needed)
+        // Invert all north and south (is for some reason needed)
         for (int i = 0; i < this.faces.length; i++) {
             if (this.faces[i] == BlockFace.NORTH || this.faces[i] == BlockFace.SOUTH) {
                 this.faces[i] = this.faces[i].getOppositeFace();
@@ -62,10 +68,21 @@ public class RailLogicHorizontal extends RailLogic {
         return values[FaceUtil.faceToNotch(direction)];
     }
 
+    /**
+     * Gets the Y-position of a minecart on this rail
+     * 
+     * @param posX x-coordinate of the minecart
+     * @param posZ z-coordinate of the minecart
+     * @param railPos block position of the rails
+     * @return y-position
+     */
+    public double getYPosition(double posX, double posZ, IntVector3 railPos) {
+        return (double) railPos.y + 0.063;
+    }
+
     @Override
     public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
         double newLocX = railPos.midX() + this.startX;
-        double newLocY = railPos.midY() - 0.69;
         double newLocZ = railPos.midZ() + this.startZ;
         if (this.alongZ) {
             // Moving along the X-axis
@@ -79,8 +96,9 @@ public class RailLogicHorizontal extends RailLogic {
             newLocX += factor * this.dx;
             newLocZ += factor * this.dz;
         }
+
         // Calculate the Y-position
-        return new Vector(newLocX, newLocY, newLocZ);
+        return new Vector(newLocX, getYPosition(newLocX, newLocZ, railPos), newLocZ);
     }
 
     @Override
@@ -122,36 +140,61 @@ public class RailLogicHorizontal extends RailLogic {
                 }
             }
         } else if (this.curved) {
-            // Curved rail logic
+            // Figure out which 'quadrant' of the track the minecart is in right now
+            IntVector3 railPos = member.getBlockPos();
+            double mx = member.getEntity().loc.getX() - railPos.midX();
+            double mz = member.getEntity().loc.getZ() - railPos.midZ();
+            BlockFace quadrant = FaceUtil.getDirection(mx, mz, false);
             BlockFace movementDir = FaceUtil.getDirection(movement);
-            BlockFace[] possibleDirections = FaceUtil.getFaces(raildirection.getOppositeFace());
-            if (FaceUtil.isSubCardinal(movementDir)) {
-                direction = movementDir;
+            int movementDiff = FaceUtil.getFaceYawDifference(movementDir, quadrant);
+
+            boolean leaveCurve = false;
+            BlockFace targetFace = movementDir;
+            if (quadrant == this.ends[0] || quadrant == this.ends[1]) {
+                // In the same quadrant as one of the rail ends
+                targetFace = quadrant;
+                if (movementDiff <= 45) { // heading out of the curve
+                    leaveCurve = true;
+                } else if (movementDiff >= 135) { // heading into the curve
+                    leaveCurve = false;
+                } else if (quadrant == this.ends[0]) { // 90-degree rule in ends[0]
+                    leaveCurve = true;
+                    if (movementDir == this.ends[1]) {
+                        // heading towards ends[1]
+                        targetFace = this.ends[1];
+                    } else {
+                        // heading towards ends[0]
+                        targetFace = this.ends[0];
+                    }
+                    
+                } else if (quadrant == this.ends[1]) { // 90-degree rule in ends[1]
+                    leaveCurve = true;
+                    if (movementDir == this.ends[0]) {
+                        // heading towards ends[0]
+                        targetFace = this.ends[0];
+                    } else {
+                        // heading towards ends[1]
+                        targetFace = this.ends[1];
+                    }
+                }
+            } else if (movementDiff >= 135) {
+                // Movement is towards a rail end
+                targetFace = quadrant.getOppositeFace();
+                leaveCurve = true;
+            } else if (movementDiff <= 45) {
+                // Movement is inverse towards a rail end
+                targetFace = quadrant;
+                leaveCurve = false;
             } else {
-                // Evaluate ingoing/outgoing faces with direction
-                BlockFace directionTo;
-                if (possibleDirections[0] == movementDir) {
-                    // Move towards 0
-                    directionTo = possibleDirections[0];
-                } else if (possibleDirections[1] == movementDir) {
-                    // Move towards 1
-                    directionTo = possibleDirections[1];
-                } else if (possibleDirections[0].getOppositeFace() == movementDir) {
-                    // Move into 0, towards 1
-                    directionTo = possibleDirections[1];
-                } else if (possibleDirections[1].getOppositeFace() == movementDir) {
-                    // Move into 1, towards 0
-                    directionTo = possibleDirections[0];
-                } else {
-                    // Unknown, fallback
-                    directionTo = movementDir;
-                }
-                // Calculate the movement direction from the 'to' direction
-                direction = FaceUtil.getRailsCartDirection(raildirection);
-                if (!LogicUtil.contains(directionTo, FaceUtil.getFaces(direction))) {
-                    direction = direction.getOppositeFace();
-                }
+                // This 90-degree angle never appears to occur. So dunno.
+                targetFace = movementDir;
             }
+
+            direction = this.getCartDirection();
+            if (leaveCurve != LogicUtil.contains(targetFace, this.cartFaces)) {
+                direction = direction.getOppositeFace();
+            }
+
         } else {
             // Straight rail logic
             // Find the right direction by tracking two 180-degree hemispheres
@@ -170,12 +213,13 @@ public class RailLogicHorizontal extends RailLogic {
     @Override
     public void onPreMove(MinecartMember<?> member) {
         final CommonMinecart<?> entity = member.getEntity();
+
         // Apply velocity modifiers
         final boolean invert;
         if (this.curved) {
             // Invert only if heading towards the exit-direction of the curve
             BlockFace from = member.getDirectionTo();
-            invert = from == this.faces[0] || from == this.faces[1];
+            invert = (from == this.faces[0]) || (from == this.faces[1]);
         } else {
             // Invert only if the direction is inverted relative to cart velocity
             invert = (entity.vel.getX() * this.dx + entity.vel.getZ() * this.dz) < 0.0;
@@ -186,6 +230,5 @@ public class RailLogicHorizontal extends RailLogic {
         // Adjust position of Entity on rail
         IntVector3 railPos = member.getBlockPos();
         entity.loc.set(getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), railPos));
-        entity.loc.y.add((double) entity.getHeight() - 0.5);
     }
 }

@@ -6,9 +6,9 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.util.Vector;
 
 /**
  * Handles minecart movement on sloped rails
@@ -22,16 +22,14 @@ public class RailLogicSloped extends RailLogicHorizontal {
         }
     }
 
-    private final double dy, startY;
+    private final double step;
 
     protected RailLogicSloped(BlockFace direction) {
         super(direction);
         if (direction == BlockFace.SOUTH || direction == BlockFace.EAST) {
-            this.dy = 1.0;
-            this.startY = 0.0;
+            this.step = 1.0;
         } else {
-            this.dy = -1.0;
-            this.startY = 1.0;
+            this.step = -1.0;
         }
     }
 
@@ -53,44 +51,40 @@ public class RailLogicSloped extends RailLogicHorizontal {
     @Override
     public void onPostMove(MinecartMember<?> member) {
         final CommonMinecart<?> entity = member.getEntity();
-        // Adjust the Y-position of the Minecart on this slope and calculate velocity
-        int dx = member.getBlockPos().x - entity.loc.x.block();
-        int dz = member.getBlockPos().z - entity.loc.z.block();
-        if (dx == this.getDirection().getModX() && dz == this.getDirection().getModZ()) {
-            entity.loc.y.subtract(1.0);
-        }
 
+        // Retrieve the Y-position of the minecart before the movement update
         RailLogic logic = member.getRailTracker().getLastLogic();
         IntVector3 lastRailPos = new IntVector3(member.getRailTracker().getLastBlock());
+        double startY = logic.getFixedPosition(entity, entity.last, lastRailPos).getY();
 
-        // Get from and to rail-fixed positions
-        Vector startVector = logic.getFixedPosition(entity, entity.last, lastRailPos);
-        Vector endVector = getFixedPosition(entity, entity.loc, member.getBlockPos());
-
-        // Update fixed Y-position
-        entity.setPosition(entity.loc.getX(), endVector.getY(), entity.loc.getZ());
+        // Correct the Y-coordinate for the newly moved position
+        // This also makes sure we don't clip through the floor moving down a slope
+        double endY = getYPosition(entity.loc.getX(), entity.loc.getZ(), member.getBlockPos());
+        entity.setPosition(entity.loc.getX(), endY, entity.loc.getZ());
 
         // Apply velocity factors from going up/down the slope
         if (member.getGroup().getProperties().isSlowingDown()) {
             final double motLength = entity.vel.xz.length();
             if (motLength > 0) {
-                entity.vel.xz.multiply((startVector.getY() - endVector.getY()) * 0.05 / motLength + 1.0);
+                entity.vel.xz.multiply((startY - endY) * 0.05 / motLength + 1.0);
             }
         }
     }
 
     @Override
-    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
-        Vector pos = super.getFixedPosition(entity, x, y, z, railPos);
-        // Adjust the Y-position to match this rail
-        double stage = 0.0;
+    public double getYPosition(double posX, double posZ, IntVector3 railPos) {
+        double stage = 0.0; // stage on the minecart track, where 0.0 is exactly in the middle
         if (alongZ) {
-            stage = z - (double) railPos.z - 0.15;
+            stage = step * (posZ - (double) railPos.midZ());
         } else if (alongX) {
-            stage = x - (double) railPos.x - 0.15;
+            stage = step * (posX - (double) railPos.midX());
         }
-        pos.setY(railPos.midY() + startY + dy * stage);
-        return pos;
+
+        double dy = (stage + 0.65); // Count from middle of the block + 0.15 for some reason
+        if (dy < 0.0) dy = 0.0; // clamp at ground level; prevent clipping through
+
+        // Rail Y offset + slope Y factor
+        return super.getYPosition(posX, posZ, railPos) + dy;
     }
 
     @Override

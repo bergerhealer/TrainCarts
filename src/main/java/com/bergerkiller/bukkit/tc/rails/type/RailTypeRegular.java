@@ -10,6 +10,8 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -157,12 +159,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         return rails == null ? new BlockFace[0] : getPossibleDirections(rails.getDirection());
     }
 
-    @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
-        Rails rails = BlockUtil.getRails(railsBlock);
-        if (rails == null) {
-            return RailLogicGround.INSTANCE;
-        }
+    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails) {
         BlockFace direction = rails.getDirection();
 
         // Sloped logic
@@ -180,8 +177,33 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
+    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
+        Rails rails = BlockUtil.getRails(railsBlock);
+        if (rails == null) {
+            return RailLogicGround.INSTANCE;
+        }
+        return getLogicForRails(railsBlock, rails);
+    }
+
+    @Override
     public BlockFace getDirection(Block railsBlock) {
         Rails rails = BlockUtil.getRails(railsBlock);
         return rails == null ? BlockFace.SELF : rails.getDirection();
+    }
+
+    @Override
+    public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
+        Rails rails = BlockUtil.getRails(railsBlock);
+        BlockFace dir = FaceUtil.getRailsCartDirection(rails.getDirection());
+        Location result = super.getSpawnLocation(railsBlock, dir);
+        if (rails.isOnSlope()) {
+            // At a 45-degree angle
+            result.setPitch(-45.0F);
+        }
+
+        // Correct the Y-position
+        RailLogicHorizontal logic = getLogicForRails(railsBlock, rails);
+        result.setY(logic.getYPosition(result.getX(), result.getZ(), new IntVector3(railsBlock)));
+        return result;
     }
 }

@@ -33,6 +33,12 @@ public abstract class RailTypeHorizontal extends RailType {
         if (!super.onBlockCollision(member, railsBlock, hitBlock, hitFace)) {
             return false;
         }
+
+        // Ignore blocks that are one level below the tracks. This includes mostly fences.
+        if (hitBlock.getY() < railsBlock.getY()) {
+            return false;
+        }
+
         // Handle collision (ignore UP/DOWN, recalculate hitFace for this)
         Block posBlock = findMinecartPos(railsBlock);
         hitFace = FaceUtil.getDirection(hitBlock, posBlock, false);

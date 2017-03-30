@@ -352,7 +352,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void destroy() {
-        for (MinecartMember<?> mm : this) {
+        List<MinecartMember<?>> copy = new ArrayList<MinecartMember<?>>(this);
+        for (MinecartMember<?> mm : copy) {
             mm.getEntity().remove();
         }
         this.remove();
@@ -465,6 +466,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     private void teleportMember(MinecartMember<?> member, Location location) {
         member.ignoreDie.set();
+        if (member.isYawInverted()) {
+            location = location.clone();
+            location.setYaw(location.getYaw() + 180.0f);
+        }
         member.getEntity().teleport(location);
         member.ignoreDie.clear();
         member.getRailTracker().refreshBlock();
@@ -541,26 +546,28 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     public void updateDirection() {
         if (this.size() == 1) {
-            this.get(0).updateDirection();
+            this.get(0).updateDirectionSelf();
         } else if (this.size() > 1) {
-            // Update direction of individual carts
-            tail().updateDirectionTo(tail(1));
-            for (int i = size() - 2; i >= 0; i--) {
-                get(i).updateDirectionFrom(get(i + 1));
-            }
+            int reverseCtr = 0;
+            while (true) {
+                // Update direction of individual carts
+                head().updateDirectionFromBehind(head(1));
+                for (int i = 1; i < size(); i++) {
+                    head(i).updateDirectionFollow(head(i-1));
+                }
 
-            // Check whether the train has reversed
-            double fforce = 0;
-            for (MinecartMember<?> m : this) {
-                fforce += m.getForwardForce();
-            }
-            if (fforce < 0) {
-                Collections.reverse(this);
-
-                // Redo cart direction calculation with altered order
-                tail().updateDirectionTo(tail(1));
-                for (int i = size() - 2; i >= 0; i--) {
-                    get(i).updateDirectionFrom(get(i + 1));
+                // Handle train reversing (with maximum 2 attempts)
+                if (reverseCtr++ == 2) {
+                    break;
+                }
+                double fforce = 0;
+                for (MinecartMember<?> m : this) {
+                    fforce += m.getForwardForce();
+                }
+                if (fforce >= 0) {
+                    break;
+                } else {
+                    Collections.reverse(this);
                 }
             }
         }

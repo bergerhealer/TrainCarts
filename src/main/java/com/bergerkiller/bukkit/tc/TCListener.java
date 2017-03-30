@@ -1,10 +1,14 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -13,6 +17,8 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -25,6 +31,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.minecart.RideableMinecart;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -44,18 +51,21 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.material.Rails;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 public class TCListener implements Listener {
     private static final boolean DEBUG_DO_TRACKTEST = false;
+    private static final boolean DEBUG_DO_INVISIBLE_TRACK = false;
     private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
     private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
     public static Player lastPlayer = null;
     public static boolean cancelNextDrops = false;
-    public static boolean ignoreNextEject = false;
+    public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
@@ -147,46 +157,19 @@ public class TCListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onVehicleExit(VehicleExitEvent event) {
-        if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld()) || ignoreNextEject) {
-            return;
-        }
-        MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
-        if (mm == null) {
-            return;
-        }
-        Location mloc = mm.getEntity().getLocation();
-        mloc.setYaw(FaceUtil.faceToYaw(mm.getDirection()));
-        mloc.setPitch(0.0f);
-        final Location loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
-        final Entity e = event.getExited();
-        //teleport
-        CommonUtil.nextTick(new Runnable() {
-            public void run() {
-                if (e.isDead()) {
-                    return;
-                }
-                loc.setYaw(e.getLocation().getYaw());
-                loc.setPitch(e.getLocation().getPitch());
-                e.teleport(loc);
-            }
-        });
-        mm.resetCollisionEnter();
-        mm.onPropertiesChanged();
-    }
-
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityAdd(EntityAddEvent event) {
         if (!MinecartMemberStore.canConvert(event.getEntity())) {
             return;
         }
+
         // If placed by a player, only allow conversion for players that have the permissions
         if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId())
                 && !TrainCarts.allMinecartsAreTrainCarts && lastPlayer == null) {
             // No conversion allowed
             return;
         }
+
         MinecartMember<?> member = MinecartMemberStore.convert((Minecart) event.getEntity());
         if (member != null && !member.isUnloaded() && lastPlayer != null) {
             // A player just placed a minecart - set defaults and ownership
@@ -235,24 +218,78 @@ public class TCListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleEnter(VehicleEnterEvent event) {
         MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
-        if (member != null && member.isInteractable()) {
-            CartProperties prop = member.getProperties();
-
-            if (event.getEntered() instanceof Player) {
-                Player player = (Player) event.getEntered();
-                if (prop.getPlayersEnter() && (prop.isPublic() || prop.hasOwnership(player))) {
-                    prop.showEnterMessage(player);
-                } else {
-                    event.setCancelled(true);
-                }
-            } else {
-                CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
-                if (x != CollisionMode.ENTER) {
-                    event.setCancelled(true);
-                }
-            }
-            member.onPropertiesChanged();
+        if (member == null) {
+            return;
         }
+        if (!member.isInteractable()) {
+            event.setCancelled(true);
+            return;
+        }
+
+        CartProperties prop = member.getProperties();
+
+        if (event.getEntered() instanceof Player) {
+            Player player = (Player) event.getEntered();
+            if (prop.getPlayersEnter() && (prop.isPublic() || prop.hasOwnership(player))) {
+                prop.showEnterMessage(player);
+            } else {
+                event.setCancelled(true);
+            }
+        } else {
+            CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
+            if (x != CollisionMode.ENTER) {
+                event.setCancelled(true);
+            }
+        }
+        member.onPropertiesChanged();
+    }
+
+    /*
+     * Bukkit now sends a VehicleExitEvent after a cancelled VehicleEnterEvent event.
+     * To prevent the player teleporting into the Minecart, make him exempt here.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+    public void onVehicleEnterCheck(VehicleEnterEvent event) {
+        if (event.isCancelled()) {
+            final Entity entered = event.getEntered();
+            exemptFromEjectOffset.add(entered);
+            CommonUtil.nextTick(new Runnable() {
+                @Override
+                public void run() {
+                    exemptFromEjectOffset.remove(entered);
+                }
+            });
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onVehicleExit(VehicleExitEvent event) {
+        if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld()) || exemptFromEjectOffset.contains(event.getExited())) {
+            return;
+        }
+        MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+        if (mm == null) {
+            return;
+        }
+
+        Location mloc = mm.getEntity().getLocation();
+        mloc.setYaw(FaceUtil.faceToYaw(mm.getDirection()));
+        mloc.setPitch(0.0f);
+        final Location loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
+        final Entity e = event.getExited();
+        //teleport
+        CommonUtil.nextTick(new Runnable() {
+            public void run() {
+                if (e.isDead() || e.getVehicle() != null) {
+                    return;
+                }
+                loc.setYaw(e.getLocation().getYaw());
+                loc.setPitch(e.getLocation().getPitch());
+                e.teleport(loc);
+            }
+        });
+        mm.resetCollisionEnter();
+        mm.onPropertiesChanged();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -317,6 +354,43 @@ public class TCListener implements Listener {
                 }
             }
 
+            System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
+
+            Material m = (event.getItem() == null) ? Material.AIR : event.getItem().getType();
+
+            // Track map debugging logic
+            if (DEBUG_DO_TRACKTEST && m == Material.FEATHER) {
+                TrackMap map = new TrackMap(clickedBlock, FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
+                while (map.hasNext()) {
+                    map.next();
+                }
+                byte data = 0;
+                for (Block block : map) {
+                    BlockUtil.setTypeAndRawData(block, Material.WOOL, data, false);
+                    data++;
+                    if (data == 16) {
+                        data = 0;
+                    }
+                }
+                return;
+            }
+
+            // Temporarily makes all connected tracks invisible
+            if (DEBUG_DO_INVISIBLE_TRACK && m == Material.BREAD) {
+                TrackMap map = new TrackMap(clickedBlock, FaceUtil.yawToFace(event.getPlayer().getLocation().getYaw() - 90, false));
+                while (map.hasNext()) {
+                    map.next();
+                }
+                for (Block block : map) {
+                    System.out.println("INVISIBLE: " + block);
+                    CommonPacket packet = PacketType.OUT_BLOCK_CHANGE.newInstance();
+                    packet.write(PacketType.OUT_BLOCK_CHANGE.position, new IntVector3(block));
+                    packet.write(PacketType.OUT_BLOCK_CHANGE.blockData, BlockInfo.get(Material.AIR).getIBlockData());
+                    PacketUtil.sendPacket(event.getPlayer(), packet);
+                }
+                return;
+            }
+            
             // Keep track of when a player interacts to detect spamming
             long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE);
             long time = System.currentTimeMillis();
@@ -411,29 +485,10 @@ public class TCListener implements Listener {
             return false;
         }
 
-        // Track map debugging logic
-        if (DEBUG_DO_TRACKTEST) {
-            // Track map test
-            TrackMap map = new TrackMap(clickedBlock, FaceUtil.yawToFace(player.getLocation().getYaw() - 90, false));
-            while (map.hasNext()) {
-                map.next();
-            }
-            byte data = 0;
-            for (Block block : map) {
-                BlockUtil.setTypeAndRawData(block, Material.WOOL, data, false);
-                data++;
-                if (data == 16) {
-                    data = 0;
-                }
-            }
-            return false;
-        }
-
-        Location at = clickedBlock.getLocation().add(0.5, 0.5, 0.5);
-
-        // No minecart blocking it?
-        if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
-            return false;
+        // Check if clicking a rail
+        RailType clickedRailType = RailType.getType(clickedBlock);
+        if (clickedRailType == RailType.NONE){
+            return true; // nothing happening; not a rail
         }
 
         // IS the placement of a TrainCart allowed?
@@ -441,24 +496,38 @@ public class TCListener implements Listener {
             return true;
         }
 
+        BlockFace orientation = FaceUtil.yawToFace(player.getLocation().getYaw() - 90, false);
+        Location at = clickedRailType.getSpawnLocation(clickedBlock, orientation);
+
+        // No minecart blocking it?
+        if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
+            return false;
+        }
+
+        // Set ownership and convert during the upcoming minecart spawning (entity add) event
+        lastPlayer = player;
+
+        //TODO: Check if this rail type is a 'normal' type to see if we need to handle spawning minecarts ourselves
+        //if (clickedRailType ==
+
+        if (clickedRailType instanceof RailTypeRegular) {
+            return true;
+        }
+
+        MinecartMemberStore.spawnBy(at, player);
+        return false;
+
+        /*
+        
         // Place logic for special rail types
         if (MaterialUtil.ISPRESSUREPLATE.get(railType)) {
-            BlockFace dir = Util.getPlateDirection(clickedBlock);
-            if (dir == BlockFace.SELF) {
-                dir = FaceUtil.yawToFace(player.getLocation().getYaw() - 90, false);
-            }
-            at.setYaw(FaceUtil.faceToYaw(dir));
-            MinecartMemberStore.spawnBy(at, player);
         } else if (Util.ISVERTRAIL.get(railType)) {
-            BlockFace dir = Util.getVerticalRailDirection(clickedBlock);
-            at.setYaw(FaceUtil.faceToYaw(dir));
-            at.setPitch(-90.0f);
-            MinecartMemberStore.spawnBy(at, player);
         } else {
             // Set ownership and convert during the upcoming minecart spawning (entity add) event
             lastPlayer = player;
         }
         return true;
+        */
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -474,8 +543,11 @@ public class TCListener implements Listener {
             event.setCancelled(true);
             return;
         }
+
         // Handle the vehicle change
-        event.setCancelled(!TrainCarts.handlePlayerVehicleChange(event.getPlayer(), event.getRightClicked()));
+        if (event.getRightClicked() instanceof RideableMinecart) {
+            event.setCancelled(!TrainCarts.handlePlayerVehicleChange(event.getPlayer(), event.getRightClicked()));
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -562,12 +634,13 @@ public class TCListener implements Listener {
             // Properly give the sign back to the player that placed it
             // If this is impossible for whatever reason, just drop it
             if (!Util.canInstantlyBuild(event.getPlayer())) {
-                ItemStack item = event.getPlayer().getItemInHand();
+                PlayerInventory inventory = event.getPlayer().getInventory();
+                ItemStack item = inventory.getItemInMainHand();
                 if (LogicUtil.nullOrEmpty(item)) {
-                    event.getPlayer().setItemInHand(new ItemStack(Material.SIGN, 1));
+                    inventory.setItemInMainHand(new ItemStack(Material.SIGN, 1));
                 } else if (MaterialUtil.isType(item, Material.SIGN) && item.getAmount() < ItemUtil.getMaxSize(item)) {
                     ItemUtil.addAmount(item, 1);
-                    event.getPlayer().setItemInHand(item);
+                    inventory.setItemInMainHand(item);
                 } else {
                     // Drop the item
                     Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);

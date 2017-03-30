@@ -48,6 +48,7 @@ public class Permission extends PermissionEnum {
     public static final Permission SPAWNER_STORAGE = new Permission("train.spawner.storage", PermissionDefault.TRUE, "The player can build spawners which create minecarts with chests");
     public static final Permission SPAWNER_TNT = new Permission("train.spawner.tnt", PermissionDefault.TRUE, "The player can build spawners which create minecarts with TNT");
     public static final Permission SPAWNER_HOPPER = new Permission("train.spawner.hopper", PermissionDefault.TRUE, "The player can build spawners which create minecarts with hoppers");
+    public static final Permission SPAWNER_COMMAND = new Permission("train.spawner.command", PermissionDefault.FALSE, "The player can build spawners which create minecarts with command blocks");
     public static final Permission SPAWNER_SPAWNER = new Permission("train.spawner.spawner", PermissionDefault.TRUE, "The player can build spawners which create minecarts with spawners");
     public static final Permission BUILD_TRIGGER = new Permission("train.build.trigger", PermissionDefault.OP, "The player can build train triggers");
     public static final Permission BUILD_DESTINATION = new Permission("train.build.destination", PermissionDefault.OP, "The player can build destinations");

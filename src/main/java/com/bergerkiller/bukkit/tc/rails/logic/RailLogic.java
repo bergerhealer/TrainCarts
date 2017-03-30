@@ -15,9 +15,11 @@ import org.bukkit.util.Vector;
 public abstract class RailLogic {
     protected final boolean alongZ, alongX, alongY, curved;
     private final BlockFace horizontalDir;
+    private final BlockFace horizontalCartDir;
 
     public RailLogic(BlockFace horizontalDirection) {
         this.horizontalDir = horizontalDirection;
+        this.horizontalCartDir = FaceUtil.getRailsCartDirection(horizontalDirection);
         this.alongX = FaceUtil.isAlongX(horizontalDirection);
         this.alongZ = FaceUtil.isAlongZ(horizontalDirection);
         this.alongY = FaceUtil.isAlongY(horizontalDirection);
@@ -31,6 +33,15 @@ public abstract class RailLogic {
      */
     public BlockFace getDirection() {
         return this.horizontalDir;
+    }
+
+    /**
+     * Gets the motion vector along which minecarts move according to this RailLogic
+     * 
+     * @return motion vector
+     */
+    public BlockFace getCartDirection() {
+        return this.horizontalCartDir;
     }
 
     /**
@@ -98,7 +109,7 @@ public abstract class RailLogic {
     }
 
     /**
-     * Obtains the direction to which a Minecart is moving on this type of Rail Logic
+     * Obtains the direction to which a Minecart is moving on this type of Rail Logic.
      *
      * @param member   that is moving
      * @param movement that is preferred

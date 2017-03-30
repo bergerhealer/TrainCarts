@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -106,5 +108,13 @@ public class RailTypeVertical extends RailType {
     @Override
     public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
         return RailLogicVertical.get(Util.getVerticalRailDirection(railsBlock));
+    }
+
+    @Override
+    public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
+        BlockFace dir = Util.getVerticalRailDirection(railsBlock);
+        Location result = super.getSpawnLocation(railsBlock, dir);
+        result.setPitch(-90.0f);
+        return result;
     }
 }

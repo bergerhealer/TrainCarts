@@ -1,11 +1,14 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -51,6 +54,28 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     @Override
     public void onPostMove(MinecartMember<?> member) {
         super.onPostMove(member);
-        member.getEntity().loc.y.add(0.17);
+        member.getEntity().loc.y.add(0.1);
+    }
+
+    @Override
+    public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
+        BlockFace dir = Util.getPlateDirection(railsBlock);
+        if (dir == BlockFace.SELF) {
+            dir = orientation;
+        }
+
+        // Get position on rails and adjust the y-coordinate based on horizontal rail logic
+        Location result = super.getSpawnLocation(railsBlock, dir);
+        RailLogicHorizontal logic = RailLogicHorizontal.get(dir);
+        result.setY(logic.getYPosition(result.getX(), result.getZ(), new IntVector3(railsBlock)));
+
+        // Correct the yaw of the minecart
+        if (FaceUtil.isAlongX(dir)) {
+            result.setYaw(0.0F);
+        } else if (FaceUtil.isAlongZ(dir)) {
+            result.setYaw(-90.0F);
+        }
+
+        return result;
     }
 }

@@ -2,10 +2,13 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -264,5 +267,21 @@ public abstract class RailType {
      */
     public boolean onBlockCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock, BlockFace hitFace) {
         return true;
+    }
+
+    /**
+     * Gets the initial location of a minecart when placed on this Rail Type.
+     * By default spawns the Minecart on top of the block, facing the orientation
+     * 
+     * @param railsBlock to spawn on
+     * @param orientation horizontal orientation of the one that placed the minecart
+     * @return spawn location
+     */
+    public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
+        Location at = railsBlock.getLocation();
+        at.add(0.5, 0.0, 0.5);
+        at.setYaw(FaceUtil.faceToYaw(orientation));
+        at.setPitch(0.0F);
+        return at;
     }
 }
