@@ -33,6 +33,18 @@ public class TrainCommands {
     public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
         if (cmd.equals("info") || cmd.equals("i")) {
             info(p, prop);
+        } else if (cmd.equals("playerenter")) {
+            if (args.length == 1) {
+                Permission.COMMAND_PLAYERENTER.handle(p);
+                prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
+            }
+            p.sendMessage(ChatColor.YELLOW + "Players can enter this train: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
+        } else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
+            if (args.length == 1) {
+                Permission.COMMAND_PLAYEREXIT.handle(p);
+                prop.setPlayersExit(ParseUtil.parseBool(args[0]));
+            }
+            p.sendMessage(ChatColor.YELLOW + "Players can exit this train: " + ChatColor.WHITE + " " + prop.getPlayersExit());
         } else if (cmd.equals("sound") || cmd.equals("soundenabled")) {
             if (args.length == 1) {
                 Permission.COMMAND_SOUND.handle(p);

@@ -165,6 +165,61 @@ public class GlobalCommands {
             }
             list((Player) sender, "");
             return true;
+        } else if (args[0].equals("tick")) {
+            boolean disableTicks = false;
+            boolean enableTicks = false;
+            for (int i = 1; i <  args.length; i++) {
+                String arg = args[i];
+                if (arg.equals("disable") || arg.equals("stop")) {
+                    disableTicks = true;
+                } else if (arg.equals("enable") || arg.equals("start") || arg.equals("resume")) {
+                    enableTicks = true;
+                }
+            }
+
+            if (disableTicks) {
+                TrainCarts.tickUpdateDivider = Integer.MAX_VALUE;
+                sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
+                return true;
+            }
+            if (enableTicks) {
+                TrainCarts.tickUpdateDivider = 1;
+                sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
+                return true;
+            }
+
+            if (args.length >= 2 && args[1].equals("div")) {
+                // Set a tick divider value
+                if (args.length == 3) {
+                    try {
+                        TrainCarts.tickUpdateDivider = Integer.parseInt(args[2]);
+                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TrainCarts.tickUpdateDivider);
+                    } catch (NumberFormatException ex) {
+                        TrainCarts.tickUpdateDivider = 1;
+                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been reset to the default");
+                    }
+                } else {
+                    if (TrainCarts.tickUpdateDivider == Integer.MAX_VALUE) {
+                        sender.sendMessage(ChatColor.YELLOW + "Automatic train tick updates are globally disabled");
+                    } else {
+                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + TrainCarts.tickUpdateDivider);
+                    }
+                }
+            } else {
+                TrainCarts.tickUpdateNow = 1;
+                try {
+                    if (args.length >= 2) {
+                        TrainCarts.tickUpdateNow = Integer.parseInt(args[1]);
+                    }
+                } catch (NumberFormatException ex) {}
+
+                if (TrainCarts.tickUpdateNow <= 1) {
+                    sender.sendMessage(ChatColor.GREEN + "Trains ticked once");
+                } else {
+                    sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TrainCarts.tickUpdateNow + " times");
+                }
+            }
+            return true;
         }
         return false;
     }

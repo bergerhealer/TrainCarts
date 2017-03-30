@@ -83,6 +83,8 @@ public class TrainCarts extends PluginBase {
     public static boolean MinecartManiaEnabled = false;
     public static boolean MyWorldsEnabled = false;
     public static boolean parseOldSigns;
+    public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
+    public static int tickUpdateNow = 0; // forces update ticks
     public static TrainCarts plugin;
     private static String currencyFormat;
     private static Task fixGroupTickTask;
@@ -160,6 +162,11 @@ public class TrainCarts extends PluginBase {
             // Allow exiting the current minecart
             MinecartMember<?> entered = MinecartMemberStore.get(player.getVehicle());
             if (entered != null && !entered.getProperties().getPlayersExit()) {
+                return false;
+            }
+
+            // Allow entering the new minecart
+            if (newMinecart != null && !newMinecart.getProperties().getPlayersEnter()) {
                 return false;
             }
         } catch (Throwable t) {
@@ -539,8 +546,17 @@ public class TrainCarts extends PluginBase {
 
         // Hackish fix the chunk persistence failing
         fixGroupTickTask = new Task(this) {
+            int ctr = 0;
+
             public void run() {
-                MinecartGroupStore.doFixedTick();
+                if (++ctr >= tickUpdateDivider) {
+                    ctr = 0;
+                    tickUpdateNow++;
+                }
+                if (tickUpdateNow > 0) {
+                    tickUpdateNow--;
+                    MinecartGroupStore.doFixedTick(tickUpdateDivider != 1);
+                }
             }
         }.start(1, 1);
 

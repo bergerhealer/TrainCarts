@@ -722,11 +722,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (updateCollisionProperties(key, CollisionMode.parse(arg), null, "collision")) {
             return true;
         } else if (key.equals("playercollision")) {
-            this.playerCollision = CollisionMode.parse(arg);
+            CollisionMode mode = CollisionMode.parse(arg);
+            if (mode == null) return false;
+            this.playerCollision = mode;
         } else if (key.equals("misccollision")) {
-            this.miscCollision = CollisionMode.parse(arg);
+            CollisionMode mode = CollisionMode.parse(arg);
+            if (mode == null) return false;
+            this.miscCollision = mode;
         } else if (key.equals("traincollision")) {
-            this.trainCollision = CollisionMode.parse(arg);
+            CollisionMode mode = CollisionMode.parse(arg);
+            if (mode == null) return false;
+            this.trainCollision = mode;
         } else if (key.equals("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(CollisionMode.parse(arg).toString()));
         } else if (LogicUtil.contains(key, "collision", "collide")) {
@@ -824,6 +830,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public boolean updateCollisionProperties(String mobType, CollisionMode mode) {
+        if (mode == null) {
+            return false;
+        }
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
                 collisionModes.put(collisionConfigObject, mode);

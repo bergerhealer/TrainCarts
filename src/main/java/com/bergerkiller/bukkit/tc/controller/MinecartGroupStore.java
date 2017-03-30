@@ -21,13 +21,15 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     /**
      * Called onPhysics for all Minecart Groups who didn't get ticked in the previous run
      * This is a sort of hack against the bugged issues on some server implementations
+     * 
+     * @param disableMinecartTick whether to disable tick updates done by minecarts themselves
      */
-    public static void doFixedTick() {
+    public static void doFixedTick(boolean disableMinecartTick) {
         groupTickBuffer.clear();
         groupTickBuffer.addAll(groups);
         try {
             for (MinecartGroup group : groupTickBuffer) {
-                if (!group.ticked.clear()) {
+                if (disableMinecartTick || !group.ticked.clear()) {
                     // Ticked was False, tick it now
                     group.doPhysics();
                     // Update the positions of the entities in the world(s)
