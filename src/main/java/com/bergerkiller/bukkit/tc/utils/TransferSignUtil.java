@@ -15,6 +15,7 @@ import org.bukkit.block.*;
 import org.bukkit.inventory.*;
 
 import java.util.*;
+import java.util.Comparator;
 
 /**
  * Utilities for dealing with item transfers between different containers

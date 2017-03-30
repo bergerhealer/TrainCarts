@@ -151,7 +151,7 @@ public class OfflineGroupManager {
         }
         int count = 0;
         // Remove groups
-        for (MinecartGroup g : MinecartGroup.getGroups()) {
+        for (MinecartGroup g : MinecartGroup.getGroups().clone()) {
             if (g.getWorld() == world) {
                 if (!g.isEmpty()) {
                     count++;
@@ -201,13 +201,13 @@ public class OfflineGroupManager {
     }
 
     private static void destroyMinecarts(World world) {
-        for (Entity e : WorldUtil.getEntities(world)) {
+        for (Entity e : world.getEntities()) {
             if (e instanceof Minecart) {
                 e.remove();
             }
         }
         for (Chunk chunk : WorldUtil.getChunks(world)) {
-            for (Entity e : WorldUtil.getEntities(chunk)) {
+            for (Entity e : chunk.getEntities()) {
                 if (e instanceof Minecart) {
                     e.remove();
                 }

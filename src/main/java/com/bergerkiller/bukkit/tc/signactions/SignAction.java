@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.Logging;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -180,6 +181,7 @@ public abstract class SignAction {
             } else {
                 facing = info.isFacing();
             }
+
             SignAction action = getSignAction(info);
             if (action != null && (facing || action.overrideFacing())) {
                 try {

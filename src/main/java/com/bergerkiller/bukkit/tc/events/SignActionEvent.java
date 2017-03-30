@@ -722,6 +722,23 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     @Override
+    public String toString() {
+        String text = "{ block=[" + signblock.getX() + "," + signblock.getY() + "," + signblock.getZ() + "]";
+        if (this.sign == null) {
+            text += " }";
+        } else {
+            text += ", lines=";
+            String[] lines = this.getLines();
+            for (int i = 0; i < lines.length; i++) {
+                if (i > 0 && lines[i].length() > 0) text += " ";
+                text += lines[i];
+            }
+            text += " }";
+        }
+        return text;
+    }
+
+    @Override
     public boolean isCancelled() {
         return this.cancelled;
     }

@@ -25,7 +25,7 @@ public class StatementPlayerHand extends StatementItems {
     public Inventory getInventory(MinecartMember<?> member) {
         ItemStack item = null;
         if (member.getEntity().hasPlayerPassenger()) {
-            item = member.getPlayerInventory().getItemInHand();
+            item = member.getPlayerInventory().getItemInMainHand();
         }
         if (LogicUtil.nullOrEmpty(item)) {
             return new InventoryBaseImpl(new org.bukkit.inventory.ItemStack[0]);
@@ -39,7 +39,7 @@ public class StatementPlayerHand extends StatementItems {
         ArrayList<org.bukkit.inventory.ItemStack> items = new ArrayList<>();
         for (MinecartMember<?> member : group) {
             if (member.getEntity().hasPlayerPassenger()) {
-                ItemStack item = member.getPlayerInventory().getItemInHand();
+                ItemStack item = member.getPlayerInventory().getItemInMainHand();
                 if (!LogicUtil.nullOrEmpty(item)) {
                     items.add(item);
                 }

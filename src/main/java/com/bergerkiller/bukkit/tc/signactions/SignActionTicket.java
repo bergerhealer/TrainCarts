@@ -7,9 +7,11 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+/*
 import com.earth2me.essentials.register.payment.Method;
 import com.earth2me.essentials.register.payment.Method.MethodAccount;
 import com.earth2me.essentials.register.payment.Methods;
+*/
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -30,6 +32,8 @@ public class SignActionTicket extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
+        throw new RuntimeException("BROKEN");
+        /*
         final boolean isTrain;
         if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
             isTrain = false;
@@ -83,6 +87,7 @@ public class SignActionTicket extends SignAction {
                 }
             }
         }
+        */
     }
 
     @Override

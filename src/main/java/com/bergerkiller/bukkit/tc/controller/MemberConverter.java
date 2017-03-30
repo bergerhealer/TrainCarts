@@ -1,17 +1,19 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.controller.EntityController;
-import com.bergerkiller.bukkit.common.conversion.CastingConverter;
 import com.bergerkiller.bukkit.common.conversion.Converter;
-import com.bergerkiller.bukkit.common.conversion.ConverterPair;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import org.bukkit.entity.Minecart;
 
 import java.util.UUID;
 
-public class MemberConverter implements Converter<MinecartMember<?>> {
+public class MemberConverter extends Converter<MinecartMember<?>> {
     public static final MemberConverter toMember = new MemberConverter();
+
+    public MemberConverter() {
+        super(MinecartMember.class);
+    }
 
     @Override
     public MinecartMember<?> convert(Object value, MinecartMember<?> def) {
@@ -42,17 +44,6 @@ public class MemberConverter implements Converter<MinecartMember<?>> {
     }
 
     @Override
-    public final MinecartMember<?> convert(Object value) {
-        return convert(value, null);
-    }
-
-    @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public Class getOutputType() {
-        return MinecartMember.class;
-    }
-
-    @Override
     public boolean isCastingSupported() {
         return true;
     }
@@ -62,13 +53,4 @@ public class MemberConverter implements Converter<MinecartMember<?>> {
         return true;
     }
 
-    @Override
-    public <K> ConverterPair<MinecartMember<?>, K> formPair(Converter<K> converterB) {
-        return new ConverterPair<>(this, converterB);
-    }
-
-    @Override
-    public <K> Converter<K> cast(Class<K> type) {
-        return new CastingConverter<>(type, this);
-    }
 }

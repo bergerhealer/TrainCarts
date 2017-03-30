@@ -144,6 +144,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                     controller.syncLocationAbsolute();
                     controller.syncVelocity();
                     controller.syncMetaData();
+                    controller.syncPassengers();
                     controller.getEntity().setPositionChanged(false);
                 }
             } else {
@@ -152,7 +153,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 if (!needsSync) {
                     for (i = 0; i < count; i++) {
                         MinecartMemberNetwork controller = networkControllers[i];
-                        if (controller.getEntity().isPositionChanged()) {
+                        if (controller.getEntity().isPositionChanged() || controller.getEntity().getDataWatcher().isChanged() || controller.isPassengersChanged()) {
                             needsSync = true;
                             break;
                         }
@@ -165,8 +166,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                     // Check whether changes are needed
                     for (i = 0; i < count; i++) {
                         MinecartMemberNetwork controller = networkControllers[i];
-                        moved |= controller.isPositionChanged(MIN_RELATIVE_CHANGE);
-                        rotated |= controller.isRotationChanged(MIN_RELATIVE_CHANGE);
+                        moved |= controller.isPositionChanged(MIN_RELATIVE_POS_CHANGE);
+                        rotated |= controller.isRotationChanged(MIN_RELATIVE_ROT_CHANGE);
                     }
 
                     // Perform actual updates
@@ -183,9 +184,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated) {
         // Read live location
-        int posX = locLive.getX();
-        int posY = locLive.getY();
-        int posZ = locLive.getZ();
+        long posX = locLive.getX();
+        long posY = locLive.getY();
+        long posZ = locLive.getZ();
         int rotYaw = locLive.getYaw();
         int rotPitch = locLive.getPitch();
 
@@ -221,5 +222,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Synchronize meta data
         syncMetaData();
+
+        // Passengers
+        syncPassengers();
     }
 }

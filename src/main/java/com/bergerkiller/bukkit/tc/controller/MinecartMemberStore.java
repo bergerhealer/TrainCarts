@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.entity.CommonEntityType;
 import com.bergerkiller.bukkit.common.entity.type.*;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -20,6 +21,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,7 @@ public abstract class MinecartMemberStore {
         controllers.put(CommonMinecartHopper.class, MinecartMemberHopper.class);
         controllers.put(CommonMinecartTNT.class, MinecartMemberTNT.class);
         controllers.put(CommonMinecartMobSpawner.class, MinecartMemberMobSpawner.class);
+        controllers.put(CommonMinecartCommandBlock.class, MinecartMemberCommandBlock.class);
     }
 
     /**
@@ -113,7 +116,7 @@ public abstract class MinecartMemberStore {
 
         // Set controllers and done
         entity.setController(newController);
-        entity.setNetworkController(createNetworkController(entity));
+        entity.setNetworkController(createNetworkController());
 
         // Unloaded?
         newController.updateUnloaded();
@@ -125,10 +128,9 @@ public abstract class MinecartMemberStore {
      * Creates a suitable Minecart Member Network controller for an Entity.
      * Network settings are used to select the right one.
      *
-     * @param entity to create a network controller for
      * @return new Network Controller
      */
-    public static EntityNetworkController<?> createNetworkController(CommonEntity<?> entity) {
+    public static EntityNetworkController<?> createNetworkController() {
         if (TrainCarts.useNetworkSynchronizer) {
             return new MinecartMemberNetwork();
         } else {
@@ -136,6 +138,27 @@ public abstract class MinecartMemberStore {
         }
     }
 
+    /**
+     * Creates a suitable Minecart Member controller for an Entity
+     *
+     * @param entityType of the controller to create
+     * @return new MinecartMember instance suitable for the type of Entity, or null if none found
+     */
+    public static MinecartMember<?> createController(EntityType entityType) {
+        try {
+            Class<?> commonType = CommonEntityType.byEntityType(entityType).commonType.getType();
+            Class<?> controllerClass = controllers.get(commonType);
+
+            if (controllerClass != null) {
+                return (MinecartMember<?>) controllerClass.newInstance();
+            }
+            return null;
+        } catch (Throwable t) {
+            TrainCarts.plugin.handle(t);
+            return null;
+        }
+    }
+    
     /**
      * Creates a suitable Minecart Member controller for an Entity
      *
@@ -163,7 +186,8 @@ public abstract class MinecartMemberStore {
      * @return the spawned Minecart Member, or null if it failed
      */
     public static MinecartMember<?> spawnBy(Location at, Player player) {
-        ItemStack item = player.getItemInHand();
+        PlayerInventory inventory = player.getInventory();
+        ItemStack item = inventory.getItemInMainHand();
         if (LogicUtil.nullOrEmpty(item)) {
             return null;
         }
@@ -176,9 +200,9 @@ public abstract class MinecartMemberStore {
         if (player.getGameMode() != GameMode.CREATIVE) {
             ItemUtil.subtractAmount(item, 1);
             if (LogicUtil.nullOrEmpty(item)) {
-                player.setItemInHand(null);
+                inventory.setItemInMainHand(null);
             } else {
-                player.setItemInHand(item);
+                inventory.setItemInMainHand(item);
             }
         }
 
@@ -191,15 +215,14 @@ public abstract class MinecartMemberStore {
     }
 
     public static MinecartMember<?> spawn(Location at, EntityType type) {
-        CommonEntity<?> entity = CommonEntity.create(type);
-        MinecartMember<?> controller = createController(entity);
+        MinecartMember<?> controller = createController(type);
         if (controller == null) {
             throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
         }
-        entity.setController(controller);
-        entity.spawn(at, createNetworkController(entity));
+        EntityNetworkController<?> networkController = createNetworkController();
+        CommonEntity.spawn(type, at, controller, networkController);
         controller.invalidateDirection();
-        controller.updateDirection(FaceUtil.yawToFace(at.getYaw()));
+        controller.setDirection(FaceUtil.yawToFace(at.getYaw()));
         return MemberSpawnEvent.call(controller).getMember();
     }
 

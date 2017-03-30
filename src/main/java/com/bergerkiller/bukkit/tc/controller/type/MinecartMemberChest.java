@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberInventory;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
@@ -21,7 +20,6 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
     @Override
     public void onAttached() {
         super.onAttached();
-        entity.setInventoryController(new MinecartMemberInventory());
     }
 
     public boolean hasItem(ItemParser item) {
@@ -99,5 +97,12 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
                 }
             }
         }
+    }
+
+    @Override
+    public void onItemSet(int index, ItemStack item) {
+        super.onItemSet(index, item);
+        // Mark the Entity as changed
+        onPropertiesChanged();
     }
 }

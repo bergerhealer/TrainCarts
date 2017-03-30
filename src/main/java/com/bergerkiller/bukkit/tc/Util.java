@@ -1,15 +1,8 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.avaje.ebeaninternal.server.deploy.BeanDescriptor.EntityType;
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
-import com.bergerkiller.bukkit.common.reflection.MethodAccessor;
-import com.bergerkiller.bukkit.common.reflection.SafeField;
-import com.bergerkiller.bukkit.common.reflection.SafeMethod;
-import com.bergerkiller.bukkit.common.reflection.classes.BlockRef;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
@@ -17,6 +10,12 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.reflection.FieldAccessor;
+import com.bergerkiller.reflection.MethodAccessor;
+import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
+import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
+import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -37,9 +36,9 @@ public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
-    private static final FieldAccessor<Object> blockMaterial = BlockRef.TEMPLATE.getField("material");
-    private static final MethodAccessor<Boolean> materialBuildable = new SafeMethod<Boolean>(Common.NMS_ROOT + ".Material.isBuildable");
-    private static final FieldAccessor<Integer> itemMaxSizeField = new SafeField<Integer>(CommonUtil.getNMSClass("Item"), "maxStackSize");
+    private static final FieldAccessor<Object> blockMaterial = NMSBlock.material;
+    private static final MethodAccessor<Boolean> materialBuildable = NMSMaterial.materialBuildable;
+    private static final FieldAccessor<Integer> itemMaxSizeField = NMSItem.maxStackSize;
     private static BlockFace[] possibleFaces = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
     private static List<Block> blockbuff = new ArrayList<Block>();
 
@@ -545,7 +544,7 @@ public class Util {
 
     public static boolean isValidEntity(String entityName) {
         try {
-            return EntityType.valueOf(entityName) != null;
+            return org.bukkit.entity.EntityType.valueOf(entityName) != null;
         } catch (Exception ex) {
             return false;
         }
