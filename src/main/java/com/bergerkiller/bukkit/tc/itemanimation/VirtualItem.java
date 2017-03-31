@@ -17,16 +17,13 @@ public class VirtualItem {
     private final ItemStack itemStack;
 
     public VirtualItem(Location location, ItemStack itemstack) {
-        throw new RuntimeException("BROKEN!");
-        //item = (CommonItem) CommonEntity.spawn(entityType, location, controller, networkController).create(EntityType.DROPPED_ITEM);
-       /*
+        item = (CommonItem) CommonEntity.create(EntityType.DROPPED_ITEM, location);
         item.last.set(this.item.loc.set(location));
         item.vel.y.add(0.1);
         item.setItemStack(itemstack);
         itemStack = itemstack;
         refresh();
         item.setNetworkController(new DefaultEntityNetworkController());
-        */
     }
 
     public void update(Vector dir) {

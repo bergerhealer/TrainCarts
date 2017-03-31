@@ -56,6 +56,7 @@ public class ItemAnimation {
                 }
             }
         }
+
         runningAnimations.add(new ItemAnimation(from, to, data));
         // Start the updating task if needed
         if (task == null) {
