@@ -68,18 +68,6 @@ public class RailLogicHorizontal extends RailLogic {
         return values[FaceUtil.faceToNotch(direction)];
     }
 
-    /**
-     * Gets the Y-position of a minecart on this rail
-     * 
-     * @param posX x-coordinate of the minecart
-     * @param posZ z-coordinate of the minecart
-     * @param railPos block position of the rails
-     * @return y-position
-     */
-    public double getYPosition(double posX, double posZ, IntVector3 railPos) {
-        return (double) railPos.y + 0.063;
-    }
-
     @Override
     public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
         double newLocX = railPos.midX() + this.startX;
@@ -98,7 +86,7 @@ public class RailLogicHorizontal extends RailLogic {
         }
 
         // Calculate the Y-position
-        return new Vector(newLocX, getYPosition(newLocX, newLocZ, railPos), newLocZ);
+        return new Vector(newLocX, (double) railPos.y + 0.063, newLocZ);
     }
 
     @Override

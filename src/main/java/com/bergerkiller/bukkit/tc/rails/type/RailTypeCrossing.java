@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -66,8 +65,6 @@ public class RailTypeCrossing extends RailTypeHorizontal {
 
         // Get position on rails and adjust the y-coordinate based on horizontal rail logic
         Location result = super.getSpawnLocation(railsBlock, dir);
-        RailLogicHorizontal logic = RailLogicHorizontal.get(dir);
-        result.setY(logic.getYPosition(result.getX(), result.getZ(), new IntVector3(railsBlock)));
 
         // Correct the yaw of the minecart
         if (FaceUtil.isAlongX(dir)) {

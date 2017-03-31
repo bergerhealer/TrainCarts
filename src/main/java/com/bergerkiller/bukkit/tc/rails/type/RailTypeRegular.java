@@ -199,11 +199,9 @@ public class RailTypeRegular extends RailTypeHorizontal {
         if (rails.isOnSlope()) {
             // At a 45-degree angle
             result.setPitch(-45.0F);
+            // Slope height offset
+            result.setY(result.getY() + 0.65);
         }
-
-        // Correct the Y-position
-        RailLogicHorizontal logic = getLogicForRails(railsBlock, rails);
-        result.setY(logic.getYPosition(result.getX(), result.getZ(), new IntVector3(railsBlock)));
         return result;
     }
 }

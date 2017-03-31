@@ -98,6 +98,8 @@ public abstract class RailType {
 
     /**
      * Checks whether the block type Id and data given denote this type of Rail.
+     * This function is called from {@link #isRail(world, x, y, z)} exclusively.
+     * <b>DEPRECATED: Implement {@link #isRail(Material, int)} instead.</b>
      *
      * @param typeId of the Block
      * @param data   of the Block
@@ -111,6 +113,7 @@ public abstract class RailType {
 
     /**
      * Checks whether the block type and data given denote this type of Rail.
+     * This function is called from {@link #isRail(world, x, y, z)} exclusively.
      *
      * @param type of the Block
      * @param data of the Block
@@ -121,7 +124,8 @@ public abstract class RailType {
     }
 
     /**
-     * Checks whether the Block specified denote this type of Rail
+     * Checks whether the Block specified denote this type of Rail.
+     * To check for complex structures, this method should be overrided to check for that.
      *
      * @param world the Block is in
      * @param x     - coordinate of the Block
@@ -140,7 +144,7 @@ public abstract class RailType {
      * @param offset face from the block to check
      * @return True if it is this Rail, False if not
      */
-    public boolean isRail(Block block, BlockFace offset) {
+    public final boolean isRail(Block block, BlockFace offset) {
         return isRail(block.getWorld(), block.getX() + offset.getModX(), block.getY() + offset.getModY(),
                 block.getZ() + offset.getModZ());
     }
@@ -151,7 +155,7 @@ public abstract class RailType {
      * @param block to check
      * @return True if it is this Rail, False if not
      */
-    public boolean isRail(Block block) {
+    public final boolean isRail(Block block) {
         return isRail(block.getWorld(), block.getX(), block.getY(), block.getZ());
     }
 
@@ -215,6 +219,12 @@ public abstract class RailType {
      */
     public abstract BlockFace getDirection(Block railsBlock);
 
+    /**
+     * Gets the track-relative position to look for signs related to this Rails
+     * 
+     * @param railsBlock to find the sign column direction for
+     * @return direction to look for signs relating to this rails block
+     */
     public abstract BlockFace getSignColumnDirection(Block railsBlock);
 
     /**
@@ -278,9 +288,9 @@ public abstract class RailType {
      * @return spawn location
      */
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
-        Location at = railsBlock.getLocation();
-        at.add(0.5, 0.0, 0.5);
-        at.setYaw(FaceUtil.faceToYaw(orientation));
+        Location at = this.findMinecartPos(railsBlock).getLocation();
+        at.add(0.5, 0.063, 0.5);
+        at.setYaw(FaceUtil.faceToYaw(this.getDirection(railsBlock)));
         at.setPitch(0.0F);
         return at;
     }

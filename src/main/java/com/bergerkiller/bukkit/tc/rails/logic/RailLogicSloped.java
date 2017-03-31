@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 /**
  * Handles minecart movement on sloped rails
@@ -59,7 +60,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
         // Correct the Y-coordinate for the newly moved position
         // This also makes sure we don't clip through the floor moving down a slope
-        double endY = getYPosition(entity.loc.getX(), entity.loc.getZ(), member.getBlockPos());
+        double endY = getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()).getY();
         entity.setPosition(entity.loc.getX(), endY, entity.loc.getZ());
 
         // Apply velocity factors from going up/down the slope
@@ -72,19 +73,21 @@ public class RailLogicSloped extends RailLogicHorizontal {
     }
 
     @Override
-    public double getYPosition(double posX, double posZ, IntVector3 railPos) {
+    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
+        Vector pos = super.getFixedPosition(entity, x, y, z, railPos);
+
         double stage = 0.0; // stage on the minecart track, where 0.0 is exactly in the middle
         if (alongZ) {
-            stage = step * (posZ - (double) railPos.midZ());
+            stage = step * (pos.getZ() - (double) railPos.midZ());
         } else if (alongX) {
-            stage = step * (posX - (double) railPos.midX());
+            stage = step * (pos.getX() - (double) railPos.midX());
         }
 
         double dy = (stage + 0.65); // Count from middle of the block + 0.15 for some reason
         if (dy < 0.0) dy = 0.0; // clamp at ground level; prevent clipping through
 
-        // Rail Y offset + slope Y factor
-        return super.getYPosition(posX, posZ, railPos) + dy;
+        pos.setY(pos.getY() + dy);
+        return pos;
     }
 
     @Override
