@@ -235,7 +235,7 @@ public class TCListener implements Listener {
             } else {
                 event.setCancelled(true);
             }
-        } else {
+        } else if (EntityUtil.isMob(event.getEntered())) {
             CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
             if (x != CollisionMode.ENTER) {
                 event.setCancelled(true);
@@ -354,7 +354,7 @@ public class TCListener implements Listener {
                 }
             }
 
-            System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
+            //System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
 
             Material m = (event.getItem() == null) ? Material.AIR : event.getItem().getType();
 
@@ -422,7 +422,8 @@ public class TCListener implements Listener {
         // Handle interaction with minecart or rails onto another Block
         if (MaterialUtil.ISMINECART.get(heldItem) || Util.ISTCRAIL.get(heldItem)) {
             Material type = clickedBlock == null ? Material.AIR : clickedBlock.getType();
-            if (Util.ISTCRAIL.get(type)) {
+            RailType railType = RailType.getType(clickedBlock);
+            if (railType != RailType.NONE) {
                 if (MaterialUtil.ISMINECART.get(heldItem)) {
                     // Handle the interaction with rails while holding a minecart
                     // Place a TrainCart/Minecart on top of the rails, and handles permissions
