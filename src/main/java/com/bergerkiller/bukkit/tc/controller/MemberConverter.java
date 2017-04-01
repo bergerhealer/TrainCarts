@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.Converter;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+
 import org.bukkit.entity.Minecart;
 
 import java.util.UUID;
@@ -36,7 +38,7 @@ public class MemberConverter extends Converter<MinecartMember<?>> {
         } else {
             return def;
         }
-        if (member.isUnloaded()) {
+        if (member.isUnloaded() || TrainCarts.isWorldDisabled(member.getEntity().getWorld())) {
             return def;
         } else {
             return member;

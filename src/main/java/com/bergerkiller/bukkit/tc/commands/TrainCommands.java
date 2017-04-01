@@ -226,6 +226,10 @@ public class TrainCommands {
                         p.sendMessage(ChatColor.RED + "Unknown collidable type: " + args[0]);
                         p.sendMessage(ChatColor.YELLOW + "Allowed types: mob, player, misc or train");
                     }
+                    if (!prop.getColliding()) {
+                        p.sendMessage(ChatColor.YELLOW + "Note that collision is disabled for this train entirely!");
+                        p.sendMessage(ChatColor.YELLOW + "To re-enable collision, use " + ChatColor.WHITE + "/train collision enable");
+                    }
                 } else {
                     p.sendMessage(ChatColor.RED + "Unknown collision mode: " + args[1]);
                     ArrayList<String> modes = new ArrayList<>();
@@ -238,7 +242,7 @@ public class TrainCommands {
                 if (args.length == 1) {
                     prop.setColliding(ParseUtil.parseBool(args[0]));
                 }
-                p.sendMessage(ChatColor.YELLOW + "Can collide with other trains: " + ChatColor.WHITE + prop.getColliding());
+                p.sendMessage(ChatColor.YELLOW + "Can collide with other entities: " + ChatColor.WHITE + prop.getColliding());
             }
         } else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
             Permission.COMMAND_SETSPEEDLIMIT.handle(p);

@@ -262,13 +262,21 @@ public class TCListener implements Listener {
         }
     }
 
+    /* Note: is extra, we already do these checks elsewhere. Should not be needed but just in case. */
+    /*
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleExitCheck(VehicleExitEvent event) {
+        MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+        if (mm != null && (!mm.getProperties().getPlayersExit())) {
+            event.setCancelled(true);
+        }
+    }
+    */
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleExit(VehicleExitEvent event) {
-        if (TrainCarts.isWorldDisabled(event.getVehicle().getWorld()) || exemptFromEjectOffset.contains(event.getExited())) {
-            return;
-        }
         MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
-        if (mm == null) {
+        if (mm == null || exemptFromEjectOffset.contains(event.getExited())) {
             return;
         }
 
