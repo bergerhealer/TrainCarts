@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+
+import org.bukkit.Bukkit;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -160,5 +162,6 @@ public abstract class RailLogic {
      * @param member that moved
      */
     public void onPostMove(MinecartMember<?> member) {
+        
     }
 }

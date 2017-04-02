@@ -200,7 +200,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
             // At a 45-degree angle
             result.setPitch(-45.0F);
             // Slope height offset
-            result.setY(result.getY() + 0.65);
+            result.setY(result.getY() + 0.5);
         }
         return result;
     }

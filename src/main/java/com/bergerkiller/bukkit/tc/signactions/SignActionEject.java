@@ -83,14 +83,11 @@ public class SignActionEject extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.getMode() != SignActionMode.NONE) {
-            if (event.isRCSign()) {
-                return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
-            } else {
-                return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
-            }
+        if (event.isRCSign()) {
+            return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
+        } else {
+            return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
         }
-        return false;
     }
 
     @Override

@@ -284,7 +284,7 @@ public abstract class MinecartMemberStore {
     }
 
     public static MinecartMember<?> getAt(Location at, MinecartGroup in) {
-        return getAt(at, in, 1);
+        return getAt(at, in, 0.999);
     }
 
     public static MinecartMember<?> getAt(Location at, MinecartGroup in, double searchRadius) {

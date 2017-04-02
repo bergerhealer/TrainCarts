@@ -19,6 +19,11 @@ public class SignActionTeleport extends SignAction {
     private BlockTimeoutMap teleportTimes = new BlockTimeoutMap();
 
     @Override
+    public boolean verify(SignActionEvent info) {
+        return true; // we do not require TrainCarts verification because we use MyWorlds' logic
+    }
+
+    @Override
     public boolean match(SignActionEvent info) {
         return TrainCarts.MyWorldsEnabled && info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
     }

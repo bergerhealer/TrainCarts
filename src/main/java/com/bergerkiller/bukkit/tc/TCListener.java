@@ -22,6 +22,10 @@ import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.reflection.SafeMethod;
+import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
+import com.bergerkiller.reflection.net.minecraft.server.NMSEntityMinecart;
+import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -365,6 +369,25 @@ public class TCListener implements Listener {
             //System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
 
             Material m = (event.getItem() == null) ? Material.AIR : event.getItem().getType();
+
+            // Tests the original MC slope calculations
+            if (false && m == Material.STICK) {
+                Object mc = NMSEntityMinecart.Rideable.T.newInstanceNull();
+                NMSEntity.world.set(mc, clickedBlock.getWorld());
+
+                SafeMethod<Object> v = NMSEntityMinecart.Rideable.T.getMethod("j", double.class, double.class, double.class);
+
+                double x = clickedBlock.getX() + 0.5;
+                double y = clickedBlock.getY() + 0.5;
+                double z = clickedBlock.getZ() + 0.5;
+
+                System.out.println("POS=" + x + ", " + y + ", "+  z);
+
+                for (double dx = -0.6; dx <= 0.6; dx += 0.05) {
+                    Object vec = v.invoke(mc, x + dx, y, z);
+                    System.out.println(dx + "," + (NMSVector.getVecY(vec)-y));
+                }
+            }
 
             // Track map debugging logic
             if (DEBUG_DO_TRACKTEST && m == Material.FEATHER) {

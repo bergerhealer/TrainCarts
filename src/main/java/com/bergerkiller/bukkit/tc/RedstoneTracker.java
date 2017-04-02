@@ -79,14 +79,14 @@ public class RedstoneTracker implements Listener {
             Block up = event.getBlock().getRelative(BlockFace.UP);
             Block down = event.getBlock().getRelative(BlockFace.DOWN);
             if (MaterialUtil.ISSIGN.get(up)) {
-                updateRedstonePower(up, event.getNewCurrent() > 0);
+                updateRedstonePowerVerify(up, event.getNewCurrent() > 0);
             }
             if (MaterialUtil.ISSIGN.get(down)) {
-                updateRedstonePower(down, event.getNewCurrent() > 0);
+                updateRedstonePowerVerify(down, event.getNewCurrent() > 0);
             }
             ignoreOutputLever(event.getBlock());
         } else if (MaterialUtil.ISSIGN.get(type)) {
-            updateRedstonePower(event.getBlock(), event.getNewCurrent() > 0);
+            updateRedstonePowerVerify(event.getBlock(), event.getNewCurrent() > 0);
         }
     }
 
@@ -120,38 +120,46 @@ public class RedstoneTracker implements Listener {
 
     public void updateRedstonePower(final Block signblock) {
         final SignActionEvent info = new SignActionEvent(signblock);
-        SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-        // Do not proceed if the sign disallows on/off changes
-        if (info.isPowerAlwaysOn() || ignoredSigns.remove(signblock)) {
-            return;
-        }
+
         // Update power level
         setRedstonePower(info, isPowered(info));
     }
 
-    public void updateRedstonePower(final Block signblock, boolean isPowered) {
+    public void updateRedstonePowerVerify(final Block signblock, boolean isPowered) {
         final SignActionEvent info = new SignActionEvent(signblock);
-        SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-        // Do not proceed if the sign disallows on/off changes
-        if (info.isPowerAlwaysOn() || ignoredSigns.remove(signblock)) {
-            return;
-        }
 
-        // Validate with the SignActionEvent whether the power state is correct
+        // Verify with the SignActionEvent whether the power state is correct
         if (isPowered(info) != isPowered) {
             return;
         }
+
         // Update power level
         setRedstonePower(info, isPowered);
     }
 
     public void setRedstonePower(SignActionEvent info, boolean newPowerState) {
-        // Change in redstone power?
-        if (!LogicUtil.addOrRemove(poweredBlocks, info.getBlock(), newPowerState)) {
+        // Do not proceed if the sign disallows on/off changes
+        if (ignoredSigns.remove(info.getBlock())) {
             return;
         }
-        // Execute event
-        SignAction.executeAll(info, info.isPowerInverted() != newPowerState ?
-                SignActionType.REDSTONE_ON : SignActionType.REDSTONE_OFF);
+
+        // Is the event allowed?
+        SignActionType type = info.getHeader().getRedstoneAction(newPowerState);
+        if (type == SignActionType.NONE) {
+            LogicUtil.addOrRemove(poweredBlocks, info.getBlock(), newPowerState);
+            return;
+        }
+
+        // Change in redstone power?
+        if (!LogicUtil.addOrRemove(poweredBlocks, info.getBlock(), newPowerState)) {
+
+            // No change in redstone power, but a redstone change nevertheless
+            SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+            return;
+        }
+
+        // Fire the event, with a REDSTONE_CHANGE afterwards
+        SignAction.executeAll(info, type);
+        SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
     }
 }

@@ -69,8 +69,15 @@ public abstract class RailTypeHorizontal extends RailType {
 
             // Cancel collisions with blocks at the heading of sloped rails when going up vertically
             BlockFace railDirection = this.getDirection(railsBlock);
-            if (hitToFace == railDirection && Util.isVerticalAbove(posBlock, railDirection)) {
-                return false;
+            if (hitToFace == railDirection) {
+                // Going up a vertical rail? Check here.
+                if (Util.isVerticalAbove(posBlock, railDirection)) {
+                    return false;
+                }
+                // If on the same level as the minecart, ignore. (going up a slope should not hit the slope)
+                if (posBlock.getY() == hitBlock.getY()) {
+                    return false;
+                }
             }
 
             // Cancel collisions with blocks 'right above' the next rail when going down the slope
@@ -80,6 +87,7 @@ public abstract class RailTypeHorizontal extends RailType {
                 return false;
             }
         }
+
         return true;
     }
 

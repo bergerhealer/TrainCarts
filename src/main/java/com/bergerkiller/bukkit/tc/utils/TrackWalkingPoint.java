@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
+
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -41,7 +41,7 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         this.currentPosition = startPos.clone();
         this.nextPosition = startPos.clone();
         this.direction = FaceUtil.faceToVector(startDirection).normalize();
-        calcRotation();
+
         // Skip the first block, as to avoid moving 'backwards' one block
         if (super.hasNext()) {
             super.next(true);
@@ -76,14 +76,11 @@ public class TrackWalkingPoint extends TrackMovingPoint {
             if (remaining > this.trackDistance) {
                 // Move past the current block entirely
                 remaining -= this.trackDistance;
-                currentPosition.add(trackDistance * direction.getX(), trackDistance * direction.getY(), trackDistance * direction.getZ());
                 trackDistance = 0.0;
             } else {
                 // Move a minor part of the current block - we are successful!
                 trackDistance -= remaining;
                 currentPosition.add(remaining * direction.getX(), remaining * direction.getY(), remaining * direction.getZ());
-                // Final movement - use direction to calculate yaw and pitch
-                calcRotation();
                 return true;
             }
         }
@@ -99,11 +96,11 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         this.currentPosition.setX(this.nextPosition.getX());
         this.currentPosition.setY(this.nextPosition.getY());
         this.currentPosition.setZ(this.nextPosition.getZ());
+        this.currentPosition.setYaw(this.nextPosition.getYaw());
+        this.currentPosition.setPitch(this.nextPosition.getPitch());
 
-        // Proceed to calculate the next position
-        this.nextPosition.setX((this.next.getX() + 0.5) - (this.nextDirection.getModX() * 0.5));
-        this.nextPosition.setY((this.next.getY() + 0.5) - (this.nextDirection.getModY() * 0.5));
-        this.nextPosition.setZ((this.next.getZ() + 0.5) - (this.nextDirection.getModZ() * 0.5));
+        // Calculate the next position from rail information
+        this.nextPosition = this.nextRail.getSpawnLocation(this.nextTrack, this.nextDirection);
 
         // Calculate the resulting direction and distance
         this.direction.setX(this.nextPosition.getX() - this.currentPosition.getX());
@@ -116,8 +113,4 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         super.next(allowNext);
     }
 
-    private void calcRotation() {
-        currentPosition.setYaw(MathUtil.getLookAtYaw(direction));
-        currentPosition.setPitch(MathUtil.getLookAtPitch(direction.getX(), direction.getY(), direction.getZ()));
-    }
 }

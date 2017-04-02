@@ -99,7 +99,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the maximum speed this Train can move at
+     * Gets the maximum speed this Train can move at.
+     * Do not use this property inside physics functions!
+     * In there getEntity().getMaxSpeed() should be used instead.
      *
      * @return max speed in blocks/tick
      */

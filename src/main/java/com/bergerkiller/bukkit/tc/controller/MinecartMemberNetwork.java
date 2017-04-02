@@ -140,12 +140,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             // Synchronize to the clients
             if (this.getTicksSinceLocationSync() > ABSOLUTE_UPDATE_INTERVAL) {
                 // Perform absolute updates
-                for (MinecartMemberNetwork controller : networkControllers) {
-                    controller.syncLocationAbsolute();
-                    controller.syncVelocity();
-                    controller.syncMetaData();
-                    controller.syncPassengers();
-                    controller.getEntity().setPositionChanged(false);
+                for (i = 0; i < count; i++) {
+                    networkControllers[i].syncSelf(group.get(i), true, true, true);
                 }
             } else {
                 // Perform relative updates
@@ -172,7 +168,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
                     // Perform actual updates
                     for (i = 0; i < count; i++) {
-                        networkControllers[i].syncSelf(group.get(i), moved, rotated);
+                        networkControllers[i].syncSelf(group.get(i), moved, rotated, false);
                     }
                 }
             }
@@ -182,7 +178,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated) {
+    public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated, boolean absolute) {
         // Read live location
         long posX = locLive.getX();
         long posY = locLive.getY();
@@ -198,10 +194,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             rotPitch += getAngleKFactor(locLive.getPitch(), locSynched.getPitch());
         }
         getEntity().setPositionChanged(false);
-        syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
+        if (absolute) {
+            syncLocationAbsolute(posX, posY, posZ, rotYaw, rotPitch);
+        } else {
+            syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
+        }
 
         // Synchronize velocity
-        if (getEntity().isVelocityChanged() || isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
+        if (absolute || getEntity().isVelocityChanged() || isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
             // Reset dirty velocity
             getEntity().setVelocityChanged(false);
 

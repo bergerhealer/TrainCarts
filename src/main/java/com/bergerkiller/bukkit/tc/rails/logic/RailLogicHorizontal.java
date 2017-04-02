@@ -6,6 +6,9 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
+
+import org.bukkit.Bukkit;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -86,7 +89,7 @@ public class RailLogicHorizontal extends RailLogic {
         }
 
         // Calculate the Y-position
-        return new Vector(newLocX, (double) railPos.y + 0.063, newLocZ);
+        return new Vector(newLocX, (double) railPos.y + 0.0625, newLocZ);
     }
 
     @Override
@@ -196,6 +199,16 @@ public class RailLogicHorizontal extends RailLogic {
             }
         }
         return direction;
+    }
+
+    @Override
+    public void onPostMove(MinecartMember<?> member) {
+        final CommonMinecart<?> entity = member.getEntity();
+
+        // Correct the Y-coordinate for the newly moved position
+        // This also makes sure we don't clip through the floor moving down a slope
+        double endY = getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()).getY();
+        entity.setPosition(entity.loc.getX(), endY, entity.loc.getZ());
     }
 
     @Override

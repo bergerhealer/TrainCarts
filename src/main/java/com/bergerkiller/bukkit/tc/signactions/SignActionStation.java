@@ -87,7 +87,7 @@ public class SignActionStation extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return event.getMode() != SignActionMode.NONE && handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
+        return handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
     }
 
     @Override

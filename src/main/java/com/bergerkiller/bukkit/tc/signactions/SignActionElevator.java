@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -18,7 +19,7 @@ public class SignActionElevator extends SignAction {
     public static BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
 
     public static boolean isElevator(Sign sign) {
-        if (SignActionMode.fromSign(sign) != SignActionMode.NONE) {
+        if (SignActionHeader.parseFromSign(sign).isValid()) {
             if (sign.getLine(1).toLowerCase().startsWith("elevator")) {
                 return true;
             }
@@ -134,6 +135,6 @@ public class SignActionElevator extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return event.getMode() != SignActionMode.NONE && handleBuild(event, Permission.BUILD_ELEVATOR, "train elevator", "teleport trains vertically");
+        return handleBuild(event, Permission.BUILD_ELEVATOR, "train elevator", "teleport trains vertically");
     }
 }

@@ -92,6 +92,6 @@ public class SignActionTicket extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return event.getMode() != SignActionMode.NONE && handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
+        return handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
     }
 }

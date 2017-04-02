@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -31,13 +31,10 @@ import java.util.*;
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private final Block signblock;
-    private final SignActionMode mode;
     private final BlockFace facing;
+    private final SignActionHeader header;
     private final Sign sign;
     private final BlockFace[] watchedDirections;
-    private final boolean directionsDefined;
-    private final boolean powerinv;
-    private final boolean poweron;
     private Block railsblock;
     private SignActionType actionType;
     private BlockFace raildirection = null;
@@ -70,33 +67,25 @@ public class SignActionEvent extends Event implements Cancellable {
     public SignActionEvent(final Block signblock, final Sign sign, Block railsblock) {
         this.signblock = signblock;
         this.sign = sign;
-        this.mode = SignActionMode.fromSign(this.sign);
         this.railsblock = railsblock;
         this.railschecked = this.railsblock != null;
-        String mainLine;
         if (this.sign == null) {
             // No sign available - set default values and abort
-            this.powerinv = false;
-            this.poweron = false;
+            this.header = SignActionHeader.parse(null);
             this.facing = null;
             this.watchedDirections = FaceUtil.AXIS;
-            this.directionsDefined = false;
             return;
         } else {
             // Sign available - initialize the sign
-            if (TrainCarts.parseOldSigns) {
-                convertFirstLine();
-            }
-            mainLine = this.getLine(0);
-            this.poweron = mainLine.startsWith("[+");
-            this.powerinv = mainLine.startsWith("[!");
+            this.header = SignActionHeader.parse(sign.getLine(0));
             this.facing = BlockUtil.getFacing(this.signblock);
+            if (this.header.isLegacyConverted() && this.header.isValid()) {
+                this.setLine(0, this.header.toString());
+            }
         }
         HashSet<BlockFace> watchedFaces = new HashSet<>(4);
         // Find out what directions are watched by this sign
-        int idx = mainLine.indexOf(':');
-        this.directionsDefined = (idx != -1);
-        if (!this.directionsDefined) {
+        if (!this.header.hasDirections()) {
             // find out using the rails above and sign facing
             if (this.hasRails()) {
                 if (FaceUtil.isVertical(this.getRailDirection())) {
@@ -138,15 +127,15 @@ public class SignActionEvent extends Event implements Cancellable {
                     }
                 }
             }
-        } else if (mainLine.endsWith("]")) {
-            String text = mainLine.substring(idx + 1, mainLine.length() - 1);
-            watchedFaces.addAll(Arrays.asList(Direction.parseAll(text, this.getFacing().getOppositeFace())));
+        } else {
+            watchedFaces.addAll(Arrays.asList(this.header.getFaces(this.getFacing().getOppositeFace())));
         }
         // Apply watched faces
         if (watchedFaces.isEmpty()) {
             watchedFaces.add(this.getFacing().getOppositeFace());
         }
         this.watchedDirections = watchedFaces.toArray(new BlockFace[0]);
+        this.actionType = SignActionType.NONE;
     }
 
     public static HandlerList getHandlerList() {
@@ -270,21 +259,37 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Checks whether power reading is inverted for this Sign
-     *
-     * @return True if it is inverted, False if not
+     * Obtains the header of this sign containing relevant properties that are contained
+     * on the first line of a TrainCarts sign.
+     * 
+     * @return sign header
      */
-    public boolean isPowerInverted() {
-        return this.powerinv;
+    public SignActionHeader getHeader() {
+        return this.header;
     }
 
     /**
-     * Checks whether power reading always returns on for this Sign
+     * Checks whether power reading is inverted for this Sign<br>
+     * <br>
+     * <b>Deprecated:</b> use the properties in {@link #getHeader()} instead
+     *
+     * @return True if it is inverted, False if not
+     */
+    @Deprecated
+    public boolean isPowerInverted() {
+        return getHeader().isInverted();
+    }
+
+    /**
+     * Checks whether power reading always returns on for this Sign<br>
+     * <br>
+     * <b>Deprecated:</b> use {@link #isPowerMode(mode)} instead
      *
      * @return True if the power is always on, False if not
      */
+    @Deprecated
     public boolean isPowerAlwaysOn() {
-        return this.poweron;
+        return getHeader().isAlwaysOn();
     }
 
     public PowerState getPower(BlockFace from) {
@@ -292,11 +297,11 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public boolean isPowered(BlockFace from) {
-        return this.poweron || this.powerinv != this.getPower(from).hasPower();
+        return this.header.isAlwaysOn() || this.header.isInverted() != this.getPower(from).hasPower();
     }
 
     public boolean isPowered() {
-        return this.poweron || this.isPoweredRaw(this.powerinv);
+        return this.header.isAlwaysOn() || this.isPoweredRaw(this.header.isInverted());
     }
 
     /**
@@ -585,7 +590,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if defined, False if not
      */
     public boolean isWatchedDirectionsDefined() {
-        return this.directionsDefined;
+        return this.getHeader().hasDirections();
     }
 
     /**
@@ -650,18 +655,6 @@ public class SignActionEvent extends Event implements Cancellable {
         return Collections.EMPTY_LIST;
     }
 
-    /*
-     * Add [] around first line, if [] are not present and first line
-     * looks like a valid TrainCarts sign.
-     */
-    public void convertFirstLine() {
-        String firstLineOriginal = this.sign.getLine(0);
-        String firstLineConverted = SignActionMode.convertOldSignString(firstLineOriginal);
-        if (! firstLineOriginal.equals(firstLineConverted)) {
-            this.setLine(0, firstLineConverted);
-        }
-    }
-
     public String getLine(int index) {
         return this.sign.getLine(index);
     }
@@ -677,23 +670,23 @@ public class SignActionEvent extends Event implements Cancellable {
 
     /**
      * Gets the sign mode of this TrainCarts sign
-     *
+     * 
      * @return Sign mode
      */
     public SignActionMode getMode() {
-        return this.mode;
+        return this.getHeader().getMode();
     }
 
     public boolean isCartSign() {
-        return this.mode == SignActionMode.CART;
+        return this.getHeader().isCart();
     }
 
     public boolean isTrainSign() {
-        return this.mode == SignActionMode.TRAIN;
+        return this.getHeader().isTrain();
     }
 
     public boolean isRCSign() {
-        return this.mode == SignActionMode.RCTRAIN;
+        return this.getHeader().isRC();
     }
 
     /**
@@ -718,7 +711,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if the first line starts with any of the types AND the sign has a valid mode, False if not
      */
     public boolean isType(String... signtypes) {
-        return (this.mode != SignActionMode.NONE) && isLine(1, signtypes);
+        return getHeader().isValid() && isLine(1, signtypes);
     }
 
     @Override

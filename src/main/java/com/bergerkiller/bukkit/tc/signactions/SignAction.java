@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.Logging;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -64,7 +63,7 @@ public abstract class SignAction {
      */
     public static SignAction getSignAction(SignActionEvent event) {
         for (SignAction action : actions) {
-            if (action.match(event)) {
+            if (action.match(event) && action.verify(event)) {
                 return action;
             }
         }
@@ -120,11 +119,8 @@ public abstract class SignAction {
             if (action.build(info)) {
                 if (!action.canSupportRC() && info.isRCSign()) {
                     event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
-                    if (event.getLine(0).startsWith("[!")) {
-                        event.setLine(0, "[!train]");
-                    } else {
-                        event.setLine(0, "[train]");
-                    }
+                    info.getHeader().setMode(SignActionMode.TRAIN);
+                    event.setLine(0, info.getHeader().toString());
                 }
                 // Tell train above to update signs, if available
                 if (info.hasRails()) {
@@ -171,27 +167,49 @@ public abstract class SignAction {
         if (info == null || info.getSign() == null) {
             return;
         }
+
         //Event
         info.setCancelled(false);
-        if (!CommonUtil.callEvent(info).isCancelled() && actions != null) {
-            //facing?
-            boolean facing;
-            if (info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF, SignActionType.MEMBER_UPDATE, SignActionType.GROUP_UPDATE)) {
-                facing = true;
-            } else {
-                facing = info.isFacing();
-            }
+        if (CommonUtil.callEvent(info).isCancelled() || actions == null) {
+            return; // ignore further processing
+        }
 
-            SignAction action = getSignAction(info);
-            if (action != null && (facing || action.overrideFacing())) {
-                try {
-                    action.execute(info);
-                } catch (Throwable t) {
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
-                            " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
-                }
+        //facing?
+        boolean facing = info.getAction().isMovement() ? info.isFacing() : true;
+
+        SignAction action = getSignAction(info);
+        if (action != null && (facing || action.overrideFacing())) {
+            try {
+                action.execute(info);
+            } catch (Throwable t) {
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
+                        " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
             }
         }
+    }
+
+    /**
+     * Verifies that a SignActionEvent covers a valid TrainCarts sign.
+     * If you have a sign format that differs greatly from the TC format, override this method.
+     * This function is called before handling sign building and sign action execution.
+     * 
+     * @param info input event
+     * @return True if valid, False if not
+     */
+    public boolean verify(SignActionEvent info) {
+        // Ignore actions that are not in the TC format
+        if (!info.getHeader().isValid()) {
+            return false;
+        }
+
+        // Check whether the action is actually valid for this type of sign
+        // When only redstone-related events are allowed, toss out the non-redstone-related ones
+        // When redstone-related events should never occur (always powered), ignore as well
+        if (info.getHeader().isActionFiltered(info.getAction())) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

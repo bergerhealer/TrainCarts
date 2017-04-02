@@ -76,11 +76,6 @@ public class SignActionCraft extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.getMode() != SignActionMode.NONE) {
-            if (event.isType("craft")) {
-                return handleBuild(event, Permission.BUILD_CRAFTER, "workbench item crafter", "craft items inside storage minecarts");
-            }
-        }
-        return false;
+        return handleBuild(event, Permission.BUILD_CRAFTER, "workbench item crafter", "craft items inside storage minecarts");
     }
 }

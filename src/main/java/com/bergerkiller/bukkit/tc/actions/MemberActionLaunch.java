@@ -68,14 +68,15 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         this.distance += this.getEntity().getMovedDistance();
 
         //Reached the target distance?
+        double targetvel = this.targetvelocity; // * this.getGroup().getUpdateSpeedFactor();
         if (this.distance > this.targetdistance - 0.2) {
             // Finish with the desired end-velocity
-            this.getGroup().setForwardForce(this.targetvelocity);
+            this.getGroup().setForwardForce(targetvel);
             return true;
         } else {
             //Get the velocity to set the carts to
-            double targetvel = MathUtil.clamp(this.targetvelocity, this.getEntity().getMaxSpeed());
-            if (this.targetvelocity > 0 || (this.targetdistance - this.distance) < 5) {
+            targetvel = MathUtil.clamp(targetvel, this.getEntity().getMaxSpeed());
+            if (targetvel > 0 || (this.targetdistance - this.distance) < 5) {
                 targetvel = MathUtil.lerp(this.startvelocity, targetvel, this.distance / this.targetdistance);
             } else {
                 targetvel = this.startvelocity;

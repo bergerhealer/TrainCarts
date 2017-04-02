@@ -20,6 +20,57 @@ public enum Direction {
         this.aliases = aliases;
     }
 
+    public String[] aliases() {
+        return this.aliases;
+    }
+
+    public BlockFace getDirection(BlockFace signfacing) {
+        return getDirection(signfacing, signfacing.getOppositeFace());
+    }
+
+    public BlockFace getDirection(BlockFace signfacing, BlockFace cartdirection) {
+        switch (this) {
+            case NORTH:
+                return BlockFace.NORTH;
+            case EAST:
+                return BlockFace.EAST;
+            case SOUTH:
+                return BlockFace.SOUTH;
+            case WEST:
+                return BlockFace.WEST;
+            case DOWN:
+                return BlockFace.DOWN;
+            case UP:
+                return BlockFace.UP;
+            case LEFT:
+                return FaceUtil.rotate(signfacing, 2);
+            case RIGHT:
+                return FaceUtil.rotate(signfacing, -2);
+            case FORWARD:
+                return cartdirection;
+            case BACKWARD:
+                return cartdirection.getOppositeFace();
+            default:
+                return cartdirection;
+        }
+    }
+
+    public boolean match(char character) {
+        for (String alias : this.aliases) {
+            if (alias.length() == 1 && alias.charAt(0) == character) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean match(String text) {
+        for (String alias : this.aliases) {
+            if (alias.equalsIgnoreCase(text)) return true;
+        }
+        return false;
+    }
+
     public static Direction parse(char character) {
         for (Direction dir : values()) {
             if (dir.match(character)) return dir;
@@ -90,50 +141,4 @@ public enum Direction {
         return faces;
     }
 
-    public BlockFace getDirection(BlockFace signfacing) {
-        return getDirection(signfacing, signfacing.getOppositeFace());
-    }
-
-    public BlockFace getDirection(BlockFace signfacing, BlockFace cartdirection) {
-        switch (this) {
-            case NORTH:
-                return BlockFace.NORTH;
-            case EAST:
-                return BlockFace.EAST;
-            case SOUTH:
-                return BlockFace.SOUTH;
-            case WEST:
-                return BlockFace.WEST;
-            case DOWN:
-                return BlockFace.DOWN;
-            case UP:
-                return BlockFace.UP;
-            case LEFT:
-                return FaceUtil.rotate(signfacing, 2);
-            case RIGHT:
-                return FaceUtil.rotate(signfacing, -2);
-            case FORWARD:
-                return cartdirection;
-            case BACKWARD:
-                return cartdirection.getOppositeFace();
-            default:
-                return cartdirection;
-        }
-    }
-
-    public boolean match(char character) {
-        for (String alias : this.aliases) {
-            if (alias.length() == 1 && alias.charAt(0) == character) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean match(String text) {
-        for (String alias : this.aliases) {
-            if (alias.equalsIgnoreCase(text)) return true;
-        }
-        return false;
-    }
 }

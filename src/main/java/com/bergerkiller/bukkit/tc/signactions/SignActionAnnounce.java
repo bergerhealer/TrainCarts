@@ -64,13 +64,11 @@ public class SignActionAnnounce extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.getMode() != SignActionMode.NONE) {
-            if (event.isType("announce")) {
-                if (event.isRCSign()) {
-                    return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "remotely send a message to all the players in the train");
-                } else {
-                    return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "send a message to players in a train");
-                }
+        if (event.isType("announce")) {
+            if (event.isRCSign()) {
+                return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "remotely send a message to all the players in the train");
+            } else {
+                return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "send a message to players in a train");
             }
         }
         return false;

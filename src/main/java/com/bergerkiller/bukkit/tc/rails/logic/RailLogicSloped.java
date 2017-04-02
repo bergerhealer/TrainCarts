@@ -83,8 +83,8 @@ public class RailLogicSloped extends RailLogicHorizontal {
             stage = step * (pos.getX() - (double) railPos.midX());
         }
 
-        double dy = (stage + 0.65); // Count from middle of the block + 0.15 for some reason
-        if (dy < 0.0) dy = 0.0; // clamp at ground level; prevent clipping through
+        double dy = (stage + 0.5);
+        if (dy < 0.0) dy = 0.0;
 
         pos.setY(pos.getY() + dy);
         return pos;
@@ -122,6 +122,5 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
         // Perform remaining positioning updates
         super.onPreMove(member);
-        entity.loc.y.add(1.0);
     }
 }

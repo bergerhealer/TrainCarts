@@ -46,6 +46,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private TrainProperties prop = null;
     private boolean breakPhysics = false;
     private int teleportImmunityTick = 0;
+    private double updateSpeedFactor = 1.0;
 
     protected MinecartGroup() {
     }
@@ -738,6 +739,24 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Gets the speed factor that is applied to all velocity and movement updates in the current update.<br>
+     * <br>
+     * <b>Explanation:</b><br>
+     * When a train moves faster than 0.4 blocks/tick, the update is split into several update steps per tick.
+     * This prevents nasty derailing and makes sure that block-by-block motion can still occur. In a single tick
+     * the train moves 5 blocks, which is done by doing 8 or so actual update steps. The update speed factor
+     * specifies the multiplier to apply to speeds for the current update.<br>
+     * <br>
+     * When moving 0.4 b/t and under, this value will always be 1.0 (one update). Above it, it will be
+     * set to an increasingly small number 1/stepcount.
+     * 
+     * @return Update speed factor
+     */
+    public double getUpdateSpeedFactor() {
+        return this.updateSpeedFactor;
+    }
+
+    /**
      * Aborts any physics routines going on in this tick
      */
     public void breakPhysics() {
@@ -768,13 +787,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return getBlockTracker().getMemberFromRails(position);
     }
 
-    private boolean doConnectionCheck(int stepcount) {
+    private boolean doConnectionCheck() {
         //Validate positions in the group
         for (int i = 0; i < this.size() - 1; i++) {
             if (!get(i + 1).isFollowingOnTrack(get(i))) {
                 // Undo stepcount based velocity modifications
                 for (int j = i + 1; j < this.size(); j++) {
-                    this.get(j).getEntity().vel.multiply(stepcount);
+                    this.get(j).getEntity().vel.divide(this.updateSpeedFactor);
                 }
                 // Split
                 MinecartGroup gnew = this.split(i + 1);
@@ -816,21 +835,25 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         try {
             double totalforce = this.getAverageForce();
             double speedlimit = this.getProperties().getSpeedLimit();
+            int update_steps = 1;
             if (totalforce > 0.4 && speedlimit > 0.4) {
-                final int bits = (int) Math.ceil(speedlimit / 0.4);
-                final double mult = (double) bits;
+                update_steps = (int) Math.ceil(speedlimit / 0.4);
+            }
+            this.updateSpeedFactor = 1.0 / (double) update_steps;
+
+            if (update_steps > 1) {
                 for (MinecartMember<?> mm : this) {
-                    mm.getEntity().vel.divide(mult);
+                    mm.getEntity().vel.multiply(this.updateSpeedFactor);
                 }
-                for (int i = 0; i < bits; i++) {
-                    while (!this.doPhysics(bits)) ;
+                for (int i = 0; i < update_steps; i++) {
+                    while (!this.doPhysics_step()) ;
                 }
                 for (MinecartMember<?> mm : this) {
-                    mm.getEntity().vel.multiply(mult);
+                    mm.getEntity().vel.divide(this.updateSpeedFactor);
                     mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
                 }
             } else {
-                this.doPhysics(1);
+                this.doPhysics_step();
             }
         } catch (GroupUnloadedException ex) {
             //this group is gone
@@ -841,7 +864,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
     }
 
-    private boolean doPhysics(int stepcount) throws GroupUnloadedException {
+    private boolean doPhysics_step() throws GroupUnloadedException {
         this.breakPhysics = false;
         try {
             // Prevent index exceptions: remove if not a train
@@ -853,7 +876,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Validate members and set max speed
             for (MinecartMember<?> mm : this) {
                 mm.checkMissing();
-                mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() / (double) stepcount);
+                mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() * this.updateSpeedFactor);
             }
 
             // Set up a valid network controller if needed
@@ -899,7 +922,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
             this.getBlockTracker().refresh();
 
-            if (!this.doConnectionCheck(stepcount)) {
+            if (!this.doConnectionCheck()) {
                 return false;
             }
             this.updateDirection();
@@ -965,7 +988,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // Update directions and perform connection checks after the position changes
             this.updateDirection();
-            if (!this.doConnectionCheck(stepcount)) {
+            if (!this.doConnectionCheck()) {
                 return false;
             }
 
