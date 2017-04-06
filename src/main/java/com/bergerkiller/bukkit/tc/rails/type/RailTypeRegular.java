@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
@@ -101,8 +101,8 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
-    public boolean isRail(Material type, int data) {
-        return type == Material.RAILS;
+    public boolean isRail(BlockData blockData) {
+        return blockData.getType() == Material.RAILS;
     }
 
     @Override
@@ -115,11 +115,10 @@ public class RailTypeRegular extends RailTypeHorizontal {
             RailTracker railTracker = member.getRailTracker();
             if (railTracker.getLastRailType() == RailType.VERTICAL) {
                 IntVector3 nextPos = pos.add(railTracker.getLastLogic().getDirection());
-                Material type = WorldUtil.getBlockType(world, nextPos.x, nextPos.y, nextPos.z);
-                int data = WorldUtil.getBlockData(world, nextPos);
-                if (this.isRail(type, data)) {
+                BlockData blockData = WorldUtil.getBlockData(world, nextPos);
+                if (this.isRail(blockData)) {
                     // Check that the direction of the rail is correct
-                    Rails rails = CommonUtil.tryCast(BlockUtil.getData(type, data), Rails.class);
+                    Rails rails = blockData.newMaterialData(Rails.class);
                     BlockFace lastDirection = railTracker.getLastLogic().getDirection();
                     if (rails != null && rails.isOnSlope() && rails.getDirection() == lastDirection) {
                         // We got a winner!

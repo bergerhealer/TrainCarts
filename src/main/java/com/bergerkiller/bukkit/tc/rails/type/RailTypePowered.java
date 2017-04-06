@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Material;
@@ -60,7 +61,7 @@ public class RailTypePowered extends RailTypeRegular {
     }
 
     @Override
-    public boolean isRail(Material type, int data) {
-        return type == Material.POWERED_RAIL && ((data & 0x8) == 0x8) == isPowered;
+    public boolean isRail(BlockData blockData) {
+        return blockData.getType() == Material.POWERED_RAIL && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
     }
 }

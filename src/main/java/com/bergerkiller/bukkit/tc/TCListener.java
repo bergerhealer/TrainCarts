@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
-import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -416,12 +416,12 @@ public class TCListener implements Listener {
                     System.out.println("INVISIBLE: " + block);
                     CommonPacket packet = PacketType.OUT_BLOCK_CHANGE.newInstance();
                     packet.write(PacketType.OUT_BLOCK_CHANGE.position, new IntVector3(block));
-                    packet.write(PacketType.OUT_BLOCK_CHANGE.blockData, BlockInfo.get(Material.AIR).getIBlockData());
+                    packet.write(PacketType.OUT_BLOCK_CHANGE.blockData, BlockData.fromMaterial(Material.AIR));
                     PacketUtil.sendPacket(event.getPlayer(), packet);
                 }
                 return;
             }
-            
+
             // Keep track of when a player interacts to detect spamming
             long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE);
             long time = System.currentTimeMillis();

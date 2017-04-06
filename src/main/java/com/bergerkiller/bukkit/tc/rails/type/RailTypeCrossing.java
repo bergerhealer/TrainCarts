@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -15,8 +16,8 @@ import org.bukkit.block.BlockFace;
 public class RailTypeCrossing extends RailTypeHorizontal {
 
     @Override
-    public boolean isRail(Material type, int data) {
-        return MaterialUtil.ISPRESSUREPLATE.get(type);
+    public boolean isRail(BlockData blockData) {
+        return MaterialUtil.ISPRESSUREPLATE.get(blockData);
     }
 
     @Override

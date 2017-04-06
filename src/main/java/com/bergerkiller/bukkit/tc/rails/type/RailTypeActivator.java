@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import org.bukkit.Material;
 
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
+
 public class RailTypeActivator extends RailTypeRegular {
     private final boolean isPowered;
 
@@ -14,7 +16,7 @@ public class RailTypeActivator extends RailTypeRegular {
     }
 
     @Override
-    public boolean isRail(Material type, int data) {
-        return type == Material.ACTIVATOR_RAIL && ((data & 0x8) == 0x8) == isPowered;
+    public boolean isRail(BlockData blockData) {
+        return blockData.getType() == Material.ACTIVATOR_RAIL && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
     }
 }

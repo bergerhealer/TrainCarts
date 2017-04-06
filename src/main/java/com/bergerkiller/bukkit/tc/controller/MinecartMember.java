@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.*;
-import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
@@ -1060,10 +1059,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             Block left = this.getBlockRelative(BlockFace.WEST);
             Block right = this.getBlockRelative(BlockFace.EAST);
             if (this.getProperties().canBreak(left)) {
-                BlockInfo.get(left).destroy(left, 20.0f);
+                WorldUtil.getBlockData(left).destroy(left, 20.0f);
             }
             if (this.getProperties().canBreak(right)) {
-                BlockInfo.get(right).destroy(right, 20.0f);
+                WorldUtil.getBlockData(right).destroy(right, 20.0f);
             }
         }
     }

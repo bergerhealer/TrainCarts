@@ -3,13 +3,13 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -18,8 +18,8 @@ import org.bukkit.material.Rails;
 public class RailTypeVertical extends RailType {
 
     @Override
-    public boolean isRail(Material type, int data) {
-        return Util.ISVERTRAIL.get(type);
+    public boolean isRail(BlockData blockData) {
+        return Util.ISVERTRAIL.get(blockData);
     }
 
     @Override
