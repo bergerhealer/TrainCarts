@@ -81,7 +81,7 @@ public class TransferSignUtil {
         } else {
             // Is the parser fuel or heatable?
             boolean heatable = RecipeUtil.isHeatableItem(parser.getItemStack(1));
-            boolean fuel = RecipeUtil.isFuelItem(parser.getTypeId());
+            boolean fuel = RecipeUtil.isFuelItem(parser.getType());
             if (heatable && fuel) {
                 if (isFuelPreferred) {
                     fuels.add(parser);

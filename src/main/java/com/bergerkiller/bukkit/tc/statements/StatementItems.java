@@ -23,7 +23,7 @@ public class StatementItems extends Statement {
         if (inventory == null) {
             return false;
         }
-        int count = ItemUtil.getItemCount(getInventory(member), -1, -1);
+        int count = ItemUtil.getItemCount(getInventory(member), null, -1);
         return Util.evaluate(count, text);
     }
 
@@ -33,7 +33,7 @@ public class StatementItems extends Statement {
         if (inventory == null) {
             return false;
         }
-        int count = ItemUtil.getItemCount(inventory, -1, -1);
+        int count = ItemUtil.getItemCount(inventory, null, -1);
         return Util.evaluate(count, text);
     }
 
@@ -57,7 +57,7 @@ public class StatementItems extends Statement {
                 itemnamefixed = itemname;
             }
             for (ItemParser parser : Util.getParsers(itemnamefixed)) {
-                count = ItemUtil.getItemCount(inv, parser.getTypeId(), parser.getData());
+                count = ItemUtil.getItemCount(inv, parser.getType(), parser.getData());
                 if (opidx == -1) {
                     if (parser.hasAmount()) {
                         if (count >= parser.getAmount()) {
