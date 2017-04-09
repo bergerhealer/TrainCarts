@@ -59,8 +59,8 @@ public enum PowerState {
      * @return The Power State of the block
      */
     public static PowerState get(Block block, BlockFace from, boolean useSignLogic) {
-        block = block.getRelative(from);
-        Material type = block.getType();
+        Block fromBlock = block.getRelative(from);
+        Material type = fromBlock.getType();
 
         if (MaterialUtil.ISREDSTONETORCH.get(type)) {
             if (useSignLogic || from == BlockFace.DOWN) {
@@ -69,32 +69,52 @@ public enum PowerState {
                 return NONE;
             }
         } else if (MaterialUtil.ISDIODE.get(type) && !FaceUtil.isVertical(from)) {
-            if ((BlockUtil.getFacing(block) != from)) {
+            if ((BlockUtil.getFacing(fromBlock) != from)) {
                 return type == Material.DIODE_BLOCK_ON ? ON : OFF;
             } else {
                 return NONE;
             }
         } else if (type == Material.REDSTONE_WIRE) {
-            if (useSignLogic || from == BlockFace.UP || (from != BlockFace.DOWN && !isDistracted(block, from))) {
-                return (MaterialUtil.getRawData(block) != 0) ? ON : OFF;
+            if (useSignLogic || from == BlockFace.UP || (from != BlockFace.DOWN && !isDistracted(fromBlock, from))) {
+                return (MaterialUtil.getRawData(fromBlock) != 0) ? ON : OFF;
             } else {
                 return NONE;
             }
         }
 
-        // Ignore power from levers
+        // Ignore indirect power from levers, because the sign is controlling that lever
         if (type == Material.LEVER && !useSignLogic) {
             return NONE;
         }
+
         // Power source read-out
         if (MaterialUtil.ISPOWERSOURCE.get(type)) {
-            MaterialData dat = BlockUtil.getData(block);
+            MaterialData dat = BlockUtil.getData(fromBlock);
             if (dat instanceof Redstone) {
                 return ((Redstone) dat).isPowered() ? ON : OFF;
             } else if (dat instanceof PressureSensor) {
                 return ((PressureSensor) dat).isPressed() ? ON : OFF;
             }
         }
+
+        // For signs, the block they are attached to can be powered too
+        // For those we need to do recursive checks if those are powered in some way
+        if (useSignLogic && BlockUtil.getAttachedFace(block) == from) {
+            PowerState state = PowerState.NONE;
+            for (BlockFace attFace : FaceUtil.BLOCK_SIDES) {
+                if (attFace == from.getOppositeFace()) continue;
+
+                PowerState attState = PowerState.get(fromBlock, attFace, false);
+                if (attState != PowerState.NONE) {
+                    state = attState;
+                    if (state == PowerState.ON) {
+                        break;
+                    }
+                }
+            }
+            return state;
+        }
+
         return NONE;
     }
 

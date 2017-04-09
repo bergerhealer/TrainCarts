@@ -16,7 +16,6 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -311,29 +310,8 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if powered when not inverted, or not powered and inverted
      */
     public boolean isPoweredRaw(boolean invert) {
-        BlockFace att = BlockUtil.getAttachedFace(this.signblock);
-        Block attblock = this.signblock.getRelative(att);
-        if (attblock.isBlockPowered()) {
-            boolean found = false;
-            for (BlockFace face : FaceUtil.ATTACHEDFACES) {
-                if (BlockUtil.isType(attblock.getRelative(face), Material.LEVER)) {
-                    //check EVERYTHING
-                    for (BlockFace alter : FaceUtil.ATTACHEDFACESDOWN) {
-                        if (alter != face) {
-                            if (PowerState.get(attblock, alter, false) == PowerState.ON) {
-                                return !invert;
-                            }
-                        }
-                    }
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) return !invert;
-        }
         if (invert) {
             for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
-                if (face == att) continue;
                 PowerState state = this.getPower(face);
                 switch (state) {
                     case NONE:
@@ -346,7 +324,6 @@ public class SignActionEvent extends Event implements Cancellable {
             return true;
         } else {
             for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
-                if (face == att) continue;
                 if (this.getPower(face).hasPower()) return true;
             }
             return false;
