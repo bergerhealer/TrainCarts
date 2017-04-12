@@ -253,8 +253,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return this.getBlock(face.getModX(), face.getModY(), face.getModZ());
     }
 
-    public Block getBlockRelative(BlockFace direction) {
-        return this.getBlock(FaceUtil.add(direction, this.getDirection()));
+    /**
+     * Gets a Block relative to the current rail, offset by the notchOffset
+     * 
+     * @param notchOffset to offset by
+     * @return relative block at this notch offset
+     */
+    public Block getBlockRelative(int notchOffset) {
+        return this.getBlock(FaceUtil.notchFaceOffset(direction, notchOffset));
     }
 
     public Rails getRails() {
@@ -1056,8 +1062,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Destroy blocks
         if (!this.isDerailed() && this.getProperties().hasBlockBreakTypes()) {
-            Block left = this.getBlockRelative(BlockFace.WEST);
-            Block right = this.getBlockRelative(BlockFace.EAST);
+            Block left = this.getBlockRelative(-2);
+            Block right = this.getBlockRelative(2);
             if (this.getProperties().canBreak(left)) {
                 WorldUtil.getBlockData(left).destroy(left, 20.0f);
             }
