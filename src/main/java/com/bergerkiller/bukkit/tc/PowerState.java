@@ -119,6 +119,43 @@ public enum PowerState {
     }
 
     /**
+     * Gets whether a certain sign block is powered by a Redstone power source.
+     * 
+     * @param signBlock the block where the sign is located
+     * @return True if powered by Redstone
+     */
+    public static boolean isSignPowered(Block signBlock) {
+        return isSignPowered(signBlock, false);
+    }
+
+    /**
+     * Gets whether a certain sign block is powered by a Redstone power source.
+     * 
+     * @param signBlock the block where the sign is located
+     * @param inverted power - True to invert the power as a result, False to get the normal result
+     * @return True if powered when not inverted, or not powered and inverted
+     */
+    public static boolean isSignPowered(Block signBlock, boolean inverted) {
+        if (inverted) {
+            for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
+                switch (PowerState.get(signBlock, face, true)) {
+                    case NONE:
+                        continue;
+                    case ON:
+                        return false; //def = false; continue;
+                    case OFF:
+                }
+            }
+            return true;
+        } else {
+            for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
+                if (PowerState.get(signBlock, face, true).hasPower()) return true;
+            }
+            return false;
+        }
+    }
+
+    /**
      * Gets whether this Power State is supplying redstone power
      *
      * @return True if power is supplied, False if not

@@ -208,16 +208,34 @@ public class SignActionHeader {
             // Always powered; redstone events are ignored
             return SignActionType.NONE;
         }
-        if (this.power_rising && !this.power_falling && !newPowerState) {
-            // Rising edge allowed only
-            return SignActionType.NONE;
-        }
-        if (!this.power_rising && this.power_falling && newPowerState) {
-            // Falling edge allowed only
-            return SignActionType.NONE;
+
+        // When we handle both rising and falling edge, send a REDSTONE_ON signal
+        // When inverted, the signal becomes REDSTONE_OFF instead
+        if (this.power_rising && this.power_falling) {
+            return this.power_inverted ? SignActionType.REDSTONE_OFF : SignActionType.REDSTONE_ON;
         }
 
-        // Get the actual event to use
+        // When we handle the rising edge only, send a REDSTONE_ON signal when power state goes high
+        // When inverted, the signal becomes REDSTONE_OFF instead
+        if (this.power_rising && !this.power_falling) {
+            if (newPowerState) {
+                return this.power_inverted ? SignActionType.REDSTONE_OFF : SignActionType.REDSTONE_ON;
+            } else {
+                return SignActionType.NONE;
+            }
+        }
+
+        // When we handle the falling edge only, send a REDSTONE_ON signal when power state goes low
+        // When inverted, the signal becomes REDSTONE_OFF instead
+        if (!this.power_rising && this.power_falling) {
+            if (!newPowerState) {
+                return this.power_inverted ? SignActionType.REDSTONE_OFF : SignActionType.REDSTONE_ON;
+            } else {
+                return SignActionType.NONE;
+            }
+        }
+
+        // When we don't handle rising/falling edge, switch between
         return newPowerState != this.power_inverted ?
                 SignActionType.REDSTONE_ON : SignActionType.REDSTONE_OFF;
     }

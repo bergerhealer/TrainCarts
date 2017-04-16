@@ -299,35 +299,39 @@ public class SignActionEvent extends Event implements Cancellable {
         return this.header.isAlwaysOn() || this.header.isInverted() != this.getPower(from).hasPower();
     }
 
+    /**
+     * Gets whether this Sign is powered according to the sign rules.
+     * <ul>
+     * <li>If this is a REDSTONE_ON event, true is returned</li>
+     * <li>If this is a REDSTONE_OFF event, false is returned</li>
+     * <li>If the sign header indicates always-on, true is returned all the time</li>
+     * <li>If the sign header indicates power inversion, true is returned when no Redstone power exists</li>
+     * <li>For other cases (default), true is returned when Redstone power exists to this sign</li>
+     * </ul>
+     * 
+     * @return True if the sign is powered, False if not
+     */
     public boolean isPowered() {
+        if (this.actionType == SignActionType.REDSTONE_ON) {
+            return true;
+        }
+        if (this.actionType == SignActionType.REDSTONE_OFF) {
+            return false;
+        }
         return this.header.isAlwaysOn() || this.isPoweredRaw(this.header.isInverted());
     }
 
     /**
-     * Checks if this sign is powered, ignoring settings on the sign
+     * Checks if this sign is powered, ignoring settings on the sign.<br>
+     * <br>
+     * <b>Deprecated:</b> Use {@link PowerState#isSignPowered(signBlock, inverted)} instead
      *
      * @param invert True to invert the power as a result, False to get the normal result
      * @return True if powered when not inverted, or not powered and inverted
      */
+    @Deprecated
     public boolean isPoweredRaw(boolean invert) {
-        if (invert) {
-            for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
-                PowerState state = this.getPower(face);
-                switch (state) {
-                    case NONE:
-                        continue;
-                    case ON:
-                        return false; //def = false; continue;
-                    case OFF:
-                }
-            }
-            return true;
-        } else {
-            for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
-                if (this.getPower(face).hasPower()) return true;
-            }
-            return false;
-        }
+        return PowerState.isSignPowered(this.signblock, invert);
     }
 
     public boolean isPoweredFacing() {
@@ -694,6 +698,13 @@ public class SignActionEvent extends Event implements Cancellable {
     @Override
     public String toString() {
         String text = "{ block=[" + signblock.getX() + "," + signblock.getY() + "," + signblock.getZ() + "]";
+        text += ", action=" + this.actionType;
+        text += ", watched=[";
+        for (int i = 0; i < this.watchedDirections.length; i++) {
+            if (i > 0) text += ",";
+            text += this.watchedDirections[i].name();
+        }
+        text += "]";
         if (this.sign == null) {
             text += " }";
         } else {
