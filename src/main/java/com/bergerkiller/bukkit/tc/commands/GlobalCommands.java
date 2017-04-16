@@ -167,6 +167,7 @@ public class GlobalCommands {
             list((Player) sender, "");
             return true;
         } else if (args[0].equals("tick")) {
+            Permission.COMMAND_CHANGETICK.handle(sender);
             boolean disableTicks = false;
             boolean enableTicks = false;
             for (int i = 1; i <  args.length; i++) {
