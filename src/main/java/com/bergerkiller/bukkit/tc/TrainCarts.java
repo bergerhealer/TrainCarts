@@ -469,7 +469,7 @@ public class TrainCarts extends PluginBase {
                     signtask = null;
                 }
                 break;
-            case "My Worlds":
+            case "My_Worlds":
                 if (MyWorldsEnabled = enabled) {
                     log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
                 }
