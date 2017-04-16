@@ -22,8 +22,9 @@ public class TrackWalkIterator {
      * @param direction to start walking into
      */
     public TrackWalkIterator(Block startRail, BlockFace direction) {
-        Block startBlock = RailType.getType(startRail).findMinecartPos(startRail);
-        Location startLoc = startBlock == null ? null : startBlock.getLocation().add(0.5, 0.5, 0.5);
+        RailType startRailType = RailType.getType(startRail);
+        Block startBlock = startRailType.findMinecartPos(startRail);
+        Location startLoc = startBlock == null ? null : startRailType.getSpawnLocation(startRail, direction);
         this.walker = new TrackWalkingPoint(startLoc, startRail, direction);
         this.current = this.next = walker.currentPosition == null ? null : walker.currentPosition.clone();
     }

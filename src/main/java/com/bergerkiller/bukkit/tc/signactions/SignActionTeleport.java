@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.mw.MyWorlds;
 import com.bergerkiller.bukkit.mw.Portal;
@@ -10,6 +8,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -44,21 +43,19 @@ public class SignActionTeleport extends SignAction {
             Block sign = dest.getBlock();
             sign.getChunk(); //load the chunk
             if (MaterialUtil.ISSIGN.get(sign)) {
-                BlockFace facing = BlockUtil.getFacing(sign);
-                BlockFace direction = facing;
+                BlockFace facing = info.getFacing().getOppositeFace();
                 Block destinationRail = Util.getRailsFromSign(sign);
-                if (destinationRail == null) {
+                RailType rail = RailType.getType(destinationRail);
+                if (rail == RailType.NONE) {
                     return;
                 }
-                boolean isPlate = MaterialUtil.ISPRESSUREPLATE.get(destinationRail);
-                if (isPlate || MaterialUtil.ISRAILS.get(destinationRail)) {
-                    //rail aligned at sign?
-                    facing = FaceUtil.toRailsDirection(facing);
-                    if (isPlate || facing == BlockUtil.getRails(destinationRail).getDirection()) {
+
+                for (BlockFace dir : rail.getPossibleDirections(destinationRail)) {
+                    if (dir == facing) {
                         //Allowed?
                         if (!this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
                             this.teleportTimes.mark(sign);
-                            info.getGroup().teleportAndGo(destinationRail, direction);
+                            info.getGroup().teleportAndGo(destinationRail, dir);
                         }
                     }
                 }
