@@ -113,9 +113,11 @@ public class RailTypeVertical extends RailType {
     @Override
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         BlockFace dir = Util.getVerticalRailDirection(railsBlock);
-        Location result = super.getSpawnLocation(railsBlock, dir);
-        result.setYaw(FaceUtil.faceToYaw(dir));
-        result.setPitch(-90.0f);
-        return result;
+        return new Location(railsBlock.getWorld(),
+                railsBlock.getX() + 0.5,
+                railsBlock.getY() + 0.5,
+                railsBlock.getZ() + 0.5,
+                FaceUtil.faceToYaw(dir),
+                -90.0f);
     }
 }

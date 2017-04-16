@@ -207,20 +207,21 @@ public class Station {
      * Orders the train to center above this Station
      */
     public void centerTrain() {
-        // If cart is already in range of the station, order it to stop right now
         if (!info.getGroup().getActions().hasAction() &&
-                getCenterCart().getEntity().loc.distance(this.railsBlock) < 0.3) {
-            getCenterCart().stop();
-            return;
-        }
-
-        CartToStationInfo stationInfo = getCartToStationInfo();
-        if (stationInfo.cartDir != null) {
-            // Launch the center cart into the direction of the station
-            getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0);
+                getCenterCart().getEntity().loc.distance(info.getCenterLocation()) < 0.3)
+        {
+            // Already in range of station, we can stop here
+            info.getGroup().stop();
         } else {
-            // Alternative: get as close as possible (may fail)
-            getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
+            // We have to launch to get the train stopped at the station
+            CartToStationInfo stationInfo = getCartToStationInfo();
+            if (stationInfo.cartDir != null) {
+                // Launch the center cart into the direction of the station
+                getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0);
+            } else {
+                // Alternative: get as close as possible (may fail)
+                getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
+            }
         }
         this.wasCentered = true;
     }

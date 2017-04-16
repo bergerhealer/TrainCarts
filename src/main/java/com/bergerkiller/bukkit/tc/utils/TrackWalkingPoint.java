@@ -78,9 +78,23 @@ public class TrackWalkingPoint extends TrackMovingPoint {
                 remaining -= this.trackDistance;
                 trackDistance = 0.0;
             } else {
-                // Move a minor part of the current block - we are successful!
                 trackDistance -= remaining;
-                currentPosition.add(remaining * direction.getX(), remaining * direction.getY(), remaining * direction.getZ());
+
+                // Move a portion on the current block
+                if (remaining >= 0.5) {
+                    remaining -= 0.5;
+                    currentPosition.add(0.5 * currentDirection.getModX(),
+                                        0.5 * currentDirection.getModY(),
+                                        0.5 * currentDirection.getModZ());
+                }
+
+                // Move a portion from the current position to the next position
+                if (remaining > 0.0) {
+                    Vector dir = new Vector(this.nextPosition.getX() - this.currentPosition.getX(),
+                                            this.nextPosition.getY() - this.currentPosition.getY(),
+                                            this.nextPosition.getZ() - this.currentPosition.getZ());
+                   currentPosition.add(dir.normalize().multiply(remaining));
+                }
                 return true;
             }
         }
