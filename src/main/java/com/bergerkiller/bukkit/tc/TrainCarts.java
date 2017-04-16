@@ -32,6 +32,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.*;
@@ -545,20 +546,7 @@ public class TrainCarts extends PluginBase {
         PathProvider.init();
 
         // Hackish fix the chunk persistence failing
-        fixGroupTickTask = new Task(this) {
-            int ctr = 0;
-
-            public void run() {
-                if (++ctr >= tickUpdateDivider) {
-                    ctr = 0;
-                    tickUpdateNow++;
-                }
-                if (tickUpdateNow > 0) {
-                    tickUpdateNow--;
-                    MinecartGroupStore.doFixedTick(tickUpdateDivider != 1);
-                }
-            }
-        }.start(1, 1);
+        fixGroupTickTask = new TrainUpdateTask(this).start(1, 1);
 
         //Properly dispose of partly-referenced carts
         CommonUtil.nextTick(new Runnable() {
@@ -654,5 +642,24 @@ public class TrainCarts extends PluginBase {
     @Override
     public void permissions() {
         this.loadPermissions(Permission.class);
+    }
+
+    private static class TrainUpdateTask extends Task {
+        int ctr = 0;
+
+        public TrainUpdateTask(JavaPlugin plugin) {
+            super(plugin);
+        }
+
+        public void run() {
+            if (++ctr >= tickUpdateDivider) {
+                ctr = 0;
+                tickUpdateNow++;
+            }
+            if (tickUpdateNow > 0) {
+                tickUpdateNow--;
+                MinecartGroupStore.doFixedTick(tickUpdateDivider != 1);
+            }
+        }
     }
 }
