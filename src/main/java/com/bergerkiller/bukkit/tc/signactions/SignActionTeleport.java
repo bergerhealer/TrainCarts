@@ -65,7 +65,9 @@ public class SignActionTeleport extends SignAction {
                 ArrayList<BlockFace> possibleDirs = new ArrayList<BlockFace>();
                 ArrayList<TrackIterator> possibleIters = new ArrayList<TrackIterator>();
                 BlockFace[] directions = rail.getPossibleDirections(destinationRail);
-                for (BlockFace dir : info.getWatchedDirections()) {
+
+                SignActionEvent dest_info = new SignActionEvent(sign);
+                for (BlockFace dir : dest_info.getSpawnDirections()) {
                     if (LogicUtil.contains(dir, directions)) {
                         possibleDirs.add(dir);
                         possibleIters.add(new TrackIterator(destinationRail, dir));

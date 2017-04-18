@@ -589,6 +589,19 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
+     * Gets an array of possible directions in which spawner and teleporter signs can lay down trains
+     * 
+     * @return spawn directions
+     */
+    public BlockFace[] getSpawnDirections() {
+        BlockFace[] spawndirs = new BlockFace[this.watchedDirections.length];
+        for (int i = 0; i < spawndirs.length; i++) {
+            spawndirs[i] = this.watchedDirections[i].getOppositeFace();
+        }
+        return spawndirs;
+    }
+
+    /**
      * Checks if a given direction is watched by this sign
      *
      * @param direction to check
