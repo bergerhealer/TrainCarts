@@ -210,10 +210,15 @@ public class BlockTrackerGroup extends BlockTracker {
             for (Entry<IntVector3, MinecartMember<?>> entry : blockSpace.entrySet()) {
                 IntVector3 pos = entry.getKey();
                 for (RailType type : RailType.values()) {
-                    if (type.isRail(world, pos.x, pos.y, pos.z)) {
-                        Block block = pos.toBlock(world);
-                        List<Block> signs = entry.getValue().getBlockTracker().liveActiveSigns;
-                        Util.addSignsFromRails(signs, block, type.getSignColumnDirection(block));
+                    try {
+                        if (type.isRail(world, pos.x, pos.y, pos.z)) {
+                            Block block = pos.toBlock(world);
+                            List<Block> signs = entry.getValue().getBlockTracker().liveActiveSigns;
+                            Util.addSignsFromRails(signs, block, type.getSignColumnDirection(block));
+                        }
+                    } catch (Throwable t) {
+                        RailType.handleCriticalError(type, t);
+                        break;
                     }
                 }
             }

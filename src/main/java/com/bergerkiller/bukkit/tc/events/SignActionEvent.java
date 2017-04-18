@@ -464,10 +464,15 @@ public class SignActionEvent extends Event implements Cancellable {
             return false;
         }
         for (RailType type : RailType.values()) {
-            Block railsBlock = type.findRail(posBlock);
-            if (railsBlock != null) {
-                // Check that the next block allows a connection with this Block
-                return LogicUtil.contains(direction.getOppositeFace(), type.getPossibleDirections(railsBlock));
+            try {
+                Block railsBlock = type.findRail(posBlock);
+                if (railsBlock != null) {
+                    // Check that the next block allows a connection with this Block
+                    return LogicUtil.contains(direction.getOppositeFace(), type.getPossibleDirections(railsBlock));
+                }
+            } catch (Throwable t) {
+                RailType.handleCriticalError(type, t);
+                break;
             }
         }
         return false;

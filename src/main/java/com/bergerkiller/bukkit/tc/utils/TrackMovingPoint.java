@@ -33,10 +33,15 @@ public class TrackMovingPoint {
             return;
         }
         for (RailType type : RailType.values()) {
-            if (type.isRail(this.nextTrack)) {
-                this.current = this.next = type.findMinecartPos(this.nextTrack);
-                this.currentRail = this.nextRail = type;
-                this.hasNext = true;
+            try {
+                if (type.isRail(this.nextTrack)) {
+                    this.current = this.next = type.findMinecartPos(this.nextTrack);
+                    this.currentRail = this.nextRail = type;
+                    this.hasNext = true;
+                    break;
+                }
+            } catch (Throwable t) {
+                RailType.handleCriticalError(type, t);
                 break;
             }
         }
@@ -111,11 +116,16 @@ public class TrackMovingPoint {
 
         // Figure out what kind of rail is stored at the next Block
         for (RailType type : RailType.values()) {
-            this.nextTrack = type.findRail(this.next);
-            if (this.nextTrack != null) {
-                // Found a next track!
-                this.nextRail = type;
-                this.hasNext = true;
+            try {
+                this.nextTrack = type.findRail(this.next);
+                if (this.nextTrack != null) {
+                    // Found a next track!
+                    this.nextRail = type;
+                    this.hasNext = true;
+                    break;
+                }
+            } catch (Throwable t) {
+                RailType.handleCriticalError(type, t);
                 break;
             }
         }

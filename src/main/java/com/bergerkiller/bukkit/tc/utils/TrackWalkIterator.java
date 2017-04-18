@@ -39,7 +39,12 @@ public class TrackWalkIterator {
         Block railsBlock = null;
         Block startBlock = start.getBlock();
         for (RailType type : RailType.values()) {
-            if ((railsBlock = type.findRail(startBlock)) != null) {
+            try {
+                if ((railsBlock = type.findRail(startBlock)) != null) {
+                    break;
+                }
+            } catch (Throwable t) {
+                RailType.handleCriticalError(type, t);
                 break;
             }
         }

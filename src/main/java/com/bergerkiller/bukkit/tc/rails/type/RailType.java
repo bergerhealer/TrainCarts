@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 
@@ -12,10 +13,13 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class RailType {
     public static final RailTypeVertical VERTICAL = new RailTypeVertical();
@@ -34,6 +38,30 @@ public abstract class RailType {
             if (type != NONE) {
                 values.add(type);
             }
+        }
+    }
+
+    /**
+     * Handles a critical error that occurred while using a certain RailType.
+     * If the RailType was externally registered by a plugin, it is unregistered to prevent
+     * further failing of TrainCarts itself.
+     * 
+     * @param railType to unregister
+     * @param reason for unregistering
+     */
+    public static void handleCriticalError(RailType railType, Throwable reason) {
+        Plugin plugin = CommonUtil.getPluginByClass(railType.getClass());
+        Logger logger = TrainCarts.plugin.getLogger();
+        if (plugin == TrainCarts.plugin) {
+            logger.log(Level.SEVERE, "An error occurred in RailType '" + railType.getClass().getSimpleName() + "'", reason);
+        } else if (plugin != null) {
+            logger.log(Level.SEVERE, "An error occurred in RailType '" + railType.getClass().getSimpleName() + "' " +
+                                     "from plugin " + plugin.getName() + ". The rail type has been disabled.", reason);
+            unregister(railType);
+        } else {
+            logger.log(Level.SEVERE, "An error occurred in RailType '" + railType.getClass().getSimpleName() + "' " + 
+                                     "from an unknown plugin. The rail type has been disabled.", reason);
+            unregister(railType);
         }
     }
 
@@ -80,8 +108,13 @@ public abstract class RailType {
     public static RailType getType(Block railsBlock) {
         if (railsBlock != null) {
             for (RailType type : values()) {
-                if (type.isRail(railsBlock)) {
-                    return type;
+                try {
+                    if (type.isRail(railsBlock)) {
+                        return type;
+                    }
+                } catch (Throwable t) {
+                    handleCriticalError(type, t);
+                    break;
                 }
             }
         }

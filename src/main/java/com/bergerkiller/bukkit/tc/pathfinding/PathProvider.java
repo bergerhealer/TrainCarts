@@ -153,10 +153,15 @@ public class PathProvider extends Task {
 
     private void scheduleNode(PathNode node, Block startBlock, BlockFace direction) {
         for (RailType nextType : RailType.values()) {
-            Block startRail = nextType.findRail(startBlock);
-            if (startRail != null) {
-                schedule(node, startRail, direction);
-                return;
+            try {
+                Block startRail = nextType.findRail(startBlock);
+                if (startRail != null) {
+                    schedule(node, startRail, direction);
+                    return;
+                }
+            } catch (Throwable t) {
+                RailType.handleCriticalError(nextType, t);
+                break;
             }
         }
     }
