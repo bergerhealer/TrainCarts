@@ -566,13 +566,16 @@ public class TCListener implements Listener {
         if (!(event.getRightClicked() instanceof Minecart)) {
             return;
         }
+
         // Check that we are not spam-clicking (for block placement, that is!)
-        long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE);
-        long time = System.currentTimeMillis();
-        long clickInterval = time - lastHitTime;
-        if (clickInterval < MAX_INTERACT_INTERVAL) {
-            event.setCancelled(true);
-            return;
+        Long lastHitTime = lastHitTimes.get(event.getPlayer());
+        if (lastHitTime != null) {
+            long time = System.currentTimeMillis();
+            long clickInterval = time - lastHitTime.longValue();
+            if (clickInterval < MAX_INTERACT_INTERVAL) {
+                event.setCancelled(true);
+                return;
+            }
         }
 
         // Handle the vehicle change
