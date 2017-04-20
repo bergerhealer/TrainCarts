@@ -15,6 +15,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import org.bukkit.Material;
+
 public class SignActionBlockChanger extends SignAction {
     private static final int BLOCK_OFFSET_NONE = Integer.MAX_VALUE;
 
@@ -32,7 +34,15 @@ public class SignActionBlockChanger extends SignAction {
                         return;
                     }
                     CommonMinecart<?> entity = iter.next().getEntity();
-                    entity.setBlock(block.getType(), block.getData());
+                    if (!block.hasType() && !block.hasData()) {
+                        continue;
+                    }
+                    Material type = block.hasType() ? block.getType() : entity.getBlockType();
+                    if (block.hasData()) {
+                        entity.setBlock(type, block.getData());
+                    } else {
+                        entity.setBlock(type);
+                    }
 
                     if (blockOffset != BLOCK_OFFSET_NONE) {
                         entity.setBlockOffset(blockOffset);
