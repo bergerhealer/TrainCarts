@@ -25,6 +25,7 @@ import org.bukkit.util.Vector;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -721,8 +722,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (key.equals("sound") || key.equals("minecartsound")) {
             this.soundEnabled = ParseUtil.parseBool(arg);
-        } else if (updateCollisionProperties(key, CollisionMode.parse(arg), null, "collision")) {
-            return true;
         } else if (key.equals("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
@@ -737,6 +736,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.trainCollision = mode;
         } else if (key.equals("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(CollisionMode.parse(arg).toString()));
+        } else if (setCollisionMode(key, arg)) {
+            return true;
         } else if (LogicUtil.contains(key, "collision", "collide")) {
             this.setColliding(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "linking", "link")) {
@@ -745,8 +746,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setSlowingDown(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "setdefault", "default")) {
             this.setDefault(arg);
-        } else if (updateCollisionProperties(key, CollisionMode.parse(arg), "push")) {
-            return true;
         } else if (key.equals("pushplayers")) {
             this.playerCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
         } else if (key.equals("pushmisc")) {
@@ -818,17 +817,30 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         return true;
     }
 
-    public boolean updateCollisionProperties(String mobType, CollisionMode mode, String beginStrip, String endStrip) {
-        int beginStripLength = beginStrip == null ? 0 : beginStrip.length();
-        int endStripLength = endStrip == null ? 0 : endStrip.length();
-        if (mobType.length() <= endStripLength) {
-            return false;
+    /*
+     * Sets collision mode, used by ParseSet. Supports the formats:
+     * - mobcollision / playercollision /creepercollision / etc.
+     * - pushplayers / pushmobs / etc.
+     */
+    public boolean setCollisionMode(String key, String value) {
+        key = key.toLowerCase(Locale.ENGLISH);
+        value = value.toLowerCase(Locale.ENGLISH);
+        if (key.startsWith("push") && key.length() > 4) {
+            String mobType = key.substring(4);
+            CollisionMode mode;
+            if (ParseUtil.isBool(value)) {
+                mode = CollisionMode.fromPushing(ParseUtil.parseBool(value));
+            } else {
+                mode = CollisionMode.parse(value);
+            }
+            return updateCollisionProperties(mobType, mode);
         }
-        return updateCollisionProperties(mobType.substring(beginStripLength, mobType.length() - endStripLength), mode);
-    }
-
-    public boolean updateCollisionProperties(String mobType, CollisionMode mode, String beginStrip) {
-        return updateCollisionProperties(mobType, mode, beginStrip, null);
+        if (key.endsWith("collision") && key.length() > 9) {
+            String mobType = key.substring(0, key.length() - 9);
+            CollisionMode mode = CollisionMode.parse(value);
+            return updateCollisionProperties(mobType, mode);
+        }
+        return false;
     }
 
     public boolean updateCollisionProperties(String mobType, CollisionMode mode) {

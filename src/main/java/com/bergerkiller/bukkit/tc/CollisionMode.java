@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.util.Locale;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -42,13 +41,8 @@ public enum CollisionMode {
      * @return Collision Mode, or null if not parsed
      */
     public static CollisionMode parse(String text) {
-        text = text.toLowerCase(Locale.ENGLISH);
-        if (text.startsWith("allow") || text.startsWith("enable") || text.startsWith("default")) {
-            return DEFAULT;
-        } else if (text.startsWith("deny") || text.startsWith("denied") || text.startsWith("disable") || text.startsWith("cancel")) {
-            return CANCEL;
-        }
-        return ParseUtil.parseEnum(CollisionMode.class, text, null);
+        CollisionMode tf = ParseUtil.isBool(text) ? (ParseUtil.parseBool(text) ? DEFAULT : CANCEL) : null;
+        return ParseUtil.parseEnum(CollisionMode.class, text, tf);
     }
 
     /**
@@ -163,7 +157,7 @@ public enum CollisionMode {
         switch (this) {
             case ENTER:
                 if (!minecart.hasPassenger() && minecart.isVehicle() && Util.canBePassenger(entity) && member.canCollisionEnter()) {
-                    minecart.setPassenger(entity);
+                    minecart.addPassenger(entity);
                 }
                 return false;
             case PUSH:

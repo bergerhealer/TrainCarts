@@ -84,7 +84,7 @@ public class RedstoneTracker implements Listener {
     public void initPowerLevels() {
         for (World world : WorldUtil.getWorlds()) {
             try {
-                for (BlockState state : new ArrayList<BlockState>(WorldUtil.getBlockStates(world))) {
+                for (BlockState state : WorldUtil.getBlockStates(world)) {
                     if (state instanceof Sign) {
                         Block block = state.getBlock();
                         LogicUtil.addOrRemove(poweredBlocks, block, PowerState.isSignPowered(block));
