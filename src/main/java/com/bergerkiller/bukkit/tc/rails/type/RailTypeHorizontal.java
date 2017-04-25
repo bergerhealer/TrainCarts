@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -89,6 +90,31 @@ public abstract class RailTypeHorizontal extends RailType {
         }
 
         return true;
+    }
+
+    @Override
+    public boolean isHeadOnCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock) {
+        if (super.isHeadOnCollision(member, railsBlock, hitBlock)) {
+            return true;
+        }
+
+        Block minecartPos = findMinecartPos(railsBlock);
+        IntVector3 delta = new IntVector3(hitBlock).subtract(new IntVector3(minecartPos));
+        BlockFace direction = member.getDirectionTo();
+
+        // Hitting a block head-on, straight or on a slope down
+        if (delta.x == direction.getModX() && delta.z == direction.getModZ()) {
+            return true;
+        }
+
+        // Hitting a block above the minecart, going up a slope
+        if (member.isOnSlope() && delta.x == 0 && delta.z == 0 && delta.y == 1) {
+            if (direction == this.getDirection(railsBlock)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

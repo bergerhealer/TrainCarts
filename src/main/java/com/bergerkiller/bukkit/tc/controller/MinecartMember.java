@@ -894,14 +894,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Stop the entire Group if hitting head-on
-        final boolean hitHeadOn;
-        IntVector3 delta = new IntVector3(hitBlock).subtract(this.getEntity().loc.block());
-        if (FaceUtil.isVertical(this.getDirectionTo())) {
-            hitHeadOn = delta.x == 0 && delta.z == 0 && delta.y == this.getDirectionTo().getModY();
-        } else {
-            hitHeadOn = delta.x == this.getDirectionTo().getModX() && delta.z == this.getDirectionTo().getModZ();
-        }
-        if (hitHeadOn) {
+        if (getRailType().isHeadOnCollision(this, getBlock(), hitBlock)) {
             this.getGroup().stop();
         }
         return true;

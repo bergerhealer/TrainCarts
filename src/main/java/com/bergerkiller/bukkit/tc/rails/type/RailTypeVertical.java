@@ -62,8 +62,24 @@ public class RailTypeVertical extends RailType {
         if (!super.onBlockCollision(member, railsBlock, hitBlock, hitFace)) {
             return false;
         }
-        // Check if the collided block has vertical rails below when hitting it
-        return !(FaceUtil.isVertical(hitFace) && Util.ISVERTRAIL.get(hitBlock.getRelative(hitFace)));
+        // Verify the x/z are the same column as the hit block, as well that the hit block is not a rail
+        Block minecartPos = findMinecartPos(railsBlock);
+        if (hitBlock.getX() != minecartPos.getX() || hitBlock.getZ() != minecartPos.getZ()) {
+            return false;
+        }
+        if (this.isRail(hitBlock)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean isHeadOnCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock) {
+        if (super.isHeadOnCollision(member, railsBlock, hitBlock)) {
+            return true;
+        }
+        Block minecartPos = findMinecartPos(railsBlock);
+        return (hitBlock.getY() - minecartPos.getY()) == member.getDirectionTo().getModY();
     }
 
     @Override

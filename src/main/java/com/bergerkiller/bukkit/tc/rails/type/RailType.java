@@ -289,6 +289,18 @@ public abstract class RailType {
     }
 
     /**
+     * Gets whether a minecart hit a block 'head-on', meaning it should stop the train
+     * 
+     * @param member that hit a block
+     * @param railsBlock the minecart is on
+     * @param hitBlock that was hit
+     * @return True if head-on, False if not
+     */
+    public boolean isHeadOnCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock) {
+        return false;
+    }
+
+    /**
      * Gets the initial location of a minecart when placed on this Rail Type.
      * By default spawns the Minecart on top of the block, facing the orientation
      * 
