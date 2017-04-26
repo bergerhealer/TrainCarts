@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -76,8 +77,12 @@ public abstract class RailTypeHorizontal extends RailType {
                     return false;
                 }
                 // If on the same level as the minecart, ignore. (going up a slope should not hit the slope)
+                // If there is also a solid block above the block, then allow this collision to occur
                 if (posBlock.getY() == hitBlock.getY()) {
-                    return false;
+                    Block above = hitBlock.getRelative(BlockFace.UP);
+                    if (!MaterialUtil.ISSOLID.get(above)) {
+                        return false;
+                    }
                 }
             }
 
