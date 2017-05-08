@@ -78,6 +78,7 @@ public class TrainCarts extends PluginBase {
     public static boolean allMinecartsAreTrainCarts;
     public static boolean useNetworkSynchronizer;
     public static boolean allowVerticalPitch;
+    public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
     public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
     public static boolean EssentialsEnabled = false;
     public static boolean SignLinkEnabled = false;
@@ -273,6 +274,7 @@ public class TrainCarts extends PluginBase {
         config.setHeader("launchForce", "\nThe amount of velocity stations give when launching trains");
         launchForce = config.get("launchForce", 10.0);
 
+
         // Deprecation backwards compatibility
         if (config.contains("pushAway")) {
             config.set("collision.ignoreOwners", config.get("pushAway.ignoreOwners", true));
@@ -308,6 +310,11 @@ public class TrainCarts extends PluginBase {
 
         config.setHeader("keepChunksLoadedOnlyWhenMoving", "\nWhether or not chunks are only kept loaded when the train is moving");
         keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
+
+        config.setHeader("enableCeilingBlockCollision", "\nWhether to enable or cancel collisions with blocks above minecarts");
+        config.addHeader("enableCeilingBlockCollision", "Some constructions depend on these block collisions to block minecarts");
+        config.addHeader("enableCeilingBlockCollision", "If these collisions are unwanted, they can be turned off here");
+        enableCeilingBlockCollision = config.get("enableCeilingBlockCollision", true);
 
         config.setHeader("useNetworkSynchronizer", "\nAdvanced: Whether trains use a different way of server->client synchronization");
         config.addHeader("useNetworkSynchronizer", "With this enabled, trains are expected to move smoother with less bumping");

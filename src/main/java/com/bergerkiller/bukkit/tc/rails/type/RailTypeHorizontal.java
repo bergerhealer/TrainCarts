@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -87,10 +88,12 @@ public abstract class RailTypeHorizontal extends RailType {
             }
 
             // Cancel collisions with blocks 'right above' the next rail when going down the slope
-            IntVector3 diff = new IntVector3(hitBlock).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
-            if (diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ() &&
-                    (diff.y > 1 || (diff.y == 1 && railDirection != hitToFace))) {
-                return false;
+            if (!TrainCarts.enableCeilingBlockCollision) {
+                IntVector3 diff = new IntVector3(hitBlock).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
+                if (diff.x == hitToFace.getModX() && diff.z == hitToFace.getModZ() &&
+                        (diff.y > 1 || (diff.y == 1 && railDirection != hitToFace))) {
+                    return false;
+                }
             }
         }
 
