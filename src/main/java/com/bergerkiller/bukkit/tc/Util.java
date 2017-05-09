@@ -10,8 +10,6 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import com.bergerkiller.reflection.FieldAccessor;
-import com.bergerkiller.reflection.MethodAccessor;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
@@ -36,14 +34,11 @@ public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
-    private static final FieldAccessor<Object> blockMaterial = NMSBlock.material;
-    private static final MethodAccessor<Boolean> materialBuildable = NMSMaterial.materialBuildable;
-    private static final FieldAccessor<Integer> itemMaxSizeField = NMSItem.maxStackSize;
     private static BlockFace[] possibleFaces = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
     private static List<Block> blockbuff = new ArrayList<Block>();
 
     public static void setItemMaxSize(Material material, int maxstacksize) {
-        itemMaxSizeField.set(Conversion.toItemHandle.convert(material), maxstacksize);
+        NMSItem.maxStackSize.set(Conversion.toItemHandle.convert(material), maxstacksize);
     }
 
     /**
@@ -532,11 +527,11 @@ public class Util {
             if (attachedHandle == null) {
                 return false;
             }
-            Object material = blockMaterial.get(attachedHandle);
+            Object material = NMSBlock.material.get(attachedHandle);
             if (material == null) {
                 return false;
             }
-            return materialBuildable.invoke(material);
+            return NMSMaterial.materialBuildable.invoke(material);
         }
         // For all other cases, check whether the side is properly supported
         return isSupportedFace(attached, attachedFace.getOppositeFace());

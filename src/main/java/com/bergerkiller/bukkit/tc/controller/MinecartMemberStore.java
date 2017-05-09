@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.ClassMap;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
+import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
@@ -13,6 +14,8 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
+import com.bergerkiller.mountiplex.conversion.annotations.ConverterMethod;
+
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -232,9 +235,13 @@ public abstract class MinecartMemberStore {
      * @param uuid of the minecart
      * @return Minecart Member, or null if not found
      */
+    @ConverterMethod
     public static MinecartMember<?> getFromUID(UUID uuid) {
         for (org.bukkit.World world : WorldUtil.getWorlds()) {
-            MinecartMember<?> member = MemberConverter.toMember.convert(EntityUtil.getEntity(world, uuid));
+            if (TrainCarts.isWorldDisabled(world)) {
+                continue;
+            }
+            MinecartMember<?> member = getFromEntity(EntityUtil.getEntity(world, uuid));
             if (member != null && !member.isUnloaded()) {
                 return member;
             }
@@ -242,8 +249,26 @@ public abstract class MinecartMemberStore {
         return null;
     }
 
-    public static MinecartMember<?> get(Object o) {
-        return MemberConverter.toMember.convert(o);
+    /**
+     * Checks whether a given Entity is a TrainCarts Minecart, and if so, returns the MinecartMember controller
+     * 
+     * @param entity to check
+     * @return minecart member controller, or null if not a TrainCarts minecart
+     */
+    @ConverterMethod
+    public static MinecartMember<?> getFromEntity(org.bukkit.entity.Entity entity) {
+        if (entity instanceof Minecart) {
+            EntityController<?> controller = CommonEntity.get((Minecart) entity).getController();
+            if (controller instanceof MinecartMember) {
+                MinecartMember<?> result = (MinecartMember<?>) controller;
+                if (result.isUnloaded()) {
+                    return null;
+                } else {
+                    return result;
+                }
+            }
+        }
+        return null;
     }
 
     public static MinecartMember<?> getAt(Block block) {
@@ -257,7 +282,7 @@ public abstract class MinecartMemberStore {
             MinecartMember<?> result = null;
             // find member in chunk
             for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(chunk)) {
-                if ((mm = get(entity)) != null) {
+                if ((mm = getFromEntity(entity)) != null) {
                     if (mm.getEntity().loc.x.chunk() != coord.x) continue;
                     if (mm.getEntity().loc.y.chunk() != coord.y) continue;
                     if (mm.getEntity().loc.z.chunk() != coord.z) continue;
@@ -288,28 +313,26 @@ public abstract class MinecartMemberStore {
     }
 
     public static MinecartMember<?> getAt(Location at, MinecartGroup in, double searchRadius) {
-        if (at == null) {
+        if (at == null || TrainCarts.isWorldDisabled(at.getWorld())) {
             return null;
         }
         MinecartMember<?> result = null;
         final double distSquared = searchRadius * searchRadius;
         for (org.bukkit.entity.Entity e : WorldUtil.getNearbyEntities(at, searchRadius, searchRadius, searchRadius)) {
-            if (e instanceof Minecart) {
-                MinecartMember<?> mm = get(e);
-                if (mm == null) {
-                    continue;
-                }
-                if (in != null && mm.getGroup() != in) {
-                    continue;
-                }
-                if (mm.getEntity().loc.distanceSquared(at) > distSquared) {
-                    continue;
-                }
-                result = mm;
-                // If heading (moving) towards the point, instantly return it
-                if (mm.isHeadingTo(at)) {
-                    return result;
-                }
+            MinecartMember<?> mm = getFromEntity(e);
+            if (mm == null) {
+                continue;
+            }
+            if (in != null && mm.getGroup() != in) {
+                continue;
+            }
+            if (mm.getEntity().loc.distanceSquared(at) > distSquared) {
+                continue;
+            }
+            result = mm;
+            // If heading (moving) towards the point, instantly return it
+            if (mm.isHeadingTo(at)) {
+                return result;
             }
         }
         return result;

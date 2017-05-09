@@ -320,7 +320,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {
-        MinecartMember<?> member = MinecartMemberStore.get(entity);
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
         if (member != null) {
             return this.isCollisionIgnored(member);
         }

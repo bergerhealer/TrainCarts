@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.controller.MemberConverter;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -22,7 +21,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
-import com.bergerkiller.reflection.SafeMethod;
+import com.bergerkiller.mountiplex.reflection.SafeMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
 import com.bergerkiller.reflection.net.minecraft.server.NMSEntityMinecart;
 import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
@@ -76,7 +75,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        MinecartMember<?> vehicle = MemberConverter.toMember.convert(event.getPlayer().getVehicle());
+        MinecartMember<?> vehicle = MinecartMemberStore.getFromEntity(event.getPlayer().getVehicle());
         if (vehicle != null && !vehicle.isPlayerTakable()) {
             vehicle.ignoreNextDie();
             // Eject the player before proceeding to the saving
@@ -108,7 +107,7 @@ public class TCListener implements Listener {
             // Double-check
             for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
                 if (entity instanceof Minecart) {
-                    MinecartMember<?> member = MinecartMemberStore.get(entity);
+                    MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
                     if (member == null || !member.isInteractable()) {
                         continue;
                     }
@@ -192,7 +191,7 @@ public class TCListener implements Listener {
             if (event.getEntity().isDead()) {
                 OfflineGroupManager.removeMember(event.getEntity().getUniqueId());
             } else {
-                MinecartMember<?> member = MinecartMemberStore.get(event.getEntity());
+                MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());
                 if (member == null) {
                     return;
                 }
@@ -221,7 +220,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleEnter(VehicleEnterEvent event) {
-        MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getVehicle());
         if (member == null) {
             return;
         }
@@ -279,7 +278,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleExit(VehicleExitEvent event) {
-        MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(event.getVehicle());
         if (mm == null || exemptFromEjectOffset.contains(event.getExited())) {
             return;
         }
@@ -306,7 +305,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleDamage(VehicleDamageEvent event) {
-        MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(event.getVehicle());
         if (mm == null) {
             return;
         }
@@ -336,7 +335,7 @@ public class TCListener implements Listener {
             return;
         }
         try {
-            MinecartMember<?> member = MinecartMemberStore.get(event.getVehicle());
+            MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getVehicle());
             if (member != null) {
                 event.setCancelled(!member.onEntityCollision(event.getEntity()));
             }
@@ -692,7 +691,7 @@ public class TCListener implements Listener {
         if (event.isCancelled()) {
             return;
         }
-        MinecartMember<?> member = MinecartMemberStore.get(event.getEntity().getVehicle());
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity().getVehicle());
         if (member != null && member.getGroup().isTeleportImmune()) {
             event.setCancelled(true);
         }

@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -24,6 +23,8 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.mountiplex.conversion.Conversion;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -157,12 +158,12 @@ public class TrainCarts extends PluginBase {
 
     public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
         try {
-            MinecartMember<?> newMinecart = MinecartMemberStore.get(newVehicle);
+            MinecartMember<?> newMinecart = MinecartMemberStore.getFromEntity(newVehicle);
             if (newMinecart != null) {
                 CartPropertiesStore.setEditing(player, newMinecart.getProperties());
             }
             // Allow exiting the current minecart
-            MinecartMember<?> entered = MinecartMemberStore.get(player.getVehicle());
+            MinecartMember<?> entered = MinecartMemberStore.getFromEntity(player.getVehicle());
             if (entered != null && !entered.getProperties().getPlayersExit()) {
                 return false;
             }
@@ -501,7 +502,7 @@ public class TrainCarts extends PluginBase {
         this.register(TCListener.class);
         this.register(RedstoneTracker.class);
         this.register("train", "cart");
-        Conversion.register(MemberConverter.toMember);
+        Conversion.registerConverters(MinecartMemberStore.class);
 
         //Load configuration
         loadConfig();

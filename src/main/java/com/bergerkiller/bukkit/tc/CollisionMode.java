@@ -84,7 +84,7 @@ public enum CollisionMode {
      */
     public boolean execute(MinecartMember<?> member, Entity entity) {
         final CommonMinecart<?> minecart = member.getEntity();
-        final MinecartMember<?> other = MinecartMemberStore.get(entity);
+        final MinecartMember<?> other = MinecartMemberStore.getFromEntity(entity);
         // Some default exception rules
         if (!member.isInteractable() || entity.isDead() || member.isCollisionIgnored(entity)) {
             return false;

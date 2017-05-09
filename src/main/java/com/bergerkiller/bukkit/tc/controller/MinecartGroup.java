@@ -146,15 +146,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return true;
     }
 
-    @Override
-    public int indexOf(Object object) {
-        MinecartMember<?> mm = MinecartMemberStore.get(object);
-        if (mm == null) {
-            return -1;
-        }
-        return super.indexOf(mm);
-    }
-
     private void addMember(MinecartMember<?> member) {
         member.setGroup(this);
         this.getBlockTracker().updatePosition();
@@ -208,10 +199,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             this.addMember(member);
         }
         return true;
-    }
-
-    public boolean contains(Object o) {
-        return super.contains(MinecartMemberStore.get(o));
     }
 
     public boolean containsIndex(int index) {

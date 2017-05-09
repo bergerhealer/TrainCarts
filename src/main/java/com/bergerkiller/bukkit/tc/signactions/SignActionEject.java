@@ -21,7 +21,7 @@ public class SignActionEject extends SignAction {
 
     @Override
     public boolean click(SignActionEvent info, Player player) {
-        MinecartMember<?> member = MinecartMemberStore.get(player.getVehicle());
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(player.getVehicle());
         if (member == null) {
             return false;
         }

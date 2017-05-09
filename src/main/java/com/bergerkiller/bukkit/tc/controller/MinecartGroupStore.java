@@ -129,7 +129,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup get(Entity e) {
-        final MinecartMember<?> mm = MinecartMemberStore.get(e);
+        final MinecartMember<?> mm = MinecartMemberStore.getFromEntity(e);
         return mm == null ? null : mm.getGroup();
     }
 

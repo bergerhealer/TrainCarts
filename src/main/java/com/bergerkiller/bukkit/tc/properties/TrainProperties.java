@@ -553,7 +553,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (!this.getColliding() || entity.isDead()) {
             return CollisionMode.CANCEL;
         }
-        MinecartMember<?> member = MinecartMemberStore.get(entity);
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
         if (member != null) {
             if (this.trainCollision == CollisionMode.LINK) {
                 if (member.getGroup().getProperties().trainCollision == CollisionMode.LINK) {
