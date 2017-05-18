@@ -737,7 +737,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Find the head using our current direction and a track iterator
         Block dest = head.getBlock();
-        double minDist = 5.0;
+        double minDist = 3.0 * TrainCarts.cartDistance;
         BlockFace minDir = BlockFace.SELF;
         BlockFace currentDir = this.getDirection();
         TrackIterator iter = new TrackIterator(currentBlock, currentDir);
@@ -750,14 +750,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Try other directions too!
-        for (BlockFace direction : directions) {
-            if (direction == currentDir) continue;
-            iter.reset(currentBlock, direction);
-            while (iter.hasNext() && iter.getCartDistance() < minDist) {
-                if (BlockUtil.equals(iter.next(), dest)) {
-                    minDist = iter.getCartDistance();
-                    minDir = direction;
-                    break;
+        if (minDir == BlockFace.SELF || minDist >= (2.0 * TrainCarts.cartDistance)) {
+            for (BlockFace direction : directions) {
+                if (direction == currentDir) continue;
+                iter.reset(currentBlock, direction);
+                while (iter.hasNext() && iter.getCartDistance() < minDist) {
+                    if (BlockUtil.equals(iter.next(), dest)) {
+                        minDist = iter.getCartDistance();
+                        minDir = direction;
+                        break;
+                    }
                 }
             }
         }

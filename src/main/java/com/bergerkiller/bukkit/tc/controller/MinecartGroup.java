@@ -49,6 +49,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private double updateSpeedFactor = 1.0;
 
     protected MinecartGroup() {
+        this.ticked.set();
     }
 
     @Override
