@@ -15,8 +15,8 @@
         <project.mcversion>v1_11_R1</project.mcversion>
         <project.serverversion>1.11.2-R0.1</project.serverversion>
         <project.bkcversion>1.11.2-v2-SNAPSHOT</project.bkcversion>
-        <project.slversion>1.11.2-v1</project.slversion>
-        <project.mwversion>1.11.2-v1</project.mwversion>
+        <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
+        <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
     </properties>
 
     <repositories>
@@ -24,6 +24,11 @@
         <repository>
           <id>spigot-repo</id>
           <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+        </repository>
+
+        <repository>
+            <id>mgdev-repo</id>
+            <url>https://maven.mg-dev.eu</url>
         </repository>
 
         <!-- Repo for access to Objenesis -->
