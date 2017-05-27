@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 import java.util.Random;
 
+import org.bukkit.Sound;
+
 /**
  * Handles the constant playing of sounds in a minecart
  */
@@ -15,8 +17,8 @@ public class SoundLoop<T extends MinecartMember<?>> {
         this.member = member;
     }
 
-    public void play(String soundName, float pitch, float volume) {
-        this.member.getEntity().makeSound(soundName, volume, pitch);
+    public void play(Sound sound, float pitch, float volume) {
+        this.member.getEntity().makeSound(sound, volume, pitch);
     }
 
     public void onTick() {
