@@ -48,19 +48,53 @@ public abstract class RailTypeHorizontal extends RailType {
         hitFace = FaceUtil.getDirection(hitBlock, posBlock, false);
         final BlockFace hitToFace = hitFace.getOppositeFace();
         if (posBlock.getY() == hitBlock.getY()) {
-            // If the hit face is not a valid direction to go to, ignore it
+            // If the hit face is not a valid direction to go to, ignore it, except if this rail is sub-cardinal
             int dx = hitBlock.getX() - posBlock.getX();
             int dz = hitBlock.getZ() - posBlock.getZ();
             if (Math.abs(dx) > 0 && Math.abs(dz) > 0) {
-                // CANCEL: we hit a corner block
-                return false;
-            }
-            BlockFace[] possible = this.getPossibleDirections(railsBlock);
-            if (!LogicUtil.contains(hitToFace, possible)) {
-                // CANCEL: we hit a block that is not an end-direction
-                return false;
+                BlockFace railDir = this.getDirection(railsBlock);
+                if (FaceUtil.isSubCardinal(railDir)) {
+                    BlockFace f = FaceUtil.rotate(railDir, 2);
+                    BlockFace hitDir = null;
+
+                    // Hit a block on the outer edge of a curve
+                    // Check if there is a rail in this direction
+                    // If not, we want to collide to prevent entering this block out of the curve
+                    if (f.getModX() == dx && f.getModZ() == dz) {
+                        hitDir = FaceUtil.rotate(railDir, 3);
+                    } else if (f.getModX() == -dx && f.getModZ() == -dz) {
+                        hitDir = FaceUtil.rotate(railDir, -3);
+                    }
+                    if (hitDir != null) {
+                        // Check if there is rails in the next direction of the current rail
+                        // If not, then we would go into the block diagonally as nothing re-routes it
+                        // If there is, and the rails direct the cart into the block, prevent it as well
+                        Block dirBlock = railsBlock.getRelative(hitDir);
+                        RailType dirRail = RailType.getType(dirBlock);
+                        if (dirRail != RailType.NONE) {
+                            Block nextPosBlock = dirRail.getNextPos(dirBlock, hitDir);
+                            if (nextPosBlock != null) {
+                                nextPosBlock = dirRail.findMinecartPos(nextPosBlock);
+                            }
+                            if (nextPosBlock != null && hitBlock.equals(nextPosBlock)) {
+                                return true; // will enter the block, prevent with collision
+                            }
+                        } else {
+                            return true; // no rails here, will enter the block, prevent with collision
+                        }
+                    }
+                    return false; // cancel the collision
+                }
+            } else {
+                // Hit the block head-on or is on the side of the rails
+                BlockFace[] possible = this.getPossibleDirections(railsBlock);
+                if (!LogicUtil.contains(hitToFace, possible)) {
+                    // CANCEL: we hit a block that is not an end-direction
+                    return false;
+                }
             }
         }
+
         if (member.isOnSlope()) {
             // Cancel collisions with blocks two above this sloped rail
             if (hitBlock.getX() == posBlock.getX() && hitBlock.getZ() == posBlock.getZ()) {
