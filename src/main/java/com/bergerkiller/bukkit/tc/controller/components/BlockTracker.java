@@ -112,7 +112,7 @@ public abstract class BlockTracker {
 
                 // Remove all the signs that are now inactive
                 for (TrackedSign old : blockBuffer) {
-                    activeSigns.remove(old);
+                    activeSigns.remove(old.signBlock);
                     onSignChange(old, false);
                 }
             }
