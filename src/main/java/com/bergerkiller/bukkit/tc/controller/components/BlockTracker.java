@@ -10,13 +10,17 @@ import java.util.*;
  * Keeps track of the active rails, signs and detector regions
  */
 public abstract class BlockTracker {
-    protected static final Set<Block> blockBuffer = new HashSet<>();
-    protected final Set<Block> activeSigns = new LinkedHashSet<>();
+    protected static final Set<TrackedSign> blockBuffer = new HashSet<TrackedSign>();
+    protected final Map<Block, TrackedSign> activeSigns = new LinkedHashMap<Block, TrackedSign>();
     protected final List<DetectorRegion> detectorRegions = new ArrayList<>(0);
     protected final ToggledState needsUpdate = new ToggledState();
 
+    public Collection<TrackedSign> getActiveTrackedSigns() {
+        return Collections.unmodifiableCollection(activeSigns.values());
+    }
+
     public Collection<Block> getActiveSigns() {
-        return Collections.unmodifiableSet(activeSigns);
+        return Collections.unmodifiableSet(activeSigns.keySet());
     }
 
     public Collection<DetectorRegion> getActiveDetectorRegions() {
@@ -24,7 +28,7 @@ public abstract class BlockTracker {
     }
 
     public boolean containsSign(Block signblock) {
-        return signblock != null && activeSigns.contains(signblock);
+        return signblock != null && activeSigns.containsKey(signblock);
     }
 
     public boolean hasSigns() {
@@ -36,7 +40,7 @@ public abstract class BlockTracker {
      */
     public void clear() {
         if (!activeSigns.isEmpty()) {
-            for (Block signBlock : activeSigns) {
+            for (TrackedSign signBlock : activeSigns.values()) {
                 onSignChange(signBlock, false);
             }
             activeSigns.clear();
@@ -63,8 +67,9 @@ public abstract class BlockTracker {
      * @return True if the Block was removed, False if not
      */
     public boolean removeSign(Block signBlock) {
-        if (activeSigns.remove(signBlock)) {
-            onSignChange(signBlock, false);
+        TrackedSign sign = activeSigns.remove(signBlock);
+        if (sign != null) {
+            onSignChange(sign, false);
             return true;
         } else {
             return false;
@@ -79,13 +84,13 @@ public abstract class BlockTracker {
      */
     public abstract boolean isOnRails(Block railsBlock);
 
-    protected abstract void onSignChange(Block signblock, boolean active);
+    protected abstract void onSignChange(TrackedSign signblock, boolean active);
 
-    protected void updateActiveSigns(Collection<Block> newActiveSigns) {
+    protected void updateActiveSigns(Collection<TrackedSign> newActiveSigns) {
         if (newActiveSigns.isEmpty()) {
             // Only remove old signs
             if (!activeSigns.isEmpty()) {
-                for (Block oldActiveSign : activeSigns) {
+                for (TrackedSign oldActiveSign : activeSigns.values()) {
                     onSignChange(oldActiveSign, false);
                 }
                 activeSigns.clear();
@@ -94,23 +99,43 @@ public abstract class BlockTracker {
             final boolean hadSigns = !activeSigns.isEmpty();
 
             // Add all the new signs
-            for (Block newActiveSign : newActiveSigns) {
-                if (activeSigns.add(newActiveSign)) {
+            for (TrackedSign newActiveSign : newActiveSigns) {
+                if (activeSigns.put(newActiveSign.signBlock, newActiveSign) == null) {
                     onSignChange(newActiveSign, true);
                 }
             }
             if (hadSigns) {
                 // Calculate all the signs that are now missing
                 blockBuffer.clear();
-                blockBuffer.addAll(activeSigns);
+                blockBuffer.addAll(activeSigns.values());
                 blockBuffer.removeAll(newActiveSigns);
 
                 // Remove all the signs that are now inactive
-                activeSigns.removeAll(blockBuffer);
-                for (Block oldActiveSign : blockBuffer) {
-                    onSignChange(oldActiveSign, false);
+                for (TrackedSign old : blockBuffer) {
+                    activeSigns.remove(old);
+                    onSignChange(old, false);
                 }
             }
+        }
+    }
+
+    public class TrackedSign {
+        public final Block signBlock;
+        public final Block railsBlock;
+
+        public TrackedSign(Block signBlock, Block railsBlock) {
+            this.signBlock = signBlock;
+            this.railsBlock = railsBlock;
+        }
+
+        @Override
+        public int hashCode() {
+            return this.signBlock.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return ((TrackedSign) o).signBlock.equals(this.signBlock);
         }
     }
 }

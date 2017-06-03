@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
-import com.bergerkiller.bukkit.common.Logging;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.Util;
@@ -23,7 +22,8 @@ import java.util.Map.Entry;
  * MinecartGroup
  */
 public class BlockTrackerGroup extends BlockTracker {
-    private static final Set<Block> groupSignBuffer = new LinkedHashSet<>();
+    private static final List<Block> signListBuffer = new ArrayList<Block>();
+    private static final Set<TrackedSign> groupSignBuffer = new LinkedHashSet<TrackedSign>();
     private final MinecartGroup owner;
     private final Map<IntVector3, MinecartMember<?>> blockSpace = new LinkedHashMap<>();
     private final ToggledState needsPositionUpdate = new ToggledState(true);
@@ -42,8 +42,8 @@ public class BlockTrackerGroup extends BlockTracker {
     }
 
     @Override
-    protected void onSignChange(Block signblock, boolean active) {
-        SignActionEvent event = new SignActionEvent(signblock, owner);
+    protected void onSignChange(TrackedSign sign, boolean active) {
+        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railsBlock, owner);
         event.setAction(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE);
         SignAction.executeAll(event);
     }
@@ -213,8 +213,13 @@ public class BlockTrackerGroup extends BlockTracker {
                     try {
                         if (type.isRail(world, pos.x, pos.y, pos.z)) {
                             Block block = pos.toBlock(world);
-                            List<Block> signs = entry.getValue().getBlockTracker().liveActiveSigns;
-                            Util.addSignsFromRails(signs, block, type.getSignColumnDirection(block));
+                            List<TrackedSign> signs = entry.getValue().getBlockTracker().liveActiveSigns;
+
+                            Util.addSignsFromRails(signListBuffer, block, type.getSignColumnDirection(block));
+                            for (Block signBlock : signListBuffer) {
+                                signs.add(new TrackedSign(signBlock, block));
+                            }
+                            signListBuffer.clear();
                         }
                     } catch (Throwable t) {
                         RailType.handleCriticalError(type, t);

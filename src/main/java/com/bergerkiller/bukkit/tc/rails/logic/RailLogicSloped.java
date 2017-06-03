@@ -60,14 +60,14 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
         // Correct the Y-coordinate for the newly moved position
         // This also makes sure we don't clip through the floor moving down a slope
-        double endY = getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()).getY();
-        entity.setPosition(entity.loc.getX(), endY, entity.loc.getZ());
+        Vector pos = getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos());
+        entity.setPosition(pos.getX(), pos.getY(), pos.getZ());
 
         // Apply velocity factors from going up/down the slope
         if (member.getGroup().getProperties().isSlowingDown()) {
             final double motLength = entity.vel.xz.length();
             if (motLength > 0) {
-                entity.vel.xz.multiply((startY - endY) * 0.05 / motLength + 1.0);
+                entity.vel.xz.multiply((startY - pos.getY()) * 0.05 / motLength + 1.0);
             }
         }
     }

@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class BlockTrackerMember extends BlockTracker {
     private final MinecartMember<?> owner;
-    protected List<Block> liveActiveSigns = new ArrayList<>();
+    protected List<TrackedSign> liveActiveSigns = new ArrayList<TrackedSign>();
 
     public BlockTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
@@ -49,8 +49,8 @@ public class BlockTrackerMember extends BlockTracker {
     }
 
     @Override
-    protected void onSignChange(Block signblock, boolean active) {
-        SignActionEvent event = new SignActionEvent(signblock, owner);
+    protected void onSignChange(TrackedSign sign, boolean active) {
+        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railsBlock, owner);
         event.setAction(active ? SignActionType.MEMBER_ENTER : SignActionType.MEMBER_LEAVE);
         SignAction.executeAll(event);
     }
@@ -66,4 +66,5 @@ public class BlockTrackerMember extends BlockTracker {
             }
         }
     }
+
 }

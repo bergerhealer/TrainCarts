@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 /**
  * Handles the rail logic of a sloped rail with a vertical rail above
@@ -34,33 +34,99 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
     }
 
     @Override
+    public boolean hasVerticalMovement() {
+        return true;
+    }
+
+    @Override
+    public double getForwardVelocity(MinecartMember<?> member) {
+        if (isVerticalHalf(member)) {
+            return member.getEntity().vel.getY() * getVertFactor(member);
+        } else {
+            return super.getForwardVelocity(member);
+        }
+    }
+
+    @Override
+    public void setForwardVelocity(MinecartMember<?> member, double force) {
+        if (isVerticalHalf(member)) {
+            member.getEntity().vel.set(0.0, force * getVertFactor(member), 0.0);
+        } else {
+            super.setForwardVelocity(member, force);
+        }
+    }
+
+    @Override
+    public void onPreMove(MinecartMember<?> member) {
+        final CommonMinecart<?> entity = member.getEntity();
+        if (entity.loc.getY() >= (member.getBlockPos().midY() + Y_POS_OFFSET)) {
+            // Vertical part
+            entity.vel.y.add(entity.vel.getX() * this.getDirection().getModX() +
+                             entity.vel.getZ() * this.getDirection().getModZ());
+
+            entity.vel.xz.setZero();
+
+            // Restrain position before move
+            entity.loc.set(this.getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()));
+        } else {
+            // Slope part
+            super.onPreMove(member);
+        }
+    }
+
+    @Override
     public void onPostMove(MinecartMember<?> member) {
         final CommonMinecart<?> entity = member.getEntity();
-        final IntVector3 block = member.getBlockPos();
+        IntVector3 railPos = member.getBlockPos();
+        double slope_move_y = entity.loc.getY() - (member.getBlockPos().midY() + Y_POS_OFFSET);
+        if (slope_move_y >= 0.0) {
+            // Restrain vertical movement to within fixed x/z
+            entity.loc.set(getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), railPos));
+        } else {
+            // We may have moved vertically downwards before
+            // Correct the x/z position of the minecart so it follows slope logic
+            if (entity.vel.getY() < 0.0) {
+                entity.loc.setX(railPos.midX() + (slope_move_y * this.getDirection().getModX()));
+                entity.loc.setZ(railPos.midZ() + (slope_move_y * this.getDirection().getModZ()));
+            }
 
-        // First: check whether the Minecart is moving up this slope
-        // If moving down, simply use the Sloped logic in the underlying super Class
-        if (member.getDirectionTo() == this.getDirection().getOppositeFace()) {
+            // Slope part
             super.onPostMove(member);
-            return;
+        }
+    }
+
+    @Override
+    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
+        // When dy >= 0.5 of block, move vertical, sloped logic will not apply
+        if (y >= (railPos.midY() + Y_POS_OFFSET)) {
+            return new Vector(railPos.midX(), y, railPos.midZ());
         }
 
-        double factor = 0.0;
-        if (this.alongZ) {
-            factor = this.getDirection().getModZ() * (block.midZ() - entity.loc.getZ());
-        } else if (this.alongX) {
-            factor = this.getDirection().getModX() * (block.midX() - entity.loc.getX());
+        // Execute default sloped logic
+        Vector pos = super.getFixedPosition(entity, x, y, z, railPos);
+
+        // When crossing the boundary to vertical, fix the x/z positions
+        if (pos.getY() >= (railPos.midY() + Y_POS_OFFSET)) {
+            pos.setX(railPos.x + 0.5);
+            pos.setZ(railPos.z + 0.5);
         }
-        double posYAdd = (0.5 - MathUtil.clamp(factor, 0.0, 0.5)) * 2.0;
-        entity.loc.y.set(block.y + posYAdd);
-        if (posYAdd >= 1.0) {
-            // Go to the vertical rail
-            entity.loc.y.add(1.0);
-            entity.loc.x.set(block.midX());
-            entity.loc.z.set(block.midZ());
-            // Turn velocity to the vertical type
-            entity.vel.y.set(entity.vel.xz.length());
-            entity.vel.xz.setZero();
+        return pos;
+    }
+
+    private static final boolean isVerticalHalf(MinecartMember<?> member) {
+        return isVerticalHalf(member.getEntity().loc.getY(), member.getBlockPos());
+    }
+
+    private static final boolean isVerticalHalf(double y, IntVector3 blockPos) {
+        return y >= (blockPos.midY() + Y_POS_OFFSET);
+    }
+
+    private final double getVertFactor(MinecartMember<?> member) {
+        BlockFace dir = member.getDirection();
+        if (FaceUtil.isVertical(dir)) {
+            return dir.getModY();
+        } else {
+            return (dir == this.getDirection()) ? 1.0 : -1.0;
         }
     }
 }

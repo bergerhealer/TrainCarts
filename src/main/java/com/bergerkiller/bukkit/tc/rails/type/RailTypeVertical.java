@@ -34,22 +34,13 @@ public class RailTypeVertical extends RailType {
 
     @Override
     public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        IntVector3 next;
         if (isRail(world, pos.x, pos.y, pos.z)) {
-            next = pos;
+            return pos;
         } else if (member.getRailTracker().getLastRailType() != RailType.VERTICAL && isRail(world, pos.x, pos.y - 1, pos.z)) {
-            next = pos.add(BlockFace.DOWN);
+            return pos.add(BlockFace.DOWN);
         } else {
             return null;
         }
-        // Check for movement from sloped to vertical, and adjust the Y-position based on that
-        RailLogic lastLogic = member.getRailTracker().getLastLogic();
-        if (lastLogic.isSloped()) {
-            if (lastLogic.getDirection() == member.getDirection().getOppositeFace()) {
-                member.getEntity().loc.setY((double) next.y + 0.95);
-            }
-        }
-        return next;
     }
 
     @Override

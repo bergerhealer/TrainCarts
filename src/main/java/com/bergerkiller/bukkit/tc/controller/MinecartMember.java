@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
+import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
@@ -1235,8 +1236,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!from.equals(to)) {
             // Execute move events
             CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
-            for (org.bukkit.block.Block sign : this.getBlockTracker().getActiveSigns()) {
-                SignAction.executeAll(new SignActionEvent(sign, this), SignActionType.MEMBER_MOVE);
+            for (TrackedSign sign : this.getBlockTracker().getActiveTrackedSigns()) {
+                SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
             }
         }
 

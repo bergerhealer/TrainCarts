@@ -49,8 +49,20 @@ public class SignActionEvent extends Event implements Cancellable {
         this.memberchecked = true;
     }
 
+    public SignActionEvent(Block signblock, Block railsBlock, MinecartMember<?> member) {
+        this(signblock, railsBlock);
+        this.member = member;
+        this.memberchecked = true;
+    }
+
     public SignActionEvent(Block signblock, MinecartGroup group) {
         this(signblock);
+        this.group = group;
+        this.memberchecked = true;
+    }
+
+    public SignActionEvent(Block signblock, Block railsBlock, MinecartGroup group) {
+        this(signblock, railsBlock);
         this.group = group;
         this.memberchecked = true;
     }
@@ -91,11 +103,7 @@ public class SignActionEvent extends Event implements Cancellable {
                     watchedFaces.add(BlockFace.UP);
                     watchedFaces.add(BlockFace.DOWN);
                 } else {
-                    Rails rails = BlockUtil.getRails(this.getRails());
-                    if (rails != null && rails.isOnSlope() && Util.isVerticalAbove(this.getRails(), rails.getDirection())) {
-                        watchedFaces.add(BlockFace.UP);
-                        watchedFaces.add(rails.getDirection().getOppositeFace());
-                    } else if (FaceUtil.isSubCardinal(this.getFacing())) {
+                    if (FaceUtil.isSubCardinal(this.getFacing())) {
                         // More advanced corner checks - NE/SE/SW/NW
                         // Use rail directions validated against sign facing to
                         // find out what directions are watched
@@ -114,6 +122,13 @@ public class SignActionEvent extends Event implements Cancellable {
                             }
                         }
                     } else {
+                        // Sloped rails also include UP/DOWN, handling from/to vertical rail movement
+                        Rails rails = BlockUtil.getRails(this.getRails());
+                        if (rails.isOnSlope()) {
+                            watchedFaces.add(BlockFace.UP);
+                            watchedFaces.add(BlockFace.DOWN);
+                        }
+
                         // Simple facing checks - NESW
                         if (this.isConnectedRails(facing)) {
                             watchedFaces.add(facing.getOppositeFace());

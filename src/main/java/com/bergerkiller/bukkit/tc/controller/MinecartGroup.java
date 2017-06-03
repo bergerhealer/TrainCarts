@@ -894,6 +894,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             for (MinecartMember<?> member : this) {
                 member.onPhysicsStart();
             }
+            this.updateDirection();
             this.getBlockTracker().refresh();
 
             // Perform block change Minecart logic, also take care of potential new block changes

@@ -29,6 +29,7 @@ public class RailLogicHorizontal extends RailLogic {
     private final BlockFace[] cartFaces;
     private final BlockFace[] faces;
     private final BlockFace[] ends;
+    protected static final double Y_POS_OFFSET = 0.0625;
 
     protected RailLogicHorizontal(BlockFace direction) {
         super(direction);
@@ -89,7 +90,7 @@ public class RailLogicHorizontal extends RailLogic {
         }
 
         // Calculate the Y-position
-        return new Vector(newLocX, (double) railPos.y + 0.0625, newLocZ);
+        return new Vector(newLocX, (double) railPos.y + Y_POS_OFFSET, newLocZ);
     }
 
     @Override
