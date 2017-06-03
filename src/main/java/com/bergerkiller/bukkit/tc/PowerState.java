@@ -3,12 +3,17 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.Diode;
+import org.bukkit.material.Lever;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.PressureSensor;
 import org.bukkit.material.Redstone;
+import org.bukkit.material.RedstoneTorch;
+import org.bukkit.material.RedstoneWire;
 
 /**
  * The way a block can be powered:<br>
@@ -60,41 +65,38 @@ public enum PowerState {
      */
     public static PowerState get(Block block, BlockFace from, boolean useSignLogic) {
         Block fromBlock = block.getRelative(from);
-        Material type = fromBlock.getType();
-
-        if (MaterialUtil.ISREDSTONETORCH.get(type)) {
+        MaterialData fromBlockData = BlockUtil.getData(fromBlock);
+        if (fromBlockData instanceof RedstoneTorch) {
             if (useSignLogic || from == BlockFace.DOWN) {
-                return type == Material.REDSTONE_TORCH_ON ? ON : OFF;
+                return ((RedstoneTorch) fromBlockData).isPowered() ? ON : OFF;
             } else {
                 return NONE;
             }
-        } else if (MaterialUtil.ISDIODE.get(type) && !FaceUtil.isVertical(from)) {
-            if ((BlockUtil.getFacing(fromBlock) != from)) {
-                return type == Material.DIODE_BLOCK_ON ? ON : OFF;
+        } else if (fromBlockData instanceof Diode && !FaceUtil.isVertical(from)) {
+            Diode diode = (Diode) fromBlockData;
+            if (diode.getFacing() != from) {
+                return diode.isPowered() ? ON : OFF;
             } else {
                 return NONE;
             }
-        } else if (type == Material.REDSTONE_WIRE) {
+        } else if (fromBlockData instanceof RedstoneWire) {
             if (useSignLogic || from == BlockFace.UP || (from != BlockFace.DOWN && !isDistracted(fromBlock, from))) {
-                return (MaterialUtil.getRawData(fromBlock) != 0) ? ON : OFF;
+                return ((RedstoneWire) fromBlockData).isPowered() ? ON : OFF;
             } else {
                 return NONE;
             }
         }
 
         // Ignore indirect power from levers, because the sign is controlling that lever
-        if (type == Material.LEVER && !useSignLogic) {
+        if (fromBlockData instanceof Lever && !useSignLogic) {
             return NONE;
         }
 
         // Power source read-out
-        if (MaterialUtil.ISPOWERSOURCE.get(type)) {
-            MaterialData dat = BlockUtil.getData(fromBlock);
-            if (dat instanceof Redstone) {
-                return ((Redstone) dat).isPowered() ? ON : OFF;
-            } else if (dat instanceof PressureSensor) {
-                return ((PressureSensor) dat).isPressed() ? ON : OFF;
-            }
+        if (fromBlockData instanceof Redstone) {
+            return ((Redstone) fromBlockData).isPowered() ? ON : OFF;
+        } else if (fromBlockData instanceof PressureSensor) {
+            return ((PressureSensor) fromBlockData).isPressed() ? ON : OFF;
         }
 
         // For signs, the block they are attached to can be powered too
@@ -138,12 +140,8 @@ public enum PowerState {
     public static boolean isSignPowered(Block signBlock, boolean inverted) {
         if (inverted) {
             for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
-                switch (PowerState.get(signBlock, face, true)) {
-                    case NONE:
-                        continue;
-                    case ON:
-                        return false; //def = false; continue;
-                    case OFF:
+                if (PowerState.get(signBlock, face, true) == PowerState.ON) {
+                    return false;
                 }
             }
             return true;
