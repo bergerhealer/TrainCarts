@@ -80,8 +80,9 @@ public class TransferSignUtil {
             }
         } else {
             // Is the parser fuel or heatable?
-            boolean heatable = RecipeUtil.isHeatableItem(parser.getItemStack(1));
-            boolean fuel = RecipeUtil.isFuelItem(parser.getType());
+            ItemStack parseritem = parser.getItemStack(1);
+            boolean heatable = RecipeUtil.isHeatableItem(parseritem);
+            boolean fuel = RecipeUtil.isFuelItem(parseritem);
             if (heatable && fuel) {
                 if (isFuelPreferred) {
                     fuels.add(parser);
@@ -296,6 +297,7 @@ public class TransferSignUtil {
                             rval.add((Dropper) state);
                         }
                     }
+                    break;
                 }
                 case GROUNDITEM: {
                     rval.add(new GroundItemsState(info.getRails(), Math.abs(radius.x)));
