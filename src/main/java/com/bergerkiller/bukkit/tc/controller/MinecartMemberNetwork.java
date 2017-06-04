@@ -200,14 +200,27 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
         }
 
+        // Velocity is used exclusively for controlling the minecart's audio level
+        // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
+        // Minecraft does not play minecart audio for the Y-axis. To make sound on vertical rails,
+        // we instead apply the vector length to just the X-axis so that this works.
+        Vector currVelocity;
+        if (member.isDerailed()) {
+            currVelocity = new Vector(0.0, 0.0, 0.0);
+        } else {
+            currVelocity = new Vector(velLive.length(), 0.0, 0.0);
+        }
+        boolean velocityChanged = velSynched.distanceSquared(currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY);
+
         // Synchronize velocity
-        if (absolute || getEntity().isVelocityChanged() || isVelocityChanged(MIN_RELATIVE_VELOCITY)) {
+        if (absolute || getEntity().isVelocityChanged() || velocityChanged) {
             // Reset dirty velocity
             getEntity().setVelocityChanged(false);
 
             // Send packets to recipients
-            velSynched.set(velLive);
-            CommonPacket velocityPacket = getVelocityPacket(velSynched.getX(), velSynched.getY(), velSynched.getZ());
+            velSynched.set(currVelocity);
+
+            CommonPacket velocityPacket = getVelocityPacket(currVelocity.getX(), currVelocity.getY(), currVelocity.getZ());
             for (Player player : velocityUpdateReceivers) {
                 PacketUtil.sendPacket(player, velocityPacket);
             }
