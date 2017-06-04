@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -65,7 +67,8 @@ public enum PowerState {
      */
     public static PowerState get(Block block, BlockFace from, boolean useSignLogic) {
         Block fromBlock = block.getRelative(from);
-        MaterialData fromBlockData = BlockUtil.getData(fromBlock);
+        BlockData fromBlockInfo = WorldUtil.getBlockData(fromBlock);
+        MaterialData fromBlockData = fromBlockInfo.newMaterialData();
         if (fromBlockData instanceof RedstoneTorch) {
             if (useSignLogic || from == BlockFace.DOWN) {
                 return ((RedstoneTorch) fromBlockData).isPowered() ? ON : OFF;
@@ -93,10 +96,12 @@ public enum PowerState {
         }
 
         // Power source read-out
-        if (fromBlockData instanceof Redstone) {
-            return ((Redstone) fromBlockData).isPowered() ? ON : OFF;
-        } else if (fromBlockData instanceof PressureSensor) {
-            return ((PressureSensor) fromBlockData).isPressed() ? ON : OFF;
+        if (fromBlockInfo.isPowerSource()) {
+            if (fromBlockData instanceof Redstone) {
+                return ((Redstone) fromBlockData).isPowered() ? ON : OFF;
+            } else if (fromBlockData instanceof PressureSensor) {
+                return ((PressureSensor) fromBlockData).isPressed() ? ON : OFF;
+            }
         }
 
         // For signs, the block they are attached to can be powered too
