@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -26,7 +27,7 @@ public class RailTypeVertical extends RailType {
     public Block findRail(Block pos) {
         if (isRail(pos)) {
             return pos;
-        } else if (isRail(pos, BlockFace.DOWN)) {
+        } else if (isRail(pos, BlockFace.DOWN) && !MaterialUtil.ISSOLID.get(pos)) {
             return pos.getRelative(BlockFace.DOWN);
         }
         return null;

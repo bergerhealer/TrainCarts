@@ -205,25 +205,40 @@ public class SignActionSpawn extends SignAction {
             if (launchDirection == BlockFace.SELF) {
                 if (modes.size() >= 2) {
                     // Centering is possible; more than one direction can be spawned
-                    if (types.centerMode == CenterMode.LEFT) {
-                        launchDirection = FaceUtil.rotate(info.getFacing(), 2);
-                    } else if (types.centerMode == CenterMode.RIGHT) {
-                        launchDirection = FaceUtil.rotate(info.getFacing(), -2);
-                    } else {
-                        types.centerMode = CenterMode.MIDDLE;
-                        launchDirection = BlockFace.SELF;
-                    }
-                    if (types.centerMode != CenterMode.MIDDLE) {
-                        int minAngle = 1000;
-                        SpawnPositions selectedMode = modes.get(0);
-                        for (SpawnPositions mode : modes) {
-                            int angle = FaceUtil.getFaceYawDifference(mode.direction, launchDirection);
-                            if (angle < minAngle) {
-                                minAngle = angle;
-                                selectedMode = mode;
-                            }
+                    if (FaceUtil.isVertical(info.getRailDirection())) {
+                        if (types.centerMode == CenterMode.LEFT) {
+                            launchDirection = BlockFace.DOWN;
+                        } else if (types.centerMode == CenterMode.RIGHT) {
+                            launchDirection = BlockFace.UP;
+                        } else {
+                            types.centerMode = CenterMode.MIDDLE;
+                            launchDirection = BlockFace.SELF;
                         }
-                        launchDirection = selectedMode.direction;
+                    } else {
+                        if (types.centerMode == CenterMode.LEFT) {
+                            launchDirection = FaceUtil.rotate(info.getFacing(), 2);
+                        } else if (types.centerMode == CenterMode.RIGHT) {
+                            launchDirection = FaceUtil.rotate(info.getFacing(), -2);
+                        } else {
+                            types.centerMode = CenterMode.MIDDLE;
+                            launchDirection = BlockFace.SELF;
+                        }
+
+                        // This is actually dead code right now.
+                        /*
+                        if (types.centerMode != CenterMode.MIDDLE) {
+                            int minAngle = 1000;
+                            SpawnPositions selectedMode = modes.get(0);
+                            for (SpawnPositions mode : modes) {
+                                int angle = FaceUtil.getFaceYawDifference(mode.direction, launchDirection);
+                                if (angle < minAngle) {
+                                    minAngle = angle;
+                                    selectedMode = mode;
+                                }
+                            }
+                            launchDirection = selectedMode.direction;
+                        }
+                        */
                     }
                 } else {
                     // Centering not possible. Restrict to one mode only.
@@ -256,31 +271,55 @@ public class SignActionSpawn extends SignAction {
                 }
             } else {
                 // Spawn direction from center mode. Default to the launch direction.
-                BlockFace spawnDirection = launchDirection;
-                if (types.centerMode == CenterMode.LEFT) {
-                    spawnDirection = FaceUtil.rotate(info.getFacing(), 2);
-                } else if (types.centerMode == CenterMode.RIGHT) {
-                    spawnDirection = FaceUtil.rotate(info.getFacing(), -2);
-                }
-
-                // Figure out the best direction to spawn in and take over those locations
-                // This defaults to the longest ([0]), and favors the direction in which we launch
                 SpawnPositions selectedMode = modes.get(0);
-                int minAngle = 1000;
-                for (SpawnPositions mode : modes) {
-                    if (mode.locs.size() < types.types.size()) {
-                        if (mode.direction == launchDirection) {
-                            launchDirection = BlockFace.SELF; // invalidate, cant launch there
-                        }
-                        continue;
+                BlockFace spawnDirection = launchDirection;
+                if (FaceUtil.isVertical(info.getRailDirection())) {
+                    // Up/down of the sign
+                    if (types.centerMode == CenterMode.LEFT) {
+                        spawnDirection = BlockFace.DOWN;
+                    } else if (types.centerMode == CenterMode.RIGHT) {
+                        spawnDirection = BlockFace.UP;
                     }
 
-                    int angle = FaceUtil.getFaceYawDifference(mode.direction, spawnDirection);
-                    if (angle < minAngle && mode.locs.size() >= types.types.size()) {
-                        minAngle = angle;
-                        selectedMode = mode;
+                    for (SpawnPositions mode : modes) {
+                        if (mode.locs.size() < types.types.size()) {
+                            if (mode.direction == launchDirection) {
+                                launchDirection = BlockFace.SELF; // invalidate, cant launch there
+                            }
+                            continue;
+                        }
+
+                        if (mode.direction == spawnDirection && mode.locs.size() >= types.types.size()) {
+                            selectedMode = mode;
+                        }
+                    }
+                } else {
+                    // Left/right of the sign
+                    if (types.centerMode == CenterMode.LEFT) {
+                        spawnDirection = FaceUtil.rotate(info.getFacing(), 2);
+                    } else if (types.centerMode == CenterMode.RIGHT) {
+                        spawnDirection = FaceUtil.rotate(info.getFacing(), -2);
+                    }
+
+                    // Figure out the best direction to spawn in and take over those locations
+                    // This defaults to the longest ([0]), and favors the direction in which we launch
+                    int minAngle = 1000;
+                    for (SpawnPositions mode : modes) {
+                        if (mode.locs.size() < types.types.size()) {
+                            if (mode.direction == launchDirection) {
+                                launchDirection = BlockFace.SELF; // invalidate, cant launch there
+                            }
+                            continue;
+                        }
+
+                        int angle = FaceUtil.getFaceYawDifference(mode.direction, spawnDirection);
+                        if (angle < minAngle && mode.locs.size() >= types.types.size()) {
+                            minAngle = angle;
+                            selectedMode = mode;
+                        }
                     }
                 }
+
                 spawnLocations.addAll(selectedMode.locs);
 
                 // Invalidated launch direction? Use spawn direction instead.
