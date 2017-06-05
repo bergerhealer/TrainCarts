@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.utils;
 import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+
 import org.bukkit.Location;
 import org.bukkit.Sound;
 
@@ -113,7 +114,7 @@ public class Effect {
                 continue;
             }
             org.bukkit.Effect effect = ParseUtil.parseEnum(org.bukkit.Effect.class, name, null);
-            if (effect != null) {
+            if (effect != null && !effect.toString().toUpperCase(Locale.ENGLISH).endsWith("_BREAK")) {
                 play(location, effect, 0);
                 continue;
             }
