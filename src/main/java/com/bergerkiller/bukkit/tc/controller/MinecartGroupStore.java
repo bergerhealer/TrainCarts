@@ -112,7 +112,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             boolean first = expression.startsWith("*");
             boolean last = expression.endsWith("*");
             for (MinecartGroup group : groups) {
-                if (group.getProperties().matchName(elements, first, last)) {
+                if (group.getProperties().isTrainRenamed() && group.getProperties().matchName(elements, first, last)) {
                     rval.add(group);
                 }
             }
