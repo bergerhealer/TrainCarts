@@ -778,7 +778,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (this.entity.isDead()) {
             return false;
         }
-        if (damagesource == DamageSource.FIREWORKS) {
+        if (damagesource.toString().equals("fireworks")) {
             return false; // Ignore firework damage (used for cosmetics)
         }
         final Entity damager = damagesource.getEntity();
