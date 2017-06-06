@@ -18,6 +18,7 @@ import org.bukkit.block.Sign;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SignActionSwitcher extends SignAction {
@@ -107,15 +108,28 @@ public class SignActionSwitcher extends SignAction {
 
             int counter = 0;
             Direction dir = Direction.NONE;
+            boolean foundDirection = false;
             for (DirectionStatement stat : statements) {
                 if ((stat.hasNumber() && (counter += stat.number) > currentcount)
                         || (doCart && stat.has(info, info.getMember()))
                         || (doTrain && stat.has(info, info.getGroup()))) {
 
                     dir = stat.direction;
+                    foundDirection = true;
                     break;
                 }
             }
+            if (!foundDirection) {
+                // Check if any direction is marked "default"
+                for (DirectionStatement stat : statements) {
+                    String str = stat.text.toLowerCase(Locale.ENGLISH);
+                    if (str.equals("def") || str.equals("default")) {
+                        dir = stat.direction;
+                        break;
+                    }
+                }
+            }
+
             info.setLevers(dir != Direction.NONE);
             if (dir != Direction.NONE && info.isPowered()) {
                 //handle this direction

@@ -230,7 +230,13 @@ public class SignActionEvent extends Event implements Cancellable {
      * @param direction to set the rails to
      */
     public void setRailsTo(Direction direction) {
-        this.setRailsTo(direction.getDirection(this.getFacing()));
+        BlockFace to = direction.getDirection(this.getFacing());
+        if (direction == Direction.LEFT || direction == Direction.RIGHT) {
+            if (!this.isConnectedRails(to)) {
+                to = Direction.FORWARD.getDirection(this.getFacing());
+            }
+        }
+        this.setRailsTo(to);
     }
 
     /**
