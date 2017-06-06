@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -82,28 +80,14 @@ public class SignActionSwitcher extends SignAction {
                     break;
                 }
             }
-            Block signblock = info.getBlock();
-            while (MaterialUtil.ISSIGN.get(signblock = signblock.getRelative(BlockFace.DOWN))) {
-                Sign sign = BlockUtil.getSign(signblock);
-                if (sign == null) break;
-                boolean valid = true;
-                for (String line : sign.getLines()) {
-                    DirectionStatement stat = new DirectionStatement(line, cartDirection);
-                    if (stat.direction == Direction.NONE) {
-                        valid = false;
-                        break;
-                    } else {
-                        statements.add(stat);
-                    }
-                }
-                if (!valid) break;
-            }
+
             //parse all of the statements
             //are we going to use a counter?
             int maxcount = 0;
             int currentcount = 0;
             AtomicInteger signcounter = null;
             for (DirectionStatement stat : statements) {
+                //System.out.println(stat.toString());
                 if (stat.hasNumber()) {
                     maxcount += stat.number;
                     if (signcounter == null) {

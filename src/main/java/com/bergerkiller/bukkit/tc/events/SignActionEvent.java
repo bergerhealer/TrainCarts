@@ -469,28 +469,39 @@ public class SignActionEvent extends Event implements Cancellable {
         if (!this.hasRails()) {
             return false;
         }
-        // Get the next minecart Block position
+
+        // Move from the current rail minecart position one block into the direction
+        // Check if a rail exists there. If there is, check if it points at this rail
+        // If so, then there is a rails there!
         RailType currentType = RailType.getType(getRails());
-        if (!LogicUtil.contains(direction, currentType.getPossibleDirections(getRails()))) {
+        Block currentPos = currentType.findMinecartPos(getRails());
+        if (currentPos == null) {
             return false;
         }
-        Block posBlock = currentType.getNextPos(getRails(), direction);
-        if (posBlock == null) {
-            return false;
-        }
+        Block nextPos = currentPos.getRelative(direction);
+
+        // Find a rails at this offset position
+        Block nextRail = null;
+        RailType nextRailType = RailType.NONE;
         for (RailType type : RailType.values()) {
             try {
-                Block railsBlock = type.findRail(posBlock);
-                if (railsBlock != null) {
-                    // Check that the next block allows a connection with this Block
-                    return LogicUtil.contains(direction.getOppositeFace(), type.getPossibleDirections(railsBlock));
+                Block pos = type.findRail(nextPos);
+                if (pos != null) {
+                    nextRailType = type;
+                    nextRail = pos;
+                    break;
                 }
             } catch (Throwable t) {
                 RailType.handleCriticalError(type, t);
                 break;
             }
         }
-        return false;
+        if (nextRailType == RailType.NONE) {
+            return false;
+        }
+
+        // Find out if the direction we came from is one of the possible directions
+        return LogicUtil.contains(direction.getOppositeFace(), nextRailType.getPossibleDirections(nextRail));
     }
 
     /**

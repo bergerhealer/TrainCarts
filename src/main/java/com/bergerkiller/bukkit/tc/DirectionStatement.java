@@ -59,4 +59,13 @@ public class DirectionStatement {
     public boolean hasNumber() {
         return this.number != null;
     }
+
+    @Override
+    public String toString() {
+        if (this.number != null) {
+            return "{direction=" + this.direction + " every " + this.number.intValue() + "}";
+        } else {
+            return "{direction=" + this.direction + " when " + this.text + "}";
+        }
+    }
 }

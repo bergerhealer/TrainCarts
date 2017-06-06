@@ -924,6 +924,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Direction can change as a result of gravity
             this.updateDirection();
 
+            for (MinecartMember<?> member : this) {
+                member.updateFromDirection();
+            }
+
             if (this.size() == 1) {
                 //Simplified calculation for single carts
                 this.head().onPhysicsPostMove(1);
@@ -1026,6 +1030,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     }
                 }
             }
+
             return true;
         } catch (MemberMissingException ex) {
             return false;

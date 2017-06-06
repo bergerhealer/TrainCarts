@@ -589,6 +589,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public BlockFace getDirectionFrom() {
+        if (this.directionFrom == null) {
+            this.directionFrom = this.directionTo;
+        }
         return this.directionFrom;
     }
 
@@ -601,8 +604,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public void invalidateDirection() {
-        this.direction = this.directionTo = null;
-        this.directionFrom = BlockFace.SELF;
+        this.directionFrom = this.direction = this.directionTo = null;
     }
 
     public int getDirectionDifference(BlockFace dircomparer) {
@@ -651,10 +653,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 this.directionTo = movement;
             }
         }
-        final boolean fromInvalid = this.directionFrom == BlockFace.SELF;
-        if (fromInvalid) {
-            this.directionFrom = this.directionTo;
-        }
+
         // Obtain logic and the associated direction
         this.direction = movement;
 
@@ -675,11 +674,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             // Simply set it for other types of rails
             this.directionTo = this.direction;
-        }
-
-        // Force-update the from direction if it was invalidated
-        if (fromInvalid) {
-            this.directionFrom = this.directionTo;
         }
     }
 
@@ -1054,9 +1048,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void onBlockChange(Block from, Block to) {
         // Update from direction
         if (BlockUtil.getManhattanDistance(from, to, true) > 3) {
-            this.directionFrom = BlockFace.SELF;
-        } else {
-            this.directionFrom = this.directionTo;
+            this.directionFrom = null; // invalidate from direction - too long ago
         }
 
         // Destroy blocks
@@ -1072,6 +1064,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
+    public void updateFromDirection() {
+        this.directionFrom = this.directionTo;
+    }
+
     /**
      * Executes the block and pre-movement calculations, which handles rail information updates<br>
      * Physics stage: <b>1</b>
@@ -1085,6 +1081,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (this.collisionEnterTimer > 0) {
             this.collisionEnterTimer--;
         }
+
+        // Refresh from direction
+        this.directionFrom = this.directionTo;
 
         // Prepare
         entity.vel.fixNaN();
