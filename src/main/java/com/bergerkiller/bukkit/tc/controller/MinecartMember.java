@@ -1064,10 +1064,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    public void updateFromDirection() {
-        this.directionFrom = this.directionTo;
-    }
-
     /**
      * Executes the block and pre-movement calculations, which handles rail information updates<br>
      * Physics stage: <b>1</b>
