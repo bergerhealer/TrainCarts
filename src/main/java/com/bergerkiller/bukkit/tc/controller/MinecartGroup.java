@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.*;
@@ -41,6 +42,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
     private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
+    private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
     protected long lastSync = Long.MIN_VALUE;
     private TrainProperties prop = null;
@@ -84,6 +86,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public ActionTrackerGroup getActions() {
         return this.actionTracker;
+    }
+
+    /**
+     * Gets the Rail Tracker that keeps track of the rails this train occupies.
+     * 
+     * @return rail tracker
+     */
+    public RailTrackerGroup getRailTracker() {
+        return this.railTracker;
     }
 
     public MinecartMember<?> head(int index) {
@@ -450,6 +461,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 teleportMember(this.get(i), locations[i]);
             }
         }
+        this.getRailTracker().refresh();
         this.getBlockTracker().updatePosition();
     }
 
@@ -461,7 +473,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
         member.getEntity().teleport(location);
         member.ignoreDie.clear();
-        member.getRailTracker().refreshBlock();
     }
 
     /**
@@ -894,6 +905,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             for (MinecartMember<?> member : this) {
                 member.onPhysicsStart();
             }
+            this.getRailTracker().refresh();
             this.updateDirection();
             this.getBlockTracker().refresh();
 

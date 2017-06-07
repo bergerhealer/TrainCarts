@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
+import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
@@ -64,7 +64,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
-    private final RailTracker railTracker = new RailTracker(this);
+    private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
     private final ToggledState railActivated = new ToggledState(false);
     public boolean vertToSlope = false;
     protected MinecartGroup group;
@@ -73,7 +73,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     protected SoundLoop<?> soundLoop;
     private BlockFace direction;
     private BlockFace directionTo;
-    private BlockFace directionFrom = BlockFace.SELF;
+    private BlockFace directionFrom = null;
     private boolean ignoreAllCollisions = false;
     private int collisionEnterTimer = 0;
     private CartProperties properties;
@@ -100,7 +100,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onAttached() {
         super.onAttached();
-        this.railTracker.onAttached();
+        this.railTrackerMember.onAttached();
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.lastChunks = new ChunkArea(entity.loc.x.chunk(), entity.loc.z.chunk());
         this.currentChunks = new ChunkArea(lastChunks);
@@ -417,12 +417,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      *
      * @return the Rail Tracker
      */
-    public RailTracker getRailTracker() {
-        return this.railTracker;
+    public RailTrackerMember getRailTracker() {
+        return this.railTrackerMember;
     }
 
     public IntVector3 getBlockPos() {
-        return getRailTracker().blockPos;
+        return getRailTracker().getBlockPos();
     }
 
     /**
@@ -1084,7 +1084,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Prepare
         entity.vel.fixNaN();
         entity.last.set(entity.loc);
-        getRailTracker().refreshBlock();
     }
 
     /**

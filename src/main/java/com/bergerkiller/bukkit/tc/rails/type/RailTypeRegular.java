@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
+import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 
 import org.bukkit.Location;
@@ -112,14 +112,14 @@ public class RailTypeRegular extends RailTypeHorizontal {
             // In all other cases, we will no longer be using this (horizontal) rail.
             // If we came from a vertical rail and need to move onto a slope
             // Vertical -> Slope UP
-            RailTracker railTracker = member.getRailTracker();
-            if (railTracker.getLastRailType() == RailType.VERTICAL) {
-                IntVector3 nextPos = pos.add(railTracker.getLastLogic().getDirection());
+            RailTrackerMember railTrackerMember = member.getRailTracker();
+            if (railTrackerMember.getLastRailType() == RailType.VERTICAL) {
+                IntVector3 nextPos = pos.add(railTrackerMember.getLastLogic().getDirection());
                 BlockData blockData = WorldUtil.getBlockData(world, nextPos);
                 if (this.isRail(blockData)) {
                     // Check that the direction of the rail is correct
                     Rails rails = blockData.newMaterialData(Rails.class);
-                    BlockFace lastDirection = railTracker.getLastLogic().getDirection();
+                    BlockFace lastDirection = railTrackerMember.getLastLogic().getDirection();
                     if (rails != null && rails.isOnSlope() && rails.getDirection() == lastDirection) {
                         // We got a winner!
                         // Some position and velocity adjustment prior to moving between the types
