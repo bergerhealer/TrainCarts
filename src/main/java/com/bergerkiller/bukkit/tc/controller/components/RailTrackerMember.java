@@ -44,6 +44,10 @@ public class RailTrackerMember extends RailTracker {
         return new TrackIterator(this.rail.railsBlock, this.owner.getDirectionTo());
     }
 
+    public BlockFace getRailDirection() {
+        return this.rail.direction;
+    }
+    
     /**
      * Gets the rail type of the current tick
      *
@@ -95,7 +99,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current rail logic
      */
     public RailLogic getRailLogic() {
-        if (railLogicSnapshotted) {
+        if (this.railLogicSnapshotted && this.railLogic != null) {
             return this.railLogic;
         } else {
             return this.rail.railsType.getLogic(this.owner, this.rail.railsBlock);
@@ -108,6 +112,9 @@ public class RailTrackerMember extends RailTracker {
      * @return previous rail logic
      */
     public RailLogic getLastLogic() {
+        if (lastRailLogic == null) {
+            lastRailLogic = this.getRailLogic();
+        }
         return lastRailLogic;
     }
 
@@ -140,13 +147,19 @@ public class RailTrackerMember extends RailTracker {
         this.railLogicSnapshotted = true;
     }
 
-    public void refresh(RailInfo newInfo) {
+    public void updateLast() {
         // Store the last rail information
         this.lastRail = this.rail;
         this.lastRailLogic = this.railLogic;
+        owner.vertToSlope = false;
+    }
+
+    public void refresh(RailInfo newInfo) {
+        //System.out.println("DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
+         //          newInfo.railsBlock.getX() + " / " + newInfo.railsBlock.getY() + " / " + newInfo.railsBlock.getZ() + "]");
 
         // Gather rail information
-        owner.vertToSlope = false;
+
 
         // Refresh
         this.rail = newInfo;

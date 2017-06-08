@@ -116,13 +116,11 @@ public class TrackMovingPoint {
 
         // Figure out what kind of rail is stored at the next Block
         for (RailType type : RailType.values()) {
-            if (type == RailType.NONE) {
-                continue;
-            }
             try {
                 this.nextTrack = type.findRail(this.next);
                 if (this.nextTrack != null) {
                     // Found a next track!
+                    this.next = type.findMinecartPos(this.nextTrack);
                     this.nextRail = type;
                     this.hasNext = true;
                     break;

@@ -15,18 +15,6 @@ import org.bukkit.block.BlockFace;
 public abstract class RailTypeHorizontal extends RailType {
 
     @Override
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        // Try to find the rail at the current position or one below
-        if (isRail(world, pos.x, pos.y, pos.z)) {
-            return pos;
-        }
-        if (isRail(world, pos.x, pos.y - 1, pos.z)) {
-            return pos.add(BlockFace.DOWN);
-        }
-        return null;
-    }
-
-    @Override
     public Block findMinecartPos(Block trackBlock) {
         return trackBlock;
     }
@@ -172,6 +160,18 @@ public abstract class RailTypeHorizontal extends RailType {
         }
         if (isRail(pos, BlockFace.DOWN)) {
             return pos.getRelative(BlockFace.DOWN);
+        }
+        return null;
+    }
+
+    @Override
+    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
+        // Try to find the rail at the current position or one below
+        if (isRail(world, pos.x, pos.y, pos.z)) {
+            return pos;
+        }
+        if (isRail(world, pos.x, pos.y - 1, pos.z)) {
+            return pos.add(BlockFace.DOWN);
         }
         return null;
     }

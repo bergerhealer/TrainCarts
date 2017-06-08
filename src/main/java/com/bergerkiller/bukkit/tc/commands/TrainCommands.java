@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -39,6 +40,7 @@ public class TrainCommands {
                 prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players can enter this train: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
+            prop.getHolder().get(0).getEntity().getDataWatcher().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         } else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYEREXIT.handle(p);

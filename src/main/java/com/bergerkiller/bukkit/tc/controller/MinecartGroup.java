@@ -546,6 +546,36 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     public void updateDirection() {
         if (this.size() == 1) {
+            this.getRailTracker().refresh();
+            MinecartMember<?> member = this.head();
+            member.updateDirection(member.getRailTracker().getRailDirection());
+        } else if (this.size() > 1) {
+            int reverseCtr = 0;
+            while (true) {
+                // Update direction of individual carts
+                this.getRailTracker().refresh();
+                for (MinecartMember<?> member : this) {
+                    member.updateDirection(member.getRailTracker().getRailDirection());
+                }
+
+                // Handle train reversing (with maximum 2 attempts)
+                if (reverseCtr++ == 2) {
+                    break;
+                }
+                double fforce = 0;
+                for (MinecartMember<?> m : this) {
+                    fforce += m.getForwardForce();
+                }
+                if (fforce >= 0) {
+                    break;
+                } else {
+                    Collections.reverse(this);
+                }
+            }
+        }
+
+        /*
+        if (this.size() == 1) {
             this.get(0).updateDirectionSelf();
         } else if (this.size() > 1) {
             int reverseCtr = 0;
@@ -571,6 +601,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 }
             }
         }
+        */
     }
 
     public double getAverageForce() {
@@ -927,14 +958,18 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return false;
             }
             this.updateDirection();
-
+            //System.out.println("A: " + head().getEntity().loc.block() + "  "  + head().getDirection() + "  = " + head().getEntity().getVelocity());
             // Perform velocity updates
             for (MinecartMember<?> m : this) {
                 m.onPhysicsPreMove();
             }
 
+            //System.out.println("B: " + head().getEntity().loc.block() + "  "  + head().getDirection() + "  = " + head().getEntity().getVelocity());
+            
             // Direction can change as a result of gravity
             this.updateDirection();
+            
+            //System.out.println("C: "+ head().getEntity().loc.block() + "  "  + head().getDirection() + "  = " + head().getEntity().getVelocity());
 
             if (this.size() == 1) {
                 //Simplified calculation for single carts

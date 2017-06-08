@@ -1078,9 +1078,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             this.collisionEnterTimer--;
         }
 
-        // Refresh from direction
-        this.directionFrom = this.directionTo;
-
         // Prepare
         entity.vel.fixNaN();
         entity.last.set(entity.loc);
@@ -1183,6 +1180,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!getRailLogic().hasVerticalMovement()) {
             motY = 0.0;
         }
+
+        // Refresh last-update direction and block information
+        this.directionFrom = this.directionTo;
+        this.getRailTracker().updateLast();
 
         // Move using set motion, and perform post-move rail logic
         this.onMove(MoveType.SELF, motX, motY, motZ);

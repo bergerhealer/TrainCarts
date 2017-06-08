@@ -77,10 +77,10 @@ public class RailTypeRegular extends RailTypeHorizontal {
             }
             return currentTrack.getRelative(nextDir);
         } else if (sloped) {
-            if (railDirection == currentDirection) {
+            if (railDirection == currentDirection || currentDirection == BlockFace.UP) {
                 // Moving up the slope
                 Block above = currentTrack.getRelative(BlockFace.UP);
-                if (Util.ISVERTRAIL.get(above) && Util.getVerticalRailDirection(above) == currentDirection) {
+                if (RailType.VERTICAL.isRail(above) && (currentDirection == BlockFace.UP || Util.getVerticalRailDirection(above) == currentDirection)) {
                     // Go to vertical rails above
                     return above;
                 } else {
@@ -136,7 +136,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
                     }
                 }
             }
-            return null;
+            return super.findRail(member, world, pos);
         } else {
             // Find the rail, that'll be the end of it
             return super.findRail(member, world, pos);
@@ -155,7 +155,13 @@ public class RailTypeRegular extends RailTypeHorizontal {
     @Override
     public BlockFace[] getPossibleDirections(Block trackBlock) {
         Rails rails = BlockUtil.getRails(trackBlock);
-        return rails == null ? new BlockFace[0] : getPossibleDirections(rails.getDirection());
+        if (rails == null) {
+            return new BlockFace[0];
+        } else if (rails.isOnSlope() && Util.isVerticalAbove(trackBlock, rails.getDirection())) {
+            return new BlockFace[] { rails.getDirection().getOppositeFace(), BlockFace.UP };
+        } else {
+            return getPossibleDirections(rails.getDirection());
+        }
     }
 
     public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails) {

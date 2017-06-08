@@ -28,6 +28,11 @@ public class RailLogicAir extends RailLogic {
     }
 
     @Override
+    public double getForwardVelocity(MinecartMember<?> member) {
+        return member.getEntity().vel.length();
+    }
+
+    @Override
     public void setForwardVelocity(MinecartMember<?> member, double force) {
         if (member.isMovementControlled()) {
             // Be sure to use the direction, we are being controlled!

@@ -5,10 +5,11 @@ import java.util.ArrayList;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 
 /**
  * Uses a track iterator to keep track of the rails a train is driving on.
@@ -25,38 +26,119 @@ public class RailTrackerGroup extends RailTracker {
     }
 
     public void refresh() {
-        // This assumes the members already know about their own rails.
-
-        for (MinecartMember<?> member : this.owner) {
-            member.getRailTracker().refresh(findInfo(member));
-        }
-
-        /*
-        rails.clear();
-        if (owner.size() == 1) {
-            // Only a single minecart, there is no need to iterate the tracks
-            // All we have to do is update the current block the minecart is on
-            RailTracker tracker = owner.get(0).getRailTracker();
-            rails.add(new RailInfo(tracker.getBlock(), tracker.getRailType(), BlockFace.SELF));
-        } else if (owner.size() > 1) {
-            // Iterate the tracks from the minecart from the tail to the front
-            // If we fail to find the next minecart in the chain within a limit
-            // amount if blocks, assume the train has split at that minecart.
-
-            // First step: attempt to find the direction in order to find the other members of the train
-            
-            
-            TrackIterator iter = new TrackIterator();
-            
-            for (int i = owner.size() - 1; i >= 0; --i) {
-                
-                
-                
-                
-                
-            }
-        }
-        */
+        refreshFrom(this.owner.size() - 1);
     }
 
+    private static IntVector3 getRailPos(MinecartMember<?> member) {
+        IntVector3 block = member.getEntity().loc.block();
+        for (RailType type : RailType.values()) {
+            IntVector3 rail = type.findRail(member, member.getEntity().getWorld(), block);
+            if (rail != null) {
+                return rail;
+            }
+        }
+        return null;
+    }
+
+    private static String str(Block block) {
+        if (block == null) {
+            return "{null}";
+        }
+        return "{" + block.getX() + "/" + block.getY() + "/" + block.getZ() + "}";
+    }
+    
+    private void refreshFrom(int memberIndex) {
+        // Iterate the tracks from the minecart from the tail to the front
+        // If we fail to find the next minecart in the chain within a limit
+        // amount of blocks, assume the train has split at that minecart.
+        MinecartMember<?> tail = this.owner.get(memberIndex);
+        final RailInfo startInfo = findInfo(tail);
+
+        // Next minecart to be looking for
+        int nextMemberIndex = (memberIndex - 1);
+        if (nextMemberIndex < 0) {
+            // No next member! Train stops here.
+            tail.getRailTracker().refresh(startInfo);
+            return;
+        }
+        MinecartMember<?> nextMember = this.owner.get(nextMemberIndex);
+        IntVector3 nextPos = getRailPos(nextMember);
+        //System.out.println("FROM: " + str(startInfo.railsBlock));
+        //System.out.println("SEARCH: " + str(nextPos));
+
+        // First use the current direction we know to find the next member in the train
+        // If this fails, switch to using all possible directions of the current track
+        boolean foundNextMember = false;
+        int moveLimitCtr = 0;
+        int possibleDirIdx = 0;
+        BlockFace[] possible = null;
+        RailInfo moveInfo = startInfo;
+        while (true) {
+            if (nextPos == null) {
+                break; // member is not on a rail. Do not look for it.
+            }
+            TrackMovingPoint p = new TrackMovingPoint(moveInfo.railsBlock, moveInfo.direction);
+            if (p.hasNext()) {
+                p.next();
+                moveLimitCtr = 0;
+                while (true) {
+                    if (p.currentTrack.getX() == nextPos.x && p.currentTrack.getY() == nextPos.y && p.currentTrack.getZ() == nextPos.z) {
+                        // If we found the next member for the first time, also update the starting minecart with the correct info
+                        if (!foundNextMember) {
+                            foundNextMember = true;
+                            tail.getRailTracker().refresh(moveInfo);
+                        }
+
+                        // Refresh the next minecart with the information currently iterating at
+                        nextMember.getRailTracker().refresh(new RailInfo(p.currentTrack, p.currentRail, p.currentDirection));
+
+                        // Continue looking for more minecarts
+                        if (--nextMemberIndex < 0) {
+                            nextMember = null;
+                            break; // we're done!
+                        }
+                        moveLimitCtr = 0;
+                        nextMember = owner.get(nextMemberIndex);
+                        nextPos = getRailPos(nextMember);
+                        if (nextPos == null) {
+                            break; // member is derailed
+                        }
+                    } else if (p.hasNext() && (++moveLimitCtr) <= 6) {
+                        p.next();
+                    } else {
+                        break; // out of track
+                    }
+                }
+            } else {
+                //System.out.println("COULD NOT FIND RAILS");
+            }
+
+            // If we found a next member and iterating the track was done, quit looking
+            if (foundNextMember) {
+                break;
+            }
+
+            // Attempt to look from other directions
+            if (possible == null) {
+                possible = startInfo.railsType.getPossibleDirections(startInfo.railsBlock);
+            }
+            if (possibleDirIdx >= possible.length) {
+                break; // out of directions to try!
+            }
+            moveInfo = moveInfo.changeDirection(possible[possibleDirIdx++]);
+        }
+
+        // If we did not find the very next minecart from looking at the tail, we must refresh it
+        if (!foundNextMember) {
+            foundNextMember = true;
+            tail.getRailTracker().refresh(startInfo);
+        }
+
+        // If there are more minecarts remaining in the chain, these could not be found using the iterator
+        // We will have to disconnect these from the train later, and they have to be iterated by themselves
+        if (nextMemberIndex >= 0) {
+            //System.out.println("DISCONNECT AT " + nextMemberIndex);
+            refreshFrom(nextMemberIndex);
+        }
+    }
 }

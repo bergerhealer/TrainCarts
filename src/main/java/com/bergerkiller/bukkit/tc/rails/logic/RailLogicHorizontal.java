@@ -6,9 +6,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
 
-import org.bukkit.Bukkit;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -85,6 +83,11 @@ public class RailLogicHorizontal extends RailLogic {
         } else {
             // Curve
             double factor = 2.0 * (this.dx * (entity.loc.getX() - newLocX) + this.dz * (entity.loc.getZ() - newLocZ));
+            if (factor >= -0.001) {
+                factor = -0.001;
+            } else if (factor <= -0.999) {
+                factor = -0.999;
+            }
             newLocX += factor * this.dx;
             newLocZ += factor * this.dz;
         }
@@ -132,18 +135,62 @@ public class RailLogicHorizontal extends RailLogic {
                 }
             }
         } else if (this.curved) {
+            
+
+            BlockFace quadrant = FaceUtil.getDirection(movement, false);
+            BlockFace targetFace = this.ends[1];
+            
+            //System.out.println(this.getDirection() + " " + quadrant);
+            if (this.getDirection() == BlockFace.NORTH_EAST) {
+                if (quadrant == BlockFace.SOUTH || quadrant == BlockFace.EAST) {
+                    targetFace = this.ends[0];
+                }
+            } else if (this.getDirection() == BlockFace.SOUTH_EAST) {
+                if (quadrant == BlockFace.NORTH || quadrant == BlockFace.EAST) {
+                    targetFace = this.ends[0];
+                }
+            } else if (this.getDirection() == BlockFace.NORTH_WEST) {
+                if (quadrant == BlockFace.SOUTH || quadrant == BlockFace.WEST) {
+                    targetFace = this.ends[0];
+                }
+            } else if (this.getDirection() == BlockFace.SOUTH_WEST) {
+                if (quadrant == BlockFace.NORTH || quadrant == BlockFace.WEST) {
+                    targetFace = this.ends[0];
+                }
+            }
+            
+            //System.out.println(this.getCartDirection());
+            
+
+            //System.out.println("INDIR " + quadrant + "  TO  " + targetFace);
+            
+            
+            
+            direction = this.getCartDirection();
+            if (!LogicUtil.contains(targetFace, this.cartFaces)) {
+                direction = direction.getOppositeFace();
+            }
+
+            /*
             // Figure out which 'quadrant' of the track the minecart is in right now
             IntVector3 railPos = member.getBlockPos();
             double mx = member.getEntity().loc.getX() - railPos.midX();
             double mz = member.getEntity().loc.getZ() - railPos.midZ();
             BlockFace quadrant = FaceUtil.getDirection(mx, mz, false);
+            
+            
+            
+            
             BlockFace movementDir = FaceUtil.getDirection(movement);
+            MathUtil.getLookAtYaw(movement);
             int movementDiff = FaceUtil.getFaceYawDifference(movementDir, quadrant);
+            //int movementDiff = MathUtil.getAngleDifference((int) MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(quadrant));
 
             boolean leaveCurve = false;
             BlockFace targetFace = movementDir;
             if (quadrant == this.ends[0] || quadrant == this.ends[1]) {
                 // In the same quadrant as one of the rail ends
+
                 targetFace = quadrant;
                 if (movementDiff <= 45) { // heading out of the curve
                     leaveCurve = true;
@@ -169,6 +216,7 @@ public class RailLogicHorizontal extends RailLogic {
                         targetFace = this.ends[1];
                     }
                 }
+
             } else if (movementDiff >= 135) {
                 // Movement is towards a rail end
                 targetFace = quadrant.getOppositeFace();
@@ -186,6 +234,7 @@ public class RailLogicHorizontal extends RailLogic {
             if (leaveCurve != LogicUtil.contains(targetFace, this.cartFaces)) {
                 direction = direction.getOppositeFace();
             }
+            */
 
         } else {
             // Straight rail logic

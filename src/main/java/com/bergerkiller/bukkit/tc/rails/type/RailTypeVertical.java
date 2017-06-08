@@ -37,7 +37,10 @@ public class RailTypeVertical extends RailType {
     public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
         if (isRail(world, pos.x, pos.y, pos.z)) {
             return pos;
-        } else if (member.getRailTracker().getLastRailType() != RailType.VERTICAL && isRail(world, pos.x, pos.y - 1, pos.z)) {
+        } else if (member.getRailTracker().getLastRailType() != RailType.VERTICAL && 
+                isRail(world, pos.x, pos.y - 1, pos.z) && 
+                !MaterialUtil.ISSOLID.get(world, pos.x, pos.y, pos.z))
+        {
             return pos.add(BlockFace.DOWN);
         } else {
             return null;
@@ -77,6 +80,11 @@ public class RailTypeVertical extends RailType {
     @Override
     public BlockFace[] getPossibleDirections(Block trackBlock) {
         return new BlockFace[]{BlockFace.UP, BlockFace.DOWN};
+    }
+
+    @Override
+    public BlockFace getLeaveDirection(Block trackBlock, BlockFace enterDirection) {
+        return (enterDirection == BlockFace.UP) ? BlockFace.UP : BlockFace.DOWN;
     }
 
     @Override

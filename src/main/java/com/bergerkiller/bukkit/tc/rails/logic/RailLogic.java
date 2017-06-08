@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-import org.bukkit.Bukkit;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -102,12 +101,14 @@ public abstract class RailLogic {
      */
     public void setForwardVelocity(MinecartMember<?> member, double force) {
         final CommonEntity<?> e = member.getEntity();
+        //if (member.getIndex() == 0) System.out.println("WAS: " + e.vel + "   " + member.getDirection());
         if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
             e.vel.setX(force * FaceUtil.cos(member.getDirection()));
             e.vel.setZ(force * FaceUtil.sin(member.getDirection()));
         } else {
             e.vel.setY(force * member.getDirection().getModY());
         }
+        //if (member.getIndex() == 0) System.out.println("NOW: " + e.vel);
     }
 
     /**
