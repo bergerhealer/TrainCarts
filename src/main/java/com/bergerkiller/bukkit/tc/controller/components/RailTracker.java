@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 public class RailTracker {
 
-    protected static RailInfo findInfo(MinecartMember<?> member) {
+    protected static RailInfo findInfo(MinecartMember<?> member, boolean disconnected) {
         final IntVector3 blockPos = member.getEntity().loc.block();
         Block railsBlock = blockPos.toBlock(member.getEntity().getWorld());
 
@@ -91,7 +91,7 @@ public class RailTracker {
             }
         }
 
-        return new RailInfo(railsBlock, railType, railType.getLeaveDirection(railsBlock, direction));
+        return new RailInfo(railsBlock, railType, disconnected, railType.getLeaveDirection(railsBlock, direction));
     }
 
     public static class RailInfo {
@@ -99,11 +99,13 @@ public class RailTracker {
         public final Block railsBlock;
         public final RailType railsType;
         public final BlockFace direction;
+        public final boolean disconnected;
 
-        public RailInfo(Block railsBlock, RailType railsType, BlockFace direction) {
+        public RailInfo(Block railsBlock, RailType railsType, boolean disconnected, BlockFace direction) {
             this.railsBlock = railsBlock;
             this.railsType = railsType;
             this.direction = direction;
+            this.disconnected = disconnected;
             if (railsBlock == null) {
                 this.railsPos = new IntVector3(0, 0, 0);
             } else {
@@ -112,7 +114,7 @@ public class RailTracker {
         }
 
         public RailInfo changeDirection(BlockFace dir) {
-            return new RailInfo(railsBlock, railsType, dir);
+            return new RailInfo(railsBlock, railsType, this.disconnected, dir);
         }
     }
 }

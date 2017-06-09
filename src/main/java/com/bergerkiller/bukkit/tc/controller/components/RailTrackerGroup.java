@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.ArrayList;
 
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -26,7 +25,7 @@ public class RailTrackerGroup extends RailTracker {
     }
 
     public void refresh() {
-        refreshFrom(this.owner.size() - 1);
+        refreshFrom(this.owner.size() - 1, false);
     }
 
     private static IntVector3 getRailPos(MinecartMember<?> member) {
@@ -40,19 +39,12 @@ public class RailTrackerGroup extends RailTracker {
         return null;
     }
 
-    private static String str(Block block) {
-        if (block == null) {
-            return "{null}";
-        }
-        return "{" + block.getX() + "/" + block.getY() + "/" + block.getZ() + "}";
-    }
-    
-    private void refreshFrom(int memberIndex) {
+    private void refreshFrom(int memberIndex, boolean disconnected) {
         // Iterate the tracks from the minecart from the tail to the front
         // If we fail to find the next minecart in the chain within a limit
         // amount of blocks, assume the train has split at that minecart.
         MinecartMember<?> tail = this.owner.get(memberIndex);
-        final RailInfo startInfo = findInfo(tail);
+        final RailInfo startInfo = findInfo(tail, disconnected);
 
         // Next minecart to be looking for
         int nextMemberIndex = (memberIndex - 1);
@@ -61,10 +53,16 @@ public class RailTrackerGroup extends RailTracker {
             tail.getRailTracker().refresh(startInfo);
             return;
         }
+
+        // If derailed, skip checking the tracks for this minecart
+        if (startInfo.railsType == RailType.NONE) {
+            tail.getRailTracker().refresh(startInfo);
+            refreshFrom(nextMemberIndex, false);
+            return;
+        }
+
         MinecartMember<?> nextMember = this.owner.get(nextMemberIndex);
         IntVector3 nextPos = getRailPos(nextMember);
-        //System.out.println("FROM: " + str(startInfo.railsBlock));
-        //System.out.println("SEARCH: " + str(nextPos));
 
         // First use the current direction we know to find the next member in the train
         // If this fails, switch to using all possible directions of the current track
@@ -90,7 +88,8 @@ public class RailTrackerGroup extends RailTracker {
                         }
 
                         // Refresh the next minecart with the information currently iterating at
-                        nextMember.getRailTracker().refresh(new RailInfo(p.currentTrack, p.currentRail, p.currentDirection));
+                        nextMember.getRailTracker().refresh(new RailInfo(p.currentTrack, p.currentRail, false, 
+                                p.currentRail.getLeaveDirection(p.currentTrack, p.currentDirection)));
 
                         // Continue looking for more minecarts
                         if (--nextMemberIndex < 0) {
@@ -136,9 +135,9 @@ public class RailTrackerGroup extends RailTracker {
 
         // If there are more minecarts remaining in the chain, these could not be found using the iterator
         // We will have to disconnect these from the train later, and they have to be iterated by themselves
+        // Mark disconnected when the next rail pos is known (minecart is railed), but was not found before
         if (nextMemberIndex >= 0) {
-            //System.out.println("DISCONNECT AT " + nextMemberIndex);
-            refreshFrom(nextMemberIndex);
+            refreshFrom(nextMemberIndex, nextPos != null);
         }
     }
 }

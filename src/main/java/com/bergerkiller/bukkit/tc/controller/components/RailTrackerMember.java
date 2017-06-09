@@ -21,7 +21,7 @@ public class RailTrackerMember extends RailTracker {
 
     public RailTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
-        this.lastRail = this.rail = new RailInfo(null, RailType.NONE, BlockFace.SELF);
+        this.lastRail = this.rail = new RailInfo(null, RailType.NONE, false, BlockFace.SELF);
         this.lastRailLogic = this.railLogic = RailLogicGround.INSTANCE;
     }
 
@@ -29,7 +29,7 @@ public class RailTrackerMember extends RailTracker {
      * Refreshes the basic information with the information from the owner
      */
     public void onAttached() {
-        this.lastRail = this.rail = findInfo(this.owner);
+        this.lastRail = this.rail = findInfo(this.owner, false);
         this.lastRailLogic = this.railLogic = null;
         this.railLogicSnapshotted = false;
     }
@@ -42,6 +42,17 @@ public class RailTrackerMember extends RailTracker {
      */
     public TrackIterator getTrackIterator() {
         return new TrackIterator(this.rail.railsBlock, this.owner.getDirectionTo());
+    }
+
+    /**
+     * Gets whether the train is split up at this minecart, and the train
+     * should be separated into two smaller trains from this Minecart onwards.
+     * This is based on whether the minecart can be reached on the rails.
+     * 
+     * @return True if split up
+     */
+    public boolean isTrainSplit() {
+        return this.rail.disconnected;
     }
 
     public BlockFace getRailDirection() {
@@ -142,7 +153,7 @@ public class RailTrackerMember extends RailTracker {
     public void snapshotRailLogic() {
         this.railLogic = this.rail.railsType.getLogic(this.owner, this.rail.railsBlock);
         if (this.railLogic instanceof RailLogicVertical) {
-            this.rail = new RailInfo(this.rail.railsBlock, RailType.VERTICAL, this.rail.direction);
+            this.rail = new RailInfo(this.rail.railsBlock, RailType.VERTICAL, this.rail.disconnected, this.rail.direction);
         }
         this.railLogicSnapshotted = true;
     }
@@ -156,7 +167,7 @@ public class RailTrackerMember extends RailTracker {
 
     public void refresh(RailInfo newInfo) {
         //System.out.println("DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
-         //          newInfo.railsBlock.getX() + " / " + newInfo.railsBlock.getY() + " / " + newInfo.railsBlock.getZ() + "]");
+        //           newInfo.railsBlock.getX() + " / " + newInfo.railsBlock.getY() + " / " + newInfo.railsBlock.getZ() + "]");
 
         // Gather rail information
 

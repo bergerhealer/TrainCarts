@@ -818,9 +818,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private boolean doConnectionCheck() {
-        //Validate positions in the group
         for (int i = 0; i < this.size() - 1; i++) {
-            if (!get(i + 1).isFollowingOnTrack(get(i))) {
+            // (!get(i + 1).isFollowingOnTrack(get(i))) {
+            if (get(i).getRailTracker().isTrainSplit()) {
                 // Undo stepcount based velocity modifications
                 for (int j = i + 1; j < this.size(); j++) {
                     this.get(j).getEntity().vel.divide(this.updateSpeedFactor);

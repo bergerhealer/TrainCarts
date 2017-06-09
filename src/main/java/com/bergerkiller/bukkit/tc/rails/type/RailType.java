@@ -219,7 +219,7 @@ public abstract class RailType {
         BlockFace result = enterDirection;
         for (BlockFace possible : this.getPossibleDirections(trackBlock)) {
             int angle = FaceUtil.getFaceYawDifference(possible, enterDirection);
-            if (angle < minAngle && possible != enterDirection.getOppositeFace()) {
+            if (angle <= minAngle && possible != enterDirection.getOppositeFace()) {
                 minAngle = angle;
                 result = possible;
             }
