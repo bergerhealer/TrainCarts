@@ -86,6 +86,7 @@ public class TrainCarts extends PluginBase {
     public static boolean MinecartManiaEnabled = false;
     public static boolean MyWorldsEnabled = false;
     public static boolean parseOldSigns;
+    public static boolean targetUnnamedTrains;
     public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
     public static int tickUpdateNow = 0; // forces update ticks
     public static TrainCarts plugin;
@@ -383,6 +384,9 @@ public class TrainCarts extends PluginBase {
         for (String world : config.getList("disabledWorlds", String.class)) {
             this.disabledWorlds.add(world.toLowerCase());
         }
+
+        config.setHeader("targetUnnamedTrains", "\nAllows remote control signs to target trains without a name");
+        targetUnnamedTrains = config.get("targetUnnamedTrains", targetUnnamedTrains);
 
         //set it again
         List<String> types = config.getList("allowedBlockBreakTypes", String.class);
