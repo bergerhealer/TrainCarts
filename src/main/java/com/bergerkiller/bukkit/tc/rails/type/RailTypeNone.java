@@ -51,11 +51,6 @@ public class RailTypeNone extends RailType {
     }
 
     @Override
-    public BlockFace getLeaveDirection(Block trackBlock, BlockFace enterDirection) {
-        return enterDirection;
-    }
-
-    @Override
     public BlockFace getSignColumnDirection(Block railsBlock) {
         return BlockFace.SELF;
     }

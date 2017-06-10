@@ -206,28 +206,6 @@ public abstract class RailType {
     public abstract BlockFace[] getPossibleDirections(Block trackBlock);
 
     /**
-     * Calculates the direction a minecart would leave this rails when moving in
-     * at the direction specified. This is guaranteed to be one of the directions returned by
-     * {@link #getPossibleDirections(Block)}.
-     * 
-     * @param trackBlock the minecart moves on
-     * @param enterDirection the direction at which the minecart moves onto this rail
-     * @return the direction at which the minecart leaves the rail
-     */
-    public BlockFace getLeaveDirection(Block trackBlock, BlockFace enterDirection) {
-        int minAngle = 1000;
-        BlockFace result = enterDirection;
-        for (BlockFace possible : this.getPossibleDirections(trackBlock)) {
-            int angle = FaceUtil.getFaceYawDifference(possible, enterDirection);
-            if (angle <= minAngle && possible != enterDirection.getOppositeFace()) {
-                minAngle = angle;
-                result = possible;
-            }
-        }
-        return result;
-    }
-
-    /**
      * Gets the next Minecart Position Block while moving on this type of Rail.
      * The goal of this method is to find out where Minecarts that enter this rail
      * end up at when moving forward.<br><br>

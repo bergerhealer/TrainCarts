@@ -617,7 +617,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public void updateDirection() {
         RailTrackerMember tracker = this.getRailTracker();
-        BlockFace blockMovement = tracker.getRailType().getLeaveDirection(tracker.getBlock(), tracker.getRailDirection());
+        BlockFace blockMovement = tracker.getRailDirection();
 
         // Take care of invalid directions before continuing
         if (this.direction == null) {

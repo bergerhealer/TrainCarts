@@ -83,11 +83,6 @@ public class RailTypeVertical extends RailType {
     }
 
     @Override
-    public BlockFace getLeaveDirection(Block trackBlock, BlockFace enterDirection) {
-        return (enterDirection == BlockFace.UP) ? BlockFace.UP : BlockFace.DOWN;
-    }
-
-    @Override
     public boolean onCollide(MinecartMember<?> with, Block block, BlockFace hitFace) {
         return false;
     }

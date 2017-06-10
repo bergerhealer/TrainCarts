@@ -135,10 +135,10 @@ public class RailLogicHorizontal extends RailLogic {
         } else {
             // Straight rail logic
             // Find the right direction by tracking two 180-degree hemispheres
-            if (endDirection == raildirection) {
-                direction = raildirection;
-            } else {
+            if (endDirection == raildirection.getOppositeFace()) {
                 direction = raildirection.getOppositeFace();
+            } else {
+                direction = raildirection;
             }
         }
         return direction;
@@ -312,16 +312,22 @@ public class RailLogicHorizontal extends RailLogic {
     @Override
     public void onPreMove(MinecartMember<?> member) {
         final CommonMinecart<?> entity = member.getEntity();
-
-        // Apply velocity modifiers
         final boolean invert;
-        if (this.curved) {
-            // Invert only if heading towards the exit-direction of the curve
-            BlockFace from = member.getDirectionTo();
-            invert = (from == this.faces[0]) || (from == this.faces[1]);
-        } else {
-            // Invert only if the direction is inverted relative to cart velocity
+        if (this.isSloped() && entity.vel.xz.lengthSquared() < 0.001) {
+            // When sloped and the minecart is not moving, go down-slope
+            // This logic is important to prevent the minecart staying stuck
             invert = (entity.vel.getX() * this.dx + entity.vel.getZ() * this.dz) < 0.0;
+        } else {
+            if (this.curved) {
+                // Invert only if heading towards the exit-direction of the curve
+                BlockFace from = member.getDirectionTo();
+                invert = (from == this.faces[0]) || (from == this.faces[1]);
+            } else {
+                // Invert only if the direction is inverted relative to cart velocity
+                BlockFace from = member.getDirection();
+                double vel = from.getModX() * this.dx + from.getModZ() * this.dz;
+                invert = vel < 0.0;
+            }
         }
         final double railFactor = MathUtil.invert(MathUtil.normalize(this.dx, this.dz, entity.vel.getX(), entity.vel.getZ()), invert);
         entity.vel.set(railFactor * this.dx, 0.0, railFactor * this.dz);

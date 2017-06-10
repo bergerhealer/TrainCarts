@@ -172,7 +172,7 @@ public class RailTrackerMember extends RailTracker {
 
     public void refresh(TrackedRail newInfo) {
         //System.out.println("DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
-        //           newInfo.railsBlock.getX() + " / " + newInfo.railsBlock.getY() + " / " + newInfo.railsBlock.getZ() + "]");
+        //           newInfo.block.getX() + " / " + newInfo.block.getY() + " / " + newInfo.block.getZ() + "]");
 
         // Gather rail information
 
