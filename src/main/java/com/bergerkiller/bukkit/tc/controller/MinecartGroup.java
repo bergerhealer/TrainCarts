@@ -461,7 +461,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 teleportMember(this.get(i), locations[i]);
             }
         }
-        this.getRailTracker().refresh();
+        this.updateDirection();
         this.getBlockTracker().updatePosition();
     }
 
@@ -925,18 +925,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // Update direction and executed actions prior to updates
             this.updateDirection();
-            this.getActions().doTick();
-            for (MinecartMember<?> member : this) {
-                member.getActions().doTick();
-            }
-
-            // Perform block updates prior to doing the movement calculations
-            // First initialize all blocks and handle block change event
-            for (MinecartMember<?> member : this) {
-                member.onPhysicsStart();
-            }
-            this.getRailTracker().refresh();
-            this.updateDirection();
             this.getBlockTracker().refresh();
 
             // Perform block change Minecart logic, also take care of potential new block changes
@@ -953,22 +941,30 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
             this.getBlockTracker().refresh();
 
+            this.updateDirection();
             if (!this.doConnectionCheck()) {
                 return false;
             }
-            this.updateDirection();
-            //System.out.println("A: " + head().getEntity().loc.block() + "  "  + head().getDirection() + "  = " + head().getEntity().getVelocity());
-            // Perform velocity updates
-            for (MinecartMember<?> m : this) {
-                m.onPhysicsPreMove();
+
+            this.getActions().doTick();
+            for (MinecartMember<?> member : this) {
+                member.getActions().doTick();
             }
 
-            //System.out.println("B: " + head().getEntity().loc.block() + "  "  + head().getDirection() + "  = " + head().getEntity().getVelocity());
-            
+            this.updateDirection();
+
+            // Perform velocity updates
+            for (MinecartMember<?> member : this) {
+                member.onPhysicsStart();
+            }
+
+            // Perform velocity updates
+            for (MinecartMember<?> member : this) {
+                member.onPhysicsPreMove();
+            }
+
             // Direction can change as a result of gravity
             this.updateDirection();
-            
-            //System.out.println("C: "+ head().getEntity().loc.block() + "  "  + head().getDirection() + "  = " + head().getEntity().getVelocity());
 
             if (this.size() == 1) {
                 //Simplified calculation for single carts

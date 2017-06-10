@@ -84,7 +84,7 @@ public class ActionTracker {
     }
 
     public void doTick() {
-        if (this.hasAction() && this.actions.peek().doTick()) {
+        while (this.hasAction() && this.actions.peek().doTick()) {
             this.actions.remove();
         }
     }

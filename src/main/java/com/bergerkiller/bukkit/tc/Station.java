@@ -1,18 +1,20 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 /**
  * Represents the Station sign information
@@ -23,7 +25,6 @@ public class Station {
     private final long delay;
     private final BlockFace instruction;
     private final Direction nextDirection;
-    private final MinecartMember<?> centerCart;
     private final boolean valid;
     private final BlockFace railDirection;
     private final Block railsBlock;
@@ -33,7 +34,6 @@ public class Station {
         this.info = info;
         this.delay = ParseUtil.parseTime(info.getLine(2));
         this.nextDirection = Direction.parse(info.getLine(3));
-        this.centerCart = info.isCartSign() ? info.getMember() : info.getGroup().middle();
         this.railsBlock = info.getRails();
 
         // Vertical or horizontal rail logic
@@ -173,12 +173,54 @@ public class Station {
     }
 
     /**
-     * Gets the minecart that has to be centred above the sign
+     * Gets the minecart that has to be centered above the sign
+     *
+     * @param offset forwards into the train
+     * @return center minecart
+     */
+    public MinecartMember<?> getCenterCart(int offset) {
+        MinecartGroup group = this.info.getGroup();
+        int size = group.size();
+        if (this.info.isCartSign()) {
+            // Always use the member that triggered the sign
+            return this.info.getMember();
+        } else if ((size & 0x1) == 0x1) {
+            // Odd number of minecarts - always pick the middle one
+            int index = (int) Math.floor((double) size / 2.0);
+            if (offset != 0 && size >= 3) {
+                // Offsets are towards the sign - figure out whether that is + or -
+                Location s = this.info.getCenterLocation();
+                double d1 = group.get(index - 1).getEntity().loc.distance(s);
+                double d2 = group.get(index + 1).getEntity().loc.distance(s);
+                if (d1 < d2) {
+                    index += offset;
+                } else {
+                    index -= offset;
+                }
+            }
+            return group.get(index);
+        } else {
+            // Even number of minecarts - take one furthest away from sign
+            int mIdx1 = (int) Math.ceil((double) size / 2) - 1;
+            int mIdx2 = mIdx1 + 1;
+            Location s = this.info.getCenterLocation();
+            double d1 = group.get(mIdx1).getEntity().loc.distance(s);
+            double d2 = group.get(mIdx2).getEntity().loc.distance(s);
+            if (d1 > d2) {
+                return group.get(mIdx1 + offset);
+            } else {
+                return group.get(mIdx2 - offset);
+            }
+        }
+    }
+
+    /**
+     * Gets the minecart that has to be centered above the sign
      *
      * @return center minecart
      */
     public MinecartMember<?> getCenterCart() {
-        return this.centerCart;
+        return getCenterCart(0);
     }
 
     /**
@@ -208,14 +250,12 @@ public class Station {
      * Orders the train to center above this Station
      */
     public void centerTrain() {
-        if (!info.getGroup().getActions().hasAction() &&
-                getCenterCart().getEntity().loc.distance(info.getCenterLocation()) < 0.3)
-        {
+        CartToStationInfo stationInfo = getCartToStationInfo();
+        if (!info.getGroup().getActions().hasAction() && stationInfo.distance <= 0.01) {
             // Already in range of station, we can stop here
             info.getGroup().stop();
         } else {
             // We have to launch to get the train stopped at the station
-            CartToStationInfo stationInfo = getCartToStationInfo();
             if (stationInfo.cartDir != null) {
                 // Launch the center cart into the direction of the station
                 getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0);
@@ -235,18 +275,16 @@ public class Station {
      */
     public void launchTo(BlockFace direction, double distance) {
         double newDistance = distance;
-        BlockFace newDirection = direction;
         if (!wasCentered) {
             // Apply distance correction from center cart to station
             CartToStationInfo stationInfo = getCartToStationInfo();
             // Adjust the direction and distance
-            if (stationInfo.centerDir == direction) {
+            if (stationInfo.cartDir == direction) {
                 // Adjust the direction and distance
                 newDistance += stationInfo.distance;
-                newDirection = stationInfo.cartDir;
             }
         }
-        getCenterCart().getActions().addActionLaunch(newDirection, newDistance, TrainCarts.launchForce);
+        getCenterCart().getActions().addActionLaunch(direction, newDistance, TrainCarts.launchForce);
         this.wasCentered = false;
     }
 
@@ -255,44 +293,65 @@ public class Station {
         CartToStationInfo info = new CartToStationInfo();
         info.cartBlock = member.getBlock();
         BlockFace[] possible = RailType.getType(info.cartBlock).getPossibleDirections(info.cartBlock);
-        TrackIterator iter = new TrackIterator(null, null, (int) member.getGroup().length(), true);
-        info.distance = Integer.MAX_VALUE;
-        for (BlockFace dir : possible) {
-            iter.reset(info.cartBlock, dir);
-            if (iter.tryFind(this.info.getRails()) && iter.getCartDistance() < info.distance) {
-                info.distance = iter.getCartDistance();
-                info.cartDir = dir;
-                info.centerDir = iter.currentDirection();
+        Location centerPos = this.info.getCenterLocation();
+        Location cartPos = member.getEntity().getLocation();
+
+        info.distance = centerPos.distance(cartPos);
+        if (info.distance <= 1.0) {
+            // The minecart is very close to the goal already - no need to follow the tracks
+            // Find the cart direction that heads in the same direction
+            Vector offset = new Vector(centerPos.getX() - cartPos.getX(),
+                    centerPos.getY() - cartPos.getY(),
+                    centerPos.getZ() - cartPos.getZ());
+            offset = offset.normalize();
+
+            double minDiff = Double.MAX_VALUE;
+            info.cartDir = member.getDirectionTo();
+            for (BlockFace dir : possible) {
+                Vector diff = new Vector(offset.getX() - dir.getModX(),
+                        offset.getY() - dir.getModY(),
+                        offset.getZ() - dir.getModZ());
+                double len = diff.lengthSquared();
+                if (len < minDiff) {
+                    minDiff = len;
+                    info.cartDir = dir;
+                }
+            }
+        } else {
+            // Use a track iterator to find the rails belonging to the sign from the targeted cart
+            int trackLimit = (int) (info.distance * 1.5);
+            info.distance = Double.MAX_VALUE;
+            for (BlockFace dir : possible) {
+                TrackIterator iterator = new TrackIterator(info.cartBlock, dir, trackLimit, true);
+                if (iterator.tryFind(this.info.getRails()) && iterator.getCartDistance() < info.distance) {
+                    info.distance = iterator.getCartDistance();
+                    info.cartDir = dir;
+                }
+            }
+
+            // If found, adjust for the distance traveled on the start block
+            if (info.cartDir != null) {
+                IntVector3 blockPos = member.getEntity().loc.block();
+                double tx = (member.getEntity().loc.getX() - blockPos.midX());
+                double ty = (member.getEntity().loc.getY() - blockPos.midY());
+                double tz = (member.getEntity().loc.getZ() - blockPos.midZ());
+                info.distance -= tx * info.cartDir.getModX() + ty * info.cartDir.getModY() + tz * info.cartDir.getModZ();
+                info.distance -= 1.0;
             }
         }
-        // Adjust the distance based on member-block position
-        if (info.cartDir != null) {
-            // Adjust for the small offset of the cart from the original block
-            CommonMinecart<?> entity = member.getEntity();
-            double subX = entity.loc.getX() - (entity.loc.x.getFloor() + 0.5);
-            double subY = entity.loc.getY() - (entity.loc.y.getFloor() + 0.5);
-            double subZ = entity.loc.getZ() - (entity.loc.z.getFloor() + 0.5);
-            info.distance -= info.cartDir.getModX() * subX + info.cartDir.getModY() * subY + info.cartDir.getModZ() * subZ;
 
-            // Ignore start block and adjust the distance to be at the middle of the Block
-            if (FaceUtil.isSubCardinal(this.railDirection)) {
-                info.distance -= MathUtil.HALFROOTOFTWO;
-            } else {
-                info.distance -= 0.5;
-            }
-
-            // Adjust distance for even-count trains (center is in between two carts then!)
-            if (this.info.isTrainSign() && (member.getGroup().size() & 1) == 0) {
-                info.distance -= 0.5 * TrainCarts.cartDistance;
-            }
+        // Adjust distance for even-count trains (center is in between two carts then!)
+        if (this.info.isTrainSign() && (member.getGroup().size() & 1) == 0) {
+            Location m2 = getCenterCart(1).getEntity().getLocation();
+            info.distance -= (m2.distance(cartPos) / 2.0);
         }
+
         return info;
     }
 
     private static class CartToStationInfo {
         public Block cartBlock;
         public BlockFace cartDir;
-        public BlockFace centerDir;
         public double distance;
     }
 }

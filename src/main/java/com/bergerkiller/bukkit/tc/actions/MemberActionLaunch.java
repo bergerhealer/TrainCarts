@@ -24,6 +24,12 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         if (this.startvelocity < minVelocity) {
             this.startvelocity = minVelocity;
         }
+
+        // The world may never know why this is needed for trains >1 in size
+        // ...if you know, let me know, k?
+        if (getGroup().size() > 1) {
+            this.targetdistance += getMember().getEntity().getMovedDistance();
+        }
     }
 
     @Override
@@ -64,12 +70,10 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             }
         }
 
-        //Increment distance
-        this.distance += this.getEntity().getMovedDistance();
-
         //Reached the target distance?
         double targetvel = this.targetvelocity; // * this.getGroup().getUpdateSpeedFactor();
-        if (this.distance > this.targetdistance - 0.2) {
+        double remainingDistance = (this.targetdistance - this.distance);
+        if (remainingDistance <= 0.0) {
             // Finish with the desired end-velocity
             this.getGroup().setForwardForce(targetvel);
             return true;
@@ -81,9 +85,17 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             } else {
                 targetvel = this.startvelocity;
             }
-            targetvel = Math.max(targetvel, minVelocity);
+            if (targetvel < minVelocity) {
+                targetvel = minVelocity;
+            }
+            if (targetvel > remainingDistance) {
+                targetvel = remainingDistance;
+            }
             this.getGroup().setForwardForce(targetvel);
-            return false;
         }
+
+        //Increment distance
+        this.distance += this.getEntity().getMovedDistance();
+        return false;
     }
 }

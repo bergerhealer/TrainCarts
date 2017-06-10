@@ -627,7 +627,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             this.directionTo = FaceUtil.getFaces(blockMovement)[0];
         }
         // Obtain logic and the associated direction
-        //TODO: Shouldnt have to use a Vector here???
         this.setDirection(this.getRailLogic().getMovementDirection(this, blockMovement));
     }
 
