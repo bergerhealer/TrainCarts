@@ -5,17 +5,15 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 /**
  * Keeps track of the active rails, signs and detector regions below a
@@ -25,7 +23,6 @@ public class BlockTrackerGroup extends BlockTracker {
     private static final List<Block> signListBuffer = new ArrayList<Block>();
     private static final Set<TrackedSign> groupSignBuffer = new LinkedHashSet<TrackedSign>();
     private final MinecartGroup owner;
-    private final Map<IntVector3, MinecartMember<?>> blockSpace = new LinkedHashMap<>();
     private final ToggledState needsPositionUpdate = new ToggledState(true);
 
     public BlockTrackerGroup(MinecartGroup owner) {
@@ -50,24 +47,30 @@ public class BlockTrackerGroup extends BlockTracker {
 
     /**
      * Gets the Minecart Member part of this Group that is traveling on the
-     * rails block specified
+     * rails block specified.<br>
+     * <br>
+     * <b>Deprecated:</b> use the {@link MinecartGroup#getRailTracker()} for this instead.
      *
      * @param railsBlock to get the Minecart Member for
      * @return the Minecart Member, or null if not found
      */
+    @Deprecated
     public MinecartMember<?> getMemberFromRails(Block railsBlock) {
-        return getMemberFromRails(new IntVector3(railsBlock));
+        return owner.getRailTracker().getMemberFromRails(railsBlock);
     }
 
     /**
      * Gets the Minecart Member part of this Group that is traveling on the
-     * rails block specified
+     * rails block specified.<br>
+     * <br>
+     * <b>Deprecated:</b> use the {@link MinecartGroup#getRailTracker()} for this instead.
      *
      * @param railsBlockPosition to get the Minecart Member for
      * @return the Minecart Member, or null if not found
      */
+    @Deprecated
     public MinecartMember<?> getMemberFromRails(IntVector3 railsBlockPosition) {
-        return blockSpace.get(railsBlockPosition);
+        return owner.getRailTracker().getMemberFromRails(railsBlockPosition);
     }
 
     @Override
@@ -77,7 +80,6 @@ public class BlockTrackerGroup extends BlockTracker {
         }
         super.clear();
         detectorRegions.clear();
-        blockSpace.clear();
     }
 
     @Override
@@ -95,8 +97,9 @@ public class BlockTrackerGroup extends BlockTracker {
     }
 
     @Override
+    @Deprecated
     public boolean isOnRails(Block railsBlock) {
-        return blockSpace.containsKey(new IntVector3(railsBlock));
+        return owner.getRailTracker().isOnRails(railsBlock);
     }
 
     /**
@@ -131,101 +134,23 @@ public class BlockTrackerGroup extends BlockTracker {
         // Do all active rails, signs and detector regions have to be refreshed?
         if (needsPositionUpdate.clear()) {
 
-            // Update member block space
-            blockSpace.clear();
-            if (owner.size() == 1) {
-                MinecartMember<?> member = owner.head();
-                blockSpace.put(member.getBlockPos(), member);
-            } else {
-                int k;
-                // Go member by member, starting at the tail, ending at the head
-                for (int i = 0; i < owner.size() - 1; i++) {
-                    MinecartMember<?> member = owner.get(i);
-                    MinecartMember<?> toMember = owner.get(i + 1);
-                    IntVector3 from = member.getBlockPos();
-                    IntVector3 to = toMember.getBlockPos();
-                    IntVector3 diff = to.subtract(from);
-
-                    // Map the member to blocks in between, except 'to'
-                    blockSpace.put(from, member);
-                    if (!member.isOnSlope()) {
-                        if (diff.x == 0 && diff.z == 0) {
-                            // Along y-axis
-                            for (k = 1; k < diff.y; k++) {
-                                blockSpace.put(from.add(0, k, 0), member);
-                            }
-                            for (k = -1; k > diff.y; k--) {
-                                blockSpace.put(from.add(0, k, 0), member);
-                            }
-                            continue;
-                        } else if (diff.y == 0 && diff.x == 0) {
-                            // Along z-axis
-                            for (k = 1; k < diff.z; k++) {
-                                blockSpace.put(from.add(0, 0, k), member);
-                            }
-                            for (k = -1; k > diff.z; k--) {
-                                blockSpace.put(from.add(0, 0, k), member);
-                            }
-                            continue;
-                        } else if (diff.y == 0 && diff.z == 0) {
-                            // Along x-axis
-                            for (k = 1; k < diff.x; k++) {
-                                blockSpace.put(from.add(k, 0, 0), member);
-                            }
-                            for (k = -1; k > diff.x; k--) {
-                                blockSpace.put(from.add(k, 0, 0), member);
-                            }
-                            continue;
-                        }
-                    }
-                    // Curve or other logic - use a Block Iterator for this
-                    TrackIterator iter = toMember.getRailTracker().getTrackIterator();
-                    if (iter.hasNext()) {
-                        // Skip the first block
-                        iter.next();
-
-                        // Go and find the other blocks
-                        final int maxLength = Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z);
-                        for (k = 0; k < maxLength && iter.hasNext(); k++) {
-                            final Block block = iter.next();
-                            if (from.x == block.getX() && from.y == block.getY() && from.z == block.getZ()) {
-                                // Found the end block
-                                break;
-                            }
-                            // Put the member
-                            blockSpace.put(new IntVector3(block), member);
-                        }
-                    }
-                }
-                blockSpace.put(owner.tail().getBlockPos(), owner.tail());
-            }
-
             // First clear the live active sign buffer of all members
             for (MinecartMember<?> member : owner) {
                 member.getBlockTracker().liveActiveSigns.clear();
             }
 
             // Add all active signs to the block tracker of all members
-            World world = owner.getWorld();
-            for (Entry<IntVector3, MinecartMember<?>> entry : blockSpace.entrySet()) {
-                IntVector3 pos = entry.getKey();
-                for (RailType type : RailType.values()) {
-                    try {
-                        if (type.isRail(world, pos.x, pos.y, pos.z)) {
-                            Block block = pos.toBlock(world);
-                            List<TrackedSign> signs = entry.getValue().getBlockTracker().liveActiveSigns;
-
-                            Util.addSignsFromRails(signListBuffer, block, type.getSignColumnDirection(block));
-                            for (Block signBlock : signListBuffer) {
-                                signs.add(new TrackedSign(signBlock, block));
-                            }
-                            signListBuffer.clear();
-                        }
-                    } catch (Throwable t) {
-                        RailType.handleCriticalError(type, t);
-                        break;
-                    }
+            for (TrackedRail info : owner.getRailTracker().getRailInformation()) {
+                if (info.type == RailType.NONE) {
+                    continue;
                 }
+
+                List<TrackedSign> signs = info.member.getBlockTracker().liveActiveSigns;
+                Util.addSignsFromRails(signListBuffer, info.block, info.type.getSignColumnDirection(info.block));
+                for (Block signBlock : signListBuffer) {
+                    signs.add(new TrackedSign(signBlock, info.block));
+                }
+                signListBuffer.clear();
             }
 
             // Perform update events of sign changes

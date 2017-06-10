@@ -547,15 +547,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     public void updateDirection() {
         if (this.size() == 1) {
             this.getRailTracker().refresh();
-            MinecartMember<?> member = this.head();
-            member.updateDirection(member.getRailTracker().getRailDirection());
+            this.head().updateDirection();
         } else if (this.size() > 1) {
             int reverseCtr = 0;
             while (true) {
                 // Update direction of individual carts
                 this.getRailTracker().refresh();
                 for (MinecartMember<?> member : this) {
-                    member.updateDirection(member.getRailTracker().getRailDirection());
+                    member.updateDirection();
                 }
 
                 // Handle train reversing (with maximum 2 attempts)
@@ -808,7 +807,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
-     * Gets the Member at the block position specified
+     * Gets the Member that is on the rails block position specified
      *
      * @param position to get the member at
      * @return member at the position, or null if not found
@@ -981,7 +980,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 //Perform forward force or not? First check if we are not messing up...
                 boolean performUpdate = true;
                 for (int i = 0; i < this.size() - 1; i++) {
-                    if (!head(i + 1).isFollowingOnTrack(head(i))) {
+                    // (!head(i + 1).isFollowingOnTrack(head(i))) {
+                    if (get(i).getRailTracker().isTrainSplit()) {
                         performUpdate = false;
                         break;
                     }

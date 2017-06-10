@@ -271,35 +271,44 @@ public abstract class MinecartMemberStore {
         return null;
     }
 
+    /**
+     * Gets the Member that drives on the rails block specified
+     * 
+     * @param block of the rails
+     * @return Minecart Member that drives on this Rail Block, null if not found
+     */
     public static MinecartMember<?> getAt(Block block) {
         return getAt(block.getWorld(), new IntVector3(block));
     }
 
+    /**
+     * Gets the Member that drives on the rails block specified
+     * 
+     * @param world to look in
+     * @param coord of the rails block
+     * @return Minecart Member that drives on this Rail Block, null if not found
+     */
     public static MinecartMember<?> getAt(org.bukkit.World world, IntVector3 coord) {
         org.bukkit.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
         if (chunk != null) {
             MinecartMember<?> mm;
-            MinecartMember<?> result = null;
-            // find member in chunk
+
+            // find member in chunk (faster)
             for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(chunk)) {
                 if ((mm = getFromEntity(entity)) != null) {
-                    if (mm.getEntity().loc.x.chunk() != coord.x) continue;
-                    if (mm.getEntity().loc.y.chunk() != coord.y) continue;
-                    if (mm.getEntity().loc.z.chunk() != coord.z) continue;
-                    result = mm;
-                    if (result.isHeadingTo(coord)) return result;
+                    if (mm.getBlockPos().equals(coord)) {
+                        return mm;
+                    }
                 }
             }
-            if (result == null) {
-                // find member in all groups
-                for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {
-                    mm = group.getAt(coord);
-                    if (mm == null) continue;
-                    result = mm;
-                    if (result.isHeadingTo(coord)) return result;
-                }
+
+            // find member in all groups
+            for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {
+                if (group.getWorld() != world) continue;
+                mm = group.getAt(coord);
+                if (mm == null) continue;
+                return mm;
             }
-            return result;
         }
         return null;
     }

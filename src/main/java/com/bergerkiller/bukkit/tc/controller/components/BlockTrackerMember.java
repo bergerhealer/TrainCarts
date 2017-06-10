@@ -44,8 +44,9 @@ public class BlockTrackerMember extends BlockTracker {
     }
 
     @Override
+    @Deprecated
     public boolean isOnRails(Block railsBlock) {
-        return owner.getGroup().getBlockTracker().getMemberFromRails(railsBlock) == owner;
+        return owner.getRailTracker().isOnRails(railsBlock);
     }
 
     @Override

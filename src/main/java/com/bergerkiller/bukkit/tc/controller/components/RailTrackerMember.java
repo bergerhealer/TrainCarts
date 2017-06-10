@@ -15,13 +15,13 @@ import org.bukkit.block.BlockFace;
  */
 public class RailTrackerMember extends RailTracker {
     private final MinecartMember<?> owner;
-    private RailInfo lastRail, rail;
+    private TrackedRail lastRail, rail;
     private RailLogic lastRailLogic, railLogic;
     private boolean railLogicSnapshotted = false;
 
     public RailTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
-        this.lastRail = this.rail = new RailInfo(null, RailType.NONE, false, BlockFace.SELF);
+        this.lastRail = this.rail = new TrackedRail(owner, null, null, RailType.NONE, false, BlockFace.SELF);
         this.lastRailLogic = this.railLogic = RailLogicGround.INSTANCE;
     }
 
@@ -29,9 +29,14 @@ public class RailTrackerMember extends RailTracker {
      * Refreshes the basic information with the information from the owner
      */
     public void onAttached() {
-        this.lastRail = this.rail = findInfo(this.owner, false);
+        this.lastRail = this.rail = TrackedRail.create(this.owner, false);
         this.lastRailLogic = this.railLogic = null;
         this.railLogicSnapshotted = false;
+    }
+
+    @Override
+    public boolean isOnRails(Block railsBlock) {
+        return owner.getGroup().getRailTracker().getMemberFromRails(railsBlock) == owner;
     }
 
     /**
@@ -41,7 +46,7 @@ public class RailTrackerMember extends RailTracker {
      * @return forward track iterator
      */
     public TrackIterator getTrackIterator() {
-        return new TrackIterator(this.rail.railsBlock, this.owner.getDirectionTo());
+        return new TrackIterator(this.rail.block, this.owner.getDirectionTo());
     }
 
     /**
@@ -65,7 +70,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current rail type
      */
     public RailType getRailType() {
-        return this.rail.railsType;
+        return this.rail.type;
     }
 
     /**
@@ -74,7 +79,7 @@ public class RailTrackerMember extends RailTracker {
      * @return previous rail type
      */
     public RailType getLastRailType() {
-        return this.lastRail.railsType;
+        return this.lastRail.type;
     }
 
     /**
@@ -83,7 +88,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current block
      */
     public Block getBlock() {
-        return this.rail.railsBlock;
+        return this.rail.block;
     }
 
     /**
@@ -92,7 +97,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current rail position
      */
     public IntVector3 getBlockPos() {
-        return this.rail.railsPos;
+        return this.rail.position;
     }
 
     /**
@@ -101,7 +106,7 @@ public class RailTrackerMember extends RailTracker {
      * @return previous block
      */
     public Block getLastBlock() {
-        return this.lastRail.railsBlock;
+        return this.lastRail.block;
     }
 
     /**
@@ -113,7 +118,7 @@ public class RailTrackerMember extends RailTracker {
         if (this.railLogicSnapshotted && this.railLogic != null) {
             return this.railLogic;
         } else {
-            return this.rail.railsType.getLogic(this.owner, this.rail.railsBlock);
+            return this.rail.type.getLogic(this.owner, this.rail.block);
         }
     }
 
@@ -135,8 +140,8 @@ public class RailTrackerMember extends RailTracker {
      * @return True if the block changed, False if not
      */
     public boolean hasBlockChanged() {
-        Block a = lastRail.railsBlock;
-        Block b = rail.railsBlock;
+        Block a = lastRail.block;
+        Block b = rail.block;
         return a.getX() != b.getX() || a.getY() != b.getY() || a.getZ() != b.getZ();
     }
 
@@ -151,9 +156,9 @@ public class RailTrackerMember extends RailTracker {
      * Creates a snapshot of the Rail Logic for the entire next run
      */
     public void snapshotRailLogic() {
-        this.railLogic = this.rail.railsType.getLogic(this.owner, this.rail.railsBlock);
+        this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block);
         if (this.railLogic instanceof RailLogicVertical) {
-            this.rail = new RailInfo(this.rail.railsBlock, RailType.VERTICAL, this.rail.disconnected, this.rail.direction);
+            this.rail = new TrackedRail(this.rail.member, this.rail.minecartBlock, this.rail.block, RailType.VERTICAL, this.rail.disconnected, this.rail.direction);
         }
         this.railLogicSnapshotted = true;
     }
@@ -165,7 +170,7 @@ public class RailTrackerMember extends RailTracker {
         owner.vertToSlope = false;
     }
 
-    public void refresh(RailInfo newInfo) {
+    public void refresh(TrackedRail newInfo) {
         //System.out.println("DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
         //           newInfo.railsBlock.getX() + " / " + newInfo.railsBlock.getY() + " / " + newInfo.railsBlock.getZ() + "]");
 

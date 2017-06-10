@@ -104,7 +104,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.lastChunks = new ChunkArea(entity.loc.x.chunk(), entity.loc.z.chunk());
         this.currentChunks = new ChunkArea(lastChunks);
-        this.updateDirectionSelf();
+        this.updateDirection();
     }
 
     @Override
@@ -615,7 +615,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return this.getDirectionDifference(comparer.getDirection());
     }
 
-    public void updateDirection(BlockFace blockMovement) {
+    public void updateDirection() {
+        RailTrackerMember tracker = this.getRailTracker();
+        BlockFace blockMovement = tracker.getRailType().getLeaveDirection(tracker.getBlock(), tracker.getRailDirection());
+
         // Take care of invalid directions before continuing
         if (this.direction == null) {
             this.direction = blockMovement;
@@ -626,18 +629,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Obtain logic and the associated direction
         //TODO: Shouldnt have to use a Vector here???
         this.setDirection(this.getRailLogic().getMovementDirection(this, blockMovement));
-    }
-
-    public void updateDirection(Vector movement) {
-        // Take care of invalid directions before continuing
-        if (this.direction == null) {
-            this.direction = FaceUtil.getDirection(movement);
-        }
-        if (this.directionTo == null) {
-            this.directionTo = FaceUtil.getDirection(movement, false);
-        }
-        // Obtain logic and the associated direction
-        //this.setDirection(this.getRailLogic().getMovementDirection(this, movement));
     }
 
     public void setDirection(BlockFace movement) {
@@ -673,96 +664,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             // Simply set it for other types of rails
             this.directionTo = this.direction;
-        }
-    }
-
-    /**
-     * Uses its own velocity to figure out the direction of movement.
-     */
-    public void updateDirectionSelf() {
-        this.updateDirection(this.entity.getVelocity());
-    }
-
-    /**
-     * Uses the difference in position between this member and the head to
-     * follow the member in front.
-     * 
-     * @param head relative to which to find the direction
-     */
-    public void updateDirectionFollowRelative(MinecartMember<?> head) {
-        this.updateDirection(this.entity.last.offsetTo(head.entity.last));
-    }
-
-    /**
-     * Uses the difference in position between this member and its head to
-     * follow forwards in front of the tail
-     * 
-     * @param tail to follow in front of
-     */
-    public void updateDirectionFromBehind(MinecartMember<?> tail) {
-        this.updateDirection(tail.entity.last.offsetTo(this.entity.last));
-    }
-
-    /**
-     * Updates the direction of this member to follow the member in front.
-     * 
-     * @param head to follow
-     */
-    public void updateDirectionFollow(MinecartMember<?> head) {
-        // When no rails are available, use relative position to figure it out
-        if (this.isDerailed() || head.isDerailed()) {
-            updateDirectionFollowRelative(head);
-            return;
-        }
-
-        // When both self and head occupy the same block, simply take over the same direction
-        if (this.getBlockPos().equals(head.getBlockPos())) {
-            this.setDirection(head.getDirection());
-            return;
-        }
-
-        // Find possible directions our current rail takes us
-        Block currentBlock = this.getBlock();
-        BlockFace[] directions = this.getRailType().getPossibleDirections(currentBlock);
-        if (directions.length == 0) { // should never happen
-            this.updateDirectionFollowRelative(head);
-            return;
-        }
-
-        // Find the head using our current direction and a track iterator
-        Block dest = head.getBlock();
-        double minDist = 3.0 * TrainCarts.cartDistance;
-        BlockFace minDir = BlockFace.SELF;
-        BlockFace currentDir = this.getDirection();
-        TrackIterator iter = new TrackIterator(currentBlock, currentDir);
-        while (iter.hasNext() && iter.getCartDistance() < minDist) {
-            if (BlockUtil.equals(iter.next(), dest)) {
-                minDist = iter.getCartDistance();
-                minDir = currentDir;
-                break;
-            }
-        }
-
-        // Try other directions too!
-        if (minDir == BlockFace.SELF || minDist >= (2.0 * TrainCarts.cartDistance)) {
-            for (BlockFace direction : directions) {
-                if (direction == currentDir) continue;
-                iter.reset(currentBlock, direction);
-                while (iter.hasNext() && iter.getCartDistance() < minDist) {
-                    if (BlockUtil.equals(iter.next(), dest)) {
-                        minDist = iter.getCartDistance();
-                        minDir = direction;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // If not found, resolve to using relative position
-        if (minDir == BlockFace.SELF) {
-            this.updateDirectionFollowRelative(head);
-        } else {
-            this.updateDirection(minDir);
         }
     }
 
