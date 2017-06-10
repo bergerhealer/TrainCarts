@@ -80,6 +80,15 @@
             <version>${project.bkcversion}</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Need this to resolve a class in BKCommonLib, is fixed in later BKC versions -->
+        <dependency>
+            <groupId>net.sf.trove4j</groupId>
+            <artifactId>trove4j</artifactId>
+            <version>3.0.3</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
