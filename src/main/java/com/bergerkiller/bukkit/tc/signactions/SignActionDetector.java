@@ -26,22 +26,51 @@ import java.util.Set;
 import java.util.UUID;
 
 public class SignActionDetector extends SignAction {
-    private static BlockMap<DetectorSignPair> detectors = new BlockMap<>();
+    public static final SignActionDetector INSTANCE = new SignActionDetector();
+    private final BlockMap<DetectorSignPair> detectors = new BlockMap<>();
 
-    public static void removeDetector(Block at) {
-        DetectorSignPair dec = detectors.get(at);
-        if (dec != null) {
-            detectors.remove(at.getWorld(), dec.sign1.getLocation());
-            detectors.remove(at.getWorld(), dec.sign2.getLocation());
-            dec.region.remove();
+    @Override
+    public boolean match(SignActionEvent info) {
+        return info != null && info.getMode() != SignActionMode.NONE && info.isType("detect");
+    }
+
+    /**
+     * Matches the sign to check that it is indeed a detector sign. If labels are used on either
+     * sign, then the labels must match as well. If label is null, but the sign has a label, then
+     * the signs do not match.
+     * 
+     * @param info sign information
+     * @param label to match, null to not check for this label
+     * @return True if the sign is a detector sign with the same label
+     */
+    public boolean matchLabel(SignActionEvent info, String label) {
+        if (!match(info)) {
+            return false;
         }
+        String otherLabel = getLabel(info);
+        return (label == null) ? (otherLabel == null) : label.equalsIgnoreCase(otherLabel);
     }
 
-    public static boolean isValid(SignActionEvent event) {
-        return event != null && event.getMode() != SignActionMode.NONE && event.isType("detect");
+    /**
+     * Reads the label put on the second line of the detector sign.
+     * This label is used to uniquely pair two detector signs when multiple
+     * exist on the same tracks.
+     * 
+     * @param info to read
+     * @return detector sign label
+     */
+    public String getLabel(SignActionEvent info) {
+        String data = info.getLine(1);
+        int index = Util.minStringIndex(data.indexOf(' '), data.indexOf(':'));
+        return (index == -1) ? null : data.substring(index + 1).trim();
     }
 
-    public static void init(String filename) {
+    /**
+     * Loads all detector sign regions from the state file.
+     * 
+     * @param filename of the file to load the state information from
+     */
+    public void init(String filename) {
         detectors.clear();
         new DataReader(filename) {
             public void read(DataInputStream stream) throws IOException {
@@ -61,7 +90,12 @@ public class SignActionDetector extends SignAction {
         }.read();
     }
 
-    public static void save(String filename) {
+    /**
+     * Saves all detector sign regions to a state file
+     * 
+     * @param filename of the file to save the state information to
+     */
+    public void save(String filename) {
         new DataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
                 Set<DetectorSignPair> detectorset = new HashSet<>(detectors.size() / 2);
@@ -77,24 +111,6 @@ public class SignActionDetector extends SignAction {
         }.write();
     }
 
-    public String getLabel(SignActionEvent info) {
-        if (!match(info)) {
-            return null;
-        }
-
-        String data = info.getLine(1);
-        if (!data.contains(":")) {
-            return null;
-        }
-
-        return data.split(":", 2)[1];
-    }
-
-    @Override
-    public boolean match(SignActionEvent info) {
-        return isValid(info);
-    }
-
     @Override
     public void execute(SignActionEvent info) {
         //nothing happens here, relies on rail detector events
@@ -102,7 +118,7 @@ public class SignActionDetector extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (!isValid(event)) {
+        if (!match(event)) {
             return false;
         }
         if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detect trains between this detector sign and another")) {
@@ -132,7 +148,13 @@ public class SignActionDetector extends SignAction {
 
     @Override
     public void destroy(SignActionEvent info) {
-        removeDetector(info.getBlock());
+        Block at = info.getBlock();
+        DetectorSignPair dec = detectors.get(at);
+        if (dec != null) {
+            detectors.remove(at.getWorld(), dec.sign1.getLocation());
+            detectors.remove(at.getWorld(), dec.sign2.getLocation());
+            dec.region.remove();
+        }
     }
 
     public boolean tryBuild(String label, Block startrails, Block startsign, BlockFace direction) {
@@ -144,8 +166,7 @@ public class SignActionDetector extends SignAction {
         while (map.hasNext()) {
             for (Block signblock : Util.getSignsFromRails(map.next())) {
                 info = new SignActionEvent(signblock);
-                String otherLabel = getLabel(info);
-                if (match(info) && (label == null ? otherLabel == null : label.equalsIgnoreCase(otherLabel))) {
+                if (matchLabel(info, label)) {
                     endsign = signblock;
                     //start and end found : add it
                     final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);

@@ -42,6 +42,27 @@ public class Util {
     }
 
     /**
+     * Returns the minimal index into a String, exempting the -1 constant. Examples:
+     * <ul>
+     * <li>minStringIndex(-1, 2) == 2</li>
+     * <li>minStringIndex(3, -1) == 3</li>
+     * <li>minStringIndex(5, 12) == 5</li>
+     * <li>minStringIndex(-1, -1) == -1</li>
+     * </ul>
+     * 
+     * @param a index1
+     * @param b index2
+     * @return minimal index.
+     */
+    public static int minStringIndex(int a, int b) {
+        if (a == -1 || b == -1) {
+            return (a > b) ? a : b;
+        } else {
+            return (a < b) ? a : b;
+        }
+    }
+
+    /**
      * Splits a text into separate parts delimited by the separator characters
      *
      * @param text  to split

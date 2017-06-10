@@ -541,7 +541,7 @@ public class TrainCarts extends PluginBase {
         DetectorRegion.init(getDataFolder() + File.separator + "detectorregions.dat");
 
         //Load detector sign locations
-        SignActionDetector.init(getDataFolder() + File.separator + "detectorsigns.dat");
+        SignActionDetector.INSTANCE.init(getDataFolder() + File.separator + "detectorsigns.dat");
 
         //Load spawn sign locations
         SignActionSpawn.init(getDataFolder() + File.separator + "spawnsigns.dat");
@@ -583,7 +583,7 @@ public class TrainCarts extends PluginBase {
         SignActionSpawn.save(getDataFolder() + File.separator + "spawnsigns.dat");
 
         //Save detector sign locations
-        SignActionDetector.save(getDataFolder() + File.separator + "detectorsigns.dat");
+        SignActionDetector.INSTANCE.save(getDataFolder() + File.separator + "detectorsigns.dat");
 
         //Save detector regions
         DetectorRegion.save(getDataFolder() + File.separator + "detectorregions.dat");

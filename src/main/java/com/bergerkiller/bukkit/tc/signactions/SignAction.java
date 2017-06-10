@@ -41,7 +41,7 @@ public abstract class SignAction {
         register(new SignActionTransfer());
         register(new SignActionFuel());
         register(new SignActionCraft());
-        register(new SignActionDetector());
+        register(SignActionDetector.INSTANCE);
         register(new SignActionDestination());
         register(new SignActionBlocker());
         register(new SignActionWait());

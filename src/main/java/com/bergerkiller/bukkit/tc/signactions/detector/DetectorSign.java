@@ -26,7 +26,7 @@ public class DetectorSign extends OfflineSign {
 
     @Override
     public boolean validate(SignActionEvent event) {
-        return SignActionDetector.isValid(event);
+        return SignActionDetector.INSTANCE.match(event);
     }
 
     @Override
