@@ -86,6 +86,7 @@ public class TrainCarts extends PluginBase {
     public static boolean MinecartManiaEnabled = false;
     public static boolean MyWorldsEnabled = false;
     public static boolean parseOldSigns;
+    public static boolean allowParenthesesFormat = true;
     public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
     public static int tickUpdateNow = 0; // forces update ticks
     public static TrainCarts plugin;
@@ -422,6 +423,10 @@ public class TrainCarts extends PluginBase {
         if (config.contains("parseOldSigns")) {
             parseOldSigns = config.get("parseOldSigns", false);
         }
+
+        config.setHeader("parseParentheses", "\nEnables parsing signs with (train), as well as [train]" +
+                                             "\nThis makes it easier to write signs with a Mac keyboard layout");
+        allowParenthesesFormat = config.get("parseParentheses", true);
 
         parsers.clear();
 

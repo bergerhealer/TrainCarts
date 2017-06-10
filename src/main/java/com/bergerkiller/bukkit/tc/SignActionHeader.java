@@ -346,9 +346,13 @@ public class SignActionHeader {
             return header;
         }
 
-        // Legacy conversion for the old (very old!) TrainCarts sign format
-        // Basically wraps the line up in [] if it hasn't already
-        if (TrainCarts.parseOldSigns && (!line.startsWith("[") || !line.endsWith("]")) && line.length() >= 15) {
+        boolean validStart = (line.charAt(0) == '[');
+        boolean validEnd = (line.charAt(line.length() - 1) == ']');
+        if (TrainCarts.allowParenthesesFormat) {
+            validStart |= (line.charAt(0) == '(');
+            validEnd |= (line.charAt(line.length() - 1) == ')');
+        }
+        if (TrainCarts.parseOldSigns && !validStart && !validEnd) {
             String s = line.toLowerCase(Locale.ENGLISH);
             if (s.startsWith("!") || s.startsWith("+")) {
                 s = s.substring(1);
@@ -356,11 +360,13 @@ public class SignActionHeader {
             if (s.startsWith("train") || s.startsWith("t ") || s.startsWith("cart")) {
                 header.is_converted = true;
                 line = String.format("[%s]", line);
+                validStart = true;
+                validEnd = true;
             }
         }
 
-        // Check for [x]
-        if (line.length() <= 3 || line.charAt(0) != '[' || line.charAt(line.length()-1) != ']') {
+        // Verify format
+        if (!validStart || !validEnd) {
             header.mode = SignActionMode.NONE;
             return header;
         }
