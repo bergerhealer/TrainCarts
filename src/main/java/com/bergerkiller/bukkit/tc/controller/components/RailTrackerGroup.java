@@ -124,6 +124,7 @@ public class RailTrackerGroup extends RailTracker {
                 moveLimitCtr = 0;
                 boolean isFirstBlock = true;
                 TrackedRail currInfo;
+                int nrCachedRails = 0; // rails added without certainty of being correct
                 while (true) {
                     if (p.currentTrack.getX() == nextPos.x && p.currentTrack.getY() == nextPos.y && p.currentTrack.getZ() == nextPos.z) {
                         // If we found the next member for the first time, also update the starting minecart with the correct info
@@ -134,6 +135,7 @@ public class RailTrackerGroup extends RailTracker {
                         }
 
                         // Refresh the next minecart with the information currently iterating at
+                        nrCachedRails = 0;
                         currInfo = new TrackedRail(nextMember, p, false);
                         nextMember.getRailTracker().refresh(currInfo);
                         this.rails.add(0, currInfo);
@@ -158,9 +160,15 @@ public class RailTrackerGroup extends RailTracker {
                             // This is important for the block space
                             currInfo = new TrackedRail(nextMember, p, false);
                             this.rails.add(0, currInfo);
+                            nrCachedRails++;
                         }
                         p.next();
                     } else {
+                        // Remove all cached rails - rails iteration failed
+                        while (nrCachedRails > 0) {
+                            nrCachedRails--;
+                            this.rails.remove(0);
+                        }
                         break; // out of track
                     }
                 }

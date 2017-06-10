@@ -101,14 +101,14 @@ public abstract class RailLogic {
      */
     public void setForwardVelocity(MinecartMember<?> member, double force) {
         final CommonEntity<?> e = member.getEntity();
-        //if (member.getIndex() == 0) System.out.println("WAS: " + e.vel + "   " + member.getDirection());
-        if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
+        if (force == 0.0) {
+            e.vel.setZero();
+        } else if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
             e.vel.setX(force * FaceUtil.cos(member.getDirection()));
             e.vel.setZ(force * FaceUtil.sin(member.getDirection()));
         } else {
             e.vel.setY(force * member.getDirection().getModY());
         }
-        //if (member.getIndex() == 0) System.out.println("NOW: " + e.vel);
     }
 
     /**
