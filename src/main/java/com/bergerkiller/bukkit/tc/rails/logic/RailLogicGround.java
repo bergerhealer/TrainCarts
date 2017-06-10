@@ -18,8 +18,8 @@ public class RailLogicGround extends RailLogic {
     }
 
     @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
-        return FaceUtil.getDirection(movement);
+    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+        return FaceUtil.getDirection(member.getEntity().getVelocity());
     }
 
     @Override

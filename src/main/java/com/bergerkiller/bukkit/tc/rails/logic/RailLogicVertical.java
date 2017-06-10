@@ -32,8 +32,8 @@ public class RailLogicVertical extends RailLogic {
     }
 
     @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
-        return Util.getVerticalFace(movement.getY() > 0.0);
+    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+        return (endDirection == BlockFace.UP) ? BlockFace.UP : BlockFace.DOWN;
     }
 
     @Override

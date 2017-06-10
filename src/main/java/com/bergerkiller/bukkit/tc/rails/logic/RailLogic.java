@@ -115,10 +115,10 @@ public abstract class RailLogic {
      * Obtains the direction to which a Minecart is moving on this type of Rail Logic.
      *
      * @param member   that is moving
-     * @param movement that is preferred
+     * @param endDirection block side the minecart is moving to
      * @return the BlockFace direction
      */
-    public abstract BlockFace getMovementDirection(MinecartMember<?> member, Vector movement);
+    public abstract BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection);
 
     /**
      * Gets the position of the Minecart when snapped to the rails

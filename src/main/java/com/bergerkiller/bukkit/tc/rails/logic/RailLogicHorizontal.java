@@ -96,6 +96,55 @@ public class RailLogicHorizontal extends RailLogic {
         return new Vector(newLocX, (double) railPos.y + Y_POS_OFFSET, newLocZ);
     }
 
+    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+        final BlockFace raildirection = this.getDirection();
+        BlockFace direction;
+        if (this.isSloped()) {
+            if (endDirection == raildirection || endDirection == BlockFace.UP) {
+                direction = raildirection; // up the slope
+            } else {
+                direction = raildirection.getOppositeFace(); // down the slope
+            }
+        } else if (this.curved) {
+            BlockFace targetFace = this.ends[1];
+            
+            //System.out.println(raildirection + " " + endDirection);
+            if (raildirection == BlockFace.NORTH_EAST) {
+                if (endDirection == BlockFace.SOUTH || endDirection == BlockFace.EAST) {
+                    targetFace = this.ends[0];
+                }
+            } else if (raildirection == BlockFace.SOUTH_EAST) {
+                if (endDirection == BlockFace.NORTH || endDirection == BlockFace.EAST) {
+                    targetFace = this.ends[0];
+                }
+            } else if (raildirection == BlockFace.NORTH_WEST) {
+                if (endDirection == BlockFace.SOUTH || endDirection == BlockFace.WEST) {
+                    targetFace = this.ends[0];
+                }
+            } else if (raildirection == BlockFace.SOUTH_WEST) {
+                if (endDirection == BlockFace.NORTH || endDirection == BlockFace.WEST) {
+                    targetFace = this.ends[0];
+                }
+            }
+
+            direction = this.getCartDirection();
+            if (!LogicUtil.contains(targetFace, this.cartFaces)) {
+                direction = direction.getOppositeFace();
+            }
+            //System.out.println("END DIRECTION " + endDirection + " -> " + direction);
+        } else {
+            // Straight rail logic
+            // Find the right direction by tracking two 180-degree hemispheres
+            if (endDirection == raildirection) {
+                direction = raildirection;
+            } else {
+                direction = raildirection.getOppositeFace();
+            }
+        }
+        return direction;
+    }
+
+    /*
     @Override
     public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
         final BlockFace raildirection = this.getDirection();
@@ -171,7 +220,6 @@ public class RailLogicHorizontal extends RailLogic {
                 direction = direction.getOppositeFace();
             }
 
-            /*
             // Figure out which 'quadrant' of the track the minecart is in right now
             IntVector3 railPos = member.getBlockPos();
             double mx = member.getEntity().loc.getX() - railPos.midX();
@@ -234,7 +282,6 @@ public class RailLogicHorizontal extends RailLogic {
             if (leaveCurve != LogicUtil.contains(targetFace, this.cartFaces)) {
                 direction = direction.getOppositeFace();
             }
-            */
 
         } else {
             // Straight rail logic
@@ -250,6 +297,7 @@ public class RailLogicHorizontal extends RailLogic {
         }
         return direction;
     }
+    */
 
     @Override
     public void onPostMove(MinecartMember<?> member) {
