@@ -96,45 +96,38 @@ public class RailLogicHorizontal extends RailLogic {
         return new Vector(newLocX, (double) railPos.y + Y_POS_OFFSET, newLocZ);
     }
 
+    @Override
     public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
         final BlockFace raildirection = this.getDirection();
         BlockFace direction;
         if (this.isSloped()) {
+            // Sloped rail logic
+            // When moving in the direction of a slope, or up, go up the slope
+            // In all other cases, go down the slope
             if (endDirection == raildirection || endDirection == BlockFace.UP) {
                 direction = raildirection; // up the slope
             } else {
                 direction = raildirection.getOppositeFace(); // down the slope
             }
         } else if (this.curved) {
-            BlockFace targetFace = this.ends[1];
-            
-            //System.out.println(raildirection + " " + endDirection);
-            if (raildirection == BlockFace.NORTH_EAST) {
-                if (endDirection == BlockFace.SOUTH || endDirection == BlockFace.EAST) {
-                    targetFace = this.ends[0];
-                }
-            } else if (raildirection == BlockFace.SOUTH_EAST) {
-                if (endDirection == BlockFace.NORTH || endDirection == BlockFace.EAST) {
-                    targetFace = this.ends[0];
-                }
-            } else if (raildirection == BlockFace.NORTH_WEST) {
-                if (endDirection == BlockFace.SOUTH || endDirection == BlockFace.WEST) {
-                    targetFace = this.ends[0];
-                }
-            } else if (raildirection == BlockFace.SOUTH_WEST) {
-                if (endDirection == BlockFace.NORTH || endDirection == BlockFace.WEST) {
-                    targetFace = this.ends[0];
-                }
+            // Curved rail logic
+            // When moving in the same direction as an end, go to that end
+            // When moving in the opposite direction of an end, pick the other end
+            BlockFace targetFace;
+            if (endDirection == this.ends[0] || endDirection == this.ends[1].getOppositeFace()) {
+                targetFace = this.ends[0];
+            } else {
+                targetFace = this.ends[1];
             }
 
             direction = this.getCartDirection();
             if (!LogicUtil.contains(targetFace, this.cartFaces)) {
                 direction = direction.getOppositeFace();
             }
-            //System.out.println("END DIRECTION " + endDirection + " -> " + direction);
         } else {
             // Straight rail logic
-            // Find the right direction by tracking two 180-degree hemispheres
+            // Go in the direction of the rail, unless the opposite direction is chosen
+            // This logic fulfills the 'south-east' rule
             if (endDirection == raildirection.getOppositeFace()) {
                 direction = raildirection.getOppositeFace();
             } else {
@@ -143,161 +136,6 @@ public class RailLogicHorizontal extends RailLogic {
         }
         return direction;
     }
-
-    /*
-    @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, Vector movement) {
-        final BlockFace raildirection = this.getDirection();
-        final boolean isHorizontalMovement = Math.abs(movement.getX()) >= 0.0001 || Math.abs(movement.getZ()) >= 0.0001;
-        BlockFace direction;
-
-        if (this.isSloped()) {
-            // Sloped rail logic
-            if (isHorizontalMovement) {
-                // Deal with minecarts moving on straight slopes
-                float moveYaw = MathUtil.getLookAtYaw(movement);
-                float diff1 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(raildirection));
-                float diff2 = MathUtil.getAngleDifference(moveYaw, FaceUtil.faceToYaw(raildirection.getOppositeFace()));
-                // Compare with the previous direction to sort out equality problems
-                if (diff1 == diff2) {
-                    diff1 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), raildirection);
-                    diff2 = FaceUtil.getFaceYawDifference(member.getDirectionFrom(), raildirection.getOppositeFace());
-                }
-                // Use the opposite direction if needed
-                if (diff1 > diff2) {
-                    direction = raildirection.getOppositeFace();
-                } else {
-                    direction = raildirection;
-                }
-            } else {
-                // Deal with vertically moving or standing still minecarts on slopes
-                if (Math.abs(movement.getY()) > 0.0001) {
-                    // Going from vertical to a slope
-                    if (movement.getY() > 0.0) {
-                        direction = raildirection;
-                    } else {
-                        direction = raildirection.getOppositeFace();
-                    }
-                } else {
-                    // Gravity sends it down the slope at some point
-                    direction = raildirection.getOppositeFace();
-                }
-            }
-        } else if (this.curved) {
-            
-
-            BlockFace quadrant = FaceUtil.getDirection(movement, false);
-            BlockFace targetFace = this.ends[1];
-            
-            //System.out.println(this.getDirection() + " " + quadrant);
-            if (this.getDirection() == BlockFace.NORTH_EAST) {
-                if (quadrant == BlockFace.SOUTH || quadrant == BlockFace.EAST) {
-                    targetFace = this.ends[0];
-                }
-            } else if (this.getDirection() == BlockFace.SOUTH_EAST) {
-                if (quadrant == BlockFace.NORTH || quadrant == BlockFace.EAST) {
-                    targetFace = this.ends[0];
-                }
-            } else if (this.getDirection() == BlockFace.NORTH_WEST) {
-                if (quadrant == BlockFace.SOUTH || quadrant == BlockFace.WEST) {
-                    targetFace = this.ends[0];
-                }
-            } else if (this.getDirection() == BlockFace.SOUTH_WEST) {
-                if (quadrant == BlockFace.NORTH || quadrant == BlockFace.WEST) {
-                    targetFace = this.ends[0];
-                }
-            }
-            
-            //System.out.println(this.getCartDirection());
-            
-
-            //System.out.println("INDIR " + quadrant + "  TO  " + targetFace);
-            
-            
-            
-            direction = this.getCartDirection();
-            if (!LogicUtil.contains(targetFace, this.cartFaces)) {
-                direction = direction.getOppositeFace();
-            }
-
-            // Figure out which 'quadrant' of the track the minecart is in right now
-            IntVector3 railPos = member.getBlockPos();
-            double mx = member.getEntity().loc.getX() - railPos.midX();
-            double mz = member.getEntity().loc.getZ() - railPos.midZ();
-            BlockFace quadrant = FaceUtil.getDirection(mx, mz, false);
-            
-            
-            
-            
-            BlockFace movementDir = FaceUtil.getDirection(movement);
-            MathUtil.getLookAtYaw(movement);
-            int movementDiff = FaceUtil.getFaceYawDifference(movementDir, quadrant);
-            //int movementDiff = MathUtil.getAngleDifference((int) MathUtil.getLookAtYaw(movement), FaceUtil.faceToYaw(quadrant));
-
-            boolean leaveCurve = false;
-            BlockFace targetFace = movementDir;
-            if (quadrant == this.ends[0] || quadrant == this.ends[1]) {
-                // In the same quadrant as one of the rail ends
-
-                targetFace = quadrant;
-                if (movementDiff <= 45) { // heading out of the curve
-                    leaveCurve = true;
-                } else if (movementDiff >= 135) { // heading into the curve
-                    leaveCurve = false;
-                } else if (quadrant == this.ends[0]) { // 90-degree rule in ends[0]
-                    leaveCurve = true;
-                    if (movementDir == this.ends[1]) {
-                        // heading towards ends[1]
-                        targetFace = this.ends[1];
-                    } else {
-                        // heading towards ends[0]
-                        targetFace = this.ends[0];
-                    }
-                    
-                } else if (quadrant == this.ends[1]) { // 90-degree rule in ends[1]
-                    leaveCurve = true;
-                    if (movementDir == this.ends[0]) {
-                        // heading towards ends[0]
-                        targetFace = this.ends[0];
-                    } else {
-                        // heading towards ends[1]
-                        targetFace = this.ends[1];
-                    }
-                }
-
-            } else if (movementDiff >= 135) {
-                // Movement is towards a rail end
-                targetFace = quadrant.getOppositeFace();
-                leaveCurve = true;
-            } else if (movementDiff <= 45) {
-                // Movement is inverse towards a rail end
-                targetFace = quadrant;
-                leaveCurve = false;
-            } else {
-                // This 90-degree angle never appears to occur. So dunno.
-                targetFace = movementDir;
-            }
-
-            direction = this.getCartDirection();
-            if (leaveCurve != LogicUtil.contains(targetFace, this.cartFaces)) {
-                direction = direction.getOppositeFace();
-            }
-
-        } else {
-            // Straight rail logic
-            // Find the right direction by tracking two 180-degree hemispheres
-            float angleSide1 = FaceUtil.faceToYaw(raildirection);
-            float angleSide2 = FaceUtil.faceToYaw(raildirection.getOppositeFace());
-            float movAngle = MathUtil.getLookAtYaw(movement);
-            if (MathUtil.getAngleDifference(angleSide1, movAngle) < MathUtil.getAngleDifference(angleSide2, movAngle)) {
-                direction = raildirection;
-            } else {
-                direction = raildirection.getOppositeFace();
-            }
-        }
-        return direction;
-    }
-    */
 
     @Override
     public void onPostMove(MinecartMember<?> member) {

@@ -100,7 +100,7 @@ public abstract class RailTracker {
             BlockFace direction = null;
             Vector movement = member.getEntity().getVelocity();
 
-            if (railType == RailType.NONE) {
+            if (railType == RailType.NONE || member.getRailTracker().getLastRailType() == RailType.NONE) {
                 // When derailed, we must rely on relative positioning to figure out the direction
                 // This only works when the minecart has a direct neighbor
                 // If no direct neighbor is available, it will default to using its own velocity
