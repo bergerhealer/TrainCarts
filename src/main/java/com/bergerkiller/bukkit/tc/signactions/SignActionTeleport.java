@@ -15,6 +15,8 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
+import net.md_5.bungee.api.ChatColor;
+
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -29,11 +31,14 @@ public class SignActionTeleport extends SignAction {
 
     @Override
     public boolean match(SignActionEvent info) {
-        return TrainCarts.MyWorldsEnabled && info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
+        return info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
     }
 
     @Override
     public void execute(SignActionEvent info) {
+        if (!TrainCarts.MyWorldsEnabled) {
+            return;
+        }
         if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.hasGroup() || !info.isPowered()) {
             return;
         }
@@ -105,6 +110,11 @@ public class SignActionTeleport extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return event.hasRails() && handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+        if (TrainCarts.MyWorldsEnabled) {
+            return event.hasRails() && handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+        } else {
+            event.getPlayer().sendMessage(ChatColor.RED + "MyWorlds" + ChatColor.YELLOW + " is not enabled on this server. Teleporter signs will not function as a result.");
+            return false;
+        }
     }
 }
