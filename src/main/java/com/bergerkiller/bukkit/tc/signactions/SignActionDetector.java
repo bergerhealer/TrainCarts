@@ -38,7 +38,7 @@ public class SignActionDetector extends SignAction {
     }
 
     public static boolean isValid(SignActionEvent event) {
-        return event != null && event.getMode() != SignActionMode.NONE && event.isType("detector");
+        return event != null && event.getMode() != SignActionMode.NONE && event.isType("detect");
     }
 
     public static void init(String filename) {
@@ -77,6 +77,19 @@ public class SignActionDetector extends SignAction {
         }.write();
     }
 
+    public String getLabel(SignActionEvent info) {
+        if (!match(info)) {
+            return null;
+        }
+
+        String data = info.getLine(1);
+        if (!data.contains(":")) {
+            return null;
+        }
+
+        return data.split(":", 2)[1];
+    }
+
     @Override
     public boolean match(SignActionEvent info) {
         return isValid(info);
@@ -101,9 +114,10 @@ public class SignActionDetector extends SignAction {
             Block startsign = event.getBlock();
             Block startrails = event.getRails();
             BlockFace dir = event.getFacing();
-            if (!tryBuild(startrails, startsign, dir)) {
-                if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, 2))) {
-                    if (!tryBuild(startrails, startsign, FaceUtil.rotate(dir, -2))) {
+            String label = getLabel(event);
+            if (!tryBuild(label, startrails, startsign, dir)) {
+                if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, 2))) {
+                    if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, -2))) {
                         event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
                         event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
                         return true;
@@ -121,7 +135,7 @@ public class SignActionDetector extends SignAction {
         removeDetector(info.getBlock());
     }
 
-    public boolean tryBuild(Block startrails, Block startsign, BlockFace direction) {
+    public boolean tryBuild(String label, Block startrails, Block startsign, BlockFace direction) {
         final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
@@ -130,7 +144,8 @@ public class SignActionDetector extends SignAction {
         while (map.hasNext()) {
             for (Block signblock : Util.getSignsFromRails(map.next())) {
                 info = new SignActionEvent(signblock);
-                if (match(info)) {
+                String otherLabel = getLabel(info);
+                if (match(info) && (label == null ? otherLabel == null : label.equalsIgnoreCase(otherLabel))) {
                     endsign = signblock;
                     //start and end found : add it
                     final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
