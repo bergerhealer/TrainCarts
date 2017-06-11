@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.block.BlockFace;
@@ -20,11 +19,7 @@ public class RailLogicAir extends RailLogic {
 
     @Override
     public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
-        if (FaceUtil.isVertical(endDirection)) {
-            return endDirection;
-        } else {
-            return FaceUtil.getDirection(member.getEntity().getVelocity());
-        }
+        return endDirection;
     }
 
     @Override

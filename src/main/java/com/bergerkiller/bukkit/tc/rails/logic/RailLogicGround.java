@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -19,7 +18,7 @@ public class RailLogicGround extends RailLogic {
 
     @Override
     public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
-        return FaceUtil.getDirection(member.getEntity().getVelocity());
+        return endDirection;
     }
 
     @Override
