@@ -27,8 +27,12 @@ public class RailTypeVertical extends RailType {
     public Block findRail(Block pos) {
         if (isRail(pos)) {
             return pos;
-        } else if (isRail(pos, BlockFace.DOWN) && !MaterialUtil.ISSOLID.get(pos)) {
-            return pos.getRelative(BlockFace.DOWN);
+        } else {
+            // When there is a slope connecting it, allow the vertical rail below
+            Block below = pos.getRelative(BlockFace.DOWN);
+            if (getAfterSlope(below) != null) {
+                return below;
+            }
         }
         return null;
     }
@@ -39,7 +43,7 @@ public class RailTypeVertical extends RailType {
             return pos;
         } else if (member.getRailTracker().getLastRailType() != RailType.VERTICAL && 
                 isRail(world, pos.x, pos.y - 1, pos.z) && 
-                !MaterialUtil.ISSOLID.get(world, pos.x, pos.y, pos.z))
+                getAfterSlope(pos.toBlock(world).getRelative(BlockFace.DOWN)) != null)
         {
             return pos.add(BlockFace.DOWN);
         } else {
@@ -103,11 +107,9 @@ public class RailTypeVertical extends RailType {
             Block next = currentTrack.getRelative(BlockFace.UP);
             if (!Util.ISTCRAIL.get(next)) {
                 // Check for a possible sloped rail leading up from next
-                BlockFace dir = Util.getVerticalRailDirection(currentTrack);
-                Block possible = next.getRelative(dir);
-                Rails rails = BlockUtil.getRails(possible);
-                if (rails != null && rails.isOnSlope() && rails.getDirection() == dir) {
-                    return possible;
+                Block afterSlope = getAfterSlope(currentTrack);
+                if (afterSlope != null) {
+                    return afterSlope;
                 }
             }
             return next;
@@ -130,5 +132,29 @@ public class RailTypeVertical extends RailType {
                 railsBlock.getZ() + 0.5,
                 FaceUtil.faceToYaw(dir),
                 -90.0f);
+    }
+
+    /**
+     * Gets a sloped rail that connects to a vertical rail, if one exists and is connected
+     * 
+     * @param verticalRail to get the sloped rails block of that leads to it
+     * @return the block of the sloped rail, or null if not found
+     */
+    private Block getAfterSlope(Block verticalRail) {
+        if (!this.isRail(verticalRail)) {
+            return null;
+        }
+        Block above = verticalRail.getRelative(BlockFace.UP);
+        if (MaterialUtil.ISSOLID.get(above)) {
+            return null;
+        }
+        BlockFace dir = Util.getVerticalRailDirection(verticalRail);
+        Block possible = above.getRelative(dir);
+        Rails rails = BlockUtil.getRails(possible);
+        if (rails != null && rails.isOnSlope() && rails.getDirection() == dir) {
+            return possible;
+        } else {
+            return null;
+        }
     }
 }

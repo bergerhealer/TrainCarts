@@ -12,6 +12,24 @@ import org.bukkit.block.BlockFace;
 
 public class RailTypeNone extends RailType {
 
+    @Override
+    public boolean onCollide(MinecartMember<?> with, Block block, BlockFace hitFace) {
+        // Prevents hitting blocks while gliding down
+        double dx = with.getEntity().loc.getX() - block.getX();
+        double dz = with.getEntity().loc.getZ() - block.getZ();
+        double vx = with.getEntity().vel.getX();
+        double vy = with.getEntity().vel.getY();
+        double vz = with.getEntity().vel.getZ();
+        final double VEL_LIMIT = 0.05;
+        if (vy < -VEL_LIMIT &&
+                (dx < 0.0 && vx < -VEL_LIMIT) || (dx > 1.0 && vx > VEL_LIMIT) ||
+                (dz < 0.0 && vz < -VEL_LIMIT) || (dz > 1.0 && vz > VEL_LIMIT))
+        {
+            return false;
+        }
+        return true;
+    }
+
     /**
      * None never matches - it is returned when no other rail type is found
      */

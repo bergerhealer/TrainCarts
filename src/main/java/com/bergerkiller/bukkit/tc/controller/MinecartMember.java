@@ -1072,8 +1072,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Apply speed factor to maxed and not-a-number-fixed values
         double motX = speedFactor * entity.vel.x.fixNaN().getClamped(entity.getMaxSpeed());
-        double motY = speedFactor * entity.vel.y.fixNaN().getClamped(entity.getMaxSpeed());
+        double motY = entity.vel.y.fixNaN().getClamped(entity.getMaxSpeed());
         double motZ = speedFactor * entity.vel.z.fixNaN().getClamped(entity.getMaxSpeed());
+
+        // Only apply the speedfactor to Y when not flying (this avoids some really bad stuff!)
+        if (!isFlying()) {
+            motY *= speedFactor;
+        }
 
         // No vertical motion if stuck to the rails that way
         if (!getRailLogic().hasVerticalMovement()) {

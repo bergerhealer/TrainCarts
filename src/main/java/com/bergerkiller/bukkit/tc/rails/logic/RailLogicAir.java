@@ -32,8 +32,15 @@ public class RailLogicAir extends RailLogic {
         if (member.isMovementControlled()) {
             // Be sure to use the direction, we are being controlled!
             super.setForwardVelocity(member, force);
+        } else if (member.getEntity().vel.xz.lengthSquared() == 0.0) {
+            // Moving only vertically; control speed in order to maintain a vertical stack
+            Vector vel = member.getEntity().vel.vector();
+            MathUtil.setVectorLength(vel, force);
+            member.getEntity().vel.set(vel);
         } else {
             // Simply set vector length
+            // Setting speed while in the air causes pretty awful breakage, unfortunately
+            // Free-falling looks more natural
             Vector vel = member.getEntity().vel.vector();
             MathUtil.setVectorLength(vel, force);
             member.getEntity().vel.set(vel);
@@ -52,17 +59,33 @@ public class RailLogicAir extends RailLogic {
 
     @Override
     public void onPreMove(MinecartMember<?> member) {
+        CommonMinecart<?> entity = member.getEntity();
+
+        // If we were previously on rails, check if these were sloped rails to give a Y-velocity boost
+        if (member.getRailTracker().getLastLogic() instanceof RailLogicSloped) {
+            BlockFace slopeDir = ((RailLogicSloped) member.getRailTracker().getLastLogic()).getDirection();
+            double velLen = entity.vel.length();
+            double dx = slopeDir.getModX() * MathUtil.HALFROOTOFTWO * velLen;
+            double dz = slopeDir.getModZ() * MathUtil.HALFROOTOFTWO * velLen;
+            if (slopeDir == member.getDirectionFrom()) {
+                entity.vel.set(dx, MathUtil.HALFROOTOFTWO * velLen, dz);
+            } else {
+                entity.vel.set(-dx, -MathUtil.HALFROOTOFTWO * velLen, -dz);
+            }
+        }
+
         // Only do this logic if the head is is not moving vertically
         // Or if this member is the head, of course
-        if (member.isMovingVerticalOnly() && member.getEntity().vel.getY() > 0.0) {
+        if (member.isMovingVerticalOnly() && entity.vel.getY() > 0.0) {
             MinecartMember<?> head = member.getGroup().head();
             if (member != head && head.isMovingVerticalOnly()) {
                 return;
             }
         }
+
         // Apply flying friction
         if (!member.isMovementControlled()) {
-            member.getEntity().vel.multiply(member.getEntity().getFlyingVelocityMod());
+            entity.vel.multiply(entity.getFlyingVelocityMod());
         }
     }
 }
