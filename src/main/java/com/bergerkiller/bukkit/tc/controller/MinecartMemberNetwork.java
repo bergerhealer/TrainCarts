@@ -210,7 +210,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         } else {
             currVelocity = new Vector(velLive.length(), 0.0, 0.0);
         }
-        boolean velocityChanged = velSynched.distanceSquared(currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY);
+        boolean velocityChanged = (velSynched.distanceSquared(currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY)) ||
+                (velSynched.lengthSquared() > 0.0 && currVelocity.lengthSquared() == 0.0);
 
         // Synchronize velocity
         if (absolute || getEntity().isVelocityChanged() || velocityChanged) {

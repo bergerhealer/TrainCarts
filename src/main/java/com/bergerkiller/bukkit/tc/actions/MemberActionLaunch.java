@@ -1,35 +1,46 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 
 public class MemberActionLaunch extends MemberAction implements MovementAction {
-    private static final double minVelocity = 0.02;
-    private static final double minVelocityForLaunch = 0.004;
-    private double distance;
-    private double targetdistance;
+    private static final double minVelocity = 0.001;
+
     private double targetvelocity;
-    private double startvelocity;
+    private double targetdistance;
+    private double distance;
+    private double lastVelocity;
+    private final LaunchFunction function;
 
     public MemberActionLaunch(double targetdistance, double targetvelocity) {
-        this.distance = 0;
-        this.targetdistance = targetdistance;
+        if (TrainCarts.launchFunctionType.equalsIgnoreCase("linear")) {
+            this.function = new LaunchFunction.Linear();
+        } else if (TrainCarts.launchFunctionType.equalsIgnoreCase("bezier")) {
+            this.function = new LaunchFunction.Bezier();
+        } else {
+            this.function = new LaunchFunction.Bezier();
+        }
         this.targetvelocity = targetvelocity;
+        this.targetdistance = targetdistance;
         this.distance = 0;
+        this.lastVelocity = 0.0;
     }
 
     @Override
     public void start() {
-        this.startvelocity = MathUtil.clamp(this.getMember().getForce(), this.getEntity().getMaxSpeed());
-        if (this.startvelocity < minVelocity) {
-            this.startvelocity = minVelocity;
-        }
-
         // The world may never know why this is needed for trains >1 in size
         // ...if you know, let me know, k?
         if (getGroup().size() > 1) {
             this.targetdistance += getMember().getEntity().getMovedDistance();
         }
+
+        // Initialize launching function with the start/end conditions
+        this.lastVelocity = 0.0;
+        this.function.setMinimumVelocity(minVelocity);
+        this.function.setMaximumVelocity(this.getEntity().getMaxSpeed());
+        this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
+        this.function.setTotalDistance(this.targetdistance);
     }
 
     @Override
@@ -38,7 +49,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     }
 
     public double getTargetVelocity() {
-        return this.targetvelocity;
+        return this.function.getEndVelocity();
     }
 
     public double getTargetDistance() {
@@ -63,38 +74,25 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         // Did any of the carts in the group stop?
         if (this.distance != 0) {
             for (MinecartMember<?> mm : this.getGroup()) {
-                if (mm.getForceSquared() < minVelocityForLaunch * minVelocityForLaunch) {
-                    //stopped
+                if (mm.getForce() < minVelocity && this.lastVelocity > (10.0 * minVelocity)) {
                     return true;
                 }
             }
         }
 
-        //Reached the target distance?
-        double targetvel = this.targetvelocity; // * this.getGroup().getUpdateSpeedFactor();
-        double remainingDistance = (this.targetdistance - this.distance);
-        if (remainingDistance <= 0.0) {
+        // Check if we completed the function
+        if (this.elapsedTicks() > this.function.getTotalTime()) {
             // Finish with the desired end-velocity
-            this.getGroup().setForwardForce(targetvel);
+            this.getGroup().setForwardForce(this.targetvelocity);
             return true;
-        } else {
-            //Get the velocity to set the carts to
-            targetvel = MathUtil.clamp(targetvel, this.getEntity().getMaxSpeed());
-            if (targetvel > 0 || (this.targetdistance - this.distance) < 5) {
-                targetvel = MathUtil.lerp(this.startvelocity, targetvel, this.distance / this.targetdistance);
-            } else {
-                targetvel = this.startvelocity;
-            }
-            if (targetvel < minVelocity) {
-                targetvel = minVelocity;
-            }
-            if (targetvel > remainingDistance) {
-                targetvel = remainingDistance;
-            }
-            this.getGroup().setForwardForce(targetvel);
         }
 
-        //Increment distance
+        // Update velocity based on the distance difference
+        this.lastVelocity = (this.function.getDistance(this.elapsedTicks()) - this.distance);
+        if (this.lastVelocity < 0.0) {
+            this.lastVelocity = 0.0; // just in case
+        }
+        this.getGroup().setForwardForce(this.lastVelocity);
         this.distance += this.getEntity().getMovedDistance();
         return false;
     }

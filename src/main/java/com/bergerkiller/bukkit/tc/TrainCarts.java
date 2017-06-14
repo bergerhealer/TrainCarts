@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import org.bukkit.Material;
@@ -85,6 +86,7 @@ public class TrainCarts extends PluginBase {
     public static boolean SignLinkEnabled = false;
     public static boolean MinecartManiaEnabled = false;
     public static boolean MyWorldsEnabled = false;
+    public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
     public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
@@ -309,6 +311,11 @@ public class TrainCarts extends PluginBase {
 
         config.setHeader("playSoundAtStation", "\nWhether or not a hissing sound is made when trains stop at a station");
         playSoundAtStation = config.get("playSoundAtStation", true);
+
+        config.setHeader("launchFunction", "\nWhat style of launching to use in stations and launcher sign systems. Possible values:\n" +
+                "- 'linear': gradually switches from one motion speed to another at a linear rate\n" +
+                "- 'bezier': uses a bezier curve (ease in-out), resulting in slower changes in motion at start/end of launch");
+        launchFunctionType = config.get("launchFunction", "bezier");
 
         config.setHeader("keepChunksLoadedOnlyWhenMoving", "\nWhether or not chunks are only kept loaded when the train is moving");
         keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
