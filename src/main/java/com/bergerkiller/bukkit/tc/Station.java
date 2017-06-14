@@ -22,6 +22,7 @@ import org.bukkit.util.Vector;
 public class Station {
     private final SignActionEvent info;
     private final double length;
+    private final int lengthTimeTicks; // time instead of distance
     private final long delay;
     private final BlockFace instruction;
     private final Direction nextDirection;
@@ -93,6 +94,7 @@ public class Station {
                         this.instruction = null;
                     }
                 } else {
+                    this.lengthTimeTicks = -1;
                     this.length = 0.0;
                     this.instruction = null;
                     this.valid = false;
@@ -102,8 +104,9 @@ public class Station {
         }
 
         // Get initial station length, delay and direction
-        double length = ParseUtil.parseDouble(info.getLine(1).substring(7), 0.0);
-        if (length == 0.0 && this.instruction != null) {
+        this.lengthTimeTicks = Util.parseTimeTicks(info.getLine(1).substring(7));
+        double length = (this.lengthTimeTicks >= 0) ? -1.0 : ParseUtil.parseDouble(info.getLine(1).substring(7), 0.0);
+        if (this.lengthTimeTicks < 0 && length == 0.0 && this.instruction != null) {
             // Manually calculate the length
             // Use the amount of straight blocks
             length = Util.calculateStraightLength(this.railsBlock, this.instruction);
@@ -122,6 +125,16 @@ public class Station {
      */
     public double getLength() {
         return this.length;
+    }
+
+    /**
+     * When time is put instead of a station length, this returns the amount of ticks
+     * to launch the train at. This is -1 when not used.
+     * 
+     * @return station launching duration in ticks
+     */
+    public int getLengthTime() {
+        return this.lengthTimeTicks;
     }
 
     /**
@@ -268,13 +281,13 @@ public class Station {
     }
 
     /**
-     * Launches the train so that the middle or front cart is the distance away from this station
-     *
+     * Launches the train so that the middle or front cart is launched away from this station.
+     * Station length or launch time is used for this launch.
+     * 
      * @param direction to launch into
-     * @param distance  to launch
      */
-    public void launchTo(BlockFace direction, double distance) {
-        double newDistance = distance;
+    public void launchTo(BlockFace direction) {
+        double newDistance = this.getLength();
         if (!wasCentered) {
             // Apply distance correction from center cart to station
             CartToStationInfo stationInfo = getCartToStationInfo();
@@ -284,7 +297,11 @@ public class Station {
                 newDistance += stationInfo.distance;
             }
         }
-        getCenterCart().getActions().addActionLaunch(direction, newDistance, TrainCarts.launchForce);
+        if (this.getLengthTime() >= 0) {
+            getCenterCart().getActions().addActionTimedLaunch(direction, this.getLengthTime(), TrainCarts.launchForce);
+        } else {
+            getCenterCart().getActions().addActionLaunch(direction, newDistance, TrainCarts.launchForce);
+        }
         this.wasCentered = false;
     }
 

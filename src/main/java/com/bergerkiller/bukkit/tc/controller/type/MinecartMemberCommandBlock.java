@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
-import com.bergerkiller.bukkit.common.Logging;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartCommandBlock;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 

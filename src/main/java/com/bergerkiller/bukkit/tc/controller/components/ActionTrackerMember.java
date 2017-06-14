@@ -64,7 +64,27 @@ public class ActionTrackerMember extends ActionTracker {
     }
 
     public MemberActionLaunch addActionLaunch(double distance, double targetvelocity) {
-        return addGroupAction(new MemberActionLaunch(distance, targetvelocity));
+        MemberActionLaunch action = new MemberActionLaunch();
+        action.initDistance(distance, targetvelocity);
+        return addGroupAction(action);
+    }
+
+    public MemberActionLaunch addActionTimedLaunch(int timeTicks, double targetvelocity) {
+        MemberActionLaunch action = new MemberActionLaunch();
+        action.initTime(timeTicks, targetvelocity);
+        return addGroupAction(action);
+    }
+
+    public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
+        MemberActionLaunchDirection action = new MemberActionLaunchDirection();
+        action.initDistance(targetdistance, targetvelocity, direction);
+        return addGroupAction(action);
+    }
+
+    public MemberActionLaunchDirection addActionTimedLaunch(final BlockFace direction, int timeTicks, double targetvelocity) {
+        MemberActionLaunchDirection action = new MemberActionLaunchDirection();
+        action.initTime(timeTicks, targetvelocity, direction);
+        return addGroupAction(action);
     }
 
     public MemberActionLaunchLocation addActionLaunch(Location destination, double targetvelocity) {
@@ -73,10 +93,6 @@ public class ActionTrackerMember extends ActionTracker {
 
     public MemberActionLaunchLocation addActionLaunch(Vector offset, double targetvelocity) {
         return addActionLaunch(owner.getEntity().getLocation().add(offset), targetvelocity);
-    }
-
-    public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
-        return addGroupAction(new MemberActionLaunchDirection(targetdistance, targetvelocity, direction));
     }
 
     public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance) {

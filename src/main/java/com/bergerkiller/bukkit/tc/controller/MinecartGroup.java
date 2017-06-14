@@ -813,7 +813,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @return member at the position, or null if not found
      */
     public MinecartMember<?> getAt(IntVector3 position) {
-        return getBlockTracker().getMemberFromRails(position);
+        return getRailTracker().getMemberFromRails(position);
     }
 
     private boolean doConnectionCheck() {

@@ -2,13 +2,12 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import org.bukkit.Location;
-import org.bukkit.block.BlockFace;
 
 public class MemberActionLaunchLocation extends MemberActionLaunchDirection implements MovementAction {
     private final Location target;
 
     public MemberActionLaunchLocation(double targetvelocity, Location target) {
-        super(0.0, targetvelocity, BlockFace.SELF);
+        this.initDistance(0.0, targetvelocity);
         this.target = target.clone();
     }
 

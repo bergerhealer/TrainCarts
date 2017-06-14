@@ -64,7 +64,7 @@ public class SignActionStation extends SignAction {
                     // Order the train to center prior to launching again
                     station.centerTrain();
                 }
-                station.launchTo(trainDirection, station.getLength());
+                station.launchTo(trainDirection);
             } else {
                 station.centerTrain();
                 station.waitTrain(Long.MAX_VALUE);
@@ -81,7 +81,7 @@ public class SignActionStation extends SignAction {
             if (station.hasDelay()) {
                 station.waitTrain(station.getDelay());
             }
-            station.launchTo(station.getInstruction(), station.getLength());
+            station.launchTo(station.getInstruction());
         }
     }
 

@@ -15,8 +15,9 @@ public enum SignActionType {
         case REDSTONE_ON:
         case REDSTONE_OFF:
             return true;
+        default:
+            return false;
         }
-        return false;
     }
 
     /**
@@ -32,7 +33,8 @@ public enum SignActionType {
         case MEMBER_UPDATE:
         case GROUP_UPDATE:
             return false;
+        default:
+            return true;
         }
-        return true;
     }
 }

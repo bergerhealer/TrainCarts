@@ -30,7 +30,8 @@ public class SignActionLauncher extends SignAction {
         }
 
         // Parse the launch distance
-        double distance = ParseUtil.parseDouble(info.getLine(1), 1.0);
+        int timeTicks = Util.parseTimeTicks(info.getLine(1));
+        double distance = (timeTicks >= 0) ? 0.0 : ParseUtil.parseDouble(info.getLine(1), 1.0);
 
         if (info.isRCSign()) {
             boolean reverse = Direction.parse(info.getLine(3)) == Direction.BACKWARD;
@@ -40,6 +41,11 @@ public class SignActionLauncher extends SignAction {
                 if (reverse) {
                     group.reverse();
                 }
+                if (timeTicks >= 0) {
+                    group.head().getActions().addActionTimedLaunch(timeTicks, velocity);
+                } else {
+                    group.head().getActions().addActionLaunch(distance, velocity);
+                }
                 group.head().getActions().addActionLaunch(distance, velocity);
             }
         } else if (info.hasRailedMember()) {
@@ -47,12 +53,16 @@ public class SignActionLauncher extends SignAction {
             BlockFace direction = Direction.parse(info.getLine(3)).getDirection(info.getFacing(), info.getCartDirection());
 
             // Calculate the launch distance if left empty
-            if (distance <= 0.0) {
+            if (timeTicks < 0 && distance <= 0.0) {
                 distance = Util.calculateStraightLength(info.getRails(), direction);
             }
 
             // Launch
-            info.getMember().getActions().addActionLaunch(direction, distance, velocity);
+            if (timeTicks >= 0) {
+                info.getMember().getActions().addActionTimedLaunch(direction, timeTicks, velocity);
+            } else {
+                info.getMember().getActions().addActionLaunch(direction, distance, velocity);
+            }
         }
     }
 

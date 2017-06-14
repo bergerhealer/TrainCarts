@@ -7,13 +7,14 @@ import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 public class MemberActionLaunch extends MemberAction implements MovementAction {
     private static final double minVelocity = 0.001;
 
+    private int targettime;
     private double targetvelocity;
     private double targetdistance;
     private double distance;
     private double lastVelocity;
     private final LaunchFunction function;
 
-    public MemberActionLaunch(double targetdistance, double targetvelocity) {
+    public MemberActionLaunch() {
         if (TrainCarts.launchFunctionType.equalsIgnoreCase("linear")) {
             this.function = new LaunchFunction.Linear();
         } else if (TrainCarts.launchFunctionType.equalsIgnoreCase("bezier")) {
@@ -21,26 +22,52 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         } else {
             this.function = new LaunchFunction.Bezier();
         }
+    }
+
+    /**
+     * Deprecated: please use {@link #initDistance(ticks, vel)} or {@link #initTime(time, vel)} instead,
+     * combined with the default constructor.
+     */
+    @Deprecated
+    public MemberActionLaunch(double targetdistance, double targetvelocity) {
+        this();
+        this.initDistance(targetdistance, targetvelocity);
+    }
+
+    public void initTime(int timeTicks, double targetvelocity) {
         this.targetvelocity = targetvelocity;
-        this.targetdistance = targetdistance;
+        this.targetdistance = -1.0;
+        this.targettime = timeTicks;
         this.distance = 0;
         this.lastVelocity = 0.0;
     }
 
+    public void initDistance(double targetdistance, double targetvelocity) {
+        this.targetvelocity = targetvelocity;
+        this.targetdistance = targetdistance;
+        this.distance = 0;
+        this.lastVelocity = 0.0;
+        this.targettime = -1;
+    }
+
     @Override
     public void start() {
-        // The world may never know why this is needed for trains >1 in size
-        // ...if you know, let me know, k?
-        if (getGroup().size() > 1) {
-            this.targetdistance += getMember().getEntity().getMovedDistance();
-        }
-
-        // Initialize launching function with the start/end conditions
         this.lastVelocity = 0.0;
         this.function.setMinimumVelocity(minVelocity);
         this.function.setMaximumVelocity(this.getEntity().getMaxSpeed());
         this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
-        this.function.setTotalDistance(this.targetdistance);
+
+        if (this.targettime >= 0) {
+            this.function.setTotalTime(this.targettime);
+        } else {
+            // The world may never know why this is needed for trains >1 in size
+            // ...if you know, let me know, k?
+            if (getGroup().size() > 1) {
+                this.targetdistance += getMember().getEntity().getMovedDistance();
+            }
+
+            this.function.setTotalDistance(this.targetdistance);
+        }
     }
 
     @Override

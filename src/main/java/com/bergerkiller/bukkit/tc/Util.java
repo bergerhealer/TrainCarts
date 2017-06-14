@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
@@ -684,5 +685,27 @@ public class Util {
             }
         }
         return length;
+    }
+
+    /**
+     * Attempts to parse the text as time ticks, converting values such as '12s' and '500ms' into ticks.
+     * If no time statement is found, -1 is returned.
+     * 
+     * @param text to parse as time
+     * @return time ticks, or -1 if not parsed
+     */
+    public static int parseTimeTicks(String text) {
+        text = text.toLowerCase(Locale.ENGLISH);
+        double ticks = -1.0;
+        if (text.endsWith("ms")) {
+            ticks = 0.02 * ParseUtil.parseDouble(text.substring(0, text.length() - 1), -1);
+        } else if (text.endsWith("m")) {
+            ticks = 1200.0 * ParseUtil.parseDouble(text.substring(0, text.length() - 1), -1);
+        } else if (text.endsWith("s")) {
+            ticks = 20.0 * ParseUtil.parseDouble(text.substring(0, text.length() - 1), -1);
+        } else if (text.endsWith("t")) {
+            ticks = ParseUtil.parseInt(text.substring(0, text.length() - 1), -1);
+        }
+        return (ticks < 0.0) ? -1 : (int) ticks;
     }
 }
