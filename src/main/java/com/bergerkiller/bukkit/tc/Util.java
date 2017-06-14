@@ -698,7 +698,7 @@ public class Util {
         text = text.toLowerCase(Locale.ENGLISH);
         double ticks = -1.0;
         if (text.endsWith("ms")) {
-            ticks = 0.02 * ParseUtil.parseDouble(text.substring(0, text.length() - 1), -1);
+            ticks = 0.02 * ParseUtil.parseDouble(text.substring(0, text.length() - 2), -1);
         } else if (text.endsWith("m")) {
             ticks = 1200.0 * ParseUtil.parseDouble(text.substring(0, text.length() - 1), -1);
         } else if (text.endsWith("s")) {
