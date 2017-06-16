@@ -1058,6 +1058,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         world.unloadChunkRequest(cx, cz);
                     }
                 }
+
+                // Load all chunks in the train area, regardless of movement
+                // Previously we only loaded chunks after moving across chunk boundaries
+                // This will hopefully fix any issues to do with failing keepChunksLoaded
+                iter = newChunksBuffer.iterator();
+                while (iter.hasNext()) {
+                    chunk = iter.next();
+                    cx = chunk.x;
+                    cz = chunk.z;
+                    world.getChunkAt(cx, cz);
+                }
+
+                /*
                 // Load the new chunks
                 iter = newChunksBuffer.iterator();
                 while (iter.hasNext()) {
@@ -1068,6 +1081,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         world.getChunkAt(cx, cz);
                     }
                 }
+                */
             }
 
             return true;
