@@ -56,14 +56,14 @@ public class SignActionCraft extends SignAction {
                 }
             }
         }
-        if (w != null) {
+        if (w != null || !TrainCarts.craftingRequireWorkbench) {
             //get the inventory to transfer in
             Inventory inventory = TransferSignUtil.getInventory(info);
             if (inventory == null) {
                 return;
             }
 
-            if (TrainCarts.showTransferAnimations) {
+            if (w != null && TrainCarts.showTransferAnimations) {
                 inventory = ItemAnimatedInventory.convert(inventory, info.getMember(), w);
             }
 

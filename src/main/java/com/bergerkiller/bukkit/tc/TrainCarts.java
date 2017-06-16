@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import org.bukkit.Material;
@@ -70,6 +69,7 @@ public class TrainCarts extends PluginBase {
     public static int defaultTransferRadius;
     public static int maxTransferRadius;
     public static boolean showTransferAnimations;
+    public static boolean craftingRequireWorkbench;
     public static boolean slowDownEmptyCarts;
     public static double slowDownMultiplierSlow;
     public static double slowDownMultiplierNormal;
@@ -401,6 +401,10 @@ public class TrainCarts extends PluginBase {
 
         config.setHeader("showTransferAnimations", "\nWhether or not to show item animations when transferring items");
         showTransferAnimations = config.get("showTransferAnimations", true);
+
+        config.setHeader("craftingRequireWorkbench", "\nWhether a crafting table must exist when crafting items inside a storage minecart\n" +
+                "When this is set to false and no crafting table is nearby, no item transfer animations are shown");
+        craftingRequireWorkbench = config.get("craftingRequireWorkbench", true);
 
         //message shortcuts
         config.setHeader("messageShortcuts", "\nSeveral shortcuts you can use on announce signs (text is replaced)");
