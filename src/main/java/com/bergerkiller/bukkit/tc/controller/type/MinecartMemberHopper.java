@@ -16,8 +16,9 @@ public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
 
     @Override
     public void onActivatorUpdate(boolean activated) {
-        if (entity.isSuckingItems() != activated) {
-            entity.setSuckingItems(activated);
+        boolean activateSucking = !activated;
+        if (entity.isSuckingItems() != activateSucking) {
+            entity.setSuckingItems(activateSucking);
         }
     }
 
