@@ -524,6 +524,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return this.isHeadingTo(entity.getLocation());
     }
 
+    public boolean isHeadingTo(Vector movement) {
+        return MathUtil.isHeadingTo(movement, entity.getVelocity());
+    }
+
     public boolean isHeadingTo(IntVector3 location) {
         return MathUtil.isHeadingTo(this.entity.loc.offsetTo(location.x, location.y, location.z), entity.getVelocity());
     }

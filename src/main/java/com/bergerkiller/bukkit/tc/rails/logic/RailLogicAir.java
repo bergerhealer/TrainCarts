@@ -24,7 +24,11 @@ public class RailLogicAir extends RailLogic {
 
     @Override
     public double getForwardVelocity(MinecartMember<?> member) {
-        return member.getEntity().vel.length();
+        if (member.getEntity().vel.xz.lengthSquared() == 0.0) {
+            return member.getEntity().vel.getY() * member.getDirection().getModY();
+        } else {
+            return member.getEntity().vel.length();
+        }
     }
 
     @Override

@@ -32,7 +32,13 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.ConcurrentModificationException;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
@@ -817,6 +823,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private boolean doConnectionCheck() {
+        // Check all railed minecarts follow the same tracks
+        // This is important for switcher/junction split logic
         for (int i = 0; i < this.size() - 1; i++) {
             // (!get(i + 1).isFollowingOnTrack(get(i))) {
             if (get(i).getRailTracker().isTrainSplit()) {
@@ -836,6 +844,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         }
                     }
                 }
+                return false;
+            }
+        }
+
+        // Check that no minecart is too far apart from another
+        for (int i = 0; i < this.size() - 1; i++) {
+            MinecartMember<?> m1 = get(i);
+            MinecartMember<?> m2 = get(i + 1);
+            if (!m1.isDerailed() && !m2.isDerailed()) {
+                continue; // ignore railed minecarts that can still reach each other
+            }
+            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= (3.0 * TrainCarts.cartDistance)) {
+                this.split(i + 1);
                 return false;
             }
         }
