@@ -89,7 +89,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     }
 
     public double getTargetVelocity() {
-        return this.function.getEndVelocity();
+        return this.targetvelocity;
     }
 
     public double getTargetDistance() {

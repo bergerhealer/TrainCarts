@@ -53,7 +53,7 @@ public class SignActionStation extends SignAction {
 
             //Brake
             //TODO: ADD CHECK?!
-            group.getActions().clear();
+            group.getActions().launchReset();
             BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), info.getMember().getDirection());
             if (station.getNextDirection() != Direction.NONE) {
                 // Actual launching here
@@ -71,10 +71,9 @@ public class SignActionStation extends SignAction {
             }
         } else {
             //Launch
-            group.getActions().clear();
-            MinecartMember<?> head = group.head();
+            group.getActions().launchReset();
 
-            if (station.hasDelay() || (head.isMoving() && !info.getMember().isDirectionTo(station.getInstruction()))) {
+            if (station.hasDelay() || (group.head().isMoving() && !info.getMember().isDirectionTo(station.getInstruction()))) {
                 //Reversing or has delay, need to center it in the middle first
                 station.centerTrain();
             }
