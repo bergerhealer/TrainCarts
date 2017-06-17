@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
 public class MemberActionLaunch extends MemberAction implements MovementAction {
     private static final double minVelocity = 0.001;
+    private static final double minLaunchVelocity = 0.05;
 
     private int targettime;
     private double targetvelocity;
@@ -65,6 +66,9 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         this.function.setMinimumVelocity(minVelocity);
         this.function.setMaximumVelocity(this.getEntity().getMaxSpeed());
         this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
+        if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
+            this.function.setStartVelocity(minLaunchVelocity);
+        }
 
         if (this.targettime >= 0) {
             this.function.setTotalTime(this.targettime);

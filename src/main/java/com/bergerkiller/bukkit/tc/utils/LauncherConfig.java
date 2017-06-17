@@ -78,8 +78,8 @@ public class LauncherConfig {
      * <li>12s  =  launch for 12 seconds, default algorithm</li>
      * <li>12m  =  launch for 12 minutes, default algorithm</li>
      * <li>50t  =  launch for 50 ticks, default algorithm</li>
-     * <li>20l  =  distance of 12 blocks, linear algorithm</li>
-     * <li>20b  =  distance of 12 blocks, bezier algorithm</li>
+     * <li>20l  =  distance of 20 blocks, linear algorithm</li>
+     * <li>20b  =  distance of 20 blocks, bezier algorithm</li>
      * <li>10sb =  launch for 10 seconds, bezier algorithm</li>
      * </ul>
      * 

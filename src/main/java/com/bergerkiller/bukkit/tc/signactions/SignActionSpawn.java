@@ -338,15 +338,15 @@ public class SignActionSpawn extends SignAction {
 
             //Spawn
             MinecartGroup group = MinecartGroup.create();
-            for (int i = 0; i < spawnLocations.size(); i++) {
+            for (int i = spawnLocations.size() - 1; i >= 0; i--) {
                 MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLocations.get(i), types.types.get(i));
                 group.add(mm);
-                if (spawnForce != 0 && i == 0 && launchDirection != BlockFace.SELF) {
-                    mm.getActions().addActionLaunch(launchDirection, 2, spawnForce);
-                }
             }
             group.updateDirection();
             group.getProperties().setDefault("spawner");
+            if (spawnForce != 0 && launchDirection != BlockFace.SELF) {
+                group.head().getActions().addActionLaunch(launchDirection, 2, spawnForce);
+            }
             GroupCreateEvent.call(group);
         }
     }
