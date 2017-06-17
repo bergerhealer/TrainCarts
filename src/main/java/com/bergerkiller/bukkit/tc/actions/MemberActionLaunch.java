@@ -1,8 +1,8 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
+import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
 public class MemberActionLaunch extends MemberAction implements MovementAction {
     private static final double minVelocity = 0.001;
@@ -12,15 +12,24 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     private double targetdistance;
     private double distance;
     private double lastVelocity;
-    private final LaunchFunction function;
+    private LaunchFunction function;
 
     public MemberActionLaunch() {
-        if (TrainCarts.launchFunctionType.equalsIgnoreCase("linear")) {
+        this.setFunction(LauncherConfig.createDefault().getFunction());
+    }
+
+    /**
+     * Sets the type of launch function to use.
+     * This should be the first function called during initialization.
+     * 
+     * @param function class to use
+     */
+    public void setFunction(Class<? extends LaunchFunction> function) {
+        try {
+            this.function = function.newInstance();
+        } catch (Throwable t) {
+            t.printStackTrace();
             this.function = new LaunchFunction.Linear();
-        } else if (TrainCarts.launchFunctionType.equalsIgnoreCase("bezier")) {
-            this.function = new LaunchFunction.Bezier();
-        } else {
-            this.function = new LaunchFunction.Bezier();
         }
     }
 

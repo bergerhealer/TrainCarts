@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
+
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -75,6 +77,19 @@ public class ActionTrackerMember extends ActionTracker {
         return addGroupAction(action);
     }
 
+    public MemberActionLaunch addActionLaunch(LauncherConfig config, double targetvelocity) {
+        MemberActionLaunch action = new MemberActionLaunch();
+        action.setFunction(config.getFunction());
+        if (config.hasDuration()) {
+            action.initTime(config.getDuration(), targetvelocity);
+        } else if (config.hasDistance()) {
+            action.initDistance(config.getDistance(), targetvelocity);
+        } else {
+            action.initTime(0, targetvelocity);
+        }
+        return addGroupAction(action);
+    }
+
     public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, double targetdistance, double targetvelocity) {
         MemberActionLaunchDirection action = new MemberActionLaunchDirection();
         action.initDistance(targetdistance, targetvelocity, direction);
@@ -84,6 +99,19 @@ public class ActionTrackerMember extends ActionTracker {
     public MemberActionLaunchDirection addActionTimedLaunch(final BlockFace direction, int timeTicks, double targetvelocity) {
         MemberActionLaunchDirection action = new MemberActionLaunchDirection();
         action.initTime(timeTicks, targetvelocity, direction);
+        return addGroupAction(action);
+    }
+
+    public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, LauncherConfig config, double targetvelocity) {
+        MemberActionLaunchDirection action = new MemberActionLaunchDirection();
+        action.setFunction(config.getFunction());
+        if (config.hasDuration()) {
+            action.initTime(config.getDuration(), targetvelocity, direction);
+        } else if (config.hasDistance()) {
+            action.initDistance(config.getDistance(), targetvelocity, direction);
+        } else {
+            action.initTime(0, targetvelocity, direction);
+        }
         return addGroupAction(action);
     }
 

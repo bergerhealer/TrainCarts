@@ -312,7 +312,7 @@ public class TrainCarts extends PluginBase {
         config.setHeader("playSoundAtStation", "\nWhether or not a hissing sound is made when trains stop at a station");
         playSoundAtStation = config.get("playSoundAtStation", true);
 
-        config.setHeader("launchFunction", "\nWhat style of launching to use in stations and launcher sign systems. Possible values:\n" +
+        config.setHeader("launchFunction", "\nWhat style of launching to use in stations and launcher sign systems by default. Possible values:\n" +
                 "- 'linear': gradually switches from one motion speed to another at a linear rate\n" +
                 "- 'bezier': uses a bezier curve (ease in-out), resulting in slower changes in motion at start/end of launch");
         launchFunctionType = config.get("launchFunction", "bezier");

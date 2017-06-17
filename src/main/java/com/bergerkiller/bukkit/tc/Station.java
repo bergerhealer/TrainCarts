@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 import org.bukkit.Location;
@@ -21,8 +22,7 @@ import org.bukkit.util.Vector;
  */
 public class Station {
     private final SignActionEvent info;
-    private final double length;
-    private final int lengthTimeTicks; // time instead of distance
+    private final LauncherConfig launchConfig;
     private final long delay;
     private final BlockFace instruction;
     private final Direction nextDirection;
@@ -94,8 +94,7 @@ public class Station {
                         this.instruction = null;
                     }
                 } else {
-                    this.lengthTimeTicks = -1;
-                    this.length = 0.0;
+                    this.launchConfig = LauncherConfig.createDefault();
                     this.instruction = null;
                     this.valid = false;
                     return;
@@ -104,37 +103,17 @@ public class Station {
         }
 
         // Get initial station length, delay and direction
-        this.lengthTimeTicks = Util.parseTimeTicks(info.getLine(1).substring(7));
-        double length = (this.lengthTimeTicks >= 0) ? -1.0 : ParseUtil.parseDouble(info.getLine(1).substring(7), 0.0);
-        if (this.lengthTimeTicks < 0 && length == 0.0 && this.instruction != null) {
+        this.launchConfig = LauncherConfig.parse(info.getLine(1).substring(7));
+        if (!this.launchConfig.hasDuration() && !this.launchConfig.hasDistance() && this.instruction != null) {
             // Manually calculate the length
             // Use the amount of straight blocks
-            length = Util.calculateStraightLength(this.railsBlock, this.instruction);
+            double length = Util.calculateStraightLength(this.railsBlock, this.instruction);
             if (length == 0.0) {
                 length++;
             }
+            this.launchConfig.setDistance(length);
         }
-        this.length = length;
         this.valid = true;
-    }
-
-    /**
-     * Gets the length of the station
-     *
-     * @return station length
-     */
-    public double getLength() {
-        return this.length;
-    }
-
-    /**
-     * When time is put instead of a station length, this returns the amount of ticks
-     * to launch the train at. This is -1 when not used.
-     * 
-     * @return station launching duration in ticks
-     */
-    public int getLengthTime() {
-        return this.lengthTimeTicks;
     }
 
     /**
@@ -162,6 +141,15 @@ public class Station {
      */
     public boolean isValid() {
         return this.valid;
+    }
+
+    /**
+     * Gets the launch configuration, which contains the distance/time and launch function used
+     * 
+     * @return launcher configuration
+     */
+    public LauncherConfig getLaunchConfig() {
+        return this.launchConfig;
     }
 
     /**
@@ -287,21 +275,16 @@ public class Station {
      * @param direction to launch into
      */
     public void launchTo(BlockFace direction) {
-        double newDistance = this.getLength();
         if (!wasCentered) {
             // Apply distance correction from center cart to station
             CartToStationInfo stationInfo = getCartToStationInfo();
             // Adjust the direction and distance
-            if (stationInfo.cartDir == direction) {
+            if (stationInfo.cartDir == direction && this.launchConfig.hasDistance()) {
                 // Adjust the direction and distance
-                newDistance += stationInfo.distance;
+                this.launchConfig.setDistance(this.launchConfig.getDistance() + stationInfo.distance);
             }
         }
-        if (this.getLengthTime() >= 0) {
-            getCenterCart().getActions().addActionTimedLaunch(direction, this.getLengthTime(), TrainCarts.launchForce);
-        } else {
-            getCenterCart().getActions().addActionLaunch(direction, newDistance, TrainCarts.launchForce);
-        }
+        getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TrainCarts.launchForce);
         this.wasCentered = false;
     }
 
