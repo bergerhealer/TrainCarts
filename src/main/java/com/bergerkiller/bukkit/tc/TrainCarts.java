@@ -348,9 +348,11 @@ public class TrainCarts extends PluginBase {
         config.setHeader("refillAtStations", "\nWhether storage minecarts get fuel when launching from stations");
         refillAtStations = config.get("refillAtStations", true);
 
-        config.setHeader("instantCreativeDestroy", "\nWhether minecarts are instantly destroyed by creative players");
-        config.addHeader("instantCreativeDestroy", "Note that manual minecart movement is not possible for creative players with this enabled");
-        instantCreativeDestroy = config.get("instantCreativeDestroy", false);
+        config.setHeader("instantCreativeDestroy", "\nWhen set to true, players will be able to break minecarts with a single slap\n" +
+                "\nNo item drops are spawned for minecarts destroyed this way. Minecart contents ARE dropped." +
+                "\nThey can still select minecarts by crouching and then slapping the minecart\n" +
+                "\nWhen set to false, players will never instantly destroy minecarts and they will have to break it as if in survival.");
+        instantCreativeDestroy = config.get("instantCreativeDestroy", true);
 
         config.setHeader("allowVerticalPitch", "\nWhether minecarts are allowed to have a 90-degree pitch angle when going up vertical rails");
         config.addHeader("allowVerticalPitch", "When disabled, minecarts will keep a 0-degree pitch angle instead");

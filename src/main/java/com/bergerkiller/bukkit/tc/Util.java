@@ -21,6 +21,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Stairs;
 import org.bukkit.util.Vector;
@@ -497,6 +498,23 @@ public class Util {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Gets whether a particular entity is in a state of destroying minecarts instantly.
+     * This is when they are in creative mode, and only when not sneaking (players).
+     * 
+     * @param entity to check
+     * @return True if the entity can instantly destroy a minecart, False if not
+     */
+    public static boolean canInstantlyBreakMinecart(Entity entity) {
+        if (!TrainCarts.instantCreativeDestroy || !canInstantlyBuild(entity)) {
+            return false;
+        }
+        if (entity instanceof Player && ((Player) entity).isSneaking()) {
+            return false;
+        }
+        return true;
     }
 
     public static boolean canInstantlyBuild(Entity entity) {

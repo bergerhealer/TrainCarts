@@ -688,13 +688,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             this.entity.setVelocityChanged(true);
             this.entity.setDamage(this.entity.getDamage() + damage * 10);
             // Check whether the entity is a creative (insta-build) entity
-            if (TrainCarts.instantCreativeDestroy && Util.canInstantlyBuild(damager)) {
+            boolean isInstantlyDestroyed = Util.canInstantlyBreakMinecart(damager);
+            if (isInstantlyDestroyed) {
                 this.entity.setDamage(100);
             }
             if (this.entity.getDamage() > 40) {
                 // Send an event, pass in the drops to drop
                 List<ItemStack> drops = new ArrayList<>(2);
-                if (getProperties().getSpawnItemDrops()) {
+                if (!isInstantlyDestroyed && getProperties().getSpawnItemDrops()) {
                     if (TrainCarts.breakCombinedCarts) {
                         drops.addAll(this.entity.getBrokenDrops());
                     } else {
