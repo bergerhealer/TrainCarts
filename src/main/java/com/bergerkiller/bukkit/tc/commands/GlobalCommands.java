@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -22,6 +23,9 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 public class GlobalCommands {
 
@@ -221,6 +225,29 @@ public class GlobalCommands {
                     sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TrainCarts.tickUpdateNow + " times");
                 }
             }
+            return true;
+        } else if (args[0].equals("issue")) {
+            Permission.COMMAND_ISSUE.handle(sender);
+            MessageBuilder builder = new MessageBuilder();
+            builder.yellow("Click here to report an issue with TrainCarts: ");
+            try {
+                String build = String.valueOf(TrainCarts.plugin.getPluginYaml().get("build"));
+                String template = "##### BkCommonLib version: " + CommonPlugin.getInstance().getVersion() +
+                        "\n##### TrainCarts version: " + TrainCarts.plugin.getVersion() +
+                        "\n##### Spigot version: " + Bukkit.getVersion() +
+                        "\n\n" +
+                        "<hr>\n" +
+                        "\n" +
+                        "#### Problem or bug:\n" +
+                        "\n" +
+                        "#### Expected behaviour:\n" +
+                        "\n" +
+                        "#### Steps to reproduce:\n";
+                builder.white("https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(template, "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                builder.white("https://github.com/bergerhealer/TrainCarts/issues/new");
+            }
+            builder.send(sender);
             return true;
         }
         return false;
