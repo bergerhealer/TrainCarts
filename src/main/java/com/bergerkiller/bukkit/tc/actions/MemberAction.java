@@ -13,6 +13,7 @@ public class MemberAction extends Action {
         return getEntity().isDead() || super.doTick();
     }
 
+    @Override
     public MinecartGroup getGroup() {
         return this.member.getGroup();
     }

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
 public class Action {
     private final ToggledState started = new ToggledState();
@@ -13,8 +14,28 @@ public class Action {
             this.start();
         }
         boolean result = this.update();
-        _timeTicks++;
+        MinecartGroup group = this.getGroup();
+        if (group == null || group.isLastUpdateStep()) {
+            this._timeTicks++;
+        }
         return result;
+    }
+
+    /**
+     * Gets the Minecart Group that applies to this Action.
+     * For some actions, this may return null when no group is involved.
+     * 
+     * @return group
+     */
+    public MinecartGroup getGroup() {
+        return null;
+    }
+
+    /**
+     * Refreshes the tick counter at the end of a (real!) update tick
+     */
+    public final void endTick() {
+        this._timeTicks++;
     }
 
     /**

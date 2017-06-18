@@ -64,7 +64,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     public void start() {
         this.lastVelocity = 0.0;
         this.function.setMinimumVelocity(minVelocity);
-        this.function.setMaximumVelocity(this.getEntity().getMaxSpeed());
+        this.function.setMaximumVelocity(this.getGroup().getProperties().getSpeedLimit());
         this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
         if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
             this.function.setStartVelocity(minLaunchVelocity);
@@ -75,9 +75,10 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         } else {
             // The world may never know why this is needed for trains >1 in size
             // ...if you know, let me know, k?
-            if (getGroup().size() > 1) {
-                this.targetdistance += getMember().getEntity().getMovedDistance();
-            }
+            // Now we know! It's because using getMovedDistance() does not show true applied velocities.
+            //if (getGroup().size() > 1) {
+            //    this.targetdistance += getMember().getEntity().getMovedDistance();
+            //}
 
             this.function.setTotalDistance(this.targetdistance);
         }
@@ -123,17 +124,18 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         // Check if we completed the function
         if (this.elapsedTicks() > this.function.getTotalTime()) {
             // Finish with the desired end-velocity
-            this.getGroup().setForwardForce(this.targetvelocity);
+            this.getGroup().setForwardForce(this.targetvelocity * this.getGroup().getUpdateSpeedFactor());
             return true;
         }
 
         // Update velocity based on the distance difference
         this.lastVelocity = (this.function.getDistance(this.elapsedTicks()) - this.distance);
-        if (this.lastVelocity < 0.0) {
-            this.lastVelocity = 0.0; // just in case
+        this.getGroup().setForwardForce(this.lastVelocity * this.getGroup().getUpdateSpeedFactor());
+
+        if (this.getGroup().isLastUpdateStep()) {
+            this.distance += this.lastVelocity;
+            // this.distance += this.getEntity().getMovedDistance();
         }
-        this.getGroup().setForwardForce(this.lastVelocity);
-        this.distance += this.getEntity().getMovedDistance();
         return false;
     }
 }

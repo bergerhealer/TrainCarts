@@ -11,6 +11,7 @@ public class GroupAction extends Action {
         return this.group.isEmpty() || super.doTick();
     }
 
+    @Override
     public MinecartGroup getGroup() {
         return this.group;
     }

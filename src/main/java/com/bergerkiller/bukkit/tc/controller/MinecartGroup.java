@@ -55,6 +55,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private boolean breakPhysics = false;
     private int teleportImmunityTick = 0;
     private double updateSpeedFactor = 1.0;
+    private boolean lastUpdateStep = true;
 
     protected MinecartGroup() {
         this.ticked.set();
@@ -783,12 +784,32 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * specifies the multiplier to apply to speeds for the current update.<br>
      * <br>
      * When moving 0.4 b/t and under, this value will always be 1.0 (one update). Above it, it will be
-     * set to an increasingly small number 1/stepcount.
+     * set to an increasingly small number 1/stepcount. Outside of the physics function, the factor will always be 1.0.<br>
+     * <br>
+     * <b>When to use</b><br>
+     * This factor should only be used when applying an absolute velocity. For example, when
+     * a launcher sign uses a certain desired velocity, this speed factor must be used to make sure it is correctly applied.
+     * Say we want a speed of "2.4", and the update is split in 6 (f=0.1666), we should apply <i>2.4*0.1666=0.4</i>. When all
+     * updates finish, the velocities are corrected and will be set to the 2.4 that was requested.<br>
+     * <br>
+     * However, when a velocity is taken over from inside the physics loop, this factor should <b>not</b> be used.
+     * For example, if you want to do <i>velocity = velocity * 0.95</i> the original velocity is already factored,
+     * and no update speed factor should be applied again.
      * 
      * @return Update speed factor
      */
     public double getUpdateSpeedFactor() {
         return this.updateSpeedFactor;
+    }
+
+    /**
+     * Gets whether the currently executing updates are the final update step.
+     * See {@link #getUpdateSpeedFactor()} for an explanation of what this means.
+     * 
+     * @return True if this is the last update step
+     */
+    public boolean isLastUpdateStep() {
+        return this.lastUpdateStep;
     }
 
     /**
@@ -896,6 +917,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     mm.getEntity().vel.multiply(this.updateSpeedFactor);
                 }
                 for (int i = 0; i < update_steps; i++) {
+                    this.lastUpdateStep = (i == (update_steps - 1));
                     while (!this.doPhysics_step()) ;
                 }
                 for (MinecartMember<?> mm : this) {
@@ -903,8 +925,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
                 }
             } else {
+                this.lastUpdateStep = true;
                 this.doPhysics_step();
             }
+
+            this.updateSpeedFactor = 1.0;
         } catch (GroupUnloadedException ex) {
             //this group is gone
         } catch (Throwable t) {
@@ -968,9 +993,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             this.getActions().doTick();
-            for (MinecartMember<?> member : this) {
-                member.getActions().doTick();
-            }
 
             this.updateDirection();
 
