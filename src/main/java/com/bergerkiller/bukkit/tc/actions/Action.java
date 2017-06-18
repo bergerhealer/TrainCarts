@@ -32,13 +32,6 @@ public class Action {
     }
 
     /**
-     * Refreshes the tick counter at the end of a (real!) update tick
-     */
-    public final void endTick() {
-        this._timeTicks++;
-    }
-
-    /**
      * Gets the number of ticks that have elapsed since starting this action
      * 
      * @return elapsed ticks
