@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -13,8 +14,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.MainHand;
-import org.bukkit.inventory.PlayerInventory;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
     private boolean wasOnVertical = false;
@@ -29,18 +28,18 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public boolean onInteractBy(HumanEntity human, MainHand hand) {
+    public boolean onInteractBy(HumanEntity human, HumanHand hand) {
         if (!this.isInteractable()) {
             return true;
         }
-        PlayerInventory inventory = human.getInventory();
-        ItemStack itemstack = inventory.getItemInMainHand();
+
+        ItemStack itemstack = HumanHand.getHeldItem(human, hand);
         if (itemstack != null && itemstack.getType() == Material.COAL) {
             ItemUtil.subtractAmount(itemstack, 1);
-            inventory.setItemInMainHand(itemstack);
+            HumanHand.setHeldItem(human, hand, itemstack);
             addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
         }
-        
+
         if (this.isOnVertical()) {
             // When on vertical rail we only use PushX for up/down momentum
             boolean isCartAbove = (entity.loc.getY() - EntityUtil.getLocY(human)) > 0.0;

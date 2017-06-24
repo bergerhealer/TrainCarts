@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.CommonEntityType;
 import com.bergerkiller.bukkit.common.entity.type.*;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
@@ -189,8 +190,7 @@ public abstract class MinecartMemberStore {
      * @return the spawned Minecart Member, or null if it failed
      */
     public static MinecartMember<?> spawnBy(Location at, Player player) {
-        PlayerInventory inventory = player.getInventory();
-        ItemStack item = inventory.getItemInMainHand();
+        ItemStack item = HumanHand.getItemInMainHand(player);
         if (LogicUtil.nullOrEmpty(item)) {
             return null;
         }
@@ -203,9 +203,9 @@ public abstract class MinecartMemberStore {
         if (player.getGameMode() != GameMode.CREATIVE) {
             ItemUtil.subtractAmount(item, 1);
             if (LogicUtil.nullOrEmpty(item)) {
-                inventory.setItemInMainHand(null);
+                HumanHand.setItemInMainHand(player, null);
             } else {
-                inventory.setItemInMainHand(item);
+                HumanHand.setItemInMainHand(player, item);
             }
         }
 

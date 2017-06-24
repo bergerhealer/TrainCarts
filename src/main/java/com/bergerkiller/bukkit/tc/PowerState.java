@@ -78,7 +78,9 @@ public enum PowerState {
         } else if (fromBlockData instanceof Diode && !FaceUtil.isVertical(from)) {
             Diode diode = (Diode) fromBlockData;
             if (diode.getFacing() != from) {
-                return diode.isPowered() ? ON : OFF;
+                // Note: not supported on 1.8.8
+                //return diode.isPowered() ? ON : OFF;
+                return (fromBlockInfo.getType() == Material.DIODE_BLOCK_ON) ? ON : OFF;
             } else {
                 return NONE;
             }

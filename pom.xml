@@ -12,9 +12,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.mcversion>v1_11_R1</project.mcversion>
-        <project.serverversion>1.11.2-R0.1</project.serverversion>
-        <project.bkcversion>1.11.2-v2</project.bkcversion>
+        <project.serverversion>1.12-R0.1</project.serverversion>
+        <project.bkcversion>1.12-v2-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.cibuild/>

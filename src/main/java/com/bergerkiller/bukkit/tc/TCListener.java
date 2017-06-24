@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -667,13 +668,12 @@ public class TCListener implements Listener {
             // Properly give the sign back to the player that placed it
             // If this is impossible for whatever reason, just drop it
             if (!Util.canInstantlyBuild(event.getPlayer())) {
-                PlayerInventory inventory = event.getPlayer().getInventory();
-                ItemStack item = inventory.getItemInMainHand();
+                ItemStack item = HumanHand.getItemInMainHand(event.getPlayer());
                 if (LogicUtil.nullOrEmpty(item)) {
-                    inventory.setItemInMainHand(new ItemStack(Material.SIGN, 1));
+                    HumanHand.setItemInMainHand(event.getPlayer(), new ItemStack(Material.SIGN, 1));
                 } else if (MaterialUtil.isType(item, Material.SIGN) && item.getAmount() < ItemUtil.getMaxSize(item)) {
                     ItemUtil.addAmount(item, 1);
-                    inventory.setItemInMainHand(item);
+                    HumanHand.setItemInMainHand(event.getPlayer(), item);
                 } else {
                     // Drop the item
                     Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);

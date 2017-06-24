@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import org.bukkit.Sound;
 
 import com.bergerkiller.bukkit.common.collections.InterpolatedMap;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 
 /**
@@ -37,8 +38,22 @@ public class PoweredCartSoundLoop extends SoundLoop<MinecartMemberFurnace> {
         int interval = (int) nodes.get(member.getEntity().getMovedDistance());
         if (this.swooshSoundCounter >= interval) {
             this.swooshSoundCounter = 0;
-            play(Sound.BLOCK_CLOTH_STEP, 0.6f + 0.2f * random.nextFloat(), 0.2f);
-            play(Sound.BLOCK_FIRE_EXTINGUISH, 1.5f + 0.3f * random.nextFloat(), 0.05f + 0.1f * random.nextFloat());
+
+            // This down here is so we support both 1.8.8 and 1.10.2>
+            Sound sound1 = ParseUtil.parseEnum(Sound.class, "BLOCK_CLOTH_STEP", null);
+            Sound sound2 = ParseUtil.parseEnum(Sound.class, "BLOCK_FIRE_EXTINGUISH", null);
+            if (sound1 == null) {
+                sound1 = ParseUtil.parseEnum(Sound.class, "STEP_WOOL", null);
+            }
+            if (sound2 == null) {
+                sound2 = ParseUtil.parseEnum(Sound.class, "FIZZ", null);
+            }
+            if (sound1 != null) {
+                play(sound1, 0.6f + 0.2f * random.nextFloat(), 0.2f);
+            }
+            if (sound2 != null) {
+                play(sound2, 1.5f + 0.3f * random.nextFloat(), 0.05f + 0.1f * random.nextFloat());
+            }
         }
     }
 }
