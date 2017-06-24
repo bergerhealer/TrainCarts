@@ -231,9 +231,8 @@ public class GlobalCommands {
             MessageBuilder builder = new MessageBuilder();
             builder.yellow("Click here to report an issue with TrainCarts: ");
             try {
-                String build = String.valueOf(TrainCarts.plugin.getPluginYaml().get("build"));
-                String template = "##### BkCommonLib version: " + CommonPlugin.getInstance().getVersion() +
-                        "\n##### TrainCarts version: " + TrainCarts.plugin.getVersion() +
+                String template = "##### BkCommonLib version: " + CommonPlugin.getInstance().getDebugVersion() +
+                        "\n##### TrainCarts version: " + TrainCarts.plugin.getDebugVersion() +
                         "\n##### Spigot version: " + Bukkit.getVersion() +
                         "\n\n" +
                         "<hr>\n" +

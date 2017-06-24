@@ -29,7 +29,7 @@
                 </property>
             </activation>
             <properties>
-                <project.cibuild>-#${env.BUILD_NUMBER}</project.cibuild>
+                <project.cibuild>#${env.BUILD_NUMBER}</project.cibuild>
             </properties>
         </profile>
     </profiles>
