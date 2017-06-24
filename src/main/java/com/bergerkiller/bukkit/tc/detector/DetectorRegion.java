@@ -20,7 +20,6 @@ import java.util.*;
 import java.util.logging.Level;
 
 public final class DetectorRegion {
-    private static List<DetectorListener> listenerBuffer = new ArrayList<>();
     private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<>();
     private static BlockMap<List<DetectorRegion>> regions = new BlockMap<>();
     private final UUID id;
@@ -235,8 +234,7 @@ public final class DetectorRegion {
     }
 
     private void onLeave(MinecartMember<?> mm) {
-        this.setListenerBuffer();
-        for (DetectorListener listener : listenerBuffer) {
+        for (DetectorListener listener : getListeners()) {
             listener.onLeave(mm);
         }
         if (mm.isUnloaded()) {
@@ -248,14 +246,13 @@ public final class DetectorRegion {
                 return;
             }
         }
-        for (DetectorListener listener : listenerBuffer) {
+        for (DetectorListener listener : getListeners()) {
             listener.onLeave(group);
         }
     }
 
     private void onEnter(MinecartMember<?> mm) {
-        this.setListenerBuffer();
-        for (DetectorListener listener : listenerBuffer) {
+        for (DetectorListener listener : getListeners()) {
             listener.onEnter(mm);
         }
         if (mm.isUnloaded()) {
@@ -267,15 +264,14 @@ public final class DetectorRegion {
                 return;
             }
         }
-        for (DetectorListener listener : listenerBuffer) {
+        for (DetectorListener listener : getListeners()) {
             listener.onEnter(group);
         }
     }
 
     public void unload(MinecartGroup group) {
         if (this.members.removeAll(group)) {
-            this.setListenerBuffer();
-            for (DetectorListener listener : listenerBuffer) {
+            for (DetectorListener listener : getListeners()) {
                 listener.onUnload(group);
             }
         }
@@ -293,9 +289,8 @@ public final class DetectorRegion {
         }
     }
 
-    private void setListenerBuffer() {
-        listenerBuffer.clear();
-        listenerBuffer.addAll(this.listeners);
+    private List<DetectorListener> getListeners() {
+        return new ArrayList<DetectorListener>(this.listeners);
     }
 
     public void update(MinecartMember<?> member) {
