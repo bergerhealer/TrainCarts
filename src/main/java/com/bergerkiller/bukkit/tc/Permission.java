@@ -22,11 +22,11 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_PLAYEREXIT = new Permission("train.command.playerexit", PermissionDefault.TRUE, "The player can set if players can exit his owned carts");
     public static final Permission COMMAND_PICKUP = new Permission("train.command.pickup", PermissionDefault.TRUE, "The player can set if his owned storage carts pick up items");
     public static final Permission COMMAND_SETLINKING = new Permission("train.command.setlinking", PermissionDefault.TRUE, "The player can set if his owned trains can link to other trains");
-    public static final Permission COMMAND_KEEPCHUNKSLOADED = new Permission("train.command.keepchunksloaded", PermissionDefault.OP, "The player can if his owned trains keep nearby chunks loaded");
-    public static final Permission COMMAND_INVINCIBLE = new Permission("train.command.invincible", PermissionDefault.OP, "The player can if his owned trains make it invincible");
-    public static final Permission COMMAND_PUSHING = new Permission("train.command.pushing", PermissionDefault.TRUE, "The player can if his owned trains push away certain entities");
-    public static final Permission COMMAND_SLOWDOWN = new Permission("train.command.slowdown", PermissionDefault.TRUE, "The player can if his owned trains slow down over time");
-    public static final Permission COMMAND_SETCOLLIDE = new Permission("train.command.setcollide", PermissionDefault.TRUE, "The player can if his owned trains can collide");
+    public static final Permission COMMAND_KEEPCHUNKSLOADED = new Permission("train.command.keepchunksloaded", PermissionDefault.OP, "The player can set if his owned trains keep nearby chunks loaded");
+    public static final Permission COMMAND_INVINCIBLE = new Permission("train.command.invincible", PermissionDefault.OP, "The player can set if his owned trains are invincible");
+    public static final Permission COMMAND_PUSHING = new Permission("train.command.pushing", PermissionDefault.TRUE, "The player can set if his owned trains push away certain entities");
+    public static final Permission COMMAND_SLOWDOWN = new Permission("train.command.slowdown", PermissionDefault.TRUE, "The player can set if his owned trains slow down over time");
+    public static final Permission COMMAND_SETCOLLIDE = new Permission("train.command.setcollide", PermissionDefault.TRUE, "The player can set if his owned trains can collide");
     public static final Permission COMMAND_SETSPEEDLIMIT = new Permission("train.command.setspeedlimit", PermissionDefault.TRUE, "The player can set the maximum speed for his trains");
     public static final Permission COMMAND_SETPOWERCARTREQ = new Permission("train.command.setpoweredcartrequirement", PermissionDefault.TRUE, "The player can set if a powered minecart is needed for his train to stay alive");
     public static final Permission COMMAND_DEFAULT = new Permission("train.command.default", PermissionDefault.OP, "The player can apply default settings to his owned trains");
@@ -41,6 +41,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_TELEPORT = new Permission("train.command.teleport", PermissionDefault.OP, "Whether the player can teleport to where trains are");
     public static final Permission COMMAND_CHANGEBLOCK = new Permission("train.command.changeblock", PermissionDefault.OP, "Whether the player can alter the type of block displayed in a minecart");
     public static final Permission COMMAND_CHANGETICK = new Permission("train.command.changetick", PermissionDefault.OP, "Whether the player can alter the global update tick rate of TrainCarts (debug!)");
+    public static final Permission COMMAND_ISSUE = new Permission("train.command.issue", PermissionDefault.TRUE, "Whether the player can report problems with TrainCarts");
     public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
     public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
     public static final Permission SPAWNER_AUTOMATIC = new Permission("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts");

@@ -17,8 +17,23 @@
         <project.bkcversion>1.11.2-v2</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
+        <project.cibuild/>
         <junit.version>4.11</junit.version>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>ci</id>
+            <activation>
+                <property>
+                    <name>env.BUILD_NUMBER</name>
+                </property>
+            </activation>
+            <properties>
+                <project.cibuild>-#${env.BUILD_NUMBER}</project.cibuild>
+            </properties>
+        </profile>
+    </profiles>
 
     <repositories>
         <!-- Repo for access to CraftBukkit -->
