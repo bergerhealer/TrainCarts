@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
-    public static final double ROTATION_K = 0.55;
+    public static final float ROTATION_K = 0.55f;
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
@@ -56,15 +56,15 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         };
     }
 
-    private static int getAngleKFactor(int angle1, int angle2) {
-        int diff = angle1 - angle2;
-        while (diff <= -128) {
-            diff += 256;
+    private static float getAngleKFactor(float angle1, float angle2) {
+        float diff = angle1 - angle2;
+        while (diff <= -180.0f) {
+            diff += 360.0f;
         }
-        while (diff > 128) {
-            diff -= 256;
+        while (diff > 180.0f) {
+            diff -= 360.0f;
         }
-        return (int) (ROTATION_K * diff);
+        return (ROTATION_K * diff);
     }
 
     private double convertVelocity(double velocity) {
@@ -180,11 +180,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated, boolean absolute) {
         // Read live location
-        long posX = locLive.getX();
-        long posY = locLive.getY();
-        long posZ = locLive.getZ();
-        int rotYaw = locLive.getYaw();
-        int rotPitch = locLive.getPitch();
+        double posX = locLive.getX();
+        double posY = locLive.getY();
+        double posZ = locLive.getZ();
+        float rotYaw = locLive.getYaw();
+        float rotPitch = locLive.getPitch();
 
         // Synchronize location
         if (rotated && !member.isDerailed()) {
