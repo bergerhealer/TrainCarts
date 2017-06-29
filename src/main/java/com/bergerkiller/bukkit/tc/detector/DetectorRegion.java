@@ -37,9 +37,13 @@ public final class DetectorRegion {
             List<DetectorRegion> list = regions.get(world, coord);
             if (list == null) {
                 list = new ArrayList<>(1);
+                list.add(this);
+                regions.put(world, coord, list);
+            } else {
+                list = new ArrayList<DetectorRegion>(list);
+                list.add(this);
                 regions.put(world, coord, list);
             }
-            list.add(this);
         }
         //load members
         World w = Bukkit.getServer().getWorld(this.world);
@@ -315,9 +319,12 @@ public final class DetectorRegion {
         for (IntVector3 coord : this.coordinates) {
             List<DetectorRegion> list = regions.get(this.world, coord);
             if (list == null) continue;
-            list.remove(this);
-            if (list.isEmpty()) {
+            if (list.size() == 1 && list.get(0) == this) {
                 regions.remove(this.world, coord);
+            } else {
+                list = new ArrayList<DetectorRegion>(list);
+                list.remove(this);
+                regions.put(this.world, coord, list);
             }
         }
     }
