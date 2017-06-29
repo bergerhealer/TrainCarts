@@ -240,10 +240,12 @@ public class TCListener implements Listener {
                 event.setCancelled(true);
             }
         } else if (EntityUtil.isMob(event.getEntered())) {
-            CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
-            if (x != CollisionMode.ENTER) {
-                event.setCancelled(true);
-            }
+            // This does not appear to be needed (anymore) to stop mobs from going into the Minecarts
+            // Keeping this will cause enter signs or other plugins to no longer be able to add passengers
+            //CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
+            //if (x != CollisionMode.ENTER) {
+            //    event.setCancelled(true);
+            //}
         }
         member.onPropertiesChanged();
     }
