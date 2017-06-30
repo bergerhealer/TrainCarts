@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
@@ -247,6 +248,15 @@ public class GlobalCommands {
                 builder.white("https://github.com/bergerhealer/TrainCarts/issues/new");
             }
             builder.send(sender);
+            return true;
+        } else if (args[0].equals("editor")) {
+            Permission.COMMAND_GIVE_EDITOR.handle(sender);
+            if (sender instanceof Player) {
+                Player p = (Player) sender;
+                p.getInventory().addItem(TCMapControl.createTCMapItem());
+            } else {
+                sender.sendMessage("This command is only for players");
+            }
             return true;
         }
         return false;

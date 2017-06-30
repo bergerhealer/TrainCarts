@@ -4,7 +4,7 @@
 
     <groupId>com.bergerkiller.bukkit</groupId>
     <artifactId>TrainCarts</artifactId>
-    <version>1.12-v1</version>
+    <version>1.12-v2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>TrainCarts</name>
@@ -129,6 +129,14 @@
                 <includes>
                     <include>plugin.yml</include>
                 </includes>
+            </resource>
+
+            <!-- Includes textures -->
+            <resource>
+              <directory>src/main/java</directory>
+              <includes>
+                <include>**/*.png</include>
+              </includes>
             </resource>
         </resources>
         <defaultGoal>clean install</defaultGoal>

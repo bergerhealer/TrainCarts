@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
+import com.bergerkiller.bukkit.common.events.map.MapShowEvent;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -13,6 +15,8 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.editor.TCMapControl;
+import com.bergerkiller.bukkit.tc.editor.TCMapEditor;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -73,6 +77,13 @@ public class TCListener implements Listener {
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onMapViewed(MapShowEvent event) {
+        if (event.isHeldEvent() && !(event.getDisplay() instanceof TCMapEditor)) {
+            event.setDisplay(TrainCarts.plugin, new TCMapEditor());
+        }
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
@@ -347,14 +358,29 @@ public class TCListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (TrainCarts.isWorldDisabled(event.getPlayer().getWorld())) {
             return;
         }
+
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.RIGHT_CLICK_AIR) {
             return;
         }
+
+        // Map control: select the clicked block
+        if (TCMapControl.isTCMapItem(event.getItem())) {
+            if (event.getClickedBlock() != null) {
+                ItemUtil.getMetaTag(event.getItem()).putBlockLocation("selected", new BlockLocation(event.getClickedBlock()));
+            }
+
+            TCMapControl.updateMapItem(event.getPlayer(), true);
+
+            event.setUseInteractedBlock(Result.DENY);
+            event.setUseItemInHand(Result.DENY);
+            return;
+        }
+
         try {
             // Obtain the clicked block
             Block clickedBlock = event.getClickedBlock();
