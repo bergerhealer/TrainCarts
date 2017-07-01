@@ -59,7 +59,6 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.material.Rails;
 
 import java.util.ArrayList;
@@ -80,7 +79,10 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onMapViewed(MapShowEvent event) {
-        if (event.isHeldEvent() && !(event.getDisplay() instanceof TCMapEditor)) {
+        if ( event.isHeldEvent() && 
+             TCMapControl.isTCMapItem(event.getMapItem()) &&
+             !(event.getDisplay() instanceof TCMapEditor) ) {
+
             event.setDisplay(TrainCarts.plugin, new TCMapEditor());
         }
     }
