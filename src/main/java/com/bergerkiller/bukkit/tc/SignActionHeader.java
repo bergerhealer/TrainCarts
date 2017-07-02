@@ -82,6 +82,73 @@ public class SignActionHeader {
     }
 
     /**
+     * Gets the desired redstone power state that will trigger the sign
+     * 
+     * @return redstone power state
+     */
+    public SignRedstoneMode getRedstoneMode() {
+        if (this.power_always_on) {
+            return SignRedstoneMode.ALWAYS;
+        } else if (this.power_rising && this.power_falling) {
+            return SignRedstoneMode.PULSE_ALWAYS;
+        } else if (this.power_falling) {
+            return this.power_inverted ? SignRedstoneMode.PULSE_ON : SignRedstoneMode.PULSE_OFF;
+        } else if (this.power_rising) {
+            return this.power_inverted ? SignRedstoneMode.PULSE_OFF : SignRedstoneMode.PULSE_ON;
+        } else if (this.power_inverted) {
+            return SignRedstoneMode.OFF;
+        } else {
+            return SignRedstoneMode.ON;
+        }
+    }
+
+    /**
+     * Sets the desired redstone power state that will trigger the sign
+     * 
+     * @param mode to set to
+     */
+    public void setRedstoneMode(SignRedstoneMode mode) {
+        switch (mode) {
+        case ALWAYS:
+            this.power_always_on = true;
+            this.power_inverted = false;
+            this.power_falling = false;
+            this.power_rising = false;
+            break;
+        case ON:
+            this.power_always_on = false;
+            this.power_inverted = false;
+            this.power_falling = false;
+            this.power_rising = false;
+            break;
+        case OFF:
+            this.power_always_on = false;
+            this.power_inverted = true;
+            this.power_falling = false;
+            this.power_rising = false;
+            break;
+        case PULSE_ALWAYS:
+            this.power_always_on = false;
+            this.power_inverted = false;
+            this.power_falling = true;
+            this.power_rising = true;
+            break;
+        case PULSE_ON:
+            this.power_always_on = false;
+            this.power_inverted = false;
+            this.power_falling = false;
+            this.power_rising = true;
+            break;
+        case PULSE_OFF:
+            this.power_always_on = false;
+            this.power_inverted = false;
+            this.power_falling = true;
+            this.power_rising = false;
+            break;
+        }
+    }
+
+    /**
      * Gets the Sign Action Mode of this sign, indicating whether it is for trains, carts, or remote-control
      * 
      * @return sign action mode
@@ -171,11 +238,16 @@ public class SignActionHeader {
      * @return directions
      */
     public Direction[] getDirections() {
-        if (directions == null) {
-            return new Direction[] { Direction.NONE };
-        } else {
-            return directions;
-        }
+        return directions;
+    }
+
+    /**
+     * Sets the directions specified in the sign header
+     * 
+     * @param directions
+     */
+    public void setDirections(Direction[] directions) {
+        this.directions = directions;
     }
 
     /**

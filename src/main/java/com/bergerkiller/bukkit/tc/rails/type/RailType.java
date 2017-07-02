@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 
 import org.bukkit.Location;
@@ -314,5 +315,16 @@ public abstract class RailType {
         at.setYaw(FaceUtil.faceToYaw(this.getDirection(railsBlock)));
         at.setPitch(0.0F);
         return at;
+    }
+
+    /**
+     * Gets rails texture information about this Rail Type for a particular Block.
+     * This texture is displayed in the editor.
+     * 
+     * @param railsBlock
+     * @return rails texture
+     */
+    public RailsTexture getRailsTexture(Block railsBlock) {
+        return new RailsTexture();
     }
 }

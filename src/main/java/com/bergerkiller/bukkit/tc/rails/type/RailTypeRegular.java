@@ -2,13 +2,18 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.map.MapBlendMode;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
+import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 
 import org.bukkit.Location;
@@ -208,5 +213,65 @@ public class RailTypeRegular extends RailTypeHorizontal {
             result.setY(result.getY() + 0.5);
         }
         return result;
+    }
+
+    @Override
+    public RailsTexture getRailsTexture(Block railsBlock) {
+        Rails rails = BlockUtil.getRails(railsBlock);
+        if (rails == null) {
+            return super.getRailsTexture(railsBlock);
+        }
+        BlockFace direction = rails.getDirection();
+        if (FaceUtil.isSubCardinal(direction)) {
+            int yaw = 45 - FaceUtil.faceToYaw(direction);
+            MapTexture top = RailsTexture.rotate(getResource(rails, "top"), yaw);
+            MapTexture back = top.clone();
+            back.setBlendMode(MapBlendMode.MULTIPLY).fill(MapColorPalette.getColor(160, 160, 160));
+            back = RailsTexture.flipV(back);
+            RailsTexture result = new RailsTexture()
+                    .set(BlockFace.UP, top)
+                    .set(BlockFace.DOWN, back);
+            for (BlockFace face : FaceUtil.AXIS) {
+                result.set(face, RailsTexture.rotate(top, FaceUtil.faceToYaw(face)));
+            }
+            return result;
+        } else if (rails.isOnSlope()) {
+            MapTexture side = getResource(rails, "side");
+            MapTexture top = getResource(rails, "top");
+            MapTexture back = top.clone();
+            back.setBlendMode(MapBlendMode.MULTIPLY).fill(MapColorPalette.getColor(160, 160, 160));
+            return new RailsTexture()
+                    .set(direction.getOppositeFace(), top)
+                    .set(direction, RailsTexture.flipV(back))
+                    .set(BlockFace.UP, RailsTexture.rotate(top, -FaceUtil.faceToYaw(direction)))
+                    .set(BlockFace.DOWN, RailsTexture.rotate(back, FaceUtil.faceToYaw(direction)))
+                    .setOpposites(FaceUtil.rotate(direction, 2), side);
+            
+        } else {
+            MapTexture front = getResource(rails, "front");
+            MapTexture side = getResource(rails, "side");
+            MapTexture top = RailsTexture.rotate(getResource(rails, "top"), FaceUtil.faceToYaw(direction));
+            MapTexture back = top.clone();
+            back.setBlendMode(MapBlendMode.MULTIPLY).fill(MapColorPalette.getColor(160, 160, 160));
+            return new RailsTexture()
+                    .set(BlockFace.UP, top)
+                    .set(BlockFace.DOWN, back)
+                    .setOpposites(direction, front)
+                    .setOpposites(FaceUtil.rotate(direction, 2), side);
+        }
+    }
+
+    protected String getRailsTexturePath(Rails rails, String name) {
+        if (rails.isCurve()) {
+            return "com/bergerkiller/bukkit/tc/textures/rails/regular_curved_" + name + ".png";
+        } else if (rails.isOnSlope()) {
+            return "com/bergerkiller/bukkit/tc/textures/rails/regular_sloped_" + name + ".png";
+        } else {
+            return "com/bergerkiller/bukkit/tc/textures/rails/regular_straight_" + name + ".png";
+        }
+    }
+
+    private MapTexture getResource(Rails rails, String name) {
+        return MapTexture.loadPluginResource(TrainCarts.plugin, getRailsTexturePath(rails, name));
     }
 }
