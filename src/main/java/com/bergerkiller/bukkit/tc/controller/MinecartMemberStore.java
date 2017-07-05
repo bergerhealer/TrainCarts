@@ -285,9 +285,7 @@ public abstract class MinecartMemberStore {
             }
 
             // Do not return unloaded controllers
-            if (result.isUnloaded()) {
-                return null;
-            } else {
+            if (result != null && !result.isUnloaded()) {
                 return result;
             }
         }
