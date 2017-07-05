@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.CommonEntityType;
 import com.bergerkiller.bukkit.common.entity.type.*;
+import com.bergerkiller.bukkit.common.internal.hooks.EntityHook;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -25,7 +26,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +33,7 @@ import java.util.UUID;
 
 public abstract class MinecartMemberStore {
     private static ClassMap<Class<?>> controllers = new ClassMap<>();
+    private static boolean has_get_controller_typed = true; // compatibility with earlier ~1.12-v2 BKCommonLib
 
     static {
         controllers.put(CommonMinecartRideable.class, MinecartMemberRideable.class);
@@ -258,14 +259,36 @@ public abstract class MinecartMemberStore {
     @ConverterMethod
     public static MinecartMember<?> getFromEntity(org.bukkit.entity.Entity entity) {
         if (entity instanceof Minecart) {
-            EntityController<?> controller = CommonEntity.get((Minecart) entity).getController();
-            if (controller instanceof MinecartMember) {
-                MinecartMember<?> result = (MinecartMember<?>) controller;
-                if (result.isUnloaded()) {
-                    return null;
-                } else {
-                    return result;
+            CommonEntity<?> commonEntity = CommonEntity.get((Minecart) entity);
+            MinecartMember<?> result = null;
+
+            // Preferred method for >= BKCommonLib 1.12-v4
+            if (has_get_controller_typed) {
+                try {
+                    result = commonEntity.getController(MinecartMember.class);
+                } catch (NoSuchMethodError ex) {
+                    has_get_controller_typed = false;
                 }
+            }
+
+            // This one is a fallback for <= BKCommonLib 1.12-v3
+            if (!has_get_controller_typed) {
+                // Performance workaround, it's a bit of a hack for older builds of BKCommonLib
+                // We really should not be using BKCommonlib classes in the internal subpackage!
+                EntityHook hook = EntityHook.get(commonEntity.getHandle(), EntityHook.class);
+                if (hook != null && hook.hasController()) {
+                    EntityController<?> controller = hook.getController();
+                    if (controller instanceof MinecartMember) {
+                        result = (MinecartMember<?>) controller;
+                    }
+                }
+            }
+
+            // Do not return unloaded controllers
+            if (result.isUnloaded()) {
+                return null;
+            } else {
+                return result;
             }
         }
         return null;
