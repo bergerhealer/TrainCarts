@@ -810,11 +810,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return the passenger Player inventory, or null if there is no player
      */
     public PlayerInventory getPlayerInventory() {
-        Entity passenger = entity.getPlayerPassenger();
-        if (passenger instanceof Player) {
-            return ((Player) passenger).getInventory();
-        } else {
+        List<Player> players = entity.getPlayerPassengers();
+        if (players.isEmpty()) {
             return null;
+        } else {
+            //TODO: Perhaps allow more than one player? Its weird.
+            return players.get(0).getInventory();
         }
     }
 

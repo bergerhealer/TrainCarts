@@ -628,6 +628,9 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        //this corrects minecart positions before saving
+        MinecartGroupStore.doPostMoveLogic();
+
         //undo replacements for correct native saving
         for (MinecartGroup mg : MinecartGroup.getGroups()) {
             mg.unload();

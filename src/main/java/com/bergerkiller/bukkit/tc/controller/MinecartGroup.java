@@ -388,6 +388,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         for (MinecartMember<?> member : this) {
             member.group = null;
             member.unloaded = true;
+
+            // We must correct position here, because it will no longer be ticked!
+            member.getEntity().doPostTick();
         }
     }
 

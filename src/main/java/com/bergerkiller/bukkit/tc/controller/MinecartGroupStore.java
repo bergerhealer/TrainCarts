@@ -43,6 +43,24 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         }
     }
 
+    /**
+     * Executes the Entity doPostTick() on all trains.
+     * This ensures minecart entities are moved to the correct chunk they are in.
+     */
+    public static void doPostMoveLogic() {
+        groupTickBuffer.clear();
+        groupTickBuffer.addAll(groups);
+        try {
+            for (MinecartGroup group : groupTickBuffer) {
+                for (MinecartMember<?> m : group) {
+                    m.getEntity().doPostTick();
+                }
+            }
+        } catch (Throwable t) {
+            TrainCarts.plugin.handle(t);
+        }
+    }
+
     public static MinecartGroup create() {
         MinecartGroup g = new MinecartGroup();
         groups.add(g);
