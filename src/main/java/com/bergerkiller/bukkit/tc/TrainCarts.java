@@ -562,7 +562,7 @@ public class TrainCarts extends PluginBase {
 
         //Load detector sign locations
         SignActionDetector.INSTANCE.init(getDataFolder() + File.separator + "detectorsigns.dat");
-
+        
         //Load spawn sign locations
         SignActionSpawn.init(getDataFolder() + File.separator + "spawnsigns.dat");
 
@@ -572,6 +572,9 @@ public class TrainCarts extends PluginBase {
 
         // Start the path finding task
         PathProvider.init();
+
+        //Activate all detector regions with trains that are on it
+        DetectorRegion.detectAllMinecarts();
 
         // Hackish fix the chunk persistence failing
         fixGroupTickTask = new TrainUpdateTask(this).start(1, 1);

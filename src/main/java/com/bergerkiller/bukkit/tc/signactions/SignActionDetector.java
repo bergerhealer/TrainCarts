@@ -120,6 +120,12 @@ public class SignActionDetector extends SignAction {
     @Override
     public void execute(SignActionEvent info) {
         //nothing happens here, relies on rail detector events
+
+        // I lied! We have to double-check a detector region for this detector sign exists
+        // Just in case data is corrupted, it can be restored by the first train driving over the detector
+        if (info.getAction().isRedstone() || info.isAction(SignActionType.GROUP_ENTER)) {
+            handlePlacement(info, false);
+        }
     }
 
     @Override
@@ -133,18 +139,10 @@ public class SignActionDetector extends SignAction {
                 event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
                 return true;
             }
-            Block startsign = event.getBlock();
-            Block startrails = event.getRails();
-            BlockFace dir = event.getFacing();
-            String label = getLabel(event);
-            if (!tryBuild(label, startrails, startsign, dir)) {
-                if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, 2))) {
-                    if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, -2))) {
-                        event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
-                        event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
-                        return true;
-                    }
-                }
+            if (!handlePlacement(event, true)) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
+                event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
+                return true;
             }
             event.getPlayer().sendMessage(ChatColor.GREEN + "A second detector sign was found: Region set.");
             return true;
@@ -164,7 +162,36 @@ public class SignActionDetector extends SignAction {
         }
     }
 
-    public boolean tryBuild(String label, Block startrails, Block startsign, BlockFace direction) {
+    private boolean handlePlacement(SignActionEvent event, boolean signBuilt) {
+        if (!event.hasRails()) {
+            return false;
+        }
+        Block startsign = event.getBlock();
+        Block startrails = event.getRails();
+        BlockFace dir = event.getFacing();
+        String label = getLabel(event);
+        if (!tryBuild(label, startrails, startsign, dir, signBuilt)) {
+            if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, 2), signBuilt)) {
+                if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, -2), signBuilt)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean tryBuild(String label, Block startrails, Block startsign, BlockFace direction, boolean signBuilt) {
+        DetectorSignPair detector = null;
+        if (!signBuilt) {
+            detector = detectors.get(startsign);
+        }
+        if (detector == null) {
+            detector = createPair(label, startrails, startsign, direction);
+        }
+        return detector != null;
+    }
+
+    private DetectorSignPair createPair(String label, Block startrails, Block startsign, BlockFace direction) {
         final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
@@ -175,6 +202,7 @@ public class SignActionDetector extends SignAction {
                 info = new SignActionEvent(signblock);
                 if (matchLabel(info, label)) {
                     endsign = signblock;
+
                     //start and end found : add it
                     final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
                     detectors.put(startsign, detector);
@@ -182,13 +210,15 @@ public class SignActionDetector extends SignAction {
                     hasChanges = true;
                     CommonUtil.nextTick(new Runnable() {
                         public void run() {
-                            DetectorRegion.create(map).register(detector);
+                            DetectorRegion region = DetectorRegion.create(map);
+                            region.register(detector);
+                            region.detectMinecarts();
                         }
                     });
-                    return true;
+                    return detector;
                 }
             }
         }
-        return false;
+        return null;
     }
 }

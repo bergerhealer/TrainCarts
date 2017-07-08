@@ -47,6 +47,13 @@ public final class DetectorRegion {
                 regions.put(world, coord, list);
             }
         }
+    }
+
+    /**
+     * Detects all minecarts that are on this region and fires onEnter events.
+     * This should be called after the listeners are set up.
+     */
+    public void detectMinecarts() {
         //load members
         World w = Bukkit.getServer().getWorld(this.world);
         if (w != null) {
@@ -100,6 +107,12 @@ public final class DetectorRegion {
             region.add(mm);
         }
         return list;
+    }
+
+    public static void detectAllMinecarts() {
+        for (DetectorRegion region : regionsById.values()) {
+            region.detectMinecarts();
+        }
     }
 
     public static DetectorRegion create(Collection<Block> blocks) {
