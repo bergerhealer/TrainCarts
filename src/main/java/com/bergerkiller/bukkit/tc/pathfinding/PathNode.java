@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class PathNode {
+    private static boolean hasChanges = false;
     private static BlockMap<PathNode> blockNodes = new BlockMap<>();
     private static Map<String, PathNode> nodes = new HashMap<>();
     public final BlockLocation location;
@@ -37,6 +38,7 @@ public class PathNode {
     public static void clearAll() {
         nodes.clear();
         blockNodes.clear();
+        hasChanges = true;
     }
 
     /**
@@ -195,9 +197,13 @@ public class PathNode {
                 }
             }
         }.read();
+        hasChanges = false;
     }
 
-    public static void save(String filename) {
+    public static void save(boolean autosave, String filename) {
+        if (autosave && !hasChanges) {
+            return;
+        }
         new CompressedDataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
                 stream.writeInt(nodes.size());
@@ -225,6 +231,7 @@ public class PathNode {
                 }
             }
         }.write();
+        hasChanges = false;
     }
 
     /**
@@ -313,6 +320,7 @@ public class PathNode {
         // Add a new one
         conn = new PathConnection(to, distance, direction);
         this.neighbors.add(conn);
+        hasChanges = true;
         return conn;
     }
 
@@ -326,6 +334,7 @@ public class PathNode {
                 }
             }
         }
+        hasChanges = true;
     }
 
     /**
@@ -339,6 +348,7 @@ public class PathNode {
             return;
         }
         nodes.remove(name);
+        hasChanges = true;
         if (PathProvider.DEBUG_MODE) {
             String dbg = "NODE " + location + " NO LONGER HAS NAME " + name;
             if (this.names.isEmpty()) {
@@ -361,6 +371,7 @@ public class PathNode {
             nodes.remove(name);
         }
         blockNodes.remove(this.location);
+        hasChanges = true;
     }
 
     /**
@@ -447,6 +458,7 @@ public class PathNode {
     public void addName(String name) {
         if (this.names.add(name)) {
             nodes.put(name, this);
+            hasChanges = true;
         }
     }
 
@@ -455,5 +467,6 @@ public class PathNode {
             nodes.put(name, this);
         }
         blockNodes.put(this.location, this);
+        hasChanges = true;
     }
 }

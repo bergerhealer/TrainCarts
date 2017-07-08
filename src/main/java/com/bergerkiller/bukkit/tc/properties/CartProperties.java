@@ -416,6 +416,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public boolean parseSet(String key, String arg) {
+        TrainPropertiesStore.markForAutosave();
         if (key.equals("exitoffset")) {
             Vector vec = Util.parseVector(arg, null);
             if (vec != null) {

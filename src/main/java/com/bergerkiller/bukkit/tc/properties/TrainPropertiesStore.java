@@ -16,6 +16,7 @@ import java.util.Map.Entry;
  * Stores all the Train Properties available by name
  */
 public class TrainPropertiesStore extends HashSet<CartProperties> {
+    private static boolean hasChanges = false;
     private static final long serialVersionUID = 1L;
     private static final String propertiesFile = "TrainProperties.yml";
     private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
@@ -66,6 +67,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
         properties.setDisplayName(newTrainName);
         properties.trainname = newTrainName;
         trainProperties.put(newTrainName, properties);
+        hasChanges = true;
     }
 
     /**
@@ -76,6 +78,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
     public static void remove(String trainName) {
         TrainProperties prop = trainProperties.remove(trainName);
         if (prop != null && !prop.isEmpty()) {
+            hasChanges = true;
             Iterator<CartProperties> iter = prop.iterator();
             while (iter.hasNext()) {
                 CartProperties cprop = iter.next();
@@ -99,6 +102,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
             prop = new TrainProperties(trainname);
             prop.setDefault();
             trainProperties.put(trainname, prop);
+            hasChanges = true;
         }
         return prop;
     }
@@ -153,6 +157,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
         TrainProperties prop = new TrainProperties(name);
         prop.setDefault();
         trainProperties.put(name, prop);
+        hasChanges = true;
         return prop;
     }
 
@@ -173,6 +178,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
     public static void clearAll() {
         trainProperties.clear();
         CartPropertiesStore.clearAllCarts();
+        hasChanges = true;
     }
 
     /**
@@ -190,6 +196,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
             prop.load(node);
             trainProperties.put(prop.getTrainName(), prop);
         }
+        hasChanges = false;
     }
 
     /**
@@ -293,9 +300,19 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
     }
 
     /**
+     * Informs TrainCarts that (some) Train Properties have changed, and will need to be synchronized to disk
+     */
+    public static void markForAutosave() {
+        hasChanges = true;
+    }
+
+    /**
      * Saves all Train Properties to disk
      */
-    public static void save() {
+    public static void save(boolean autosave) {
+        if (autosave && !hasChanges) {
+            return;
+        }
         FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
         for (TrainProperties prop : trainProperties.values()) {
             //does this train even exist?!
@@ -306,6 +323,7 @@ public class TrainPropertiesStore extends HashSet<CartProperties> {
             }
         }
         config.save();
+        hasChanges = false;
     }
 
     /**

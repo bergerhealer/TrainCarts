@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class SignActionSpawn extends SignAction {
+    private static boolean hasChanges = false;
     private static BlockMap<SpawnSign> spawnSigns = new BlockMap<>();
     private static HashMap<String, EntityType> minecartTypes = new HashMap<>();
     private static HashMap<String, Permission> minecartPerms = new HashMap<>();
@@ -76,6 +77,7 @@ public class SignActionSpawn extends SignAction {
         if (sign != null) {
             sign.remove(signBlock);
         }
+        hasChanges = true;
     }
 
     public static boolean isValid(SignActionEvent event) {
@@ -439,6 +441,7 @@ public class SignActionSpawn extends SignAction {
                 }
             }
         }.read();
+        hasChanges = false;
     }
 
     public static void deinit() {
@@ -447,7 +450,10 @@ public class SignActionSpawn extends SignAction {
         }
     }
 
-    public static void save(String filename) {
+    public static void save(boolean autosave, String filename) {
+        if (autosave && !hasChanges) {
+            return;
+        }
         new DataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
                 stream.writeInt(spawnSigns.size());
@@ -456,6 +462,7 @@ public class SignActionSpawn extends SignAction {
                 }
             }
         }.write();
+        hasChanges = false;
     }
 
     @Override
@@ -478,6 +485,7 @@ public class SignActionSpawn extends SignAction {
                 event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
                 SpawnSign sign = new SpawnSign(event.getBlock(), interval);
                 spawnSigns.put(event.getBlock(), sign);
+                hasChanges = true;
                 sign.start();
             }
             return true;

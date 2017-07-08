@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 public final class DetectorRegion {
+    private static boolean hasChanges = false;
     private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<>();
     private static BlockMap<List<DetectorRegion>> regions = new BlockMap<>();
     private final UUID id;
@@ -33,6 +34,7 @@ public final class DetectorRegion {
         this.id = uniqueId;
         this.coordinates = coordinates;
         regionsById.put(this.id, this);
+        hasChanges = true;
         for (IntVector3 coord : this.coordinates) {
             List<DetectorRegion> list = regions.get(world, coord);
             if (list == null) {
@@ -174,9 +176,13 @@ public final class DetectorRegion {
                 }
             }
         }.read();
+        hasChanges = false;
     }
 
-    public static void save(String filename) {
+    public static void save(boolean autosave, String filename) {
+        if (autosave && !hasChanges) {
+            return;
+        }
         new DataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
                 stream.writeInt(regionsById.size());
@@ -190,6 +196,7 @@ public final class DetectorRegion {
                 }
             }
         }.write();
+        hasChanges = false;
     }
 
     public String getWorldName() {
@@ -316,6 +323,7 @@ public final class DetectorRegion {
             iter.remove();
         }
         regionsById.remove(this.id);
+        hasChanges = true;
         for (IntVector3 coord : this.coordinates) {
             List<DetectorRegion> list = regions.get(this.world, coord);
             if (list == null) continue;

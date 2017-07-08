@@ -101,7 +101,7 @@ public class GlobalCommands {
             return true;
         } else if (args[0].equals("saveall")) {
             Permission.COMMAND_SAVEALL.handle(sender);
-            TrainCarts.plugin.save();
+            TrainCarts.plugin.save(false);
             sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
             return true;
         } else if (args[0].equals("fixbugged")) {

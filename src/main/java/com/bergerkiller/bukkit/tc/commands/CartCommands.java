@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import org.bukkit.ChatColor;
@@ -29,6 +30,7 @@ import java.util.Set;
 public class CartCommands {
 
     public static boolean execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
+        TrainPropertiesStore.markForAutosave();
         if (cmd.equals("info") || cmd.equals("i")) {
             info(p, prop);
         } else if (cmd.equals("playerenter")) {

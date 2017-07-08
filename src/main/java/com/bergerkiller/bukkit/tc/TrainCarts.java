@@ -91,12 +91,14 @@ public class TrainCarts extends PluginBase {
     public static boolean allowParenthesesFormat = true;
     public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
     public static int tickUpdateNow = 0; // forces update ticks
+    private static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
     public static TrainCarts plugin;
     private static String currencyFormat;
     private static Task fixGroupTickTask;
     private Set<Material> allowedBlockBreakTypes = new HashSet<>();
     private Set<String> disabledWorlds = new HashSet<>();
     private Task signtask;
+    private Task autosaveTask;
     private TCPacketListener packetListener;
     private FileConfiguration config;
     private Map<String, ItemParser[]> parsers = new HashMap<>();
@@ -574,6 +576,9 @@ public class TrainCarts extends PluginBase {
         // Hackish fix the chunk persistence failing
         fixGroupTickTask = new TrainUpdateTask(this).start(1, 1);
 
+        // Routinely saves TrainCarts changed state information to disk (autosave=true)
+        autosaveTask = new AutosaveTask(this).start(autoSaveInterval, autoSaveInterval);
+
         //Properly dispose of partly-referenced carts
         CommonUtil.nextTick(new Runnable() {
             public void run() {
@@ -587,27 +592,31 @@ public class TrainCarts extends PluginBase {
     /**
      * Saves all traincarts related information to file
      */
-    public void save() {
+    public void save(boolean autosave) {
         //Save properties
-        TrainProperties.save();
+        TrainProperties.save(autosave);
 
         //Save destinations
-        PathNode.save(getDataFolder() + File.separator + "destinations.dat");
+        PathNode.save(autosave, getDataFolder() + File.separator + "destinations.dat");
 
         //Save arrival times
-        ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
+        if (!autosave) {
+            ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
+        }
 
         //Save spawn sign locations
-        SignActionSpawn.save(getDataFolder() + File.separator + "spawnsigns.dat");
+        SignActionSpawn.save(autosave, getDataFolder() + File.separator + "spawnsigns.dat");
 
         //Save detector sign locations
-        SignActionDetector.INSTANCE.save(getDataFolder() + File.separator + "detectorsigns.dat");
+        SignActionDetector.INSTANCE.save(autosave, getDataFolder() + File.separator + "detectorsigns.dat");
 
         //Save detector regions
-        DetectorRegion.save(getDataFolder() + File.separator + "detectorregions.dat");
+        DetectorRegion.save(autosave, getDataFolder() + File.separator + "detectorregions.dat");
 
         // Save train information
-        OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
+        if (!autosave) {
+            OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
+        }
     }
 
     public void disable() {
@@ -618,6 +627,7 @@ public class TrainCarts extends PluginBase {
         //Stop tasks
         Task.stop(signtask);
         Task.stop(fixGroupTickTask);
+        Task.stop(autosaveTask);
 
         //update max item stack
         if (maxMinecartStackSize != 1) {
@@ -646,7 +656,8 @@ public class TrainCarts extends PluginBase {
             }
         }
 
-        save();
+        //save all data to disk (autosave=false)
+        save(false);
 
         // Deinit classes
         PathNode.deinit();
@@ -671,6 +682,18 @@ public class TrainCarts extends PluginBase {
     @Override
     public void permissions() {
         this.loadPermissions(Permission.class);
+    }
+
+    private static class AutosaveTask extends Task {
+
+        public AutosaveTask(TrainCarts plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            ((TrainCarts) this.getPlugin()).save(true);
+        }
     }
 
     private static class TrainUpdateTask extends Task {

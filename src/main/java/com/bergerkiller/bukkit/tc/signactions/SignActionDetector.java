@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class SignActionDetector extends SignAction {
+    private static boolean hasChanges = false;
     public static final SignActionDetector INSTANCE = new SignActionDetector();
     private final BlockMap<DetectorSignPair> detectors = new BlockMap<>();
 
@@ -88,6 +89,7 @@ public class SignActionDetector extends SignAction {
                 }
             }
         }.read();
+        hasChanges = false;
     }
 
     /**
@@ -95,7 +97,10 @@ public class SignActionDetector extends SignAction {
      * 
      * @param filename of the file to save the state information to
      */
-    public void save(String filename) {
+    public void save(boolean autosave, String filename) {
+        if (autosave && !hasChanges) {
+            return;
+        }
         new DataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
                 Set<DetectorSignPair> detectorset = new HashSet<>(detectors.size() / 2);
@@ -109,6 +114,7 @@ public class SignActionDetector extends SignAction {
                 }
             }
         }.write();
+        hasChanges = false;
     }
 
     @Override
@@ -154,6 +160,7 @@ public class SignActionDetector extends SignAction {
             detectors.remove(at.getWorld(), dec.sign1.getLocation());
             detectors.remove(at.getWorld(), dec.sign2.getLocation());
             dec.region.remove();
+            hasChanges = true;
         }
     }
 
@@ -172,6 +179,7 @@ public class SignActionDetector extends SignAction {
                     final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
                     detectors.put(startsign, detector);
                     detectors.put(endsign, detector);
+                    hasChanges = true;
                     CommonUtil.nextTick(new Runnable() {
                         public void run() {
                             DetectorRegion.create(map).register(detector);

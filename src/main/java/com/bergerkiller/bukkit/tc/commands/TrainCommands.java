@@ -31,6 +31,7 @@ import java.util.*;
 public class TrainCommands {
 
     public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
+        TrainPropertiesStore.markForAutosave();
         if (cmd.equals("info") || cmd.equals("i")) {
             info(p, prop);
         } else if (cmd.equals("playerenter")) {
