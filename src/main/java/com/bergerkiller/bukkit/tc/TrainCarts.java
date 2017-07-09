@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
+import com.bergerkiller.bukkit.tc.portals.PortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -85,7 +86,6 @@ public class TrainCarts extends PluginBase {
     public static boolean EssentialsEnabled = false;
     public static boolean SignLinkEnabled = false;
     public static boolean MinecartManiaEnabled = false;
-    public static boolean MyWorldsEnabled = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -483,6 +483,7 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
+        PortalManager.updateProviders(pluginName, enabled);
         switch (pluginName) {
             case "SignLink":
                 Task.stop(signtask);
@@ -496,11 +497,6 @@ public class TrainCarts extends PluginBase {
                     signtask.start(0, 10);
                 } else {
                     signtask = null;
-                }
-                break;
-            case "My_Worlds":
-                if (MyWorldsEnabled = enabled) {
-                    log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
                 }
                 break;
             case "Essentials":

@@ -3,22 +3,18 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.mw.MyWorlds;
-import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.portals.MyWorldsPortals;
+import com.bergerkiller.bukkit.tc.portals.PortalDestination;
+import com.bergerkiller.bukkit.tc.portals.PortalManager;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 import net.md_5.bungee.api.ChatColor;
 
-import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 public class SignActionTeleport extends SignAction {
@@ -26,65 +22,70 @@ public class SignActionTeleport extends SignAction {
 
     @Override
     public boolean verify(SignActionEvent info) {
-        return true; // we do not require TrainCarts verification because we use MyWorlds' logic
+        // we do not require TrainCarts verification when using MyWorlds' logic
+        return matchMyWorlds(info) || super.verify(info);
     }
 
     @Override
     public boolean match(SignActionEvent info) {
-        return info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
+        return matchMyWorlds(info) || info.isType("teleport");
     }
 
     @Override
     public void execute(SignActionEvent info) {
-        if (!TrainCarts.MyWorldsEnabled) {
-            return;
-        }
         if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.hasGroup() || !info.isPowered()) {
             return;
         }
-        Portal portal = Portal.get(info.getLocation());
-        if (portal == null) {
+
+        String destName;
+        if (matchMyWorlds(info)) {
+            if (!PortalManager.isAvailable("My_Worlds")) {
+                return;
+            }
+            destName = MyWorldsPortals.getPortalDestination(info.getLocation());
+        } else {
+            // Parse destination on third line
+            destName = info.getLine(2);
+        }
+        if (destName == null) {
             return;
         }
-        String destname = portal.getDestinationName();
-        Location dest = Portal.getPortalLocation(destname, info.getGroup().getWorld().getName());
-        if (dest != null) {
-            //Teleport the ENTIRE train to the destination...
-            Block sign = dest.getBlock();
-            sign.getChunk(); //load the chunk
-            if (MaterialUtil.ISSIGN.get(sign)) {
-                Block destinationRail = Util.getRailsFromSign(sign);
-                RailType rail = RailType.getType(destinationRail);
-                if (rail == RailType.NONE) {
-                    return;
-                }
 
-                // This prevents instant teleporting back to the other end
-                if (this.teleportTimes.isMarked(info.getBlock(), MyWorlds.teleportInterval)) {
-                    return;
+        PortalDestination dest = PortalManager.getPortalDestination(info.getGroup().getWorld(), destName);
+        if (dest != null && dest.getRailsBlock() != null) {
+
+            // This prevents instant teleporting back to the other end
+            if (this.teleportTimes.isMarked(info.getRails(), 2000)) {
+                return;
+            } else {
+                this.teleportTimes.mark(dest.getRailsBlock());
+            }
+
+            // Get a list of possible directions to 'spawn' the train at the destination
+            ArrayList<BlockFace> possibleDirs = new ArrayList<BlockFace>();
+            ArrayList<TrackIterator> possibleIters = new ArrayList<TrackIterator>();
+            BlockFace[] railDirections = RailType.getType(dest.getRailsBlock()).getPossibleDirections(dest.getRailsBlock());
+            for (BlockFace dir : railDirections) {
+                if (!dest.hasDirections() || LogicUtil.contains(dir, dest.getDirections())) {
+                    possibleDirs.add(dir);
+                    possibleIters.add(new TrackIterator(dest.getRailsBlock(), dir));
+                }
+            }
+
+            BlockFace spawnDirection = null;
+            if (possibleIters.isEmpty()) {
+                // Select any direction we can find
+                if (railDirections.length > 0) {
+                    spawnDirection = railDirections[0];
+                } else if (dest.hasDirections()) {
+                    spawnDirection = dest.getDirections()[0];
                 } else {
-                    this.teleportTimes.mark(sign);
-                }
-
-                // Get a list of possible directions to 'spawn' the train at the destination
-                ArrayList<BlockFace> possibleDirs = new ArrayList<BlockFace>();
-                ArrayList<TrackIterator> possibleIters = new ArrayList<TrackIterator>();
-                BlockFace[] directions = rail.getPossibleDirections(destinationRail);
-
-                SignActionEvent dest_info = new SignActionEvent(sign);
-                for (BlockFace dir : dest_info.getSpawnDirections()) {
-                    if (LogicUtil.contains(dir, directions)) {
-                        possibleDirs.add(dir);
-                        possibleIters.add(new TrackIterator(destinationRail, dir));
-                    }
-                }
-                if (possibleIters.isEmpty()) {
                     return;
                 }
-
+            } else {
                 // If more than one direction is possible, pick the one with longest track length
                 // Check up to 30 blocks
-                BlockFace spawnDirection = possibleDirs.get(0);
+                spawnDirection = possibleDirs.get(0);
                 if (possibleDirs.size() > 1) {
                     for (int n = 0; n < 30; n++) {
                         int num_succ = 0;
@@ -101,20 +102,23 @@ public class SignActionTeleport extends SignAction {
                         }
                     }
                 }
-
-                // Teleport!
-                info.getGroup().teleportAndGo(destinationRail, spawnDirection);
             }
+
+            // Teleport!
+            info.getGroup().teleportAndGo(dest.getRailsBlock(), spawnDirection);
         }
     }
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (TrainCarts.MyWorldsEnabled) {
-            return event.hasRails() && handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
-        } else {
+        if (matchMyWorlds(event) && !PortalManager.isAvailable("My_Worlds")) {
             event.getPlayer().sendMessage(ChatColor.RED + "MyWorlds" + ChatColor.YELLOW + " is not enabled on this server. Teleporter signs will not function as a result.");
             return false;
         }
+        return event.hasRails() && handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+    }
+
+    private boolean matchMyWorlds(SignActionEvent info) {
+        return info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
     }
 }
