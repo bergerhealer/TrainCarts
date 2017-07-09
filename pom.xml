@@ -90,6 +90,22 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.onarandombox</groupId>
+            <artifactId>Multiverse-Portals</artifactId>
+            <version>2.5.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/Multiverse-Portals-2.5.0.jar</systemPath>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.onarandombox</groupId>
+            <artifactId>Multiverse-Core</artifactId>
+            <version>2.5.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/Multiverse-Core-2.5.1-SNAPSHOT.jar</systemPath>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>BKCommonLib</artifactId>
             <version>${project.bkcversion}</version>

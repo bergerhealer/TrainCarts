@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
-import com.bergerkiller.bukkit.tc.portals.PortalManager;
+import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -483,7 +483,7 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
-        PortalManager.updateProviders(pluginName, enabled);
+        TCPortalManager.updateProviders(pluginName, plugin, enabled);
         switch (pluginName) {
             case "SignLink":
                 Task.stop(signtask);

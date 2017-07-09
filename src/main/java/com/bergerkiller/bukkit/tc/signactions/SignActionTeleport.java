@@ -6,9 +6,9 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.portals.MyWorldsPortals;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
-import com.bergerkiller.bukkit.tc.portals.PortalManager;
+import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
+import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
@@ -39,10 +39,10 @@ public class SignActionTeleport extends SignAction {
 
         String destName;
         if (matchMyWorlds(info)) {
-            if (!PortalManager.isAvailable("My_Worlds")) {
+            if (!TCPortalManager.isAvailable("My_Worlds")) {
                 return;
             }
-            destName = MyWorldsPortals.getPortalDestination(info.getLocation());
+            destName = MyWorldsPortalsProvider.getPortalDestination(info.getLocation());
         } else {
             // Parse destination on third line
             destName = info.getLine(2);
@@ -51,7 +51,7 @@ public class SignActionTeleport extends SignAction {
             return;
         }
 
-        PortalDestination dest = PortalManager.getPortalDestination(info.getGroup().getWorld(), destName);
+        PortalDestination dest = TCPortalManager.getPortalDestination(info.getGroup().getWorld(), destName);
         if (dest != null && dest.getRailsBlock() != null) {
 
             // This prevents instant teleporting back to the other end
@@ -111,7 +111,7 @@ public class SignActionTeleport extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (matchMyWorlds(event) && !PortalManager.isAvailable("My_Worlds")) {
+        if (matchMyWorlds(event) && !TCPortalManager.isAvailable("My_Worlds")) {
             event.getPlayer().sendMessage(ChatColor.RED + "MyWorlds" + ChatColor.YELLOW + " is not enabled on this server. Teleporter signs will not function as a result.");
             return false;
         }

@@ -1,25 +1,26 @@
-package com.bergerkiller.bukkit.tc.portals;
+package com.bergerkiller.bukkit.tc.portals.plugins;
 
 import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.mw.Portal;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.portals.PortalDestination;
+import com.bergerkiller.bukkit.tc.portals.PortalProvider;
 
-public class MyWorldsPortals extends PortalProvider {
+/**
+ * Handles portal destinations for My Worlds [portal] signs
+ */
+public class MyWorldsPortalsProvider extends PortalProvider {
 
     @Override
-    public String getPluginName() {
-        return "My_Worlds";
-    }
-
-    @Override
-    public void init() {
+    public void init(Plugin plugin) {
         TrainCarts.plugin.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
     }
 
