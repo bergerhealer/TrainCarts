@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
@@ -21,6 +23,11 @@ public class SignActionTeleport extends SignAction {
     private BlockTimeoutMap teleportTimes = new BlockTimeoutMap();
 
     @Override
+    public boolean canSupportRC() {
+        return true;
+    }
+
+    @Override
     public boolean verify(SignActionEvent info) {
         // we do not require TrainCarts verification when using MyWorlds' logic
         return matchMyWorlds(info) || super.verify(info);
@@ -33,8 +40,22 @@ public class SignActionTeleport extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.hasGroup() || !info.isPowered()) {
+        if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.isPowered()) {
             return;
+        }
+
+        MinecartGroup group = null;
+        if (!info.isRCSign()) {
+            if (!info.hasGroup()) {
+                return;
+            }
+            group = info.getGroup();
+        } else {
+            Collection<MinecartGroup> groups = info.getRCTrainGroups();
+            if (groups.isEmpty()) {
+                return;
+            }
+            group = groups.iterator().next();
         }
 
         String destName;
@@ -51,11 +72,11 @@ public class SignActionTeleport extends SignAction {
             return;
         }
 
-        PortalDestination dest = TCPortalManager.getPortalDestination(info.getGroup().getWorld(), destName);
+        PortalDestination dest = TCPortalManager.getPortalDestination(group.getWorld(), destName);
         if (dest != null && dest.getRailsBlock() != null) {
 
             // This prevents instant teleporting back to the other end
-            if (this.teleportTimes.isMarked(info.getRails(), 2000)) {
+            if (info.hasRails() && this.teleportTimes.isMarked(info.getRails(), 2000)) {
                 return;
             } else {
                 this.teleportTimes.mark(dest.getRailsBlock());
@@ -105,7 +126,7 @@ public class SignActionTeleport extends SignAction {
             }
 
             // Teleport!
-            info.getGroup().teleportAndGo(dest.getRailsBlock(), spawnDirection);
+            group.teleportAndGo(dest.getRailsBlock(), spawnDirection);
         }
     }
 
