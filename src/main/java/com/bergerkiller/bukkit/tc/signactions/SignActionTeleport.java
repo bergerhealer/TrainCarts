@@ -115,7 +115,7 @@ public class SignActionTeleport extends SignAction {
             event.getPlayer().sendMessage(ChatColor.RED + "MyWorlds" + ChatColor.YELLOW + " is not enabled on this server. Teleporter signs will not function as a result.");
             return false;
         }
-        return event.hasRails() && handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+        return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
     }
 
     private boolean matchMyWorlds(SignActionEvent info) {
