@@ -16,6 +16,12 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
     }
 
     @Override
+    public void onActivate() {
+        super.onActivate();
+        this.eject();
+    }
+
+    @Override
     public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove(speedFactor);
         Entity currentPassenger = entity.getPassenger();
