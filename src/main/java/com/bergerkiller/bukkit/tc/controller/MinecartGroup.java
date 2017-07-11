@@ -923,13 +923,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     this.lastUpdateStep = (i == (update_steps - 1));
                     while (!this.doPhysics_step()) ;
                 }
-                for (MinecartMember<?> mm : this) {
-                    mm.getEntity().vel.divide(this.updateSpeedFactor);
-                    mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
-                }
             } else {
                 this.lastUpdateStep = true;
                 this.doPhysics_step();
+            }
+
+            // Restore velocity / max speed to what is exposed outside the physics function
+            for (MinecartMember<?> mm : this) {
+                mm.getEntity().vel.divide(this.updateSpeedFactor);
+                mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
             }
 
             this.updateSpeedFactor = 1.0;
@@ -952,9 +954,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Validate members and set max speed
+            // We must limit it to 0.4, otherwise derailment can occur when the
+            // minecart speeds up inside the physics update function
+            double speedLimitClamped = MathUtil.clamp(this.getProperties().getSpeedLimit() * this.updateSpeedFactor, 0.4);
             for (MinecartMember<?> mm : this) {
                 mm.checkMissing();
-                mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit() * this.updateSpeedFactor);
+                mm.getEntity().setMaxSpeed(speedLimitClamped);
             }
 
             // Set up a valid network controller if needed
