@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.editor.TCMapEditor;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -46,6 +47,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -724,6 +726,42 @@ public class TCListener implements Listener {
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity().getVehicle());
         if (member != null && member.getGroup().isTeleportImmune()) {
             event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityPortal(EntityPortalEvent event) {
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());
+        if (member == null) {
+            return;
+        }
+
+        // TrainCarts minecart teleportation does not work. Cancel it at all times.
+        event.setCancelled(true);
+        if (!TrainCarts.allowNetherTeleport) {
+            return;
+        }
+
+        // Find out the actual location we are teleporting to
+        Location loc = event.getTo();
+        if (event.getPortalTravelAgent() != null && loc != null) {
+            loc = event.getPortalTravelAgent().findPortal(loc);
+        }
+        if (loc == null) {
+            return;
+        }
+
+        // Deduce a region of blocks to look for rails to spawn into
+        Direction direction = Direction.fromFace(member.getDirectionFrom());
+        final PortalDestination dest = PortalDestination.findDestinationAtNetherPortal(loc.getBlock(), direction);
+        if (dest != null && dest.getRailsBlock() != null && dest.hasDirections()) {
+            final MinecartGroup group = member.getGroup();
+            CommonUtil.nextTick(new Runnable() {
+                @Override
+                public void run() {
+                    group.teleport(dest.getRailsBlock(), dest.getDirections()[0]);
+                }
+            });
         }
     }
 

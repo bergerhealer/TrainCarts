@@ -81,6 +81,7 @@ public class TrainCarts extends PluginBase {
     public static boolean allMinecartsAreTrainCarts;
     public static boolean useNetworkSynchronizer;
     public static boolean allowVerticalPitch;
+    public static boolean allowNetherTeleport;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
     public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
     public static boolean EssentialsEnabled = false;
@@ -368,6 +369,9 @@ public class TrainCarts extends PluginBase {
 
         config.setHeader("currencyFormat", "\nThe currency Ticket signs will display in messages, %value% represents the displayed value");
         currencyFormat = config.get("currencyFormat", "%value% Dollars");
+
+        config.setHeader("allowNetherTeleport", "\nWhether trains can be teleported to the nether (or back) when rails are laid close to the portals");
+        allowNetherTeleport = config.get("allowNetherTeleport", true);
 
         config.setHeader("collisionReEnterDelay", "\nThe delay (in ticks) between ejecting and re-entering by collision (e.g. mobs auto-entering carts)");
         collisionReEnterDelay = config.get("collisionReEnterDelay", collisionReEnterDelay);

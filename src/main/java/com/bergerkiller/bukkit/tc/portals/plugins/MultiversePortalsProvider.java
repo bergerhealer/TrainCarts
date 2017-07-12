@@ -53,7 +53,7 @@ public class MultiversePortalsProvider extends PortalProvider {
         }
         Block minBlock = WrapperConversion.toIntVector3FromVector(portalPos.getMinimum()).toBlock(portalWorld);
         Block maxBlock = WrapperConversion.toIntVector3FromVector(portalPos.getMaximum()).toBlock(portalWorld);
-        return this.findDestination(minBlock, maxBlock, direction);
+        return PortalDestination.findDestination(minBlock, maxBlock, direction);
     }
 
 }
