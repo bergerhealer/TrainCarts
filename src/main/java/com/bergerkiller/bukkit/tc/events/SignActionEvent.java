@@ -480,9 +480,21 @@ public class SignActionEvent extends Event implements Cancellable {
         // Check if a rail exists there. If there is, check if it points at this rail
         // If so, then there is a rails there!
         RailType currentType = RailType.getType(getRails());
+        Block currentPos = currentType.findMinecartPos(getRails());
         Block nextPos = currentType.getNextPos(getRails(), direction);
+
+        // If not null, verify its the general direction we had chosen
+        if (nextPos != null && currentPos != null) {
+            if (direction.getModX() != 0 && direction.getModX() != (nextPos.getX() - currentPos.getX())) {
+                nextPos = null;
+            } else if (direction.getModY() != 0 && direction.getModY() != (nextPos.getY() - currentPos.getY())) {
+                nextPos = null;
+            } else if (direction.getModZ() != 0 && direction.getModZ() != (nextPos.getZ() - currentPos.getZ())) {
+                nextPos = null;
+            }
+        }
+
         if (nextPos == null) {
-            Block currentPos = currentType.findMinecartPos(getRails());
             if (currentPos == null) {
                 return false;
             } else {
