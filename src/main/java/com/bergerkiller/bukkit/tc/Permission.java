@@ -80,6 +80,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BREAK_MINECART_OTHER = new Permission("train.break.other", PermissionDefault.TRUE, "The player can break any cart except for invincible ones");
     public static final Permission BREAK_MINECART_ANY = new Permission("train.break.any", PermissionDefault.OP, "The player can break all carts in the game");
     public static final Permission GENERAL_PROPERTIES_ADMIN = new Permission("train.properties.admin", PermissionDefault.OP, "Carts placed by this player get the admin properties");
+    public static final Permission TICKET_MANAGE = new Permission("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets");
 
     private Permission(final String node, final PermissionDefault permdefault, final String desc) {
         super(node, permdefault, desc);

@@ -30,12 +30,24 @@ public class Commands {
             return true;
         }
         try {
+            // Global commands that do not mutate properties or tickets
             if (GlobalCommands.execute(sender, args)) {
                 return true;
+            }
+
+            // Commands for creating and updating ticket types, and giving tickets to players
+            // Applying ticket whitelists is done for trains themselves
+            if (args.length >= 2 && args[0].equals("ticket")) {
+                String t_cmd = args[1];
+                String[] t_args = StringUtil.remove(StringUtil.remove(args, 0), 0);
+                if (TicketCommands.execute(sender, t_cmd, t_args)) {
+                    return true;
+                }
             }
             if (!(sender instanceof Player)) {
                 return false;
             }
+
             Permission.COMMAND_PROPERTIES.handle(sender);
             //editing?
             Player player = (Player) sender;

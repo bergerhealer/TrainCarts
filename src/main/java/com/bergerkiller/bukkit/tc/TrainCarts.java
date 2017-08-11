@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import org.bukkit.Material;
@@ -545,6 +546,9 @@ public class TrainCarts extends PluginBase {
         //Load properties
         TrainProperties.load();
 
+        //Load tickets
+        TicketStore.load();
+
         //Load groups
         OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
@@ -598,6 +602,9 @@ public class TrainCarts extends PluginBase {
     public void save(boolean autosave) {
         //Save properties
         TrainProperties.save(autosave);
+
+        //Save Train tickets
+        TicketStore.save(autosave);
 
         //Save destinations
         PathNode.save(autosave, getDataFolder() + File.separator + "destinations.dat");
