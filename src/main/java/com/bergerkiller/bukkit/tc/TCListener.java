@@ -26,6 +26,8 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
+import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.mountiplex.reflection.SafeMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
@@ -86,6 +88,12 @@ public class TCListener implements Listener {
              !(event.getDisplay() instanceof TCMapEditor) ) {
 
             event.setDisplay(TrainCarts.plugin, new TCMapEditor());
+        }
+        if ( event.isHeldEvent() &&
+             TicketStore.isTicketItem(event.getMapItem()) &&
+             !(event.getDisplay() instanceof TCTicketDisplay) ) {
+
+            event.setDisplay(TrainCarts.plugin, new TCTicketDisplay());
         }
     }
 
@@ -249,11 +257,19 @@ public class TCListener implements Listener {
 
         if (event.getEntered() instanceof Player) {
             Player player = (Player) event.getEntered();
-            if (prop.getPlayersEnter() && (prop.isPublic() || prop.hasOwnership(player))) {
-                prop.showEnterMessage(player);
-            } else {
+            if (!prop.getPlayersEnter()) {
                 event.setCancelled(true);
+                return;
             }
+            if (!prop.isPublic() && !prop.hasOwnership(player)) {
+                event.setCancelled(true);
+                return;
+            }
+            if (!TicketStore.handleTickets(player, member.getGroup().getProperties())) {
+                event.setCancelled(true);
+                return;
+            }
+            prop.showEnterMessage(player);
         } else if (EntityUtil.isMob(event.getEntered())) {
             // This does not appear to be needed (anymore) to stop mobs from going into the Minecarts
             // Keeping this will cause enter signs or other plugins to no longer be able to add passengers

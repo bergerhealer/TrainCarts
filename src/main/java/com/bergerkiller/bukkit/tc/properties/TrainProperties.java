@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -22,9 +23,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +59,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private boolean allowManualMovement = false;
     private boolean allowPlayerTake = true;
     private boolean soundEnabled = true;
+    private List<String> tickets = new ArrayList<String>();
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -631,6 +637,33 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.allowManualMovement = allow;
     }
 
+    /**
+     * Gets a list of tickets that can be used for entering this train
+     * 
+     * @return tickets
+     */
+    public List<String> getTickets() {
+        return Collections.unmodifiableList(this.tickets);
+    }
+
+    /**
+     * Adds a new ticket that can be used for entering this train.
+     * 
+     * @param ticketName to add
+     */
+    public void addTicket(String ticketName) {
+        this.tickets.add(ticketName);
+    }
+
+    /**
+     * Revokes a ticket from being used for entering this train.
+     * 
+     * @param ticketName to remove
+     */
+    public void removeTicket(String ticketName) {
+        this.tickets.remove(ticketName);
+    }
+
     public boolean isTrainRenamed() {
         return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
     }
@@ -812,6 +845,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
+        } else if (key.equals("addticket")) {
+            this.addTicket(arg);
+        } else if (key.equals("remticket")) {
+            this.removeTicket(arg);
         } else {
             return false;
         }
@@ -886,6 +923,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
         this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
+        this.tickets = new ArrayList<String>(Arrays.asList(node.get("tickets", StringUtil.EMPTY_ARRAY)));
         if (node.isNode("carts")) {
             for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
                 try {
@@ -921,6 +959,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.requirePoweredMinecart = source.requirePoweredMinecart;
         this.keepChunksLoaded = source.keepChunksLoaded;
         this.allowManualMovement = source.allowManualMovement;
+        this.tickets = new ArrayList<String>(source.tickets);
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -939,6 +978,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("speedLimit", this.speedLimit);
         node.set("slowDown", this.slowDown);
         node.set("allowManualMovement", this.allowManualMovement);
+        node.set("tickets", StringUtil.EMPTY_ARRAY);
         node.set("collision.players", this.playerCollision);
         node.set("collision.misc", this.miscCollision);
         node.set("collision.train", this.trainCollision);
@@ -960,6 +1000,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("slowDown", this.slowDown ? null : false);
         node.set("allowManualMovement", allowManualMovement ? true : null);
+        node.set("tickets", LogicUtil.toArray(this.tickets, String.class));
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             CollisionMode value = collisionModes.get(collisionConfigObject);
             if (collisionConfigObject.isAddToConfigFile() || value != null) {

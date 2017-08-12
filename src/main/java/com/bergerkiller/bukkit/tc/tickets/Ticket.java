@@ -7,16 +7,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 /**
  * Manages the display and usage configuration for a train ticket.
  * Note that this is a singleton for a ticket category, used by all instances of this ticket.
  */
 public class Ticket {
+    private static final short TICKET_MAP_ID = 201;
     private String _name;
+    private String _realm = "";
     private boolean _playerBound = false;
     private int _maxNumberOfUses = 1;
-    private long _validDuration = -1L;
+    private long _expirationTime = -1L;
     private ConfigurationNode _properties = new ConfigurationNode();
 
     public Ticket(String name) {
@@ -51,6 +55,28 @@ public class Ticket {
         // Failed. Restore the name to undo changes
         this._name = oldName;
         return false;
+    }
+
+    /**
+     * Gets the realm for which the tickets can be used.
+     * Multiple tickets can belong the same realm, allowing you to set
+     * ticket requirements for train in one go using the realm. This avoids
+     * having to add all possible tickets to the trains themselves.
+     * 
+     * @return ticket realm
+     */
+    public String getRealm() {
+        return this._realm;
+    }
+
+    /**
+     * Sets the realm for which the tickets can be used.
+     * See also: {@link #getRealm()}
+     * 
+     * @param realm to set to
+     */
+    public void setRealm(String realm) {
+        this._realm = realm;
     }
 
     /**
@@ -95,18 +121,18 @@ public class Ticket {
      * 
      * @return valid duration in milliseconds, -1 if indefinitely valid
      */
-    public long getValidDuration() {
-        return this._validDuration;
+    public long getExpirationTime() {
+        return this._expirationTime;
     }
 
     /**
      * Sets the timespan in milliseconds for how long this ticket is valid once handed out.
      * A negative value indicates it is indefinitely valid.
      * 
-     * @param durationMillis
+     * @param expirationTimeMillis
      */
-    public void setValidDuration(long durationMillis) {
-        this._validDuration = durationMillis;
+    public void setExpirationTime(long expirationTimeMillis) {
+        this._expirationTime = expirationTimeMillis;
     }
 
     /**
@@ -135,9 +161,10 @@ public class Ticket {
      * @param config to load from
      */
     public void load(ConfigurationNode config) {
+        this._realm = config.get("realm", "");
         this._playerBound = config.get("playerBound", false);
         this._maxNumberOfUses = config.get("maxNumberOfUses", 1);
-        this._validDuration = config.get("validDurationMillis", -1L);
+        this._expirationTime = config.get("expirationTimeMillis", -1L);
         this._properties = config.getNode("properties").clone();
     }
 
@@ -147,9 +174,10 @@ public class Ticket {
      * @param config node to save to
      */
     public void save(ConfigurationNode config) {
+        config.set("ticketRealm", this._realm);
         config.set("playerBound", this._playerBound);
         config.set("maxNumberOfUses", this._maxNumberOfUses);
-        config.set("validDurationMillis", this._validDuration);
+        config.set("expirationTimeMillis", this._expirationTime);
 
         ConfigurationNode savedProps = config.getNode("properties");
         for (Map.Entry<String, Object> entry : this._properties.getValues().entrySet()) {
@@ -163,6 +191,15 @@ public class Ticket {
      * @return ticket item
      */
     public ItemStack createItem(Player owner) {
-        return new ItemStack(Material.WOOD);
+        ItemStack item = ItemUtil.createItem(Material.MAP, TICKET_MAP_ID, 1);
+        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+        tag.putValue("plugin", "TrainCarts");
+        tag.putValue("ticketName", this.getName());
+        tag.putValue("ticketCreationTime", System.currentTimeMillis());
+        tag.putValue("ticketNumberOfUses", 0);
+        tag.putUUID("ticketOwner", owner.getUniqueId());
+        tag.putValue("ticketOwnerName", owner.getDisplayName());
+        ItemUtil.setDisplayName(item, "Train Ticket");
+        return item;
     }
 }

@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
@@ -100,7 +101,7 @@ public class TicketCommands {
         if (cmd.equals("rename") || cmd.equals("name")) {
             if (args.length == 1) {
                 if (ticket.setName(args[0])) {
-                    sender.sendMessage(ChatColor.GREEN + "Ticket has been renamed to " + ticket.getName());
+                    sender.sendMessage(ChatColor.GREEN + "Ticket has been renamed to " + ChatColor.YELLOW + ticket.getName());
                 } else {
                     sender.sendMessage(ChatColor.RED + "Failed to rename ticket to " + args[0] + ": a ticket with this name already exists!");
                 }
@@ -110,6 +111,37 @@ public class TicketCommands {
             return true;
         }
 
+        // Set a ticket realm
+        if (cmd.equals("realm") || cmd.equals("setrealm")) {
+            if (args.length == 1) {
+                ticket.setRealm(args[0]);
+                TicketStore.markChanged();
+                sender.sendMessage(ChatColor.GREEN + "Ticket realm set to " + ChatColor.YELLOW + args[0]);
+            } else {
+                sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set a realm, use /train ticket realm [realm]");
+            }
+            return true;
+        }
+
+        // Set the number of uses for the ticket
+        if (cmd.equals("maxuses") || cmd.equals("maximumuses") || cmd.equals("uselimit")) {
+            if (args.length == 1) {
+                int numUses = 1;
+                if (args[0].contains("inf") || args[0].contains("unl")) {
+                    numUses = -1;
+                } else {
+                    numUses = ParseUtil.parseInt(args[0], 1);
+                }
+                ticket.setMaxNumberOfUses(numUses);
+                TicketStore.markChanged();
+                String numUsesText = (numUses >= 0) ? Integer.toString(numUses) : "unlimited";
+                sender.sendMessage(ChatColor.GREEN + "Ticket maximum number of uses set to " + ChatColor.YELLOW + numUsesText);
+            } else {
+                sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set the maximum number of uses, use /train ticket maxuses [max_uses]");
+            }
+            return true;
+        }
+        
         return true;
     }
 }
