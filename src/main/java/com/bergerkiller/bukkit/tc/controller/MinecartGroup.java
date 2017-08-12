@@ -900,10 +900,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void doPhysics() {
-        for (MinecartMember<?> m : this) {
-            if (m.isUnloaded()) {
-                this.unload();
-                return;
+        if (this.canUnload()) {
+            for (MinecartMember<?> m : this) {
+                if (m.isUnloaded()) {
+                    this.unload();
+                    return;
+                }
+            }
+        } else {
+            for (MinecartMember<?> m : this) {
+                m.unloaded = false;
             }
         }
         try {

@@ -219,14 +219,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
-        return world == entity.getWorld() && Math.abs(cx - entity.loc.x.chunk()) <= 2 && Math.abs(cz - entity.loc.z.chunk()) <= 2;
+        return world == entity.getWorld() && 
+                Math.abs(cx - entity.getChunkX()) <= ChunkArea.CHUNK_RANGE && 
+                Math.abs(cz - entity.getChunkZ()) <= ChunkArea.CHUNK_RANGE;
     }
 
     protected void updateChunks(Set<IntVector2> previousChunks, Set<IntVector2> newChunks) {
         previousChunks.addAll(Arrays.asList(this.lastChunks.getChunks()));
-        newChunks.addAll(Arrays.asList(this.currentChunks.getChunks()));
         this.lastChunks.update(this.currentChunks);
         this.currentChunks.update(entity.loc.x.chunk(), entity.loc.z.chunk());
+        newChunks.addAll(Arrays.asList(this.currentChunks.getChunks()));
     }
 
     public boolean isSingle() {
@@ -918,16 +920,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.setDirection(this.getDirection().getOppositeFace());
     }
 
-    public void updateUnloaded() {
+    protected void updateUnloaded() {
         unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
-        if (!unloaded) {
+        if (!unloaded && (this.group == null || this.group.canUnload())) {
             // Check a 5x5 chunk area around this Minecart to see if it is loaded
             World world = entity.getWorld();
-            int midX = entity.loc.x.chunk();
-            int midZ = entity.loc.z.chunk();
+            int midX = entity.getChunkX();
+            int midZ = entity.getChunkZ();
             int cx, cz;
-            for (cx = -2; cx <= 2; cx++) {
-                for (cz = -2; cz <= 2; cz++) {
+            for (cx = -ChunkArea.CHUNK_RANGE; cx <= ChunkArea.CHUNK_RANGE; cx++) {
+                for (cz = -ChunkArea.CHUNK_RANGE; cz <= ChunkArea.CHUNK_RANGE; cz++) {
                     if (!WorldUtil.isLoaded(world, cx + midX, cz + midZ)) {
                         unloaded = true;
                         return;
