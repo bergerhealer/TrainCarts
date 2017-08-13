@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.tickets;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
@@ -65,6 +66,15 @@ public class TicketStore {
         ticketMap.put(name, ticket);
         markChanged();
         return ticket;
+    }
+
+    /**
+     * Gets all tickets available on the server
+     * 
+     * @return tickets
+     */
+    public static Collection<Ticket> getAll() {
+        return ticketMap.values();
     }
 
     /**

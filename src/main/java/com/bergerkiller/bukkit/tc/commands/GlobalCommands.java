@@ -17,6 +17,8 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.tickets.Ticket;
+import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -112,39 +114,49 @@ public class GlobalCommands {
             sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
             return true;
         } else if (args[0].equals("list")) {
-            int count = 0, moving = 0;
-            for (MinecartGroup group : MinecartGroupStore.getGroups()) {
-                count++;
-                if (group.isMoving()) {
-                    moving++;
+            String listType = (args.length >= 2) ? args[1] : "";
+            if (listType.equals("destination") || listType.equals("destinations")) {
+                // Destinations
+                listDestinations(sender);
+            } else if (listType.equals("ticket") || listType.equals("tickets")) {
+                // Tickets
+                listTickets(sender);
+            } else {
+                // Trains
+                int count = 0, moving = 0;
+                for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+                    count++;
+                    if (group.isMoving()) {
+                        moving++;
+                    }
+                    // Get properties: ensures that ALL trains are listed
+                    group.getProperties();
                 }
-                // Get properties: ensures that ALL trains are listed
-                group.getProperties();
-            }
-            count += OfflineGroupManager.getStoredCount();
-            int minecartCount = 0;
-            for (World world : WorldUtil.getWorlds()) {
-                for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
-                    if (e instanceof Minecart) {
-                        minecartCount++;
+                count += OfflineGroupManager.getStoredCount();
+                int minecartCount = 0;
+                for (World world : WorldUtil.getWorlds()) {
+                    for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
+                        if (e instanceof Minecart) {
+                            minecartCount++;
+                        }
                     }
                 }
-            }
-            MessageBuilder builder = new MessageBuilder();
-            builder.green("There are ").yellow(count).green(" trains on this server (of which ");
-            builder.yellow(moving).green(" are moving)");
-            builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
-            builder.send(sender);
-            // Show additional information about owned trains to players
-            if (sender instanceof Player) {
-                StringBuilder statement = new StringBuilder();
-                for (int i = 1; i < args.length; i++) {
-                    if (i > 1) {
-                        statement.append(' ');
+                MessageBuilder builder = new MessageBuilder();
+                builder.green("There are ").yellow(count).green(" trains on this server (of which ");
+                builder.yellow(moving).green(" are moving)");
+                builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
+                builder.send(sender);
+                // Show additional information about owned trains to players
+                if (sender instanceof Player) {
+                    StringBuilder statement = new StringBuilder();
+                    for (int i = 1; i < args.length; i++) {
+                        if (i > 1) {
+                            statement.append(' ');
+                        }
+                        statement.append(args[i]);
                     }
-                    statement.append(args[i]);
+                    listTrains((Player) sender, statement.toString());
                 }
-                list((Player) sender, statement.toString());
             }
             return true;
         } else if (args[0].equals("edit")) {
@@ -169,7 +181,7 @@ public class GlobalCommands {
             } else {
                 sender.sendMessage(ChatColor.RED + "Please enter the exact name of the train to edit");
             }
-            list((Player) sender, "");
+            listTrains((Player) sender, "");
             return true;
         } else if (args[0].equals("tick")) {
             Permission.COMMAND_CHANGETICK.handle(sender);
@@ -262,7 +274,29 @@ public class GlobalCommands {
         return false;
     }
 
-    public static void list(Player player, String statement) {
+    public static void listDestinations(CommandSender sender) {
+        MessageBuilder builder = new MessageBuilder();
+        builder.yellow("The following train destinations are available:");
+        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
+        for (PathNode node : PathNode.getAll()) {
+            if (!node.containsOnlySwitcher()) {
+                builder.green(node.getName());
+            }
+        }
+        builder.send(sender);
+    }
+
+    public static void listTickets(CommandSender sender) {
+        MessageBuilder builder = new MessageBuilder();
+        builder.yellow("The following tickets are available:");
+        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
+        for (Ticket ticket : TicketStore.getAll()) {
+            builder.green(ticket.getName());
+        }
+        builder.send(sender);
+    }
+
+    public static void listTrains(Player player, String statement) {
         MessageBuilder builder = new MessageBuilder();
         builder.yellow("You are the proud owner of the following trains:");
         builder.newLine().setSeparator(ChatColor.WHITE, " / ");

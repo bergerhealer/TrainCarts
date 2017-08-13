@@ -68,6 +68,10 @@ public class PathNode {
         }
     }
 
+    public static Collection<PathNode> getAll() {
+        return nodes.values();
+    }
+
     public static PathNode get(Block block) {
         if (block == null) {
             return null;
