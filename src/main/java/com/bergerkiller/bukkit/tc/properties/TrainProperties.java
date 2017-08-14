@@ -854,7 +854,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.removeTicket(arg);
         } else if (key.equals("setticket")) {
             this.clearTickets();
-            this.addTicket(arg);
+            if (arg.length() > 0) {
+                this.addTicket(arg);
+            }
+        } else if (key.equals("clrticket")) {
+            this.clearTickets();
         } else {
             return false;
         }
