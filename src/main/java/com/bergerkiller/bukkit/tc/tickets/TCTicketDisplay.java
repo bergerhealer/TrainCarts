@@ -30,7 +30,7 @@ public class TCTicketDisplay extends MapDisplay {
                 } else if (ticket.getMaxNumberOfUses() < 0) {
                     text = "Unlimited uses";
                 } else {
-                    text = TicketStore.getNumberOfUses(this.getMapItem()) + "/" + ticket.getMaxNumberOfUses() + " used";
+                    text = TicketStore.getNumberOfUses(this.getMapItem()) + "/" + ticket.getMaxNumberOfUses() + " uses";
                 }
                 this.getLayer(1).draw(MapFont.MINECRAFT, 10, 57, MapColorPalette.COLOR_BLACK, text);
             }

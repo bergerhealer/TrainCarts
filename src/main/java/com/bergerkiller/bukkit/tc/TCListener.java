@@ -83,6 +83,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onMapViewed(MapShowEvent event) {
+        
         if ( event.isHeldEvent() && 
              TCMapControl.isTCMapItem(event.getMapItem()) &&
              !(event.getDisplay() instanceof TCMapEditor) ) {

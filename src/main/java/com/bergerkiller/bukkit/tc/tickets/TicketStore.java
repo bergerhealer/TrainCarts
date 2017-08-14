@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class TicketStore {
@@ -45,6 +46,7 @@ public class TicketStore {
         for (int i = 1; ticket == null; i++) {
             ticket = createTicket(baseTicket, "ticket" + i);
         }
+        ticket.setProperties(TrainProperties.getDefaultsByName("default"));
         return ticket;
     }
 
@@ -273,16 +275,14 @@ public class TicketStore {
                 Localization.TICKET_CONFLICT.message(player);
                 return false;
             }
-
-            if (preUseTicket(player, mainHand)) {
+            if (preUseTicket(player, mainHand, trainProperties)) {
                 HumanHand.setItemInMainHand(player, useTicketItem(mainHand));
                 return true;
             } else {
                 return false;
             }
         } else if (isSuitableTicket(offHand, trainProperties)) {
-
-            if (preUseTicket(player, offHand)) {
+            if (preUseTicket(player, offHand, trainProperties)) {
                 HumanHand.setItemInOffHand(player, useTicketItem(offHand));
                 return true;
             } else {
@@ -290,16 +290,49 @@ public class TicketStore {
             }
         }
 
+        // If either hand has a ticket, show an 'incorrect' message
+        {
+            Ticket mainHandTicket = getTicketFromItem(mainHand);
+            Ticket offHandTicket = getTicketFromItem(offHand);
+            if (mainHandTicket != null || offHandTicket != null) {
+                if (mainHandTicket != null) {
+                    Localization.TICKET_CONFLICT_TYPE.message(player, mainHandTicket.getName());
+                }
+                if (offHandTicket != null) {
+                    Localization.TICKET_CONFLICT_TYPE.message(player, offHandTicket.getName());
+                }
+                return false;
+            }            
+        }
+
+        // Handle tickets in the quickbar, then rest of inventory
+        TicketHandleResult result = handleTicketsInventory(player, true, trainProperties);
+        if (result == TicketHandleResult.MISSING) {
+            result = handleTicketsInventory(player, false, trainProperties);
+        }
+        if (result == TicketHandleResult.MISSING) {
+            Localization.TICKET_REQUIRED.message(player);
+        }
+        return (result == TicketHandleResult.OK);
+    }
+
+    private static enum TicketHandleResult {
+        MISSING, FAILURE, OK
+    }
+    
+    private static TicketHandleResult handleTicketsInventory(Player player, boolean quickbar, TrainProperties trainProperties) {
         // Now we know none of the items in the main hand can be used, check the rest of the inventory
         PlayerInventory inventory = player.getInventory();
         int ticketInvIndex = -1;
-        for (int i = 0; i < inventory.getSize(); i++) {
+        int start = (quickbar ? 0 : 9);
+        int end = (quickbar ? 9 : inventory.getSize());
+        for (int i = start; i < end; i++) {
             ItemStack item = inventory.getItem(i);
             if (isSuitableTicket(item, trainProperties) && !isTicketExpired(item)) {
                 if (ticketInvIndex != -1) {
                     // Multiple tickets could be used. Don't know which...
                     Localization.TICKET_CONFLICT.message(player);
-                    return false;
+                    return TicketHandleResult.FAILURE;
                 } else {
                     ticketInvIndex = i;
                 }
@@ -307,19 +340,18 @@ public class TicketStore {
         }
 
         if (ticketInvIndex == -1) {
-            Localization.TICKET_REQUIRED.message(player);
-            return false;
+            return TicketHandleResult.MISSING;
         }
 
         ItemStack ticketItem = inventory.getItem(ticketInvIndex);
-        if (preUseTicket(player, ticketItem)) {
-            HumanHand.setItemInOffHand(player, useTicketItem(ticketItem));
-            return true;
+        if (preUseTicket(player, ticketItem, trainProperties)) {
+            inventory.setItem(ticketInvIndex, useTicketItem(ticketItem));
+            return TicketHandleResult.OK;
         } else {
-            return false;
+            return TicketHandleResult.FAILURE;
         }
     }
-
+    
     private static boolean isSuitableTicket(ItemStack item, TrainProperties trainProperties) {
         Ticket ticket = getTicketFromItem(item);
         if (ticket != null) {
@@ -332,7 +364,8 @@ public class TicketStore {
         return false;
     }
 
-    private static boolean preUseTicket(Player player, ItemStack item) {
+    private static boolean preUseTicket(Player player, ItemStack item, TrainProperties trainProperties) {
+        // Handle permissions and messages to the player
         String ticketName = ItemUtil.getMetaTag(item, false).getValue("ticketName", "UNKNOWN");
         if (!isTicketOwner(player, item)) {
             String ownerName = ItemUtil.getMetaTag(item, false).getValue("ticketOwnerName", "UNKNOWN");
@@ -344,6 +377,18 @@ public class TicketStore {
             return false;
         }
         Localization.TICKET_USED.message(player, ticketName);
+
+        // Apply ticket to the train
+        Ticket ticket = getTicketFromItem(item);
+        if (ticket != null) {
+            trainProperties.load(ticket.getProperties().clone());
+
+            // Notify the train of these changes (triggers signs)
+            MinecartGroup group = trainProperties.getHolder();
+            if (group != null) {
+                group.onPropertiesChanged();
+            }
+        }
         return true;
     }
 

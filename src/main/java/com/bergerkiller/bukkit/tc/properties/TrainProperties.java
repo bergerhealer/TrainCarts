@@ -24,7 +24,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -664,6 +663,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.tickets.remove(ticketName);
     }
 
+    public void clearTickets() {
+        this.tickets.clear();
+    }
+
     public boolean isTrainRenamed() {
         return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
     }
@@ -849,6 +852,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.addTicket(arg);
         } else if (key.equals("remticket")) {
             this.removeTicket(arg);
+        } else if (key.equals("setticket")) {
+            this.clearTickets();
+            this.addTicket(arg);
         } else {
             return false;
         }
@@ -907,7 +913,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setDisplayName(node.get("displayName", this.displayName));
         this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
         this.collision = node.get("trainCollision", this.collision);
-        this.setCollisionDamage(Double.parseDouble(node.get("collisionDamage") == null ? "1.0" : node.get("collisionDamage").toString()));
+        this.setCollisionDamage(node.get("collisionDamage", this.getCollisionDamage()));
         this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
         this.slowDown = node.get("slowDown", this.slowDown);
         if (node.contains("collision")) {
@@ -919,11 +925,21 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.miscCollision = node.get("collision.misc", this.miscCollision);
             this.trainCollision = node.get("collision.train", this.trainCollision);
         }
-        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, 20);
+        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TrainCarts.maxVelocity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
         this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
-        this.tickets = new ArrayList<String>(Arrays.asList(node.get("tickets", StringUtil.EMPTY_ARRAY)));
+        for (String ticket : node.getList("tickets", String.class)) {
+            this.tickets.add(ticket);
+        }
+
+        // Only used when loading defaults from tickets, or when 'destination: ' is set in DefTrProps.yml
+        // This allows properties defined at train level to be applied to all carts
+        for (CartProperties cart : this) {
+            cart.load(node);
+        }
+
+        // Load individual carts (by name)
         if (node.isNode("carts")) {
             for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
                 try {

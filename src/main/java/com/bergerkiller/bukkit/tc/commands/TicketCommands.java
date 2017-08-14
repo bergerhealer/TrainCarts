@@ -8,6 +8,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
@@ -141,7 +142,33 @@ public class TicketCommands {
             }
             return true;
         }
-        
+
+        // Modifies ticket properties. These are all pretty much exactly the same as the train/cart commands
+        // I have implemented a few requested ones (destinations, tags), but all properties can be changed
+        // Instead of duplicating the code severely, the current system must be changed to use annotations for all this
+
+        // Destinations
+        if (cmd.equals("destination")) {
+            if (args.length == 1) {
+                ticket.getProperties().set("destination", args[0]);
+                sender.sendMessage(ChatColor.GREEN + "Ticket destination set to " + ChatColor.YELLOW + args[0]);
+            } else {
+                sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set the ticket destination, use /train ticket destination [name]");
+            }
+            return true;
+        }
+
+        // Tags
+        if (cmd.equals("tag") || cmd.equals("tags")) {
+            ticket.getProperties().set("tags", args);
+            if (args.length == 0) {
+                sender.sendMessage(ChatColor.GREEN + "All ticket tags have been cleared");
+            } else {
+                sender.sendMessage(ChatColor.GREEN + "Ticket tags set: " + ChatColor.YELLOW + StringUtil.combineNames(args));
+            }
+            return true;
+        }
+
         return true;
     }
 }
