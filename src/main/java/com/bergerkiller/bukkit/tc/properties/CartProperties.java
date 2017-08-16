@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
+import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -45,6 +46,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private boolean pickUp = false;
     private boolean spawnItemDrops = true;
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
+    private SignSkipOptions skipOptions = new SignSkipOptions();
 
     protected CartProperties(UUID uuid, TrainProperties group) {
         this.uuid = uuid;
@@ -524,6 +526,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
                 this.blockBreakTypes.add(mat);
             }
         }
+        if (node.isNode("skipOptions")) {
+            this.skipOptions.load(node.getNode("skipOptions"));
+        }
     }
 
     @Override
@@ -573,6 +578,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
         node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
         node.set("spawnItemDrops", this.spawnItemDrops ? null : false);
+
+        if (this.skipOptions.isActive()) {
+            this.skipOptions.save(node.getNode("skipOptions"));
+        } else if (node.contains("skipOptions")) {
+            node.remove("skipOptions");
+        }
     }
 
     /**
@@ -612,4 +623,15 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     public void setPlayersExit(boolean state) {
         this.allowPlayerExit = state;
     }
+
+    public SignSkipOptions getSkipOptions() {
+        return this.skipOptions;
+    }
+
+    public void setSkipOptions(SignSkipOptions options) {
+        this.skipOptions.filter = options.filter;
+        this.skipOptions.ignoreCtr = options.ignoreCtr;
+        this.skipOptions.skipCtr = options.skipCtr;
+    }
+
 }

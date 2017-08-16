@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 import org.bukkit.Bukkit;
@@ -59,6 +60,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private boolean allowPlayerTake = true;
     private boolean soundEnabled = true;
     private List<String> tickets = new ArrayList<String>();
+    private SignSkipOptions skipOptions = new SignSkipOptions();
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -667,6 +669,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.tickets.clear();
     }
 
+    public SignSkipOptions getSkipOptions() {
+        return this.skipOptions;
+    }
+
+    public void setSkipOptions(SignSkipOptions options) {
+        this.skipOptions.filter = options.filter;
+        this.skipOptions.ignoreCtr = options.ignoreCtr;
+        this.skipOptions.skipCtr = options.skipCtr;
+    }
+
     public boolean isTrainRenamed() {
         return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
     }
@@ -936,6 +948,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         for (String ticket : node.getList("tickets", String.class)) {
             this.tickets.add(ticket);
         }
+        if (node.isNode("skipOptions")) {
+            this.skipOptions.load(node.getNode("skipOptions"));
+        }
 
         // Only used when loading defaults from tickets, or when 'destination: ' is set in DefTrProps.yml
         // This allows properties defined at train level to be applied to all carts
@@ -980,6 +995,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.keepChunksLoaded = source.keepChunksLoaded;
         this.allowManualMovement = source.allowManualMovement;
         this.tickets = new ArrayList<String>(source.tickets);
+        this.setSkipOptions(source.skipOptions);
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -1043,6 +1059,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 prop.save(cart);
                 if (cart.getKeys().isEmpty()) carts.remove(cart.getName());
             }
+        }
+
+        if (this.skipOptions.isActive()) {
+            this.skipOptions.save(node.getNode("skipOptions"));
+        } else if (node.contains("skipOptions")) {
+            node.remove("skipOptions");
         }
     }
 

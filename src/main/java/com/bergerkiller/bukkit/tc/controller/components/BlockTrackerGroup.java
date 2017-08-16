@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.collections.List2D;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -21,7 +22,6 @@ import java.util.*;
  */
 public class BlockTrackerGroup extends BlockTracker {
     private static final List<Block> signListBuffer = new ArrayList<Block>();
-    private static final Set<TrackedSign> groupSignBuffer = new LinkedHashSet<TrackedSign>();
     private final MinecartGroup owner;
     private final ToggledState needsPositionUpdate = new ToggledState(true);
 
@@ -121,6 +121,21 @@ public class BlockTrackerGroup extends BlockTracker {
         }
     }
 
+    private List<TrackedSign> getSignList() {
+        ArrayList<List<TrackedSign>> signsList = new ArrayList<List<TrackedSign>>(owner.size());
+        for (MinecartMember<?> member : owner) {
+            List<TrackedSign> memberList = member.getBlockTracker().liveActiveSigns;
+            if (!memberList.isEmpty()) {
+                signsList.add(memberList); // optimization
+            }
+        }
+        if (signsList.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            return new List2D<TrackedSign>(signsList);
+        }
+    }
+
     /**
      * Refreshes the block space and active signs if required
      */
@@ -153,15 +168,23 @@ public class BlockTrackerGroup extends BlockTracker {
                 signListBuffer.clear();
             }
 
-            // Perform update events of sign changes
-            groupSignBuffer.clear();
+            // Filter based on cart skip options
+            for (MinecartMember<?> member : owner) {
+                member.getProperties().getSkipOptions().filterSigns(member.getBlockTracker().liveActiveSigns);
+            }
+
+            // Combine all signs into one list and filter based on train options
+            List<TrackedSign> groupSignList = getSignList();
+            owner.getProperties().getSkipOptions().filterSigns(groupSignList);
+
+            // Update cart signs
             for (MinecartMember<?> member : owner) {
                 BlockTrackerMember tracker = member.getBlockTracker();
-                groupSignBuffer.addAll(tracker.liveActiveSigns);
                 tracker.updateActiveSigns(tracker.liveActiveSigns);
             }
+
             // Update the active signs for this Group
-            updateActiveSigns(groupSignBuffer);
+            updateActiveSigns(groupSignList);
 
             // Update detector regions
             detectorRegions.clear();

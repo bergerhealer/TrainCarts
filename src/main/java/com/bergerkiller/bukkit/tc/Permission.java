@@ -74,6 +74,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BUILD_JUMPER = new Permission("train.build.jumper", PermissionDefault.OP, "The player can build a sign that can cause a train to jump in a certain direction");
     public static final Permission BUILD_LAUNCHER = new Permission("train.build.launcher", PermissionDefault.OP, "The player can build a sign that can launch trains");
     public static final Permission BUILD_ENTER = new Permission("train.build.enter", PermissionDefault.OP, "The player can build a sign that can make nearby players/mobs enter a train");
+    public static final Permission BUILD_SKIPPER = new Permission("train.build.skipper", PermissionDefault.OP, "The player can build a sign that can tell a train or minecart to skip upcoming signs");
     public static final Permission GENERAL_PLACE_MINECART = new Permission("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts");
     public static final Permission GENERAL_PLACE_TRAINCART = new Permission("train.place.traincart", PermissionDefault.TRUE, "The player can place TrainCarts minecarts");
     public static final Permission BREAK_MINECART_SELF = new Permission("train.break.self", PermissionDefault.TRUE, "The player can break their own minecarts");
