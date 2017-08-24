@@ -113,6 +113,11 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
         return pos;
     }
 
+    @Override
+    public double getGravityMultiplier(MinecartMember<?> member) {
+        return member.getGroup().getProperties().isSlowingDown() ? MinecartMember.VERTRAIL_MULTIPLIER : 0.0;
+    }
+
     private static final boolean isVerticalHalf(MinecartMember<?> member) {
         return isVerticalHalf(member.getEntity().loc.getY(), member.getBlockPos());
     }
