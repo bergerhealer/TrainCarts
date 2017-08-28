@@ -486,6 +486,10 @@ public class TrainCommands {
         message.red(prop.miscCollision.getOperationName()).yellow(" misc entities and ");
         message.red(prop.trainCollision.getOperationName()).yellow(" other trains");
 
+        if (prop.getHolder() != null) {
+            message.newLine().yellow("Current speed: ").white(prop.getHolder().getAverageForce(), " blocks/tick");
+        }
+
         message.newLine().yellow("Maximum speed: ").white(prop.getSpeedLimit(), " blocks/tick");
 
         // Remaining common info

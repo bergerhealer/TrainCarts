@@ -26,7 +26,7 @@ public class Commands {
 
     public static boolean execute(CommandSender sender, String command, String[] args) {
         if (args.length == 0) {
-            Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getVersion());
+            Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
             return true;
         }
         try {
