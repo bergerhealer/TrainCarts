@@ -59,6 +59,11 @@ public abstract class RailTypeHorizontal extends RailType {
                         // If there is, and the rails direct the cart into the block, prevent it as well
                         Block dirBlock = railsBlock.getRelative(hitDir);
                         RailType dirRail = RailType.getType(dirBlock);
+                        if (dirRail == RailType.NONE) {
+                            dirBlock = dirBlock.getRelative(BlockFace.DOWN);
+                            dirRail  = RailType.getType(dirBlock);
+                        }
+
                         if (dirRail != RailType.NONE) {
                             Block nextPosBlock = dirRail.getNextPos(dirBlock, hitDir);
                             if (nextPosBlock != null) {
