@@ -773,6 +773,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public boolean onEntityCollision(Entity e) {
+        // Check if Entity not a passenger of this Train
+        MinecartMember<?> vehicleTrain = MinecartMemberStore.getFromEntity(entity.getVehicle());
+        if (vehicleTrain != null && vehicleTrain.group == this.group) {
+            return false;
+        }
+
         if (!this.isInteractable()) {
             return false;
         }
