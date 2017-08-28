@@ -487,7 +487,9 @@ public class TrainCommands {
         message.red(prop.trainCollision.getOperationName()).yellow(" other trains");
 
         if (prop.getHolder() != null) {
-            message.newLine().yellow("Current speed: ").white(prop.getHolder().getAverageForce(), " blocks/tick");
+            message.newLine().yellow("Current speed: ");
+            message.white(String.format("%.3f", prop.getHolder().getAverageForce()));
+            message.white(" blocks/tick");
         }
 
         message.newLine().yellow("Maximum speed: ").white(prop.getSpeedLimit(), " blocks/tick");
