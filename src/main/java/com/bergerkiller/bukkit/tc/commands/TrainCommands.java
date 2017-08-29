@@ -515,9 +515,9 @@ public class TrainCommands {
         message.newLine().yellow("Train name: ").white(prop.getTrainName());
         message.newLine().yellow("Keep nearby chunks loaded: ").white(prop.isKeepingChunksLoaded());
 
-        message.newLine().yellow("Can collide: ").white(prop.getColliding());
-
         infoSlowDown(message.newLine(), prop);
+
+        message.newLine().yellow("Can collide: ").white(prop.getColliding());
 
         // Collision states
         message.newLine().yellow("When colliding this train ");
