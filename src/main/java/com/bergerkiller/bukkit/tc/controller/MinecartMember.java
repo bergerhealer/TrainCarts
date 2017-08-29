@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import org.bukkit.Chunk;
@@ -56,8 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IPropertiesHolder {
     public static final double GRAVITY_MULTIPLIER = 0.04;
-    public static final double VERTRAIL_MULTIPLIER = 0.02;
-    public static final double VERT_TO_SLOPE_MIN_VEL = 8.0 * VERTRAIL_MULTIPLIER;
+    public static final double VERTRAIL_MULTIPLIER_LEGACY = 0.02; // LEGACY!!! Uses SLOPE_VELOCITY_MULTIPLIER instead by default.
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
@@ -1113,7 +1113,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.doPostMoveLogic();
         if (!this.isDerailed()) {
             // Slowing down of minecarts
-            if (this.getGroup().getProperties().isSlowingDown()) {
+            if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
                 if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TrainCarts.slowDownEmptyCarts) {
                     entity.vel.multiply(TrainCarts.slowDownMultiplierNormal);
                 } else {

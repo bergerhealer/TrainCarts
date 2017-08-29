@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -199,10 +200,32 @@ public class TrainCommands {
             p.sendMessage(msg);
         } else if (cmd.equals("slowdown") || cmd.equals("slow") || cmd.equals("setslow") || cmd.equals("setslowdown")) {
             Permission.COMMAND_SLOWDOWN.handle(p);
-            if (args.length == 1) {
-                prop.setSlowingDown(ParseUtil.parseBool(args[0]));
+
+            // Get the mode queried, optionally set it if a boolean parameter is specified
+            // Legacy true/false/enable/disable still works, too
+            SlowdownMode mode = null;
+            if (args.length >= 1) {
+                if (ParseUtil.isBool(args[0])) {
+                    prop.setSlowingDown(ParseUtil.parseBool(args[0]));
+                } else {
+                    // Parse the mode
+                    mode = ParseUtil.parseEnum(SlowdownMode.class, args[0], null);
+                    if (mode == null) {
+                        p.sendMessage(ChatColor.RED + "Unknown slowdown mode: " + args[0]);
+                        return true;
+                    }
+
+                    // If specified, set it
+                    if (args.length >= 2) {
+                        prop.setSlowingDown(mode, ParseUtil.parseBool(args[1]));
+                    }
+                }
             }
-            p.sendMessage(ChatColor.YELLOW + "Slow down: " + ChatColor.WHITE + prop.isSlowingDown());
+
+            // Display result that was set
+            MessageBuilder message = new MessageBuilder();
+            infoSlowDown(message, prop);
+            message.send(p);
         } else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
             Permission.COMMAND_SETCOLLIDE.handle(p);
             if (args.length == 2) {
@@ -462,6 +485,25 @@ public class TrainCommands {
         return builder.red("pushplayers").red("pushmobs").red("pushmisc").setSeparator(null).red("]");
     }
 
+    private static void infoSlowDown(MessageBuilder message, TrainProperties prop) {
+        message.yellow("Slow down over time: ");
+        if (prop.isSlowingDownAll()) {
+            message.green("Yes (All)");
+        } else if (prop.isSlowingDownNone()) {
+            message.red("No (None)");
+        } else {
+            message.setSeparator(", ");
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                if (prop.isSlowingDown(mode)) {
+                    message.green(mode.getKey() + "[Yes]");
+                } else {
+                    message.red(mode.getKey() + "[No]");
+                }
+            }
+            message.clearSeparator();
+        }
+    }
+    
     public static void info(Player p, TrainProperties prop) {
         MessageBuilder message = new MessageBuilder();
 
@@ -472,8 +514,10 @@ public class TrainCommands {
         }
         message.newLine().yellow("Train name: ").white(prop.getTrainName());
         message.newLine().yellow("Keep nearby chunks loaded: ").white(prop.isKeepingChunksLoaded());
-        message.newLine().yellow("Slow down over time: ").white(prop.isSlowingDown());
+
         message.newLine().yellow("Can collide: ").white(prop.getColliding());
+
+        infoSlowDown(message.newLine(), prop);
 
         // Collision states
         message.newLine().yellow("When colliding this train ");

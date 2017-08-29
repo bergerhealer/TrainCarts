@@ -73,6 +73,7 @@ public class TrainCarts extends PluginBase {
     public static boolean showTransferAnimations;
     public static boolean craftingRequireWorkbench;
     public static boolean slowDownEmptyCarts;
+    public static boolean legacyVerticalGravity;
     public static double slowDownMultiplierSlow;
     public static double slowDownMultiplierNormal;
     public static boolean refillAtStations;
@@ -361,6 +362,11 @@ public class TrainCarts extends PluginBase {
         config.setHeader("allowVerticalPitch", "\nWhether minecarts are allowed to have a 90-degree pitch angle when going up vertical rails");
         config.addHeader("allowVerticalPitch", "When disabled, minecarts will keep a 0-degree pitch angle instead");
         allowVerticalPitch = config.get("allowVerticalPitch", true);
+
+        config.setHeader("legacyVerticalGravity", "\nBefore TrainCarts v1.12.1-v2 vertical rail gravity was kind of awful");
+        config.addHeader("legacyVerticalGravity", "It took a lot more speed to get up a vertical rail compared to sloped rails");
+        config.addHeader("legacyVerticalGravity", "This was fixed. If you depend on this legacy behavior, change this option to True");
+        legacyVerticalGravity = config.get("legacyVerticalGravity", false);
 
         config.setHeader("allowRailEditing", "\nWhether players (with build permissions) can edit existing rails by right-clicking on them");
         allowRailEditing = config.get("allowRailEditing", true);

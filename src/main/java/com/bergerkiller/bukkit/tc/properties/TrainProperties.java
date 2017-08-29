@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 import org.bukkit.Bukkit;
@@ -27,6 +28,7 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,7 +54,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     protected String trainname;
     private String displayName;
     private boolean collision = true;
-    private boolean slowDown = true;
+    private final EnumSet<SlowdownMode> slowDownOptions = EnumSet.allOf(SlowdownMode.class);
     private double speedLimit = 0.4;
     private double collisionDamage = 1.0D;
     private boolean keepChunksLoaded = false;
@@ -128,21 +130,68 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether the Train slows down over time
+     * Gets whether the Train slows down over time.<br>
+     * <b>Deprecated: This returns True if any slowdown mode is true.</b>
      *
      * @return True if it slows down, False if not
      */
+    @Deprecated
     public boolean isSlowingDown() {
-        return this.slowDown;
+        return !this.slowDownOptions.isEmpty();
     }
 
     /**
-     * Sets whether the Train slows down over time
+     * Gets whether the slow down options are set to a default, where all slowdown modes are active.
+     * 
+     * @return True if all modes are active (legacy slowdown = true set)
+     */
+    public boolean isSlowingDownAll() {
+        return this.slowDownOptions.size() == SlowdownMode.values().length;
+    }
+
+    /**
+     * Gets whether all slow down options are disabled.
+     * 
+     * @return True if all slowdown is disabled (legacy slowdown = false set)
+     */
+    public boolean isSlowingDownNone() {
+        return this.slowDownOptions.isEmpty();
+    }
+
+    /**
+     * Sets whether the Train slows down over time.<br>
+     * <b>Note: sets or clears all possible slowdown options at once</b>
      *
      * @param slowingDown state to set to
      */
     public void setSlowingDown(boolean slowingDown) {
-        this.slowDown = slowingDown;
+        if (slowingDown) {
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                this.slowDownOptions.add(mode);
+            }
+        } else {
+            this.slowDownOptions.clear();
+        }
+    }
+
+    /**
+     * Gets whether a particular slow down mode is activated
+     * 
+     * @param mode to check
+     * @return True if the slowdown mode is activated
+     */
+    public boolean isSlowingDown(SlowdownMode mode) {
+        return this.slowDownOptions.contains(mode);
+    }
+
+    /**
+     * Sets whether a particular slow down mode is activated
+     * 
+     * @param mode to set
+     * @param slowingDown option to set that mode to
+     */
+    public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
+        LogicUtil.addOrRemove(this.slowDownOptions, mode, slowingDown);
     }
 
     /**
@@ -792,7 +841,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "linking", "link")) {
             this.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "slow", "slowdown")) {
-            this.setSlowingDown(ParseUtil.parseBool(arg));
+            SlowdownMode slowMode = null;
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                if (key.contains(mode.getKey())) {
+                    slowMode = mode;
+                    break;
+                }
+            }
+            if (slowMode != null) {
+                this.setSlowingDown(slowMode, ParseUtil.parseBool(arg));
+            } else {
+                this.setSlowingDown(ParseUtil.parseBool(arg));
+            }
         } else if (LogicUtil.contains(key, "setdefault", "default")) {
             this.setDefault(arg);
         } else if (key.equals("pushplayers")) {
@@ -931,7 +991,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.collision = node.get("trainCollision", this.collision);
         this.setCollisionDamage(node.get("collisionDamage", this.getCollisionDamage()));
         this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
-        this.slowDown = node.get("slowDown", this.slowDown);
+
+        if (node.isNode("slowDown")) {
+            ConfigurationNode slowDownNode = node.getNode("slowDown");
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                this.setSlowingDown(mode, slowDownNode.get(mode.getKey(), this.isSlowingDown(mode)));
+            }
+        } else if (node.contains("slowDown")) {
+            this.setSlowingDown(node.get("slowDown", true));
+        }
+
         if (node.contains("collision")) {
             for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
                 CollisionMode mode = node.get("collision." + collisionConfigObject.getMobType(), CollisionMode.SKIP);
@@ -982,7 +1051,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.soundEnabled = source.soundEnabled;
         this.displayName = source.displayName;
         this.collision = source.collision;
-        this.slowDown = source.slowDown;
+        this.slowDownOptions.clear();
+        this.slowDownOptions.addAll(source.slowDownOptions);
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             collisionModes.put(collisionConfigObject, source.getCollisionMode(collisionConfigObject));
         }
@@ -1012,7 +1082,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
-        node.set("slowDown", this.slowDown);
+
+        if (this.isSlowingDownAll()) {
+            node.set("slowDown", true);
+        } else if (this.isSlowingDownNone()) {
+            node.set("slowDown", false);
+        } else {
+            ConfigurationNode slowdownNode = node.getNode("slowDown");
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                slowdownNode.set(mode.getKey(), this.isSlowingDown(mode));
+            }
+        }
+
         node.set("allowManualMovement", this.allowManualMovement);
         node.set("tickets", StringUtil.EMPTY_ARRAY);
         node.set("collision.players", this.playerCollision);
@@ -1034,7 +1115,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
-        node.set("slowDown", this.slowDown ? null : false);
+
+        if (this.isSlowingDownAll()) {
+            node.remove("slowDown");
+        } else if (this.isSlowingDownNone()) {
+            node.set("slowDown", false);
+        } else {
+            ConfigurationNode slowdownNode = node.getNode("slowDown");
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                slowdownNode.set(mode.getKey(), this.isSlowingDown(mode));
+            }
+        }
+
         node.set("allowManualMovement", allowManualMovement ? true : null);
         node.set("tickets", LogicUtil.toArray(this.tickets, String.class));
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {

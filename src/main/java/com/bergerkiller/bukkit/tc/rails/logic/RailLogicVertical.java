@@ -3,8 +3,10 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
+
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -58,7 +60,11 @@ public class RailLogicVertical extends RailLogic {
 
     @Override
     public double getGravityMultiplier(MinecartMember<?> member) {
-        return member.getGroup().getProperties().isSlowingDown() ? MinecartMember.VERTRAIL_MULTIPLIER : 0.0;
+        if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
+            return TrainCarts.legacyVerticalGravity ? 
+                    MinecartMember.VERTRAIL_MULTIPLIER_LEGACY : MinecartMember.SLOPE_VELOCITY_MULTIPLIER;
+        }
+        return 0.0;
     }
 
     @Override

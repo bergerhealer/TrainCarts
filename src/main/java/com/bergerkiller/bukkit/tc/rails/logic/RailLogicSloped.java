@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -64,7 +65,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
         entity.setPosition(pos.getX(), pos.getY(), pos.getZ());
 
         // Apply velocity factors from going up/down the slope
-        if (member.getGroup().getProperties().isSlowingDown()) {
+        if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
             final double motLength = entity.vel.xz.length();
             if (motLength > 0) {
                 entity.vel.xz.multiply((startY - pos.getY()) * 0.05 / motLength + 1.0);
@@ -96,7 +97,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
         MinecartGroup group = member.getGroup();
         // Velocity modifier for sloped tracks
-        if (group.getProperties().isSlowingDown() && !member.isMovementControlled()) {
+        if (group.getProperties().isSlowingDown(SlowdownMode.GRAVITY) && !member.isMovementControlled()) {
             entity.vel.xz.subtract(this.getDirection(), MinecartMember.SLOPE_VELOCITY_MULTIPLIER);
         }
         entity.vel.xz.add(this.getDirection(), entity.vel.getY());
