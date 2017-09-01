@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
@@ -141,6 +142,33 @@ public class RailTypeVertical extends RailType {
      * @return the block of the sloped rail, or null if not found
      */
     private Block getAfterSlope(Block verticalRail) {
+        // New logic that allows any rails leading towards the edge to go down onto a vertical rail
+        if (!this.isRail(verticalRail)) {
+            return null;
+        }
+        Block above = verticalRail.getRelative(BlockFace.UP);
+        if (MaterialUtil.ISSOLID.get(above)) {
+            return null;
+        }
+        BlockFace dir = Util.getVerticalRailDirection(verticalRail);
+        Block possible = above.getRelative(dir);
+
+        for (RailType type : RailType.values()) {
+            try {
+                Block rail = type.findRail(possible);
+                if (rail != null && LogicUtil.contains(dir.getOppositeFace(), type.getPossibleDirections(rail))) {
+                    return rail;
+                }
+            } catch (Throwable t) {
+                RailType.handleCriticalError(type, t);
+                break;
+            }
+        }
+
+        return null;
+
+        // Old logic that only allowed sloped rails to go down onto a vertical rail
+        /*
         if (!this.isRail(verticalRail)) {
             return null;
         }
@@ -156,5 +184,6 @@ public class RailTypeVertical extends RailType {
         } else {
             return null;
         }
+        */
     }
 }
