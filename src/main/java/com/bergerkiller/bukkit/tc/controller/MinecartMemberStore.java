@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.mountiplex.conversion.annotations.ConverterMethod;
 
 import org.bukkit.GameMode;
@@ -214,6 +215,9 @@ public abstract class MinecartMemberStore {
         MinecartMember<?> spawned = spawn(at, type);
         if (spawned != null && !spawned.getEntity().isDead()) {
             spawned.getGroup().getProperties().setDefault(player);
+
+            // Make player edit the train
+            CartProperties.setEditing(player, spawned.getProperties());
         }
         return spawned;
     }
