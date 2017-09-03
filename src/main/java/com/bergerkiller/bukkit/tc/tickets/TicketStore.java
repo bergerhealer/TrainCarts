@@ -12,6 +12,7 @@ import org.bukkit.inventory.PlayerInventory;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -276,14 +277,14 @@ public class TicketStore {
                 return false;
             }
             if (preUseTicket(player, mainHand, trainProperties)) {
-                HumanHand.setItemInMainHand(player, useTicketItem(mainHand));
+                useTicketItem(mainHand);
                 return true;
             } else {
                 return false;
             }
         } else if (isSuitableTicket(offHand, trainProperties)) {
             if (preUseTicket(player, offHand, trainProperties)) {
-                HumanHand.setItemInOffHand(player, useTicketItem(offHand));
+                useTicketItem(offHand);
                 return true;
             } else {
                 return false;
@@ -345,7 +346,7 @@ public class TicketStore {
 
         ItemStack ticketItem = inventory.getItem(ticketInvIndex);
         if (preUseTicket(player, ticketItem, trainProperties)) {
-            inventory.setItem(ticketInvIndex, useTicketItem(ticketItem));
+            useTicketItem(ticketItem);
             return TicketHandleResult.OK;
         } else {
             return TicketHandleResult.FAILURE;
@@ -392,21 +393,23 @@ public class TicketStore {
         return true;
     }
 
-    // simulates a single use of a ticket item. Returns null when the item is fully used up.
-    private static ItemStack useTicketItem(ItemStack item) {
+    // simulates a single use of a ticket item.
+    private static void useTicketItem(ItemStack item) {
         Ticket ticket = getTicketFromItem(item);
         if (ticket == null) {
-            return null;
+            MapDisplay.updateMapItem(item, null);
+            return;
         }
 
         item = ItemUtil.cloneItem(item);
         CommonTagCompound tag = ItemUtil.getMetaTag(item);
         tag.putValue("ticketNumberOfUses", tag.getValue("ticketNumberOfUses", 0) + 1);
         if (isTicketExpired(item)) {
-            return null;
+            MapDisplay.updateMapItem(item, null);
+            return;
         }
 
-        return item;
+        MapDisplay.updateMapItem(item, item);
     }
 
     public static void markChanged() {

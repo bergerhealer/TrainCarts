@@ -108,8 +108,10 @@ public class MapRailsControl extends MapControl {
     @Override
     public void onDraw() {
         MapTexture texture = RailsTexture.rotate(this._texture.get(this.face), this.rotation);
+        display.getLayer(2).setBlendMode(MapBlendMode.NONE);
         display.getLayer(2).draw(texture, x, y);
 
+        display.getLayer(3).setBlendMode(MapBlendMode.NONE);
         display.getLayer(3).clearRectangle(x, y, texture.getWidth(), texture.getHeight());
 
         MapTexture arrow = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/arrow.png");
@@ -145,6 +147,7 @@ public class MapRailsControl extends MapControl {
                 } else if (markerFace == BlockFace.WEST) {
                     arrow_dx = 0;
                 }
+                display.getLayer(3).setBlendMode(MapBlendMode.NONE);
                 display.getLayer(3).draw(tex, x + arrow_dx, y + arrow_dy);
             }
         }

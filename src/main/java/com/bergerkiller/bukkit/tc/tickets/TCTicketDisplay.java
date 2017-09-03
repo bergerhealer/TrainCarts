@@ -12,9 +12,21 @@ public class TCTicketDisplay extends MapDisplay {
     @Override
     public void onAttached() {
         this.setSessionMode(MapSessionMode.VIEWING);
+        this.setGlobal(false);
 
         MapTexture bg = this.loadTexture("com/bergerkiller/bukkit/tc/textures/tickets/train_ticket_bg.png");
         this.getLayer().draw(bg, 0, 0);
+
+        renderTicket();
+    }
+
+    @Override
+    public void onMapItemChanged() {
+        this.renderTicket();
+    }
+
+    private void renderTicket() {
+        this.getLayer(1).clear();
 
         Ticket ticket = TicketStore.getTicketFromItem(this.getMapItem());
         if (ticket == null) {

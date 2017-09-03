@@ -8,11 +8,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 public class TCMapControl {
-    private static final short MAP_ID = 200;
 
     /**
      * Updates a TC Map Sign Editor map item in the inventory of a player.
@@ -50,10 +50,8 @@ public class TCMapControl {
                 ItemStack newItem = playerItem.clone();
                 if (opened) {
                     newItem.setType(Material.MAP);
-                    newItem.setDurability(MAP_ID);
                 } else {
                     newItem.setType(Material.EMPTY_MAP);
-                    newItem.setDurability((short) 0);
                 }
                 inv.setItem(i, newItem);
                 return;
@@ -76,9 +74,10 @@ public class TCMapControl {
     }
 
     public static ItemStack createTCMapItem() {
-        ItemStack item = ItemUtil.createItem(Material.EMPTY_MAP, 1);
+        ItemStack item = MapDisplay.createMapItem(TCMapEditor.class);
+        item.setType(Material.EMPTY_MAP);
         ItemUtil.setDisplayName(item, "TrainCarts Editor");
-        ItemUtil.getMetaTag(item, true).putValue("plugin", "TrainCarts");
+        ItemUtil.getMetaTag(item).putValue("plugin", "TrainCarts");
         ItemUtil.getMetaTag(item).putUUID("editor", UUID.randomUUID());
         item.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
         return item;

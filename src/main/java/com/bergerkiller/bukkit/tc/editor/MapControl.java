@@ -49,6 +49,7 @@ public class MapControl {
                     texture.setBlendMode(MapBlendMode.AVERAGE);
                     texture.fill(MapColorPalette.getColor(128, 128, 255));
                 }
+                this.display.getLayer(1).setBlendMode(MapBlendMode.NONE);
                 this.display.getLayer(1).draw(texture, x, y);
             }
             this.onDraw();

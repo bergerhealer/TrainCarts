@@ -7,6 +7,7 @@ import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
+import com.bergerkiller.bukkit.common.map.MapBlendMode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
@@ -100,6 +101,7 @@ public class EditedSign {
             @Override
             public void onDraw() {
                 MapTexture texture = editor.loadTexture("com/bergerkiller/bukkit/tc/textures/redstone/" + getRedstoneMode().name().toLowerCase(Locale.ENGLISH) + ".png");
+                display.getLayer(2).setBlendMode(MapBlendMode.NONE);
                 display.getLayer(2).draw(texture, x, y);
             }
         });
@@ -127,6 +129,7 @@ public class EditedSign {
             @Override
             public void onDraw() {
                 MapTexture texture = editor.loadTexture("com/bergerkiller/bukkit/tc/textures/modes/" + getMode().name().toLowerCase(Locale.ENGLISH) + ".png");
+                display.getLayer(2).setBlendMode(MapBlendMode.NONE);
                 display.getLayer(2).draw(texture, x, y);
             }
         });

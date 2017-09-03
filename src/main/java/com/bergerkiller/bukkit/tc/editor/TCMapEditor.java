@@ -4,14 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Effect;
-import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapBlendMode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapFont;
@@ -20,11 +18,9 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 public class TCMapEditor extends MapDisplay {
     Player owner; // only one player will ever control an edit session
@@ -54,6 +50,7 @@ public class TCMapEditor extends MapDisplay {
 
     @Override
     public void onAttached() {
+        this.setGlobal(false);
         this.setSessionMode(MapSessionMode.VIEWING);
         this.setReceiveInputWhenHolding(true);
         this.owner = this.getOwners().get(0);
@@ -76,14 +73,17 @@ public class TCMapEditor extends MapDisplay {
         }
 
         background = this.loadTexture("com/bergerkiller/bukkit/tc/textures/background.png");
+        this.getLayer().setBlendMode(MapBlendMode.NONE);
         this.getLayer().draw(background, 0, 0);
 
         if (sign.isValid()) {
+            this.getLayer(1).setBlendMode(MapBlendMode.NONE);
             this.getLayer(1).setAlignment(Alignment.MIDDLE);
             this.getLayer(1).draw(MapFont.MINECRAFT, 64, 5, MapColorPalette.getColor(255, 0, 0), sign.getName());
 
             sign.initEditor(this);
         } else {
+            this.getLayer(1).setBlendMode(MapBlendMode.NONE);
             this.getLayer(1).setAlignment(Alignment.MIDDLE);
             this.getLayer(1).draw(MapFont.MINECRAFT, 64, 5, MapColorPalette.getColor(255, 0, 0), "No sign selected");
         }

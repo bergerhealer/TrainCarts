@@ -2,21 +2,19 @@ package com.bergerkiller.bukkit.tc.tickets;
 
 import java.util.Map;
 
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 
 /**
  * Manages the display and usage configuration for a train ticket.
  * Note that this is a singleton for a ticket category, used by all instances of this ticket.
  */
 public class Ticket {
-    private static final short TICKET_MAP_ID = 400;
     private String _name;
     private String _realm = "";
     private boolean _playerBound = false;
@@ -192,27 +190,8 @@ public class Ticket {
      * @return ticket item
      */
     public ItemStack createItem(Player owner) {
-        // Find a suitable map Id that is not already used
-        //TODO: This is awful. BKCommonLib, please help!
-        int mapId = TICKET_MAP_ID;
-        boolean mapIdValid = false;
-        while (!mapIdValid) {
-            mapId++;
-            mapIdValid = true;
-            for (ItemStack ownedItem : owner.getInventory()) {
-                if (ownedItem != null && ownedItem.getType() == Material.MAP && ownedItem.getDurability() == mapId) {
-                    mapIdValid = false;
-                    break;
-                }
-            }
-            ItemStack offHandItem = HumanHand.getItemInOffHand(owner);
-            if (offHandItem != null && offHandItem.getType() == Material.MAP && offHandItem.getDurability() == mapId) {
-                mapIdValid = false;
-            }
-        }
-
-        ItemStack item = ItemUtil.createItem(Material.MAP, mapId, 1);
-        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+        ItemStack item = MapDisplay.createMapItem(TCTicketDisplay.class);
+        CommonTagCompound tag = ItemUtil.getMetaTag(item);
         tag.putValue("plugin", "TrainCarts");
         tag.putValue("ticketName", this.getName());
         tag.putValue("ticketCreationTime", System.currentTimeMillis());

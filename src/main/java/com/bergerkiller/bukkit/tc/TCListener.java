@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
-import com.bergerkiller.bukkit.common.events.map.MapShowEvent;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
-import com.bergerkiller.bukkit.tc.editor.TCMapEditor;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
@@ -26,7 +24,6 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.mountiplex.reflection.SafeMethod;
@@ -80,23 +77,6 @@ public class TCListener implements Listener {
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
-
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onMapViewed(MapShowEvent event) {
-        
-        if ( event.isHeldEvent() && 
-             TCMapControl.isTCMapItem(event.getMapItem()) &&
-             !(event.getDisplay() instanceof TCMapEditor) ) {
-
-            event.setDisplay(TrainCarts.plugin, new TCMapEditor());
-        }
-        if ( event.isHeldEvent() &&
-             TicketStore.isTicketItem(event.getMapItem()) &&
-             !(event.getDisplay() instanceof TCTicketDisplay) ) {
-
-            event.setDisplay(TrainCarts.plugin, new TCTicketDisplay());
-        }
-    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
