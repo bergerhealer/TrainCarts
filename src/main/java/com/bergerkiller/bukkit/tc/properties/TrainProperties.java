@@ -840,7 +840,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setColliding(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "linking", "link")) {
             this.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.contains(key, "slow", "slowdown")) {
+        } else if (key.toLowerCase(Locale.ENGLISH).startsWith("slow")) {
             SlowdownMode slowMode = null;
             for (SlowdownMode mode : SlowdownMode.values()) {
                 if (key.contains(mode.getKey())) {
