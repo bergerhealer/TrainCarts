@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.bases.BlockStateBase;
+
 import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 

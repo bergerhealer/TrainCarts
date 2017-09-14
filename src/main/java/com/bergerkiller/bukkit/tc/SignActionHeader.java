@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.Locale;
-import java.util.logging.Level;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -380,7 +379,7 @@ public class SignActionHeader {
      * @return SignActionHeader
      */
     public static SignActionHeader parseFromEvent(SignActionEvent event) {
-        return parseFromSign(event.getSign());
+        return parse(event.getLine(0));
     }
 
     /**
@@ -391,7 +390,7 @@ public class SignActionHeader {
      * @return SignActionHeader
      */
     public static SignActionHeader parseFromEvent(SignChangeEvent event) {
-        return parse(event.getLine(0));
+        return parse(Util.getCleanLine(event, 0));
     }
 
     /**
@@ -402,7 +401,7 @@ public class SignActionHeader {
      * @return SignActionHeader
      */
     public static SignActionHeader parseFromSign(Sign sign) {
-        return parse(sign == null ? null : sign.getLine(0));
+        return parse(Util.getCleanLine(sign, 0));
     }
 
     /**
@@ -418,21 +417,6 @@ public class SignActionHeader {
             header.mode = SignActionMode.NONE;
             return header;
         }
-
-        // TODO remove this
-        /*
-         * MAC
-         * [ = \u005b
-         * ] = \u005d
-         */
-//        StringBuilder printer = new StringBuilder().append("Sign Text: ");
-//        for (int count = 0; count < line.length(); count++) {
-//            printer.append(Util.getUnicode(line.charAt(count)) + " ");
-//        }
-//        TrainCarts.plugin.getLogger().log(Level.INFO, printer.toString());
-
-//        TrainCarts.plugin.getLogger().log(Level.INFO, Util.getUnicode(line.charAt(0)));
-//        TrainCarts.plugin.getLogger().log(Level.INFO, Util.getUnicode(line.charAt(line.length() - 1)));
 
         boolean validStart = (line.charAt(0) == '[');
         boolean validEnd = (line.charAt(line.length() - 1) == ']');

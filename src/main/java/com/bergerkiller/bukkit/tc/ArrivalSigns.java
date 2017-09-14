@@ -32,21 +32,15 @@ public class ArrivalSigns {
     }
 
     public static boolean isTrigger(Sign sign) {
-        if (sign != null) {
-            if (sign.getLine(0).equalsIgnoreCase("[train]")) {
-                if (sign.getLine(1).equalsIgnoreCase("trigger")) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        SignActionHeader header = SignActionHeader.parseFromSign(sign);
+        return header.isValid() && Util.getCleanLine(sign, 1).equalsIgnoreCase("trigger");
     }
 
     public static void trigger(Sign sign, MinecartMember<?> mm) {
         if (!TrainCarts.SignLinkEnabled) return;
-        String name = sign.getLine(2);
-        String duration = sign.getLine(3);
-        if (name == null || name.equals("")) return;
+        String name = Util.getCleanLine(sign, 2);
+        String duration = Util.getCleanLine(sign, 3);
+        if (name.isEmpty()) return;
         if (mm != null) {
             Variables.get(name + 'N').set(mm.getGroup().getProperties().getDisplayName());
             if (mm.getProperties().hasDestination()) {

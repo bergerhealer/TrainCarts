@@ -12,6 +12,7 @@ import org.bukkit.block.Sign;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign;
 
 /**
@@ -116,7 +117,7 @@ public class SignSkipOptions {
                     if (signStat == null) {
                         passFilter = false; // should never happen, but just in case
                     } else {
-                        passFilter = signStat.getLine(1).toLowerCase(Locale.ENGLISH).startsWith(this.filter);
+                        passFilter = Util.getCleanLine(signStat, 1).toLowerCase(Locale.ENGLISH).startsWith(this.filter);
                     }
                 }
                 if (passFilter) {

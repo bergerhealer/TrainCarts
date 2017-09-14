@@ -88,7 +88,7 @@ public class SignActionEvent extends Event implements Cancellable {
             return;
         } else {
             // Sign available - initialize the sign
-            this.header = SignActionHeader.parse(sign.getLine(0));
+            this.header = SignActionHeader.parseFromEvent(this);
             this.facing = BlockUtil.getFacing(this.signblock);
             if (this.header.isLegacyConverted() && this.header.isValid()) {
                 this.setLine(0, this.header.toString());
@@ -703,11 +703,11 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public String getLine(int index) {
-        return this.sign.getLine(index);
+        return Util.getCleanLine(this.sign, index);
     }
 
     public String[] getLines() {
-        return this.sign.getLines();
+        return Util.cleanSignLines(this.sign.getLines());
     }
 
     public void setLine(int index, String line) {
@@ -744,7 +744,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if the line starts with any of the specified types, False if not
      */
     public boolean isLine(int line, String... texttypes) {
-        String linetext = this.getLine(line).toLowerCase();
+        String linetext = this.getLine(line).toLowerCase(Locale.ENGLISH);
         for (String type : texttypes) {
             if (linetext.startsWith(type)) return true;
         }

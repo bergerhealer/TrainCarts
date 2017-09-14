@@ -10,6 +10,9 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+
+import java.util.Locale;
+
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -20,7 +23,7 @@ public class SignActionElevator extends SignAction {
 
     public static boolean isElevator(Sign sign) {
         if (SignActionHeader.parseFromSign(sign).isValid()) {
-            if (sign.getLine(1).toLowerCase().startsWith("elevator")) {
+            if (Util.getCleanLine(sign, 1).toLowerCase(Locale.ENGLISH).startsWith("elevator")) {
                 return true;
             }
         }

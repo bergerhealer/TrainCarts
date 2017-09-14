@@ -693,19 +693,6 @@ public class TCListener implements Listener {
             return;
         }
 
-        // TODO FIX THIS
-        // Check if sign has unsupported chars
-        // If it has, remove them
-        /*
-        for (int count = 0; count < 4; count++) {
-            for (int chars = 0; chars < event.getLine(count).length(); chars++) {
-                if (Util.isInvalidCharacter(event.getLine(count).charAt(chars))) {
-                    event.setLine(count, Util.trimInvalidCharacters(event.getLine(count)));
-                }
-            }
-        }
-        */
-
         SignAction.handleBuild(event);
         if (event.isCancelled()) {
             // Properly give the sign back to the player that placed it

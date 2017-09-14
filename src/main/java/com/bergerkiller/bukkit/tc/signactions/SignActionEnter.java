@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 public class SignActionEnter extends SignAction {
 
@@ -49,7 +50,7 @@ public class SignActionEnter extends SignAction {
         double radiusXZ = ParseUtil.parseDouble(info.getLine(1), 2.0);
         double radiusY = 1.0;
         // Radius cylindrical or spherical?
-        if (info.getLine(1).toLowerCase().endsWith("s")) {
+        if (info.getLine(1).toLowerCase(Locale.ENGLISH).endsWith("s")) {
             // Spherical
             radiusY = radiusXZ;
         }
@@ -57,7 +58,7 @@ public class SignActionEnter extends SignAction {
         boolean enterPlayers = false;
         boolean enterMobs = false;
         if (!info.getLine(2).isEmpty()) {
-            String mode = info.getLine(2).toLowerCase();
+            String mode = info.getLine(2).toLowerCase(Locale.ENGLISH);
             if (mode.contains("mob")) {
                 enterMobs = true;
             }

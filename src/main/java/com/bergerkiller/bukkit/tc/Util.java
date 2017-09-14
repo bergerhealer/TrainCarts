@@ -18,10 +18,12 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Stairs;
 import org.bukkit.util.Vector;
@@ -736,23 +738,124 @@ public class Util {
         return "\\u" + Integer.toHexString( unicode | 0x10000).substring(1);
     }
 
-    // TODO FIX THIS
-
     /**
-     * Clears input of characters that cant be parsed by TC
-     * @param line to parse
-     * @return clear line.
+     * Reads a line from a sign change event and clears characters that can't be parsed by TC.
+     * If the line contains no invalid characters, the exact same String is returned
+     * without the overhead of allocating a new String.
+     * If the line is null, an empty String is returned instead.
+     * A null event will also result in an empty String.
+     * 
+     * @param event to get a clean line of
+     * @param line index
+     * @return clean line of the sign, guaranteed to never be null or have invalid characters
      */
-    public static String trimInvalidCharacters(String line) {
-        StringBuilder clear = new StringBuilder();
-        for (int count = 0; count < line.length(); count++) {
-            if (!isInvalidCharacter(line.charAt(count))) {
-                clear.append(line.charAt(count));
-            }
+    public static String getCleanLine(SignChangeEvent event, int line) {
+        if (event == null) {
+            return "";
+        } else {
+            return cleanSignLine(event.getLine(line));
         }
-        return clear.toString();
     }
 
+    /**
+     * Reads a line from a sign and clears characters that can't be parsed by TC.
+     * If the line contains no invalid characters, the exact same String is returned
+     * without the overhead of allocating a new String.
+     * If the line is null, an empty String is returned instead.
+     * A null sign will also result in an empty String.
+     * 
+     * @param sign to get a clean line of
+     * @param line index
+     * @return clean line of the sign, guaranteed to never be null or have invalid characters
+     */
+    public static String getCleanLine(Sign sign, int line) {
+        if (sign == null) {
+            return "";
+        } else {
+            return cleanSignLine(sign.getLine(line));
+        }
+    }
+
+    /**
+     * Clears input of characters that can't be parsed by TC.
+     * If the line contains no invalid characters, the exact same String is returned
+     * without the overhead of allocating a new String.
+     * If the line is null, an empty String is returned instead.
+     * 
+     * @param line to parse
+     * @return line cleared from invalid characters
+     */
+    public static String cleanSignLine(String line) {
+        if (line == null) {
+            return "";
+        }
+        for (int i = 0; i < line.length(); i++) {
+            if (isInvalidCharacter(line.charAt(i))) {
+                // One or more character is invalid
+                // Proceed to create a new String with these characters removed
+                StringBuilder clear = new StringBuilder(line.length() - 1);
+                clear.append(line, 0, i);
+                for (int j = i + 1; j < line.length(); j++) {
+                    char c = line.charAt(j);
+                    if (!isInvalidCharacter(c)) {
+                        clear.append(c);
+                    }
+                }
+                return clear.toString();
+            }
+        }
+        return line; // no invalid characters, return input String
+    }
+
+    /**
+     * Clears input sign lines of characters that can't be parsed by TC.
+     * If none of the lines contain invalid characters, the exact same String[] array
+     * is returned without the overhead of allocating a new String[] array.
+     * If the input array is null, or its length is not 4, it is resized so it is
+     * using a newly allocated array. The lines are guaranteed to not be null.
+     * 
+     * @param lines to parse
+     * @return lines cleared from invalid characters
+     */
+    public static String[] cleanSignLines(String[] lines) {
+        if (lines == null) {
+            return new String[] {"", "", "", ""};
+        }
+
+        // Create a new array of Strings only if one of the lines has invalid characters
+        boolean hasInvalid = false;
+        if (lines.length != 4) {
+            hasInvalid = true;
+            String[] newLines = new String[] {"", "", "", ""};
+            for (int i = 0; i < Math.min(lines.length, 4); i++) {
+                newLines[i] = lines[i];
+            }
+            lines = newLines;
+        }
+
+        // We do so using a String identity check (equals is unneeded)
+        // Only when trimInvalidCharacters returns a new String do we update the input array
+        for (int i = 0; i < lines.length; i++) {
+            String oldLine = lines[i];
+            String newLine = cleanSignLine(oldLine);
+            if (oldLine != newLine) {
+                if (!hasInvalid) {
+                    hasInvalid = true;
+                    lines = lines.clone();
+                }
+                lines[i] = newLine;
+            }
+        }
+        return lines;
+    }
+
+    /**
+     * Checks whether a particular character is valid on TrainCarts signs.
+     * Control codes and other unsupported characters return True.
+     * 
+     * @param c character to test
+     * @return True if the character is invalid
+     */
     public static boolean isInvalidCharacter(char c) {
         return Character.getType(c) == Character.PRIVATE_USE;
     }
