@@ -746,7 +746,7 @@ public class Util {
     public static String trimInvalidCharacters(String line) {
         StringBuilder clear = new StringBuilder();
         for (int count = 0; count < line.length(); count++) {
-            if (Character.getType(line.charAt(count)) != Character.PRIVATE_USE) {
+            if (!isInvalidCharacter(line.charAt(count))) {
                 clear.append(line.charAt(count));
             }
         }
@@ -754,6 +754,6 @@ public class Util {
     }
 
     public static boolean isInvalidCharacter(char c) {
-        return c == Character.PRIVATE_USE;
+        return Character.getType(c) == Character.PRIVATE_USE;
     }
 }
