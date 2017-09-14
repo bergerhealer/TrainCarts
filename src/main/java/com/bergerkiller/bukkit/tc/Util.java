@@ -726,4 +726,34 @@ public class Util {
         }
         return (ticks < 0.0) ? -1 : (int) ticks;
     }
+
+    /**
+     * Will return for hexcode for every char
+     * @param unicode to get hexcode for
+     * @return hexcode, in unicode format
+     */
+    public static String getUnicode(char unicode) {
+        return "\\u" + Integer.toHexString( unicode | 0x10000).substring(1);
+    }
+
+    // TODO FIX THIS
+
+    /**
+     * Clears input of characters that cant be parsed by TC
+     * @param line to parse
+     * @return clear line.
+     */
+    public static String trimInvalidCharacters(String line) {
+        StringBuilder clear = new StringBuilder();
+        for (int count = 0; count < line.length(); count++) {
+            if (Character.getType(line.charAt(count)) != Character.PRIVATE_USE) {
+                clear.append(line.charAt(count));
+            }
+        }
+        return clear.toString();
+    }
+
+    public static boolean isInvalidCharacter(char c) {
+        return c == Character.PRIVATE_USE;
+    }
 }

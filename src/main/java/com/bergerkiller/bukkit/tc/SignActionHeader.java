@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.Locale;
+import java.util.logging.Level;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -418,8 +419,24 @@ public class SignActionHeader {
             return header;
         }
 
+        // TODO remove this
+        /*
+         * MAC
+         * [ = \u005b
+         * ] = \u005d
+         */
+//        StringBuilder printer = new StringBuilder().append("Sign Text: ");
+//        for (int count = 0; count < line.length(); count++) {
+//            printer.append(Util.getUnicode(line.charAt(count)) + " ");
+//        }
+//        TrainCarts.plugin.getLogger().log(Level.INFO, printer.toString());
+
+//        TrainCarts.plugin.getLogger().log(Level.INFO, Util.getUnicode(line.charAt(0)));
+//        TrainCarts.plugin.getLogger().log(Level.INFO, Util.getUnicode(line.charAt(line.length() - 1)));
+
         boolean validStart = (line.charAt(0) == '[');
         boolean validEnd = (line.charAt(line.length() - 1) == ']');
+
         if (TrainCarts.allowParenthesesFormat) {
             validStart |= (line.charAt(0) == '(');
             validEnd |= (line.charAt(line.length() - 1) == ')');
