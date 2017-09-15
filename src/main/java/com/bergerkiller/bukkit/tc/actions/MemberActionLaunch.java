@@ -171,7 +171,6 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         if (this.distance != 0) {
             for (MinecartMember<?> mm : this.getGroup()) {
                 if (mm.getForce() < minVelocity && this.lastVelocity > (10.0 * minVelocity)) {
-                    System.out.println("STOP");
                     return true;
                 }
             }
@@ -182,13 +181,11 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         if (time > this.function.getTotalTime()) {
             // Finish with the desired end-velocity
             this.getGroup().setForwardForce(this.targetvelocity * this.getGroup().getUpdateSpeedFactor());
-            System.out.println("OUT OF TIME");
             return true;
         }
 
         // Update velocity based on the distance difference
         this.lastVelocity = (this.function.getDistance(time) - this.distance + this.distanceoffset);
-        System.out.println("VEL " + this.lastVelocity);
         this.getGroup().setForwardForce(this.lastVelocity * this.getGroup().getUpdateSpeedFactor());
 
         if (this.getGroup().isLastUpdateStep()) {
