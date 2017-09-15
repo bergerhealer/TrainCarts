@@ -79,14 +79,7 @@ public class ActionTrackerMember extends ActionTracker {
 
     public MemberActionLaunch addActionLaunch(LauncherConfig config, double targetvelocity) {
         MemberActionLaunch action = new MemberActionLaunch();
-        action.setFunction(config.getFunction());
-        if (config.hasDuration()) {
-            action.initTime(config.getDuration(), targetvelocity);
-        } else if (config.hasDistance()) {
-            action.initDistance(config.getDistance(), targetvelocity);
-        } else {
-            action.initTime(0, targetvelocity);
-        }
+        action.init(config, targetvelocity);
         return addGroupAction(action);
     }
 
@@ -104,14 +97,7 @@ public class ActionTrackerMember extends ActionTracker {
 
     public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, LauncherConfig config, double targetvelocity) {
         MemberActionLaunchDirection action = new MemberActionLaunchDirection();
-        action.setFunction(config.getFunction());
-        if (config.hasDuration()) {
-            action.initTime(config.getDuration(), targetvelocity, direction);
-        } else if (config.hasDistance()) {
-            action.initDistance(config.getDistance(), targetvelocity, direction);
-        } else {
-            action.initTime(0, targetvelocity, direction);
-        }
+        action.init(config, targetvelocity, direction);
         return addGroupAction(action);
     }
 

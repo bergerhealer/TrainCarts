@@ -8,30 +8,52 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     private static final double minVelocity = 0.001;
     private static final double minLaunchVelocity = 0.05;
 
+    private double distanceoffset;
+    private int timeoffset;
     private int targettime;
     private double targetvelocity;
     private double targetdistance;
     private double distance;
     private double lastVelocity;
+    private double lastspeedlimit;
     private LaunchFunction function;
 
     public MemberActionLaunch() {
-        this.setFunction(LauncherConfig.createDefault().getFunction());
+        this.init(LauncherConfig.createDefault(), 0.0);
     }
 
     /**
-     * Sets the type of launch function to use.
-     * This should be the first function called during initialization.
+     * Sets the launch function and launch duration or time based on Launch Config.
      * 
-     * @param function class to use
+     * @param config to apply
+     * @param targetvelocity goal final speed
      */
-    public void setFunction(Class<? extends LaunchFunction> function) {
+    public void init(LauncherConfig config, double targetvelocity) {
+        this.targetvelocity = targetvelocity;
+        this.timeoffset = 0;
+        this.distanceoffset = 0.0;
+
         try {
-            this.function = function.newInstance();
+            this.function = config.getFunction().newInstance();
         } catch (Throwable t) {
             t.printStackTrace();
             this.function = new LaunchFunction.Linear();
         }
+
+        if (config.hasDuration()) {
+            this.targetdistance = -1.0;
+            this.targettime = config.getDuration();
+        } else if (config.hasDistance()) {
+            this.targetdistance = config.getDistance();
+            this.targettime = -1;
+        } else {
+            // No time, no duration.
+            this.targetdistance = -1.0;
+            this.targettime = 0;
+        }
+
+        this.distance = 0;
+        this.lastVelocity = 0.0;
     }
 
     /**
@@ -45,26 +67,42 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     }
 
     public void initTime(int timeTicks, double targetvelocity) {
-        this.targetvelocity = targetvelocity;
-        this.targetdistance = -1.0;
-        this.targettime = timeTicks;
-        this.distance = 0;
-        this.lastVelocity = 0.0;
+        LauncherConfig newConfig = new LauncherConfig();
+        newConfig.setFunction(this.function.getClass());
+        newConfig.setDuration(timeTicks);
+        this.init(newConfig, targetvelocity);
     }
 
     public void initDistance(double targetdistance, double targetvelocity) {
-        this.targetvelocity = targetvelocity;
-        this.targetdistance = targetdistance;
-        this.distance = 0;
-        this.lastVelocity = 0.0;
-        this.targettime = -1;
+        LauncherConfig newConfig = new LauncherConfig();
+        newConfig.setFunction(this.function.getClass());
+        newConfig.setDistance(targetdistance);
+        this.init(newConfig, targetvelocity);
+    }
+
+    /**
+     * Sets the type of launch function to use.
+     * This should be the first function called during initialization.
+     * 
+     * @param function class to use
+     */
+    public void setFunction(Class<? extends LaunchFunction> function) {
+        LauncherConfig newConfig = new LauncherConfig();
+        newConfig.setFunction(function);
+        if (this.targettime > 0) {
+            newConfig.setDuration(this.targettime);
+        } else {
+            newConfig.setDistance(this.targetdistance);
+        }
+        this.init(newConfig, this.targetvelocity);
     }
 
     @Override
     public void start() {
-        this.lastVelocity = 0.0;
+        this.lastVelocity = this.getMember().getForce();
+        this.lastspeedlimit = this.getGroup().getProperties().getSpeedLimit();
         this.function.setMinimumVelocity(minVelocity);
-        this.function.setMaximumVelocity(this.getGroup().getProperties().getSpeedLimit());
+        this.function.setMaximumVelocity(this.lastspeedlimit);
         this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
         if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
             this.function.setStartVelocity(minLaunchVelocity);
@@ -112,24 +150,45 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             return true;
         }
 
+        // Did the maximum speed of the train change? If so we have to recalibrate the algorithm.
+        if (this.lastspeedlimit != this.getGroup().getProperties().getSpeedLimit()) {
+            this.lastspeedlimit = this.getGroup().getProperties().getSpeedLimit();
+            this.function.setMaximumVelocity(this.lastspeedlimit);
+            this.function.setVelocityRange(this.lastVelocity, this.targetvelocity);
+            this.timeoffset = this.elapsedTicks();
+            this.distanceoffset = this.distance;
+
+            if (this.targettime > 0) {
+                // Launch from current speed to new speed limit in the time remaining
+                this.function.setTotalTime(this.targettime - this.timeoffset);
+            } else {
+                // Launch from current speed to new speed limit for the distance remaining
+                this.function.setTotalDistance(this.targetdistance - this.distanceoffset);
+            }
+        }
+
         // Did any of the carts in the group stop?
         if (this.distance != 0) {
             for (MinecartMember<?> mm : this.getGroup()) {
                 if (mm.getForce() < minVelocity && this.lastVelocity > (10.0 * minVelocity)) {
+                    System.out.println("STOP");
                     return true;
                 }
             }
         }
 
         // Check if we completed the function
-        if (this.elapsedTicks() > this.function.getTotalTime()) {
+        int time = this.elapsedTicks() - this.timeoffset;
+        if (time > this.function.getTotalTime()) {
             // Finish with the desired end-velocity
             this.getGroup().setForwardForce(this.targetvelocity * this.getGroup().getUpdateSpeedFactor());
+            System.out.println("OUT OF TIME");
             return true;
         }
 
         // Update velocity based on the distance difference
-        this.lastVelocity = (this.function.getDistance(this.elapsedTicks()) - this.distance);
+        this.lastVelocity = (this.function.getDistance(time) - this.distance + this.distanceoffset);
+        System.out.println("VEL " + this.lastVelocity);
         this.getGroup().setForwardForce(this.lastVelocity * this.getGroup().getUpdateSpeedFactor());
 
         if (this.getGroup().isLastUpdateStep()) {

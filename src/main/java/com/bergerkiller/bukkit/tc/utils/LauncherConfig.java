@@ -41,6 +41,18 @@ public class LauncherConfig {
     }
 
     /**
+     * Sets the number of ticks launching should occur, or -1 if unused
+     * 
+     * @param duration to set to, -1 to disable
+     */
+    public void setDuration(int duration) {
+        this._duration = duration;
+        if (this._duration >= 0) {
+            this._distance = -1.0;
+        }
+    }
+    
+    /**
      * Gets the block distance the launch should reach, or negative if unused
      * 
      * @return launch block distance
@@ -68,6 +80,15 @@ public class LauncherConfig {
      */
     public Class<? extends LaunchFunction> getFunction() {
         return this._launchFunction;
+    }
+
+    /**
+     * Sets the type of launch function used
+     * 
+     * @param function to set to
+     */
+    public void setFunction(Class<? extends LaunchFunction> function) {
+        this._launchFunction = function;
     }
 
     /**

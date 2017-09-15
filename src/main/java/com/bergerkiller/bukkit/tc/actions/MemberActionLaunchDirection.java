@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
+
 public class MemberActionLaunchDirection extends MemberActionLaunch implements MovementAction {
     private BlockFace direction;
 
@@ -15,6 +17,11 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
     @Deprecated
     public MemberActionLaunchDirection(double targetdistance, double targetvelocity, final BlockFace direction) {
         this.initDistance(targetdistance, targetvelocity, direction);
+    }
+
+    public void init(LauncherConfig config, double targetvelocity, BlockFace direction) {
+        this.init(config, targetvelocity);
+        this.direction = direction;
     }
 
     public void initTime(int timeTicks, double targetvelocity, BlockFace direction) {
