@@ -48,7 +48,10 @@ public class ArrivalSigns {
             } else {
                 Variables.get(name + 'D').set("Unknown");
             }
-            Variables.get(name + 'V').set(Double.toString(MathUtil.round(mm.getForce() / mm.getGroup().getUpdateSpeedFactor(), 2)));
+
+            double speed = MathUtil.round(mm.getForce() / mm.getGroup().getUpdateSpeedFactor(), 2);
+            speed = Math.min(speed, mm.getGroup().getProperties().getSpeedLimit());
+            Variables.get(name + 'V').set(Double.toString(speed));
         }
         TimeSign t = getTimer(name);
         t.duration = ParseUtil.parseTime(duration);
