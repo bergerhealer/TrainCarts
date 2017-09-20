@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -1052,7 +1053,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
             MinecartGroup group = this.getHolder();
             if (group != null) {
-                SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
+                if (this.blockTypes.isEmpty()) {
+                    SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
+                } else {
+                    SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
+                }
             }
         }
     }
