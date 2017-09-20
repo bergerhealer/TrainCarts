@@ -218,7 +218,7 @@ public class CartCommands {
             } else {
                 List<MinecartMember<?>> members = new ArrayList<>(1);
                 members.add(member);
-                SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args));
+                SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args), SignActionBlockChanger.BLOCK_OFFSET_NONE);
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block updated!");
             }
         } else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {

@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
@@ -63,6 +64,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private boolean soundEnabled = true;
     private List<String> tickets = new ArrayList<String>();
     private SignSkipOptions skipOptions = new SignSkipOptions();
+    private String blockTypes = "";
+    private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -1039,6 +1042,19 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 }
             }
         }
+
+        // These properties are purely saved so they are written correctly when saving defaults
+        // There are not meant to be read anywhere, because these exist as part of minecart metadata
+        this.blockTypes = node.get("blockTypes", "");
+        this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
+
+        // Apply block types / block height to the actual minecart, if set
+        if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
+            MinecartGroup group = this.getHolder();
+            if (group != null) {
+                SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
+            }
+        }
     }
 
     /**
@@ -1066,6 +1082,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.allowManualMovement = source.allowManualMovement;
         this.tickets = new ArrayList<String>(source.tickets);
         this.setSkipOptions(source.skipOptions);
+        this.blockTypes = source.blockTypes;
+        this.blockOffset = source.blockOffset;
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -1099,6 +1117,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collision.players", this.playerCollision);
         node.set("collision.misc", this.miscCollision);
         node.set("collision.train", this.trainCollision);
+        node.set("blockTypes", (this.blockTypes == null) ? "" : this.blockTypes);
+        node.set("blockOffset", (this.blockOffset == SignActionBlockChanger.BLOCK_OFFSET_NONE) ? "unset" : this.blockOffset);
         for (CartProperties prop : this) {
             prop.saveAsDefault(node);
             break;

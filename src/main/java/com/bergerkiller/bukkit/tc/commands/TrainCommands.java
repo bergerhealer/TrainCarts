@@ -439,7 +439,7 @@ public class TrainCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks cleared!");
             } else {
-                SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args));
+                SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args), SignActionBlockChanger.BLOCK_OFFSET_NONE);
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
             }
         } else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {

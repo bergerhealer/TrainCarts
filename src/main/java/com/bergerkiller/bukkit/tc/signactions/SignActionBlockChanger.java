@@ -18,36 +18,42 @@ import java.util.List;
 import org.bukkit.Material;
 
 public class SignActionBlockChanger extends SignAction {
-    private static final int BLOCK_OFFSET_NONE = Integer.MAX_VALUE;
+    public static final int BLOCK_OFFSET_NONE = Integer.MAX_VALUE;
 
-    public static void setBlocks(Collection<MinecartMember<?>> members, String blocksText) {
-        setBlocks(members, Util.getParsers(blocksText), BLOCK_OFFSET_NONE);
+    public static void setBlocks(Collection<MinecartMember<?>> members, String blocksText, int blockOffset) {
+        setBlocks(members, Util.getParsers(blocksText), blockOffset);
     }
 
     public static void setBlocks(Collection<MinecartMember<?>> members, ItemParser[] blocks, int blockOffset) {
         Iterator<MinecartMember<?>> iter = members.iterator();
-        while (true) {
-            for (ItemParser block : blocks) {
-                final int amount = block.hasAmount() ? block.getAmount() : 1;
-                for (int i = 0; i < amount; i++) {
-                    if (!iter.hasNext()) {
-                        return;
-                    }
-                    CommonMinecart<?> entity = iter.next().getEntity();
-                    if (!block.hasType() && !block.hasData()) {
-                        continue;
-                    }
-                    Material type = block.hasType() ? block.getType() : entity.getBlockType();
-                    if (block.hasData()) {
-                        entity.setBlock(type, block.getData());
-                    } else {
-                        entity.setBlock(type);
-                    }
+        if (blocks != null && blocks.length > 0) {
+            while (true) {
+                for (ItemParser block : blocks) {
+                    final int amount = block.hasAmount() ? block.getAmount() : 1;
+                    for (int i = 0; i < amount; i++) {
+                        if (!iter.hasNext()) {
+                            return;
+                        }
+                        CommonMinecart<?> entity = iter.next().getEntity();
+                        if (!block.hasType() && !block.hasData()) {
+                            continue;
+                        }
+                        Material type = block.hasType() ? block.getType() : entity.getBlockType();
+                        if (block.hasData()) {
+                            entity.setBlock(type, block.getData());
+                        } else {
+                            entity.setBlock(type);
+                        }
 
-                    if (blockOffset != BLOCK_OFFSET_NONE) {
-                        entity.setBlockOffset(blockOffset);
+                        if (blockOffset != BLOCK_OFFSET_NONE) {
+                            entity.setBlockOffset(blockOffset);
+                        }
                     }
                 }
+            }
+        } else if (blockOffset != BLOCK_OFFSET_NONE) {
+            for (MinecartMember<?> member : members) {
+                member.getEntity().setBlockOffset(blockOffset);
             }
         }
     }
