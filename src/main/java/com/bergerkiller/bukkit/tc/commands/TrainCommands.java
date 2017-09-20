@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -532,8 +533,16 @@ public class TrainCommands {
 
         if (prop.getHolder() != null) {
             message.newLine().yellow("Current speed: ");
-            message.white(String.format("%.3f", prop.getHolder().getAverageForce()));
+
+            double speedUnclipped = prop.getHolder().getAverageForce();
+            double speedClipped = Math.min(speedUnclipped, prop.getSpeedLimit());
+            double speedMomentum = (speedUnclipped - speedClipped);
+
+            message.white(MathUtil.round(speedClipped, 3));
             message.white(" blocks/tick");
+            if (speedMomentum > 0.0) {
+                message.white(" (+" + MathUtil.round(speedMomentum, 3) + " energy)");
+            }
         }
 
         message.newLine().yellow("Maximum speed: ").white(prop.getSpeedLimit(), " blocks/tick");
