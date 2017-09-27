@@ -136,21 +136,21 @@ public class Util {
 
     public static void addSignsFromRails(List<Block> rval, Block railsBlock, BlockFace signDirection) {
         final boolean hasSignPost = FaceUtil.isVertical(signDirection);
-
-        // Ignore mid-sections
-        Block currentBlock = railsBlock.getRelative(signDirection);
-        addAttachedSigns(currentBlock, rval);
-        currentBlock = currentBlock.getRelative(signDirection);
-        // Keep going into the sign direction
+        Block currentBlock = railsBlock;
+        int offsetCtr = 0;
         while (true) {
             if (hasSignPost && MaterialUtil.isType(currentBlock, Material.SIGN_POST)) {
                 // Found a sign post - add it and continue
                 rval.add(currentBlock);
-            } else if (!addAttachedSigns(currentBlock, rval)) {
-                // No wall signs found either - end it here
+            } else if (addAttachedSigns(currentBlock, rval)) {
+                // Found one or more signs attached to the current block - continue
+            } else if (offsetCtr > 1) {
+                // No signs found here. If this is too far down, stop.
                 break;
             }
+
             currentBlock = currentBlock.getRelative(signDirection);
+            offsetCtr++;
         }
     }
 
