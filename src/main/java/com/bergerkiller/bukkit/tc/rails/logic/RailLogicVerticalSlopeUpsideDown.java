@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
+import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -7,23 +10,20 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
-import org.bukkit.block.BlockFace;
-import org.bukkit.util.Vector;
-
 /**
- * Handles the rail logic of a sloped rail with a vertical rail above it.
+ * Handles rail logic from a vertical rail to an upside-down slope
  */
-public class RailLogicVerticalSlopeDown extends RailLogicSloped {
-    private static final RailLogicVerticalSlopeDown[] values = new RailLogicVerticalSlopeDown[4];
+public class RailLogicVerticalSlopeUpsideDown extends RailLogicSloped {
+    private static final RailLogicVerticalSlopeUpsideDown[] values = new RailLogicVerticalSlopeUpsideDown[4];
 
     static {
         for (int i = 0; i < 4; i++) {
-            values[i] = new RailLogicVerticalSlopeDown(FaceUtil.notchToFace(i << 1));
+            values[i] = new RailLogicVerticalSlopeUpsideDown(FaceUtil.notchToFace(i << 1));
         }
     }
 
-    private RailLogicVerticalSlopeDown(BlockFace direction) {
-        super(direction);
+    private RailLogicVerticalSlopeUpsideDown(BlockFace direction) {
+        super(direction, true);
     }
 
     /**
@@ -32,7 +32,7 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
      * @param direction of the sloped rail
      * @return Rail Logic
      */
-    public static RailLogicVerticalSlopeDown get(BlockFace direction) {
+    public static RailLogicVerticalSlopeUpsideDown get(BlockFace direction) {
         return values[FaceUtil.faceToNotch(direction) >> 1];
     }
 
@@ -44,7 +44,7 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
     @Override
     public double getForwardVelocity(MinecartMember<?> member) {
         if (isVerticalHalf(member)) {
-            return member.getEntity().vel.getY() * getVertFactor(member);
+            return member.getEntity().vel.getY() * getVertFactor(member);            
         } else {
             return super.getForwardVelocity(member);
         }
@@ -86,11 +86,11 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
             // Restrain vertical movement to within fixed x/z
             entity.loc.set(getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), railPos));
         } else {
-            // We may have moved vertically downwards before
+            // We may have moved vertically before
             // Correct the x/z position of the minecart so it follows slope logic
-            if (entity.vel.getY() < 0.0) {
-                entity.loc.setX(railPos.midX() + (slope_move_y * this.getDirection().getModX()));
-                entity.loc.setZ(railPos.midZ() + (slope_move_y * this.getDirection().getModZ()));
+            if (entity.vel.getY() > 0.0) {
+                entity.loc.setX(railPos.midX() - (slope_move_y * this.getDirection().getModX()));
+                entity.loc.setZ(railPos.midZ() - (slope_move_y * this.getDirection().getModZ()));
             }
 
             // Slope part
@@ -134,7 +134,10 @@ public class RailLogicVerticalSlopeDown extends RailLogicSloped {
     }
 
     private static final double getSlopeRatio(double y, IntVector3 blockPos) {
-        return y - (blockPos.midY() + Y_POS_OFFSET);
+        double d = ((double) blockPos.y - y - 0.6);
+        
+        //System.out.println("POS " + d);
+        return d;
     }
 
     private final double getVertFactor(MinecartMember<?> member) {

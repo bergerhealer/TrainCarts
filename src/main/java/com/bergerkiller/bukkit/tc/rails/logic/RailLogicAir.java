@@ -18,6 +18,33 @@ public class RailLogicAir extends RailLogic {
     }
 
     @Override
+    public void onRotationUpdate(MinecartMember<?> member) {
+        //Update yaw and pitch based on motion
+        CommonMinecart<?> entity = member.getEntity();
+        final double movedX = entity.getMovedX();
+        final double movedY = entity.getMovedY();
+        final double movedZ = entity.getMovedZ();
+        final boolean movedXZ = Math.abs(movedX) > 0.001 || Math.abs(movedZ) > 0.001;
+        final float oldyaw = entity.loc.getYaw();
+        float newyaw = oldyaw;
+        float newpitch = entity.loc.getPitch();
+        boolean orientPitch = false;
+
+        // Update yaw
+        if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
+            newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
+        }
+        // Update pitch
+        if (movedXZ && Math.abs(movedY) > 0.001) {
+            // Use movement for pitch (but only when moving horizontally)
+            newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+            orientPitch = true;
+        }
+
+        member.setRotationWrap(newyaw, newpitch, orientPitch);
+    }
+
+    @Override
     public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
         return endDirection;
     }

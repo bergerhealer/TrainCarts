@@ -367,6 +367,18 @@ public class Util {
     }
 
     /**
+     * Checks if a given rails block has a vertical rail below facing the direction specified
+     *
+     * @param rails     to check
+     * @param direction of the vertical rail
+     * @return True if a vertical rail is below, False if not
+     */
+    public static boolean isVerticalBelow(Block rails, BlockFace direction) {
+        Block below = rails.getRelative(BlockFace.DOWN);
+        return Util.ISVERTRAIL.get(below) && getVerticalRailDirection(below) == direction;
+    }
+
+    /**
      * Gets the direction a vertical rail pushes the minecart (the wall side)
      *
      * @param railsBlock of the vertical rail
@@ -560,21 +572,28 @@ public class Util {
         return false;
     }
 
+    public static boolean isSignSupported(Block block) {
+        Block attached = BlockUtil.getAttachedBlock(block);
+        // Only check the 'isBuildable' state of the Material
+        Object attachedHandle = Conversion.toBlockHandle.convert(attached);
+        if (attachedHandle == null) {
+            return false;
+        }
+        Object material = NMSBlock.material.get(attachedHandle);
+        if (material == null) {
+            return false;
+        }
+        return NMSMaterial.materialBuildable.invoke(material);
+    }
+
     public static boolean isSupported(Block block) {
+        if (MaterialUtil.ISSIGN.get(block)) {
+            return isSignSupported(block);
+        }
+
         BlockFace attachedFace = BlockUtil.getAttachedFace(block);
         Block attached = block.getRelative(attachedFace);
-        if (MaterialUtil.ISSIGN.get(block)) {
-            // Only check the 'isBuildable' state of the Material
-            Object attachedHandle = Conversion.toBlockHandle.convert(attached);
-            if (attachedHandle == null) {
-                return false;
-            }
-            Object material = NMSBlock.material.get(attachedHandle);
-            if (material == null) {
-                return false;
-            }
-            return NMSMaterial.materialBuildable.invoke(material);
-        }
+
         // For all other cases, check whether the side is properly supported
         return isSupportedFace(attached, attachedFace.getOppositeFace());
     }

@@ -7,7 +7,9 @@ import org.bukkit.block.BlockFace;
 
 /**
  * Handles the rail logic for a vertical rail to sloped rail<br>
- * This is a stub: This should eventually replace the teleport logic in the Minecart members' move info
+ * This is a stub: This should eventually replace the teleport logic in the Minecart members' move info.
+ * 
+ * UNUSED
  */
 public class RailLogicVerticalSlopeUp extends RailLogicHorizontal {
     private static final RailLogicVerticalSlopeUp[] values = new RailLogicVerticalSlopeUp[4];

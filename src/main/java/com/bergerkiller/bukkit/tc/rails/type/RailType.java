@@ -9,11 +9,13 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
@@ -170,6 +172,19 @@ public abstract class RailType {
     }
 
     /**
+     * Gets whether blocks surrounding the rails block indicate the rails is used upside-down.
+     * It is only upside-down when the block 'below' the rails is air, and a solid block exists above.
+     * This strict rule avoids regular tracks turning into upside-down tracks.
+     * Rail types that don't support upside-down Minecarts should always return false here.
+     * 
+     * @param railsBlock
+     * @return True if the rails are upside-down
+     */
+    public boolean isUpsideDown(Block railsBlock) {
+        return false;
+    }
+
+    /**
      * Tries to find this Rail Type near the Minecart at the Block position specified.
      *
      * @param member to find the rail for
@@ -247,6 +262,33 @@ public abstract class RailType {
     public abstract RailLogic getLogic(MinecartMember<?> member, Block railsBlock);
 
     /**
+     * Called one tick after a block of this Rail Type was placed down in the world
+     * 
+     * @param railsBlock that was placed
+     */
+    public void onBlockPlaced(Block railsBlock) {
+    }
+
+    /**
+     * Called when block physics are being performed for a Block matching this Rail Type.
+     * 
+     * @param event block physics event
+     */
+    public void onBlockPhysics(BlockPhysicsEvent event) {
+    }
+
+    /**
+     * Gets whether this Rails Type is supported by a block it is attached to.
+     * If this returns False, the rails block is automatically broken and an item is dropped.
+     * 
+     * @param railsBlock to check
+     * @return True if the rails block is supported
+     */
+    public boolean isRailsSupported(Block railsBlock) {
+        return true;
+    }
+
+    /**
      * Called right before a Minecart is moved from one point to the other.
      * This is called after the pre-movement updates performed by rail logic.
      *
@@ -311,9 +353,19 @@ public abstract class RailType {
      */
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         Location at = this.findMinecartPos(railsBlock).getLocation();
-        at.add(0.5, 0.063, 0.5);
-        at.setYaw(FaceUtil.faceToYaw(this.getDirection(railsBlock)));
-        at.setPitch(0.0F);
+        if (this.isUpsideDown(railsBlock)) {
+            at.add(0.5, RailLogicHorizontal.Y_POS_OFFSET_UPSIDEDOWN, 0.5);
+            at.setPitch(-180.0F);
+        } else {
+            at.add(0.5, RailLogicHorizontal.Y_POS_OFFSET, 0.5);
+            at.setPitch(0.0F);
+        }
+        BlockFace dir = this.getDirection(railsBlock);
+        if (FaceUtil.isSubCardinal(dir)) {
+            at.setYaw(FaceUtil.faceToYaw(dir) - 90.0f);
+        } else {
+            at.setYaw(FaceUtil.faceToYaw(dir));
+        }
         return at;
     }
 

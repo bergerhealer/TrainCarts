@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.block.Block;
@@ -17,17 +18,23 @@ import org.bukkit.util.Vector;
  */
 public class RailLogicSloped extends RailLogicHorizontal {
     private static final RailLogicSloped[] values = new RailLogicSloped[4];
+    private static final RailLogicSloped[] values_upsideDown = new RailLogicSloped[4];
 
     static {
         for (int i = 0; i < 4; i++) {
-            values[i] = new RailLogicSloped(FaceUtil.notchToFace(i << 1));
+            values[i] = new RailLogicSloped(FaceUtil.notchToFace(i << 1), false);
+            values_upsideDown[i] = new RailLogicSloped(FaceUtil.notchToFace(i << 1), true);
         }
     }
 
     private final double step;
 
     protected RailLogicSloped(BlockFace direction) {
-        super(direction);
+        this(direction, false);
+    }
+
+    protected RailLogicSloped(BlockFace direction, boolean upsideDown) {
+        super(direction, upsideDown);
         if (direction == BlockFace.SOUTH || direction == BlockFace.EAST) {
             this.step = 1.0;
         } else {
@@ -43,6 +50,35 @@ public class RailLogicSloped extends RailLogicHorizontal {
      */
     public static RailLogicSloped get(BlockFace direction) {
         return values[FaceUtil.faceToNotch(direction) >> 1];
+    }
+
+    /**
+     * Gets the sloped rail logic for the the sloped track leading up on the direction specified
+     *
+     * @param direction    of the sloped rail
+     * @param upsideDown   upside-down or not
+     * @return Rail Logic
+     */
+    public static RailLogicSloped get(BlockFace direction, boolean upsideDown) {
+        if (upsideDown) {
+            return values_upsideDown[FaceUtil.faceToNotch(direction) >> 1];
+        } else {
+            return values[FaceUtil.faceToNotch(direction) >> 1];
+        }
+    }
+
+    @Override
+    public void onRotationUpdate(MinecartMember<?> member) {
+        //Update yaw and pitch based on motion
+        CommonMinecart<?> entity = member.getEntity();
+        final float oldyaw = entity.loc.getYaw();
+        float newyaw = oldyaw;
+        float newpitch = entity.loc.getPitch();
+
+        // Update yaw
+        newyaw = FaceUtil.faceToYaw(this.getDirection());
+        newpitch = this.isUpsideDown() ? 135.0f : -45.0f;
+        member.setRotationWrap(newyaw, newpitch, true);
     }
 
     @Override
@@ -88,6 +124,11 @@ public class RailLogicSloped extends RailLogicHorizontal {
         if (dy < 0.0) dy = 0.0;
 
         pos.setY(pos.getY() + dy);
+
+        if (this.isUpsideDown()) {
+            pos.setY(pos.getY() - 0.35);
+        }
+
         return pos;
     }
 
@@ -100,6 +141,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
         if (group.getProperties().isSlowingDown(SlowdownMode.GRAVITY) && !member.isMovementControlled()) {
             entity.vel.xz.subtract(this.getDirection(), MinecartMember.SLOPE_VELOCITY_MULTIPLIER);
         }
+
         entity.vel.xz.add(this.getDirection(), entity.vel.getY());
         entity.vel.y.setZero();
 
@@ -109,7 +151,10 @@ public class RailLogicSloped extends RailLogicHorizontal {
         Block heading = inside.getRelative(this.getDirection().getOppositeFace());
         if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
             if (MaterialUtil.SUFFOCATES.get(heading)) {
-                blockedDistance = entity.loc.xz.distance(heading) - 1.0;
+                // Upside-down rails: check no vertical rail down the slope
+                if (!(this.isUpsideDown() && RailType.VERTICAL.isRail(inside.getRelative(BlockFace.DOWN)))) {
+                    blockedDistance = entity.loc.xz.distance(heading) - 1.0;
+                }
             }
         } else if (member.isHeadingTo(this.getDirection())) {
             Block above = inside.getRelative(BlockFace.UP);

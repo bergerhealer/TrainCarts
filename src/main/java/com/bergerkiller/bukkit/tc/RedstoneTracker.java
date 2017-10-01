@@ -45,7 +45,7 @@ public class RedstoneTracker implements Listener {
             for (final Block block : this.pending) {
                 final Material type = block.getType();
                 if (MaterialUtil.ISSIGN.get(type)) {
-                    if (Util.isSupported(block)) {
+                    if (Util.isSignSupported(block)) {
                         // Check for potential redstone changes
                         updateRedstonePower(block);
                     } else {

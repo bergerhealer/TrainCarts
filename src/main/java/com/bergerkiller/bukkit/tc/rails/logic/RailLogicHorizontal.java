@@ -15,22 +15,32 @@ import org.bukkit.util.Vector;
  */
 public class RailLogicHorizontal extends RailLogic {
     private static final RailLogicHorizontal[] values = new RailLogicHorizontal[8];
+    private static final RailLogicHorizontal[] values_upsidedown = new RailLogicHorizontal[8];
 
     static {
         for (int i = 0; i < 8; i++) {
-            values[i] = new RailLogicHorizontal(FaceUtil.notchToFace(i));
+            values[i] = new RailLogicHorizontal(FaceUtil.notchToFace(i), false);
+            values_upsidedown[i] = new RailLogicHorizontal(FaceUtil.notchToFace(i), true);
         }
     }
 
+    private final boolean upside_down;
     private final double dx, dz;
     private final double startX, startZ;
     private final BlockFace[] cartFaces;
     private final BlockFace[] faces;
     private final BlockFace[] ends;
-    protected static final double Y_POS_OFFSET = 0.0625;
+    public static final double Y_POS_OFFSET = 0.0625;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN = 0.20;
 
     protected RailLogicHorizontal(BlockFace direction) {
+        this(direction, false);
+    }
+
+    protected RailLogicHorizontal(BlockFace direction, boolean upsideDown) {
         super(direction);
+        // Train drives on this horizontal rails upside-down
+        this.upside_down = upsideDown;
         // Motion faces for the rails cart direction
         this.cartFaces = FaceUtil.getFaces(this.getCartDirection());
         // The ends of the rail, where the rail can be connected to other rails
@@ -70,6 +80,48 @@ public class RailLogicHorizontal extends RailLogic {
         return values[FaceUtil.faceToNotch(direction)];
     }
 
+    /**
+     * Gets the horizontal rail logic to go into the direction specified
+     *
+     * @param direction to go to
+     * @param upsideDown whether the Minecart drives on the rail upside-down
+     * @return Horizontal rail logic for that direction
+     */
+    public static RailLogicHorizontal get(BlockFace direction, boolean upsideDown) {
+        if (upsideDown) {
+            return values_upsidedown[FaceUtil.faceToNotch(direction)];
+        } else {
+            return values[FaceUtil.faceToNotch(direction)];
+        }
+    }
+
+    @Override
+    public void onRotationUpdate(MinecartMember<?> member) {
+        //Update yaw and pitch based on motion
+        CommonMinecart<?> entity = member.getEntity();
+        final float oldyaw = entity.loc.getYaw();
+        float newyaw = oldyaw;
+        float newpitch = entity.loc.getPitch();
+
+        // Update yaw
+        if (this.curved) {
+            newyaw = FaceUtil.faceToYaw(this.getDirection()) - 90.0f;
+        } else {
+            newyaw = FaceUtil.faceToYaw(this.getDirection());
+        }
+        newpitch = this.isUpsideDown() ? -180.0f : 0.0f;
+        member.setRotationWrap(newyaw, newpitch, true);
+    }
+
+    /**
+     * Gets whether this Rail Logic drives the train horizontally upside-down
+     * 
+     * @return True if upside-down
+     */
+    public boolean isUpsideDown() {
+        return upside_down;
+    }
+
     @Override
     public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
         double newLocX = railPos.midX() + this.startX;
@@ -92,8 +144,15 @@ public class RailLogicHorizontal extends RailLogic {
             newLocZ += factor * this.dz;
         }
 
+        double newLocY;
+        if (isUpsideDown()) {
+            newLocY = (double) railPos.y - 1.0 + Y_POS_OFFSET_UPSIDEDOWN;
+        } else {
+            newLocY = (double) railPos.y + Y_POS_OFFSET;
+        }
+
         // Calculate the Y-position
-        return new Vector(newLocX, (double) railPos.y + Y_POS_OFFSET, newLocZ);
+        return new Vector(newLocX, newLocY, newLocZ);
     }
 
     @Override

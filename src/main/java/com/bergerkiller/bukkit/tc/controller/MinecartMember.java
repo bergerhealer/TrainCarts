@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeDown;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.rails.type.RailTypeActivator;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -1139,7 +1138,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         getRailType().onPostMove(this);
 
         // Update rotation
-        this.onRotationUpdate();
+        getRailLogic().onRotationUpdate(this);
 
         // Invalidate volatile information
         getRailTracker().setLiveRailLogic();
@@ -1199,68 +1198,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Performs rotation updates for yaw and pitch
+     * Sets the rotation of the Minecart, taking care of wrap-around of the angles
+     * 
+     * @param newyaw to set to
+     * @param newpitch to set to
+     * @param orientPitch
      */
-    public void onRotationUpdate() {
-        //Update yaw and pitch based on motion
-        final double movedX = entity.getMovedX();
-        final double movedY = entity.getMovedY();
-        final double movedZ = entity.getMovedZ();
-        final boolean movedXZ = Math.abs(movedX) > 0.001 || Math.abs(movedZ) > 0.001;
+    public void setRotationWrap(float newyaw, float newpitch, boolean orientPitch) {
         final float oldyaw = entity.loc.getYaw();
-        float newyaw = oldyaw;
-        float newpitch = entity.loc.getPitch();
-        boolean orientPitch = false;
-        if (isDerailed()) {
-            // Update yaw
-            if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
-                newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
-            }
-            // Update pitch
-            if (entity.isOnGround()) {
-                // Reduce pitch over time
-                if (Math.abs(newpitch) > 0.1) {
-                    newpitch *= 0.1;
-                } else {
-                    newpitch = 0;
-                }
-                orientPitch = true;
-            } else if (movedXZ && Math.abs(movedY) > 0.001) {
-                // Use movement for pitch (but only when moving horizontally)
-                newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
-                orientPitch = true;
-            }
-        } else {
-            // Update yaw
-            BlockFace dir = this.getDirection();
-            if (FaceUtil.isVertical(dir)) {
-                newyaw = FaceUtil.faceToYaw(this.getRailDirection());
-            } else {
-                newyaw = FaceUtil.faceToYaw(this.getDirection());
-            }
-            // Update pitch
-            if (getRailLogic() instanceof RailLogicVertical) {
-                newpitch = TrainCarts.allowVerticalPitch ? -90.0f : 0.0f;
-                orientPitch = true;
-            } else if (getRailLogic() instanceof RailLogicVerticalSlopeDown) {
-                newpitch = -45.0f;
-                orientPitch = true;
-            } else if (getRailLogic().isSloped()) {
-                if (movedXZ && Math.abs(movedY) > 0.001) {
-                    // Use movement for pitch (but only when moving horizontally)
-                    newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
-                    orientPitch = true;
-                }
-                // This was the old method, where pitch is inverted to make players look up/down properly
-                /*
-				newpitch = 0.8f * MathUtil.getLookAtPitch(movedX, movedY, movedZ);
-				orientPitch = false;
-				*/
-            } else {
-                newpitch = 0.0f;
-                orientPitch = true;
-            }
-        }
 
         // Fix yaw based on the previous yaw angle
         if (MathUtil.getAngleDifference(oldyaw, newyaw) > 90.0f) {
@@ -1285,7 +1230,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         entity.setRotation(newyaw, newpitch);
     }
-
+    
     @Override
     public String getLocalizedName() {
         return isSingle() ? "Minecart" : "Train";

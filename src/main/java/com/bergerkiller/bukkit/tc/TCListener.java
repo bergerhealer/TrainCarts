@@ -21,7 +21,6 @@ import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
@@ -31,6 +30,7 @@ import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
 import com.bergerkiller.reflection.net.minecraft.server.NMSEntityMinecart;
 import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -369,6 +369,8 @@ public class TCListener implements Listener {
             return;
         }
 
+        ItemStack heldItem = HumanHand.getItemInMainHand(event.getPlayer());
+
         // Map control: select the clicked block
         if (TCMapControl.isTCMapItem(event.getItem())) {
             if (event.getClickedBlock() != null) {
@@ -456,9 +458,11 @@ public class TCListener implements Listener {
             long clickInterval = time - lastHitTime;
             lastHitTimes.put(event.getPlayer(), time);
 
+            // Handle upside-down rail placement
+            handleRailPlacement(event, heldItem);
+
             // Execute the click
-            ItemStack item = event.getPlayer().getItemInHand();
-            if (!onRightClick(clickedBlock, event.getPlayer(), item, clickInterval)) {
+            if (!event.isCancelled() && !onRightClick(clickedBlock, event.getPlayer(), heldItem, clickInterval)) {
                 event.setUseItemInHand(Result.DENY);
                 event.setUseInteractedBlock(Result.DENY);
                 event.setCancelled(true);
@@ -466,6 +470,76 @@ public class TCListener implements Listener {
         } catch (Throwable t) {
             TrainCarts.plugin.handle(t);
         }
+    }
+
+    /**
+     * Handles placement of special types of rails that can not be built normally.
+     * TODO: make this less hacked in
+     * 
+     * @param event
+     * @param heldItem
+     */
+    private void handleRailPlacement(PlayerInteractEvent event, ItemStack heldItem) {
+        if (event.getClickedBlock() == null || heldItem == null) {
+            return;
+        }
+
+        Block placedBlock = event.getClickedBlock().getRelative(event.getBlockFace());
+        if (placedBlock.getType() != Material.AIR) {
+            return;
+        }
+
+        Material railType = heldItem.getType();
+
+        // Upside-down rails
+        if (MaterialUtil.ISRAILS.get(railType)) {
+
+            // If the block below is air or rail, and above is a solid
+            Block below = placedBlock.getRelative(BlockFace.DOWN);
+            Block above = placedBlock.getRelative(BlockFace.UP);
+            if ((below.getType() == Material.AIR || Util.ISVERTRAIL.get(below)) && MaterialUtil.SUFFOCATES.get(above)) {
+
+                // Custom placement of an upside-down normal rail
+                BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, placedBlock.getState(),
+                        event.getClickedBlock(), event.getItem(), event.getPlayer(), true);
+
+                // Build a standard south-facing straight track
+                // The onBlockPlace event trigger will shape up this track the next tick
+                BlockData railData = BlockData.fromMaterial(railType);
+                WorldUtil.setBlockDataFast(placedBlock, railData);
+
+                CommonUtil.callEvent(placeEvent);
+                if (placeEvent.isCancelled() || !placeEvent.canBuild()) {
+                    WorldUtil.setBlockDataFast(placedBlock, BlockData.AIR);
+                } else {
+                    BlockUtil.applyPhysics(placedBlock, railType);
+
+                    // If not survival, subtract one item from player's inventory
+                    //TODO: Isn't this the 'instant build' property or something?
+                    if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
+                        ItemStack oldItem = placeEvent.getItemInHand();
+                        if (oldItem == null || oldItem.getAmount() <= 1) {
+                            oldItem = null;
+                        } else {
+                            oldItem = oldItem.clone();
+                            oldItem.setAmount(oldItem.getAmount() - 1);
+                        }
+                        HumanHand.setItemInMainHand(event.getPlayer(), oldItem);
+                    }
+
+                    // Play sound of the material 'placed'
+                    event.getClickedBlock().getWorld().playSound(event.getClickedBlock().getLocation(),
+                            railData.getStepSound(), 1.0f, 1.0f);
+
+                    // Cancel the original interaction event
+                    event.setUseItemInHand(Result.DENY);
+                    event.setUseInteractedBlock(Result.DENY);
+                    event.setCancelled(true);
+                }
+            }
+            
+        }
+        
     }
 
     /**
@@ -570,9 +644,9 @@ public class TCListener implements Listener {
         //TODO: Check if this rail type is a 'normal' type to see if we need to handle spawning minecarts ourselves
         //if (clickedRailType ==
 
-        if (clickedRailType instanceof RailTypeRegular) {
-            return true;
-        }
+        //if (clickedRailType instanceof RailTypeRegular) {
+        ////    return true;
+        //}
 
         MinecartMemberStore.spawnBy(at, player);
         return false;
@@ -622,69 +696,53 @@ public class TCListener implements Listener {
         }
     }
 
+    /*
+     * Fires the onBlockPlaced handler for Rail Types
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockPlace(final BlockPlaceEvent event) {
-        if (MaterialUtil.ISRAILS.get(event.getBlockPlaced())) {
+    public void onBlockPlace(BlockPlaceEvent event) {
+        RailType railType = RailType.getType(event.getBlockPlaced());
+        if (railType != RailType.NONE) {
+            final Block placed = event.getBlockPlaced();
             CommonUtil.nextTick(new Runnable() {
                 public void run() {
-                    updateRails(event.getBlockPlaced());
+                    RailType railType = RailType.getType(placed);
+                    if (railType != RailType.NONE) {
+                        railType.onBlockPlaced(placed);
+                    }
                 }
             });
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    /*
+     * Fires the onBlockPhysics handler for Rail Types
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
-        final Block block = event.getBlock();
-        final Material type = block.getType();
-        if (Util.ISTCRAIL.get(type)) {
-            if (!Util.isSupported(block)) {
-                // No valid supporting block - clear the active signs of this rails
-                onRailsBreak(block);
-            } else if (updateRails(block)) {
-                // Handle regular physics
-                event.setCancelled(true);
+        RailType railType = RailType.getType(event.getBlock());
+        if (railType != RailType.NONE) {
+            // First check that the rails are supported as they are
+            // If not, it will be destroyed either by onBlockPhysics or Vanilla physics
+            if (!railType.isRailsSupported(event.getBlock())) {
+                onRailsBreak(event.getBlock());
             }
-        } else if (MaterialUtil.ISSIGN.get(type)) {
-            if (!Util.isSupported(block)) {
-                // Sign is no longer supported - clear all sign actions
-                SignAction.handleDestroy(new SignActionEvent(block));
-            }
+
+            // Let the rail type handle any custom physics
+            railType.onBlockPhysics(event);
         }
     }
 
-    public boolean updateRails(final Block below) {
-        if (!MaterialUtil.ISRAILS.get(below)) {
-            return false;
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPhysicsMonitor(BlockPhysicsEvent event) {
+        // Handle signs being broken because their supporting block got destroyed
+        Block block = event.getBlock();
+        if (MaterialUtil.ISSIGN.get(block)) {
+            if (!Util.isSignSupported(event.getBlock())) {
+                // Sign is no longer supported - clear all sign actions
+                SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
+            }
         }
-        // Obtain the vertical rail and the rail below it, if possible
-        final Block vertRail = below.getRelative(BlockFace.UP);
-        if (Util.ISVERTRAIL.get(vertRail)) {
-            // Find and validate rails - only regular types are allowed
-            Rails rails = BlockUtil.getRails(below);
-            if (rails == null || rails.isCurve() || rails.isOnSlope()) {
-                return false;
-            }
-            BlockFace railDir = rails.getDirection();
-            BlockFace dir = Util.getVerticalRailDirection(vertRail);
-            // No other directions going on for this rail?
-            if (railDir != dir && railDir != dir.getOppositeFace()) {
-                if (Util.getRailsBlock(below.getRelative(railDir)) != null) {
-                    return false;
-                }
-                if (Util.getRailsBlock(below.getRelative(railDir.getOppositeFace())) != null) {
-                    return false;
-                }
-            }
-
-            // Direction we are about to connect is supported?
-            if (MaterialUtil.SUFFOCATES.get(below.getRelative(dir))) {
-                rails.setDirection(dir, true);
-                BlockUtil.setData(below, rails);
-            }
-            return true;
-        }
-        return false;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

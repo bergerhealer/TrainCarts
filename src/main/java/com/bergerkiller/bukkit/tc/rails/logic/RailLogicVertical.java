@@ -34,8 +34,27 @@ public class RailLogicVertical extends RailLogic {
     }
 
     @Override
+    public void onRotationUpdate(MinecartMember<?> member) {
+        //Update yaw and pitch based on motion
+        CommonMinecart<?> entity = member.getEntity();
+        final float oldyaw = entity.loc.getYaw();
+        float newyaw = oldyaw;
+        float newpitch = entity.loc.getPitch();
+
+        // Update yaw
+        newyaw = FaceUtil.faceToYaw(this.getDirection());
+        newpitch = TrainCarts.allowVerticalPitch ? -90.0f : 0.0f;
+        member.setRotationWrap(newyaw, newpitch, true);
+    }
+
+    @Override
     public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
-        return (endDirection == BlockFace.UP) ? BlockFace.UP : BlockFace.DOWN;
+        if (FaceUtil.isVertical(endDirection)) {
+            return endDirection;
+        }
+
+        // This happens when we go onto the vertical rail from the side: Always go down
+        return BlockFace.DOWN;
     }
 
     @Override

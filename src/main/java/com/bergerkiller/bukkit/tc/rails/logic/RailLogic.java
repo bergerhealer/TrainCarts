@@ -145,6 +145,15 @@ public abstract class RailLogic {
     }
 
     /**
+     * Is called right after all physics updates have completed, and the final orientation of the Minecart
+     * entity has to be calculated. The yaw and pitch of the Minecart should be calculated here.
+     * 
+     * @param member to update
+     */
+    public void onRotationUpdate(MinecartMember<?> member) {
+    }
+
+    /**
      * Is called right before the minecart will perform the movement updates<br>
      * This event is called before the onPostMove event<br><br>
      * <p/>
