@@ -248,17 +248,10 @@ public class RailTypeRegular extends RailTypeHorizontal {
                 BlockFace lastDirection = railTrackerMember.getLastLogic().getDirection();
 
                 boolean valid;
-                boolean upsideDown;
-                if (upsideDown = this.isUpsideDown(nextPos.toBlock(world))) {
-                    valid = (member.getEntity().vel.getY() < 0.0) &&
-                            (rails != null && rails.isOnSlope()) &&
-                            (rails.getDirection().getOppositeFace() == lastDirection);
-                } else {
-                    valid = (member.getEntity().vel.getY() > 0.0) &&
-                            (rails != null && rails.isOnSlope()) &&
-                            (rails.getDirection() == lastDirection);
-                }
-                System.out.println("CHECK: " + valid);
+                valid = !this.isUpsideDown(nextPos.toBlock(world)) &&
+                        (member.getEntity().vel.getY() > 0.0) &&
+                        (rails != null && rails.isOnSlope()) &&
+                        (rails.getDirection() == lastDirection);
                 if (valid) {
                     // We got a winner!
                     // Some position and velocity adjustment prior to moving between the types
@@ -267,12 +260,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
                     entity.loc.xz.subtract(lastDirection, 0.49);
 
                     // Y offset
-                    final double transOffset; // How high above the slope to teleport to
-                    if (upsideDown) {
-                        transOffset = -1.0;
-                    } else {
-                        transOffset = 0.01;
-                    }
+                    final double transOffset = 0.01; // How high above the slope to teleport to
                     entity.loc.setY(nextPos.y + transOffset);
 
                     // Convert Y-velocity into XZ-velocity
@@ -315,12 +303,12 @@ public class RailTypeRegular extends RailTypeHorizontal {
         if (rails.isOnSlope()) {
             // To vertical
             if (Util.isVerticalAbove(railsBlock, direction)) {
-                return RailLogicVerticalSlopeDown.get(direction);
+                return RailLogicVerticalSlopeNormalA.get(direction);
             }
 
             // From vertical to upside-down
             if (upsideDown && Util.isVerticalBelow(railsBlock, direction.getOppositeFace())) {
-                return RailLogicVerticalSlopeUpsideDown.get(direction);
+                return RailLogicVerticalSlopeUpsideDownA.get(direction);
             }
 
             // Default

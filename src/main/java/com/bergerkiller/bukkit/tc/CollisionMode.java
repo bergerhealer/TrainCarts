@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeDown;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalA;
 
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -104,9 +104,9 @@ public enum CollisionMode {
             }
             // Check if both minecarts are on the same vertical column
             RailLogic logic1 = member.getRailLogic();
-            if (logic1 instanceof RailLogicVerticalSlopeDown) {
+            if (logic1 instanceof RailLogicVerticalSlopeNormalA) {
                 RailLogic logic2 = other.getRailLogic();
-                if (logic2 instanceof RailLogicVerticalSlopeDown) {
+                if (logic2 instanceof RailLogicVerticalSlopeNormalA) {
                     Block b1 = member.getBlock(logic1.getDirection());
                     Block b2 = other.getBlock(logic2.getDirection());
                     if (BlockUtil.equals(b1, b2)) {

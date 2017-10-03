@@ -10,31 +10,30 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
-/**
- * Handles rail logic from a vertical rail to an upside-down slope
- */
-public class RailLogicVerticalSlopeUpsideDown extends RailLogicSloped {
-    private static final RailLogicVerticalSlopeUpsideDown[] values = new RailLogicVerticalSlopeUpsideDown[4];
+public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
 
-    static {
-        for (int i = 0; i < 4; i++) {
-            values[i] = new RailLogicVerticalSlopeUpsideDown(FaceUtil.notchToFace(i << 1));
-        }
-    }
-
-    private RailLogicVerticalSlopeUpsideDown(BlockFace direction) {
-        super(direction, true);
+    public RailLogicVerticalSlopeBase(BlockFace direction, boolean upsideDown) {
+        super(direction, upsideDown);
     }
 
     /**
-     * Gets the sloped-vertical rail logic for the the sloped track leading upwards facing the direction specified
-     *
-     * @param direction of the sloped rail
-     * @return Rail Logic
+     * Gets the ratio value between slope and vertical rail, defining where the boundary is at.
+     * A value of 0 indicates exactly in the middle. A positive value indicates this is the vertical
+     * rail section.
+     * 
+     * @param y
+     * @param blockPos
+     * @return slope ratio
      */
-    public static RailLogicVerticalSlopeUpsideDown get(BlockFace direction) {
-        return values[FaceUtil.faceToNotch(direction) >> 1];
-    }
+    public abstract double getSlopeRatio(double y, IntVector3 blockPos);
+
+    /**
+     * Gets whether the slope is reversed, indicating the velocity should be applied
+     * in reverse.
+     * 
+     * @return True if reversed slope
+     */
+    public abstract boolean isReversedSlope();
 
     @Override
     public boolean hasVerticalMovement() {
@@ -88,9 +87,16 @@ public class RailLogicVerticalSlopeUpsideDown extends RailLogicSloped {
         } else {
             // We may have moved vertically before
             // Correct the x/z position of the minecart so it follows slope logic
-            if (entity.vel.getY() > 0.0) {
-                entity.loc.setX(railPos.midX() - (slope_move_y * this.getDirection().getModX()));
-                entity.loc.setZ(railPos.midZ() - (slope_move_y * this.getDirection().getModZ()));
+            if (this.isReversedSlope()) {
+                if (entity.vel.getY() > 0.0) {
+                    entity.loc.setX(railPos.midX() - (slope_move_y * this.getDirection().getModX()));
+                    entity.loc.setZ(railPos.midZ() - (slope_move_y * this.getDirection().getModZ()));
+                }
+            } else {
+                if (entity.vel.getY() < 0.0) {
+                    entity.loc.setX(railPos.midX() + (slope_move_y * this.getDirection().getModX()));
+                    entity.loc.setZ(railPos.midZ() + (slope_move_y * this.getDirection().getModZ()));
+                }
             }
 
             // Slope part
@@ -125,19 +131,12 @@ public class RailLogicVerticalSlopeUpsideDown extends RailLogicSloped {
         return 0.0;
     }
 
-    private static final boolean isVerticalHalf(MinecartMember<?> member) {
+    protected final boolean isVerticalHalf(MinecartMember<?> member) {
         return isVerticalHalf(member.getEntity().loc.getY(), member.getBlockPos());
     }
 
-    private static final boolean isVerticalHalf(double y, IntVector3 blockPos) {
+    protected final boolean isVerticalHalf(double y, IntVector3 blockPos) {
         return getSlopeRatio(y, blockPos) >= 0.0;
-    }
-
-    private static final double getSlopeRatio(double y, IntVector3 blockPos) {
-        double d = ((double) blockPos.y - y - 0.6);
-        
-        //System.out.println("POS " + d);
-        return d;
     }
 
     private final double getVertFactor(MinecartMember<?> member) {
