@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.block.Block;
@@ -145,28 +144,31 @@ public class RailLogicSloped extends RailLogicHorizontal {
         entity.vel.xz.add(this.getDirection(), entity.vel.getY());
         entity.vel.y.setZero();
 
-        // Stop movement if colliding with a block at the slope
-        double blockedDistance = Double.MAX_VALUE;
-        Block inside = member.getRailType().findMinecartPos(member.getBlock());
-        Block heading = inside.getRelative(this.getDirection().getOppositeFace());
-        if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
-            if (MaterialUtil.SUFFOCATES.get(heading)) {
-                // Upside-down rails: check no vertical rail down the slope
-                if (!(this.isUpsideDown() && RailType.VERTICAL.isRail(inside.getRelative(BlockFace.DOWN)))) {
+        if (checkSlopeBlockCollisions()) {
+            // Stop movement if colliding with a block at the slope
+            Block inside = member.getRailType().findMinecartPos(member.getBlock());
+            double blockedDistance = Double.MAX_VALUE;
+            Block heading = inside.getRelative(this.getDirection().getOppositeFace());
+            if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
+                if (MaterialUtil.SUFFOCATES.get(heading)) {
                     blockedDistance = entity.loc.xz.distance(heading) - 1.0;
                 }
+            } else if (member.isHeadingTo(this.getDirection())) {
+                Block above = inside.getRelative(BlockFace.UP);
+                if (MaterialUtil.SUFFOCATES.get(above)) {
+                    blockedDistance = entity.loc.xz.distance(above);
+                }
             }
-        } else if (member.isHeadingTo(this.getDirection())) {
-            Block above = inside.getRelative(BlockFace.UP);
-            if (MaterialUtil.SUFFOCATES.get(above)) {
-                blockedDistance = entity.loc.xz.distance(above);
+            if (entity.vel.xz.length() > blockedDistance) {
+                member.getGroup().setForwardForce(blockedDistance);
             }
-        }
-        if (entity.vel.xz.length() > blockedDistance) {
-            member.getGroup().setForwardForce(blockedDistance);
         }
 
         // Perform remaining positioning updates
         super.onPreMove(member);
+    }
+
+    protected boolean checkSlopeBlockCollisions() {
+        return true;
     }
 }

@@ -99,6 +99,10 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
                 }
             }
 
+            // We do not use the y-velocity on this part; move it over to x/z
+            entity.vel.xz.add(this.getDirection(), entity.vel.getY());
+            entity.vel.y.setZero();
+
             // Slope part
             super.onPostMove(member);
         }
@@ -131,6 +135,11 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
         return 0.0;
     }
 
+    @Override
+    protected boolean checkSlopeBlockCollisions() {
+        return false;
+    }
+
     protected final boolean isVerticalHalf(MinecartMember<?> member) {
         return isVerticalHalf(member.getEntity().loc.getY(), member.getBlockPos());
     }
@@ -139,7 +148,7 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
         return getSlopeRatio(y, blockPos) >= 0.0;
     }
 
-    private final double getVertFactor(MinecartMember<?> member) {
+    public final double getVertFactor(MinecartMember<?> member) {
         BlockFace dir = member.getDirection();
         if (FaceUtil.isVertical(dir)) {
             return dir.getModY();

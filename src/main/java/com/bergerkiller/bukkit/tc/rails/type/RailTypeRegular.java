@@ -1,25 +1,20 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.map.MapBlendMode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.BlockPhysicsEvent;
@@ -230,48 +225,6 @@ public class RailTypeRegular extends RailTypeHorizontal {
     @Override
     public boolean isRail(BlockData blockData) {
         return blockData.getType() == Material.RAILS;
-    }
-
-    @Override
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        // Only if we came from a vertical rail do we allow this to be used
-        // In all other cases, we will no longer be using this (horizontal) rail.
-        // If we came from a vertical rail and need to move onto a slope
-        // Vertical -> Slope UP
-        RailTrackerMember railTrackerMember = member.getRailTracker();
-        if (railTrackerMember.getLastRailType() == RailType.VERTICAL) {
-            IntVector3 nextPos = pos.add(railTrackerMember.getLastLogic().getDirection());
-            BlockData blockData = WorldUtil.getBlockData(world, nextPos);
-            if (this.isRail(blockData)) {
-                // Check that the direction of the rail is correct
-                Rails rails = blockData.newMaterialData(Rails.class);
-                BlockFace lastDirection = railTrackerMember.getLastLogic().getDirection();
-
-                boolean valid;
-                valid = !this.isUpsideDown(nextPos.toBlock(world)) &&
-                        (member.getEntity().vel.getY() > 0.0) &&
-                        (rails != null && rails.isOnSlope()) &&
-                        (rails.getDirection() == lastDirection);
-                if (valid) {
-                    // We got a winner!
-                    // Some position and velocity adjustment prior to moving between the types
-                    CommonMinecart<?> entity = member.getEntity();
-                    entity.loc.xz.set(nextPos.x + 0.5, nextPos.z + 0.5);
-                    entity.loc.xz.subtract(lastDirection, 0.49);
-
-                    // Y offset
-                    final double transOffset = 0.01; // How high above the slope to teleport to
-                    entity.loc.setY(nextPos.y + transOffset);
-
-                    // Convert Y-velocity into XZ-velocity
-                    entity.vel.xz.add(rails.getDirection(), entity.vel.getY());
-                    entity.vel.y.setZero();
-                    return nextPos;
-                }
-            }
-        }
-
-        return super.findRail(member, world, pos);
     }
 
     @Override
