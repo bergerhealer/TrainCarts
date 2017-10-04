@@ -52,6 +52,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private boolean wasUpsideDown = false;
     private int fakePlayerId = -1;
     private int fakeMountId = -1;
+    private UUID fakePlayerUUID = null;
     private int fakePlayerLastYaw = Integer.MAX_VALUE;
     private int fakePlayerLastPitch = Integer.MAX_VALUE;
     private int fakePlayerLastHeadRot = Integer.MAX_VALUE;
@@ -246,22 +247,36 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    public void sendUpsideDownUnmount(Player viewer, Entity entity) {
+    private void removePlayerFromList(Player viewer, UUID playerUUID, String playerName) {
+        GameProfileHandle fakeGameProfile = GameProfileHandle.createNew(playerUUID, playerName);
+        PacketPlayOutPlayerInfoHandle infoPacket = PacketPlayOutPlayerInfoHandle.createNew();
+        infoPacket.setAction(EnumPlayerInfoActionHandle.REMOVE_PLAYER);
+        PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
+                infoPacket,
+                fakeGameProfile,
+                50,
+                GameMode.CREATIVE,
+                ChatText.fromMessage("")
+        );
+        infoPacket.getPlayers().add(playerInfo);
+        PacketUtil.sendPacket(viewer, infoPacket);
+    }
 
-        // Make player visible again by re-sending all metadata
-        DataWatcher metaTmp = EntityHandle.fromBukkit(entity).getDataWatcher();
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
-        PacketUtil.sendPacket(viewer, metaPacket);
-
-        // Send entity destroy packet to hide a fake mount
-        if (this.fakePlayerId != -1) {
-            PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.fakePlayerId, this.fakeMountId});
-            PacketUtil.sendPacket(viewer, destroyPacket);
-        }
-
-        // Clear mounted passengers
-        PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {});
-        PacketUtil.sendPacket(viewer, mount);
+    private void addPlayerToList(Player viewer, Player player, UUID playerUUID, String playerName) {
+        // Send player information with name 'Dinnerbone' and a unique Id
+        GameProfileHandle fakeGameProfile = GameProfileHandle.createNew(playerUUID, playerName);
+        fakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
+        PacketPlayOutPlayerInfoHandle infoPacket = PacketPlayOutPlayerInfoHandle.createNew();
+        infoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
+        PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
+                infoPacket,
+                fakeGameProfile,
+                50,
+                GameMode.CREATIVE,
+                ChatText.fromMessage(player.getPlayerListName())
+        );
+        infoPacket.getPlayers().add(playerInfo);
+        PacketUtil.sendPacket(viewer, infoPacket);
     }
 
     /**
@@ -275,13 +290,46 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return pos;
     }
 
+    public void sendUpsideDownUnmount(Player viewer, Entity entity) {
+
+        // Make player visible again by re-sending all metadata
+        DataWatcher metaTmp = EntityHandle.fromBukkit(entity).getDataWatcher();
+        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
+        PacketUtil.sendPacket(viewer, metaPacket);
+
+        // Send entity destroy packet to hide a fake mount
+        if (this.fakePlayerId != -1) {
+            PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.fakePlayerId, this.fakeMountId});
+            PacketUtil.sendPacket(viewer, destroyPacket);
+
+            // Remove fake upside-down player from player list
+            // Add the real player to the player list
+            if (entity instanceof Player) {
+                Player player = (Player) entity;
+                removePlayerFromList(viewer, this.fakePlayerUUID, "Dinnerbone");
+                addPlayerToList(viewer, player, player.getUniqueId(), player.getName());
+            }
+        }
+
+        // Clear mounted passengers
+        PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {});
+        PacketUtil.sendPacket(viewer, mount);
+    }
+
     public void sendUpsideDownMount(Player viewer, Entity entity) {
-        Player player = (Player) entity;
-        
         // Create a new entity Id for a fake mount, if needed
         if (this.fakePlayerId == -1) {
             this.fakePlayerId = EntityUtil.getUniqueEntityId();
+            this.fakePlayerUUID = UUID.randomUUID();
             this.fakeMountId = EntityUtil.getUniqueEntityId();
+        }
+
+        // Remove the real player from the player list
+        // Add the fake upside-down player to the player list
+        if (entity instanceof Player) {
+            Player player = (Player) entity;
+            removePlayerFromList(viewer, player.getUniqueId(), player.getName());
+            addPlayerToList(viewer, (Player) entity, this.fakePlayerUUID, "Dinnerbone");
         }
 
         // Make original entity invisible using a metadata change
@@ -289,22 +337,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
         PacketUtil.sendPacket(viewer, metaPacket);
-
-        // Send player information with name 'Dinnerbone' and a unique Id
-        UUID fakerUUID = UUID.randomUUID();
-        GameProfileHandle fakeGameProfile = GameProfileHandle.createNew(fakerUUID, "Dinnerbone");
-        fakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
-        PacketPlayOutPlayerInfoHandle infoPacket = PacketPlayOutPlayerInfoHandle.createNew();
-        infoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
-        PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
-                infoPacket,
-                fakeGameProfile,
-                50,
-                GameMode.CREATIVE,
-                ChatText.fromMessage(player.getPlayerListName())
-        );
-        infoPacket.getPlayers().add(playerInfo);
-        PacketUtil.sendPacket(viewer, infoPacket);
 
         // Make this fake entity part of a scoreboard team that causes the nametag to not render
         PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
@@ -328,7 +360,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         fakePlayerSpawnPacket.setPosZ(entity.getLocation().getZ());
         fakePlayerSpawnPacket.setYaw(entity.getLocation().getYaw());
         fakePlayerSpawnPacket.setPitch(entity.getLocation().getPitch());
-        fakePlayerSpawnPacket.setEntityUUID(fakerUUID);
+        fakePlayerSpawnPacket.setEntityUUID(this.fakePlayerUUID);
 
         // Copy data watcher data from the original player
         DataWatcher data_in = EntityHandle.fromBukkit(entity).getDataWatcher();
