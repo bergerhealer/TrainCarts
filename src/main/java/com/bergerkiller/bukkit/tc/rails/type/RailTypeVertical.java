@@ -44,7 +44,8 @@ public class RailTypeVertical extends RailType {
             boolean allow = true;
             if (forMinecart) {
                 Block above = pos.getRelative(BlockFace.UP);
-                if (RailType.REGULAR.isRail(above) && RailType.REGULAR.isUpsideDown(above)) {
+                RailType aboveType = RailType.getType(above);
+                if (aboveType instanceof RailTypeRegular && ((RailTypeRegular) aboveType).isUpsideDown(above)) {
                     allow = false;
                 }
             }
@@ -176,7 +177,7 @@ public class RailTypeVertical extends RailType {
     private boolean isVerticalSlopeUpsideDown(Block railsBlock) {
         // When there is an upside-down sloped rail above this position, it has preference
         Block above = railsBlock.getRelative(BlockFace.UP);
-        return (RailType.REGULAR.isRail(above) && RailType.REGULAR.isUpsideDown(above));
+        return isUpsideDownRail(above);
     }
 
     /**
@@ -188,9 +189,18 @@ public class RailTypeVertical extends RailType {
     private boolean isVerticalSlopeUpsideDownB(Block railsBlock) {
         BlockFace dir = Util.getVerticalRailDirection(railsBlock);
         Block slopeBlock = railsBlock.getRelative(dir.getModX(), -1, dir.getModZ());
-        return RailType.REGULAR.isRail(slopeBlock) && RailType.REGULAR.isUpsideDown(slopeBlock);
+        return isUpsideDownRail(slopeBlock);
     }
 
+    private boolean isUpsideDownRail(Block railsBlock) {
+        RailType railType = RailType.getType(railsBlock);
+        if (railType instanceof RailTypeRegular) {
+            return ((RailTypeRegular) railType).isUpsideDown(railsBlock);
+        } else {
+            return false;
+        }
+    }
+    
     /**
      * Gets a sloped rail that connects to a vertical rail, if one exists and is connected
      * 

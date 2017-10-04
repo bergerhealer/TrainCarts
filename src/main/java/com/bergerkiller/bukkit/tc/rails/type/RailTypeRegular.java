@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
+import com.bergerkiller.bukkit.tc.utils.MinecartTrackLogic;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -51,6 +52,13 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public void onBlockPlaced(Block railsBlock) {
+        // Perform Vanilla minecart track logic which includes some fixes for our custom rail types
+        // Note that the builtin onPlace is not called when placing a custom rail!
+        if (this.isUpsideDown(railsBlock)) {
+            MinecartTrackLogic logic = new MinecartTrackLogic(railsBlock);
+            logic.update(railsBlock.isBlockIndirectlyPowered(), true);
+        }
+
         // Find and validate rails - only regular 'initial' types are allowed
         Rails rails = BlockUtil.getRails(railsBlock);
         if (rails == null || rails.isCurve() || rails.isOnSlope()) {

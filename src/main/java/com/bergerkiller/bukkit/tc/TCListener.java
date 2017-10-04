@@ -507,6 +507,7 @@ public class TCListener implements Listener {
                 // The onBlockPlace event trigger will shape up this track the next tick
                 BlockData railData = BlockData.fromMaterial(railType);
                 WorldUtil.setBlockDataFast(placedBlock, railData);
+                WorldUtil.queueBlockSend(placedBlock.getWorld(), placedBlock.getX(), placedBlock.getY(), placedBlock.getZ());
 
                 CommonUtil.callEvent(placeEvent);
                 if (placeEvent.isCancelled() || !placeEvent.canBuild()) {

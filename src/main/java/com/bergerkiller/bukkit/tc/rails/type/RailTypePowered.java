@@ -1,13 +1,17 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.material.PoweredRail;
 
 public class RailTypePowered extends RailTypeRegular {
     public static final double START_BOOST = 0.02;
@@ -19,6 +23,21 @@ public class RailTypePowered extends RailTypeRegular {
 
     public boolean isPowered() {
         return this.isPowered;
+    }
+
+    @Override
+    public void onBlockPhysics(BlockPhysicsEvent event) {
+        super.onBlockPhysics(event);
+        if (this.isUpsideDown(event.getBlock())) {
+            // Set the 'powered' flag based on whether or not the rail is powered
+            // We have to do this, because we cancel default block physics
+            PoweredRail rails = BlockUtil.getData(event.getBlock(), PoweredRail.class);
+            if (rails != null) {
+                rails.setPowered(event.getBlock().isBlockIndirectlyPowered());
+                WorldUtil.setBlockDataFast(event.getBlock(), BlockData.fromMaterialData(rails));
+                WorldUtil.queueBlockSend(event.getBlock());
+            }
+        }
     }
 
     @Override
