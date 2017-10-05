@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
@@ -205,7 +206,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
                     entity.vel.x.add(boost * FaceUtil.cos(pd));
                     entity.vel.y.add((boost + 0.04) * pd.getModY());
                     entity.vel.z.add(boost * FaceUtil.sin(pd));
-                } else if (this.getGroup().getProperties().isSlowingDown()) {
+                } else if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
                     entity.vel.multiply(0.98);
                 }
             }
