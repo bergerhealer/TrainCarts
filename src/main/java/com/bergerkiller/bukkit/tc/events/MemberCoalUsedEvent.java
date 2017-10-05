@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.events;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.event.HandlerList;
 
@@ -12,7 +12,7 @@ public class MemberCoalUsedEvent extends MemberEvent {
 
     public MemberCoalUsedEvent(final MinecartMember<?> source) {
         super(source);
-        this.useCoal = TrainCarts.useCoalFromStorageCart;
+        this.useCoal = TCConfig.useCoalFromStorageCart;
         this.refill = false;
     }
 

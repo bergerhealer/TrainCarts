@@ -222,8 +222,8 @@ public enum CollisionMode {
             if (member.isHeadingTo(entity)) {
                 double force;
                 // Keeping distance
-                force = TrainCarts.cartDistance - member.getEntity().loc.distanceSquared(entity);
-                force *= TrainCarts.cartDistanceForcer;
+                force = TCConfig.cartDistance - member.getEntity().loc.distanceSquared(entity);
+                force *= TCConfig.cartDistanceForcer;
                 // Difference in velocity
                 force += member.getForce() - entity.getVelocity().length();
                 // Apply

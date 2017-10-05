@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.statements;
 
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -65,7 +65,7 @@ public abstract class Statement {
      */
     public static boolean has(MinecartMember<?> member, MinecartGroup group, String text, SignActionEvent event) {
         boolean inv = false;
-        text = TrainCarts.statementShortcuts.replace(text);
+        text = TCConfig.statementShortcuts.replace(text);
         while (text.startsWith("!")) {
             text = text.substring(1);
             inv = !inv;

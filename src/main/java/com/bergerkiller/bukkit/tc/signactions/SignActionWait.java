@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -62,7 +62,7 @@ public class SignActionWait extends SignAction {
                 findTrack:
                 while (iterator.hasNext()) {
                     distance++;
-                    if (distance > TrainCarts.maxDetectorLength) {
+                    if (distance > TCConfig.maxDetectorLength) {
                         break;
                     }
 

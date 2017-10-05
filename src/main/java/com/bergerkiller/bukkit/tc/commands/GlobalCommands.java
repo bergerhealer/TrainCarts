@@ -1,19 +1,13 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.ChatText;
-import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -26,38 +20,16 @@ import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
-import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
-import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityPlayerHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle.EnumPlayerInfoActionHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle.PlayerInfoDataHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutScoreboardTeamHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
-import com.bergerkiller.mountiplex.reflection.SafeConstructor;
-import com.bergerkiller.mountiplex.reflection.SafeField;
-import com.bergerkiller.mountiplex.reflection.SafeMethod;
-import com.bergerkiller.reflection.net.minecraft.server.NMSMobEffect.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
 
 public class GlobalCommands {
 
@@ -67,7 +39,7 @@ public class GlobalCommands {
             if (args.length == 1) {
                 sender.sendMessage(ChatColor.YELLOW + "/train message [name] [text...]");
             } else if (args.length == 2) {
-                String value = TrainCarts.messageShortcuts.get(args[1]);
+                String value = TCConfig.messageShortcuts.get(args[1]);
                 if (value == null) {
                     sender.sendMessage(ChatColor.RED + "No shortcut is set for key '" + args[1] + "'");
                 } else {
@@ -82,8 +54,8 @@ public class GlobalCommands {
                     valueBuilder.append(args[i]);
                 }
                 String value = StringUtil.ampToColor(valueBuilder.toString());
-                TrainCarts.messageShortcuts.remove(args[1]);
-                TrainCarts.messageShortcuts.add(args[1], value);
+                TCConfig.messageShortcuts.remove(args[1]);
+                TCConfig.messageShortcuts.add(args[1], value);
                 TrainCarts.plugin.saveShortcuts();
                 sender.sendMessage(ChatColor.GREEN + "Shortcut '" + args[1] + "' set to: " + ChatColor.WHITE + value);
             }
@@ -226,12 +198,12 @@ public class GlobalCommands {
             }
 
             if (disableTicks) {
-                TrainCarts.tickUpdateDivider = Integer.MAX_VALUE;
+                TCConfig.tickUpdateDivider = Integer.MAX_VALUE;
                 sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
                 return true;
             }
             if (enableTicks) {
-                TrainCarts.tickUpdateDivider = 1;
+                TCConfig.tickUpdateDivider = 1;
                 sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
                 return true;
             }
@@ -240,31 +212,31 @@ public class GlobalCommands {
                 // Set a tick divider value
                 if (args.length == 3) {
                     try {
-                        TrainCarts.tickUpdateDivider = Integer.parseInt(args[2]);
-                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TrainCarts.tickUpdateDivider);
+                        TCConfig.tickUpdateDivider = Integer.parseInt(args[2]);
+                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
                     } catch (NumberFormatException ex) {
-                        TrainCarts.tickUpdateDivider = 1;
+                        TCConfig.tickUpdateDivider = 1;
                         sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been reset to the default");
                     }
                 } else {
-                    if (TrainCarts.tickUpdateDivider == Integer.MAX_VALUE) {
+                    if (TCConfig.tickUpdateDivider == Integer.MAX_VALUE) {
                         sender.sendMessage(ChatColor.YELLOW + "Automatic train tick updates are globally disabled");
                     } else {
-                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + TrainCarts.tickUpdateDivider);
+                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
                     }
                 }
             } else {
-                TrainCarts.tickUpdateNow = 1;
+                TCConfig.tickUpdateNow = 1;
                 try {
                     if (args.length >= 2) {
-                        TrainCarts.tickUpdateNow = Integer.parseInt(args[1]);
+                        TCConfig.tickUpdateNow = Integer.parseInt(args[1]);
                     }
                 } catch (NumberFormatException ex) {}
 
-                if (TrainCarts.tickUpdateNow <= 1) {
+                if (TCConfig.tickUpdateNow <= 1) {
                     sender.sendMessage(ChatColor.GREEN + "Trains ticked once");
                 } else {
-                    sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TrainCarts.tickUpdateNow + " times");
+                    sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TCConfig.tickUpdateNow + " times");
                 }
             }
             return true;
@@ -291,82 +263,6 @@ public class GlobalCommands {
             builder.send(sender);
             return true;
         } else if (args[0].equals("editor")) {
-
-            Player player = (Player) sender;
-
-            String fakerDisplayName = "bergerkiller";
-            UUID fakerUUID = UUID.fromString("61699b2e-d327-2a01-9f1e-0ea8c3f06bc6"); //UUID.randomUUID();
-            
-            GameProfileHandle fakeGameProfile = GameProfileHandle.createNew(fakerUUID, "Dinnerbone");
-            if (aaa) {
-                aaa = false;
-                fakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
-            }
-
-            int entityId = EntityUtil.getUniqueEntityId();
-            
-            PacketPlayOutPlayerInfoHandle infoPacket = PacketPlayOutPlayerInfoHandle.createNew();
-            infoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
-            PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
-                    infoPacket,
-                    fakeGameProfile,
-                    50,
-                    GameMode.CREATIVE,
-                    ChatText.fromMessage(fakerDisplayName)
-            );
-            infoPacket.getPlayers().add(playerInfo);
-            PacketUtil.sendPacket(player, infoPacket.getRaw());
-
-            // Create a named entity spawn packet
-            PacketPlayOutNamedEntitySpawnHandle packet = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
-            packet.setEntityId(entityId);
-            packet.setPosX(player.getLocation().getX());
-            packet.setPosY(player.getLocation().getY());
-            packet.setPosZ(player.getLocation().getZ());
-            packet.setYaw(player.getLocation().getYaw());
-            packet.setPitch(player.getLocation().getPitch());
-            packet.setEntityUUID(fakerUUID);
-
-            // Copy data watcher data from the original player
-            DataWatcher data_in = EntityHandle.fromBukkit(player).getDataWatcher();
-            DataWatcher data = new DataWatcher();
-            for (DataWatcher.Item<?> item : data_in.getWatchedItems()) {
-                data.watch((DataWatcher.Key) item.getKey(), item.getValue());
-            }
-            //data.set(EntityHandle.DATA_CUSTOM_NAME, "berger");
-            //data.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, true);
-            packet.setDataWatcher(data);
-
-            // Finally send the packet
-            PacketUtil.sendPacket(player, packet.getRaw());
-            
-            
-            // Set team
-            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
-            teamPacket.setName("Dinner");
-            teamPacket.setDisplayName("Dinner");
-            teamPacket.setPrefix("");
-            teamPacket.setSuffix("");
-            teamPacket.setVisibility("never");
-            teamPacket.setCollisionRule("never");
-            teamPacket.setMode(0x0);
-            teamPacket.setFriendlyFire(0x3);
-            teamPacket.setPlayers(new ArrayList<String>(Arrays.asList("Dinnerbone")));
-            teamPacket.setChatFormat(0);
-            PacketUtil.sendPacket(player, teamPacket.getRaw());
-            
-            
-            // Mounting
-            /*
-            for (Entity e : player.getWorld().getEntities()) {
-                if (e instanceof Minecart) {
-                    PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(e.getEntityId(), new int[] {entityId});
-                    PacketUtil.sendPacket(player, mount.getRaw());
-                }
-            }
-            */
-            
-            /*
             Permission.COMMAND_GIVE_EDITOR.handle(sender);
             if (sender instanceof Player) {
                 Player p = (Player) sender;
@@ -374,7 +270,6 @@ public class GlobalCommands {
             } else {
                 sender.sendMessage("This command is only for players");
             }
-            */
             return true;
         }
         return false;

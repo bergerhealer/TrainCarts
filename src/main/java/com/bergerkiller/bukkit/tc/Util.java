@@ -522,7 +522,7 @@ public class Util {
      * @return True if the entity can instantly destroy a minecart, False if not
      */
     public static boolean canInstantlyBreakMinecart(Entity entity) {
-        if (!TrainCarts.instantCreativeDestroy || !canInstantlyBuild(entity)) {
+        if (!TCConfig.instantCreativeDestroy || !canInstantlyBuild(entity)) {
             return false;
         }
         if (entity instanceof Player && ((Player) entity).isSneaking()) {
@@ -621,8 +621,8 @@ public class Util {
         } else {
             return def;
         }
-        if (offset.length() > TrainCarts.maxEjectDistance) {
-            offset.normalize().multiply(TrainCarts.maxEjectDistance);
+        if (offset.length() > TCConfig.maxEjectDistance) {
+            offset.normalize().multiply(TCConfig.maxEjectDistance);
         }
         return offset;
     }

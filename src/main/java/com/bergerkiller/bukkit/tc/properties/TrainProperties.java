@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -130,7 +130,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param limit in blocks/tick
      */
     public void setSpeedLimit(double limit) {
-        this.speedLimit = MathUtil.clamp(limit, 0, TrainCarts.maxVelocity);
+        this.speedLimit = MathUtil.clamp(limit, 0, TCConfig.maxVelocity);
     }
 
     /**
@@ -629,8 +629,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             if (playerGameMode == GameMode.SPECTATOR) {
                 return CollisionMode.CANCEL;
             }
-            if (TrainCarts.collisionIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
-                if (TrainCarts.collisionIgnoreGlobalOwners) {
+            if (TCConfig.collisionIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
+                if (TCConfig.collisionIgnoreGlobalOwners) {
                     if (CartProperties.hasGlobalOwnership((Player) entity)) {
                         return CollisionMode.DEFAULT;
                     }
@@ -1014,7 +1014,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.miscCollision = node.get("collision.misc", this.miscCollision);
             this.trainCollision = node.get("collision.train", this.trainCollision);
         }
-        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TrainCarts.maxVelocity);
+        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
         this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);

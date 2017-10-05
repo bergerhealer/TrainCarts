@@ -37,7 +37,7 @@ public class ArrivalSigns {
     }
 
     public static void trigger(Sign sign, MinecartMember<?> mm) {
-        if (!TrainCarts.SignLinkEnabled) return;
+        if (!TCConfig.SignLinkEnabled) return;
         String name = Util.getCleanLine(sign, 2);
         String duration = Util.getCleanLine(sign, 3);
         if (name.isEmpty()) return;
@@ -190,7 +190,7 @@ public class ArrivalSigns {
         }
 
         public boolean update() {
-            if (!TrainCarts.SignLinkEnabled) return false;
+            if (!TCConfig.SignLinkEnabled) return false;
             //Calculate the time to display
             String dur = getDuration();
             Variables.get(this.name).set(dur);

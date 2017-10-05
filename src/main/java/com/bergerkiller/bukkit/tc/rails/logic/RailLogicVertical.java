@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
@@ -43,7 +43,7 @@ public class RailLogicVertical extends RailLogic {
 
         // Update yaw
         newyaw = FaceUtil.faceToYaw(this.getDirection());
-        newpitch = TrainCarts.allowVerticalPitch ? -90.0f : 0.0f;
+        newpitch = TCConfig.allowVerticalPitch ? -90.0f : 0.0f;
         member.setRotationWrap(newyaw, newpitch, true);
     }
 
@@ -80,7 +80,7 @@ public class RailLogicVertical extends RailLogic {
     @Override
     public double getGravityMultiplier(MinecartMember<?> member) {
         if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
-            return TrainCarts.legacyVerticalGravity ? 
+            return TCConfig.legacyVerticalGravity ? 
                     MinecartMember.VERTRAIL_MULTIPLIER_LEGACY : MinecartMember.SLOPE_VELOCITY_MULTIPLIER;
         }
         return 0.0;

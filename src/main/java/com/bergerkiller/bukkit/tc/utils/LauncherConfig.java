@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 
 /**
@@ -139,9 +139,9 @@ public class LauncherConfig {
      */
     public static LauncherConfig createDefault() {
         LauncherConfig config = new LauncherConfig();
-        if (TrainCarts.launchFunctionType.equalsIgnoreCase("linear")) {
+        if (TCConfig.launchFunctionType.equalsIgnoreCase("linear")) {
             config._launchFunction = LaunchFunction.Linear.class;
-        } else if (TrainCarts.launchFunctionType.equalsIgnoreCase("bezier")) {
+        } else if (TCConfig.launchFunctionType.equalsIgnoreCase("bezier")) {
             config._launchFunction = LaunchFunction.Bezier.class;
         } else {
             config._launchFunction = LaunchFunction.Bezier.class;

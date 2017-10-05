@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -25,7 +25,7 @@ public class SignActionLauncher extends SignAction {
             return;
         }
         // Parse the launch speed
-        double velocity = ParseUtil.parseDouble(info.getLine(2), TrainCarts.launchForce);
+        double velocity = ParseUtil.parseDouble(info.getLine(2), TCConfig.launchForce);
 
         if (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-")) {
             velocity += info.getMember().getForce();

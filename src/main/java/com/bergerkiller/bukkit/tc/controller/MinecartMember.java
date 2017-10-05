@@ -372,14 +372,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * taking in new entities when colliding with them.
      */
     public void resetCollisionEnter() {
-        this.collisionEnterTimer = TrainCarts.collisionReEnterDelay;
+        this.collisionEnterTimer = TCConfig.collisionReEnterDelay;
     }
 
     /*
      * Actions
      */
     public void pushSideways(org.bukkit.entity.Entity entity) {
-        this.pushSideways(entity, TrainCarts.pushAwayForce);
+        this.pushSideways(entity, TCConfig.pushAwayForce);
     }
 
     public void pushSideways(org.bukkit.entity.Entity entity, double force) {
@@ -532,7 +532,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public boolean isNearOf(MinecartMember<?> member) {
-        double max = TrainCarts.maxCartDistance * TrainCarts.maxCartDistance;
+        double max = TCConfig.maxCartDistance * TCConfig.maxCartDistance;
         if (entity.loc.xz.distanceSquared(member.entity) > max) {
             return false;
         }
@@ -722,7 +722,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 // Send an event, pass in the drops to drop
                 List<ItemStack> drops = new ArrayList<>(2);
                 if (!isInstantlyDestroyed && getProperties().getSpawnItemDrops()) {
-                    if (TrainCarts.breakCombinedCarts) {
+                    if (TCConfig.breakCombinedCarts) {
                         drops.addAll(this.entity.getBrokenDrops());
                     } else {
                         drops.add(new ItemStack(this.entity.getCombinedItem()));
@@ -1134,10 +1134,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!this.isDerailed()) {
             // Slowing down of minecarts
             if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
-                if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TrainCarts.slowDownEmptyCarts) {
-                    entity.vel.multiply(TrainCarts.slowDownMultiplierNormal);
+                if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TCConfig.slowDownEmptyCarts) {
+                    entity.vel.multiply(TCConfig.slowDownMultiplierNormal);
                 } else {
-                    entity.vel.multiply(TrainCarts.slowDownMultiplierSlow);
+                    entity.vel.multiply(TCConfig.slowDownMultiplierSlow);
                 }
             }
         }

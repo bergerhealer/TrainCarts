@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -128,7 +129,7 @@ public class OfflineGroupManager {
         if (!TrainProperties.get(group.name).isKeepingChunksLoaded()) {
             return false;
         }
-        if (TrainCarts.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
+        if (TCConfig.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
             return false;
         }
         // Load nearby chunks

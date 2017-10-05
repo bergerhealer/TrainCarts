@@ -233,10 +233,10 @@ public class Station {
      */
     public void waitTrain(long delay) {
         ActionTrackerGroup actions = info.getGroup().getActions();
-        if (TrainCarts.playSoundAtStation) {
+        if (TCConfig.playSoundAtStation) {
             actions.addActionSizzle();
         }
-        if (TrainCarts.refillAtStations) {
+        if (TCConfig.refillAtStations) {
             actions.addActionRefill();
         }
         actions.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
@@ -284,7 +284,7 @@ public class Station {
                 this.launchConfig.setDistance(this.launchConfig.getDistance() + stationInfo.distance);
             }
         }
-        getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TrainCarts.launchForce);
+        getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
         this.wasCentered = false;
     }
 

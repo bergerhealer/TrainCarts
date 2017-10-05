@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -60,7 +60,7 @@ public class RailTypePowered extends RailTypeRegular {
             double motLength = entity.vel.xz.length();
             if (motLength > 0.01) {
                 // Simple motion boosting when already moving
-                entity.vel.xz.add(entity.vel.xz, TrainCarts.poweredRailBoost / motLength);
+                entity.vel.xz.add(entity.vel.xz, TCConfig.poweredRailBoost / motLength);
             } else {
                 // Launch away from a suffocating block
                 BlockFace dir = member.getRailDirection();

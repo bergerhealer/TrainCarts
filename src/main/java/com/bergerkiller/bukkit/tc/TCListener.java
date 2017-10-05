@@ -175,7 +175,7 @@ public class TCListener implements Listener {
 
         // If placed by a player, only allow conversion for players that have the permissions
         if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId())
-                && !TrainCarts.allMinecartsAreTrainCarts && lastPlayer == null) {
+                && !TCConfig.allMinecartsAreTrainCarts && lastPlayer == null) {
             // No conversion allowed
             return;
         }
@@ -184,7 +184,7 @@ public class TCListener implements Listener {
         if (member != null && !member.isUnloaded() && lastPlayer != null) {
             // A player just placed a minecart - set defaults and ownership
             member.getGroup().getProperties().setDefault(lastPlayer);
-            if (TrainCarts.setOwnerOnPlacement) {
+            if (TCConfig.setOwnerOnPlacement) {
                 member.getProperties().setOwner(lastPlayer);
             }
             CartPropertiesStore.setEditing(lastPlayer, member.getProperties());
@@ -564,7 +564,7 @@ public class TCListener implements Listener {
                     // Handle the interaction with rails while holding a minecart
                     // Place a TrainCart/Minecart on top of the rails, and handles permissions
                     return handleMinecartPlacement(player, clickedBlock, type);
-                } else if (type == heldItem.getType() && MaterialUtil.ISRAILS.get(type) && TrainCarts.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
+                } else if (type == heldItem.getType() && MaterialUtil.ISRAILS.get(type) && TCConfig.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
                     if (BlockUtil.canBuildBlock(clickedBlock, type)) {
                         // Edit the rails to make a connection/face the direction the player clicked
                         BlockFace direction = FaceUtil.getDirection(player.getLocation().getDirection(), false);
@@ -629,7 +629,7 @@ public class TCListener implements Listener {
         }
 
         // IS the placement of a TrainCart allowed?
-        if (!TrainCarts.allMinecartsAreTrainCarts && !Permission.GENERAL_PLACE_TRAINCART.has(player)) {
+        if (!TCConfig.allMinecartsAreTrainCarts && !Permission.GENERAL_PLACE_TRAINCART.has(player)) {
             return true;
         }
 
@@ -794,7 +794,7 @@ public class TCListener implements Listener {
 
         // TrainCarts minecart teleportation does not work. Cancel it at all times.
         event.setCancelled(true);
-        if (!TrainCarts.allowNetherTeleport) {
+        if (!TCConfig.allowNetherTeleport) {
             return;
         }
 

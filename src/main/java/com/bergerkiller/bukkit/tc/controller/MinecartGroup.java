@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
@@ -229,7 +230,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public double length() {
-        return TrainCarts.cartDistance * (this.size() - 1);
+        return TCConfig.cartDistance * (this.size() - 1);
     }
 
     public int size(EntityType carttype) {
@@ -447,7 +448,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void teleport(Block start, BlockFace direction) {
-        this.teleport(start, direction, TrainCarts.cartDistance);
+        this.teleport(start, direction, TCConfig.cartDistance);
     }
 
     public void teleport(Block start, BlockFace direction, double stepsize) {
@@ -689,7 +690,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public boolean canUnload() {
         if (this.getProperties().isKeepingChunksLoaded()) {
-            if (!TrainCarts.keepChunksLoadedOnlyWhenMoving || this.isMoving()) {
+            if (!TCConfig.keepChunksLoadedOnlyWhenMoving || this.isMoving()) {
                 return false;
             }
         }
@@ -883,7 +884,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (!m1.isDerailed() && !m2.isDerailed()) {
                 continue; // ignore railed minecarts that can still reach each other
             }
-            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= (3.0 * TrainCarts.cartDistance)) {
+            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= (3.0 * TCConfig.cartDistance)) {
                 this.split(i + 1);
                 return false;
             }
@@ -1060,14 +1061,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     after = this.get(i);
                     distance = member.getEntity().loc.distance(after.getEntity());
                     if (member.getDirectionDifference(after) >= 45 || member.getEntity().loc.getPitchDifference(after.getEntity()) > 10) {
-                        threshold = TrainCarts.turnedCartDistance;
-                        forcer = TrainCarts.turnedCartDistanceForcer;
+                        threshold = TCConfig.turnedCartDistance;
+                        forcer = TCConfig.turnedCartDistanceForcer;
                     } else {
-                        threshold = TrainCarts.cartDistance;
-                        forcer = TrainCarts.cartDistanceForcer;
+                        threshold = TCConfig.cartDistance;
+                        forcer = TCConfig.cartDistanceForcer;
                     }
                     if (distance < threshold) {
-                        forcer *= TrainCarts.nearCartDistanceFactor;
+                        forcer *= TCConfig.nearCartDistanceFactor;
                     }
                     member.onPhysicsPostMove(1 + (forcer * (threshold - distance)));
                     if (this.breakPhysics) return true;

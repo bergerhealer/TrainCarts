@@ -6,7 +6,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
@@ -129,7 +129,7 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
     @Override
     public double getGravityMultiplier(MinecartMember<?> member) {
         if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
-            return TrainCarts.legacyVerticalGravity ? 
+            return TCConfig.legacyVerticalGravity ? 
                     MinecartMember.VERTRAIL_MULTIPLIER_LEGACY : MinecartMember.SLOPE_VELOCITY_MULTIPLIER;
         }
         return 0.0;

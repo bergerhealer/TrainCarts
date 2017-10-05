@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -192,7 +192,7 @@ public class SignActionDetector extends SignAction {
     }
 
     private DetectorSignPair createPair(String label, Block startrails, Block startsign, BlockFace direction) {
-        final TrackMap map = new TrackMap(startrails, direction, TrainCarts.maxDetectorLength);
+        final TrackMap map = new TrackMap(startrails, direction, TCConfig.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
         Block endsign;

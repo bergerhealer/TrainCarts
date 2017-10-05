@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.InteractType;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
@@ -155,22 +156,22 @@ public class TransferSignUtil {
 
     public static IntVector2 readRadius(String text) {
         // Parse radius width and height (negative allowed for reversed sorting)
-        int radWidth = TrainCarts.defaultTransferRadius;
-        int radHeight = TrainCarts.defaultTransferRadius;
+        int radWidth = TCConfig.defaultTransferRadius;
+        int radHeight = TCConfig.defaultTransferRadius;
         int radStartIndex = text.lastIndexOf(' ');
         if (radStartIndex != -1) {
             String radText = text.substring(radStartIndex + 1);
             String[] parts = radText.split(":");
             if (parts.length == 1) {
-                radWidth = radHeight = ParseUtil.parseInt(radText, TrainCarts.defaultTransferRadius);
+                radWidth = radHeight = ParseUtil.parseInt(radText, TCConfig.defaultTransferRadius);
             } else if (parts.length == 2) {
-                radWidth = ParseUtil.parseInt(parts[0], TrainCarts.defaultTransferRadius);
-                radHeight = ParseUtil.parseInt(parts[1], TrainCarts.defaultTransferRadius);
+                radWidth = ParseUtil.parseInt(parts[0], TCConfig.defaultTransferRadius);
+                radHeight = ParseUtil.parseInt(parts[1], TCConfig.defaultTransferRadius);
             }
         }
         // Limit radius
-        radWidth = MathUtil.clamp(radWidth, TrainCarts.maxTransferRadius);
-        radHeight = MathUtil.clamp(radHeight, TrainCarts.maxTransferRadius);
+        radWidth = MathUtil.clamp(radWidth, TCConfig.maxTransferRadius);
+        radHeight = MathUtil.clamp(radHeight, TCConfig.maxTransferRadius);
         // Done
         return new IntVector2(radWidth, radHeight);
     }
@@ -388,7 +389,7 @@ public class TransferSignUtil {
         }
 
         // Do not deposit using animations for ground items, it shows duplicates which looks bad
-        if (TrainCarts.showTransferAnimations && !(from instanceof GroundItemsInventory)) {
+        if (TCConfig.showTransferAnimations && !(from instanceof GroundItemsInventory)) {
             from = ItemAnimatedInventory.convert(from, fromHolder, toHolder);
         }
 

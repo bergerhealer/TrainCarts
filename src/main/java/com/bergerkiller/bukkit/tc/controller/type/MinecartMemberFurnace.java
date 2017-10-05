@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
@@ -165,7 +165,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         }
         // Put coal into cart if needed
         if (!entity.hasFuel()) {
-            if (fuelCheckCounter++ % 20 == 0 && TrainCarts.useCoalFromStorageCart && this.getCoalFromNeighbours()) {
+            if (fuelCheckCounter++ % 20 == 0 && TCConfig.useCoalFromStorageCart && this.getCoalFromNeighbours()) {
                 this.addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
             }
         } else {
@@ -200,7 +200,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
                 if (entity.hasFuel()) {
                     BlockFace pd = updatePushDirection();
 
-                    double boost = 0.04 + TrainCarts.poweredCartBoost;
+                    double boost = 0.04 + TCConfig.poweredCartBoost;
                     entity.vel.multiply(0.8);
                     entity.vel.x.add(boost * FaceUtil.cos(pd));
                     entity.vel.y.add((boost + 0.04) * pd.getModY());

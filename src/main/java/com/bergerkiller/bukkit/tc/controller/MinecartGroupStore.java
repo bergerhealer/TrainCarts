@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
@@ -106,7 +107,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup spawn(Block startblock, BlockFace direction, List<EntityType> types) {
-        Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TrainCarts.cartDistance);
+        Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TCConfig.cartDistance);
         if (types.size() != destinations.length || destinations.length == 0) return null;
         MinecartGroup g = new MinecartGroup();
         for (int i = 0; i < destinations.length; i++) {

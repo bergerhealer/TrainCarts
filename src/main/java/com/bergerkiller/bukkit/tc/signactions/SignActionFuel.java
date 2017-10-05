@@ -4,7 +4,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -39,7 +39,7 @@ public class SignActionFuel extends SignAction {
         if (!info.isPowered()) return;
 
         //get nearby chests
-        int radius = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
+        int radius = ParseUtil.parseInt(info.getLine(1), TCConfig.defaultTransferRadius);
         List<Chest> chests = new ArrayList<>();
         for (BlockState state : TransferSignUtil.getBlockStates(info, radius, radius)) {
             if (state instanceof Chest) {
@@ -76,7 +76,7 @@ public class SignActionFuel extends SignAction {
                             inv.setItem(i, item);
                             found = true;
                             member.addFuelTicks(3600);
-                            if (TrainCarts.showTransferAnimations) {
+                            if (TCConfig.showTransferAnimations) {
                                 ItemAnimation.start(chest, member, new ItemStack(Material.COAL, 1));
                             }
                             break;

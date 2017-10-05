@@ -421,11 +421,11 @@ public class SignActionHeader {
         boolean validStart = (line.charAt(0) == '[');
         boolean validEnd = (line.charAt(line.length() - 1) == ']');
 
-        if (TrainCarts.allowParenthesesFormat) {
+        if (TCConfig.allowParenthesesFormat) {
             validStart |= (line.charAt(0) == '(');
             validEnd |= (line.charAt(line.length() - 1) == ')');
         }
-        if (TrainCarts.parseOldSigns && !validStart && !validEnd) {
+        if (TCConfig.parseOldSigns && !validStart && !validEnd) {
             String s = line.toLowerCase(Locale.ENGLISH);
             if (s.startsWith("!") || s.startsWith("+")) {
                 s = s.substring(1);

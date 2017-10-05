@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -12,7 +12,7 @@ import org.bukkit.block.BlockFace;
  */
 public class TrackWalkIterator {
     private final TrackWalkingPoint walker;
-    private double stepsize = TrainCarts.cartDistance;
+    private double stepsize = TCConfig.cartDistance;
     private Location current, next;
 
     /**

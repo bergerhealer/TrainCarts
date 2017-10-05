@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.entity.type.*;
 import com.bergerkiller.bukkit.common.internal.hooks.EntityHook;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
@@ -137,7 +138,7 @@ public abstract class MinecartMemberStore {
      * @return new Network Controller
      */
     public static EntityNetworkController<?> createNetworkController() {
-        if (TrainCarts.useNetworkSynchronizer) {
+        if (TCConfig.useNetworkSynchronizer) {
             return new MinecartMemberNetwork();
         } else {
             return new DefaultEntityNetworkController();

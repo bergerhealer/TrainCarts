@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -35,7 +35,7 @@ public class SignActionCraft extends SignAction {
         }
 
         int radX, radY, radZ;
-        radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TrainCarts.defaultTransferRadius);
+        radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TCConfig.defaultTransferRadius);
         BlockFace dir = info.getRailDirection();
         if (FaceUtil.isAlongX(dir)) {
             radX = 0;
@@ -56,14 +56,14 @@ public class SignActionCraft extends SignAction {
                 }
             }
         }
-        if (w != null || !TrainCarts.craftingRequireWorkbench) {
+        if (w != null || !TCConfig.craftingRequireWorkbench) {
             //get the inventory to transfer in
             Inventory inventory = TransferSignUtil.getInventory(info);
             if (inventory == null) {
                 return;
             }
 
-            if (w != null && TrainCarts.showTransferAnimations) {
+            if (w != null && TCConfig.showTransferAnimations) {
                 inventory = ItemAnimatedInventory.convert(inventory, info.getMember(), w);
             }
 
