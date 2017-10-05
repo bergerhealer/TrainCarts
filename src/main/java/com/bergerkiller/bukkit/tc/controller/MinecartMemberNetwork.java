@@ -134,9 +134,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         Entity entity = this.getUpsideDownEntity();
         if (entity != null) {
-            for (Player viewer : this.getViewers()) {
-                sendUpsideDownUnmount(viewer, entity);
-            }
+            sendUpsideDownUnmount(player, entity);
         }
     }
 
@@ -145,6 +143,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         super.makeVisible(player);
         this.velocityUpdateReceivers.add(player);
         this.updateVelocity(player);
+
+        Entity entity = this.getUpsideDownEntity();
+        if (entity != null) {
+            sendUpsideDownMount(player, entity);
+        }
     }
 
     @Override
@@ -292,7 +295,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     public void sendUpsideDownUnmount(Player viewer, Entity entity) {
 
-        // Make player visible again by re-sending all metadata
+        // Make player visible again and reset potential nametags by re-sending all metadata
         DataWatcher metaTmp = EntityHandle.fromBukkit(entity).getDataWatcher();
         PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
         PacketUtil.sendPacket(viewer, metaPacket);
@@ -330,56 +333,55 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             Player player = (Player) entity;
             removePlayerFromList(viewer, player.getUniqueId(), player.getName());
             addPlayerToList(viewer, (Player) entity, this.fakePlayerUUID, "Dinnerbone");
+
+            // Make this fake entity part of a scoreboard team that causes the nametag to not render
+            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
+            teamPacket.setName("DizzyTCRiders");
+            teamPacket.setDisplayName("DizzyTCRiders");
+            teamPacket.setPrefix("");
+            teamPacket.setSuffix("");
+            teamPacket.setVisibility("never");
+            teamPacket.setCollisionRule("never");
+            teamPacket.setMode(0x0);
+            teamPacket.setFriendlyFire(0x3);
+            teamPacket.setPlayers(new ArrayList<String>(Arrays.asList("Dinnerbone")));
+            teamPacket.setChatFormat(0);
+            PacketUtil.sendPacket(viewer, teamPacket);
+
+            // Make original entity invisible using a metadata change
+            DataWatcher metaTmp = new DataWatcher();
+            metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
+            PacketUtil.sendPacket(viewer, metaPacket);
+
+            // Create a named entity spawn packet
+            PacketPlayOutNamedEntitySpawnHandle fakePlayerSpawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
+            fakePlayerSpawnPacket.setEntityId(this.fakePlayerId);
+            fakePlayerSpawnPacket.setPosX(entity.getLocation().getX());
+            fakePlayerSpawnPacket.setPosY(entity.getLocation().getY());
+            fakePlayerSpawnPacket.setPosZ(entity.getLocation().getZ());
+            fakePlayerSpawnPacket.setYaw(entity.getLocation().getYaw());
+            fakePlayerSpawnPacket.setPitch(entity.getLocation().getPitch());
+            fakePlayerSpawnPacket.setEntityUUID(this.fakePlayerUUID);
+
+            // Copy data watcher data from the original player
+            fakePlayerSpawnPacket.setDataWatcher(EntityUtil.getDataWatcher(entity).clone());
+
+            // Finally send the packet
+            PacketUtil.sendPacket(viewer, fakePlayerSpawnPacket);
+        } else {
+            // Apply the 'Dinnerbone' nametag to the entity to turn him upside-down
+            DataWatcher metaTmp = new DataWatcher();
+            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, "Dinnerbone");
+            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
+            PacketUtil.sendPacket(viewer, metaPacket);
         }
-
-        // Make original entity invisible using a metadata change
-        DataWatcher metaTmp = new DataWatcher();
-        metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
-        PacketUtil.sendPacket(viewer, metaPacket);
-
-        // Make this fake entity part of a scoreboard team that causes the nametag to not render
-        PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
-        teamPacket.setName("DizzyTCRiders");
-        teamPacket.setDisplayName("DizzyTCRiders");
-        teamPacket.setPrefix("");
-        teamPacket.setSuffix("");
-        teamPacket.setVisibility("never");
-        teamPacket.setCollisionRule("never");
-        teamPacket.setMode(0x0);
-        teamPacket.setFriendlyFire(0x3);
-        teamPacket.setPlayers(new ArrayList<String>(Arrays.asList("Dinnerbone")));
-        teamPacket.setChatFormat(0);
-        PacketUtil.sendPacket(viewer, teamPacket);
-
-        // Create a named entity spawn packet
-        PacketPlayOutNamedEntitySpawnHandle fakePlayerSpawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
-        fakePlayerSpawnPacket.setEntityId(this.fakePlayerId);
-        fakePlayerSpawnPacket.setPosX(entity.getLocation().getX());
-        fakePlayerSpawnPacket.setPosY(entity.getLocation().getY());
-        fakePlayerSpawnPacket.setPosZ(entity.getLocation().getZ());
-        fakePlayerSpawnPacket.setYaw(entity.getLocation().getYaw());
-        fakePlayerSpawnPacket.setPitch(entity.getLocation().getPitch());
-        fakePlayerSpawnPacket.setEntityUUID(this.fakePlayerUUID);
-
-        // Copy data watcher data from the original player
-        DataWatcher data_in = EntityHandle.fromBukkit(entity).getDataWatcher();
-        DataWatcher fakePlayerMetaData = new DataWatcher();
-        for (DataWatcher.Item<?> item : data_in.getWatchedItems()) {
-            fakePlayerMetaData.watch((DataWatcher.Key) item.getKey(), item.getValue());
-        }
-        //data.set(EntityHandle.DATA_CUSTOM_NAME, "berger");
-        //data.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, true);
-        fakePlayerSpawnPacket.setDataWatcher(fakePlayerMetaData);
-
-        // Finally send the packet
-        PacketUtil.sendPacket(viewer, fakePlayerSpawnPacket);
 
         if (viewer == entity) {
             // When synchronizing passenger to himself, we put him on a fake mount to offset him downwards
             PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {this.fakePlayerId});
             PacketUtil.sendPacket(viewer, mount);
-            
 
             DataWatcher data = new DataWatcher();
             data.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
@@ -395,10 +397,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, fakePos.getZ());
             packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, data);
             PacketUtil.sendPacket(viewer, packet);
-            
+
             PacketPlayOutMountHandle mount2 = PacketPlayOutMountHandle.createNew(this.fakeMountId, new int[] {entity.getEntityId()});
             PacketUtil.sendPacket(viewer, mount2);
-            
         } else {
             // Other players simply see the fake mount, and an invisible 'self' player
             PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {this.fakePlayerId, entity.getEntityId()});
