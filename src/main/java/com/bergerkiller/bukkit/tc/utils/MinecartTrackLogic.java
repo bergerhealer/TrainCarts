@@ -352,7 +352,6 @@ public class MinecartTrackLogic {
         this.getNeighbours(newRails);
         this.data = BlockData.fromMaterialData(newRails);
         if (forcePhysics || !WorldUtil.getBlockData(this.world, this.pos).equals(this.data)) {
-            System.out.println("CHANGE BLOCK " + WorldUtil.getBlockData(this.world, this.pos) + " -> " + this.data);
             WorldUtil.setBlockData(this.world, this.pos, this.data);
 
             for (int i = 0; i < this.neigh.size(); ++i) {

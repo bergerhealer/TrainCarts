@@ -12,11 +12,11 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.utils.VirtualEntity;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
@@ -30,7 +30,6 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHa
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -51,11 +50,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
     private boolean wasUpsideDown = false;
     private int fakePlayerId = -1;
-    private int fakeMountId = -1;
     private UUID fakePlayerUUID = null;
     private int fakePlayerLastYaw = Integer.MAX_VALUE;
     private int fakePlayerLastPitch = Integer.MAX_VALUE;
     private int fakePlayerLastHeadRot = Integer.MAX_VALUE;
+    private VirtualEntity fakeMount = null;
     private boolean isFirstUpdate = true;
 
     public MinecartMemberNetwork() {
@@ -300,18 +299,22 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
         PacketUtil.sendPacket(viewer, metaPacket);
 
-        // Send entity destroy packet to hide a fake mount
-        if (this.fakePlayerId != -1) {
-            PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.fakePlayerId, this.fakeMountId});
+        // Destroy fake mount
+        if (viewer == entity && this.fakeMount != null) {
+            this.fakeMount.destroy(viewer);
+        }
+
+        // Destroy a fake player entity - if displayed
+        if (entity instanceof Player && this.fakePlayerId != -1) {
+            // Destroy the fake player
+            PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.fakePlayerId});
             PacketUtil.sendPacket(viewer, destroyPacket);
 
             // Remove fake upside-down player from player list
             // Add the real player to the player list
-            if (entity instanceof Player) {
-                Player player = (Player) entity;
-                removePlayerFromList(viewer, this.fakePlayerUUID, "Dinnerbone");
-                addPlayerToList(viewer, player, player.getUniqueId(), player.getName());
-            }
+            Player player = (Player) entity;
+            removePlayerFromList(viewer, this.fakePlayerUUID, "Dinnerbone");
+            addPlayerToList(viewer, player, player.getUniqueId(), player.getName());
         }
 
         // Clear mounted passengers
@@ -324,7 +327,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         if (this.fakePlayerId == -1) {
             this.fakePlayerId = EntityUtil.getUniqueEntityId();
             this.fakePlayerUUID = UUID.randomUUID();
-            this.fakeMountId = EntityUtil.getUniqueEntityId();
+            this.fakeMount = new VirtualEntity();
         }
 
         // Remove the real player from the player list
@@ -383,35 +386,17 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {this.fakePlayerId});
             PacketUtil.sendPacket(viewer, mount);
 
-            DataWatcher data = new DataWatcher();
-            data.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            data.set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-
             Location fakePos = calculateFakeMountPosition();
-            CommonPacket packet = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.fakeMountId);
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, UUID.randomUUID());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, (int) EntityType.CHICKEN.getTypeId());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, fakePos.getX());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, fakePos.getY());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, fakePos.getZ());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, data);
-            PacketUtil.sendPacket(viewer, packet);
 
-            PacketPlayOutMountHandle mount2 = PacketPlayOutMountHandle.createNew(this.fakeMountId, new int[] {entity.getEntityId()});
-            PacketUtil.sendPacket(viewer, mount2);
+            this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+            this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
+            this.fakeMount.setPosition(fakePos.getX(), fakePos.getY(), fakePos.getZ());
+            this.fakeMount.setPassengers(new int[] {entity.getEntityId()});
+            this.fakeMount.spawn(viewer);
         } else {
             // Other players simply see the fake mount, and an invisible 'self' player
             PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {this.fakePlayerId, entity.getEntityId()});
             PacketUtil.sendPacket(viewer, mount);
-        }
-    }
-
-    private void broadcastExcept(PacketHandle packet, Entity except) {
-        for (Player viewer : this.getViewers()) {
-            if (viewer != except) {
-                PacketUtil.sendPacket(viewer, packet);
-            }
         }
     }
 
@@ -482,9 +467,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             Entity passenger = this.getUpsideDownEntity();
             if (passenger instanceof Player) {
                 Location loc = this.calculateFakeMountPosition();
-                CommonPacket movePacket = PacketType.OUT_ENTITY_TELEPORT.newInstance(this.fakeMountId,
+                CommonPacket movePacket = PacketType.OUT_ENTITY_TELEPORT.newInstance(this.fakeMount.getEntityId(),
                         loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), false);
-                        
+
                 PacketUtil.sendPacket((Player) passenger, movePacket);
             }
         }
@@ -546,8 +531,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.syncPassengers();
 
         // Synchronize the head and body rotation of the passenger(s) to the fake mount
-        // This makes the fake mount look where the player is looking
-        // Position is not important, because the fake mount is mounted (and can not move)
+        // This makes the fake mount look where the player/entity is looking
         if (this.wasUpsideDown) {
             Entity passenger = this.getUpsideDownEntity();
             if (passenger != null) {
