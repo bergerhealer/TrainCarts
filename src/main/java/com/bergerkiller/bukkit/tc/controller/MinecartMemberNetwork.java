@@ -6,35 +6,25 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.map.util.Matrix4f;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.parts.FakePlayer;
 import com.bergerkiller.bukkit.tc.parts.VirtualEntity;
-import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutScoreboardTeamHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle.EnumPlayerInfoActionHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle.PlayerInfoDataHandle;
 
-import org.bukkit.GameMode;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -46,15 +36,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
-    public static final String UPSIDE_DOWN_NAME = "Dinnerbone";
     private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
-    private boolean wasUpsideDown = false;
-    private int fakePlayerId = -1;
-    private int fakePlayerLastYaw = Integer.MAX_VALUE;
-    private int fakePlayerLastPitch = Integer.MAX_VALUE;
-    private int fakePlayerLastHeadRot = Integer.MAX_VALUE;
+    private boolean wasUpsideDown = false; // whether passengers should be rendered upside-down
+    private boolean useVirtualCamera = false; // whether a virtual camera detached from the minecart should be used by players
     private VirtualEntity fakeMount = null;
+    private FakePlayer fakePlayer = null;
+    private boolean disableMountHandling = false;
+    private boolean disableVirtualCameraHandling = false;
     private boolean isFirstUpdate = true;
     private double lastDeltaX = 0.0;
     private double lastDeltaY = 0.0;
@@ -128,27 +117,180 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    @Override
-    public void makeHidden(Player player, boolean instant) {
-        super.makeHidden(player, instant);
-        this.velocityUpdateReceivers.remove(player);
-        PacketUtil.sendPacket(player, PacketType.OUT_ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), ZERO_VELOCITY));
+    public void sendUpsideDownUnmount(Player viewer, Entity entity) {
+        // Destroy fake first-person mount
+        if (viewer == entity && this.fakeMount != null) {
+            this.fakeMount.destroy(viewer);
+        }
 
-        Entity entity = this.getUpsideDownEntity();
-        if (entity != null) {
-            sendUpsideDownUnmount(player, entity);
+        // Destroy a fake player entity - if displayed
+        destroyFakeEntity(viewer, entity);
+    }
+
+    private void destroyFakeEntity(Player viewer, Entity entity) {
+        // Make entity visible again and reset potential nametags by re-sending all metadata
+        DataWatcher metaTmp = EntityHandle.fromBukkit(entity).getDataWatcher();
+        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
+        PacketUtil.sendPacket(viewer, metaPacket);
+
+        // Destroy a fake player entity - if displayed
+        if (entity instanceof Player && this.fakePlayer != null) {
+            this.fakePlayer.destroy(viewer, (Player) entity);
+        }
+    }
+
+    private void handlePassengerMount(Player viewer, Entity passenger) {
+        boolean isVirtualMount = (this.useVirtualCamera && viewer == passenger);
+
+        if (this.wasUpsideDown || isVirtualMount) {
+            if (passenger instanceof Player) {
+                Player player = (Player) passenger;
+
+                // Create a new entity Id for a fake player, if needed
+                if (this.fakePlayer == null) {
+                    this.fakePlayer = new FakePlayer();
+                }
+
+                // Refresh name
+                this.fakePlayer.setMode(viewer, player, this.wasUpsideDown ? 
+                        FakePlayer.DisplayMode.UPSIDEDOWN : FakePlayer.DisplayMode.NORMAL);
+
+                // Make original entity invisible using a metadata change
+                DataWatcher metaTmp = new DataWatcher();
+                metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+                PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(passenger.getEntityId(), metaTmp, true);
+                PacketUtil.sendPacket(viewer, metaPacket);
+
+                // Spawn the fake entity
+                this.fakePlayer.spawn(viewer, player);
+            } else {
+                // Apply the upside-down nametag to the entity to turn him upside-down
+                // Only do this when upside-down; we don't want to ever show the nametag
+                if (this.wasUpsideDown) {
+                    DataWatcher metaTmp = new DataWatcher();
+                    metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, FakePlayer.DisplayMode.UPSIDEDOWN.getPlayerName());
+                    metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
+                    PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(passenger.getEntityId(), metaTmp, true);
+                    PacketUtil.sendPacket(viewer, metaPacket);
+                }
+            }
+        }
+
+        if (isVirtualMount && this.fakeMount == null && !this.disableVirtualCameraHandling) {
+            this.fakeMount = new VirtualEntity();
+            this.fakeMount.setPosition(0.0, 1.0, 0.0);
+
+            // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
+            this.fakeMount.updatePosition(this.getTransform());
+            this.fakeMount.syncPosition(Collections.emptyList(), true);
+            this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+            this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
+            this.fakeMount.setPassengers(new int[] {passenger.getEntityId()});
+            this.fakeMount.spawn(viewer, this.lastDeltaX, this.lastDeltaY, this.lastDeltaZ);
+        }
+    }
+
+    private void handlePassengerUnmount(Player viewer, Entity passenger) {
+        // If this player has mounted this Minecart and virtual camera is used, unmount the fake mount
+        boolean destroyFakeEntity = this.wasUpsideDown;
+        if ((viewer == passenger) && this.useVirtualCamera && this.fakeMount != null && !this.disableVirtualCameraHandling) {
+            this.fakeMount.destroy(viewer);
+            this.fakeMount = null;
+
+            // Also destroy the ghost player that took this person's place in the Minecart
+            destroyFakeEntity = true;
+        }
+
+        // When upside-down, destroy the fake entity that is displayed
+        if (destroyFakeEntity) {
+            destroyFakeEntity(viewer, passenger);
+        }
+    }
+
+    // update the list of entities directly attached to this Minecart as passenger
+    private void sendDirectPassengers(Player viewer, Collection<Entity> passengers) {
+        // Clear mounted passengers
+        PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[0]);
+        for (Entity passenger : passengers) {
+            if ((this.wasUpsideDown || (this.useVirtualCamera && passenger == viewer)) && passenger instanceof Player && this.fakePlayer != null) {
+                mount.addMountedEntityId(this.fakePlayer.entityId);
+            } else {
+                mount.addMountedEntityId(passenger.getEntityId());
+            }
+        }
+        PacketUtil.sendPacket(viewer, mount);
+
+        // Make fake player visible if needed
+        if (this.fakePlayer != null && this.fakePlayer.wasInvisible) {
+            this.fakePlayer.wasInvisible = false;
+
+            DataWatcher metaTmp = new DataWatcher();
+            metaTmp.watch(EntityHandle.DATA_FLAGS, (byte) 0);
+            FakePlayer.setMetaVisibility(metaTmp, true);
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.fakePlayer.entityId, metaTmp, true);
+            PacketUtil.sendPacket(viewer, metaPacket);
         }
     }
 
     @Override
-    public void makeVisible(Player player) {
-        super.makeVisible(player);
-        this.velocityUpdateReceivers.add(player);
-        this.updateVelocity(player);
+    protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
+        boolean viewerChanged = (!oldPassengers.contains(viewer) || !newPassengers.contains(viewer));
+        if (!this.wasUpsideDown && (!this.useVirtualCamera || !viewerChanged)) {
+            super.onSyncPassengers(viewer, oldPassengers, newPassengers);
+            return;
+        }
 
-        Entity entity = this.getUpsideDownEntity();
-        if (entity != null) {
-            sendUpsideDownMount(player, entity);
+        if (!this.disableMountHandling) {
+            // Mount new passengers
+            for (Entity newPassenger : newPassengers) {
+                if (oldPassengers.contains(newPassenger)) {
+                    continue;
+                }
+
+                // Send upside-down mounted player to a viewer
+                handlePassengerMount(viewer, newPassenger);
+            }
+
+            // Unmount old passengers
+            for (Entity oldPassenger : oldPassengers) {
+                if (newPassengers.contains(oldPassenger)) {
+                    continue;
+                }
+
+                // Send upside-down unmounted player to a viewer
+                handlePassengerUnmount(viewer, oldPassenger);
+            }
+        }
+
+        this.sendDirectPassengers(viewer, newPassengers);
+    }
+
+    @Override
+    public void makeVisible(Player viewer) {
+        super.makeVisible(viewer);
+        this.velocityUpdateReceivers.add(viewer);
+        this.updateVelocity(viewer);
+
+        boolean viewerIsPassenger = this.getSynchedPassengers().contains(viewer);
+        if (this.wasUpsideDown || (this.useVirtualCamera && viewerIsPassenger)) {
+            for (Entity passenger : this.getSynchedPassengers()) {
+                handlePassengerMount(viewer, passenger);
+            }
+        }
+        this.sendDirectPassengers(viewer, this.getSynchedPassengers());
+    }
+
+    @Override
+    public void makeHidden(Player viewer, boolean instant) {
+        super.makeHidden(viewer, instant);
+        this.velocityUpdateReceivers.remove(viewer);
+        PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), ZERO_VELOCITY));
+
+        boolean viewerIsPassenger = this.getSynchedPassengers().contains(viewer);
+        if (this.wasUpsideDown || (this.useVirtualCamera && viewerIsPassenger)) {
+            for (Entity passenger : this.getSynchedPassengers()) {
+                handlePassengerUnmount(viewer, passenger);
+            }
         }
     }
 
@@ -224,92 +366,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    @Override
-    protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
-        if (!this.wasUpsideDown) {
-            super.onSyncPassengers(viewer, oldPassengers, newPassengers);
-            return;
-        }
-
-        // Mount new passengers
-        for (Entity newPassenger : newPassengers) {
-            if (oldPassengers.contains(newPassenger)) {
-                continue;
-            }
-
-            // Send upside-down mounted player to a viewer
-            sendUpsideDownMount(viewer, newPassenger);
-        }
-
-        // Unmount old passengers
-        for (Entity oldPassenger : oldPassengers) {
-            if (newPassengers.contains(oldPassenger)) {
-                continue;
-            }
-
-            // Send upside-down unmounted player to a viewer
-            sendUpsideDownUnmount(viewer, oldPassenger);
-        }
-    }
-
-    private void changePlayerName(Player viewer, Player player, String oldName, String newName) {
-        GameProfileHandle oldFakeGameProfile = GameProfileHandle.createNew(player.getUniqueId(), oldName);
-        PacketPlayOutPlayerInfoHandle oldInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
-        oldInfoPacket.setAction(EnumPlayerInfoActionHandle.REMOVE_PLAYER);
-        PlayerInfoDataHandle oldPlayerInfo = PlayerInfoDataHandle.createNew(
-                oldInfoPacket,
-                oldFakeGameProfile,
-                50,
-                GameMode.CREATIVE,
-                ChatText.fromMessage("")
-        );
-        oldInfoPacket.getPlayers().add(oldPlayerInfo);
-        PacketUtil.sendPacket(viewer, oldInfoPacket);
-
-        GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(player.getUniqueId(), newName);
-        newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
-        PacketPlayOutPlayerInfoHandle newInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
-        newInfoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
-        PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
-                newInfoPacket,
-                newFakeGameProfile,
-                50,
-                GameMode.CREATIVE,
-                ChatText.fromMessage(player.getPlayerListName())
-        );
-        newInfoPacket.getPlayers().add(playerInfo);
-        PacketUtil.sendPacket(viewer, newInfoPacket);
-    }
-
-    public void sendUpsideDownUnmount(Player viewer, Entity entity) {
-
-        // Make player visible again and reset potential nametags by re-sending all metadata
-        DataWatcher metaTmp = EntityHandle.fromBukkit(entity).getDataWatcher();
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
-        PacketUtil.sendPacket(viewer, metaPacket);
-
-        // Destroy fake mount
-        if (viewer == entity && this.fakeMount != null) {
-            this.fakeMount.destroy(viewer);
-        }
-
-        // Destroy a fake player entity - if displayed
-        if (entity instanceof Player && this.fakePlayerId != -1) {
-            // Destroy the fake player
-            PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.fakePlayerId});
-            PacketUtil.sendPacket(viewer, destroyPacket);
-
-            // Remove fake upside-down player from player list
-            // Add the real player to the player list
-            Player player = (Player) entity;
-            changePlayerName(viewer, player, UPSIDE_DOWN_NAME, player.getName());
-        }
-
-        // Clear mounted passengers
-        PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {});
-        PacketUtil.sendPacket(viewer, mount);
-    }
-
     /**
      * Gets the position transform of this Minecart
      * 
@@ -331,93 +387,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return transform;
     }
 
-    public void sendUpsideDownMount(Player viewer, Entity entity) {
-        // Create a new entity Id for a fake mount, if needed
-        if (this.fakePlayerId == -1) {
-            this.fakePlayerId = EntityUtil.getUniqueEntityId();
-            this.fakeMount = new VirtualEntity();
-            this.fakeMount.setPosition(0.0, 0.9, 0.0);
-        }
-
-        // Remove the real player from the player list
-        // Add the fake upside-down player to the player list
-        if (entity instanceof Player) {
-            Player player = (Player) entity;
-            changePlayerName(viewer, player, player.getName(), UPSIDE_DOWN_NAME);
-
-            // Make this fake entity part of a scoreboard team that causes the nametag to not render
-            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
-            teamPacket.setName("DizzyTCRiders");
-            teamPacket.setDisplayName("DizzyTCRiders");
-            teamPacket.setPrefix("");
-            teamPacket.setSuffix("");
-            teamPacket.setVisibility("never");
-            teamPacket.setCollisionRule("never");
-            teamPacket.setMode(0x0);
-            teamPacket.setFriendlyFire(0x3);
-            teamPacket.setPlayers(new ArrayList<String>(Arrays.asList(UPSIDE_DOWN_NAME)));
-            teamPacket.setChatFormat(0);
-            PacketUtil.sendPacket(viewer, teamPacket);
-
-            // Make original entity invisible using a metadata change
-            DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
-            PacketUtil.sendPacket(viewer, metaPacket);
-
-            // Create a named entity spawn packet
-            PacketPlayOutNamedEntitySpawnHandle fakePlayerSpawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
-            fakePlayerSpawnPacket.setEntityId(this.fakePlayerId);
-            fakePlayerSpawnPacket.setPosX(entity.getLocation().getX());
-            fakePlayerSpawnPacket.setPosY(entity.getLocation().getY());
-            fakePlayerSpawnPacket.setPosZ(entity.getLocation().getZ());
-            fakePlayerSpawnPacket.setYaw(entity.getLocation().getYaw());
-            fakePlayerSpawnPacket.setPitch(entity.getLocation().getPitch());
-            fakePlayerSpawnPacket.setEntityUUID(player.getUniqueId());
-
-            // Copy data watcher data from the original player
-            fakePlayerSpawnPacket.setDataWatcher(EntityUtil.getDataWatcher(entity).clone());
-
-            // Finally send the packet
-            PacketUtil.sendPacket(viewer, fakePlayerSpawnPacket);
-        } else {
-            // Apply the upside-down nametag to the entity to turn him upside-down
-            DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, UPSIDE_DOWN_NAME);
-            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(entity.getEntityId(), metaTmp, true);
-            PacketUtil.sendPacket(viewer, metaPacket);
-        }
-
-        if (viewer == entity) {
-            // When synchronizing passenger to himself, we put him on a fake mount to offset him downwards
-            PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {this.fakePlayerId});
-            PacketUtil.sendPacket(viewer, mount);
-
-            this.fakeMount.updatePosition(this.getTransform());
-            this.fakeMount.syncPosition(Collections.emptyList(), true);
-            //this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-            this.fakeMount.setPassengers(new int[] {entity.getEntityId()});
-            this.fakeMount.spawn(viewer);
-        } else {
-            // Other players simply see the fake mount, and an invisible 'self' player
-            PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[] {this.fakePlayerId, entity.getEntityId()});
-            PacketUtil.sendPacket(viewer, mount);
-        }
-    }
-
-    private Entity getUpsideDownEntity() {
-        if (!this.wasUpsideDown) {
-            return null;
-        }
-        List<Entity> passengers = this.getSynchedPassengers();
-        if (passengers == null || passengers.isEmpty()) {
-            return null;
-        }
-        return passengers.get(0);
-    }
-    
     public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated, boolean absolute) {
         // Read live location
         double posX = locLive.getX();
@@ -451,16 +420,20 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 locSynched.setRotation(rotYaw, rotPitch);
 
                 // Destroy and re-spawn the minecart with the new coordinates
+                // Do not do any wacky passenger mounting/unmounting here
+                // We only want to respawn the Minecart itself
+                this.disableMountHandling = true;
                 for (Player viewer : this.getViewers()) {
                     super.makeHidden(viewer, true);
                     super.makeVisible(viewer);
                 }
+                this.disableMountHandling = false;
             }
         }
 
         isFirstUpdate = false;
         getEntity().setPositionChanged(false);
-        
+
         // Absolute/relative movement updates
         if (absolute) {
             syncLocationAbsolute(posX, posY, posZ, rotYaw, rotPitch);
@@ -476,16 +449,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             }
 
             syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
-        }
-
-        // Synchronized the player mount to the player that rides this Minecart, when upside-down
-        // This moves the mount along with the player
-        if (this.wasUpsideDown && (absolute || moved)) {
-            Entity passenger = this.getUpsideDownEntity();
-            if (passenger instanceof Player) {
-                this.fakeMount.updatePosition(this.getTransform());
-                this.fakeMount.syncPosition(Collections.singleton((Player) passenger), absolute);
-            }
         }
 
         // Velocity is used exclusively for controlling the minecart's audio level
@@ -525,63 +488,81 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Synchronize meta data
         syncMetaData();
 
-        // Passengers
+        // Handle switching between upside-down/virtual camera views
         boolean isUpsideDown = MathUtil.getAngleDifference(locLive.getPitch(), 180.0f) < 89.0f;
-        if (isUpsideDown != wasUpsideDown) {            
-            // First remove all old passengers
+        boolean isVirtualCamera = isUpsideDown || (locLive.getPitch() < -46.0f) || (locLive.getPitch() > 46.0f);
+        if (isUpsideDown != this.wasUpsideDown || isVirtualCamera != this.useVirtualCamera) {  
             List<Entity> old_passengers = this.getSynchedPassengers();
+
+            if (isVirtualCamera && this.useVirtualCamera) {
+                disableVirtualCameraHandling = true;
+            }
+
+            // First remove all old passengers
             for (Player viewer : this.getViewers()) {
                 onSyncPassengers(viewer, old_passengers, new ArrayList<Entity>(0));
             }
 
-            // Change mode
-            wasUpsideDown = isUpsideDown;
+            // Change modes
+            this.useVirtualCamera = isVirtualCamera;
+            this.wasUpsideDown = isUpsideDown;
 
             // Add all passengers again
             for (Player viewer : this.getViewers()) {
                 onSyncPassengers(viewer, new ArrayList<Entity>(0), old_passengers);
             }
+
+            this.disableVirtualCameraHandling = false;
         }
         this.syncPassengers();
 
-        // Synchronize the head and body rotation of the passenger(s) to the fake mount
-        // This makes the fake mount look where the player/entity is looking
-        if (this.wasUpsideDown) {
-            Entity passenger = this.getUpsideDownEntity();
-            if (passenger != null) {
-                EntityHandle realPlayer = EntityHandle.fromBukkit(passenger);
+        // Synchronized the player mount to the player that rides this Minecart, when upside-down
+        // This moves the mount along with the player and simulates an alternative first-person camera view
+        if (this.useVirtualCamera && (absolute || moved) && this.fakeMount != null) {
+            this.fakeMount.updatePosition(this.getTransform());
 
-                float yaw = realPlayer.getYaw();
-                float pitch = realPlayer.getPitch();
-                float headRot = realPlayer.getHeadRotation();
-
-                // Reverse the values and correct head yaw, because the player is upside-down
-                pitch = -pitch;
-                headRot = -headRot + 2.0f * yaw;
-
-                // Protocolify
-                int protYaw = EntityTrackerEntryHandle.getProtocolRotation(yaw);
-                int protPitch = EntityTrackerEntryHandle.getProtocolRotation(pitch);
-                int protHeadRot = EntityTrackerEntryHandle.getProtocolRotation(headRot);
-
-                if (protYaw != fakePlayerLastYaw || protPitch != fakePlayerLastPitch) {
-                    CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
-                    lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, this.fakePlayerId);
-                    lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
-                    lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
-                    this.broadcast(lookPacket);
-                    fakePlayerLastYaw = protYaw;
-                    fakePlayerLastPitch = protPitch;
-                }
-
-                if (protHeadRot != fakePlayerLastHeadRot) {
-                    CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
-                    headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this.fakePlayerId);
-                    headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
-                    this.broadcast(headPacket);
-                    fakePlayerLastHeadRot = protHeadRot;
+            Collection<Entity> passengers = this.getSynchedPassengers();
+            for (Player viewer : this.getViewers()) {
+                if (passengers.contains(viewer)) {
+                    this.fakeMount.syncPosition(Collections.singleton(viewer), absolute);
+                    break;
                 }
             }
+        }
+
+        // Synchronize the head and body rotation of the passenger(s) to the fake player
+        // This makes the fake player look where the player/entity is looking
+        Player fakeRealPlayer = null;
+        if (this.fakePlayer != null && (this.wasUpsideDown || this.useVirtualCamera)) {
+            for (Entity passenger : this.getSynchedPassengers()) {
+                if (passenger instanceof Player && (this.wasUpsideDown || this.getViewers().contains(passenger))) {
+                    fakeRealPlayer = (Player) passenger;
+                    break;
+                }
+            }
+        }
+
+        if (fakeRealPlayer != null) {
+            EntityHandle realPlayer = EntityHandle.fromBukkit(fakeRealPlayer);
+
+            float yaw = realPlayer.getYaw();
+            float pitch = realPlayer.getPitch();
+            float headRot = realPlayer.getHeadRotation();
+
+            // Reverse the values and correct head yaw, because the player is upside-down
+            if (this.wasUpsideDown) {
+                pitch = -pitch;
+                headRot = -headRot + 2.0f * yaw;
+            }
+
+            // Only send to self-player when not upside-down
+            Collection<Player> viewers;
+            if (this.wasUpsideDown) {
+                viewers = this.getViewers();
+            } else {
+                viewers = Collections.singleton(fakeRealPlayer);
+            }
+            this.fakePlayer.syncRotation(viewers, yaw, pitch, headRot);
         }
     }
 }

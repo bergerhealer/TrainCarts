@@ -74,19 +74,26 @@ public class VirtualEntity implements DisplayedPart {
         this.passengers = passengerEntityIds;
     }
 
-    public void spawn(Player viewer) {
+    public void spawn(Player viewer, double motX, double motY, double motZ) {
         CommonPacket packet = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, UUID.randomUUID());
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, (int) EntityType.CHICKEN.getTypeId());
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motX);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motY);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motZ);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motX);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motY);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motZ);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
         PacketUtil.sendPacket(viewer, packet);
 
         PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.entityId, this.passengers);
         PacketUtil.sendPacket(viewer, mount);
+
+        packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motX, motY, motZ, true);
+        PacketUtil.sendPacket(viewer, packet);
+        
     }
 
     public void syncPosition(Collection<Player> viewers, boolean absolute) {
