@@ -64,6 +64,16 @@ public abstract class RailLogic {
     }
 
     /**
+     * Gets whether the rail logic type makes use of upside-down rail physics.
+     * When this return True, passenger damage from blocks above the Minecart are ignored.
+     * 
+     * @return True if upside-down
+     */
+    public boolean isUpsideDown() {
+        return false;
+    }
+
+    /**
      * Gets the vertical motion factor caused by gravity
      *
      * @return gravity multiplier

@@ -25,9 +25,11 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityMinecartRideableHandle;
+import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
+import com.bergerkiller.mountiplex.reflection.ClassTemplate;
 import com.bergerkiller.mountiplex.reflection.SafeMethod;
-import com.bergerkiller.reflection.net.minecraft.server.NMSEntity;
-import com.bergerkiller.reflection.net.minecraft.server.NMSEntityMinecart;
 import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
 import org.bukkit.GameMode;
@@ -402,10 +404,10 @@ public class TCListener implements Listener {
 
             // Tests the original MC slope calculations
             if (false && m == Material.STICK) {
-                Object mc = NMSEntityMinecart.Rideable.T.newInstanceNull();
-                NMSEntity.world.set(mc, clickedBlock.getWorld());
+                Object mc = EntityMinecartRideableHandle.T.newInstanceNull();
+                EntityHandle.T.world.set(mc, WorldHandle.fromBukkit(clickedBlock.getWorld()));
 
-                SafeMethod<Object> v = NMSEntityMinecart.Rideable.T.getMethod("j", double.class, double.class, double.class);
+                SafeMethod<Object> v = ClassTemplate.create(mc).getMethod("j", double.class, double.class, double.class);
 
                 double x = clickedBlock.getX() + 0.5;
                 double y = clickedBlock.getY() + 0.5;
@@ -775,13 +777,10 @@ public class TCListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageEvent event) {
-        if (event.isCancelled()) {
-            return;
-        }
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity().getVehicle());
-        if (member != null && member.getGroup().isTeleportImmune()) {
+        if (member != null && !member.canTakeDamage(event.getCause())) {
             event.setCancelled(true);
         }
     }

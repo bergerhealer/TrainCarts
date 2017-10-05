@@ -42,6 +42,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
@@ -211,6 +212,26 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public boolean isInteractable() {
         return !this.entity.isDead() && !this.isUnloaded();
+    }
+
+    /**
+     * Checks whether passengers of this Minecart take damage
+     * 
+     * @param cause of the damage
+     * @return True if damage is allowed
+     */
+    public boolean canTakeDamage(DamageCause cause) {
+        if (getGroup().isTeleportImmune()) {
+            return false;
+        }
+
+        // When upside-down, there is a problem with random suffocation damage
+        // Upside-down is impossible when theres a block there, so cancel it at all times
+        if (cause == DamageCause.SUFFOCATION && this.getRailLogic().isUpsideDown()) {
+            return false;
+        }
+
+        return true;
     }
 
     public boolean isInChunk(Chunk chunk) {
