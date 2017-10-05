@@ -32,13 +32,8 @@ public class RailLogicVerticalSlopeNormalB extends RailLogicVerticalSlopeBase {
     }
 
     @Override
-    public final double getSlopeRatio(double y, IntVector3 blockPos) {
-        return (blockPos.midY() - y + Y_POS_OFFSET);
-    }
-    
-    @Override
-    public boolean isReversedSlope() {
-        return true;
+    public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
+        return y < (blockPos.midY() + Y_POS_OFFSET);
     }
 
 }

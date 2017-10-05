@@ -1225,20 +1225,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param newpitch to set to
      * @param orientPitch
      */
-    public void setRotationWrap(float newyaw, float newpitch, boolean orientPitch) {
+    public void setRotationWrap(float newyaw, float newpitch) {
         final float oldyaw = entity.loc.getYaw();
 
         // Fix yaw based on the previous yaw angle
-        if (MathUtil.getAngleDifference(oldyaw, newyaw) > 90.0f) {
-            while ((newyaw - oldyaw) >= 90.0f) {
-                newyaw -= 180.0f;
-            }
-            while ((newyaw - oldyaw) < -90.0f) {
-                newyaw += 180.0f;
-            }
-            if (orientPitch) {
-                newpitch = -newpitch;
-            }
+        while ((newyaw - oldyaw) >= 90.0f) {
+            newyaw -= 180.0f;
+            newpitch = -newpitch;
+        }
+        while ((newyaw - oldyaw) < -90.0f) {
+            newyaw += 180.0f;
+            newpitch = -newpitch;
         }
 
         // Fix up wrap-around angles

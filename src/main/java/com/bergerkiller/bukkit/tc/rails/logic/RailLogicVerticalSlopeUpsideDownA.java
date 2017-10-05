@@ -32,12 +32,8 @@ public class RailLogicVerticalSlopeUpsideDownA extends RailLogicVerticalSlopeBas
     }
 
     @Override
-    public final double getSlopeRatio(double y, IntVector3 blockPos) {
-        return ((double) blockPos.y - y - 0.65);
+    public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
+        return (y + 0.0001) < ((double) blockPos.y - 1.0 + (0.5 * (0.5 + Y_POS_OFFSET_UPSIDEDOWN)));
     }
 
-    @Override
-    public boolean isReversedSlope() {
-        return true;
-    }
 }

@@ -44,7 +44,7 @@ public class RailLogicVertical extends RailLogic {
         // Update yaw
         newyaw = FaceUtil.faceToYaw(this.getDirection());
         newpitch = TCConfig.allowVerticalPitch ? -90.0f : 0.0f;
-        member.setRotationWrap(newyaw, newpitch, true);
+        member.setRotationWrap(newyaw, newpitch);
     }
 
     @Override

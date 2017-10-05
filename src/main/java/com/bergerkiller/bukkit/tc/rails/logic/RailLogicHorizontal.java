@@ -110,7 +110,7 @@ public class RailLogicHorizontal extends RailLogic {
             newyaw = FaceUtil.faceToYaw(this.getDirection());
         }
         newpitch = this.isUpsideDown() ? -180.0f : 0.0f;
-        member.setRotationWrap(newyaw, newpitch, true);
+        member.setRotationWrap(newyaw, newpitch);
     }
 
     /**

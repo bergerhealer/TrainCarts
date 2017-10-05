@@ -26,7 +26,6 @@ public class RailLogicGround extends RailLogic {
         final float oldyaw = entity.loc.getYaw();
         float newyaw = oldyaw;
         float newpitch = entity.loc.getPitch();
-        boolean orientPitch = false;
 
         // Update yaw
         if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
@@ -39,9 +38,8 @@ public class RailLogicGround extends RailLogic {
         } else {
             newpitch = 0;
         }
-        orientPitch = true;
 
-        member.setRotationWrap(newyaw, newpitch, orientPitch);
+        member.setRotationWrap(newyaw, newpitch);
     }
 
     @Override

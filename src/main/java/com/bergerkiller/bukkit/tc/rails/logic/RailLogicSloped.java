@@ -68,16 +68,9 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
     @Override
     public void onRotationUpdate(MinecartMember<?> member) {
-        //Update yaw and pitch based on motion
-        CommonMinecart<?> entity = member.getEntity();
-        final float oldyaw = entity.loc.getYaw();
-        float newyaw = oldyaw;
-        float newpitch = entity.loc.getPitch();
-
-        // Update yaw
-        newyaw = FaceUtil.faceToYaw(this.getDirection());
-        newpitch = this.isUpsideDown() ? 135.0f : -45.0f;
-        member.setRotationWrap(newyaw, newpitch, true);
+        final float newyaw = FaceUtil.faceToYaw(this.getDirection());
+        final float newpitch = this.isUpsideDown() ? 135.0f : -45.0f;
+        member.setRotationWrap(newyaw, newpitch);
     }
 
     @Override
