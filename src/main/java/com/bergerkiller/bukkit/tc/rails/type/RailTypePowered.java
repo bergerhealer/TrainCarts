@@ -4,14 +4,16 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.PoweredTrackLogic;
+
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.BlockPhysicsEvent;
-import org.bukkit.material.PoweredRail;
+import org.bukkit.material.Rails;
 
 public class RailTypePowered extends RailTypeRegular {
     public static final double START_BOOST = 0.02;
@@ -26,17 +28,23 @@ public class RailTypePowered extends RailTypeRegular {
     }
 
     @Override
+    public void onBlockPlaced(Block railsBlock) {
+        super.onBlockPlaced(railsBlock);
+
+        // Also apply physics on the blocks adjacent for power to spread correctly
+        Rails rails = BlockUtil.getRails(railsBlock);
+        if (rails != null && isUpsideDown(railsBlock)) {
+            BlockUtil.applyPhysics(railsBlock.getRelative(rails.getDirection()), Material.POWERED_RAIL);
+            BlockUtil.applyPhysics(railsBlock.getRelative(rails.getDirection().getOppositeFace()), Material.POWERED_RAIL);
+        }
+    }
+
+    @Override
     public void onBlockPhysics(BlockPhysicsEvent event) {
         super.onBlockPhysics(event);
         if (this.isUpsideDown(event.getBlock())) {
-            // Set the 'powered' flag based on whether or not the rail is powered
-            // We have to do this, because we cancel default block physics
-            PoweredRail rails = BlockUtil.getData(event.getBlock(), PoweredRail.class);
-            if (rails != null) {
-                rails.setPowered(event.getBlock().isBlockIndirectlyPowered());
-                WorldUtil.setBlockDataFast(event.getBlock(), BlockData.fromMaterialData(rails));
-                WorldUtil.queueBlockSend(event.getBlock());
-            }
+            PoweredTrackLogic logic = new PoweredTrackLogic(Material.POWERED_RAIL);
+            logic.updateRedstone(event.getBlock());
         }
     }
 
@@ -65,8 +73,12 @@ public class RailTypePowered extends RailTypeRegular {
                 // Launch away from a suffocating block
                 BlockFace dir = member.getRailDirection();
                 org.bukkit.block.Block block = member.getBlock();
+                if (this.isUpsideDown(block)) {
+                    block = block.getRelative(BlockFace.DOWN);
+                }
                 boolean pushFrom1 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir.getOppositeFace()));
                 boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
+
                 // If pushing from both directions, block all movement
                 if (pushFrom1 && pushFrom2) {
                     entity.vel.xz.setZero();
@@ -83,4 +95,5 @@ public class RailTypePowered extends RailTypeRegular {
     public boolean isRail(BlockData blockData) {
         return blockData.getType() == Material.POWERED_RAIL && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
     }
+
 }

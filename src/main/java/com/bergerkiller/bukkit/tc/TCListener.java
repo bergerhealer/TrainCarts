@@ -712,6 +712,7 @@ public class TCListener implements Listener {
                     RailType railType = RailType.getType(placed);
                     if (railType != RailType.NONE) {
                         railType.onBlockPlaced(placed);
+                        BlockUtil.applyPhysics(placed, placed.getType());
                     }
                 }
             });
