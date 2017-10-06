@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -105,6 +106,10 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public boolean isUpsideDown(Block railsBlock) {
+        if (!TCConfig.allowUpsideDownRails) {
+            return false;
+        }
+
         Rails rails = BlockUtil.getRails(railsBlock);
         if (rails == null) {
             return false;

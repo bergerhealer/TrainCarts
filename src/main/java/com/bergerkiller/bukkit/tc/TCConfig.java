@@ -62,6 +62,7 @@ public class TCConfig {
     public static boolean allMinecartsAreTrainCarts;
     public static boolean useNetworkSynchronizer;
     public static boolean allowVerticalPitch;
+    public static boolean allowUpsideDownRails;
     public static boolean allowNetherTeleport;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
     public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
@@ -207,6 +208,10 @@ public class TCConfig {
         config.setHeader("allowVerticalPitch", "\nWhether minecarts are allowed to have a 90-degree pitch angle when going up vertical rails");
         config.addHeader("allowVerticalPitch", "When disabled, minecarts will keep a 0-degree pitch angle instead");
         allowVerticalPitch = config.get("allowVerticalPitch", true);
+
+        config.setHeader("allowUpsideDownRails", "\nWhether upside-down rail functionality is enabled on the server");
+        config.addHeader("allowUpsideDownRails", "When disabled, minecarts can not be rotated upside-down");
+        allowUpsideDownRails = config.get("allowUpsideDownRails", true);
 
         config.setHeader("legacyVerticalGravity", "\nBefore TrainCarts v1.12.1-v2 vertical rail gravity was kind of awful");
         config.addHeader("legacyVerticalGravity", "It took a lot more speed to get up a vertical rail compared to sloped rails");
