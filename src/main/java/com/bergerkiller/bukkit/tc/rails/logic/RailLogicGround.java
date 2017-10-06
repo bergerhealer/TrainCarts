@@ -26,6 +26,7 @@ public class RailLogicGround extends RailLogic {
         final float oldyaw = entity.loc.getYaw();
         float newyaw = oldyaw;
         float newpitch = entity.loc.getPitch();
+        boolean upsideDown = (newpitch <= -91.0f || newpitch >= 91.0f);
 
         // Update yaw
         if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
@@ -33,10 +34,16 @@ public class RailLogicGround extends RailLogic {
         }
 
         // Reduce pitch over time
+        if (upsideDown) {
+            newpitch = MathUtil.wrapAngle(newpitch + 180.0f);
+        }
         if (Math.abs(newpitch) > 0.1) {
             newpitch *= 0.1;
         } else {
             newpitch = 0;
+        }
+        if (upsideDown) {
+            newpitch += 180.0f;
         }
 
         member.setRotationWrap(newyaw, newpitch);

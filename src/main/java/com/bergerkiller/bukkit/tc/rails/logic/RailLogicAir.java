@@ -28,15 +28,21 @@ public class RailLogicAir extends RailLogic {
         final float oldyaw = entity.loc.getYaw();
         float newyaw = oldyaw;
         float newpitch = entity.loc.getPitch();
+        boolean upsideDown = (newpitch <= -91.0f || newpitch >= 91.0f);
 
         // Update yaw
         if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.01) {
             newyaw = MathUtil.getLookAtYaw(movedX, movedZ);
         }
+
         // Update pitch
         if (movedXZ && Math.abs(movedY) > 0.001) {
             // Use movement for pitch (but only when moving horizontally)
-            newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+            if (upsideDown) {
+                newpitch = 180.0f + MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+            } else {
+                newpitch = MathUtil.clamp(-0.7f * MathUtil.getLookAtPitch(-movedX, -movedY, -movedZ), 60.0f);
+            }
         }
 
         member.setRotationWrap(newyaw, newpitch);
