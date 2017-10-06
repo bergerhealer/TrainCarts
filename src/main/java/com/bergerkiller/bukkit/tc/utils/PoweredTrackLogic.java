@@ -8,7 +8,6 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.PoweredRail;
 import org.bukkit.material.Rails;
-import org.bukkit.material.Redstone;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -68,108 +67,36 @@ public class PoweredTrackLogic {
     }
 
     public boolean checkEnd(World world, IntVector3 blockposition, BlockData iblockdata, boolean directionMode, int iterCtr) {
-        if (iterCtr >= 8) {
-            return false;
-        } else {
-            int j = blockposition.x;
-            int k = blockposition.y;
-            int l = blockposition.z;
-            boolean checkBelow = true;
-
-            MaterialData data = iblockdata.getMaterialData();
-            if (!(data instanceof Rails)) {
-                return false;
-            }
-
-            Rails rails = (Rails) data;
-            BlockFace railDirection = ((Rails) data).getDirection();
-            BlockFace checkDirection = railDirection;
-
-            if (rails.isOnSlope()) {
-                switch (railDirection) {
-                case EAST:
-                    if (directionMode) {
-                        --j;
-                    } else {
-                        ++j;
-                        ++k;
-                        checkBelow = false;
-                    }
-                    checkDirection = BlockFace.EAST;
-                    break;
-                    
-                case WEST:
-                    if (directionMode) {
-                        --j;
-                        ++k;
-                        checkBelow = false;
-                    } else {
-                        ++j;
-                    }
-                    checkDirection = BlockFace.EAST;
-                    break;
-                    
-                case NORTH:
-                    if (directionMode) {
-                        ++l;
-                    } else {
-                        --l;
-                        ++k;
-                        checkBelow = false;
-                    }
-                    checkDirection = BlockFace.SOUTH;
-                    break;
-                    
-                case SOUTH:
-                    if (directionMode) {
-                        ++l;
-                        ++k;
-                        checkBelow = false;
-                    } else {
-                        --l;
-                    }
-                    checkDirection = BlockFace.SOUTH;
-                    break;
-                    
-                default:
-                    break;
-                }
-            } else {
-                switch (railDirection) {
-                case NORTH:
-                case SOUTH:
-                    if (directionMode) {
-                        ++l;
-                    } else {
-                        --l;
-                    }
-                    break;
-
-                case EAST:
-                case WEST:
-                    if (directionMode) {
-                        --j;
-                    } else {
-                        ++j;
-                    }
-                    break;
-
-                default:
-                    break;
-                }
-            }
-
-            if (this.checkStep(world, new IntVector3(j, k, l), directionMode, iterCtr, checkDirection)) {
-                return true;
-            }
-            if (checkBelow && this.checkStep(world, new IntVector3(j, k - 1, l), directionMode, iterCtr, checkDirection)) {
-                return true;
-            }
+        MaterialData data = iblockdata.getMaterialData();
+        if (!(data instanceof Rails)) {
             return false;
         }
+
+        Rails rails = (Rails) data;
+        BlockFace railDirection = rails.getDirection();
+
+        // Compute the rail mode (along X or Z) and from that, calculate our walk direction based on direction mode
+        BlockFace checkDirection = FaceUtil.isAlongX(railDirection) ? BlockFace.EAST : BlockFace.SOUTH;
+        BlockFace walkDirection = directionMode ? checkDirection.getOppositeFace() : checkDirection;
+
+        // Get the next block to check up on
+        IntVector3 nextPos = blockposition.add(walkDirection);
+        boolean isSlopeUp = (rails.isOnSlope() && (railDirection == walkDirection));
+        if (isSlopeUp) {
+            nextPos = nextPos.add(BlockFace.UP);
+        }
+
+        // Check
+        if (this.checkStep(world, nextPos, directionMode, iterCtr, checkDirection)) {
+            return true;
+        }
+        if (!isSlopeUp && this.checkStep(world, nextPos.add(BlockFace.DOWN), directionMode, iterCtr, checkDirection)) {
+            return true;
+        }
+        return false;
     }
 
-    public boolean checkStep(World world, IntVector3 blockposition, boolean directionMode, int iterCtr, BlockFace blockminecarttrackabstract_enumtrackposition) {
+    public boolean checkStep(World world, IntVector3 blockposition, boolean directionMode, int iterCtr, BlockFace walkDirection) {
         BlockData iblockdata = WorldUtil.getBlockData(world, blockposition);
 
         if (iblockdata.getType() != this.railType) {
@@ -181,21 +108,30 @@ public class PoweredTrackLogic {
             }
 
             Rails rails = (Rails) blockData;
-            BlockFace blockminecarttrackabstract_enumtrackposition1 = rails.getDirection();
+            BlockFace railDirection = rails.getDirection();
 
-            if (FaceUtil.isAlongX(blockminecarttrackabstract_enumtrackposition) != FaceUtil.isAlongX(blockminecarttrackabstract_enumtrackposition1)) {
+            // Make sure rail is oriented the same way for it to 'connect'
+            if (FaceUtil.isAlongX(walkDirection) != FaceUtil.isAlongX(railDirection)) {
                 return false;
             }
 
-            if (!(blockData instanceof Redstone) || !((Redstone) blockData).isPowered()) {
+            // Check that the rail itself is powered on
+            if (!(blockData instanceof PoweredRail) || !((PoweredRail) blockData).isPowered()) {
                 return false;
             }
 
+            // If the block is receiving redstone power indirectly, it is actually powered and so are we!
             if (blockposition.toBlock(world).isBlockIndirectlyPowered()) {
                 return true;
             }
 
-            return this.checkEnd(world, blockposition, iblockdata, directionMode, iterCtr + 1);
+            // Check that we have not exhausted the maximum power length by incrementing the counter here
+            if (++iterCtr >= 8) {
+                return false;
+            }
+
+            // Recursive 'next' checking
+            return this.checkEnd(world, blockposition, iblockdata, directionMode, iterCtr);
         }
     }
 
