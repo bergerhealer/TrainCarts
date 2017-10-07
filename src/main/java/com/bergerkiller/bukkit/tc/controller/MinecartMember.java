@@ -6,7 +6,9 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
@@ -220,18 +222,50 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param cause of the damage
      * @return True if damage is allowed
      */
-    public boolean canTakeDamage(DamageCause cause) {
+    public boolean canTakeDamage(Entity passenger, DamageCause cause) {
         if (getGroup().isTeleportImmune()) {
             return false;
         }
 
-        // When upside-down, there is a problem with random suffocation damage
-        // Upside-down is impossible when theres a block there, so cancel it at all times
-        if (cause == DamageCause.SUFFOCATION && this.getRailLogic().isUpsideDown()) {
+        // Suffocation damage presently only occurs from blocks above because of Vanilla behavior
+        // If this Minecart does not suffocate at all, cancel this event
+        if (cause == DamageCause.SUFFOCATION && !this.isPassengerSuffocating(passenger)) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Checks whether a passenger of this Minecart is stuck inside a block, and therefore will be
+     * suffocating.
+     * 
+     * @param passenger to check
+     * @return True if suffocating
+     */
+    public boolean isPassengerSuffocating(Entity passenger) {
+        // Turn Minecart position into a 4x4 transform matrix
+        Matrix4x4 transform = new Matrix4x4();
+        transform.translateRotate(this.entity.getLocation());
+
+        // Transform passenger position with it
+        Vector position = this.getPassengerPosition(passenger);
+        transform.transformPoint(position);
+        BlockData dataAtPos = WorldUtil.getBlockData(entity.getWorld(),
+                position.getBlockX(), position.getBlockY(), position.getBlockZ());
+
+        // Check if suffocating
+        return dataAtPos.isSuffocating();
+    }
+
+    /**
+     * Gets the relative position of a passenger of this Minecart
+     * 
+     * @param passenger
+     * @return passenger position
+     */
+    public Vector getPassengerPosition(Entity passenger) {
+        return new Vector(0.0, 0.5, 0.0);
     }
 
     public boolean isInChunk(Chunk chunk) {

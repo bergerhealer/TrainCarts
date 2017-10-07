@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
-import com.bergerkiller.bukkit.common.map.util.Matrix4f;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -371,19 +371,18 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
      * 
      * @return transform
      */
-    private Matrix4f getTransform() {
-        Matrix4f transform = new Matrix4f();
+    private Matrix4x4 getTransform() {
+        Matrix4x4 transform = new Matrix4x4();
 
         // Some factor of the movement change needs to be re-predicted
         // Otherwise things stuck to this Minecart will always move ahead
         final double MOVE_FX = 0.625;
-        transform.translate(
-                (float) (this.locSynched.getX() - (this.lastDeltaX * MOVE_FX)),
-                (float) (this.locSynched.getY() - (this.lastDeltaY * MOVE_FX)),
-                (float) (this.locSynched.getZ() - (this.lastDeltaZ * MOVE_FX)));
-
-        transform.rotateY(this.locSynched.getYaw() + 90.0f);
-        transform.rotateX(this.locSynched.getPitch());
+        transform.translateRotate(
+                (this.locSynched.getX() - (this.lastDeltaX * MOVE_FX)),
+                (this.locSynched.getY() - (this.lastDeltaY * MOVE_FX)),
+                (this.locSynched.getZ() - (this.lastDeltaZ * MOVE_FX)),
+                this.locSynched.getYaw(), this.locSynched.getPitch()
+        );
         return transform;
     }
 

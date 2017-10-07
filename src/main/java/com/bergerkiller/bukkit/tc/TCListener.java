@@ -781,7 +781,7 @@ public class TCListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageEvent event) {
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity().getVehicle());
-        if (member != null && !member.canTakeDamage(event.getCause())) {
+        if (member != null && !member.canTakeDamage(event.getEntity(), event.getCause())) {
             event.setCancelled(true);
         }
     }

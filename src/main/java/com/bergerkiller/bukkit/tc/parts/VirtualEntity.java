@@ -6,11 +6,10 @@ import java.util.UUID;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.map.util.Matrix4f;
-import com.bergerkiller.bukkit.common.map.util.Vector3f;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -59,8 +58,8 @@ public class VirtualEntity implements DisplayedPart {
     }
 
     @Override
-    public void updatePosition(Matrix4f transform) {
-        Vector3f v = new Vector3f((float) this.posX, (float) this.posY, (float) this.posZ);
+    public void updatePosition(Matrix4x4 transform) {
+        Vector3 v = new Vector3(this.posX, this.posY, this.posZ);
         transform.transformPoint(v);
 
         liveAbsX = v.x;
