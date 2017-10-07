@@ -33,7 +33,7 @@ public class RailLogicVerticalSlopeUpsideDownA extends RailLogicVerticalSlopeBas
 
     @Override
     public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
-        return (y + 0.0001) < ((double) blockPos.y - 1.0 + (0.5 * (0.5 + Y_POS_OFFSET_UPSIDEDOWN)));
+        return (y + 0.0001) < (blockPos.midY() - 1.0 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
     }
 
 }

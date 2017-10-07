@@ -31,7 +31,8 @@ public class RailLogicHorizontal extends RailLogic {
     private final BlockFace[] faces;
     private final BlockFace[] ends;
     public static final double Y_POS_OFFSET = 0.0625;
-    public static final double Y_POS_OFFSET_UPSIDEDOWN = 0.20;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN = 0.25;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN_SLOPE = -0.4;
 
     protected RailLogicHorizontal(BlockFace direction) {
         this(direction, false);

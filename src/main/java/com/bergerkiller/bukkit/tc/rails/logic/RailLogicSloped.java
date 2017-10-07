@@ -118,7 +118,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
         pos.setY(pos.getY() + dy);
 
         if (this.isUpsideDown()) {
-            pos.setY(pos.getY() - 0.35);
+            pos.setY(pos.getY() + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
         }
 
         return pos;
