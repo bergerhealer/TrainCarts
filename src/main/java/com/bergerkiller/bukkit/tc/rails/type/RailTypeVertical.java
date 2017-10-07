@@ -66,6 +66,12 @@ public class RailTypeVertical extends RailType {
             return above;
         }
 
+        // When there is an upside-down slope connecting it, allow the vertical rail TWO above
+        Block twoAbove = pos.getRelative(0, 2, 0);
+        if (isRail(twoAbove) && isVerticalSlopeUpsideDownB(twoAbove)) {
+            return twoAbove;
+        }
+
         return null;
     }
 
