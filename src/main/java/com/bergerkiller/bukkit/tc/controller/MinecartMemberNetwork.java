@@ -11,11 +11,11 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.parts.FakePlayer;
 import com.bergerkiller.bukkit.tc.parts.VirtualEntity;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
@@ -128,14 +128,18 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             CommonPacket velocityPacket;
             if (inRange) {
                 // Send the current velocity
-                velocityPacket = getVelocityPacket(velSynched.getX(), velSynched.getY(), velSynched.getZ());
+                velocityPacket = getVelocityPacket(velSynched.length());
             } else {
                 // Clear velocity
-                velocityPacket = getVelocityPacket(0.0, 0.0, 0.0);
+                velocityPacket = getVelocityPacket(0.0);
             }
             // Send
             PacketUtil.sendPacket(player, velocityPacket);
         }
+    }
+
+    private CommonPacket getVelocityPacket(double velocity) {
+        return getVelocityPacket(velocity, 0.0, 0.0);
     }
 
     public void sendUpsideDownUnmount(Player viewer, Entity entity) {
@@ -450,30 +454,28 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             rotPitch += getAngleKFactor(rotPitch, locSynched.getPitch());
         }
 
-        // If the pitch angle crosses a 180-degree boundary, re-spawn the minecart
+        // Minecraft has really shitty pitch angle calculations for Minecarts
+        // For example, if the pitch angle crosses a 180-degree boundary, it bugs out!
+        // But we can detect this consistent behavior, and respawn the Minecart when we detect it happening
         // This prevents a really ugly 360 rotation from occurring
-        if (rotated) {
-            int prot_a = EntityTrackerEntryHandle.getProtocolRotation(rotPitch) & 0xFF;
-            int prot_b = EntityTrackerEntryHandle.getProtocolRotation(locSynched.getPitch()) & 0xFF;
-            if ((prot_a <= 127 && prot_b >= 128) || (prot_b <= 127 && prot_a >= 128)) {
-                rotYaw = rotYawLive;
-                rotPitch = rotPitchLive;
-                absolute = false;
-                rotated = false;
+        if (rotated && Util.isProtocolRotationGlitched(locSynched.getPitch(), rotPitch)) {
+            rotYaw = rotYawLive;
+            rotPitch = rotPitchLive;
+            absolute = false;
+            rotated = false;
 
-                // Instantly set the newly requested rotation
-                locSynched.setRotation(rotYaw, rotPitch);
+            // Instantly set the newly requested rotation
+            locSynched.setRotation(rotYaw, rotPitch);
 
-                // Destroy and re-spawn the minecart with the new coordinates
-                // Do not do any wacky passenger mounting/unmounting here
-                // We only want to respawn the Minecart itself
-                this.disableMountHandling = true;
-                for (Player viewer : this.getViewers()) {
-                    super.makeHidden(viewer, true);
-                    super.makeVisible(viewer);
-                }
-                this.disableMountHandling = false;
+            // Destroy and re-spawn the minecart with the new coordinates
+            // Do not do any wacky passenger mounting/unmounting here
+            // We only want to respawn the Minecart itself
+            this.disableMountHandling = true;
+            for (Player viewer : this.getViewers()) {
+                super.makeHidden(viewer, true);
+                super.makeVisible(viewer);
             }
+            this.disableMountHandling = false;
         }
 
         isFirstUpdate = false;
@@ -500,14 +502,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
         // Minecraft does not play minecart audio for the Y-axis. To make sound on vertical rails,
         // we instead apply the vector length to just the X-axis so that this works.
-        Vector currVelocity;
+        double currVelocity;
         if (member.isDerailed()) {
-            currVelocity = new Vector(0.0, 0.0, 0.0);
+            currVelocity = 0.0;
         } else {
-            currVelocity = new Vector(velLive.length(), 0.0, 0.0);
+            currVelocity = velLive.length();
         }
-        boolean velocityChanged = (velSynched.distanceSquared(currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY)) ||
-                (velSynched.lengthSquared() > 0.0 && currVelocity.lengthSquared() == 0.0);
+        boolean velocityChanged = (MathUtil.length(velSynched.length(), currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY)) ||
+                (velSynched.lengthSquared() > 0.0 && currVelocity == 0.0);
 
         // Synchronize velocity
         if (absolute || getEntity().isVelocityChanged() || velocityChanged) {
@@ -515,9 +517,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             getEntity().setVelocityChanged(false);
 
             // Send packets to recipients
-            velSynched.set(currVelocity);
+            velSynched.set(currVelocity, 0.0, 0.0);
 
-            CommonPacket velocityPacket = getVelocityPacket(currVelocity.getX(), currVelocity.getY(), currVelocity.getZ());
+            CommonPacket velocityPacket = getVelocityPacket(currVelocity);
             for (Player player : velocityUpdateReceivers) {
                 PacketUtil.sendPacket(player, velocityPacket);
             }

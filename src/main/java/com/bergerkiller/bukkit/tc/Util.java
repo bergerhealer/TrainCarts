@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
@@ -877,5 +878,19 @@ public class Util {
      */
     public static boolean isInvalidCharacter(char c) {
         return Character.getType(c) == Character.PRIVATE_USE;
+    }
+
+    /**
+     * Checks whether Minecraft's crappy rotation system will crap out when rotating
+     * from one angle to another
+     * 
+     * @param angleOld
+     * @param angleNew
+     * @return angle of the rotation performed
+     */
+    public static boolean isProtocolRotationGlitched(float angleOld, float angleNew) {
+        int protOld = EntityTrackerEntryHandle.getProtocolRotation(angleOld);
+        int protNew = EntityTrackerEntryHandle.getProtocolRotation(angleNew);
+        return Math.abs(protNew - protOld) > 128;
     }
 }

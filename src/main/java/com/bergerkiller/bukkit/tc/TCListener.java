@@ -494,12 +494,12 @@ public class TCListener implements Listener {
         Material railType = heldItem.getType();
 
         // Upside-down rails
-        if (MaterialUtil.ISRAILS.get(railType)) {
+        if (MaterialUtil.ISRAILS.get(railType) && TCConfig.allowUpsideDownRails) {
 
             // If the block below is air or rail, and above is a solid
             Block below = placedBlock.getRelative(BlockFace.DOWN);
             Block above = placedBlock.getRelative(BlockFace.UP);
-            if ((below.getType() == Material.AIR || Util.ISVERTRAIL.get(below)) && MaterialUtil.SUFFOCATES.get(above)) {
+            if ((!below.getType().isSolid() || Util.ISVERTRAIL.get(below)) && MaterialUtil.SUFFOCATES.get(above)) {
 
                 // Custom placement of an upside-down normal rail
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, placedBlock.getState(),

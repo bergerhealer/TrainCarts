@@ -116,7 +116,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
 
         // Check block directly below - should be able to pass through
-        if (MaterialUtil.SUFFOCATES.get(railsBlock.getRelative(BlockFace.DOWN))) {
+        if (railsBlock.getRelative(BlockFace.DOWN).getType().isSolid()) {
             return false;
         }
 
