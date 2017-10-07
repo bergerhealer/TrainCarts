@@ -265,7 +265,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return passenger position
      */
     public Vector getPassengerPosition(Entity passenger) {
-        return new Vector(0.0, 0.5, 0.0);
+        return new Vector(0.0, 1.0, 0.0);
     }
 
     public boolean isInChunk(Chunk chunk) {

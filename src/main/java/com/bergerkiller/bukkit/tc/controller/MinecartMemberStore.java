@@ -228,11 +228,11 @@ public abstract class MinecartMemberStore {
         if (controller == null) {
             throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
         }
-        EntityNetworkController<?> networkController = createNetworkController();
-        CommonEntity.spawn(type, at, controller, networkController);
+        CommonEntity.spawn(type, at, controller, createNetworkController());
         controller.invalidateDirection();
         controller.setDirection(FaceUtil.yawToFace(at.getYaw()));
-        return MemberSpawnEvent.call(controller).getMember();
+        MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();
+        return result;
     }
 
     /**

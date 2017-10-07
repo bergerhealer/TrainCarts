@@ -37,6 +37,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
     private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
+    private MinecartMember<?> member = null;
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
     private boolean wasUpsideDown = false; // whether passengers should be rendered upside-down
     private boolean useVirtualCamera = false; // whether a virtual camera detached from the minecart should be used by players
@@ -81,6 +82,15 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         };
     }
 
+    @Override
+    public void onAttached() {
+        super.onAttached();
+
+        if (this.member == null) {
+            this.member = this.entity.getController(MinecartMember.class);
+        }
+    }
+
     private static float getAngleKFactor(float angle1, float angle2) {
         float diff = angle1 - angle2;
         while (diff <= -180.0f) {
@@ -90,6 +100,17 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             diff -= 360.0f;
         }
         return (ROTATION_K * diff);
+    }
+
+    public void setMember(MinecartMember<?> member) {
+        this.member = member;
+    }
+
+    public MinecartMember<?> getMember() {
+        if (this.member == null) {
+            this.member = this.entity.getController(MinecartMember.class);
+        }
+        return this.member;
     }
 
     private double convertVelocity(double velocity) {
@@ -178,10 +199,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         if (isVirtualMount && this.fakeMount == null && !this.disableVirtualCameraHandling) {
             this.fakeMount = new VirtualEntity();
-            this.fakeMount.setPosition(0.0, 1.0, 0.0);
+            this.fakeMount.setPosition(this.getMember().getPassengerPosition(passenger));
 
             // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
-            this.fakeMount.updatePosition(this.getTransform());
+            this.fakeMount.updatePosition(this.getTransform(false));
             this.fakeMount.syncPosition(Collections.emptyList(), true);
             this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
@@ -300,36 +321,46 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             if (entity.isDead()) {
                 return;
             }
-            MinecartMember<?> member = (MinecartMember<?>) entity.getController();
-            if (member.isUnloaded()) {
-                // Unloaded: Synchronize just this Minecart
-                super.onSync();
-                return;
-            } else if (member.getIndex() != 0) {
-                // Ignore
-                return;
+
+            // Retrieve group from this Minecart + addtional checks
+            MinecartGroup group;
+            {
+                MinecartMember<?> member = (MinecartMember<?>) entity.getController();
+                if (member.isUnloaded()) {
+                    // Unloaded: Synchronize just this Minecart
+                    super.onSync();
+                    return;
+                } else if (member.getIndex() != 0) {
+                    // Ignore minecarts other than the first
+                    return;
+                } else {
+                    group = member.getGroup();
+                }
             }
 
             // Update the entire group
             int i;
-            MinecartGroup group = member.getGroup();
             final int count = group.size();
             MinecartMemberNetwork[] networkControllers = new MinecartMemberNetwork[count];
             for (i = 0; i < count; i++) {
-                EntityNetworkController<?> controller = group.get(i).getEntity().getNetworkController();
+                MinecartMember<?> member = group.get(i);
+                EntityNetworkController<?> controller = member.getEntity().getNetworkController();
                 if (!(controller instanceof MinecartMemberNetwork)) {
                     // This is not good, but we can fix it...but not here
                     group.networkInvalid.set();
                     return;
                 }
                 networkControllers[i] = (MinecartMemberNetwork) controller;
+                if (networkControllers[i].member != member) {
+                    networkControllers[i].member = member;
+                }
             }
 
             // Synchronize to the clients
             if (this.getTicksSinceLocationSync() > ABSOLUTE_UPDATE_INTERVAL) {
                 // Perform absolute updates
                 for (i = 0; i < count; i++) {
-                    networkControllers[i].syncSelf(group.get(i), true, true, true);
+                    networkControllers[i].syncSelf(true, true, true);
                 }
             } else {
                 // Perform relative updates
@@ -356,7 +387,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
                     // Perform actual updates
                     for (i = 0; i < count; i++) {
-                        networkControllers[i].syncSelf(group.get(i), moved, rotated, false);
+                        networkControllers[i].syncSelf(moved, rotated, false);
                     }
                 }
             }
@@ -367,16 +398,26 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     /**
-     * Gets the position transform of this Minecart
+     * Gets the position transform of this Minecart with motion prediction taken into account
      * 
      * @return transform
      */
     private Matrix4x4 getTransform() {
+        return getTransform(true);
+    }
+
+    /**
+     * Gets the position transform of this Minecart
+     * 
+     * @param motion whether motion prediction needs to be taken into account
+     * @return transform
+     */
+    private Matrix4x4 getTransform(boolean motion) {
         Matrix4x4 transform = new Matrix4x4();
 
         // Some factor of the movement change needs to be re-predicted
         // Otherwise things stuck to this Minecart will always move ahead
-        final double MOVE_FX = 0.625;
+        double MOVE_FX = motion ? 0.625 : 0.0;
         transform.translateRotate(
                 (this.locSynched.getX() - (this.lastDeltaX * MOVE_FX)),
                 (this.locSynched.getY() - (this.lastDeltaY * MOVE_FX)),
@@ -386,7 +427,12 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return transform;
     }
 
-    public void syncSelf(MinecartMember<?> member, boolean moved, boolean rotated, boolean absolute) {
+    public void syncSelf(boolean moved, boolean rotated, boolean absolute) {
+        // Check
+        if (this.getMember() == null) {
+            return;
+        }
+
         // Read live location
         double posX = locLive.getX();
         double posY = locLive.getY();
@@ -490,7 +536,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Handle switching between upside-down/virtual camera views
         boolean isUpsideDown = MathUtil.getAngleDifference(locLive.getPitch(), 180.0f) < 89.0f;
         boolean isVirtualCamera = isUpsideDown || (locLive.getPitch() < -46.0f) || (locLive.getPitch() > 46.0f);
-        if (isUpsideDown != this.wasUpsideDown || isVirtualCamera != this.useVirtualCamera) {  
+        boolean isVirtualCameraChange = (isVirtualCamera != this.useVirtualCamera);
+        if (isUpsideDown != this.wasUpsideDown || isVirtualCameraChange) {  
             List<Entity> old_passengers = this.getSynchedPassengers();
 
             if (isVirtualCamera && this.useVirtualCamera) {
@@ -517,7 +564,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Synchronized the player mount to the player that rides this Minecart, when upside-down
         // This moves the mount along with the player and simulates an alternative first-person camera view
-        if (this.useVirtualCamera && (absolute || moved) && this.fakeMount != null) {
+        if (!isVirtualCameraChange && this.useVirtualCamera && (absolute || moved) && this.fakeMount != null) {
+            // Refresh camera position. Mostly useless since it's a constant, but that may change!
+            for (Entity passenger : this.getSynchedPassengers()) {
+                if (passenger instanceof Player) {
+                    this.fakeMount.setPosition(this.getMember().getPassengerPosition(passenger));
+                    break;
+                }
+            }
+
+            // Move the fake mount with this Minecart
             this.fakeMount.updatePosition(this.getTransform());
 
             Collection<Entity> passengers = this.getSynchedPassengers();

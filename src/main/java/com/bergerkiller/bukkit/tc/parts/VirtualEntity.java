@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Vector3;
@@ -47,14 +48,12 @@ public class VirtualEntity implements DisplayedPart {
     /**
      * Sets the relative position of this Entity
      * 
-     * @param x
-     * @param y
-     * @param z
+     * @param position
      */
-    public void setPosition(double x, double y, double z) {
-        this.posX = x;
-        this.posY = y;
-        this.posZ = z;
+    public void setPosition(Vector position) {
+        this.posX = position.getX();
+        this.posY = position.getY();
+        this.posZ = position.getZ();
     }
 
     @Override
@@ -74,6 +73,7 @@ public class VirtualEntity implements DisplayedPart {
     }
 
     public void spawn(Player viewer, double motX, double motY, double motZ) {
+        //motX = motY = motZ = 0.0;
         CommonPacket packet = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, UUID.randomUUID());
