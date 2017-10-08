@@ -98,14 +98,16 @@ public class RailLogicAir extends RailLogic {
 
         // If we were previously on rails, check if these were sloped rails to give a Y-velocity boost
         if (member.getRailTracker().getLastLogic() instanceof RailLogicSloped) {
-            BlockFace slopeDir = ((RailLogicSloped) member.getRailTracker().getLastLogic()).getDirection();
+            RailLogicSloped slopedLogic = (RailLogicSloped) member.getRailTracker().getLastLogic();
+            BlockFace slopeDir = slopedLogic.getDirection();
             double velLen = entity.vel.length();
             double dx = slopeDir.getModX() * MathUtil.HALFROOTOFTWO * velLen;
+            double dy = MathUtil.HALFROOTOFTWO * velLen;
             double dz = slopeDir.getModZ() * MathUtil.HALFROOTOFTWO * velLen;
             if (slopeDir == member.getDirectionFrom()) {
-                entity.vel.set(dx, MathUtil.HALFROOTOFTWO * velLen, dz);
+                entity.vel.set(dx, dy, dz);
             } else {
-                entity.vel.set(-dx, -MathUtil.HALFROOTOFTWO * velLen, -dz);
+                entity.vel.set(-dx, -dy, -dz);
             }
         }
 
