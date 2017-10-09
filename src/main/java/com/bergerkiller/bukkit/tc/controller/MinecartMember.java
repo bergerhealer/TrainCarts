@@ -1198,7 +1198,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 // For head/tail we can adjust our own position to stretch or shrink the train in size
                 MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
                 Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
-                Vector o = m.calculateOrientation();
 
                 // If distance can not be reliably calculated, use BlockFace direction
                 // Otherwise normalize the direction vector
@@ -1213,9 +1212,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     direction.setY(direction.getY() / distance);
                     direction.setZ(direction.getZ() / distance);
                 }
-                
-                direction.add(o);
-                direction.multiply(0.5);
 
                 // Set the factor to the offset we must make to correct the distance
                 double distanceDiff = (TCConfig.cartDistance - distance);
