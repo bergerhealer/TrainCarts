@@ -14,6 +14,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 
@@ -64,7 +65,7 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
     }
 
     @Override
-    public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove(speedFactor);
         if (this.getProperties().canPickup()) {
             Inventory inv = entity.getInventory();

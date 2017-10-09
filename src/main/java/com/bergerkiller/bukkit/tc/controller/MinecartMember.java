@@ -1125,32 +1125,145 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Gets a normalized vector of the desired orientation of the Minecart
+     * 
+     * @return orientation
+     */
+    public Vector calculateOrientation() {
+        MinecartGroup group = this.getGroup();
+        if (group.size() <= 1) {
+            return new Vector(entity.getMovedX(), entity.getMovedY(), entity.getMovedZ()).normalize();
+        }
+
+        // Find our displayed angle based on the relative position of this Minecart to the neighbours
+        int n = 0;
+        double dx = 0.0, dy = 0.0, dz = 0.0;
+        if (this != group.head()) {
+            // Add difference between this cart and the cart before
+            MinecartMember<?> m = this.getNeighbour(-1);
+            dx += m.getEntity().loc.getX() - this.getEntity().loc.getX();
+            dy += m.getEntity().loc.getY() - this.getEntity().loc.getY();
+            dz += m.getEntity().loc.getZ() - this.getEntity().loc.getZ();
+            n++;
+        }
+        if (this != group.tail()) {
+            // Add difference between this cart and the cart after
+            MinecartMember<?> m = this.getNeighbour(1);
+            dx += this.getEntity().loc.getX() - m.getEntity().loc.getX();
+            dy += this.getEntity().loc.getY() - m.getEntity().loc.getY();
+            dz += this.getEntity().loc.getZ() - m.getEntity().loc.getZ();
+            n++;
+        }
+        dx /= n;
+        dy /= n;
+        dz /= n;
+
+        return new Vector(dx, dy, dz).normalize();
+    }
+
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        Vector speedFactor = new Vector(0.0, 0.0, 0.0);
+        MinecartGroup group = this.getGroup();
+        if (group.size() != 1) {
+            boolean isHead = (this == group.head());
+            boolean isTail = (this == group.tail());
+            if (!isHead && !isTail) {
+                // If this is in between two carts, ideally we'd center right in the middle
+                // The head and tail should spread out to correct any wrong cart distances
+                // In between the two carts there is a rail along which the true middle is achieved
+                // The middle to use depends on the velocities (directions) of the carts in-between
+                MinecartMember<?> m1 = this.getNeighbour(-1);
+                MinecartMember<?> m2 = this.getNeighbour(1);
+                
+ 
+                Vector m1d = m1.calculateOrientation();
+                Vector m2d = m2.calculateOrientation();
+                
+                double dist = 0.5 * m1.getEntity().loc.distance(m2.getEntity().loc);
+                
+                double px = 0.5 * ( (m1.getEntity().loc.getX() + dist * m1d.getX()) +
+                            (m2.getEntity().loc.getX() - dist * m2d.getX()) );
+                double py = 0.5 * ( (m1.getEntity().loc.getY() + dist * m1d.getY()) +
+                            (m2.getEntity().loc.getY() - dist * m2d.getY()) );
+                double pz = 0.5 * ( (m1.getEntity().loc.getZ() + dist * m1d.getZ()) +
+                            (m2.getEntity().loc.getZ() - dist * m2d.getZ()) );
+
+                //double mx = 0.5 * (m1.getEntity().loc.getX() + m2.getEntity().loc.getX());
+                //double my = 0.5 * (m1.getEntity().loc.getY() + m2.getEntity().loc.getY());
+                //double mz = 0.5 * (m1.getEntity().loc.getZ() + m2.getEntity().loc.getZ());
+                speedFactor.setX(px - this.getEntity().loc.getX());
+                speedFactor.setY(py - this.getEntity().loc.getY());
+                speedFactor.setZ(pz - this.getEntity().loc.getZ());
+            } else {
+                // For head/tail we can adjust our own position to stretch or shrink the train in size
+                MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
+                Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
+                Vector o = m.calculateOrientation();
+
+                // If distance can not be reliably calculated, use BlockFace direction
+                // Otherwise normalize the direction vector
+                double distance = direction.length();
+                if (distance < 0.01) {
+                    direction.setX(this.getDirection().getModX());
+                    direction.setY(this.getDirection().getModY());
+                    direction.setZ(this.getDirection().getModZ());
+                    direction.normalize();
+                } else {
+                    direction.setX(direction.getX() / distance);
+                    direction.setY(direction.getY() / distance);
+                    direction.setZ(direction.getZ() / distance);
+                }
+                
+                direction.add(o);
+                direction.multiply(0.5);
+
+                // Set the factor to the offset we must make to correct the distance
+                double distanceDiff = (TCConfig.cartDistance - distance);
+                speedFactor.setX(direction.getX() * distanceDiff);
+                speedFactor.setY(direction.getY() * distanceDiff);
+                speedFactor.setZ(direction.getZ() * distanceDiff);
+            }
+        }
+
+        this.onPhysicsPostMove(speedFactor);
+    }
+
+    /**
      * Moves the minecart and performs post-movement logic such as events, onBlockChanged and other (rail) logic
      * Physics stage: <b>4</b>
      *
-     * @param speedFactor to apply when moving
+     * @param speedFactor to apply, which is used to adjust minecart positioning
      * @throws MemberMissingException - thrown when the minecart is dead or dies
      * @throws GroupUnloadedException - thrown when the group is no longer loaded
      */
-    public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
         this.checkMissing();
 
-        // Modify speed factor to stay within bounds
-        speedFactor = MathUtil.clamp(MathUtil.fixNaN(speedFactor, 1), 0.1, 10);
-
-        // Apply speed factor to maxed and not-a-number-fixed values
-        double motX = speedFactor * entity.vel.x.fixNaN().getClamped(entity.getMaxSpeed());
-        double motY = entity.vel.y.fixNaN().getClamped(entity.getMaxSpeed());
-        double motZ = speedFactor * entity.vel.z.fixNaN().getClamped(entity.getMaxSpeed());
-
-        // Only apply the speedfactor to Y when not flying (this avoids some really bad stuff!)
-        if (!isFlying()) {
-            motY *= speedFactor;
+        // Limit velocity to Max Speed
+        entity.vel.fixNaN();
+        Vector vel = entity.getVelocity();
+        if (TCConfig.legacySpeedLimiting) {
+            // Legacy limiting limited each axis individually
+            // In curves and when going up, this resulted in speeds higher than permitted
+            vel.setX(MathUtil.clamp(vel.getX(), entity.getMaxSpeed()));
+            vel.setY(MathUtil.clamp(vel.getY(), entity.getMaxSpeed()));
+            vel.setZ(MathUtil.clamp(vel.getZ(), entity.getMaxSpeed()));
+        } else {
+            // New limiting system preserves the velocity direction, but normalizes it to the max speed
+            double vel_length = entity.vel.length();
+            if (vel_length > entity.getMaxSpeed()) {
+                double vel_factor = (entity.getMaxSpeed() / vel_length);
+                vel.multiply(vel_factor);
+            }
         }
+
+        // Apply speed factor to adjust the minecart positions relative to each other
+        // The rate at which this happens depends on the speed of the minecart
+        this.getRailLogic().onSpacingUpdate(this, vel, speedFactor);
 
         // No vertical motion if stuck to the rails that way
         if (!getRailLogic().hasVerticalMovement()) {
-            motY = 0.0;
+            vel.setY(0.0);
         }
 
         // Refresh last-update direction and block information
@@ -1158,7 +1271,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getRailTracker().updateLast();
 
         // Move using set motion, and perform post-move rail logic
-        this.onMove(MoveType.SELF, motX, motY, motZ);
+        this.onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
 
         this.checkMissing();
         this.getRailLogic().onPostMove(this);

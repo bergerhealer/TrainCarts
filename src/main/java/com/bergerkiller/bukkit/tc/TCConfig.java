@@ -26,6 +26,12 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 public class TCConfig {
     public static final StringReplaceBundle messageShortcuts = new StringReplaceBundle();
     public static final StringReplaceBundle statementShortcuts = new StringReplaceBundle();
+
+    // Some updates break things people did in the past
+    // This allows people to restore older logic
+    public static boolean legacyVerticalGravity;
+    public static boolean legacySpeedLimiting;
+
     public static double maxVelocity;
     public static double maxEjectDistance;
     public static double cartDistance;
@@ -52,7 +58,6 @@ public class TCConfig {
     public static boolean showTransferAnimations;
     public static boolean craftingRequireWorkbench;
     public static boolean slowDownEmptyCarts;
-    public static boolean legacyVerticalGravity;
     public static double slowDownMultiplierSlow;
     public static double slowDownMultiplierNormal;
     public static boolean refillAtStations;
@@ -217,6 +222,13 @@ public class TCConfig {
         config.addHeader("legacyVerticalGravity", "It took a lot more speed to get up a vertical rail compared to sloped rails");
         config.addHeader("legacyVerticalGravity", "This was fixed. If you depend on this legacy behavior, change this option to True");
         legacyVerticalGravity = config.get("legacyVerticalGravity", false);
+
+        config.setHeader("legacySpeedLimiting", "\nBefore TrainCarts v1.12.2-v1 speed limiting was done on each individual axis");
+        config.addHeader("legacySpeedLimiting", "This had a big impact on air physics, because it never made a good ellipse fall");
+        config.addHeader("legacySpeedLimiting", "This was changed to preserving the motion vector direction when doing speed limiting");
+        config.addHeader("legacySpeedLimiting", "Slight changes may have occurred in curves, slopes and through-air physics");
+        config.addHeader("legacySpeedLimiting", "To restore the old limiting system, set this option to True");
+        legacySpeedLimiting = config.get("legacySpeedLimiting", false);
 
         config.setHeader("allowRailEditing", "\nWhether players (with build permissions) can edit existing rails by right-clicking on them");
         allowRailEditing = config.get("allowRailEditing", true);

@@ -3,7 +3,9 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -15,6 +17,16 @@ public class RailLogicGround extends RailLogic {
 
     private RailLogicGround() {
         super(BlockFace.SELF);
+    }
+
+    @Override
+    public void onSpacingUpdate(MinecartMember<?> member, Vector velocity, Vector factor) {
+        double motLen = velocity.length();
+        if (motLen > 0.01) {
+            double f = motLen / member.getEntity().getMaxSpeed();
+            velocity.setX(velocity.getX() + f * factor.getX() * TCConfig.cartDistanceForcer);
+            velocity.setZ(velocity.getZ() + f * factor.getZ() * TCConfig.cartDistanceForcer);
+        }
     }
 
     @Override

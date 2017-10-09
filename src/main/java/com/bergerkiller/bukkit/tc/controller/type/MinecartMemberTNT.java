@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Effect;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
     private boolean ignoreDamage = false;
@@ -40,7 +41,7 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
     }
 
     @Override
-    public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove(speedFactor);
         int ticks = entity.getFuseTicks();
         if (ticks > 0) {

@@ -15,6 +15,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
     private boolean wasOnVertical = false;
@@ -151,7 +152,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove(speedFactor);
 
         // Fuel update routines

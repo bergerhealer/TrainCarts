@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.util.Vector;
 
 public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideable> {
     private List<Entity> oldPassengers = new ArrayList<Entity>();
@@ -27,7 +28,7 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
     }
 
     @Override
-    public void onPhysicsPostMove(double speedFactor) throws MemberMissingException, GroupUnloadedException {
+    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove(speedFactor);
 
         // Detect changes in passengers; call onPropertiesChanged() when that happens

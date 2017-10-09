@@ -514,10 +514,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void setForwardForce(double force) {
-        if (force == 0.0) {
-            this.stop();
-            return;
+        for (MinecartMember<?> mm : this) {
+            final double currvel = mm.getForce();
+            if (currvel <= 0.01 || Math.abs(force) < 0.01) {
+                mm.setForwardForce(force);
+            } else {
+                mm.getEntity().vel.multiply(force / currvel);
+            }
         }
+        
+        /*
         final double currvel = this.head().getForce();
         if (currvel <= 0.01 || Math.abs(force) < 0.01) {
             for (MinecartMember<?> mm : this) {
@@ -529,6 +535,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 mm.getEntity().vel.multiply(f);
             }
         }
+        */
 
     }
 
@@ -618,6 +625,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         */
     }
 
+    /**
+     * Gets the average speed/force of this train. Airbound Minecarts are exempt
+     * from the average. See also:
+     * {@link com.bergerkiller.bukkit.tc.rails.logic.RailLogic#hasForwardVelocity(member) RailLogic.hasForwardVelocity(member)}
+     * 
+     * @return average (forward) force
+     */
     public double getAverageForce() {
         if (this.isEmpty()) {
             return 0;
@@ -1030,7 +1044,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             if (this.size() == 1) {
                 //Simplified calculation for single carts
-                this.head().onPhysicsPostMove(1);
+                this.head().onPhysicsPostMove();
             } else {
                 //Get the average forwarding force of all carts
                 double force = this.getAverageForce();
@@ -1058,6 +1072,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 double distance, threshold, forcer;
                 MinecartMember<?> after;
                 for (MinecartMember<?> member : this) {
+                    /*
                     after = this.get(i);
                     distance = member.getEntity().loc.distance(after.getEntity());
                     if (member.getDirectionDifference(after) >= 45 || member.getEntity().loc.getPitchDifference(after.getEntity()) > 10) {
@@ -1077,6 +1092,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         if (this.breakPhysics) return true;
                         break;
                     }
+                    */
+
+                    member.onPhysicsPostMove();
+                    if (this.breakPhysics) return true;
                 }
             }
 

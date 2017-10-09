@@ -5,6 +5,8 @@ import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 import org.bukkit.block.BlockFace;
@@ -85,6 +87,23 @@ public abstract class RailLogic {
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "@" + this.getDirection();
+    }
+
+    /**
+     * Maintains equal spacing between Minecarts, updates for a single Minecart prior to moving
+     * 
+     * @param member to update
+     * @param velocity that is currently set
+     * @param factor that needs applying to ensure correct spacing
+     */
+    public void onSpacingUpdate(MinecartMember<?> member, Vector velocity, Vector factor) {
+        double motLen = velocity.length();
+        if (motLen > 0.0) {
+            double f = TCConfig.cartDistanceForcer * factor.dot(velocity);
+            f = MathUtil.clamp(f, 0.0, 1.0); // Don't go too overboard
+            f += 1.0; // preserve self velocity
+            velocity.multiply(f);
+        }
     }
 
     /**
