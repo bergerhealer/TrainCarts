@@ -185,19 +185,16 @@ public abstract class RailType {
     }
 
     /**
-     * Tries to find this Rail Type near the Minecart at the Block position specified.
-     *
-     * @param member to find the rail for
-     * @param world  the Minecart is in
-     * @param pos    of the Minecart
-     * @return the Rail position (of this type) the Minecart is on
+     * <b>Deprecated: this function is never used anymore, only {@link #findRail(Block)} is</b>
      */
-    public abstract IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos);
+    @Deprecated
+    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
+        Block rail = this.findRail(pos.toBlock(world));
+        return (rail == null) ? null : new IntVector3(rail);
+    }
 
     /**
-     * Tries to find this Rail Type near a 'next' Block returned by {@link #getNextPos(Block, BlockFace)}.
-     * Unlike {@link #findRail(MinecartMember, World, IntVector3)} this method
-     * does not allow special adjustments based on Minecart information.
+     * Tries to find this Rail Type near a 'next' Block returned by {@link #getNextPos(Block, BlockFace)}
      *
      * @param pos Block a Minecart is 'at'
      * @return the rail of this type, or null if not found

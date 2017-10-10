@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -10,11 +9,10 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownA;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownB;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownC;
 
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -27,31 +25,9 @@ public class RailTypeVertical extends RailType {
 
     @Override
     public Block findRail(Block pos) {
-        return findRailTmp(false, pos);
-    }
-
-    @Override
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        Block rail = findRailTmp(true, pos.toBlock(world));
-        return (rail == null) ? null : new IntVector3(rail);
-    }
-
-    private Block findRailTmp(boolean forMinecart, Block pos) {
         // At self position
         if (isRail(pos)) {
-            // When there is an upside-down sloped rail above this position, it has preference
-            // Only do this when doing member logic (TODO: FIX!)
-            boolean allow = true;
-            if (forMinecart) {
-                Block above = pos.getRelative(BlockFace.UP);
-                RailType aboveType = RailType.getType(above);
-                if (aboveType instanceof RailTypeRegular && ((RailTypeRegular) aboveType).isUpsideDown(above)) {
-                    allow = false;
-                }
-            }
-            if (allow) {
-                return pos;
-            }
+            return pos;
         }
 
         // When there is a slope connecting it, allow the vertical rail below
@@ -159,7 +135,7 @@ public class RailTypeVertical extends RailType {
     public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
         BlockFace dir = Util.getVerticalRailDirection(railsBlock);
         if (isVerticalSlopeUpsideDown(railsBlock)) {
-            return RailLogicVerticalSlopeUpsideDownA.get(dir);
+            return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
         } else if (isVerticalSlopeUpsideDownB(railsBlock)) {
             return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
         } else if (getAfterSlope(railsBlock) != null) {

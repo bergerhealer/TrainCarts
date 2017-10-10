@@ -85,10 +85,10 @@ public abstract class RailTracker {
             RailType railType = RailType.NONE;
             for (RailType type : RailType.values()) {
                 try {
-                    IntVector3 pos = type.findRail(member, member.getEntity().getWorld(), blockPos);
+                    Block pos = type.findRail(block);
                     if (pos != null) {
                         railType = type;
-                        railsBlock = pos.toBlock(member.getEntity().getWorld());
+                        railsBlock = pos;
                         break;
                     }
                 } catch (Throwable t) {

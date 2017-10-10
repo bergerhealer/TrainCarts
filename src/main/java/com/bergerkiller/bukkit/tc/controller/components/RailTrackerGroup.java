@@ -105,7 +105,7 @@ public class RailTrackerGroup extends RailTracker {
         }
 
         MinecartMember<?> nextMember = this.owner.get(nextMemberIndex);
-        IntVector3 nextPos = getRailPos(nextMember);
+        Block nextPos = getRailPos(nextMember);
 
         // First use the current direction we know to find the next member in the train
         // If this fails, switch to using all possible directions of the current track
@@ -126,7 +126,7 @@ public class RailTrackerGroup extends RailTracker {
                 TrackedRail currInfo;
                 int nrCachedRails = 0; // rails added without certainty of being correct
                 while (true) {
-                    if (p.currentTrack.getX() == nextPos.x && p.currentTrack.getY() == nextPos.y && p.currentTrack.getZ() == nextPos.z) {
+                    if (p.currentTrack.getX() == nextPos.getX() && p.currentTrack.getY() == nextPos.getY() && p.currentTrack.getZ() == nextPos.getZ()) {
                         // If we found the next member for the first time, also update the starting minecart with the correct info
                         if (!foundNextMember) {
                             foundNextMember = true;
@@ -206,10 +206,10 @@ public class RailTrackerGroup extends RailTracker {
         }
     }
 
-    private static IntVector3 getRailPos(MinecartMember<?> member) {
-        IntVector3 block = member.getEntity().loc.block();
+    private static Block getRailPos(MinecartMember<?> member) {
+        Block block = member.getEntity().loc.block().toBlock(member.getEntity().getWorld());
         for (RailType type : RailType.values()) {
-            IntVector3 rail = type.findRail(member, member.getEntity().getWorld(), block);
+            Block rail = type.findRail(block);
             if (rail != null) {
                 return rail;
             }

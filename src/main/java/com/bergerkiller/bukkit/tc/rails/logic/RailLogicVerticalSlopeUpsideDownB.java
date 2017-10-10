@@ -6,7 +6,9 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 /**
- * Handles rail logic from a vertical rail to an upside-down slope 2.0
+ * Handles rail logic of an upside-down slope with a vertical rail above it<br>
+ * <br>
+ * <img src="./doc-files/sloped_vertical_rail_logics.png" />
  */
 public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBase {
     private static final RailLogicVerticalSlopeUpsideDownB[] values = new RailLogicVerticalSlopeUpsideDownB[4];

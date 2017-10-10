@@ -25,6 +25,15 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
      */
     protected abstract boolean isVerticalHalf(double y, IntVector3 blockPos);
 
+    /**
+     * Gets the vertical offset of the Minecart on the sloped rail portion
+     * 
+     * @return y offset
+     */
+    protected double getYOffset() {
+        return 0.0;
+    }
+
     @Override
     public void onRotationUpdate(MinecartMember<?> member) {
         final float newyaw = FaceUtil.faceToYaw(this.getDirection());
@@ -104,6 +113,7 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
 
         // Execute default sloped logic
         Vector pos = super.getFixedPosition(entity, x, y, z, railPos);
+        pos.setY(pos.getY() + this.getYOffset());
 
         // When crossing the boundary to vertical, fix the x/z positions
         if (isVerticalHalf(pos.getY(), railPos)) {

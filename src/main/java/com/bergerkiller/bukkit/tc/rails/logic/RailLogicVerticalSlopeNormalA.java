@@ -6,7 +6,9 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import org.bukkit.block.BlockFace;
 
 /**
- * Handles the rail logic of a sloped rail with a vertical rail above it.
+ * Handles the rail logic of a sloped rail with a vertical rail above it.<br>
+ * <br>
+ * <img src="./doc-files/sloped_vertical_rail_logics.png" />
  */
 public class RailLogicVerticalSlopeNormalA extends RailLogicVerticalSlopeBase {
     private static final RailLogicVerticalSlopeNormalA[] values = new RailLogicVerticalSlopeNormalA[4];

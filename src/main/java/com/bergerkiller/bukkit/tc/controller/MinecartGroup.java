@@ -1068,32 +1068,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
                 //Apply force factors to carts from last cart and perform post positional updates
                 if (this.size() < 2) return false;
-                int i = 1;
-                double distance, threshold, forcer;
-                MinecartMember<?> after;
                 for (MinecartMember<?> member : this) {
-                    /*
-                    after = this.get(i);
-                    distance = member.getEntity().loc.distance(after.getEntity());
-                    if (member.getDirectionDifference(after) >= 45 || member.getEntity().loc.getPitchDifference(after.getEntity()) > 10) {
-                        threshold = TCConfig.turnedCartDistance;
-                        forcer = TCConfig.turnedCartDistanceForcer;
-                    } else {
-                        threshold = TCConfig.cartDistance;
-                        forcer = TCConfig.cartDistanceForcer;
-                    }
-                    if (distance < threshold) {
-                        forcer *= TCConfig.nearCartDistanceFactor;
-                    }
-                    member.onPhysicsPostMove(1 + (forcer * (threshold - distance)));
-                    if (this.breakPhysics) return true;
-                    if (i++ == this.size() - 1) {
-                        this.tail().onPhysicsPostMove(1);
-                        if (this.breakPhysics) return true;
-                        break;
-                    }
-                    */
-
                     member.onPhysicsPostMove();
                     if (this.breakPhysics) return true;
                 }

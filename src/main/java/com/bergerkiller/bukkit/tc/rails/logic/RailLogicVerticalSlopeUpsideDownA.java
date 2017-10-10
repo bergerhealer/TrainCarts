@@ -6,7 +6,11 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 /**
- * Handles rail logic from a vertical rail to an upside-down slope
+ * Handles rail logic of an upside-down slope with a vertical rail below it.
+ * This logic will most likely rarely be used because it teleports the minecart down onto different logic.
+ * It is here in case the sloped rail is hit anyway, and the Minecart needs to be repositioned.<br>
+ * <br>
+ * <img src="./doc-files/sloped_vertical_rail_logics.png" />
  */
 public class RailLogicVerticalSlopeUpsideDownA extends RailLogicVerticalSlopeBase {
     private static final RailLogicVerticalSlopeUpsideDownA[] values = new RailLogicVerticalSlopeUpsideDownA[4];
@@ -17,7 +21,7 @@ public class RailLogicVerticalSlopeUpsideDownA extends RailLogicVerticalSlopeBas
         }
     }
 
-    private RailLogicVerticalSlopeUpsideDownA(BlockFace direction) {
+    protected RailLogicVerticalSlopeUpsideDownA(BlockFace direction) {
         super(direction, true);
     }
 
@@ -32,7 +36,7 @@ public class RailLogicVerticalSlopeUpsideDownA extends RailLogicVerticalSlopeBas
     }
 
     @Override
-    public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
+    public boolean isVerticalHalf(double y, IntVector3 blockPos) {
         return (y + 0.0001) < (blockPos.midY() - 1.0 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
     }
 

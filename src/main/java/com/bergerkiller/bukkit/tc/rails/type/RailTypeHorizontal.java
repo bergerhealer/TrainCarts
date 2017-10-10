@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -234,10 +233,4 @@ public abstract class RailTypeHorizontal extends RailType {
         return null;
     }
 
-    @Override
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        Block blockPos = pos.toBlock(world);
-        Block railPos = findRail(blockPos);
-        return (railPos == null) ? null : new IntVector3(railPos);
-    }
 }
