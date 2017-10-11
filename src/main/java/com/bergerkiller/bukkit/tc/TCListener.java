@@ -531,8 +531,7 @@ public class TCListener implements Listener {
                     }
 
                     // Play sound of the material 'placed'
-                    event.getClickedBlock().getWorld().playSound(event.getClickedBlock().getLocation(),
-                            railData.getStepSound(), 1.0f, 1.0f);
+                    WorldUtil.playSound(event.getClickedBlock().getLocation(), railData.getPlaceSound(), 1.0f, 1.0f);
 
                     // Cancel the original interaction event
                     event.setUseItemInHand(Result.DENY);

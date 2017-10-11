@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.ResourceKey;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 import java.util.Random;
@@ -19,6 +21,10 @@ public class SoundLoop<T extends MinecartMember<?>> {
 
     public void play(Sound sound, float pitch, float volume) {
         this.member.getEntity().makeSound(sound, volume, pitch);
+    }
+
+    public void play(ResourceKey sound, float pitch, float volume) {
+        WorldUtil.playSound(this.member.getEntity().getLocation(), sound, volume, pitch);
     }
 
     public void onTick() {

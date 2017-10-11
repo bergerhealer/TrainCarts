@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.parts.FakePlayer;
 import com.bergerkiller.bukkit.tc.parts.VirtualEntity;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutAttachEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
@@ -235,15 +236,32 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     // update the list of entities directly attached to this Minecart as passenger
     private void sendDirectPassengers(Player viewer, Collection<Entity> passengers) {
         // Clear mounted passengers
-        PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[0]);
-        for (Entity passenger : passengers) {
-            if ((this.wasUpsideDown || (this.useVirtualCamera && passenger == viewer)) && passenger instanceof Player && this.fakePlayer != null) {
-                mount.addMountedEntityId(this.fakePlayer.entityId);
-            } else {
-                mount.addMountedEntityId(passenger.getEntityId());
+        if (PacketPlayOutMountHandle.T.isAvailable()) {
+            // On MC >= 1.9 we can use the mount packet
+            PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[0]);
+            for (Entity passenger : passengers) {
+                if ((this.wasUpsideDown || (this.useVirtualCamera && passenger == viewer)) && passenger instanceof Player && this.fakePlayer != null) {
+                    mount.addMountedEntityId(this.fakePlayer.entityId);
+                } else {
+                    mount.addMountedEntityId(passenger.getEntityId());
+                }
+            }
+            PacketUtil.sendPacket(viewer, mount);
+        } else {
+            // On MC 1.8.8 and before we had to use attach entity to define the vehicle
+            // Normally this is done by the synchronizer of the passenger
+            // We do it here, too, to correctly deal with upside-down synchronization
+            for (Entity passenger : passengers) {
+                PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
+                attach.setVehicleId(this.getEntity().getEntityId());
+                if ((this.wasUpsideDown || (this.useVirtualCamera && passenger == viewer)) && passenger instanceof Player && this.fakePlayer != null) {
+                    attach.setPassengerId(this.fakePlayer.entityId);
+                } else {
+                    attach.setPassengerId(passenger.getEntityId());
+                }
+                PacketUtil.sendPacket(viewer, attach);
             }
         }
-        PacketUtil.sendPacket(viewer, mount);
 
         // Make fake player visible if needed
         if (this.fakePlayer != null && this.fakePlayer.wasInvisible) {
@@ -261,6 +279,36 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
         boolean viewerChanged = (!oldPassengers.contains(viewer) || !newPassengers.contains(viewer));
         if (!this.wasUpsideDown && (!this.useVirtualCamera || !viewerChanged)) {
+            if (!PacketPlayOutMountHandle.T.isAvailable()) {
+
+                // Mount new passengers
+                for (Entity newPassenger : newPassengers) {
+                    if (oldPassengers.contains(newPassenger)) {
+                        continue;
+                    }
+
+                    // Send upside-down mounted player to a viewer
+                    PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
+                    attach.setVehicleId(this.getEntity().getEntityId());
+                    attach.setPassengerId(newPassenger.getEntityId());
+                    PacketUtil.sendPacket(viewer, attach);
+                }
+
+                // Unmount old passengers
+                for (Entity oldPassenger : oldPassengers) {
+                    if (newPassengers.contains(oldPassenger)) {
+                        continue;
+                    }
+
+                    // Send upside-down unmounted player to a viewer
+                    PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
+                    attach.setVehicleId(-1);
+                    attach.setPassengerId(oldPassenger.getEntityId());
+                    PacketUtil.sendPacket(viewer, attach);
+                }
+
+            }
+            
             super.onSyncPassengers(viewer, oldPassengers, newPassengers);
             return;
         }
@@ -302,7 +350,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 handlePassengerMount(viewer, passenger);
             }
         }
-        this.sendDirectPassengers(viewer, this.getSynchedPassengers());
+        if (!this.getSynchedPassengers().isEmpty()) {
+            this.sendDirectPassengers(viewer, this.getSynchedPassengers());
+        }
     }
 
     @Override

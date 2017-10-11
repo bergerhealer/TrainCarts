@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutAttachEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
@@ -87,8 +88,19 @@ public class VirtualEntity implements DisplayedPart {
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
         PacketUtil.sendPacket(viewer, packet);
 
-        PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.entityId, this.passengers);
-        PacketUtil.sendPacket(viewer, mount);
+        if (PacketPlayOutMountHandle.T.isAvailable()) {
+            // MC >= 1.9
+            PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.entityId, this.passengers);
+            PacketUtil.sendPacket(viewer, mount);
+        } else {
+            // MC <= 1.8.8
+            for (int passenger : this.passengers) {
+                PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
+                attach.setVehicleId(this.entityId);
+                attach.setPassengerId(passenger);
+                PacketUtil.sendPacket(viewer, attach);
+            }
+        }
 
         packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motX, motY, motZ, true);
         PacketUtil.sendPacket(viewer, packet);

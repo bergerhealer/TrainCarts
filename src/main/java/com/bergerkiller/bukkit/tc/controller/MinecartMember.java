@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
@@ -445,7 +446,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (showSmoke) {
             loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
         }
-        loc.getWorld().playEffect(loc, Effect.EXTINGUISH, 0);
+        WorldUtil.playSound(loc, CommonSounds.EXTINGUISH, 1.0f, 2.0f);
     }
 
     /**
