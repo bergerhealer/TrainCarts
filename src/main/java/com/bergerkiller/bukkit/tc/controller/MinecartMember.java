@@ -34,6 +34,8 @@ import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
+
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
@@ -41,6 +43,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
@@ -1051,6 +1054,28 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Reads input from passengers of this Minecart to perform manual movement of the minecart, if enabled
+     */
+    public void updateManualMovement() {
+        // Vehicle steering input from living entity passengers
+        // This is only allowed when the property is enabled and our velocity < 0.1 blocks/tick (0.01 squared)
+        if (getGroup().getProperties().isManualMovementAllowed() && entity.vel.lengthSquared() < 0.01 && !this.isDerailed()) {
+            for (Entity passenger : entity.getPassengers()) {
+                if (passenger instanceof LivingEntity) {
+                    float forwardMovement = EntityLivingHandle.fromBukkit((LivingEntity) passenger).getForwardMovement();
+                    if (forwardMovement > 0.0f) {
+                        // Use Entity yaw and pitch to find the direction to boost the minecart into
+                        // For now, this only supports horizontal 'pushing'
+                        Vector direction = ((LivingEntity) passenger).getEyeLocation().getDirection();
+                        System.out.println("DIR: " + direction);
+                        entity.vel.add(direction.getX() * 0.1, 0.0, direction.getZ() * 0.1);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Executes the velocity and pre-movement calculations, which handles logic prior to actual movement occurs<br>
      * Physics stage: <b>3</b>
      */
@@ -1279,6 +1304,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         this.checkMissing();
         this.getRailLogic().onPostMove(this);
+
+        // Update manual movement from player input
+        updateManualMovement();
 
         // Post-move logic
         this.doPostMoveLogic();
