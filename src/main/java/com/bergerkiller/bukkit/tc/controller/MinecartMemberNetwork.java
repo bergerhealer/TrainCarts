@@ -469,13 +469,19 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private Matrix4x4 getTransform(boolean motion) {
         Matrix4x4 transform = new Matrix4x4();
 
+        double fx = 0.0, fy = 0.0, fz = 0.0;
+        if (motion) {
+            fx = this.lastDeltaX * 0.625;
+            fy = this.lastDeltaY * 0.625;
+            fz = this.lastDeltaZ * 0.625;
+        }
+
         // Some factor of the movement change needs to be re-predicted
         // Otherwise things stuck to this Minecart will always move ahead
-        double MOVE_FX = motion ? 0.625 : 0.0;
         transform.translateRotate(
-                (this.locSynched.getX() - (this.lastDeltaX * MOVE_FX)),
-                (this.locSynched.getY() - (this.lastDeltaY * MOVE_FX)),
-                (this.locSynched.getZ() - (this.lastDeltaZ * MOVE_FX)),
+                (this.locSynched.getX() - fx),
+                (this.locSynched.getY() - fy),
+                (this.locSynched.getZ() - fz),
                 this.locSynched.getYaw(), this.locSynched.getPitch()
         );
         return transform;
