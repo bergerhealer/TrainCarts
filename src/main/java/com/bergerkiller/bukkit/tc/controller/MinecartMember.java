@@ -1131,34 +1131,42 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public Vector calculateOrientation() {
         MinecartGroup group = this.getGroup();
+        Vector orientation;
         if (group.size() <= 1) {
-            return new Vector(entity.getMovedX(), entity.getMovedY(), entity.getMovedZ()).normalize();
+            orientation = new Vector(entity.getMovedX(), entity.getMovedY(), entity.getMovedZ());
+        } else {
+            // Find our displayed angle based on the relative position of this Minecart to the neighbours
+            int n = 0;
+            double dx = 0.0, dy = 0.0, dz = 0.0;
+            if (this != group.head()) {
+                // Add difference between this cart and the cart before
+                MinecartMember<?> m = this.getNeighbour(-1);
+                dx += m.getEntity().loc.getX() - this.getEntity().loc.getX();
+                dy += m.getEntity().loc.getY() - this.getEntity().loc.getY();
+                dz += m.getEntity().loc.getZ() - this.getEntity().loc.getZ();
+                n++;
+            }
+            if (this != group.tail()) {
+                // Add difference between this cart and the cart after
+                MinecartMember<?> m = this.getNeighbour(1);
+                dx += this.getEntity().loc.getX() - m.getEntity().loc.getX();
+                dy += this.getEntity().loc.getY() - m.getEntity().loc.getY();
+                dz += this.getEntity().loc.getZ() - m.getEntity().loc.getZ();
+                n++;
+            }
+            dx /= n;
+            dy /= n;
+            dz /= n;
+
+            orientation = new Vector(dx, dy, dz);
         }
 
-        // Find our displayed angle based on the relative position of this Minecart to the neighbours
-        int n = 0;
-        double dx = 0.0, dy = 0.0, dz = 0.0;
-        if (this != group.head()) {
-            // Add difference between this cart and the cart before
-            MinecartMember<?> m = this.getNeighbour(-1);
-            dx += m.getEntity().loc.getX() - this.getEntity().loc.getX();
-            dy += m.getEntity().loc.getY() - this.getEntity().loc.getY();
-            dz += m.getEntity().loc.getZ() - this.getEntity().loc.getZ();
-            n++;
+        // Normalize the vector. Take extra care to avoid a NaN when the vector length approaches zero
+        orientation.normalize();
+        if (Double.isNaN(orientation.getX()) || Double.isNaN(orientation.getY()) || Double.isNaN(orientation.getZ())) {
+            orientation = MathUtil.getDirection(this.getEntity().loc.getYaw(), this.getEntity().loc.getPitch());
         }
-        if (this != group.tail()) {
-            // Add difference between this cart and the cart after
-            MinecartMember<?> m = this.getNeighbour(1);
-            dx += this.getEntity().loc.getX() - m.getEntity().loc.getX();
-            dy += this.getEntity().loc.getY() - m.getEntity().loc.getY();
-            dz += this.getEntity().loc.getZ() - m.getEntity().loc.getZ();
-            n++;
-        }
-        dx /= n;
-        dy /= n;
-        dz /= n;
-
-        return new Vector(dx, dy, dz).normalize();
+        return orientation;
     }
 
     public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
