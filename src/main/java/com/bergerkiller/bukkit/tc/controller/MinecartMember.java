@@ -66,6 +66,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double VERTRAIL_MULTIPLIER_LEGACY = 0.02; // LEGACY!!! Uses SLOPE_VELOCITY_MULTIPLIER instead by default.
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
+    public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
@@ -756,7 +757,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (isInstantlyDestroyed) {
                 this.entity.setDamage(100);
             }
-            if (this.entity.getDamage() > 40) {
+            if (this.entity.getDamage() > MAXIMUM_DAMAGE_SUSTAINED) {
                 // Send an event, pass in the drops to drop
                 List<ItemStack> drops = new ArrayList<>(2);
                 if (!isInstantlyDestroyed && getProperties().getSpawnItemDrops()) {
@@ -768,7 +769,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 }
                 VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(this.entity.getEntity(), damager);
                 if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
-                    this.entity.setDamage(40);
+                    this.entity.setDamage(MAXIMUM_DAMAGE_SUSTAINED);
                     return true;
                 }
 
@@ -777,6 +778,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     this.entity.spawnItemDrop(stack, 0.0F);
                 }
                 this.onDie();
+            } else {
+                // Select the Minecart for editing otherwise
+                if (damager instanceof Player) {
+                    CartProperties.setEditing((Player) damager, this.getProperties());
+                }
             }
         } catch (Throwable t) {
             TrainCarts.plugin.handle(t);
