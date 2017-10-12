@@ -27,6 +27,7 @@ public class VirtualEntity implements DisplayedPart {
     private double posX, posY, posZ;
     private double liveAbsX, liveAbsY, liveAbsZ;
     private double syncAbsX, syncAbsY, syncAbsZ;
+    private EntityType entityType = EntityType.CHICKEN;
     private int[] passengers = new int[0];
 
     public VirtualEntity() {
@@ -73,12 +74,16 @@ public class VirtualEntity implements DisplayedPart {
         this.passengers = passengerEntityIds;
     }
 
+    public void setEntityType(EntityType entityType) {
+        this.entityType = entityType;
+    }
+
     public void spawn(Player viewer, double motX, double motY, double motZ) {
         //motX = motY = motZ = 0.0;
         CommonPacket packet = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, UUID.randomUUID());
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, (int) EntityType.CHICKEN.getTypeId());
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, (int) this.entityType.getTypeId());
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motX);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motY);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motZ);
@@ -102,9 +107,8 @@ public class VirtualEntity implements DisplayedPart {
             }
         }
 
-        packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motX, motY, motZ, true);
+        packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motX, motY, motZ, false);
         PacketUtil.sendPacket(viewer, packet);
-        
     }
 
     public void syncPosition(Collection<Player> viewers, boolean absolute) {
