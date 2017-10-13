@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
@@ -23,6 +24,8 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -954,9 +957,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Restore velocity / max speed to what is exposed outside the physics function
+            // Use the speed factor for this, since the max speed may have been changed during the physics update
+            // This can happen with, for example, the use of waitDistance
             for (MinecartMember<?> mm : this) {
                 mm.getEntity().vel.divide(this.updateSpeedFactor);
-                mm.getEntity().setMaxSpeed(this.getProperties().getSpeedLimit());
+
+                double newMaxSpeed = mm.getEntity().getMaxSpeed() / this.updateSpeedFactor;
+                newMaxSpeed = Math.min(newMaxSpeed, this.getProperties().getSpeedLimit());
+                mm.getEntity().setMaxSpeed(newMaxSpeed);
             }
 
             this.updateSpeedFactor = 1.0;
@@ -967,6 +975,49 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
             TrainCarts.plugin.handle(t);
         }
+    }
+
+    private double getSpeedAhead() {
+        double waitDistance = this.getProperties().getWaitDistance();
+        if (waitDistance <= 0.0) {
+            return Double.MAX_VALUE;
+        }
+
+        // Two blocks are used to slow down the train, to make it match up to speed with the train up ahead
+        final double CHECK_MARGIN = 2.0;
+        double checkDistance = waitDistance + CHECK_MARGIN - this.head().calcSubBlockDistance();
+
+        double cartDistance;
+        TrackIterator iter = new TrackIterator(this.head().getBlock(), this.head().getDirectionTo());
+        while ((cartDistance = iter.getCartDistance()) <= checkDistance && iter.hasNext()) {
+            Block rail = iter.next();
+            MinecartMember<?> other = MinecartMemberStore.getAt(rail);
+            if (other != null && other.getGroup() != this) {
+                // Train is heading for me! Stop!
+                if (MathUtil.isHeadingTo(iter.currentDirection().getOppositeFace(), other.getEntity().getVelocity())) {
+                    return 0.0;
+                }
+
+                // The distance we have presently is to the middle of the current block of the minecart
+                // However, what we want is the distance to the minecart itself, not the block
+                // To avoid jumpy behavior, factor in the position of the minecart in the distance calculation
+                cartDistance += other.calcSubBlockDistance();
+
+                // Find the distance we can still move from our current position
+                double remaining = (cartDistance - waitDistance);
+
+                // If remaining is negative, stop! We can't possibly move any further without violating our rule
+                if (remaining <= 0.0) {
+                    return 0.0;
+                }
+
+                // Maintain distance. Use remaining to switch between force and absolute 0 for a smooth slowdown
+                double otherSpeed = MathUtil.clamp(other.getForce(), other.getEntity().getMaxSpeed());
+                return Math.min(otherSpeed, remaining);
+            }
+        }
+
+        return Double.MAX_VALUE;
     }
 
     private boolean doPhysics_step() throws GroupUnloadedException {
@@ -1042,6 +1093,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Direction can change as a result of gravity
             this.updateDirection();
 
+            // If a wait distance is set, check for trains ahead of the track and wait for those
+            // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
+            double speedAhead = this.getSpeedAhead();
+            double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
+            if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
+                speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);
+                for (MinecartMember<?> mm : this) {
+                    mm.checkMissing();
+                    mm.getEntity().setMaxSpeed(speedLimitClamped);
+                }
+            }
+
+            // Move!
             if (this.size() == 1) {
                 //Simplified calculation for single carts
                 this.head().onPhysicsPostMove();

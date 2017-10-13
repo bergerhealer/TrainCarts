@@ -67,6 +67,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private SignSkipOptions skipOptions = new SignSkipOptions();
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
+    private double waitDistance = 0.0;
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -110,6 +111,27 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
         return this.hasHolder();
+    }
+
+    /**
+     * Gets the wait distance. The train will automatically wait to maintain this distance
+     * between itself and the train up ahead.
+     * 
+     * @return waitDistance
+     */
+    public double getWaitDistance() {
+        return this.waitDistance;
+
+    }
+
+    /**
+     * Sets the wait distance. The train will automatically wait to maintain this distance
+     * between itself and the train up ahead.
+     * 
+     * @param waitDistance
+     */
+    public void setWaitDistance(double waitDistance) {
+        this.waitDistance = waitDistance;
     }
 
     /**
@@ -887,6 +909,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setDisplayName(arg);
         } else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {
             updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
+        } else if (key.equals("waitdistance")) {
+            this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equals("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equals("playerexit")) {
@@ -1018,6 +1042,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
         this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
+        this.waitDistance = node.get("waitDistance", this.waitDistance);
         for (String ticket : node.getList("tickets", String.class)) {
             this.tickets.add(ticket);
         }
@@ -1089,6 +1114,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setSkipOptions(source.skipOptions);
         this.blockTypes = source.blockTypes;
         this.blockOffset = source.blockOffset;
+        this.waitDistance = source.waitDistance;
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -1105,6 +1131,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
+        node.set("waitDistance", this.waitDistance);
 
         if (this.isSlowingDownAll()) {
             node.set("slowDown", true);
@@ -1140,6 +1167,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+        node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
 
         if (this.isSlowingDownAll()) {
             node.remove("slowDown");

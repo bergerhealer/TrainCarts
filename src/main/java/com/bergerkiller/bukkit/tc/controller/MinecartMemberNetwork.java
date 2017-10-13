@@ -564,6 +564,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         } else {
             currVelocity = velLive.length();
         }
+        currVelocity = Math.min(currVelocity, member.getEntity().getMaxSpeed());
         boolean velocityChanged = (MathUtil.length(velSynched.length(), currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY)) ||
                 (velSynched.lengthSquared() > 0.0 && currVelocity == 0.0);
 

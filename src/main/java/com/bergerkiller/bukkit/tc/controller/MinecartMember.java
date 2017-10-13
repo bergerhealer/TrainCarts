@@ -222,6 +222,28 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Calculates the distance traveled by this Minecart on a block, relative
+     * to a movement direction. This is used for the adjustment from block distances
+     * to cart distances
+     * 
+     * @return block moved sub-distance
+     */
+    public double calcSubBlockDistance() {
+        double distance = 0.0;
+        IntVector3 blockPos = entity.loc.block();
+        distance += (this.direction.getModX() * (entity.loc.getX() - blockPos.midX()));
+        distance += (this.direction.getModY() * (entity.loc.getY() - blockPos.midY()));
+        distance += (this.direction.getModZ() * (entity.loc.getZ() - blockPos.midZ()));
+
+        // Normalize if sub-cardinal
+        if (FaceUtil.isSubCardinal(this.direction)) {
+            distance /= 2.0;
+        }
+
+        return distance;
+    }
+
+    /**
      * Checks whether passengers of this Minecart take damage
      * 
      * @param cause of the damage
