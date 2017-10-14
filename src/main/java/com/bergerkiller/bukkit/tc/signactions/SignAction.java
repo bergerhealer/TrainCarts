@@ -14,6 +14,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -50,6 +51,7 @@ public abstract class SignAction {
         register(new SignActionAnnounce());
         register(new SignActionEffect());
         register(new SignActionSkip());
+        register(new SignActionMutex());
     }
 
     public static void deinit() {
@@ -80,6 +82,21 @@ public abstract class SignAction {
     public static void unregister(SignAction action) {
         if (actions == null) return;
         actions.remove(action);
+    }
+
+    /**
+     * Handles a change in the loaded change of a sign.
+     * Sign Actions bound to this sign will have their {@link #loadedChanged(SignActionEvent, boolean)} called.
+     * 
+     * @param sign that was loaded/unloaded
+     * @param loaded state change
+     */
+    public static void handleLoadChange(Sign sign, boolean loaded) {
+        final SignActionEvent info = new SignActionEvent(sign.getBlock(), sign, null);
+        SignAction action = getSignAction(info);
+        if (action != null) {
+            action.loadedChanged(info, loaded);
+        }
     }
 
     /**
@@ -130,6 +147,8 @@ public abstract class SignAction {
                         member.getGroup().getBlockTracker().updatePosition();
                     }
                 }
+                // Call loaded
+                action.loadedChanged(info, true);
             } else {
                 event.setCancelled(true);
             }
@@ -156,6 +175,7 @@ public abstract class SignAction {
             }
             // Handle sign destroy logic
             action.destroy(info);
+            action.loadedChanged(info, false);
         }
     }
 
@@ -237,6 +257,23 @@ public abstract class SignAction {
     public abstract boolean build(SignChangeActionEvent event);
 
     /**
+     * Handles the post-destroy logic for when this sign is broken
+     *
+     * @param info related to the destroy event
+     */
+    public void destroy(SignActionEvent info) {
+    }
+
+    /**
+     * Called when a sign becomes loaded (after placement or chunk loads), or unloaded (destroyed or when chunk unloads)
+     * 
+     * @param info for the sign
+     * @param loaded state the sign changed to
+     */
+    public void loadedChanged(SignActionEvent info, boolean loaded) {
+    }
+
+    /**
      * Whether the remote control format is supported for this sign
      */
     public boolean canSupportRC() {
@@ -248,14 +285,6 @@ public abstract class SignAction {
      */
     public boolean overrideFacing() {
         return false;
-    }
-
-    /**
-     * Handles the post-destroy logic for when this sign is broken
-     *
-     * @param info related to the destroy event
-     */
-    public void destroy(SignActionEvent info) {
     }
 
     /**

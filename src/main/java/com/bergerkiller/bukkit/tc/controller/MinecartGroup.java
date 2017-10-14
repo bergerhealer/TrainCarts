@@ -23,6 +23,8 @@ import com.bergerkiller.bukkit.tc.events.*;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -43,6 +45,7 @@ import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
@@ -978,19 +981,55 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private double getSpeedAhead() {
+        boolean checkTrains = false;
         double waitDistance = this.getProperties().getWaitDistance();
-        if (waitDistance <= 0.0) {
-            return Double.MAX_VALUE;
+        if (waitDistance > 0.0) {
+            checkTrains = true;
         }
 
         // Two blocks are used to slow down the train, to make it match up to speed with the train up ahead
+        // Check for any mutex zones ~2 blocks ahead, and stop before we enter them
+        // If a wait distance is set, also check for trains there
         final double CHECK_MARGIN = 2.0;
         double checkDistance = waitDistance + CHECK_MARGIN - this.head().calcSubBlockDistance();
 
+        UUID worldUUID = this.getWorld().getUID();
         double cartDistance;
         TrackIterator iter = new TrackIterator(this.head().getBlock(), this.head().getDirectionTo());
         while ((cartDistance = iter.getCartDistance()) <= checkDistance && iter.hasNext()) {
             Block rail = iter.next();
+
+            // Check for mutex zones the next block. If one is found that is occupied, stop right away
+            if (iter.getDistance() == 2) {
+                MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(rail));
+                if (zone != null) {
+                    // Check if already occupied (and not by self)
+                    boolean zoneOccupied = false;
+                    for (MinecartGroup group : MinecartGroupStore.groups) {
+                        if (group == this || group.getWorld() != this.getWorld()) {
+                            continue;
+                        }
+                        for (MinecartMember<?> member : group) {
+                            if (zone.containsBlock(worldUUID, member.getBlockPos())) {
+                                zoneOccupied = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (zoneOccupied) {
+                        return 0.0;
+                    }
+                }
+
+                if (!checkTrains) {
+                    break;
+                }
+            }
+
+            // Only check for trains on the rails when a wait distance is set
+            if (!checkTrains) {
+                continue;
+            }
             MinecartMember<?> other = MinecartMemberStore.getAt(rail);
             if (other != null && other.getGroup() != this) {
                 // Train is heading for me! Stop!

@@ -209,13 +209,6 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
-        //registering
-        this.register(packetListener = new TCPacketListener(), PacketType.IN_STEER_VEHICLE);
-        this.register(TCListener.class);
-        this.register(RedstoneTracker.class);
-        this.register("train", "cart");
-        Conversion.registerConverters(MinecartMemberStore.class);
-
         //Load configuration
         loadConfig();
 
@@ -285,6 +278,13 @@ public class TrainCarts extends PluginBase {
                 }
             }
         });
+
+        // Register listeners and commands
+        this.register(packetListener = new TCPacketListener(), PacketType.IN_STEER_VEHICLE);
+        this.register(TCListener.class);
+        this.register(RedstoneTracker.class);
+        this.register("train", "cart");
+        Conversion.registerConverters(MinecartMemberStore.class);
     }
 
     /**

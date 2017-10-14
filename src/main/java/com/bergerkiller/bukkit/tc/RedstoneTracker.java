@@ -18,8 +18,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.logging.Level;
 
@@ -84,28 +88,58 @@ public class RedstoneTracker implements Listener {
     public void initPowerLevels() {
         for (World world : WorldUtil.getWorlds()) {
             try {
-                for (BlockState state : WorldUtil.getBlockStates(world)) {
-                    if (state instanceof Sign) {
-                        Block block = state.getBlock();
-                        LogicUtil.addOrRemove(poweredBlocks, block, PowerState.isSignPowered(block));
-                    }
-                }
+                loadSigns(WorldUtil.getBlockStates(world));
             } catch (Throwable t) {
                 TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in world " + world.getName(), t);
             }
         }
     }
 
+    public void loadSigns(Collection<BlockState> states) {
+        for (BlockState state : states) {
+            if (state instanceof Sign) {
+                Block block = state.getBlock();
+                LogicUtil.addOrRemove(poweredBlocks, block, PowerState.isSignPowered(block));
+                SignAction.handleLoadChange((Sign) state, true);
+            }
+        }
+    }
+
+    public void unloadSigns(Collection<BlockState> states) {
+        for (BlockState state : states) {
+            if (state instanceof Sign) {
+                SignAction.handleLoadChange((Sign) state, false);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldLoad(WorldLoadEvent event) {
+        try {
+            loadSigns(WorldUtil.getBlockStates(event.getWorld()));
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in world " + event.getWorld().getName(), t);
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onChunkLoad(ChunkLoadEvent event) {
-        // Set the initial power state of all signs within this Chunk
         try {
-            for (BlockState state : WorldUtil.getBlockStates(event.getChunk())) {
-                if (state instanceof Sign) {
-                    Block block = state.getBlock();
-                    LogicUtil.addOrRemove(poweredBlocks, block, PowerState.isSignPowered(block));
-                }
-            }
+            loadSigns(WorldUtil.getBlockStates(event.getChunk()));
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWorldUnload(WorldUnloadEvent event) {
+        
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onChunkUnload(ChunkUnloadEvent event) {
+        try {
+            unloadSigns(WorldUtil.getBlockStates(event.getChunk()));
         } catch (Throwable t) {
             TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
         }
