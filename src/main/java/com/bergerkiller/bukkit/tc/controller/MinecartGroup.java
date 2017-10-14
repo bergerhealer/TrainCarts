@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
@@ -27,7 +26,6 @@ import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -1131,6 +1129,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // Direction can change as a result of gravity
             this.updateDirection();
+
+            // Stop if all dead
+            if (this.size() == 0) {
+                return false;
+            }
 
             // If a wait distance is set, check for trains ahead of the track and wait for those
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
