@@ -1,8 +1,6 @@
 package com.bergerkiller.bukkit.tc.parts;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -23,7 +21,6 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestro
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutScoreboardTeamHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle.EnumPlayerInfoActionHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle.PlayerInfoDataHandle;
 
@@ -84,18 +81,7 @@ public class FakePlayer {
         PacketUtil.sendPacket(viewer, newInfoPacket);
 
         if (newMode != DisplayMode.NONE) {
-            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
-            teamPacket.setName(newMode.getTeamName());
-            teamPacket.setDisplayName(newMode.getTeamName());
-            teamPacket.setPrefix("");
-            teamPacket.setSuffix("");
-            teamPacket.setVisibility("never");
-            teamPacket.setCollisionRule("never");
-            teamPacket.setMode(0x0);
-            teamPacket.setFriendlyFire(0x3);
-            teamPacket.setPlayers(new ArrayList<String>(Collections.singleton(newMode.getPlayerName())));
-            teamPacket.setChatFormat(0);
-            PacketUtil.sendPacket(viewer, teamPacket);
+            newMode.getTeam().send(viewer);
         }
 
         if (newMode == DisplayMode.NONE) {
@@ -181,19 +167,19 @@ public class FakePlayer {
         NONE("", ""), NORMAL("DinnerBone", "BoredTCRiders"), UPSIDEDOWN("Dinnerbone", "DizzyTCRiders");
 
         private final String playerName;
-        private final String teamName;
+        private final FakeTeam team;
 
         private DisplayMode(String playerName, String teamName) {
             this.playerName = playerName;
-            this.teamName = teamName;
+            this.team = new FakeTeam(teamName, playerName);
         }
 
         public String getPlayerName() {
             return this.playerName;
         }
 
-        public String getTeamName() {
-            return this.teamName;
+        public FakeTeam getTeam() {
+            return this.team;
         }
     }
 }

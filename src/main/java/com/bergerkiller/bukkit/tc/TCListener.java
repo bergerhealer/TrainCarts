@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.parts.FakePlayer;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -87,6 +88,11 @@ public class TCListener implements Listener {
             vehicle.ignoreNextDie();
             // Eject the player before proceeding to the saving
             vehicle.eject();
+        }
+
+        // Clean up the fake teams we've sent
+        for (FakePlayer.DisplayMode mode : FakePlayer.DisplayMode.values()) {
+            mode.getTeam().remove(event.getPlayer());
         }
     }
 
