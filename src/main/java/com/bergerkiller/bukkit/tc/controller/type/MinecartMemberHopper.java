@@ -24,8 +24,8 @@ public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
     }
 
     @Override
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove(speedFactor);
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        super.onPhysicsPostMove();
         if (entity.isDead() || !entity.isSuckingItems()) {
             return;
         }

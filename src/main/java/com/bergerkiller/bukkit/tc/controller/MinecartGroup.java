@@ -1147,11 +1147,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 }
             }
 
-            // Move!
-            if (this.size() == 1) {
-                //Simplified calculation for single carts
-                this.head().onPhysicsPostMove();
-            } else {
+            // Share forward force between all the Minecarts when size > 1
+            if (this.size() > 1) {
                 //Get the average forwarding force of all carts
                 double force = this.getAverageForce();
 
@@ -1174,10 +1171,17 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
                 //Apply force factors to carts from last cart and perform post positional updates
                 if (this.size() < 2) return false;
-                for (MinecartMember<?> member : this) {
-                    member.onPhysicsPostMove();
-                    if (this.breakPhysics) return true;
-                }
+            }
+
+            // Calculate the speed factor that will be used to adjust the distance between the minecarts
+            for (MinecartMember<?> member : this) {
+                member.calculateSpeedFactor();
+            }
+
+            // Perform the move and post-movement logic
+            for (MinecartMember<?> member : this) {
+                member.onPhysicsPostMove();
+                if (this.breakPhysics) return true;
             }
 
             // Update directions and perform connection checks after the position changes

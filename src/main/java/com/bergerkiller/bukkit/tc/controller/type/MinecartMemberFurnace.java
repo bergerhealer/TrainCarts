@@ -152,8 +152,8 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove(speedFactor);
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        super.onPhysicsPostMove();
 
         // Fuel update routines
         if (entity.hasFuel()) {

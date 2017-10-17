@@ -14,8 +14,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 public class MinecartMemberMobSpawner extends MinecartMember<CommonMinecartMobSpawner> {
 
     @Override
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove(speedFactor);
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        super.onPhysicsPostMove();
         getEntity().getMobSpawner().onTick();
     }
 

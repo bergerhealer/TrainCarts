@@ -86,6 +86,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private CartProperties properties;
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
     private ChunkArea lastChunks, currentChunks;
+    private Vector speedFactor = new Vector(0.0, 0.0, 0.0);
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -1222,8 +1223,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
-        Vector speedFactor = new Vector(0.0, 0.0, 0.0);
+    public void calculateSpeedFactor() {
+        this.speedFactor.setX(0.0).setY(0.0).setZ(0.0);
         MinecartGroup group = this.getGroup();
         if (group.size() != 1) {
             boolean isHead = (this == group.head());
@@ -1252,9 +1253,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 //double mx = 0.5 * (m1.getEntity().loc.getX() + m2.getEntity().loc.getX());
                 //double my = 0.5 * (m1.getEntity().loc.getY() + m2.getEntity().loc.getY());
                 //double mz = 0.5 * (m1.getEntity().loc.getZ() + m2.getEntity().loc.getZ());
-                speedFactor.setX(px - this.getEntity().loc.getX());
-                speedFactor.setY(py - this.getEntity().loc.getY());
-                speedFactor.setZ(pz - this.getEntity().loc.getZ());
+                this.speedFactor.setX(px - this.getEntity().loc.getX());
+                this.speedFactor.setY(py - this.getEntity().loc.getY());
+                this.speedFactor.setZ(pz - this.getEntity().loc.getZ());
             } else {
                 // For head/tail we can adjust our own position to stretch or shrink the train in size
                 MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
@@ -1276,13 +1277,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
                 // Set the factor to the offset we must make to correct the distance
                 double distanceDiff = (TCConfig.cartDistance - distance);
-                speedFactor.setX(direction.getX() * distanceDiff);
-                speedFactor.setY(direction.getY() * distanceDiff);
-                speedFactor.setZ(direction.getZ() * distanceDiff);
+                this.speedFactor.setX(direction.getX() * distanceDiff);
+                this.speedFactor.setY(direction.getY() * distanceDiff);
+                this.speedFactor.setZ(direction.getZ() * distanceDiff);
             }
         }
-
-        this.onPhysicsPostMove(speedFactor);
     }
 
     /**
@@ -1293,7 +1292,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @throws MemberMissingException - thrown when the minecart is dead or dies
      * @throws GroupUnloadedException - thrown when the group is no longer loaded
      */
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
         this.checkMissing();
 
         // Limit velocity to Max Speed
@@ -1316,7 +1315,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Apply speed factor to adjust the minecart positions relative to each other
         // The rate at which this happens depends on the speed of the minecart
-        this.getRailLogic().onSpacingUpdate(this, vel, speedFactor);
+        this.getRailLogic().onSpacingUpdate(this, vel, this.speedFactor);
 
         // No vertical motion if stuck to the rails that way
         if (!getRailLogic().hasVerticalMovement()) {

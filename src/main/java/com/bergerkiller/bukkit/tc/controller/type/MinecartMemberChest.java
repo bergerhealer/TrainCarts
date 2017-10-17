@@ -65,8 +65,8 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
     }
 
     @Override
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove(speedFactor);
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        super.onPhysicsPostMove();
         if (this.getProperties().canPickup()) {
             Inventory inv = entity.getInventory();
             double distance;

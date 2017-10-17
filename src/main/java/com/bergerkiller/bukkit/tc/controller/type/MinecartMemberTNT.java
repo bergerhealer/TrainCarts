@@ -41,8 +41,8 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
     }
 
     @Override
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove(speedFactor);
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        super.onPhysicsPostMove();
         int ticks = entity.getFuseTicks();
         if (ticks > 0) {
             // Update fuse ticks and show fuse effect

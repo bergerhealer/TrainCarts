@@ -28,8 +28,8 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
     }
 
     @Override
-    public void onPhysicsPostMove(Vector speedFactor) throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove(speedFactor);
+    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
+        super.onPhysicsPostMove();
 
         // Detect changes in passengers; call onPropertiesChanged() when that happens
         List<Entity> newPassengers = this.entity.getPassengers();

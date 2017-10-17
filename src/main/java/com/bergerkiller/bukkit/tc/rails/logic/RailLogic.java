@@ -100,7 +100,7 @@ public abstract class RailLogic {
         double motLen = velocity.length();
         if (motLen > 0.0) {
             double f = TCConfig.cartDistanceForcer * factor.dot(velocity);
-            f = MathUtil.clamp(f, 0.0, 1.0); // Don't go too overboard
+            f = MathUtil.clamp(f, -1.0, 1.0); // Don't go too overboard
             f += 1.0; // preserve self velocity
             velocity.multiply(f);
         }
