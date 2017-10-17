@@ -9,30 +9,18 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.CartAttachmentOwner;
 import com.bergerkiller.bukkit.tc.attachments.SeatAttachment;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
-import com.bergerkiller.bukkit.tc.attachments.old.CartSeat;
-import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutAttachEntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
-import com.google.common.collect.Lists;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,13 +35,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private MinecartMember<?> member = null;
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
     public boolean disableMountHandling = false;
-    //public boolean wasUpsideDown = false; // whether passengers should be rendered upside-down
-    //public boolean useVirtualCamera = false; // whether a virtual camera detached from the minecart should be used by players
-    //public boolean disableVirtualCameraHandling = false;
     private boolean isFirstUpdate = true;
-    public double lastDeltaX = 0.0;
-    public double lastDeltaY = 0.0;
-    public double lastDeltaZ = 0.0;
+    private double lastDeltaX = 0.0;
+    private double lastDeltaY = 0.0;
+    private double lastDeltaZ = 0.0;
     private boolean needsPassengerResync = true;
 
     private List<SeatAttachment> seats = Arrays.asList(new SeatAttachment(this));
@@ -217,136 +202,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return getVelocityPacket(velocity, 0.0, 0.0);
     }
 
-    /*
-    public void sendUpsideDownUnmount(Player viewer, Entity entity) {
-        this.seat.sendUpsideDownUnmount(viewer, entity);
-    }
-
-    private void handlePassengerUnmount(Player viewer, Entity passenger) {
-        // If this player has mounted this Minecart and virtual camera is used, unmount the fake mount
-        boolean destroyFakeEntity = this.wasUpsideDown;
-        if ((viewer == passenger) && this.useVirtualCamera && !this.disableVirtualCameraHandling && this.seat.destroyFakeMount(viewer)) {
-            // Also destroy the ghost player that took this person's place in the Minecart
-            destroyFakeEntity = true;
-        }
-
-        // When upside-down, destroy the fake entity that is displayed
-        if (destroyFakeEntity) {
-            this.seat.destroyFakeEntity(viewer, passenger);
-        }
-    }
-
-    // update the list of entities directly attached to this Minecart as passenger
-    private void sendDirectPassengers(Player viewer, Collection<Entity> passengers) {
-        // Clear mounted passengers
-        if (PacketPlayOutMountHandle.T.isAvailable()) {
-            // On MC >= 1.9 we can use the mount packet
-            PacketPlayOutMountHandle mount = PacketPlayOutMountHandle.createNew(this.getEntity().getEntityId(), new int[0]);
-            
-            //TODO: multiple seats!
-            int entityId = this.seat.getMountedEntityId(viewer);
-            if (entityId != -1) {
-                mount.addMountedEntityId(entityId);
-            }
-
-            PacketUtil.sendPacket(viewer, mount);
-        } else {
-            // On MC 1.8.8 and before we had to use attach entity to define the vehicle
-            // Normally this is done by the synchronizer of the passenger
-            // We do it here, too, to correctly deal with upside-down synchronization
-
-            //TODO: multiple seats!
-            int entityId = this.seat.getMountedEntityId(viewer);
-            if (entityId != -1) {
-                PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
-                attach.setVehicleId(this.getEntity().getEntityId());
-                attach.setPassengerId(entityId);
-                PacketUtil.sendPacket(viewer, attach);
-            }
-        }
-
-        this.seat.makeFakePlayerVisible(viewer);
-    }
-
-    @Override
-    protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
-        if (newPassengers.isEmpty()) {
-            this.seat.setPassenger(null);
-        } else {
-            this.seat.setPassenger(newPassengers.get(0));
-        }
-
-        
-        boolean viewerChanged = (!oldPassengers.contains(viewer) || !newPassengers.contains(viewer));
-        if (!this.wasUpsideDown && (!this.useVirtualCamera || !viewerChanged)) {
-            if (!PacketPlayOutMountHandle.T.isAvailable()) {
-
-                // Mount new passengers
-                for (Entity newPassenger : newPassengers) {
-                    if (oldPassengers.contains(newPassenger)) {
-                        continue;
-                    }
-
-                    // Send upside-down mounted player to a viewer
-                    PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
-                    attach.setVehicleId(this.getEntity().getEntityId());
-                    attach.setPassengerId(newPassenger.getEntityId());
-                    PacketUtil.sendPacket(viewer, attach);
-                }
-
-                // Unmount old passengers
-                for (Entity oldPassenger : oldPassengers) {
-                    if (newPassengers.contains(oldPassenger)) {
-                        continue;
-                    }
-
-                    // Send upside-down unmounted player to a viewer
-                    PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
-                    attach.setVehicleId(-1);
-                    attach.setPassengerId(oldPassenger.getEntityId());
-                    PacketUtil.sendPacket(viewer, attach);
-                }
-
-            }
-            
-            super.onSyncPassengers(viewer, oldPassengers, newPassengers);
-            return;
-        }
-
-        if (!this.disableMountHandling) {
-            // Mount new passengers
-            for (Entity newPassenger : newPassengers) {
-                if (oldPassengers.contains(newPassenger)) {
-                    continue;
-                }
-
-                // Send upside-down mounted player to a viewer
-                boolean isVirtualMount = (this.useVirtualCamera && viewer == newPassenger);
-
-                if (this.wasUpsideDown || isVirtualMount) {
-                    this.seat.handlePassengerMount(viewer, newPassenger);
-                }
-
-                if (isVirtualMount && !this.disableVirtualCameraHandling) {
-                    this.seat.initMount(this, this.getMember(), viewer, newPassenger);
-                }
-            }
-
-            // Unmount old passengers
-            for (Entity oldPassenger : oldPassengers) {
-                if (newPassengers.contains(oldPassenger)) {
-                    continue;
-                }
-
-                // Send upside-down unmounted player to a viewer
-                handlePassengerUnmount(viewer, oldPassenger);
-            }
-        }
-
-        this.sendDirectPassengers(viewer, newPassengers);
-    }
-    */
-
     @Override
     public void makeVisible(Player viewer) {
         super.makeVisible(viewer);
@@ -361,14 +216,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         for (SeatAttachment seat : this.seats) {
             seat.addViewer(viewer);
         }
-
-        /*
-        if (!this.getSynchedPassengers().isEmpty()) {
-            this.sendDirectPassengers(viewer, this.getSynchedPassengers());
-        }
-
-        this.seat.makeVisible(viewer);
-        */
     }
     
     @Override
@@ -380,16 +227,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         for (SeatAttachment seat : this.seats) {
             seat.removeViewer(viewer);
         }
-        
-        
-        /*
-        boolean viewerIsPassenger = this.getSynchedPassengers().contains(viewer);
-        if (this.wasUpsideDown || (this.useVirtualCamera && viewerIsPassenger)) {
-            for (Entity passenger : this.getSynchedPassengers()) {
-                handlePassengerUnmount(viewer, passenger);
-            }
-        }
-        */
     }
 
     @Override
@@ -646,51 +483,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 seat.setUseVirtualCamera(false);
             }
         }
-        
+
         onSyncAtt(absolute);
-        
-        /*
-        // Handle switching between upside-down/virtual camera views
-        boolean isUpsideDown = MathUtil.getAngleDifference(locLive.getPitch(), 180.0f) < 89.0f;
-        boolean isVirtualCamera = isUpsideDown || (locLive.getPitch() < -46.0f) || (locLive.getPitch() > 46.0f);
-        boolean isVirtualCameraChange = (isVirtualCamera != this.useVirtualCamera);
-        if (isUpsideDown != this.wasUpsideDown || isVirtualCameraChange) {  
-            List<Entity> old_passengers = this.getSynchedPassengers();
-
-            if (isVirtualCamera && this.useVirtualCamera) {
-                disableVirtualCameraHandling = true;
-            }
-
-            // First remove all old passengers
-            for (Player viewer : this.getViewers()) {
-                onSyncPassengers(viewer, old_passengers, new ArrayList<Entity>(0));
-            }
-
-            // Change modes
-            this.useVirtualCamera = isVirtualCamera;
-            this.wasUpsideDown = isUpsideDown;
-
-            // Add all passengers again
-            for (Player viewer : this.getViewers()) {
-                onSyncPassengers(viewer, new ArrayList<Entity>(0), old_passengers);
-            }
-
-            this.disableVirtualCameraHandling = false;
-        }
-        */
 
         this.syncPassengers();
         this.syncDirectPassengers();
-
-        /*
-        // Synchronized the player mount to the player that rides this Minecart, when upside-down
-        // This moves the mount along with the player and simulates an alternative first-person camera view
-        if (!isVirtualCameraChange && this.useVirtualCamera && (absolute || moved)) {
-            this.seat.updatePosition(this, absolute);
-        }
-
-        this.seat.syncRealPlayer(this, this.wasUpsideDown, this.useVirtualCamera);
-        */
     }
 
     @Override
