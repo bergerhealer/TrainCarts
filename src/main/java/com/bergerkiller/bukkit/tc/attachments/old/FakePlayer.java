@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.parts;
+package com.bergerkiller.bukkit.tc.attachments.old;
 
 import java.util.Collection;
 import java.util.HashMap;

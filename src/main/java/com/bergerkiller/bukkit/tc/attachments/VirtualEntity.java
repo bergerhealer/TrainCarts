@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.parts;
+package com.bergerkiller.bukkit.tc.attachments;
 
 import java.util.Collection;
 import java.util.UUID;
@@ -21,7 +21,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 /**
  * Represents a single Virtual entity, that only exists for clients using packet protocol
  */
-public class VirtualEntity implements DisplayedPart {
+public class VirtualEntity {
     private final int entityId;
     private final DataWatcher metaData;
     private double posX, posY, posZ;
@@ -58,7 +58,11 @@ public class VirtualEntity implements DisplayedPart {
         this.posZ = position.getZ();
     }
 
-    @Override
+    /**
+     * Updates the position of the displayed part
+     * 
+     * @param transform relative to which the part should be positioned
+     */
     public void updatePosition(Matrix4x4 transform) {
         Vector3 v = new Vector3(this.posX, this.posY, this.posZ);
         transform.transformPoint(v);
@@ -78,18 +82,18 @@ public class VirtualEntity implements DisplayedPart {
         this.entityType = entityType;
     }
 
-    public void spawn(Player viewer, double motX, double motY, double motZ) {
+    public void spawn(Player viewer, Vector motion) {
         //motX = motY = motZ = 0.0;
         CommonPacket packet = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, UUID.randomUUID());
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, (int) this.entityType.getTypeId());
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motX);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motY);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motZ);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motX);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motY);
-        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motZ);
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motion.getX());
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motion.getY());
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motion.getZ());
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motion.getX());
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motion.getY());
+        packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motion.getZ());
         packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
         PacketUtil.sendPacket(viewer, packet);
 
@@ -107,7 +111,7 @@ public class VirtualEntity implements DisplayedPart {
             }
         }
 
-        packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motX, motY, motZ, false);
+        packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
         PacketUtil.sendPacket(viewer, packet);
     }
 
