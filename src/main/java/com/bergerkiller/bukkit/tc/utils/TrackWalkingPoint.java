@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -95,6 +97,17 @@ public class TrackWalkingPoint extends TrackMovingPoint {
                                             this.nextPosition.getZ() - this.currentPosition.getZ());
                    currentPosition.add(dir.normalize().multiply(remaining));
                 }
+
+                //TODO: This hacked in fix is so ugly, please don't do this :(
+                // It prevents clipping, but the way its done is just egh.
+                if (this.currentRail != RailType.VERTICAL) {
+                    Block posBlock = this.currentRail.findMinecartPos(this.currentTrack);
+                    double minY = (double) posBlock.getY() + RailLogicHorizontal.Y_POS_OFFSET;
+                    if (currentPosition.getY() < minY) {
+                        currentPosition.setY(minY);
+                    }
+                }
+
                 return true;
             }
         }
