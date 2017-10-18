@@ -14,12 +14,14 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.CartAttachmentOwner;
 import com.bergerkiller.bukkit.tc.attachments.SeatAttachment;
+import com.bergerkiller.bukkit.tc.attachments.TestAttachment;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -42,13 +44,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private boolean needsPassengerResync = true;
 
     private List<SeatAttachment> seats = Arrays.asList(new SeatAttachment(this));
+    private List<CartAttachment> attachments = new ArrayList<CartAttachment>();
 
     @Override
     public Vector getLastMovement() {
         return new Vector(this.lastDeltaX , this.lastDeltaY, this.lastDeltaZ);
     }
 
-    public MinecartMemberNetwork() {
+    public MinecartMemberNetwork() {        
         final VectorAbstract velLiveBase = this.velLive;
         this.velLive = new VectorAbstract() {
             public double getX() {
@@ -78,6 +81,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 return this;
             }
         };
+
+        this.attachments.addAll(this.seats);
+
+        // Debug: add a test attachment
+        // this.attachments.add(new TestAttachment(this));
     }
 
     // sends a mount packet with the passengers of this Minecart directly
@@ -213,8 +221,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.velocityUpdateReceivers.add(viewer);
         this.updateVelocity(viewer);
 
-        for (SeatAttachment seat : this.seats) {
-            seat.addViewer(viewer);
+        for (CartAttachment attachment : this.attachments) {
+            attachment.addViewer(viewer);
         }
     }
     
@@ -224,15 +232,15 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.velocityUpdateReceivers.remove(viewer);
         PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), ZERO_VELOCITY));
 
-        for (SeatAttachment seat : this.seats) {
-            seat.removeViewer(viewer);
+        for (CartAttachment attachment : this.attachments) {
+            attachment.removeViewer(viewer);
         }
     }
 
     @Override
     public void onTick() {
-        for (SeatAttachment seat : this.seats) {
-            seat.onTick();
+        for (CartAttachment attachment : this.attachments) {
+            attachment.onTick();
         }
     }
 
@@ -350,7 +358,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 (this.locSynched.getX() - fx),
                 (this.locSynched.getY() - fy),
                 (this.locSynched.getZ() - fz),
-                this.locSynched.getYaw(), this.locSynched.getPitch()
+                this.locLive.getYaw(), this.locLive.getPitch()
         );
         return transform;
     }
@@ -497,8 +505,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     @Override
     public void onSyncAtt(boolean absolute) {
-        for (SeatAttachment seat : this.seats) {
-            seat.onSyncAtt(absolute);
+        for (CartAttachment attachment : this.attachments) {
+            attachment.onSyncAtt(absolute);
         }
     }
 }

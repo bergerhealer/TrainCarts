@@ -27,6 +27,7 @@ public class VirtualEntity {
     private double posX, posY, posZ;
     private double liveAbsX, liveAbsY, liveAbsZ;
     private double syncAbsX, syncAbsY, syncAbsZ;
+    private double relDx, relDy, relDz;
     private EntityType entityType = EntityType.CHICKEN;
     private int[] passengers = new int[0];
 
@@ -58,6 +59,12 @@ public class VirtualEntity {
         this.posZ = position.getZ();
     }
 
+    public void setRelativeOffset(double dx, double dy, double dz) {
+        this.relDx = dx;
+        this.relDy = dy;
+        this.relDz = dz;
+    }
+    
     /**
      * Updates the position of the displayed part
      * 
@@ -67,9 +74,9 @@ public class VirtualEntity {
         Vector3 v = new Vector3(this.posX, this.posY, this.posZ);
         transform.transformPoint(v);
 
-        liveAbsX = v.x;
-        liveAbsY = v.y - 1.32;
-        liveAbsZ = v.z;
+        liveAbsX = v.x + this.relDx;
+        liveAbsY = v.y + this.relDy;
+        liveAbsZ = v.z + this.relDz;
 
         //TODO: Also transform children of this part
     }

@@ -13,7 +13,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.serverversion>1.12-R0.1</project.serverversion>
-        <project.bkcversion>1.12.2-v3-SNAPSHOT</project.bkcversion>
+        <project.bkcversion>1.12.2-v4-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.cibuild/>

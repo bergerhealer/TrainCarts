@@ -195,12 +195,7 @@ public class SeatAttachment implements CartAttachment {
         this.owner.onAttachmentsChanged();
     }
 
-    /**
-     * Makes this seated entity visible to a new player.
-     * 
-     * @param viewer to add
-     * @return True if the viewer is a new viewer
-     */
+    @Override
     public boolean addViewer(Player viewer) {
         if (!this._viewers.add(viewer)) {
             return false;
@@ -212,12 +207,7 @@ public class SeatAttachment implements CartAttachment {
         return true;
     }
 
-    /**
-     * Makes this seated entity hidden to a previously added viewer.
-     * 
-     * @param viewer to remove
-     * @return True if the viewer was a viewer and is removed
-     */
+    @Override
     public boolean removeViewer(Player viewer) {
         if (!this._viewers.remove(viewer)) {
             return false;
@@ -345,6 +335,7 @@ public class SeatAttachment implements CartAttachment {
                 this._fakeCameraMount = new VirtualEntity();
 
                 this._fakeCameraMount.setPosition(new Vector(0.0, 1.0, 0.0));
+                this._fakeCameraMount.setRelativeOffset(0.0, -1.32, 0.0);
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
                 this._fakeCameraMount.updatePosition(owner.getTransform(false));
