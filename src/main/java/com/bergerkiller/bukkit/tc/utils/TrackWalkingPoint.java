@@ -100,7 +100,7 @@ public class TrackWalkingPoint extends TrackMovingPoint {
 
                 //TODO: This hacked in fix is so ugly, please don't do this :(
                 // It prevents clipping, but the way its done is just egh.
-                if (this.currentRail != RailType.VERTICAL) {
+                if (this.currentRail != RailType.VERTICAL && !this.currentRail.isUpsideDown(this.currentTrack)) {
                     Block posBlock = this.currentRail.findMinecartPos(this.currentTrack);
                     double minY = (double) posBlock.getY() + RailLogicHorizontal.Y_POS_OFFSET;
                     if (currentPosition.getY() < minY) {
