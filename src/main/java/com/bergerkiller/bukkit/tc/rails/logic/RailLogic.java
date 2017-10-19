@@ -104,6 +104,9 @@ public abstract class RailLogic {
             f += 1.0; // preserve self velocity
             velocity.multiply(f);
         }
+        if (TCConfig.cartDistanceForcerConstant > 0.0) {
+            velocity.add(factor.clone().multiply(TCConfig.cartDistanceForcerConstant));
+        }
     }
 
     /**

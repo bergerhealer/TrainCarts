@@ -35,10 +35,8 @@ public class TCConfig {
     public static double maxVelocity;
     public static double maxEjectDistance;
     public static double cartDistance;
-    public static double turnedCartDistance;
     public static double cartDistanceForcer;
-    public static double turnedCartDistanceForcer;
-    public static double nearCartDistanceFactor;
+    public static double cartDistanceForcerConstant;
     public static double maxCartDistance;
     public static boolean breakCombinedCarts;
     public static double poweredCartBoost;
@@ -95,18 +93,9 @@ public class TCConfig {
         config.setHeader("normal", "\nSettings for normally-aligned (straight) carts");
         config.setHeader("normal.cartDistance", "The distance between two carts in a train");
         config.setHeader("normal.cartDistanceForcer", "The factor at which this distance is kept");
-        TCConfig.cartDistance = config.get("normal.cartDistance", 1.5);
-        TCConfig.cartDistanceForcer = config.get("normal.cartDistanceForcer", 0.1);
-        config.setHeader("normal", "\nThe distance between two normally-aligned (straight) carts in a train");
-
-        config.setHeader("turned", "\nSettings for turned (in curve) carts");
-        config.setHeader("turned.cartDistance", "The distance between two carts in a train");
-        config.setHeader("turned.cartDistanceForcer", "The factor at which this distance is kept");
-        turnedCartDistance = config.get("turned.cartDistance", 1.6);
-        turnedCartDistanceForcer = config.get("turned.cartDistanceForcer", 0.2);
-
-        config.setHeader("nearCartDistanceFactor", "\nThe 'keep distance' factor to apply when carts are too close to each other");
-        nearCartDistanceFactor = config.get("nearCartDistanceFactor", 1.2);
+        cartDistance = config.get("normal.cartDistance", 1.5);
+        cartDistanceForcer = config.get("normal.cartDistanceForcer", 0.1);
+        cartDistanceForcerConstant = config.get("normal.cartDistanceForcerConstant", 0.0);
 
         config.setHeader("maxCartDistance", "\nThe maximum allowed cart distance, after this distance the carts break apart");
         maxCartDistance = config.get("maxCartDistance", 4.0);
