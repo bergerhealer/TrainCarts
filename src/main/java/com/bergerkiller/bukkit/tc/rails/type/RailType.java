@@ -35,6 +35,7 @@ public abstract class RailType {
     public static final RailTypePowered BOOST = new RailTypePowered(true);
     public static final RailTypeNone NONE = new RailTypeNone();
     private static final List<RailType> values = new ArrayList<RailType>();
+    private final boolean _isComplexRailBlock;
 
     static {
         for (RailType type : CommonUtil.getClassConstants(RailType.class)) {
@@ -110,9 +111,10 @@ public abstract class RailType {
      */
     public static RailType getType(Block railsBlock) {
         if (railsBlock != null) {
+            BlockData railsBlockData = WorldUtil.getBlockData(railsBlock);
             for (RailType type : values()) {
                 try {
-                    if (type.isRail(railsBlock)) {
+                    if (type.isComplexRailBlock() ? type.isRail(railsBlock) : type.isRail(railsBlockData)) {
                         return type;
                     }
                 } catch (Throwable t) {
@@ -122,6 +124,13 @@ public abstract class RailType {
             }
         }
         return NONE;
+    }
+
+    public RailType() {
+        // Detect whether isRail(world, x, y, z) is overrided
+        // If it is not, we can optimize lookup for this rail type
+        this._isComplexRailBlock = CommonUtil.isMethodOverrided(RailType.class, getClass(),
+                "isRail", World.class, int.class, int.class, int.class);
     }
 
     /**
@@ -169,6 +178,16 @@ public abstract class RailType {
      */
     public final boolean isRail(Block block) {
         return isRail(block.getWorld(), block.getX(), block.getY(), block.getZ());
+    }
+
+    /**
+     * Gets whether {@link #isRail(World, x, y, z)} is overrided, indicating this rail
+     * type is more complex than a single block
+     * 
+     * @return True if this is a complex rail block
+     */
+    public final boolean isComplexRailBlock() {
+        return this._isComplexRailBlock;
     }
 
     /**
