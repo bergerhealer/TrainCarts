@@ -2,14 +2,14 @@ package com.bergerkiller.bukkit.tc.attachments;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.controller.Tickable;
+
 /**
  * An element that is attached to a Minecart, moving along with it
  */
-public interface CartAttachment {
+public interface CartAttachment extends Tickable {
 
-    /**
-     * Called every tick to refresh this attachment
-     */
+    @Override
     void onTick();
 
     void onSyncAtt(boolean absolute);

@@ -74,7 +74,7 @@ public class TestAttachment implements CartAttachment {
         PacketPlayOutEntityEquipmentHandle equipment = PacketPlayOutEntityEquipmentHandle.createNew(
                 entity.getEntityId(),
                 EquipmentSlot.HEAD,
-                new ItemStack(Material.DIAMOND_SWORD, 1, (short) 2));
+                new ItemStack(Material.DIAMOND_SWORD, 1, (short) 1));
         PacketUtil.sendPacket(viewer, equipment);
 
         return true;

@@ -85,7 +85,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.attachments.addAll(this.seats);
 
         // Debug: add a test attachment
-        // this.attachments.add(new TestAttachment(this));
+        //this.attachments.add(new TestAttachment(this));
     }
 
     // sends a mount packet with the passengers of this Minecart directly
@@ -237,15 +237,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    @Override
-    public void onTick() {
+    private void tickAttachments() {
         for (CartAttachment attachment : this.attachments) {
             attachment.onTick();
         }
     }
 
     @Override
-    public void onSync() {
+    public void onTick() {
         try {
             if (entity.isDead()) {
                 return;
@@ -257,7 +256,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 MinecartMember<?> member = (MinecartMember<?>) entity.getController();
                 if (member.isUnloaded()) {
                     // Unloaded: Synchronize just this Minecart
-                    super.onSync();
+                    super.onTick();
                     return;
                 } else if (member.getIndex() != 0) {
                     // Ignore minecarts other than the first
@@ -283,7 +282,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 if (networkControllers[i].member != member) {
                     networkControllers[i].member = member;
                 }
-                networkControllers[i].onTick();
+                networkControllers[i].tickAttachments();
             }
 
             // Synchronize to the clients
