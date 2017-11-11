@@ -5,9 +5,11 @@ import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModels;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -209,6 +211,8 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
+        MapResourcePack.SERVER.load();
+
         //Load configuration
         loadConfig();
 
@@ -220,6 +224,9 @@ public class TrainCarts extends PluginBase {
                 }
             }
         }
+
+        //Load attachment models
+        AttachmentModels.init(getDataFolder() + File.separator + "models.yml");
 
         //init statements
         Statement.init();
@@ -313,6 +320,9 @@ public class TrainCarts extends PluginBase {
 
         //Save detector regions
         DetectorRegion.save(autosave, getDataFolder() + File.separator + "detectorregions.dat");
+
+        //Save attachment models
+        AttachmentModels.save(autosave, getDataFolder() + File.separator + "models.yml");
 
         // Save train information
         if (!autosave) {
