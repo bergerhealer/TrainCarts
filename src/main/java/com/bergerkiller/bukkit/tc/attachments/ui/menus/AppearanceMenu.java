@@ -18,10 +18,6 @@ public class AppearanceMenu extends MapWidgetWindow {
         this.setBackgroundColor(MapColorPalette.COLOR_BLUE);
     }
 
-    public void close() {
-        this.getParent().removeWidget(this);
-    }
-    
     @Override
     public void onAttached() {
         this.activate();
@@ -34,7 +30,7 @@ public class AppearanceMenu extends MapWidgetWindow {
     @Override
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == Key.BACK && this.isActivated()) {
-            this.close();
+            this.remove();
             return;
         }
         super.onKeyPressed(event);

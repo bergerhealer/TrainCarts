@@ -84,11 +84,9 @@ public class MapWidgetItemSelector extends MapWidget {
 
     private void setGridOpened(boolean opened) {
         if (!opened && !this.getWidgets().contains(this.preview)) {
-            this.removeWidget(this.grid);
-            this.addWidget(this.preview);
+            this.swapWidget(this.grid, this.preview);
         } else if (opened && !this.getWidgets().contains(this.grid)) {
-            this.removeWidget(this.preview);
-            this.addWidget(this.grid).activate();
+            this.swapWidget(this.preview, this.grid).activate();
         }
     }
 }
