@@ -14,12 +14,14 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.attachments.old.CartAttachmentOwner;
+import com.bergerkiller.bukkit.tc.attachments.old.ICartAttachmentOld;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 
-public class TestAttachment implements CartAttachment {
+public class TestAttachment implements ICartAttachmentOld {
     private CartAttachmentOwner owner;
     private final Set<Player> _viewers = new HashSet<Player>();
     private VirtualEntity entity = null;
@@ -41,7 +43,7 @@ public class TestAttachment implements CartAttachment {
             Matrix4x4 m = owner.getTransform(true);
 
             entity.updatePosition(m);
-            entity.syncPosition(this._viewers, absolute);
+            entity.syncPosition(absolute);
 
             //m.transformPoint(p);
             DataWatcher metaTmp = new DataWatcher();
@@ -60,13 +62,12 @@ public class TestAttachment implements CartAttachment {
         }
         
         if (entity == null) {
-            entity = new VirtualEntity();
+            entity = new VirtualEntity(null); //broke!
             entity.setEntityType(EntityType.ARMOR_STAND);
             entity.setRelativeOffset(0.0, -1.2, 0.0);
             entity.setPosition(new Vector(0.35, 0.1, 0.0));
             entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
             entity.updatePosition(owner.getTransform(false));
-            entity.syncPosition(Collections.emptyList(), true);
         }
         
         entity.spawn(viewer, new Vector(0.0, 0.0, 0.0));

@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 
 /**
  * The tree view storing all the map widget attachment nodes.
@@ -15,6 +17,16 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode();
     private int offset = 0;
     private int count = 6;
+    private AttachmentModel model = null;
+
+    public void setModel(AttachmentModel model) {
+        this.model = model;
+        this.root.loadConfig(model.getConfig());
+    }
+
+    public void updateModel() {
+        this.model.update(root.getFullConfig());
+    }
 
     public abstract void onMenuOpen(MapWidgetAttachmentNode node, MapWidgetAttachmentNode.MenuItem menu);
 
@@ -24,6 +36,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     @Override
     public void onAttached() {
+        /*
         MapWidgetAttachmentNode a = root.addAttachment();
         {
             a.addAttachment();
@@ -39,8 +52,9 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         {
             a.addAttachment();
         }
+        */
         
-        root.addAttachment();
+        //root.addAttachment();
 
         this.updateView(0);
     }

@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.attachments;
+package com.bergerkiller.bukkit.tc.attachments.old;
 
 import org.bukkit.util.Vector;
 

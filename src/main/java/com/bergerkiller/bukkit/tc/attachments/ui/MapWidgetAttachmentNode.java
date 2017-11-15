@@ -19,7 +19,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
  * the configuration for the node.
  */
 public class MapWidgetAttachmentNode extends MapWidget {
-    private final ConfigurationNode config;
+    private ConfigurationNode config;
     private List<MapWidgetAttachmentNode> attachments = new ArrayList<MapWidgetAttachmentNode>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
@@ -29,7 +29,15 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public MapWidgetAttachmentNode(ConfigurationNode config) {
+        this.loadConfig(config);
+
+        // Can be focused
+        this.setFocusable(true);
+    }
+
+    public void loadConfig(ConfigurationNode config) {
         this.config = config;
+        this.attachments.clear();
 
         // Add child attachments
         if (config.contains("attachments")) {
@@ -39,17 +47,18 @@ public class MapWidgetAttachmentNode extends MapWidget {
                 this.attachments.add(sub);
             }
         }
-
-        // Can be focused
-        this.setFocusable(true);
     }
 
+    public MapWidgetAttachmentTree getTree() {
+        return ((MapWidgetAttachmentTree) this.parent);
+    }
+    
     public MapWidgetAttachmentNode getParentAttachment() {
         return this.parentAttachment;
     }
 
     public void openMenu(MenuItem item) {
-        ((MapWidgetAttachmentTree) this.parent).onMenuOpen(this, item);
+        getTree().onMenuOpen(this, item);
     }
 
     public List<MapWidgetAttachmentNode> getAttachments() {
@@ -58,6 +67,24 @@ public class MapWidgetAttachmentNode extends MapWidget {
     
     public ConfigurationNode getConfig() {
         return this.config;
+    }
+
+    public ConfigurationNode getFullConfig() {
+        ConfigurationNode result = this.config.clone();
+        List<ConfigurationNode> children = new ArrayList<ConfigurationNode>(this.attachments.size());
+        for (MapWidgetAttachmentNode attachment : this.attachments) {
+            children.add(attachment.getFullConfig());
+        }
+        result.setNodeList("attachments", children);
+        return result;
+    }
+
+    /**
+     * Applies updated configurations to the models system, refreshing trains that use this model
+     */
+    public void update() {
+        this.config.set("needsUpdating", true);
+        this.getTree().updateModel();
     }
 
     public MapWidgetAttachmentNode addAttachment() {

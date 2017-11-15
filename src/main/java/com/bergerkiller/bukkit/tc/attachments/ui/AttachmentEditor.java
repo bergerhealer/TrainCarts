@@ -3,16 +3,19 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
+    public AttachmentModel model = AttachmentModel.MODEL; // debug!
+
     private MapWidgetAttachmentTree tree = new MapWidgetAttachmentTree() {
         @Override
         public void onMenuOpen(MapWidgetAttachmentNode node, MenuItem menu) {
             if (menu == MenuItem.APPEARANCE) {
-                AttachmentEditor.this.addWidget(new AppearanceMenu());
+                AttachmentEditor.this.addWidget(new AppearanceMenu(node));
             }
         }
     };
@@ -47,6 +50,7 @@ public class AttachmentEditor extends MapDisplay {
         window.setBounds(0, 0, getWidth(), getHeight());
         window.getTitle().setText("Attachment Editor");
         
+        this.tree.setModel(this.model);
         window.addWidget(this.tree.setBounds(5, 13, 7 * 17, 6 * 17));
         
         

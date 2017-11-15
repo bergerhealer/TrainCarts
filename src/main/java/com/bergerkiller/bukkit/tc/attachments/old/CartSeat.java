@@ -90,7 +90,7 @@ public class CartSeat {
         Collection<Entity> passengers = network.getSynchedPassengers();
         for (Player viewer : network.getViewers()) {
             if (passengers.contains(viewer)) {
-                this.fakeMount.syncPosition(Collections.singleton(viewer), absolute);
+                this.fakeMount.syncPosition(absolute);
                 break;
             }
         }
@@ -195,15 +195,14 @@ public class CartSeat {
 
     public void initMount(MinecartMemberNetwork network, MinecartMember<?> member, Player viewer, Entity passenger) {
         if (this.fakeMount == null) {
-            this.fakeMount = new VirtualEntity();
+            this.fakeMount = new VirtualEntity(null); // Broke!
             this.fakeMount.setPosition(member.getPassengerPosition(passenger));
 
             // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
             this.fakeMount.updatePosition(network.getTransform(false));
-            this.fakeMount.syncPosition(Collections.emptyList(), true);
             this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-            this.fakeMount.setPassengers(new int[] {passenger.getEntityId()});
+            //this.fakeMount.setPassengers(new int[] {passenger.getEntityId()});
             //this.fakeMount.spawn(viewer, network.lastDeltaX, network.lastDeltaY, network.lastDeltaZ);
         }
     }

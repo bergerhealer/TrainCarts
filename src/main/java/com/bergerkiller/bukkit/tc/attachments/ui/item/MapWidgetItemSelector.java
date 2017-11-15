@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
  * Combines a toggleable item grid with preview and an item variant item selector list
  * to select an ItemStack
  */
-public class MapWidgetItemSelector extends MapWidget {
+public abstract class MapWidgetItemSelector extends MapWidget {
     private final MapWidgetItemPreview preview = new MapWidgetItemPreview() {
         
     };
@@ -23,6 +23,7 @@ public class MapWidgetItemSelector extends MapWidget {
         @Override
         public void onItemChanged() {
             preview.setItem(getItem());
+            onSelectedItemChanged();
         }
     };
     private final MapWidgetItemGrid grid = new MapWidgetItemGrid() {
@@ -89,4 +90,6 @@ public class MapWidgetItemSelector extends MapWidget {
             this.swapWidget(this.preview, this.grid).activate();
         }
     }
+
+    public abstract void onSelectedItemChanged();
 }

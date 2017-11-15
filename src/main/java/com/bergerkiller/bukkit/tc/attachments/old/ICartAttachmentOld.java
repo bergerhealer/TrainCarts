@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.attachments;
+package com.bergerkiller.bukkit.tc.attachments.old;
 
 import org.bukkit.entity.Player;
 
@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.common.controller.Tickable;
 /**
  * An element that is attached to a Minecart, moving along with it
  */
-public interface CartAttachment extends Tickable {
+public interface ICartAttachmentOld extends Tickable {
 
     @Override
     void onTick();
