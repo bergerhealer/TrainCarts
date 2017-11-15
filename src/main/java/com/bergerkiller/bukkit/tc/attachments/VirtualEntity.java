@@ -14,14 +14,14 @@ import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutAttachEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
 /**
  * Represents a single Virtual entity, that only exists for clients using packet protocol
@@ -36,10 +36,13 @@ public class VirtualEntity {
     private double syncAbsX, syncAbsY, syncAbsZ;
     private float liveYaw, livePitch;
     private float syncYaw, syncPitch;
+    private double liveVel;
+    private double syncVel;
     private double relDx, relDy, relDz;
     private EntityType entityType = EntityType.CHICKEN;
     private int rotateCtr = 0;
     private boolean hasRotation = true;
+    private boolean cancelUnmountLogic = false;
 
     public VirtualEntity(MinecartMemberNetwork controller) {
         this(controller, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
@@ -51,6 +54,7 @@ public class VirtualEntity {
         this.entityUUID = entityUUID;
         this.metaData = new DataWatcher();
         this.syncAbsX = this.syncAbsY = this.syncAbsZ = Double.NaN;
+        this.syncVel = 0.0;
     }
 
     public DataWatcher getMetaData() {
@@ -98,7 +102,7 @@ public class VirtualEntity {
         liveAbsX = v.x + this.relDx;
         liveAbsY = v.y + this.relDy;
         liveAbsZ = v.z + this.relDz;
-        
+
         if (this.hasRotation) {
             Vector rotation = transform.getYawPitchRoll();
             liveYaw = (float) rotation.getY();
@@ -106,6 +110,26 @@ public class VirtualEntity {
                 livePitch = (float) rotation.getX();
             } else {
                 livePitch = 0.0f;
+            }
+        }
+
+        // If sync is not yet set, set it to live
+        if (Double.isNaN(this.syncAbsX)) {
+            this.refreshSyncPos();
+        }
+
+        // Calculate the velocity by comparing the last synchronized position with the live position
+        // This should only be done when sound is enabled for the Minecart
+        // Velocity is used exclusively for controlling the minecart's audio level
+        // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
+        liveVel = 0.0;
+        if (hasVelocityPacket(this.entityType)) {
+            MinecartMember<?> member = controller.getMember();
+            if (member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
+                liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, syncAbsX, syncAbsY, syncAbsZ);
+
+                // Limit to a maximum of 1.0, above this it's kind of pointless
+                if (liveVel > 1.0) liveVel = 1.0;
             }
         }
     }
@@ -117,12 +141,7 @@ public class VirtualEntity {
     public void spawn(Player viewer, Vector motion) {
         //motX = motY = motZ = 0.0;
 
-        // Set sync pos to live pos if first spawn
-        if (Double.isNaN(this.syncAbsX)) {
-            this.refreshSyncPos();
-        }
-
-        System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
+        //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
 
         // Figure out what the Id is of the entity we spawn
         // Extradata is depending on the entity type
@@ -172,7 +191,6 @@ public class VirtualEntity {
             packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.pitch, this.syncPitch);
         } else {
             // Spawn entity (generic)
-            System.out.println("SPAWN GENERIC");
             packet = PacketType.OUT_ENTITY_SPAWN.newInstance();
             packet.write(PacketType.OUT_ENTITY_SPAWN.entityId, this.entityId);
             packet.write(PacketType.OUT_ENTITY_SPAWN.UUID, this.entityUUID);
@@ -194,6 +212,11 @@ public class VirtualEntity {
 
         packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
         PacketUtil.sendPacket(viewer, packet);
+
+        // Resend velocity if one is set
+        if (this.syncVel > 0.0) {
+            PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0));
+        }
     }
 
     public void syncPosition(boolean absolute) {
@@ -202,6 +225,16 @@ public class VirtualEntity {
             // No viewers. Assign live to sync right away.
             refreshSyncPos();
             return;
+        }
+
+        // Synchronize velocity
+        // Minecraft does not play minecart audio for the Y-axis. To make sound on vertical rails,
+        // we instead apply the vector length to just the X-axis so that this works.
+        // Velocity packets are only relevant when minecarts are used (with audio enabled)
+        if (Math.abs(this.liveVel - this.syncVel) > 0.01) {
+            this.syncVel = this.liveVel;
+            CommonPacket packet = PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0);
+            controller.broadcast(packet);
         }
 
         // Live motion. Check if the distance change is too large.
@@ -214,9 +247,11 @@ public class VirtualEntity {
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (hasPitch(this.entityType) && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
+            this.cancelUnmountLogic = true;
             for (Player viewer : viewers) {
                 this.destroy(viewer);
             }
+            this.cancelUnmountLogic = false;
             this.refreshSyncPos();
             for (Player viewer : viewers) {
                 this.spawn(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
@@ -288,15 +323,26 @@ public class VirtualEntity {
         this.syncAbsZ = this.liveAbsZ;
         this.syncYaw = this.liveYaw;
         this.syncPitch = this.livePitch;
+        this.syncVel = this.liveVel;
     }
 
     public void destroy(Player viewer) {
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.entityId});
         PacketUtil.sendPacket(viewer, destroyPacket);
-        this.controller.getPassengerController(viewer).remove(this.entityId, false);
+        if (!this.cancelUnmountLogic) {
+            this.controller.getPassengerController(viewer).remove(this.entityId, false);
+        }
     }
 
+    private static boolean hasVelocityPacket(EntityType entityType) {
+        return isMinecart(entityType);
+    }
+    
     private static boolean hasPitch(EntityType entityType) {
+        return isMinecart(entityType);
+    }
+
+    public static boolean isMinecart(EntityType entityType) {
         switch (entityType) {
         case MINECART:
         case MINECART_CHEST:
@@ -306,7 +352,8 @@ public class VirtualEntity {
         case MINECART_MOB_SPAWNER:
         case MINECART_HOPPER:
             return true;
+        default:
+            return false;
         }
-        return false;
     }
 }

@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class AttachmentModel {
+    public static boolean test_model_mode = false;
     public static AttachmentModel MODEL = new AttachmentModel(); // For debug only!
 
     static {
@@ -52,7 +53,29 @@ public class AttachmentModel {
         //MODEL.config.setNodeList("attachments", Arrays.asList(seatNode));
         */
     }
-    
+
+    /**
+     * Gets the default, unmodified model for a Vanilla Minecart
+     * 
+     * @param minecartType
+     * @return default minecart model
+     */
+    public static AttachmentModel getDefaultModel(EntityType minecartType) {
+        if (test_model_mode) {
+            return MODEL; //debug!
+        }
+
+        AttachmentModel result = new AttachmentModel();
+        result.config.set("type", CartAttachmentType.ENTITY);
+        result.config.set("entityType", minecartType);
+        if (minecartType == EntityType.MINECART) {
+            ConfigurationNode seatNode = new ConfigurationNode();
+            seatNode.set("type", CartAttachmentType.SEAT);
+            result.config.setNodeList("attachments", Arrays.asList(seatNode));
+        }
+        return result;
+    }
+
     private ConfigurationNode config;
     private List<AttachmentModelOwner> owners = new ArrayList<AttachmentModelOwner>();
 

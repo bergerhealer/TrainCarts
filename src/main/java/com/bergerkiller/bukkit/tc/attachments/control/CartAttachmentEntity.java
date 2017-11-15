@@ -16,8 +16,21 @@ public class CartAttachmentEntity extends CartAttachment {
     @Override
     public void onAttached() {
         super.onAttached();
-        this.entity = this.generateVirtualEntity();
-        this.entity.setEntityType(config.get("entityType", EntityType.MINECART));
+
+        EntityType entityType = config.get("entityType", EntityType.MINECART);
+        if (this.parent != null || !VirtualEntity.isMinecart(entityType)) {
+            // Generate entity (UU)ID
+            this.entity = new VirtualEntity(this.controller);
+        } else {
+            // Root Minecart node - allow the same Entity Id as the minecart to be used
+            this.entity = new VirtualEntity(this.controller, this.controller.getEntity().getEntityId(), this.controller.getEntity().getUniqueId());
+        }
+        this.entity.setEntityType(entityType);
+    }
+
+    @Override
+    public boolean containsEntityId(int entityId) {
+        return this.entity != null && this.entity.getEntityId() == entityId;
     }
 
     @Override

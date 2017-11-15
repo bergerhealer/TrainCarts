@@ -130,9 +130,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void onAttached() {
         super.onAttached();
 
-        this.attachmentModel = AttachmentModel.MODEL; // HACK!
+        this.attachmentModel = AttachmentModel.getDefaultModel(this.entity.getType());
         this.attachmentModel.addOwner(this);
-        
+
         if (this.member == null) {
             this.member = this.entity.getController(MinecartMember.class);
         }
@@ -387,7 +387,26 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         );
         return transform;
     }
-    
+
+    /**
+     * Handles a player clicking on a virtual attachment part.
+     * Returns true if this minecart was indeed interacted with.
+     * Tracks the interaction that was performed so that it can later
+     * be deduced which attachment was interacted.
+     * 
+     * @param entityId
+     * @return True if interaction was handled
+     */
+    public boolean handleInteraction(int entityId) {
+        CartAttachment attachment = CartAttachment.findAttachment(this.rootAttachment, entityId);
+        if (attachment == null) {
+            return false;
+        }
+
+        // TODO: Store this attachment for later querying
+        return true;
+    }
+
     public void syncSelf(boolean moved, boolean rotated, boolean absolute) {
         // Check
         if (this.getMember() == null) {
@@ -461,40 +480,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             //syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
         }
 
-        // Velocity is used exclusively for controlling the minecart's audio level
-        // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
-        // Minecraft does not play minecart audio for the Y-axis. To make sound on vertical rails,
-        // we instead apply the vector length to just the X-axis so that this works.
-        double currVelocity;
-        if (member.isDerailed()) {
-            currVelocity = 0.0;
-        } else {
-            currVelocity = velLive.length();
-        }
-        currVelocity = Math.min(currVelocity, member.getEntity().getMaxSpeed());
-        boolean velocityChanged = (MathUtil.length(velSynched.length(), currVelocity) > (MIN_RELATIVE_VELOCITY * MIN_RELATIVE_VELOCITY)) ||
-                (velSynched.lengthSquared() > 0.0 && currVelocity == 0.0);
-
-        // Synchronize velocity
-        if (absolute || getEntity().isVelocityChanged() || velocityChanged) {
-            // Reset dirty velocity
-            getEntity().setVelocityChanged(false);
-
-            // Send packets to recipients
-            velSynched.set(currVelocity, 0.0, 0.0);
-
-            CommonPacket velocityPacket = getVelocityPacket(currVelocity);
-            for (Player player : velocityUpdateReceivers) {
-                PacketUtil.sendPacket(player, velocityPacket);
-            }
-        }
-
-        // Update the velocity update receivers
-        if (isSoundEnabled()) {
-            for (Player player : getViewers()) {
-                updateVelocity(player);
-            }
-        }
+        // Unused, but set it to false for unknown reasons!
+        getEntity().setVelocityChanged(false);
 
         // Synchronize meta data
         /*

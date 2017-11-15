@@ -121,6 +121,7 @@ public class CartAttachmentSeat extends CartAttachment {
             if (this._entity == viewer && this._fakeCameraMount == null) {
                 this._fakeCameraMount = new VirtualEntity(this.controller);
 
+                this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
                 this._fakeCameraMount.setPosition(new Vector(0.0, 1.0, 0.0));
                 this._fakeCameraMount.setRelativeOffset(0.0, -1.32, 0.0);
                 this._fakeCameraMount.setHasRotation(false);
@@ -252,7 +253,6 @@ public class CartAttachmentSeat extends CartAttachment {
             for (Player viewer : this.controller.getViewers()) {
                 this.makeVisible(viewer);
             }
-            this.updateSeater();
         }
     }
 
@@ -291,9 +291,6 @@ public class CartAttachmentSeat extends CartAttachment {
             for (Player viewer : this.controller.getViewers()) {
                 this.makeVisible(viewer);
             }
-
-            // Needs re-seating
-            this.updateSeater();
         } else {
             // Change it
             this._upsideDown = upsideDown;

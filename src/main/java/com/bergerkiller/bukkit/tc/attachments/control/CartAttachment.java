@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -22,16 +23,6 @@ public abstract class CartAttachment {
     public Matrix4x4 transform;
     public Vector3 position;
 
-    public VirtualEntity generateVirtualEntity() {
-        VirtualEntity result;
-        if (this.parent != null) {
-            result = new VirtualEntity(this.controller);
-        } else {
-            result = new VirtualEntity(this.controller, this.controller.getEntity().getEntityId(), this.controller.getEntity().getUniqueId());
-        }
-        return result;
-    }
-
     public void onAttached() {
         this.position = new Vector3(0.0, 0.0, 0.0);
         if (this.config.isNode("position")) {
@@ -40,6 +31,17 @@ public abstract class CartAttachment {
             this.position.y = positionNode.get("y", 0.0);
             this.position.z = positionNode.get("z", 0.0);
         }
+    }
+
+    /**
+     * Gets whether a particular Entity Id is in use by this attachment.
+     * This is called when the player interacts to find out which entity was interacted with.
+     * 
+     * @param entityId to check
+     * @return True if the entity id is part of this attachment
+     */
+    public boolean containsEntityId(int entityId) {
+        return false;
     }
 
     /**
@@ -69,6 +71,20 @@ public abstract class CartAttachment {
     public abstract void onTick();
     
     public abstract void onMove(boolean absolute);
+
+    public static CartAttachment findAttachment(CartAttachment root, int entityId) {
+        if (root.containsEntityId(entityId)) {
+            return root;
+        } else {
+            for (CartAttachment child : root.children) {
+                CartAttachment att = findAttachment(child, entityId);
+                if (att != null) {
+                    return att;
+                }
+            }
+            return null;
+        }
+    }
 
     public static void performTick(CartAttachment attachment) {
         attachment.onTick();
