@@ -638,7 +638,7 @@ public class TCListener implements Listener {
             return true;
         }
 
-        BlockFace orientation = FaceUtil.yawToFace(player.getLocation().getYaw() - 90, false);
+        BlockFace orientation = FaceUtil.yawToFace(player.getEyeLocation().getYaw() - 90.0f, false);
         Location at = clickedRailType.getSpawnLocation(clickedBlock, orientation);
 
         // No minecart blocking it?

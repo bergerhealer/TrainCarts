@@ -383,7 +383,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 (this.locLive.getX()),
                 (this.locLive.getY()),
                 (this.locLive.getZ()),
-                this.locLive.getYaw(), this.locLive.getPitch()
+                this.locLive.getYaw() + 90.0f, this.locLive.getPitch()
         );
         return transform;
     }

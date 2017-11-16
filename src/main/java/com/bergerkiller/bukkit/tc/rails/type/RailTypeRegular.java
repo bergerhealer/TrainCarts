@@ -304,6 +304,9 @@ public class RailTypeRegular extends RailTypeHorizontal {
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         Rails rails = BlockUtil.getRails(railsBlock);
         BlockFace dir = FaceUtil.getRailsCartDirection(rails.getDirection());
+        if (FaceUtil.getFaceYawDifference(dir.getOppositeFace(), orientation) < 90) {
+            dir = dir.getOppositeFace();
+        }
         Location result = super.getSpawnLocation(railsBlock, dir);
         if (rails.isOnSlope()) {
             // At a 45-degree angle

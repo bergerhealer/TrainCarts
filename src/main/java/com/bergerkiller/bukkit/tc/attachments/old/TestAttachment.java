@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.attachments;
+package com.bergerkiller.bukkit.tc.attachments.old;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -14,8 +14,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
-import com.bergerkiller.bukkit.tc.attachments.old.CartAttachmentOwner;
-import com.bergerkiller.bukkit.tc.attachments.old.ICartAttachmentOld;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;

@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.UseAction;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -48,6 +49,9 @@ public class TCPacketListener implements PacketListener {
                     if (enc instanceof MinecartMemberNetwork && ((MinecartMemberNetwork) enc).handleInteraction(entityId)) {
                         // Found our entity! Set entity Id field of the packet to the real entity.
                         packet.write(PacketType.IN_USE_ENTITY.clickedEntityId, nearby.getEntityId());
+                        if (packet.read(PacketType.IN_USE_ENTITY.useAction) == UseAction.INTERACT_AT) {
+                            packet.write(PacketType.IN_USE_ENTITY.useAction, UseAction.INTERACT);
+                        }
                         break;
                     }
                 }

@@ -33,6 +33,9 @@ public abstract class CartAttachment {
         }
     }
 
+    public void onDetached() {
+    }
+
     /**
      * Gets whether a particular Entity Id is in use by this attachment.
      * This is called when the player interacts to find out which entity was interacted with.
@@ -53,8 +56,6 @@ public abstract class CartAttachment {
     public int getMountEntityId() {
         return -1;
     }
-
-    public abstract void onDetached();
     
     public abstract void makeVisible(Player viewer);
 

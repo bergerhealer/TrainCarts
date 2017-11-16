@@ -5,7 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -15,8 +17,9 @@ public class AttachmentModel {
     public static AttachmentModel MODEL = new AttachmentModel(); // For debug only!
 
     static {
-        MODEL.config.set("type", CartAttachmentType.ENTITY);
-        MODEL.config.set("entityType", EntityType.MINECART);
+        MODEL.config.set("type", CartAttachmentType.ITEM);
+        MODEL.config.set("item", new ItemStack(Material.JACK_O_LANTERN));
+        MODEL.config.set("entityType", EntityType.COW);
         
         ConfigurationNode testNode = new ConfigurationNode();
         testNode.set("type", CartAttachmentType.SEAT);

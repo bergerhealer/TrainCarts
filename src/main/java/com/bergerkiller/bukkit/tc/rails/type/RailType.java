@@ -376,12 +376,7 @@ public abstract class RailType {
             at.add(0.5, RailLogicHorizontal.Y_POS_OFFSET, 0.5);
             at.setPitch(0.0F);
         }
-        BlockFace dir = this.getDirection(railsBlock);
-        if (FaceUtil.isSubCardinal(dir)) {
-            at.setYaw(FaceUtil.faceToYaw(dir) - 90.0f);
-        } else {
-            at.setYaw(FaceUtil.faceToYaw(dir));
-        }
+        at.setYaw(FaceUtil.faceToYaw(orientation));
         return at;
     }
 

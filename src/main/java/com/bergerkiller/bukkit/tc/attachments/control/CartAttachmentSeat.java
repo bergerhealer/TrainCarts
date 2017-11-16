@@ -95,11 +95,6 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     @Override
-    public void onDetached() {
-        
-    }
-
-    @Override
     public void makeVisible(Player viewer) {
         if (this._entity == null) {
             return;

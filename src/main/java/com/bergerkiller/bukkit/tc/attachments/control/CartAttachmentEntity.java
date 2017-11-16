@@ -51,12 +51,6 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
-    public void onDetached() {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
     public void onPositionUpdate() {
         super.onPositionUpdate();
         this.entity.updatePosition(this.transform);
