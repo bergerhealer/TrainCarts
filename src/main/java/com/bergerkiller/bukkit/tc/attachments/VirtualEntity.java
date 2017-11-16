@@ -111,6 +111,9 @@ public class VirtualEntity {
             } else {
                 livePitch = 0.0f;
             }
+            if (isMinecart(this.entityType)) {
+                liveYaw -= 90.0f;
+            }
         }
 
         // If sync is not yet set, set it to live
