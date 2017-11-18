@@ -2,12 +2,14 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import org.bukkit.entity.EntityType;
 
+import com.bergerkiller.bukkit.common.events.map.MapStatusEvent;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
@@ -18,6 +20,8 @@ public class AttachmentEditor extends MapDisplay {
         public void onMenuOpen(MapWidgetAttachmentNode node, MenuItem menu) {
             if (menu == MenuItem.APPEARANCE) {
                 AttachmentEditor.this.addWidget(new AppearanceMenu(node));
+            } else if (menu == MenuItem.POSITION) {
+                AttachmentEditor.this.addWidget(new PositionMenu(node));
             }
         }
     };
@@ -26,6 +30,13 @@ public class AttachmentEditor extends MapDisplay {
     public void onTick() {
         //this.getWidgets().get(new Random().nextInt(this.getWidgets().size())).focus();
         CartProperties.getEditing(this.getViewers().get(0));
+    }
+
+    @Override
+    public void onStatusChanged(MapStatusEvent event) {
+        if (event.isName("changed")) {
+            this.tree.updateModel();
+        }
     }
 
     @Override

@@ -178,7 +178,9 @@ public class VirtualEntity {
         //TODO: Make this less cancerous.
         int entitySpawnId = (int) this.entityType.getTypeId();
         int entitySpawnExtraData = 0;
-        if (this.entityType == EntityType.MINECART) {
+        if (this.entityType == EntityType.BOAT) {
+            entitySpawnId = 1;
+        } else if (this.entityType == EntityType.MINECART) {
             entitySpawnId = 10; entitySpawnExtraData = 0;
         } else if (this.entityType == EntityType.MINECART_CHEST) {
             entitySpawnId = 10; entitySpawnExtraData = 1;

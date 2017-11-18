@@ -548,7 +548,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Let all passengers re-enter us
         // For this, we must find suitable Seat attachments in the tree
         List<Entity> remainingPassengers = new ArrayList<Entity>(this.entity.getPassengers());
-        //TODO!
+        if (!remainingPassengers.isEmpty()) {
+            for (CartAttachmentSeat seat : this.seatAttachments) {
+                seat.setEntity(remainingPassengers.remove(0));
+                if (remainingPassengers.isEmpty()) {
+                    break;
+                }
+            }
+        }
 
         // It can happen passengers have no seat now. Eject them.
         //TODO!

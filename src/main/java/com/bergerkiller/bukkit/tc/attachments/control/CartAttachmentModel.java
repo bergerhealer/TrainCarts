@@ -29,7 +29,7 @@ public class CartAttachmentModel extends CartAttachment {
     }
 
     @Override
-    protected void onLoad() {
+    protected void onLoadChildren() {
         // Add the model declared as a child of this attachment
         String modelName = this.config.get("model", String.class);
         if (modelName != null) {
@@ -38,6 +38,6 @@ public class CartAttachmentModel extends CartAttachment {
         }
 
         // This will initialize the attachments, including the one we added as a child node
-        super.onLoad();
+        super.onLoadChildren();
     }
 }

@@ -3,14 +3,12 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Vector3;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
@@ -22,14 +20,19 @@ public abstract class CartAttachment {
     public Matrix4x4 last_transform;
     public Matrix4x4 transform;
     public Vector3 position;
+    public Vector3 rotation;
 
     public void onAttached() {
         this.position = new Vector3(0.0, 0.0, 0.0);
+        this.rotation = new Vector3(0.0, 0.0, 0.0);
         if (this.config.isNode("position")) {
             ConfigurationNode positionNode = this.config.getNode("position");
-            this.position.x = positionNode.get("x", 0.0);
-            this.position.y = positionNode.get("y", 0.0);
-            this.position.z = positionNode.get("z", 0.0);
+            this.position.x = positionNode.get("posX", 0.0);
+            this.position.y = positionNode.get("posY", 0.0);
+            this.position.z = positionNode.get("posZ", 0.0);
+            this.rotation.x = positionNode.get("rotX", 0.0);
+            this.rotation.y = positionNode.get("rotY", 0.0);
+            this.rotation.z = positionNode.get("rotZ", 0.0);
         }
     }
 
@@ -67,6 +70,7 @@ public abstract class CartAttachment {
      */
     public void onPositionUpdate() {
         this.transform.translate(this.position);
+        this.transform.rotateYawPitchRoll(this.rotation);
     }
 
     public abstract void onTick();
@@ -136,15 +140,15 @@ public abstract class CartAttachment {
     public static CartAttachment initialize(MinecartMemberNetwork controller, ConfigurationNode config) {
         CartAttachment attachment = loadAttachments(controller, config);
         attachment.attachAttachments();
-        updatePositions(attachment, controller.getTransform(false));
+        updatePositions(attachment, controller.getLiveTransform());
         return attachment;
     }
 
     /**
      * Called right after construction of this attachment.
-     * By default loads the children of this widget based on the attachments configuration option.
+     * Loads the children of this widget based on the attachments configuration option.
      */
-    protected void onLoad() {
+    protected void onLoadChildren() {
         for (ConfigurationNode childNode : this.config.getNodeList("attachments")) {
             CartAttachment child = loadAttachments(controller, childNode);
             child.parent = this;
@@ -156,7 +160,7 @@ public abstract class CartAttachment {
         CartAttachment attachment = config.get("type", CartAttachmentType.EMPTY).createAttachment();
         attachment.controller = controller;
         attachment.config = config;
-        attachment.onLoad();
+        attachment.onLoadChildren();
         return attachment;
     }
 

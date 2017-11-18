@@ -6,10 +6,10 @@ import com.bergerkiller.mountiplex.MountiplexUtil;
 public enum CartAttachmentType {
     /** Shows nothing, placeholder node */
     EMPTY(CartAttachmentEmpty.class),
-    /** Shows the model of an item in an armor stand */
-    ITEM(CartAttachmentItem.class),
     /** Shows the model of an entity */
     ENTITY(CartAttachmentEntity.class),
+    /** Shows the model of an item in an armor stand */
+    ITEM(CartAttachmentItem.class),
     /** A seat a player can sit in */
     SEAT(CartAttachmentSeat.class),
     /** Attaches the full model tree of another model to this one */

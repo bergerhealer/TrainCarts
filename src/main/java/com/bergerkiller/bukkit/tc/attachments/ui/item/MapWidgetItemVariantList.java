@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
@@ -106,12 +107,14 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
                 this.variantIndex--;
                 this.invalidate();
                 this.onItemChanged();
+                this.display.playSound(CommonSounds.CLICK);
             }
         } else if (event.getKey() == Key.RIGHT) {
             if (this.variantIndex < (this.variants.size() - 1)) {
                 this.variantIndex++;
                 this.invalidate();
                 this.onItemChanged();
+                this.display.playSound(CommonSounds.CLICK);
             }
         } else {
             super.onKeyPressed(event);
