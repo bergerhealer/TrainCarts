@@ -5,85 +5,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
-import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class AttachmentModel {
-    public static boolean test_model_mode = false;
-    public static AttachmentModel MODEL = new AttachmentModel(); // For debug only!
-
-    static {
-        MODEL.config.set("type", CartAttachmentType.ITEM);
-        MODEL.config.set("item", new ItemStack(Material.JACK_O_LANTERN));
-        MODEL.config.set("entityType", EntityType.COW);
-        
-        ConfigurationNode testNode = new ConfigurationNode();
-        testNode.set("type", CartAttachmentType.SEAT);
-        
-        /*
-        ConfigurationNode posNode = testNode.getNode("position");
-        posNode.set("x", -1.5);
-        posNode.set("y", 0.0);
-        posNode.set("z", 0.0);
-        */
-        
-        MODEL.config.setNodeList("attachments", Arrays.asList(testNode));
-
-        
-        /*
-        MODEL.config.set("type", CartAttachmentType.ENTITY);
-        MODEL.config.set("entityType", EntityType.MINECART);
-        
-        ConfigurationNode testNode = new ConfigurationNode();
-        testNode.set("type", CartAttachmentType.ENTITY);
-        testNode.set("entityType", EntityType.MINECART);
-        ConfigurationNode posNode = testNode.getNode("position");
-        posNode.set("x", -1.5);
-        posNode.set("y", 0.0);
-        posNode.set("z", 0.0);
-        
-        ConfigurationNode testNode2 = testNode.clone();
-        testNode2.getNode("position").set("x", 1.5);
-        
-        MODEL.config.setNodeList("attachments", Arrays.asList(testNode, testNode2));
-        //ConfigurationNode seatNode = new ConfigurationNode();
-        //seatNode.set("type", CartAttachmentType.SEAT);
-        
-        //MODEL.config.setNodeList("attachments", Arrays.asList(seatNode));
-        */
-    }
-
-    /**
-     * Gets the default, unmodified model for a Vanilla Minecart
-     * 
-     * @param minecartType
-     * @return default minecart model
-     */
-    public static AttachmentModel getDefaultModel(EntityType minecartType) {
-        if (test_model_mode) {
-            return MODEL; //debug!
-        }
-
-        AttachmentModel result = new AttachmentModel();
-        result.config.set("type", CartAttachmentType.ENTITY);
-        result.config.set("entityType", minecartType);
-        if (minecartType == EntityType.MINECART) {
-            ConfigurationNode seatNode = new ConfigurationNode();
-            seatNode.set("type", CartAttachmentType.SEAT);
-            result.config.setNodeList("attachments", Arrays.asList(seatNode));
-        }
-        return result;
-    }
-
     private ConfigurationNode config;
     private List<AttachmentModelOwner> owners = new ArrayList<AttachmentModelOwner>();
 
     public AttachmentModel() {
-        this.config = new ConfigurationNode();
+        this(new ConfigurationNode());
+    }
+
+    public AttachmentModel(ConfigurationNode config) {
+        this.config = config;
     }
 
     public ConfigurationNode getConfig() {
@@ -97,7 +33,7 @@ public class AttachmentModel {
     public void removeOwner(AttachmentModelOwner owner) {
         this.owners.remove(owner);
     }
-    
+
     public void update(ConfigurationNode newConfig) {
         this.config = newConfig;
 
@@ -105,7 +41,6 @@ public class AttachmentModel {
 
         //TODO: Tell everyone that uses this model to refresh
 
-        
         for (AttachmentModelOwner owner : this.owners) {
             owner.onModelChanged(this);
         }
@@ -114,7 +49,7 @@ public class AttachmentModel {
     public void log() {
         log(this.config, 0);
     }
-    
+
     private void log(ConfigurationNode node, int indent) {
         for (Map.Entry<String, Object> entry : node.getValues().entrySet()) {
             if (entry.getKey().equals("attachments")) {
@@ -127,5 +62,23 @@ public class AttachmentModel {
         for (ConfigurationNode subNode : node.getNodeList("attachments")) {
             log(subNode, indent + 1);
         }
+    }
+
+    /**
+     * Creates the default, unmodified model for a Vanilla Minecart
+     * 
+     * @param minecartType
+     * @return default minecart model
+     */
+    public static AttachmentModel getDefaultModel(EntityType minecartType) {
+        AttachmentModel result = new AttachmentModel();
+        result.config.set("type", CartAttachmentType.ENTITY);
+        result.config.set("entityType", minecartType);
+        if (minecartType == EntityType.MINECART) {
+            ConfigurationNode seatNode = new ConfigurationNode();
+            seatNode.set("type", CartAttachmentType.SEAT);
+            result.config.setNodeList("attachments", Arrays.asList(seatNode));
+        }
+        return result;
     }
 }

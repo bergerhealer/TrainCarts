@@ -83,7 +83,6 @@ public class MapWidgetAttachmentNode extends MapWidget {
      * Applies updated configurations to the models system, refreshing trains that use this model
      */
     public void update() {
-        this.config.set("needsUpdating", true);
         this.getTree().updateModel();
     }
 

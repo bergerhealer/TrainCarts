@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModels;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -48,6 +48,16 @@ public class TrainCarts extends PluginBase {
     private Task autosaveTask;
     private TCPacketListener packetListener;
     private FileConfiguration config;
+    private AttachmentModelStore attachmentModels;
+
+    /**
+     * Gets access to the place where attachment models are stored, loaded and saved
+     * 
+     * @return attachment model store
+     */
+    public AttachmentModelStore getAttachmentModels() {
+        return this.attachmentModels;
+    }
 
     public static boolean canBreak(Material type) {
         return TCConfig.allowedBlockBreakTypes.contains(type);
@@ -226,7 +236,8 @@ public class TrainCarts extends PluginBase {
         }
 
         //Load attachment models
-        AttachmentModels.init(getDataFolder() + File.separator + "models.yml");
+        attachmentModels = new AttachmentModelStore(getDataFolder() + File.separator + "models.yml");
+        attachmentModels.load();
 
         //init statements
         Statement.init();
@@ -322,7 +333,7 @@ public class TrainCarts extends PluginBase {
         DetectorRegion.save(autosave, getDataFolder() + File.separator + "detectorregions.dat");
 
         //Save attachment models
-        AttachmentModels.save(autosave, getDataFolder() + File.separator + "models.yml");
+        attachmentModels.save(autosave);
 
         // Save train information
         if (!autosave) {

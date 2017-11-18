@@ -87,6 +87,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
     private ChunkArea lastChunks, currentChunks;
     private Vector speedFactor = new Vector(0.0, 0.0, 0.0);
+    private float roll = 0.0f; // Roll is a custom property added, which is not persistently stored.
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -1422,6 +1423,30 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else if (g.ticked.set()) {
             g.doPhysics();
         }
+    }
+
+    /**
+     * Sets the current roll of the Minecart.
+     * This does not set the roll induced by shaking effects.
+     * 
+     * @param newroll
+     */
+    public void setRoll(float newroll) {
+        if (newroll != this.roll) {
+            this.roll = newroll;
+        }
+    }
+
+    /**
+     * Gets the current roll of the Minecart.
+     * This includes roll induced by shaking effects.
+     * 
+     * @return roll angle
+     */
+    public float getRoll() {
+        float result = this.roll;
+        //TODO: Integrate shaking direction / shaking power into this roll value
+        return result;
     }
 
     /**

@@ -11,7 +11,9 @@ public enum CartAttachmentType {
     /** Shows the model of an entity */
     ENTITY(CartAttachmentEntity.class),
     /** A seat a player can sit in */
-    SEAT(CartAttachmentSeat.class);
+    SEAT(CartAttachmentSeat.class),
+    /** Attaches the full model tree of another model to this one */
+    MODEL(CartAttachmentEmpty.class);
 
     private final Class<? extends CartAttachment> attachmentClass;
     

@@ -10,23 +10,17 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
-import com.bergerkiller.bukkit.tc.attachments.old.CartAttachmentOwner;
-import com.bergerkiller.bukkit.tc.attachments.old.ICartAttachmentOld;
-import com.bergerkiller.bukkit.tc.attachments.old.SeatAttachment;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> implements ICartAttachmentOld, CartAttachmentOwner, AttachmentModelOwner {
+public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> implements AttachmentModelOwner {
     public static final float ROTATION_K = 0.55f;
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final double VELOCITY_SOUND_RADIUS = 16;
@@ -48,19 +42,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private double lastDeltaX = 0.0;
     private double lastDeltaY = 0.0;
     private double lastDeltaZ = 0.0;
-    private boolean needsPassengerResync = true;
     private AttachmentModel attachmentModel;
 
     private CartAttachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
-
-
-    private List<ICartAttachmentOld> attachments = new ArrayList<ICartAttachmentOld>();
-
-    @Override
-    public Vector getLastMovement() {
-        return new Vector(this.lastDeltaX , this.lastDeltaY, this.lastDeltaZ);
-    }
 
     public MinecartMemberNetwork() {        
         final VectorAbstract velLiveBase = this.velLive;
@@ -130,15 +115,12 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void onAttached() {
         super.onAttached();
 
-        this.attachmentModel = AttachmentModel.getDefaultModel(this.entity.getType());
-        this.attachmentModel.addOwner(this);
-
         if (this.member == null) {
             this.member = this.entity.getController(MinecartMember.class);
         }
 
         // Load the attachments / main model information
-        this.onModelChanged(this.attachmentModel);
+        this.onModelChanged(this.member.getProperties().getModel());
     }
 
     @Override
@@ -383,7 +365,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 (this.locLive.getX()),
                 (this.locLive.getY()),
                 (this.locLive.getZ()),
-                this.locLive.getYaw() + 90.0f, this.locLive.getPitch()
+                this.locLive.getYaw() + 90.0f,
+                this.locLive.getPitch(),
+                this.getMember().getRoll()
         );
         return transform;
     }
@@ -502,18 +486,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         //this.syncDirectPassengers();
     }
 
-    @Override
-    public void onAttachmentsChanged() {
-        this.needsPassengerResync = true;
-    }
-
-    @Override
-    public void onSyncAtt(boolean absolute) {
-        for (ICartAttachmentOld attachment : this.attachments) {
-            attachment.onSyncAtt(absolute);
-        }
-    }
-
     public PassengerController getPassengerController(Player viewer) {
         PassengerController controller = this.passengerControllers.get(viewer);
         if (controller == null) {
@@ -535,11 +507,20 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             discoverSeats(child);
         }
     }
-    
+
     @Override
     public void onModelChanged(AttachmentModel model) {
+        if (this.attachmentModel != null) {
+            this.attachmentModel.removeOwner(this);
+        }
+
+        if (model == null) {
+            model = AttachmentModel.getDefaultModel(this.entity.getType());
+        }
+
         this.attachmentModel = model;
-        
+        this.attachmentModel.addOwner(this);
+
         //TODO: Detect when only a single element is changed, and only update that element
         // This allows for a cleaner update when repositioning/etc.
 

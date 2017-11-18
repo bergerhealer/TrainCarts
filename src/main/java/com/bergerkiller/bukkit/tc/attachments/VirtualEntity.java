@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bukkit.entity.EntityType;
@@ -22,9 +22,11 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 
 /**
- * Represents a single Virtual entity, that only exists for clients using packet protocol
+ * Represents a single Virtual entity, that only exists for clients using packet protocol.
+ * The entity can be spawned or destroyed for individual players.
  */
 public class VirtualEntity {
     private final MinecartMemberNetwork controller;
@@ -43,6 +45,8 @@ public class VirtualEntity {
     private int rotateCtr = 0;
     private boolean hasRotation = true;
     private boolean cancelUnmountLogic = false;
+    private boolean useParentMetadata = false;
+    private final ArrayList<Player> viewers = new ArrayList<Player>();
 
     public VirtualEntity(MinecartMemberNetwork controller) {
         this(controller, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
@@ -141,7 +145,22 @@ public class VirtualEntity {
         this.entityType = entityType;
     }
 
+    /**
+     * Sets whether the controller entity metadata is used in place of this entity's metadata
+     * 
+     * @param use
+     */
+    public void setUseParentMetadata(boolean use) {
+        this.useParentMetadata = use;
+    }
+
     public void spawn(Player viewer, Vector motion) {
+        // Destroy first if needed. Shouldn't happen, but just in case.
+        if (this.viewers.contains(viewer)) {
+            this.destroy(viewer);
+        }
+        this.viewers.add(viewer);
+
         //motX = motY = motZ = 0.0;
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
@@ -211,6 +230,9 @@ public class VirtualEntity {
 
         PacketUtil.sendPacket(viewer, packet);
 
+        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
+        PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
+        
         this.controller.getPassengerController(viewer).resend(this.entityId);
 
         packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
@@ -223,8 +245,7 @@ public class VirtualEntity {
     }
 
     public void syncPosition(boolean absolute) {
-        Collection<Player> viewers = this.controller.getViewers();
-        if (viewers.isEmpty()) {
+        if (this.viewers.isEmpty()) {
             // No viewers. Assign live to sync right away.
             refreshSyncPos();
             return;
@@ -237,7 +258,14 @@ public class VirtualEntity {
         if (Math.abs(this.liveVel - this.syncVel) > 0.01) {
             this.syncVel = this.liveVel;
             CommonPacket packet = PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0);
-            controller.broadcast(packet);
+            broadcast(packet);
+        }
+
+        // Synchronize metadata
+        DataWatcher metaData = getUsedMeta();
+        if (metaData.isChanged()) {
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metaData, false);
+            broadcast(metaPacket.toCommonPacket());
         }
 
         // Live motion. Check if the distance change is too large.
@@ -251,12 +279,13 @@ public class VirtualEntity {
         // Detect a glitched pitch rotation, and perform a respawn then
         if (hasPitch(this.entityType) && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
             this.cancelUnmountLogic = true;
-            for (Player viewer : viewers) {
+            ArrayList<Player> old_viewers = new ArrayList<Player>(this.viewers);
+            for (Player viewer : old_viewers) {
                 this.destroy(viewer);
             }
             this.cancelUnmountLogic = false;
             this.refreshSyncPos();
-            for (Player viewer : viewers) {
+            for (Player viewer : old_viewers) {
                 this.spawn(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
             }
             return;
@@ -264,7 +293,7 @@ public class VirtualEntity {
 
         // When an absolute update is required, send a teleport packet and refresh the synchronized position instantly
         if (absolute || largeChange) {
-            controller.broadcast(PacketType.OUT_ENTITY_TELEPORT.newInstance(this.entityId, this.liveAbsX, this.liveAbsY, this.liveAbsZ, this.liveYaw, this.livePitch, false));
+            broadcast(PacketType.OUT_ENTITY_TELEPORT.newInstance(this.entityId, this.liveAbsX, this.liveAbsY, this.liveAbsZ, this.liveYaw, this.livePitch, false));
             refreshSyncPos();
             return;
         }
@@ -298,7 +327,7 @@ public class VirtualEntity {
             this.syncAbsX += packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.dx);
             this.syncAbsY += packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.dy);
             this.syncAbsZ += packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.dz);
-            controller.broadcast(packet);
+            broadcast(packet);
         } else if (moved) {
             // Only position changed
             CommonPacket packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId,
@@ -309,14 +338,14 @@ public class VirtualEntity {
             this.syncAbsX += packet.read(PacketType.OUT_ENTITY_MOVE.dx);
             this.syncAbsY += packet.read(PacketType.OUT_ENTITY_MOVE.dy);
             this.syncAbsZ += packet.read(PacketType.OUT_ENTITY_MOVE.dz);
-            controller.broadcast(packet);
+            broadcast(packet);
         } else if (rotated) {
             // Only rotation changed
             CommonPacket packet = PacketType.OUT_ENTITY_LOOK.newInstance(this.entityId,
                     this.liveYaw, this.livePitch, false);
             this.syncYaw = this.liveYaw;
             this.syncPitch = this.livePitch;
-            controller.broadcast(packet);
+            broadcast(packet);
         }
     }
 
@@ -330,11 +359,22 @@ public class VirtualEntity {
     }
 
     public void destroy(Player viewer) {
+        this.viewers.remove(viewer);
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.entityId});
         PacketUtil.sendPacket(viewer, destroyPacket);
         if (!this.cancelUnmountLogic) {
             this.controller.getPassengerController(viewer).remove(this.entityId, false);
         }
+    }
+
+    private void broadcast(CommonPacket packet) {
+        for (Player viewer : this.viewers) {
+            PacketUtil.sendPacket(viewer, packet);
+        }
+    }
+
+    private DataWatcher getUsedMeta() {
+        return this.useParentMetadata ? this.controller.getEntity().getMetaData() : this.metaData;
     }
 
     private static boolean hasVelocityPacket(EntityType entityType) {

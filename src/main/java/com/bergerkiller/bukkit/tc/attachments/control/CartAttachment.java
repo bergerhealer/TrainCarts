@@ -140,15 +140,23 @@ public abstract class CartAttachment {
         return attachment;
     }
 
+    /**
+     * Called right after construction of this attachment.
+     * By default loads the children of this widget based on the attachments configuration option.
+     */
+    protected void onLoad() {
+        for (ConfigurationNode childNode : this.config.getNodeList("attachments")) {
+            CartAttachment child = loadAttachments(controller, childNode);
+            child.parent = this;
+            this.children.add(child);
+        }
+    }
+
     private static CartAttachment loadAttachments(MinecartMemberNetwork controller, ConfigurationNode config) {
         CartAttachment attachment = config.get("type", CartAttachmentType.EMPTY).createAttachment();
         attachment.controller = controller;
         attachment.config = config;
-        for (ConfigurationNode childNode : config.getNodeList("attachments")) {
-            CartAttachment child = loadAttachments(controller, childNode);
-            child.parent = attachment;
-            attachment.children.add(child);
-        }
+        attachment.onLoad();
         return attachment;
     }
 

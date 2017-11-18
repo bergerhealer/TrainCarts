@@ -4,7 +4,12 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.generated.net.minecraft.server.EntityMinecartAbstractHandle;
 
 /**
  * A cart attachment that is a standard Entity.
@@ -24,6 +29,7 @@ public class CartAttachmentEntity extends CartAttachment {
         } else {
             // Root Minecart node - allow the same Entity Id as the minecart to be used
             this.entity = new VirtualEntity(this.controller, this.controller.getEntity().getEntityId(), this.controller.getEntity().getUniqueId());
+            this.entity.setUseParentMetadata(true);
         }
         this.entity.setEntityType(entityType);
     }

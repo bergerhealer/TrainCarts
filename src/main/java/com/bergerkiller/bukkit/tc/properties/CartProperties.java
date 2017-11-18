@@ -2,14 +2,18 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
+import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
@@ -20,6 +24,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -47,6 +52,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private boolean spawnItemDrops = true;
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
     private SignSkipOptions skipOptions = new SignSkipOptions();
+    private AttachmentModel model = null;
 
     protected CartProperties(UUID uuid, TrainProperties group) {
         this.uuid = uuid;
@@ -416,6 +422,57 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.lastPathNode = nodeName;
     }
 
+    /**
+     * Gets the attachment model set for this particular cart.
+     * 
+     * @return model set, null for Vanilla
+     */
+    public AttachmentModel getModel() {
+        if (this.model == null) {
+            // No model was set. Create a Vanilla model based on the Minecart information
+            MinecartMember<?> member = this.getHolder();
+            EntityType minecartType = (member == null) ? EntityType.MINECART : member.getEntity().getType();
+            this.model = AttachmentModel.getDefaultModel(minecartType);
+            this.refreshModel();
+        }
+        return this.model;
+    }
+
+    /**
+     * Clears any set model, restoring the Minecart to its Vanilla defaults
+     */
+    public void clearModel() {
+        if (this.model != null) {
+            this.model = null;
+            this.refreshModel();
+        }
+    }
+
+    /**
+     * Sets the attachment model to a named model from the attachment model store.
+     * The model will be stored as a named link when saved/reloaded.
+     * Calling this method will remove any model set for this minecart.
+     * 
+     * @param modelName
+     */
+    public void setModelName(String modelName) {
+        this.model = new AttachmentModel();
+        this.model.getConfig().set("type", CartAttachmentType.MODEL);
+        this.model.getConfig().set("model", modelName);
+        this.refreshModel();
+    }
+
+    private void refreshModel() {
+        // Update minecart network controller
+        MinecartMember<?> member = this.getHolder();
+        if (member != null) {
+            EntityNetworkController<?> netController = member.getEntity().getNetworkController();
+            if (netController instanceof MinecartMemberNetwork) {
+                ((MinecartMemberNetwork) netController).onModelChanged(this.model);
+            }
+        }
+    }
+
     @Override
     public boolean parseSet(String key, String arg) {
         TrainPropertiesStore.markForAutosave();
@@ -470,6 +527,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         } else if (key.equals("remowner")) {
             arg = arg.toLowerCase();
             this.getOwners().remove(arg);
+        } else if (key.equals("model")) {
+            setModelName(arg);
+        } else if (key.equals("clearmodel") || key.equals("resetmodel")) {
+            clearModel();
         } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
         } else {
@@ -529,6 +590,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         if (node.isNode("skipOptions")) {
             this.skipOptions.load(node.getNode("skipOptions"));
         }
+        if (node.isNode("model")) {
+            this.model = new AttachmentModel(node.getNode("model"));
+        } else {
+            this.model = null;
+        }
     }
 
     @Override
@@ -551,6 +617,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("destination", this.hasDestination() ? this.destination : "");
         node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : "");
         node.set("spawnItemDrops", this.spawnItemDrops);
+
+        if (this.model != null) {
+            node.set("model", this.model.getConfig());
+        } else {
+            node.remove("model");
+        }
     }
 
     @Override
@@ -583,6 +655,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.skipOptions.save(node.getNode("skipOptions"));
         } else if (node.contains("skipOptions")) {
             node.remove("skipOptions");
+        }
+
+        if (this.model != null) {
+            node.set("model", this.model.getConfig());
+        } else {
+            node.remove("model");
         }
     }
 
