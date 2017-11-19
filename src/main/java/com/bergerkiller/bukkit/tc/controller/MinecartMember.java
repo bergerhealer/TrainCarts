@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
+import com.bergerkiller.bukkit.tc.controller.components.WheelTracker;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
@@ -72,6 +73,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
     private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
+    private final WheelTracker frontWheelTracker = new WheelTracker(this, true);
+    private final WheelTracker backWheelTracker = new WheelTracker(this, false);
     private final ToggledState railActivated = new ToggledState(false);
     public boolean vertToSlope = false;
     protected MinecartGroup group;
@@ -114,6 +117,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.lastChunks = new ChunkArea(entity.loc.x.chunk(), entity.loc.z.chunk());
         this.currentChunks = new ChunkArea(lastChunks);
         this.updateDirection();
+        this.backWheelTracker.update();
+        this.frontWheelTracker.update();
     }
 
     @Override
@@ -202,6 +207,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public BlockTrackerMember getBlockTracker() {
         return blockTracker;
+    }
+
+    public WheelTracker getFrontWheel() {
+        return frontWheelTracker;
+    }
+
+    public WheelTracker getBackWheel() {
+        return backWheelTracker;
     }
 
     /**

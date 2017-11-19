@@ -1190,6 +1190,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return false;
             }
 
+            // Refresh the positions of the wheels for all Minecarts
+            for (MinecartMember<?> member : this) {
+                member.getBackWheel().update();
+                member.getFrontWheel().update();
+            }
+
             // Check whether chunks are loaded, and load them if needed
             // If chunks are not kept loaded, the member will unload the entire train
             previousChunksBuffer.clear();
