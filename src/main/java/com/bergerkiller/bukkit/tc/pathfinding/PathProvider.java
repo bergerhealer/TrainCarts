@@ -152,6 +152,7 @@ public class PathProvider extends Task {
     }
 
     private void scheduleNode(PathNode node, Block startBlock, BlockFace direction) {
+        //NB: Do not use the cached call here because we walk through a lot of rails only once!
         for (RailType nextType : RailType.values()) {
             try {
                 Block startRail = nextType.findRail(startBlock);

@@ -63,8 +63,9 @@ public class RailLogicVertical extends RailLogic {
     }
 
     @Override
-    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
-        return new Vector(railPos.midX(), y, railPos.midZ());
+    public void getFixedPosition(Vector position, IntVector3 railPos) {
+        position.setX(railPos.midX());
+        position.setZ(railPos.midZ());
     }
 
     @Override
@@ -93,6 +94,8 @@ public class RailLogicVertical extends RailLogic {
         entity.vel.y.add(entity.vel.xz.length() * member.getDirection().getModY());
         entity.vel.xz.setZero();
         // Position update
-        entity.loc.set(this.getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()));
+        Vector position = entity.loc.vector();
+        this.getFixedPosition(position, member.getBlockPos());
+        entity.loc.set(position);
     }
 }

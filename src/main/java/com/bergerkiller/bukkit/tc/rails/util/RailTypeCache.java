@@ -1,0 +1,52 @@
+package com.bergerkiller.bukkit.tc.rails.util;
+
+import java.util.HashMap;
+import java.util.Iterator;
+
+import org.bukkit.block.Block;
+
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
+
+/**
+ * Caches rail types found at Minecart positions to improve performance when walking tracks
+ */
+public class RailTypeCache {
+    private static final HashMap<Block, CachedRailType> cachedRailTypes = new HashMap<Block, CachedRailType>();
+
+    public static void removeInfo(Block posBlock) {
+        cachedRailTypes.remove(posBlock);
+    }
+    
+    public static RailInfo getInfo(Block posBlock) {
+        CachedRailType cached = cachedRailTypes.get(posBlock);
+        if (cached != null) {
+            cached.life = 0;
+            return cached.info;
+        }
+        return null;
+    }
+
+    public static void storeInfo(RailInfo info) {
+        cachedRailTypes.put(info.posBlock, new CachedRailType(info));
+    }
+
+    // cleans up cached rail types that haven't been accessed in quite a while
+    public static void cleanup() {
+        Iterator<CachedRailType> iter = cachedRailTypes.values().iterator();
+        while (iter.hasNext()) {
+            if (++iter.next().life > 20) {
+                iter.remove();
+            }
+        }
+    }
+
+    private static final class CachedRailType {
+        public final RailInfo info;
+        public int life; // for automatic purging
+
+        public CachedRailType(RailInfo info) {
+            this.info = info;
+            this.life = 0;
+        }
+    }
+}

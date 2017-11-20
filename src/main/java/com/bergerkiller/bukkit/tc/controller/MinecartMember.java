@@ -701,10 +701,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return this.directionTo;
     }
 
-    public BlockFace getRailDirection() {
-        return this.getRailLogic().getDirection();
-    }
-
     public void invalidateDirection() {
         this.directionFrom = this.direction = this.directionTo = null;
     }
@@ -723,36 +719,25 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Take care of invalid directions before continuing
         if (this.direction == null) {
-            this.direction = blockMovement;
+            this.direction = BlockFace.DOWN;
         }
         if (this.directionTo == null) {
-            this.directionTo = FaceUtil.getFaces(blockMovement)[0];
-        }
-        // Obtain logic and the associated direction
-        this.setDirection(this.getRailLogic().getMovementDirection(this, blockMovement));
-    }
-
-    public void setDirection(BlockFace movement) {
-        // Take care of invalid directions before continuing
-        if (this.direction == null) {
-            this.direction = movement;
-        }
-        if (this.directionTo == null) {
-            if (FaceUtil.isSubCardinal(movement)) {
-                this.directionTo = FaceUtil.getDirection(this.getEntity().getVelocity(), false);
+            BlockFace[] dirs = this.getRailType().getPossibleDirections(this.getBlock());
+            if (dirs != null && dirs.length > 0) {
+                this.directionTo = dirs[0];
             } else {
-                this.directionTo = movement;
+                this.directionTo = this.direction;
             }
         }
 
         // Obtain logic and the associated direction
-        this.direction = movement;
+        this.direction = this.getRailLogic().getMovementDirection(this, blockMovement);
 
         // Calculate the to direction
         if (FaceUtil.isSubCardinal(this.direction)) {
             // Compare with the rail direction for curved rails
             // TODO: Turn this into an understandable transformation
-            final BlockFace raildirection = this.getRailDirection();
+            final BlockFace raildirection = this.getRailLogic().getDirection();
             if (this.direction == BlockFace.NORTH_EAST) {
                 this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
             } else if (this.direction == BlockFace.SOUTH_EAST) {
@@ -1024,7 +1009,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (reverseVelocity) {
             entity.vel.multiply(-1.0);
         }
-        this.setDirection(this.getDirection().getOppositeFace());
+        if (this.direction != null) {
+            this.direction = this.direction.getOppositeFace();
+        }
+        this.directionFrom = null;
+        this.directionTo = null;
+        this.updateDirection();
     }
 
     protected void updateUnloaded() {

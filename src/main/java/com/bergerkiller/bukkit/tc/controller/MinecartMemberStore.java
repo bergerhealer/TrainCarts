@@ -230,7 +230,7 @@ public abstract class MinecartMemberStore {
         }
         CommonEntity.spawn(type, at, controller, createNetworkController());
         controller.invalidateDirection();
-        controller.setDirection(FaceUtil.yawToFace(at.getYaw()));
+        controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();
         return result;
     }

@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 
 /**
@@ -208,12 +209,7 @@ public class RailTrackerGroup extends RailTracker {
 
     private static Block getRailPos(MinecartMember<?> member) {
         Block block = member.getEntity().loc.block().toBlock(member.getEntity().getWorld());
-        for (RailType type : RailType.values()) {
-            Block rail = type.findRail(block);
-            if (rail != null) {
-                return rail;
-            }
-        }
-        return null;
+        RailInfo railInfo = RailType.findRailInfo(block);
+        return (railInfo == null) ? null : railInfo.railBlock;
     }
 }

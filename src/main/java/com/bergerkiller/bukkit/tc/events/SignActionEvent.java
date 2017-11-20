@@ -15,6 +15,8 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -504,19 +506,11 @@ public class SignActionEvent extends Event implements Cancellable {
 
         // Find a rails at this offset position
         Block nextRail = null;
+        RailInfo nextRailInfo = RailType.findRailInfo(nextPos);
         RailType nextRailType = RailType.NONE;
-        for (RailType type : RailType.values()) {
-            try {
-                Block pos = type.findRail(nextPos);
-                if (pos != null) {
-                    nextRailType = type;
-                    nextRail = pos;
-                    break;
-                }
-            } catch (Throwable t) {
-                RailType.handleCriticalError(type, t);
-                break;
-            }
+        if (nextRailInfo != null) {
+            nextRailType = nextRailInfo.railType;
+            nextRail = nextRailInfo.railBlock;
         }
         if (nextRailType == RailType.NONE) {
             return false;

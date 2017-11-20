@@ -85,11 +85,14 @@ public class RailLogicSloped extends RailLogicHorizontal {
         // Retrieve the Y-position of the minecart before the movement update
         RailLogic logic = member.getRailTracker().getLastLogic();
         IntVector3 lastRailPos = new IntVector3(member.getRailTracker().getLastBlock());
-        double startY = logic.getFixedPosition(entity, entity.last, lastRailPos).getY();
+        Vector lastPos = entity.last.vector();
+        logic.getFixedPosition(lastPos, lastRailPos);
+        double startY = lastPos.getY();
 
         // Correct the Y-coordinate for the newly moved position
         // This also makes sure we don't clip through the floor moving down a slope
-        Vector pos = getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos());
+        Vector pos = entity.loc.vector();
+        getFixedPosition(pos, member.getBlockPos());
         entity.setPosition(pos.getX(), pos.getY(), pos.getZ());
 
         // Apply velocity factors from going up/down the slope
@@ -102,26 +105,24 @@ public class RailLogicSloped extends RailLogicHorizontal {
     }
 
     @Override
-    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
-        Vector pos = super.getFixedPosition(entity, x, y, z, railPos);
-
+    public void getFixedPosition(Vector position, IntVector3 railPos) {
+        super.getFixedPosition(position, railPos);
+        
         double stage = 0.0; // stage on the minecart track, where 0.0 is exactly in the middle
         if (alongZ) {
-            stage = step * (pos.getZ() - (double) railPos.midZ());
+            stage = step * (position.getZ() - (double) railPos.midZ());
         } else if (alongX) {
-            stage = step * (pos.getX() - (double) railPos.midX());
+            stage = step * (position.getX() - (double) railPos.midX());
         }
 
         double dy = (stage + 0.5);
         if (dy < 0.0) dy = 0.0;
 
-        pos.setY(pos.getY() + dy);
+        position.setY(position.getY() + dy);
 
         if (this.isUpsideDown()) {
-            pos.setY(pos.getY() + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
+            position.setY(position.getY() + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
         }
-
-        return pos;
     }
 
     @Override

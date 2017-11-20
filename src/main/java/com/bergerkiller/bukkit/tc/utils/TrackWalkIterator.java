@@ -36,18 +36,8 @@ public class TrackWalkIterator {
      * @param direction to start walking into
      */
     public TrackWalkIterator(Location start, BlockFace direction) {
-        Block railsBlock = null;
-        Block startBlock = start.getBlock();
-        for (RailType type : RailType.values()) {
-            try {
-                if ((railsBlock = type.findRail(startBlock)) != null) {
-                    break;
-                }
-            } catch (Throwable t) {
-                RailType.handleCriticalError(type, t);
-                break;
-            }
-        }
+        RailInfo railInfo = RailType.findRailInfo(start.getBlock());
+        Block railsBlock = (railInfo == null) ? null : railInfo.railBlock;
         this.walker = new TrackWalkingPoint(start, railsBlock, direction);
         this.current = this.next = this.walker.currentPosition.clone();
     }

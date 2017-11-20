@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownB;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownC;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -201,16 +202,9 @@ public class RailTypeVertical extends RailType {
         BlockFace dir = Util.getVerticalRailDirection(verticalRail);
         Block possible = above.getRelative(dir);
 
-        for (RailType type : RailType.values()) {
-            try {
-                Block rail = type.findRail(possible);
-                if (rail != null && LogicUtil.contains(dir.getOppositeFace(), type.getPossibleDirections(rail))) {
-                    return rail;
-                }
-            } catch (Throwable t) {
-                RailType.handleCriticalError(type, t);
-                break;
-            }
+        RailInfo railInfo = RailType.findRailInfo(possible);
+        if (railInfo != null && LogicUtil.contains(dir.getOppositeFace(), railInfo.railType.getPossibleDirections(railInfo.railBlock))) {
+            return railInfo.railBlock;
         }
 
         return null;

@@ -10,6 +10,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
+import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -124,6 +126,47 @@ public abstract class RailType {
             }
         }
         return NONE;
+    }
+
+    /**
+     * Checks all registered rail types and attempts to find it for the Minecart position specified.
+     * Some performance enhancements are used to make this lookup faster for repeated calls for the same positions.
+     * 
+     * @param posBlock block position where the Minecart is at
+     * @return rail info at this block, null if no rails are found
+     */
+    public static RailInfo findRailInfo(Block posBlock) {
+        if (posBlock != null) {
+            // First try to look up from the cache
+            RailInfo cachedInfo = RailTypeCache.getInfo(posBlock);
+            if (cachedInfo != null) {
+                // Verify that the rail is still correct.
+                try {
+                    if (cachedInfo.railType.isRail(cachedInfo.railBlock)) {
+                        return cachedInfo;
+                    }
+                } catch (Throwable t) {
+                    RailTypeCache.removeInfo(posBlock);
+                    handleCriticalError(cachedInfo.railType, t);
+                }
+            }
+
+            // Standard lookup. Cache the result if we succeed.
+            for (RailType type : values()) {
+                try {
+                    Block railsBlock = type.findRail(posBlock);
+                    if (railsBlock != null) {
+                        RailInfo info = new RailInfo(posBlock, railsBlock, type);
+                        RailTypeCache.storeInfo(info);
+                        return info;
+                    }
+                } catch (Throwable t) {
+                    handleCriticalError(type, t);
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     public RailType() {
@@ -271,7 +314,7 @@ public abstract class RailType {
     /**
      * Obtains the Rail Logic to use for the Minecart at the (previously calculated) rail position in a World.
      *
-     * @param member     to get the logic for
+     * @param member to get the logic for (can be null when used by track walkers for e.g. spawning)
      * @param railsBlock the Minecart is driving on
      * @return Rail Logic
      */
@@ -390,4 +433,5 @@ public abstract class RailType {
     public RailsTexture getRailsTexture(Block railsBlock) {
         return new RailsTexture();
     }
+
 }

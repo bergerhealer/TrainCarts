@@ -27,6 +27,7 @@ public class RailLogicHorizontal extends RailLogic {
     private final boolean upside_down;
     private final double dx, dz;
     private final double startX, startZ;
+    private final BlockFace horizontalCartDir;
     private final BlockFace[] cartFaces;
     private final BlockFace[] faces;
     private final BlockFace[] ends;
@@ -40,6 +41,7 @@ public class RailLogicHorizontal extends RailLogic {
 
     protected RailLogicHorizontal(BlockFace direction, boolean upsideDown) {
         super(direction);
+        this.horizontalCartDir = FaceUtil.getRailsCartDirection(direction);
         // Train drives on this horizontal rails upside-down
         this.upside_down = upsideDown;
         // Motion faces for the rails cart direction
@@ -69,6 +71,15 @@ public class RailLogicHorizontal extends RailLogic {
                 this.faces[i] = this.faces[i].getOppositeFace();
             }
         }
+    }
+
+    /**
+     * Gets the motion vector along which minecarts move according to this RailLogic
+     * 
+     * @return motion vector
+     */
+    public BlockFace getCartDirection() {
+        return this.horizontalCartDir;
     }
 
     /**
@@ -118,18 +129,18 @@ public class RailLogicHorizontal extends RailLogic {
     }
 
     @Override
-    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
+    public void getFixedPosition(Vector position, IntVector3 railPos) {
         double newLocX = railPos.midX() + this.startX;
         double newLocZ = railPos.midZ() + this.startZ;
         if (this.alongZ) {
             // Moving along the X-axis
-            newLocZ += this.dz * (entity.loc.getZ() - railPos.z);
+            newLocZ += this.dz * (position.getZ() - railPos.z);
         } else if (this.alongX) {
             // Moving along the Z-axis
-            newLocX += this.dx * (entity.loc.getX() - railPos.x);
+            newLocX += this.dx * (position.getX() - railPos.x);
         } else {
             // Curve
-            double factor = 2.0 * (this.dx * (entity.loc.getX() - newLocX) + this.dz * (entity.loc.getZ() - newLocZ));
+            double factor = 2.0 * (this.dx * (position.getX() - newLocX) + this.dz * (position.getZ() - newLocZ));
             if (factor >= -0.001) {
                 factor = -0.001;
             } else if (factor <= -0.999) {
@@ -138,16 +149,14 @@ public class RailLogicHorizontal extends RailLogic {
             newLocX += factor * this.dx;
             newLocZ += factor * this.dz;
         }
+        position.setX(newLocX);
+        position.setZ(newLocZ);
 
-        double newLocY;
         if (isUpsideDown()) {
-            newLocY = (double) railPos.y - 1.0 + Y_POS_OFFSET_UPSIDEDOWN;
+            position.setY((double) railPos.y - 1.0 + Y_POS_OFFSET_UPSIDEDOWN);
         } else {
-            newLocY = (double) railPos.y + Y_POS_OFFSET;
+            position.setY((double) railPos.y + Y_POS_OFFSET);
         }
-
-        // Calculate the Y-position
-        return new Vector(newLocX, newLocY, newLocZ);
     }
 
     @Override
@@ -197,8 +206,9 @@ public class RailLogicHorizontal extends RailLogic {
 
         // Correct the Y-coordinate for the newly moved position
         // This also makes sure we don't clip through the floor moving down a slope
-        double endY = getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), member.getBlockPos()).getY();
-        entity.setPosition(entity.loc.getX(), endY, entity.loc.getZ());
+        Vector tmp = entity.loc.vector();
+        getFixedPosition(tmp, member.getBlockPos());
+        entity.setPosition(entity.loc.getX(), tmp.getY(), entity.loc.getZ());
     }
 
     @Override
@@ -226,6 +236,8 @@ public class RailLogicHorizontal extends RailLogic {
 
         // Adjust position of Entity on rail
         IntVector3 railPos = member.getBlockPos();
-        entity.loc.set(getFixedPosition(entity, entity.loc.getX(), entity.loc.getY(), entity.loc.getZ(), railPos));
+        Vector position = entity.loc.vector();
+        getFixedPosition(position, railPos);
+        entity.loc.set(position);
     }
 }

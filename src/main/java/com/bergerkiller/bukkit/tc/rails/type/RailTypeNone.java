@@ -83,7 +83,7 @@ public class RailTypeNone extends RailType {
     @Override
     public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
         // Two no-rail logic types
-        if (member.isFlying()) {
+        if (member == null || member.isFlying()) {
             return RailLogicAir.INSTANCE;
         } else {
             return RailLogicGround.INSTANCE;

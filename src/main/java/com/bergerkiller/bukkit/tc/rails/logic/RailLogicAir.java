@@ -147,8 +147,8 @@ public class RailLogicAir extends RailLogic {
     }
 
     @Override
-    public Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos) {
-        return new Vector(x, y, z);
+    public void getFixedPosition(Vector position, IntVector3 railPos) {
+        // NOP
     }
 
     @Override

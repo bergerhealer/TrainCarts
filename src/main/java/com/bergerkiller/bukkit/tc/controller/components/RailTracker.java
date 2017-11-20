@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 
 public abstract class RailTracker {
@@ -83,18 +84,10 @@ public abstract class RailTracker {
             Block railsBlock = block;
 
             RailType railType = RailType.NONE;
-            for (RailType type : RailType.values()) {
-                try {
-                    Block pos = type.findRail(block);
-                    if (pos != null) {
-                        railType = type;
-                        railsBlock = pos;
-                        break;
-                    }
-                } catch (Throwable t) {
-                    RailType.handleCriticalError(type, t);
-                    break;
-                }
+            RailInfo railInfo = RailType.findRailInfo(block);
+            if (railInfo != null) {
+                railType = railInfo.railType;
+                railsBlock = railInfo.railBlock;
             }
 
             BlockFace direction = null;

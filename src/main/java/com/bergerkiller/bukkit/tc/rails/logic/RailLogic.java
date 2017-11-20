@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -18,11 +16,9 @@ import org.bukkit.util.Vector;
 public abstract class RailLogic {
     protected final boolean alongZ, alongX, alongY, curved;
     private final BlockFace horizontalDir;
-    private final BlockFace horizontalCartDir;
 
     public RailLogic(BlockFace horizontalDirection) {
         this.horizontalDir = horizontalDirection;
-        this.horizontalCartDir = FaceUtil.getRailsCartDirection(horizontalDirection);
         this.alongX = FaceUtil.isAlongX(horizontalDirection);
         this.alongZ = FaceUtil.isAlongZ(horizontalDirection);
         this.alongY = FaceUtil.isAlongY(horizontalDirection);
@@ -36,15 +32,6 @@ public abstract class RailLogic {
      */
     public BlockFace getDirection() {
         return this.horizontalDir;
-    }
-
-    /**
-     * Gets the motion vector along which minecarts move according to this RailLogic
-     * 
-     * @return motion vector
-     */
-    public BlockFace getCartDirection() {
-        return this.horizontalCartDir;
     }
 
     /**
@@ -153,28 +140,13 @@ public abstract class RailLogic {
     public abstract BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection);
 
     /**
-     * Gets the position of the Minecart when snapped to the rails
-     *
-     * @param entity  of the Minecart
-     * @param x       - position of the Minecart
-     * @param y       - position of the Minecart
-     * @param z       - position of the Minecart
-     * @param railPos - position of the Rail
-     * @return fixed position of the Minecart on this type of rail logic
+     * Gets the position of the Minecart when snapped to the rails. The input
+     * position vector is adjusted, with the result written into the same vector.
+     * 
+     * @param position input and result output
+     * @param railPos of the rails using this logic
      */
-    public abstract Vector getFixedPosition(CommonMinecart<?> entity, double x, double y, double z, IntVector3 railPos);
-
-    /**
-     * Gets the position of the Minecart when snapped to the rails
-     *
-     * @param entity   of the Minecart
-     * @param position of the Minecart
-     * @param railPos  - position of the Rail
-     * @return fixed position of the Minecart on this type of rail logic
-     */
-    public Vector getFixedPosition(CommonMinecart<?> entity, LocationAbstract position, IntVector3 railPos) {
-        return getFixedPosition(entity, position.getX(), position.getY(), position.getZ(), railPos);
-    }
+    public abstract void getFixedPosition(Vector position, IntVector3 railPos);
 
     /**
      * Is called right after all physics updates have completed, and the final orientation of the Minecart

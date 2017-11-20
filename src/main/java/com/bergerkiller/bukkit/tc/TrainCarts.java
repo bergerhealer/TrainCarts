@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -46,6 +47,7 @@ public class TrainCarts extends PluginBase {
     private static Task fixGroupTickTask;
     private Task signtask;
     private Task autosaveTask;
+    private Task cacheCleanupTask;
     private TCPacketListener packetListener;
     private FileConfiguration config;
     private AttachmentModelStore attachmentModels;
@@ -288,6 +290,9 @@ public class TrainCarts extends PluginBase {
         // Routinely saves TrainCarts changed state information to disk (autosave=true)
         autosaveTask = new AutosaveTask(this).start(TCConfig.autoSaveInterval, TCConfig.autoSaveInterval);
 
+        // Cleans up unused cached rail types over time to avoid memory leaks
+        cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);
+
         //Properly dispose of partly-referenced carts
         CommonUtil.nextTick(new Runnable() {
             public void run() {
@@ -350,6 +355,7 @@ public class TrainCarts extends PluginBase {
         Task.stop(signtask);
         Task.stop(fixGroupTickTask);
         Task.stop(autosaveTask);
+        Task.stop(cacheCleanupTask);
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
@@ -406,6 +412,18 @@ public class TrainCarts extends PluginBase {
         this.loadPermissions(Permission.class);
     }
 
+    private static class CacheCleanupTask extends Task {
+
+        public CacheCleanupTask(JavaPlugin plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            RailTypeCache.cleanup();
+        }
+    }
+    
     private static class AutosaveTask extends Task {
 
         public AutosaveTask(TrainCarts plugin) {
