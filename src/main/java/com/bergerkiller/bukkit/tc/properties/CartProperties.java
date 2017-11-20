@@ -423,11 +423,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     /**
-     * Gets the attachment model set for this particular cart.
+     * Gets the attachment model set for this particular cart. If no model was previously set,
+     * a model is created based on the vanilla default model that is used.
      * 
-     * @return model set, null for Vanilla
+     * @return model set, or newly created model if none was set
      */
-    public AttachmentModel getModel() {
+    public AttachmentModel getOrCreateModel() {
         if (this.model == null) {
             // No model was set. Create a Vanilla model based on the Minecart information
             MinecartMember<?> member = this.getHolder();
@@ -435,6 +436,15 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.model = AttachmentModel.getDefaultModel(minecartType);
             this.refreshModel();
         }
+        return this.model;
+    }
+
+    /**
+     * Gets the attachment model set for this particular cart.
+     * 
+     * @return model set, null for Vanilla
+     */
+    public AttachmentModel getModel() {
         return this.model;
     }
 
@@ -591,7 +601,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.skipOptions.load(node.getNode("skipOptions"));
         }
         if (node.isNode("model")) {
-            this.model = new AttachmentModel(node.getNode("model"));
+            this.model = new AttachmentModel(node.getNode("model").clone());
         } else {
             this.model = null;
         }

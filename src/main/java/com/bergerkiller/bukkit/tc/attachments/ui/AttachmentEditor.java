@@ -65,7 +65,7 @@ public class AttachmentEditor extends MapDisplay {
 
         CartProperties prop = CartProperties.getEditing(this.getOwners().get(0));
         if (prop != null) {
-            this.model = prop.getModel();
+            this.model = prop.getOrCreateModel();
         } else {
             this.model = AttachmentModel.getDefaultModel(EntityType.MINECART);
         }
