@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -12,6 +13,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
@@ -571,30 +573,32 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void updateDirection() {
-        if (this.size() == 1) {
-            this.getRailTracker().refresh();
-            this.head().updateDirection();
-        } else if (this.size() > 1) {
-            int reverseCtr = 0;
-            while (true) {
-                // Update direction of individual carts
+        try (Timings t = TCTimings.GROUP_UPDATE_DIRECTION.start()) {
+            if (this.size() == 1) {
                 this.getRailTracker().refresh();
-                for (MinecartMember<?> member : this) {
-                    member.updateDirection();
-                }
+                this.head().updateDirection();
+            } else if (this.size() > 1) {
+                int reverseCtr = 0;
+                while (true) {
+                    // Update direction of individual carts
+                    this.getRailTracker().refresh();
+                    for (MinecartMember<?> member : this) {
+                        member.updateDirection();
+                    }
 
-                // Handle train reversing (with maximum 2 attempts)
-                if (reverseCtr++ == 2) {
-                    break;
-                }
-                double fforce = 0;
-                for (MinecartMember<?> m : this) {
-                    fforce += m.getForwardForce();
-                }
-                if (fforce >= 0) {
-                    break;
-                } else {
-                    Collections.reverse(this);
+                    // Handle train reversing (with maximum 2 attempts)
+                    if (reverseCtr++ == 2) {
+                        break;
+                    }
+                    double fforce = 0;
+                    for (MinecartMember<?> m : this) {
+                        fforce += m.getForwardForce();
+                    }
+                    if (fforce >= 0) {
+                        break;
+                    } else {
+                        Collections.reverse(this);
+                    }
                 }
             }
         }
@@ -944,17 +948,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
             this.updateSpeedFactor = 1.0 / (double) update_steps;
 
-            if (update_steps > 1) {
-                for (MinecartMember<?> mm : this) {
-                    mm.getEntity().vel.multiply(this.updateSpeedFactor);
+            try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {
+                if (update_steps > 1) {
+                    for (MinecartMember<?> mm : this) {
+                        mm.getEntity().vel.multiply(this.updateSpeedFactor);
+                    }
+                    for (int i = 0; i < update_steps; i++) {
+                        this.lastUpdateStep = (i == (update_steps - 1));
+                        while (!this.doPhysics_step()) ;
+                    }
+                } else {
+                    this.lastUpdateStep = true;
+                    this.doPhysics_step();
                 }
-                for (int i = 0; i < update_steps; i++) {
-                    this.lastUpdateStep = (i == (update_steps - 1));
-                    while (!this.doPhysics_step()) ;
-                }
-            } else {
-                this.lastUpdateStep = true;
-                this.doPhysics_step();
             }
 
             // Restore velocity / max speed to what is exposed outside the physics function
@@ -1113,7 +1119,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return false;
             }
 
-            this.getActions().doTick();
+            try (Timings t = TCTimings.GROUP_TICK_ACTIONS.start()) {
+                this.getActions().doTick();
+            }
 
             this.updateDirection();
 
@@ -1123,8 +1131,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Perform velocity updates
-            for (MinecartMember<?> member : this) {
-                member.onPhysicsPreMove();
+            try (Timings t = TCTimings.MEMBER_PHYSICS_PRE.start()) {
+                for (MinecartMember<?> member : this) {
+                    member.onPhysicsPreMove();
+                }
             }
 
             // Direction can change as a result of gravity
@@ -1137,13 +1147,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // If a wait distance is set, check for trains ahead of the track and wait for those
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
-            double speedAhead = this.getSpeedAhead();
-            double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
-            if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
-                speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);
-                for (MinecartMember<?> mm : this) {
-                    mm.checkMissing();
-                    mm.getEntity().setMaxSpeed(speedLimitClamped);
+            try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
+                double speedAhead = this.getSpeedAhead();
+                double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
+                if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
+                    speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);
+                    for (MinecartMember<?> mm : this) {
+                        mm.checkMissing();
+                        mm.getEntity().setMaxSpeed(speedLimitClamped);
+                    }
                 }
             }
 
@@ -1179,9 +1191,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Perform the move and post-movement logic
-            for (MinecartMember<?> member : this) {
-                member.onPhysicsPostMove();
-                if (this.breakPhysics) return true;
+            try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
+                for (MinecartMember<?> member : this) {
+                    member.onPhysicsPostMove();
+                    if (this.breakPhysics) return true;
+                }
             }
 
             // Update directions and perform connection checks after the position changes
@@ -1234,16 +1248,18 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 // Load all chunks in the train area, regardless of movement
                 // Previously we only loaded chunks after moving across chunk boundaries
                 // This will hopefully fix any issues to do with failing keepChunksLoaded
-                iter = newChunksBuffer.iterator();
-                while (iter.hasNext()) {
-                    chunk = iter.next();
-                    cx = chunk.x;
-                    cz = chunk.z;
-                    world.getChunkAt(cx, cz);
+                try (Timings t = TCTimings.GROUP_LOAD_CHUNKS.start()) {
+                    iter = newChunksBuffer.iterator();
+                    while (iter.hasNext()) {
+                        chunk = iter.next();
+                        cx = chunk.x;
+                        cz = chunk.z;
+                        world.getChunkAt(cx, cz);
+                    }
                 }
 
-                /*
                 // Load the new chunks
+                /*
                 iter = newChunksBuffer.iterator();
                 while (iter.hasNext()) {
                     chunk = iter.next();
@@ -1254,6 +1270,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     }
                 }
                 */
+
             }
 
             return true;

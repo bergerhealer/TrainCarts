@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.List2D;
+import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -140,79 +142,81 @@ public class BlockTrackerGroup extends BlockTracker {
      * Refreshes the block space and active signs if required
      */
     public void refresh() {
-        // No need to update anything for empty trains
-        if (owner.isEmpty()) {
-            clear();
-            return;
-        }
-
-        // Do all active rails, signs and detector regions have to be refreshed?
-        if (needsPositionUpdate.clear()) {
-
-            // First clear the live active sign buffer of all members
-            for (MinecartMember<?> member : owner) {
-                member.getBlockTracker().liveActiveSigns.clear();
+        try (Timings t = TCTimings.BLOCKTRACKER_REFRESH.start()) {
+            // No need to update anything for empty trains
+            if (owner.isEmpty()) {
+                clear();
+                return;
             }
 
-            // Add all active signs to the block tracker of all members
-            for (TrackedRail info : owner.getRailTracker().getRailInformation()) {
-                if (info.type == RailType.NONE) {
-                    continue;
+            // Do all active rails, signs and detector regions have to be refreshed?
+            if (needsPositionUpdate.clear()) {
+
+                // First clear the live active sign buffer of all members
+                for (MinecartMember<?> member : owner) {
+                    member.getBlockTracker().liveActiveSigns.clear();
                 }
 
-                List<TrackedSign> signs = info.member.getBlockTracker().liveActiveSigns;
-                Util.addSignsFromRails(signListBuffer, info.block, info.type.getSignColumnDirection(info.block));
-                for (Block signBlock : signListBuffer) {
-                    signs.add(new TrackedSign(signBlock, info.block));
-                }
-                signListBuffer.clear();
-            }
-
-            // Filter based on cart skip options
-            for (MinecartMember<?> member : owner) {
-                member.getProperties().getSkipOptions().filterSigns(member.getBlockTracker().liveActiveSigns);
-            }
-
-            // Combine all signs into one list and filter based on train options
-            List<TrackedSign> groupSignList = getSignList();
-            owner.getProperties().getSkipOptions().filterSigns(groupSignList);
-
-            // Update cart signs
-            for (MinecartMember<?> member : owner) {
-                BlockTrackerMember tracker = member.getBlockTracker();
-                tracker.updateActiveSigns(tracker.liveActiveSigns);
-            }
-
-            // Update the active signs for this Group
-            updateActiveSigns(groupSignList);
-
-            // Update detector regions
-            detectorRegions.clear();
-            for (MinecartMember<?> member : owner) {
-                BlockTrackerMember tracker = member.getBlockTracker();
-                tracker.detectorRegions.clear();
-                tracker.detectorRegions.addAll(DetectorRegion.handleMove(member, member.getLastBlock(), member.getBlock()));
-                detectorRegions.addAll(tracker.detectorRegions);
-            }
-        }
-
-        // Perform routine update events
-        if (needsUpdate.clear()) {
-            for (Block signBlock : getActiveSigns()) {
-                SignAction.executeAll(new SignActionEvent(signBlock, owner), SignActionType.GROUP_UPDATE);
-            }
-            for (DetectorRegion region : getActiveDetectorRegions()) {
-                region.update(owner);
-            }
-            // Member updates
-            for (MinecartMember<?> member : owner) {
-                BlockTrackerMember tracker = member.getBlockTracker();
-                if (tracker.needsUpdate.clear()) {
-                    for (Block signBlock : tracker.getActiveSigns()) {
-                        SignAction.executeAll(new SignActionEvent(signBlock, tracker.getOwner()), SignActionType.MEMBER_UPDATE);
+                // Add all active signs to the block tracker of all members
+                for (TrackedRail info : owner.getRailTracker().getRailInformation()) {
+                    if (info.type == RailType.NONE) {
+                        continue;
                     }
-                    for (DetectorRegion region : tracker.getActiveDetectorRegions()) {
-                        region.update(tracker.getOwner());
+
+                    List<TrackedSign> signs = info.member.getBlockTracker().liveActiveSigns;
+                    Util.addSignsFromRails(signListBuffer, info.block, info.type.getSignColumnDirection(info.block));
+                    for (Block signBlock : signListBuffer) {
+                        signs.add(new TrackedSign(signBlock, info.block));
+                    }
+                    signListBuffer.clear();
+                }
+
+                // Filter based on cart skip options
+                for (MinecartMember<?> member : owner) {
+                    member.getProperties().getSkipOptions().filterSigns(member.getBlockTracker().liveActiveSigns);
+                }
+
+                // Combine all signs into one list and filter based on train options
+                List<TrackedSign> groupSignList = getSignList();
+                owner.getProperties().getSkipOptions().filterSigns(groupSignList);
+
+                // Update cart signs
+                for (MinecartMember<?> member : owner) {
+                    BlockTrackerMember tracker = member.getBlockTracker();
+                    tracker.updateActiveSigns(tracker.liveActiveSigns);
+                }
+
+                // Update the active signs for this Group
+                updateActiveSigns(groupSignList);
+
+                // Update detector regions
+                detectorRegions.clear();
+                for (MinecartMember<?> member : owner) {
+                    BlockTrackerMember tracker = member.getBlockTracker();
+                    tracker.detectorRegions.clear();
+                    tracker.detectorRegions.addAll(DetectorRegion.handleMove(member, member.getLastBlock(), member.getBlock()));
+                    detectorRegions.addAll(tracker.detectorRegions);
+                }
+            }
+
+            // Perform routine update events
+            if (needsUpdate.clear()) {
+                for (Block signBlock : getActiveSigns()) {
+                    SignAction.executeAll(new SignActionEvent(signBlock, owner), SignActionType.GROUP_UPDATE);
+                }
+                for (DetectorRegion region : getActiveDetectorRegions()) {
+                    region.update(owner);
+                }
+                // Member updates
+                for (MinecartMember<?> member : owner) {
+                    BlockTrackerMember tracker = member.getBlockTracker();
+                    if (tracker.needsUpdate.clear()) {
+                        for (Block signBlock : tracker.getActiveSigns()) {
+                            SignAction.executeAll(new SignActionEvent(signBlock, tracker.getOwner()), SignActionType.MEMBER_UPDATE);
+                        }
+                        for (DetectorRegion region : tracker.getActiveDetectorRegions()) {
+                            region.update(tracker.getOwner());
+                        }
                     }
                 }
             }

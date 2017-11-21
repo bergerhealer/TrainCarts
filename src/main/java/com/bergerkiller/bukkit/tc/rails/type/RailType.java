@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
@@ -152,17 +154,19 @@ public abstract class RailType {
             }
 
             // Standard lookup. Cache the result if we succeed.
-            for (RailType type : values()) {
-                try {
-                    Block railsBlock = type.findRail(posBlock);
-                    if (railsBlock != null) {
-                        RailInfo info = new RailInfo(posBlock, railsBlock, type);
-                        RailTypeCache.storeInfo(info);
-                        return info;
+            try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
+                for (RailType type : values()) {
+                    try {
+                        Block railsBlock = type.findRail(posBlock);
+                        if (railsBlock != null) {
+                            RailInfo info = new RailInfo(posBlock, railsBlock, type);
+                            RailTypeCache.storeInfo(info);
+                            return info;
+                        }
+                    } catch (Throwable t) {
+                        handleCriticalError(type, t);
+                        return null;
                     }
-                } catch (Throwable t) {
-                    handleCriticalError(type, t);
-                    return null;
                 }
             }
         }
