@@ -154,7 +154,7 @@ public class FakePlayer {
     }
 
     public static void setMetaVisibility(DataWatcher metaData, boolean visible) {
-        int value = metaData.get(EntityHandle.DATA_FLAGS);
+        int value = metaData.get(EntityHandle.DATA_FLAGS).intValue();
         if (visible) {
             value &= ~EntityHandle.DATA_FLAG_INVISIBLE;
         } else {

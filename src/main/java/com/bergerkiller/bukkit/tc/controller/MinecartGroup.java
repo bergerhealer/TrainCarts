@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -1254,7 +1255,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         chunk = iter.next();
                         cx = chunk.x;
                         cz = chunk.z;
-                        world.getChunkAt(cx, cz);
+                        WorldUtil.getChunkAsync(world, cx, cz, new Runnable() {public void run() {}});
+                        //world.getChunkAt(cx, cz);
                     }
                 }
 

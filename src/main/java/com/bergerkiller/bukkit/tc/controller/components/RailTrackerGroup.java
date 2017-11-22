@@ -6,7 +6,9 @@ import java.util.List;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -77,8 +79,10 @@ public class RailTrackerGroup extends RailTracker {
      * Refreshes rail information, recalculating rail positions, directions and disconnect states
      */
     public void refresh() {
-        this.rails.clear();
-        refreshFrom(this.owner.size() - 1, false);
+        try (Timings t = TCTimings.RAILTRACKER_REFRESH.start()) {
+            this.rails.clear();
+            refreshFrom(this.owner.size() - 1, false);
+        }
     }
 
     private final void refreshFrom(int memberIndex, boolean disconnected) {

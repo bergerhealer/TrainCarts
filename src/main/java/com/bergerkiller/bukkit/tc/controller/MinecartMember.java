@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -884,16 +885,18 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public boolean onBlockCollision(org.bukkit.block.Block hitBlock, BlockFace hitFace) {
-        if (!RailType.getType(hitBlock).onCollide(this, hitBlock, hitFace)) {
-            return false;
-        }
-        if (!getRailType().onBlockCollision(this, getBlock(), hitBlock, hitFace)) {
-            return false;
-        }
+        try (Timings t = TCTimings.MEMBER_PHYSICS_BLOCK_COLLISION.start()) {
+            if (!RailType.getType(hitBlock).onCollide(this, hitBlock, hitFace)) {
+                return false;
+            }
+            if (!getRailType().onBlockCollision(this, getBlock(), hitBlock, hitFace)) {
+                return false;
+            }
 
-        // Stop the entire Group if hitting head-on
-        if (getRailType().isHeadOnCollision(this, getBlock(), hitBlock)) {
-            this.getGroup().stop();
+            // Stop the entire Group if hitting head-on
+            if (getRailType().isHeadOnCollision(this, getBlock(), hitBlock)) {
+                this.getGroup().stop();
+            }
         }
         return true;
     }
@@ -1331,7 +1334,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getRailTracker().updateLast();
 
         // Move using set motion, and perform post-move rail logic
-        this.onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
+        try (Timings t = TCTimings.MEMBER_PHYSICS_MOVE.start()) {
+            this.onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
+        }
 
         this.checkMissing();
         this.getRailLogic().onPostMove(this);
@@ -1382,8 +1387,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!from.equals(to)) {
             // Execute move events
             CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
-            for (TrackedSign sign : this.getBlockTracker().getActiveTrackedSigns()) {
-                SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
+
+            Collection<TrackedSign> trackedSigns = this.getBlockTracker().getActiveTrackedSigns();
+            if (!trackedSigns.isEmpty()) {
+                try (Timings t = TCTimings.MEMBER_PHYSICS_MOVE_EVENT.start()) {
+                    for (TrackedSign sign : trackedSigns) {
+                        SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
+                    }
+                }
             }
         }
 
