@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
-import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
@@ -89,7 +88,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private int collisionEnterTimer = 0;
     private CartProperties properties;
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
-    private ChunkArea lastChunks, currentChunks;
     private Vector speedFactor = new Vector(0.0, 0.0, 0.0);
     private float roll = 0.0f; // Roll is a custom property added, which is not persistently stored.
 
@@ -115,8 +113,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         super.onAttached();
         this.railTrackerMember.onAttached();
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
-        this.lastChunks = new ChunkArea(entity.loc.x.chunk(), entity.loc.z.chunk());
-        this.currentChunks = new ChunkArea(lastChunks);
         this.updateDirection();
         this.backWheelTracker.update();
         this.frontWheelTracker.update();
@@ -319,13 +315,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return world == entity.getWorld() && 
                 Math.abs(cx - entity.getChunkX()) <= ChunkArea.CHUNK_RANGE && 
                 Math.abs(cz - entity.getChunkZ()) <= ChunkArea.CHUNK_RANGE;
-    }
-
-    protected void updateChunks(Set<IntVector2> previousChunks, Set<IntVector2> newChunks) {
-        previousChunks.addAll(Arrays.asList(this.lastChunks.getChunks()));
-        this.lastChunks.update(this.currentChunks);
-        this.currentChunks.update(entity.loc.x.chunk(), entity.loc.z.chunk());
-        newChunks.addAll(Arrays.asList(this.currentChunks.getChunks()));
     }
 
     public boolean isSingle() {

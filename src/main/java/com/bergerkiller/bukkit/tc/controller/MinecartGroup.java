@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -28,6 +27,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import org.bukkit.Chunk;
@@ -51,10 +51,10 @@ import java.util.logging.Level;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
     private static final long serialVersionUID = 3;
-    private static final HashSet<IntVector2> previousChunksBuffer = new HashSet<>(50);
-    private static final HashSet<IntVector2> newChunksBuffer = new HashSet<>(50);
+    private static final HashSet<IntVector2> chunksBuffer = new HashSet<>(50);
     protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
+    protected final ChunkArea chunkArea = new ChunkArea();
     private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
     private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
@@ -360,6 +360,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
         GroupRemoveEvent.call(this);
         this.clear();
+        this.updateChunkInformation();
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
             this.prop = null;
@@ -718,7 +719,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
         for (MinecartMember<?> member : this) {
-            if (member.getEntity().hasPlayerPassenger()) {
+            if (member.getEntity() != null && member.getEntity().hasPlayerPassenger()) {
                 return false;
             }
         }
@@ -913,6 +914,46 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
         return true;
+    }
+
+    private void updateChunkInformation() {
+        try (Timings t = TCTimings.GROUP_UPDATE_CHUNKS.start()) {
+            // Create a set of all chunks directly occupied by the minecarts in this group
+            chunksBuffer.clear();
+            for (MinecartMember<?> mm : this) {
+                chunksBuffer.add(new IntVector2(mm.getEntity().loc.x.chunk(), mm.getEntity().loc.z.chunk()));
+            }
+
+            // Refresh the chunk area tracker using this information
+            this.chunkArea.refresh(this.getWorld(), chunksBuffer);
+
+            // Keep-chunks-loaded or automatic unloading when moving into unloaded chunks
+            if (this.canUnload()) {
+                // Check all newly added chunks whether the chunk is unloaded
+                // When such a chunk is found, unload this train
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
+                    if (!chunk.isLoaded()) {
+                        this.unload();
+                        throw new GroupUnloadedException();
+                    }
+                }
+            } else {
+                // Enqueue chunks we moved away from for unloading
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getRemoved()) {
+                    chunk.unloadChunkRequest();
+                }
+
+                // Load chunks we entered, and are far enough away, for asynchronous loading
+                // Chunks very closeby are loaded right away, we need those!
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
+                    if (chunk.getDistance() <= 1) {
+                        chunk.loadChunk();
+                    } else {
+                        chunk.loadChunkRequest();
+                    }
+                }
+            }
+        }
     }
 
     public void logCartInfo(String header) {
@@ -1211,69 +1252,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 member.getFrontWheel().update();
             }
 
-            // Check whether chunks are loaded, and load them if needed
-            // If chunks are not kept loaded, the member will unload the entire train
-            previousChunksBuffer.clear();
-            newChunksBuffer.clear();
-            for (MinecartMember<?> mm : this) {
-                mm.updateChunks(previousChunksBuffer, newChunksBuffer);
-            }
-            int cx, cz;
-            IntVector2 chunk;
-            final World world = getWorld();
-            Iterator<IntVector2> iter;
-            if (this.canUnload()) {
-                // Check whether the new chunks are unloaded
-                iter = newChunksBuffer.iterator();
-                while (iter.hasNext()) {
-                    chunk = iter.next();
-                    cx = chunk.x;
-                    cz = chunk.z;
-                    if (!world.isChunkLoaded(cx, cz)) {
-                        this.unload();
-                        throw new GroupUnloadedException();
-                    }
-                }
-            } else {
-                // Mark previous chunks for unload
-                iter = previousChunksBuffer.iterator();
-                while (iter.hasNext()) {
-                    chunk = iter.next();
-                    if (!newChunksBuffer.contains(chunk)) {
-                        cx = chunk.x;
-                        cz = chunk.z;
-                        world.unloadChunkRequest(cx, cz);
-                    }
-                }
-
-                // Load all chunks in the train area, regardless of movement
-                // Previously we only loaded chunks after moving across chunk boundaries
-                // This will hopefully fix any issues to do with failing keepChunksLoaded
-                try (Timings t = TCTimings.GROUP_LOAD_CHUNKS.start()) {
-                    /*
-                    iter = newChunksBuffer.iterator();
-                    while (iter.hasNext()) {
-                        chunk = iter.next();
-                        cx = chunk.x;
-                        cz = chunk.z;
-                        WorldUtil.getChunkAsync(world, cx, cz, new Runnable() {public void run() {}});
-                        //world.getChunkAt(cx, cz);
-                    }
-                    */
-                    
-                    // Load the new chunks
-                    iter = newChunksBuffer.iterator();
-                    while (iter.hasNext()) {
-                        chunk = iter.next();
-                        if (!previousChunksBuffer.contains(chunk)) {
-                            cx = chunk.x;
-                            cz = chunk.z;
-                            //world.getChunkAt(cx, cz);
-                            WorldUtil.getChunkAsync(world, cx, cz, new Runnable() {public void run() {}});
-                        }
-                    }
-                }
-            }
+            // Refresh chunks
+            this.updateChunkInformation();
 
             return true;
         } catch (MemberMissingException ex) {
