@@ -1250,6 +1250,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 // Previously we only loaded chunks after moving across chunk boundaries
                 // This will hopefully fix any issues to do with failing keepChunksLoaded
                 try (Timings t = TCTimings.GROUP_LOAD_CHUNKS.start()) {
+                    /*
                     iter = newChunksBuffer.iterator();
                     while (iter.hasNext()) {
                         chunk = iter.next();
@@ -1258,21 +1259,20 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         WorldUtil.getChunkAsync(world, cx, cz, new Runnable() {public void run() {}});
                         //world.getChunkAt(cx, cz);
                     }
-                }
-
-                // Load the new chunks
-                /*
-                iter = newChunksBuffer.iterator();
-                while (iter.hasNext()) {
-                    chunk = iter.next();
-                    if (!previousChunksBuffer.contains(chunk)) {
-                        cx = chunk.x;
-                        cz = chunk.z;
-                        world.getChunkAt(cx, cz);
+                    */
+                    
+                    // Load the new chunks
+                    iter = newChunksBuffer.iterator();
+                    while (iter.hasNext()) {
+                        chunk = iter.next();
+                        if (!previousChunksBuffer.contains(chunk)) {
+                            cx = chunk.x;
+                            cz = chunk.z;
+                            //world.getChunkAt(cx, cz);
+                            WorldUtil.getChunkAsync(world, cx, cz, new Runnable() {public void run() {}});
+                        }
                     }
                 }
-                */
-
             }
 
             return true;
