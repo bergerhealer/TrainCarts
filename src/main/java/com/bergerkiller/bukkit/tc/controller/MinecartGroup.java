@@ -943,12 +943,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     chunk.unloadChunkRequest();
                 }
 
-                // Load chunks we entered, and are far enough away, for asynchronous loading
-                // Chunks very closeby are loaded right away, we need those!
-                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
+                // Load chunks closeby right away and guarantee they are loaded at all times
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
                     if (chunk.getDistance() <= 1) {
                         chunk.loadChunk();
-                    } else {
+                    }
+                }
+
+                // Load chunks we entered, and are far enough away, for asynchronous loading
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
+                    if (chunk.getDistance() > 1) {
                         chunk.loadChunkRequest();
                     }
                 }
