@@ -733,13 +733,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Obtain logic and the associated direction
-        this.direction = this.getRailLogic().getMovementDirection(this, blockMovement);
+        RailLogic logic = this.getRailLogic();
+        this.direction = logic.getMovementDirection(this, blockMovement);
 
         // Calculate the to direction
         if (FaceUtil.isSubCardinal(this.direction)) {
             // Compare with the rail direction for curved rails
             // TODO: Turn this into an understandable transformation
-            final BlockFace raildirection = this.getRailLogic().getDirection();
+            final BlockFace raildirection = logic.getDirection();
             if (this.direction == BlockFace.NORTH_EAST) {
                 this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
             } else if (this.direction == BlockFace.SOUTH_EAST) {

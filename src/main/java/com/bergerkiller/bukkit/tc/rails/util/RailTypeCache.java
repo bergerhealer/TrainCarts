@@ -5,6 +5,7 @@ import java.util.Iterator;
 
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
 /**
@@ -16,11 +17,25 @@ public class RailTypeCache {
     public static void removeInfo(Block posBlock) {
         cachedRailTypes.remove(posBlock);
     }
-    
+
     public static RailInfo getInfo(Block posBlock) {
         CachedRailType cached = cachedRailTypes.get(posBlock);
         if (cached != null) {
-            cached.life = 0;
+            // Verify if needed
+            if (cached.life > 0) {
+                try {
+                    if (cached.info.railType.isRail(cached.info.railBlock)) {
+                        cached.life = 0;
+                    } else {
+                        removeInfo(posBlock);
+                        return null; // Invalid!
+                    }
+                } catch (Throwable t) {
+                    removeInfo(posBlock);
+                    RailType.handleCriticalError(cached.info.railType, t);
+                    return null; // Error!
+                }
+            }
             return cached.info;
         }
         return null;

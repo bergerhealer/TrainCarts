@@ -142,15 +142,7 @@ public abstract class RailType {
             // First try to look up from the cache
             RailInfo cachedInfo = RailTypeCache.getInfo(posBlock);
             if (cachedInfo != null) {
-                // Verify that the rail is still correct.
-                try {
-                    if (cachedInfo.railType.isRail(cachedInfo.railBlock)) {
-                        return cachedInfo;
-                    }
-                } catch (Throwable t) {
-                    RailTypeCache.removeInfo(posBlock);
-                    handleCriticalError(cachedInfo.railType, t);
-                }
+                return cachedInfo;
             }
 
             // Standard lookup. Cache the result if we succeed.
