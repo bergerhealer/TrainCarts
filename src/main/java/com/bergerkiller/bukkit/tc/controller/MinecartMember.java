@@ -324,7 +324,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public boolean isInChunk(org.bukkit.World world, int cx, int cz) {
-        return world == entity.getWorld() && 
+        return entity != null && world == entity.getWorld() && 
                 Math.abs(cx - entity.getChunkX()) <= ChunkArea.CHUNK_RANGE && 
                 Math.abs(cz - entity.getChunkZ()) <= ChunkArea.CHUNK_RANGE;
     }

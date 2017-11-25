@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.*;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
@@ -1057,8 +1058,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         {
             for (int i = 0; i < this.size(); i++) {
                 MinecartMember<?> member = super.get(i);
-                if (member.group != this) {
+                if (member.getEntity() == null) {
+                    // Controller is detached. It's completely invalid!
+                    // We handle unloading ourselves, so the minecart should be considered gone :(
+                    this.getProperties().remove(member);
+                    CartPropertiesStore.remove(member.getProperties().getUUID());
                     super.remove(i--);
+                    continue;
+                }
+                if (member.group != this) {
+                    // Assigned to a different group. Quietly remove it. You saw nothing!
+                    this.getProperties().remove(member);
+                    super.remove(i--);
+                    continue;
                 }
             }
         }
