@@ -32,7 +32,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         this.icon_blink_a.setBlendMode(MapBlendMode.NONE);
         this.icon_blink_a.draw(this.icon, 0, 0);
         this.icon_blink_a.setBlendMode(MapBlendMode.SUBTRACT);
-        this.icon_blink_a.fill(MapColorPalette.getColor(0, 0, 32));
+        this.icon_blink_a.fill(MapColorPalette.getColor(20, 20, 64));
         this.icon_blink_b.clear();
         this.icon_blink_b.setBlendMode(MapBlendMode.NONE);
         this.icon_blink_b.draw(this.icon, 0, 0);

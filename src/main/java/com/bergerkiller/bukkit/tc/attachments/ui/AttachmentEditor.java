@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
@@ -22,6 +23,8 @@ public class AttachmentEditor extends MapDisplay {
                 AttachmentEditor.this.addWidget(new AppearanceMenu(node));
             } else if (menu == MenuItem.POSITION) {
                 AttachmentEditor.this.addWidget(new PositionMenu(node));
+            } else if (menu == MenuItem.GENERAL) {
+                AttachmentEditor.this.addWidget(new GeneralMenu(node));
             }
         }
     };
@@ -35,6 +38,10 @@ public class AttachmentEditor extends MapDisplay {
     @Override
     public void onStatusChanged(MapStatusEvent event) {
         if (event.isName("changed")) {
+            this.tree.updateModel();
+        } else if (event.isName("reset")) {
+            // Completely re-initialize the model
+            this.tree.updateView();
             this.tree.updateModel();
         }
     }

@@ -8,6 +8,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -90,7 +91,38 @@ public class MapWidgetAttachmentNode extends MapWidget {
         MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode();
         attachment.parentAttachment = this;
         this.attachments.add(attachment);
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
         return attachment;
+    }
+
+    public void remove() {
+        if (this.parentAttachment != null) {
+            this.parentAttachment.attachments.remove(this);
+
+            /*
+            int index = this.parentAttachment.attachments.indexOf(this);
+            if (index != -1) {
+                // If this element was focused, focus the one before
+                MapWidget focusNext = null;
+                if (this.isFocused()) {
+                    int childIdx = this.getParent().getWidgets().indexOf(this);
+                    if (childIdx > 0) {
+                        focusNext = this.getParent().getWidget(childIdx - 1);
+                    } else if (childIdx < (this.getParent().getWidgetCount() - 1)) {
+                        focusNext = this.getParent().getWidget(childIdx + 1);
+                    }
+                }
+
+                this.parentAttachment.attachments.remove(index);
+                this.getParent().removeWidget(this);
+                if (focusNext != null) {
+                    focusNext.focus();
+                }
+            }
+            */
+            
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
+        }
     }
 
     /**
@@ -136,12 +168,21 @@ public class MapWidgetAttachmentNode extends MapWidget {
             }
         }.setIcon(getIcon()).setPosition(px, 1));
 
+        // Change 3D position of the attachment
         this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 openMenu(MenuItem.POSITION);
             }
         }.setIcon("attachments/move.png").setPosition(px + 17, 1));
+
+        // Drops down a menu to add/remove/move the attachment entry
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onClick() {
+                openMenu(MenuItem.GENERAL);
+            }
+        }.setIcon("attachments/general_menu.png").setPosition(px + 34, 1));
     }
 
     @Override
@@ -230,10 +271,10 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     private MapTexture getIcon() {
-        return MapResourcePack.SERVER.getItemTexture(new ItemStack(Material.MINECART), 16, 16);
+        return this.getType().getIcon(this.getConfig());
     }
 
     public static enum MenuItem {
-        APPEARANCE, POSITION
+        APPEARANCE, POSITION, GENERAL
     }
 }
