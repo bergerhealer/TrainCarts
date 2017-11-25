@@ -972,81 +972,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         System.out.println(msg);
     }
 
-    public void doPhysics() {
-        // Remove minecarts from this group that don't actually belong to this group
-        // This is a fallback/workaround for a reported resource bug where fake trains are created
-        {
-            for (int i = 0; i < this.size(); i++) {
-                MinecartMember<?> member = super.get(i);
-                if (member.group != this) {
-                    super.remove(i--);
-                }
-            }
-        }
-
-        // Remove empty trains entirely before doing any physics at all
-        if (super.isEmpty()) {
-            this.remove();
-            return;
-        }
-
-        if (this.canUnload()) {
-            for (MinecartMember<?> m : this) {
-                if (m.isUnloaded()) {
-                    this.unload();
-                    return;
-                }
-            }
-        } else {
-            for (MinecartMember<?> m : this) {
-                m.unloaded = false;
-            }
-        }
-        try {
-            double totalforce = this.getAverageForce();
-            double speedlimit = this.getProperties().getSpeedLimit();
-            int update_steps = 1;
-            if (totalforce > 0.4 && speedlimit > 0.4) {
-                update_steps = (int) Math.ceil(speedlimit / 0.4);
-            }
-            this.updateSpeedFactor = 1.0 / (double) update_steps;
-
-            try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {
-                if (update_steps > 1) {
-                    for (MinecartMember<?> mm : this) {
-                        mm.getEntity().vel.multiply(this.updateSpeedFactor);
-                    }
-                    for (int i = 0; i < update_steps; i++) {
-                        this.lastUpdateStep = (i == (update_steps - 1));
-                        while (!this.doPhysics_step()) ;
-                    }
-                } else {
-                    this.lastUpdateStep = true;
-                    this.doPhysics_step();
-                }
-            }
-
-            // Restore velocity / max speed to what is exposed outside the physics function
-            // Use the speed factor for this, since the max speed may have been changed during the physics update
-            // This can happen with, for example, the use of waitDistance
-            for (MinecartMember<?> mm : this) {
-                mm.getEntity().vel.divide(this.updateSpeedFactor);
-
-                double newMaxSpeed = mm.getEntity().getMaxSpeed() / this.updateSpeedFactor;
-                newMaxSpeed = Math.min(newMaxSpeed, this.getProperties().getSpeedLimit());
-                mm.getEntity().setMaxSpeed(newMaxSpeed);
-            }
-
-            this.updateSpeedFactor = 1.0;
-        } catch (GroupUnloadedException ex) {
-            //this group is gone
-        } catch (Throwable t) {
-            final TrainProperties p = getProperties();
-            TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
-            TrainCarts.plugin.handle(t);
-        }
-    }
-
     private double getSpeedAhead() {
         boolean checkTrains = false;
         double waitDistance = this.getProperties().getWaitDistance();
@@ -1126,6 +1051,81 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return Double.MAX_VALUE;
     }
 
+    public void doPhysics() {
+        // Remove minecarts from this group that don't actually belong to this group
+        // This is a fallback/workaround for a reported resource bug where fake trains are created
+        {
+            for (int i = 0; i < this.size(); i++) {
+                MinecartMember<?> member = super.get(i);
+                if (member.group != this) {
+                    super.remove(i--);
+                }
+            }
+        }
+
+        // Remove empty trains entirely before doing any physics at all
+        if (super.isEmpty()) {
+            this.remove();
+            return;
+        }
+
+        if (this.canUnload()) {
+            for (MinecartMember<?> m : this) {
+                if (m.isUnloaded()) {
+                    this.unload();
+                    return;
+                }
+            }
+        } else {
+            for (MinecartMember<?> m : this) {
+                m.unloaded = false;
+            }
+        }
+        try {
+            double totalforce = this.getAverageForce();
+            double speedlimit = this.getProperties().getSpeedLimit();
+            int update_steps = 1;
+            if (totalforce > 0.4 && speedlimit > 0.4) {
+                update_steps = (int) Math.ceil(speedlimit / 0.4);
+            }
+            this.updateSpeedFactor = 1.0 / (double) update_steps;
+
+            try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {
+                if (update_steps > 1) {
+                    for (MinecartMember<?> mm : this) {
+                        mm.getEntity().vel.multiply(this.updateSpeedFactor);
+                    }
+                    for (int i = 0; i < update_steps; i++) {
+                        this.lastUpdateStep = (i == (update_steps - 1));
+                        while (!this.doPhysics_step()) ;
+                    }
+                } else {
+                    this.lastUpdateStep = true;
+                    this.doPhysics_step();
+                }
+            }
+
+            // Restore velocity / max speed to what is exposed outside the physics function
+            // Use the speed factor for this, since the max speed may have been changed during the physics update
+            // This can happen with, for example, the use of waitDistance
+            for (MinecartMember<?> mm : this) {
+                mm.getEntity().vel.divide(this.updateSpeedFactor);
+
+                double newMaxSpeed = mm.getEntity().getMaxSpeed() / this.updateSpeedFactor;
+                newMaxSpeed = Math.min(newMaxSpeed, this.getProperties().getSpeedLimit());
+                mm.getEntity().setMaxSpeed(newMaxSpeed);
+            }
+
+            this.updateSpeedFactor = 1.0;
+        } catch (GroupUnloadedException ex) {
+            //this group is gone
+        } catch (Throwable t) {
+            final TrainProperties p = getProperties();
+            TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
+            TrainCarts.plugin.handle(t);
+        }
+    }
+
     private boolean doPhysics_step() throws GroupUnloadedException {
         this.breakPhysics = false;
         try {
@@ -1179,7 +1179,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             this.updateDirection();
             if (!this.doConnectionCheck()) {
-                return false;
+                return true; //false;
             }
 
             try (Timings t = TCTimings.GROUP_TICK_ACTIONS.start()) {
@@ -1243,9 +1243,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         m.setForwardForce(force);
                     }
                 }
-
-                //Apply force factors to carts from last cart and perform post positional updates
-                if (this.size() < 2) return false;
             }
 
             // Calculate the speed factor that will be used to adjust the distance between the minecarts
@@ -1264,7 +1261,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Update directions and perform connection checks after the position changes
             this.updateDirection();
             if (!this.doConnectionCheck()) {
-                return false;
+                return true; //false;
             }
 
             // Refresh the positions of the wheels for all Minecarts
