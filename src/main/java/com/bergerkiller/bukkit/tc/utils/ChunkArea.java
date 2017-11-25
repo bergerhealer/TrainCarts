@@ -52,6 +52,11 @@ public class ChunkArea {
             this.chunks.clear();
         }
 
+        // Sync previous distance
+        for (OwnedChunk owned : this.chunks.values()) {
+            owned.distance_previous = owned.distance;
+        }
+
         // Find chunk centers that have been added
         for (IntVector2 coord : coordinates) {
             if (this.added_chunk_centers.add(coord)) {
@@ -147,12 +152,14 @@ public class ChunkArea {
         private final World world;
         private final Set<IntVector2> chunks = new HashSet<IntVector2>();
         private int distance;
+        private int distance_previous;
 
         public OwnedChunk(World world, IntVector2 coord) {
             this.world = world;
             this.cx = coord.x;
             this.cz = coord.z;
             this.distance = Integer.MAX_VALUE;
+            this.distance_previous = Integer.MAX_VALUE;
         }
 
         public boolean isLoaded() {
@@ -185,6 +192,18 @@ public class ChunkArea {
 
         public int getDistance() {
             return this.distance;
+        }
+
+        public int getPreviousDistance() {
+            return this.distance_previous;
+        }
+
+        public boolean isAdded() {
+            return (this.distance < Integer.MAX_VALUE) && (this.distance_previous == Integer.MAX_VALUE);
+        }
+
+        public boolean isRemoved() {
+            return (this.distance == Integer.MAX_VALUE) && (this.distance_previous < Integer.MAX_VALUE);
         }
 
         public void addChunk(IntVector2 chunk) {

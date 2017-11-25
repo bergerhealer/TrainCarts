@@ -945,7 +945,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
                 // Load chunks closeby right away and guarantee they are loaded at all times
                 for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
-                    if (chunk.getDistance() <= 1) {
+                    if (chunk.getDistance() <= 1 && chunk.getPreviousDistance() > 1) {
                         chunk.loadChunk();
                     }
                 }
