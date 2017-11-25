@@ -31,9 +31,10 @@ public class GeneralMenu extends MapWidgetWindow {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
-                MapWidgetAttachmentNode created = attachment.addAttachment();
-                created.setType(CartAttachmentType.ITEM);
-                created.getConfig().set("item", new ItemStack(Material.WOOD));
+                ConfigurationNode config = new ConfigurationNode();
+                config.set("type", CartAttachmentType.ITEM);
+                config.set("item", new ItemStack(Material.WOOD));
+                attachment.addAttachment(config);
                 GeneralMenu.this.deactivate();
             }
         }).setText("Add Attachment").setBounds(10, 10, 90, 18);

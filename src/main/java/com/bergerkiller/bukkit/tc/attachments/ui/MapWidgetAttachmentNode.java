@@ -87,8 +87,8 @@ public class MapWidgetAttachmentNode extends MapWidget {
         this.getTree().updateModel();
     }
 
-    public MapWidgetAttachmentNode addAttachment() {
-        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode();
+    public MapWidgetAttachmentNode addAttachment(ConfigurationNode config) {
+        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(config);
         attachment.parentAttachment = this;
         this.attachments.add(attachment);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");

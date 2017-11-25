@@ -26,7 +26,6 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     }
 
     public void updateModel() {
-        System.out.println(root.getFullConfig());
         this.model.update(root.getFullConfig());
     }
 
