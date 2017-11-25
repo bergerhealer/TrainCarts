@@ -973,6 +973,23 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void doPhysics() {
+        // Remove minecarts from this group that don't actually belong to this group
+        // This is a fallback/workaround for a reported resource bug where fake trains are created
+        {
+            for (int i = 0; i < this.size(); i++) {
+                MinecartMember<?> member = super.get(i);
+                if (member.group != this) {
+                    super.remove(i--);
+                }
+            }
+        }
+
+        // Remove empty trains entirely before doing any physics at all
+        if (super.isEmpty()) {
+            this.remove();
+            return;
+        }
+
         if (this.canUnload()) {
             for (MinecartMember<?> m : this) {
                 if (m.isUnloaded()) {
