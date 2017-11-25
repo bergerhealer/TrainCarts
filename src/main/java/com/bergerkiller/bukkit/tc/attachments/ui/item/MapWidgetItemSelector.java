@@ -46,6 +46,8 @@ public abstract class MapWidgetItemSelector extends MapWidget {
                 nav_left.sendFocus();
             } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
                 nav_right.sendFocus();
+            } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                this.activate();
             }
         }
 
