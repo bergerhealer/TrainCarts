@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
@@ -16,8 +17,7 @@ import java.util.*;
 
 public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     private static final long serialVersionUID = 1;
-    protected static HashSet<MinecartGroup> groups = new HashSet<>();
-    private static List<MinecartGroup> groupTickBuffer = new ArrayList<>(5);
+    protected static ImplicitlySharedSet<MinecartGroup> groups = new ImplicitlySharedSet<MinecartGroup>();
 
     /**
      * Called onPhysics for all Minecart Groups who didn't get ticked in the previous run
@@ -26,21 +26,21 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
      * @param disableMinecartTick whether to disable tick updates done by minecarts themselves
      */
     public static void doFixedTick(boolean disableMinecartTick) {
-        groupTickBuffer.clear();
-        groupTickBuffer.addAll(groups);
-        try {
-            for (MinecartGroup group : groupTickBuffer) {
-                if (disableMinecartTick || !group.ticked.clear()) {
-                    // Ticked was False, tick it now
-                    group.doPhysics();
-                    // Update the positions of the entities in the world(s)
-                    for (MinecartMember<?> member : group) {
-                        member.getEntity().doPostTick();
+        try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
+            try {
+                for (MinecartGroup group : groups_copy) {
+                    if (disableMinecartTick || !group.ticked.clear()) {
+                        // Ticked was False, tick it now
+                        group.doPhysics();
+                        // Update the positions of the entities in the world(s)
+                        for (MinecartMember<?> member : group) {
+                            member.getEntity().doPostTick();
+                        }
                     }
                 }
+            } catch (Throwable t) {
+                TrainCarts.plugin.handle(t);
             }
-        } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
         }
     }
 
@@ -49,16 +49,16 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
      * This ensures minecart entities are moved to the correct chunk they are in.
      */
     public static void doPostMoveLogic() {
-        groupTickBuffer.clear();
-        groupTickBuffer.addAll(groups);
-        try {
-            for (MinecartGroup group : groupTickBuffer) {
-                for (MinecartMember<?> m : group) {
-                    m.getEntity().doPostTick();
+        try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
+            try {
+                for (MinecartGroup group : groups_copy) {
+                    for (MinecartMember<?> m : group) {
+                        m.getEntity().doPostTick();
+                    }
                 }
+            } catch (Throwable t) {
+                TrainCarts.plugin.handle(t);
             }
-        } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
         }
     }
 
@@ -139,12 +139,14 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         return rval;
     }
 
-    public static Set<MinecartGroup> getGroupsUnsafe() {
+    /**
+     * Gets a set containing all the minecart groups on the server.
+     * When trains could be created while iterating, clone the set first.
+     * 
+     * @return shared set of all the groups on the server
+     */
+    public static ImplicitlySharedSet<MinecartGroup> getGroups() {
         return groups;
-    }
-
-    public static MinecartGroup[] getGroups() {
-        return groups.toArray(new MinecartGroup[0]);
     }
 
     public static MinecartGroup get(Entity e) {

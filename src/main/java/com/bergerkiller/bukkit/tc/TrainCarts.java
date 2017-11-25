@@ -370,7 +370,7 @@ public class TrainCarts extends PluginBase {
         MinecartGroupStore.doPostMoveLogic();
 
         //undo replacements for correct native saving
-        for (MinecartGroup mg : MinecartGroup.getGroups()) {
+        for (MinecartGroup mg : MinecartGroup.getGroups().cloneAsIterable()) {
             mg.unload();
         }
 

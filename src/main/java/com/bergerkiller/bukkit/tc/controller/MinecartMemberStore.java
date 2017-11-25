@@ -329,7 +329,7 @@ public abstract class MinecartMemberStore {
             }
 
             // find member in all groups
-            for (MinecartGroup group : MinecartGroupStore.getGroupsUnsafe()) {
+            for (MinecartGroup group : MinecartGroupStore.getGroups()) {
                 if (group.getWorld() != world) continue;
                 mm = group.getAt(coord);
                 if (mm == null) continue;

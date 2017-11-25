@@ -170,7 +170,7 @@ public abstract class SignAction {
         SignAction action = getSignAction(info);
         if (action != null) {
             // First, remove this sign from all Minecarts on the world
-            for (MinecartGroup group : MinecartGroup.getGroups()) {
+            for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
                 group.getBlockTracker().removeSign(info.getBlock());
             }
             // Handle sign destroy logic

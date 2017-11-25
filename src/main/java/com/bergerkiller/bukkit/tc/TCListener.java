@@ -109,7 +109,7 @@ public class TCListener implements Listener {
     public void onChunkUnloadLow(ChunkUnloadEvent event) {
         synchronized (this.expectUnload) {
             this.expectUnload.clear();
-            for (MinecartGroup mg : MinecartGroup.getGroupsUnsafe()) {
+            for (MinecartGroup mg : MinecartGroup.getGroups()) {
                 if (mg.isInChunk(event.getChunk())) {
                     if (mg.canUnload()) {
                         this.expectUnload.add(mg);
@@ -168,7 +168,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldUnload(WorldUnloadEvent event) {
-        for (MinecartGroup group : MinecartGroup.getGroups()) {
+        for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
             if (group.getWorld() == event.getWorld()) {
                 group.unload();
             }

@@ -152,7 +152,7 @@ public class OfflineGroupManager {
         }
         int count = 0;
         // Remove groups
-        for (MinecartGroup g : MinecartGroup.getGroups().clone()) {
+        for (MinecartGroup g : MinecartGroup.getGroups().cloneAsIterable()) {
             if (g.getWorld() == world) {
                 if (!g.isEmpty()) {
                     count++;
