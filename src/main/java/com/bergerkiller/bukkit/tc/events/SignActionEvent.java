@@ -35,7 +35,7 @@ public class SignActionEvent extends Event implements Cancellable {
     private final BlockFace facing;
     private final SignActionHeader header;
     private final Sign sign;
-    private final BlockFace[] watchedDirections;
+    private BlockFace[] watchedDirections;
     private Block railsblock;
     private SignActionType actionType;
     private BlockFace raildirection = null;
@@ -95,62 +95,8 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.header.isLegacyConverted() && this.header.isValid()) {
                 this.setLine(0, this.header.toString());
             }
+            this.watchedDirections = null;
         }
-        HashSet<BlockFace> watchedFaces = new HashSet<>(4);
-        // Find out what directions are watched by this sign
-        if (!this.header.hasDirections()) {
-            // find out using the rails above and sign facing
-            if (this.hasRails()) {
-                if (FaceUtil.isVertical(this.getRailDirection())) {
-                    watchedFaces.add(BlockFace.UP);
-                    watchedFaces.add(BlockFace.DOWN);
-                } else {
-                    if (FaceUtil.isSubCardinal(this.getFacing())) {
-                        // More advanced corner checks - NE/SE/SW/NW
-                        // Use rail directions validated against sign facing to
-                        // find out what directions are watched
-                        BlockFace[] faces = FaceUtil.getFaces(this.getFacing());
-                        for (BlockFace face : faces) {
-                            if (this.isConnectedRails(face)) {
-                                watchedFaces.add(face.getOppositeFace());
-                            }
-                        }
-                        // Try an inversed version, maybe rails can be found there
-                        if (watchedFaces.isEmpty()) {
-                            for (BlockFace face : faces) {
-                                if (this.isConnectedRails(face.getOppositeFace())) {
-                                    watchedFaces.add(face);
-                                }
-                            }
-                        }
-                    } else {
-                        // Sloped rails also include UP/DOWN, handling from/to vertical rail movement
-                        Rails rails = BlockUtil.getRails(this.getRails());
-                        if (rails != null && rails.isOnSlope()) {
-                            watchedFaces.add(BlockFace.UP);
-                            watchedFaces.add(BlockFace.DOWN);
-                        }
-
-                        // Simple facing checks - NESW
-                        if (this.isConnectedRails(facing)) {
-                            watchedFaces.add(facing.getOppositeFace());
-                        } else if (this.isConnectedRails(facing.getOppositeFace())) {
-                            watchedFaces.add(facing);
-                        } else {
-                            watchedFaces.add(FaceUtil.rotate(facing, -2));
-                            watchedFaces.add(FaceUtil.rotate(facing, 2));
-                        }
-                    }
-                }
-            }
-        } else {
-            watchedFaces.addAll(Arrays.asList(this.header.getFaces(this.getFacing().getOppositeFace())));
-        }
-        // Apply watched faces
-        if (watchedFaces.isEmpty()) {
-            watchedFaces.add(this.getFacing().getOppositeFace());
-        }
-        this.watchedDirections = watchedFaces.toArray(new BlockFace[0]);
         this.actionType = SignActionType.NONE;
     }
 
@@ -179,8 +125,8 @@ public class SignActionEvent extends Event implements Cancellable {
         if (this.hasRails()) {
             return FaceUtil.getFaces(this.getRailDirection())[0];
         }
-        if (this.watchedDirections.length > 0) {
-            return this.watchedDirections[0];
+        if (this.getWatchedDirections().length > 0) {
+            return this.getWatchedDirections()[0];
         }
         return this.getFacing().getOppositeFace();
     }
@@ -627,6 +573,64 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return Watched directions
      */
     public BlockFace[] getWatchedDirections() {
+        // Lazy initialization here
+        if (this.watchedDirections == null) {
+            HashSet<BlockFace> watchedFaces = new HashSet<>(4);
+            // Find out what directions are watched by this sign
+            if (!this.header.hasDirections()) {
+                // find out using the rails above and sign facing
+                if (this.hasRails()) {
+                    if (FaceUtil.isVertical(this.getRailDirection())) {
+                        watchedFaces.add(BlockFace.UP);
+                        watchedFaces.add(BlockFace.DOWN);
+                    } else {
+                        if (FaceUtil.isSubCardinal(this.getFacing())) {
+                            // More advanced corner checks - NE/SE/SW/NW
+                            // Use rail directions validated against sign facing to
+                            // find out what directions are watched
+                            BlockFace[] faces = FaceUtil.getFaces(this.getFacing());
+                            for (BlockFace face : faces) {
+                                if (this.isConnectedRails(face)) {
+                                    watchedFaces.add(face.getOppositeFace());
+                                }
+                            }
+                            // Try an inversed version, maybe rails can be found there
+                            if (watchedFaces.isEmpty()) {
+                                for (BlockFace face : faces) {
+                                    if (this.isConnectedRails(face.getOppositeFace())) {
+                                        watchedFaces.add(face);
+                                    }
+                                }
+                            }
+                        } else {
+                            // Sloped rails also include UP/DOWN, handling from/to vertical rail movement
+                            Rails rails = BlockUtil.getRails(this.getRails());
+                            if (rails != null && rails.isOnSlope()) {
+                                watchedFaces.add(BlockFace.UP);
+                                watchedFaces.add(BlockFace.DOWN);
+                            }
+
+                            // Simple facing checks - NESW
+                            if (this.isConnectedRails(facing)) {
+                                watchedFaces.add(facing.getOppositeFace());
+                            } else if (this.isConnectedRails(facing.getOppositeFace())) {
+                                watchedFaces.add(facing);
+                            } else {
+                                watchedFaces.add(FaceUtil.rotate(facing, -2));
+                                watchedFaces.add(FaceUtil.rotate(facing, 2));
+                            }
+                        }
+                    }
+                }
+            } else {
+                watchedFaces.addAll(Arrays.asList(this.header.getFaces(this.getFacing().getOppositeFace())));
+            }
+            // Apply watched faces
+            if (watchedFaces.isEmpty()) {
+                watchedFaces.add(this.getFacing().getOppositeFace());
+            }
+            this.watchedDirections = watchedFaces.toArray(new BlockFace[0]);
+        }
         return this.watchedDirections;
     }
 
@@ -636,9 +640,9 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return spawn directions
      */
     public BlockFace[] getSpawnDirections() {
-        BlockFace[] spawndirs = new BlockFace[this.watchedDirections.length];
+        BlockFace[] spawndirs = new BlockFace[this.getWatchedDirections().length];
         for (int i = 0; i < spawndirs.length; i++) {
-            spawndirs[i] = this.watchedDirections[i].getOppositeFace();
+            spawndirs[i] = this.getWatchedDirections()[i].getOppositeFace();
         }
         return spawndirs;
     }
@@ -650,7 +654,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if watched, False otherwise
      */
     public boolean isWatchedDirection(BlockFace direction) {
-        return LogicUtil.contains(direction, this.watchedDirections);
+        return LogicUtil.contains(direction, this.getWatchedDirections());
     }
 
     /**
@@ -760,9 +764,9 @@ public class SignActionEvent extends Event implements Cancellable {
         String text = "{ block=[" + signblock.getX() + "," + signblock.getY() + "," + signblock.getZ() + "]";
         text += ", action=" + this.actionType;
         text += ", watched=[";
-        for (int i = 0; i < this.watchedDirections.length; i++) {
+        for (int i = 0; i < this.getWatchedDirections().length; i++) {
             if (i > 0) text += ",";
-            text += this.watchedDirections[i].name();
+            text += this.getWatchedDirections()[i].name();
         }
         text += "]";
         if (this.sign == null) {
