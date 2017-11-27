@@ -484,7 +484,10 @@ public class SignActionSpawn extends SignAction {
             if (interval > 0 && (Permission.SPAWNER_AUTOMATIC.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use automatic signs"))) {
                 event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(interval) + " while powered");
                 SpawnSign sign = new SpawnSign(event.getBlock(), interval);
-                spawnSigns.put(event.getBlock(), sign);
+                SpawnSign oldSign = spawnSigns.put(event.getBlock(), sign);
+                if (oldSign != null) {
+                    oldSign.stop();
+                }
                 hasChanges = true;
                 sign.start();
             }

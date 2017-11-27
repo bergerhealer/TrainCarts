@@ -132,6 +132,7 @@ public class SpawnSign extends OfflineSign {
     public void onRemove(Block signBlock) {
         if (this.task != null) {
             this.task.stop();
+            this.task = null;
         }
         SignActionSpawn.remove(signBlock);
     }
