@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartType;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -23,14 +24,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.EntityType;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -38,39 +37,6 @@ import java.util.Locale;
 public class SignActionSpawn extends SignAction {
     private static boolean hasChanges = false;
     private static BlockMap<SpawnSign> spawnSigns = new BlockMap<>();
-    private static HashMap<String, EntityType> minecartTypes = new HashMap<>();
-    private static HashMap<String, Permission> minecartPerms = new HashMap<>();
-
-    static {
-        addSpawnType('m', EntityType.MINECART);
-        addSpawnType('s', EntityType.MINECART_CHEST);
-        addSpawnType('p', EntityType.MINECART_FURNACE);
-        addSpawnType('h', EntityType.MINECART_HOPPER);
-        addSpawnType('t', EntityType.MINECART_TNT);
-        addSpawnType('e', EntityType.MINECART_MOB_SPAWNER);
-        addSpawnType('c', EntityType.MINECART_COMMAND);
-    }
-
-    static {
-        addPermType('m', Permission.SPAWNER_REGULAR);
-        addPermType('s', Permission.SPAWNER_STORAGE);
-        addPermType('p', Permission.SPAWNER_POWERED);
-        addPermType('h', Permission.SPAWNER_HOPPER);
-        addPermType('t', Permission.SPAWNER_TNT);
-        addPermType('e', Permission.SPAWNER_SPAWNER);
-        addPermType('c', Permission.SPAWNER_COMMAND);
-    }
-
-
-    public static void addPermType(char character, Permission perm) {
-        minecartPerms.put(Character.toString(character).toLowerCase(Locale.ENGLISH), perm);
-        minecartPerms.put(Character.toString(character).toUpperCase(Locale.ENGLISH), perm);
-    }
-
-    public static void addSpawnType(char character, EntityType type) {
-        minecartTypes.put(Character.toString(character).toLowerCase(Locale.ENGLISH), type);
-        minecartTypes.put(Character.toString(character).toUpperCase(Locale.ENGLISH), type);
-    }
 
     public static void remove(Block signBlock) {
         SpawnSign sign = spawnSigns.remove(signBlock);
@@ -125,7 +91,7 @@ public class SignActionSpawn extends SignAction {
     }
 
     public static boolean hasCartPerms(SignChangeActionEvent event) {
-        Permission perm;
+        MinecartType type;
         boolean validCartTypeSpecified = false; // If no valid cart types failed, fail
         int cartAmountSpecified = -1;           // Keep track of numbers, to avoid things like "0m"
         for (char cart : (event.getLine(2) + event.getLine(3)).toCharArray()) {
@@ -142,12 +108,12 @@ public class SignActionSpawn extends SignAction {
                 }
                 continue;
             }
-            perm = minecartPerms.get(Character.toString(cart));
-            if (perm == null) {
+            type = MinecartType.get(Character.toString(cart));
+            if (type == null) {
                 event.getPlayer().sendMessage(ChatColor.RED + "Invalid minecart type (" + Character.toString(cart) + ")");
                 return false;
             }
-            if (perm.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of type " + Character.toString(cart))) {
+            if (type.getPermission().handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of type " + Character.toString(cart))) {
                 if (cartAmountSpecified != 0) {
                     validCartTypeSpecified = true;
                 } else {
@@ -357,7 +323,7 @@ public class SignActionSpawn extends SignAction {
         SpawnTypes result = new SpawnTypes();
         result.centerMode = CenterMode.NONE;
         StringBuilder amountBuilder = new StringBuilder();
-        EntityType type;
+        MinecartType type;
         for (char cart : text.toCharArray()) {
             // Center-Mode designating characters
             if (isLeftChar(cart)) {
@@ -370,7 +336,7 @@ public class SignActionSpawn extends SignAction {
             }
 
             // Types and amounts for each type
-            type = minecartTypes.get(Character.toString(cart));
+            type = MinecartType.get(Character.toString(cart));
             if (type != null) {
                 if (amountBuilder.length() > 0) {
                     int amount = ParseUtil.parseInt(amountBuilder.toString(), 1);
@@ -511,7 +477,7 @@ public class SignActionSpawn extends SignAction {
 
     private static class SpawnTypes {
         public CenterMode centerMode = CenterMode.MIDDLE;
-        public List<EntityType> types = new ArrayList<EntityType>();
+        public List<MinecartType> types = new ArrayList<MinecartType>();
 
         public void addCenterMode(CenterMode mode) {
             if (this.centerMode == CenterMode.NONE || this.centerMode == mode) {
