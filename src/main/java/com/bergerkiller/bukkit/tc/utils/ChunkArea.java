@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
  * easier to test.
  */
 public class ChunkArea {
+    public static final Runnable DUMMY_RUNNABLE = new Runnable() { public void run() {} };
     public static final int CHUNK_RANGE = 2;
     public static final int CHUNK_EDGE = 2 * CHUNK_RANGE + 1;
     public static final int CHUNK_AREA = CHUNK_EDGE * CHUNK_EDGE;
@@ -147,7 +148,6 @@ public class ChunkArea {
      * A single chunk that has one or more chunks neighbouring it with a minecart in it
      */
     public static final class OwnedChunk {
-        private static final Runnable DUMMY_RUNNABLE = new Runnable() { public void run() {} };
         private final int cx, cz;
         private final World world;
         private final Set<IntVector2> chunks = new HashSet<IntVector2>();

@@ -107,6 +107,13 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onChunkUnloadLow(ChunkUnloadEvent event) {
+        // Check no spawn sign is keeping the chunk loaded
+        if (!TrainCarts.plugin.getSpawnSignManager().canUnloadChunk(event.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // Check no trains are keeping the chunk loaded
         synchronized (this.expectUnload) {
             this.expectUnload.clear();
             for (MinecartGroup mg : MinecartGroup.getGroups()) {

@@ -538,9 +538,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
         this.rootAttachment = CartAttachment.initialize(this, model.getConfig());
+
         this.seatAttachments.clear();
         this.discoverSeats(this.rootAttachment);
-        
+
         for (Player viewer : this.getViewers()) {
             makeVisible(this.rootAttachment, viewer);
         }

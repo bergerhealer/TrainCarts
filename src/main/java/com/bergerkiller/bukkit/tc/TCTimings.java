@@ -17,5 +17,5 @@ public class TCTimings {
     public static final Timings BLOCKTRACKER_REFRESH = timings.create("Train Physics - BlockTracker::refresh()");
     public static final Timings RAILTRACKER_REFRESH = timings.create("Train Physics - RailTracker::refresh()");
     public static final Timings RAILTYPE_FINDRAILINFO = timings.create("Train Physics - RailType::findRailInfo()");
-    public static final Timings TEST = timings.create("Test Timings (typically unused)");
+    public static final Timings SIGNACTION_SPAWN = timings.create("Sign Action Spawn - SpawnSign::spawn()");
 }

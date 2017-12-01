@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
+import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSignManager;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
@@ -51,6 +52,16 @@ public class TrainCarts extends PluginBase {
     private TCPacketListener packetListener;
     private FileConfiguration config;
     private AttachmentModelStore attachmentModels;
+    private SpawnSignManager spawnSignManager;
+
+    /**
+     * Gets the program component responsible for automatically spawning trains from spawn signs periodically.
+     * 
+     * @return spawn sign manager
+     */
+    public SpawnSignManager getSpawnSignManager() {
+        return this.spawnSignManager;
+    }
 
     /**
      * Gets access to the place where attachment models are stored, loaded and saved
@@ -270,9 +281,11 @@ public class TrainCarts extends PluginBase {
 
         //Load detector sign locations
         SignActionDetector.INSTANCE.init(getDataFolder() + File.separator + "detectorsigns.dat");
-        
-        //Load spawn sign locations
-        SignActionSpawn.init(getDataFolder() + File.separator + "spawnsigns.dat");
+
+        //Load spawner signs
+        spawnSignManager = new SpawnSignManager(this);
+        spawnSignManager.load(getDataFolder() + File.separator + "spawnsigns.dat");
+        spawnSignManager.init();
 
         //Restore carts where possible
         TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
@@ -329,7 +342,7 @@ public class TrainCarts extends PluginBase {
         }
 
         //Save spawn sign locations
-        SignActionSpawn.save(autosave, getDataFolder() + File.separator + "spawnsigns.dat");
+        spawnSignManager.save(autosave, getDataFolder() + File.separator + "spawnsigns.dat");
 
         //Save detector sign locations
         SignActionDetector.INSTANCE.save(autosave, getDataFolder() + File.separator + "detectorsigns.dat");
@@ -386,6 +399,9 @@ public class TrainCarts extends PluginBase {
 
         //save all data to disk (autosave=false)
         save(false);
+
+        //Disable spawn manager
+        spawnSignManager.deinit();
 
         // Deinit classes
         PathNode.deinit();

@@ -68,6 +68,10 @@ public class TrackWalkIterator {
         return this.next != null;
     }
 
+    public Block getRailsBlock() {
+        return walker.currentTrack;
+    }
+
     public Location current() {
         return this.current;
     }
