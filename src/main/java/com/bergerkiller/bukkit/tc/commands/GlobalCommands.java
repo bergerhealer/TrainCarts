@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -25,10 +26,12 @@ import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -275,6 +278,25 @@ public class GlobalCommands {
             return true;
         } else if (args[0].equals("attachments")) {
             ((Player) sender).getInventory().addItem(MapDisplay.createMapItem(AttachmentEditor.class));
+            return true;
+        } else if (args[0].equals("debug")) {
+            Permission.DEBUG_COMMAND_DEBUG.handle(sender);
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("This command is only for players");
+                return true;
+            }
+            Player player = (Player) sender;
+            String cmd = (args.length >= 2) ? args[1] : "";
+            if (cmd.equalsIgnoreCase("rails")) {
+                ItemStack item = ItemUtil.createItem(Material.STICK, 1);
+                ItemUtil.getMetaTag(item, true).putValue("TrainCartsDebug", "Rails");
+                ItemUtil.setDisplayName(item, "TrainCarts Rails Debugger");
+                player.getInventory().addItem(item);
+                player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Slap some rails and escape the matrix!");
+            } else {
+                player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
+                player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
+            }
             return true;
         }
         return false;

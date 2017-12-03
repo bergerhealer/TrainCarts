@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.block.BlockFace;
@@ -71,6 +72,19 @@ public class RailLogicVertical extends RailLogic {
     @Override
     public void setForwardVelocity(MinecartMember<?> member, double force) {
         member.getEntity().vel.setY(member.getDirection().getModY() * force);
+    }
+
+    @Override
+    public RailPath getPath() {
+        if (this.railPath == RailPath.EMPTY) {
+            // Initialize the rail path, making use of getFixedPosition for each node
+            Vector p1 = new Vector(0.5, 0.0, 0.5);
+            Vector p2 = new Vector(0.5, 1.0, 0.5);
+            this.getFixedPosition(p1, IntVector3.ZERO);
+            this.getFixedPosition(p2, IntVector3.ZERO);
+            this.railPath = RailPath.create(p1, p2);
+        }
+        return this.railPath;
     }
 
     @Override

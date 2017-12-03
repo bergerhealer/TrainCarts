@@ -40,12 +40,12 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
+    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
         // Get the direction of the rails to find out the logic to use
         BlockFace dir = Util.getPlateDirection(railsBlock);
         if (dir == BlockFace.SELF) {
             //set track direction based on direction of this cart
-            dir = FaceUtil.toRailsDirection(member.getDirectionTo());
+            dir = FaceUtil.toRailsDirection(direction);
         }
         return RailLogicHorizontal.get(dir);
     }

@@ -118,7 +118,7 @@ public class RailTrackerMember extends RailTracker {
         if (this.railLogicSnapshotted && this.railLogic != null) {
             return this.railLogic;
         } else {
-            return this.rail.type.getLogic(this.owner, this.rail.block);
+            return this.rail.type.getLogic(this.owner, this.rail.block, this.rail.direction);
         }
     }
 
@@ -156,7 +156,7 @@ public class RailTrackerMember extends RailTracker {
      * Creates a snapshot of the Rail Logic for the entire next run
      */
     public void snapshotRailLogic() {
-        this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block);
+        this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block, this.rail.direction);
         if (this.railLogic instanceof RailLogicVertical) {
             this.rail = new TrackedRail(this.rail.member, this.rail.minecartBlock, this.rail.block, RailType.VERTICAL, this.rail.disconnected, this.rail.direction);
         }

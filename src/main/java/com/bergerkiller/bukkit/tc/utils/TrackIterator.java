@@ -197,6 +197,10 @@ public class TrackIterator implements Iterator<Block> {
         return this.movingPoint.currentTrack;
     }
 
+    public RailType currentRailType() {
+        return this.movingPoint.currentRail;
+    }
+
     public Rails currentRails() {
         return BlockUtil.getRails(this.current());
     }

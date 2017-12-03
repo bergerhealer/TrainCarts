@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.utils;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
+
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -62,6 +64,10 @@ public class TrackMap extends ArrayList<Block> {
 
     public Block getBlock() {
         return this.iterator.current();
+    }
+
+    public RailType getRailType() {
+        return this.iterator.currentRailType();
     }
 
     public BlockFace getDirection() {

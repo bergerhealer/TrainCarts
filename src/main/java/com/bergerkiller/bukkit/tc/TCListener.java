@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -408,6 +410,17 @@ public class TCListener implements Listener {
                 if (clickedBlock == null) {
                     // No interaction occurred
                     return;
+                }
+            }
+
+            // Debug tools
+            if (event.getItem() != null) {
+                CommonTagCompound tag = ItemUtil.getMetaTag(event.getItem());
+                if (tag != null) {
+                    String debugType = tag.getValue("TrainCartsDebug", String.class);
+                    if (debugType != null) {
+                        DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), debugType);
+                    }
                 }
             }
 

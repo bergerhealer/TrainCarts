@@ -84,6 +84,9 @@ public class Permission extends PermissionEnum {
     public static final Permission GENERAL_PROPERTIES_ADMIN = new Permission("train.properties.admin", PermissionDefault.OP, "Carts placed by this player get the admin properties");
     public static final Permission TICKET_MANAGE = new Permission("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets");
 
+    // Special hidden debug sekretz
+    public static final Permission DEBUG_COMMAND_DEBUG = new Permission("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin");
+
     private Permission(final String node, final PermissionDefault permdefault, final String desc) {
         super(node, permdefault, desc);
     }

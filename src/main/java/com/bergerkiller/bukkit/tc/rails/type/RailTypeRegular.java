@@ -261,7 +261,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
     }
 
-    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails) {
+    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails, BlockFace minecartDirection) {
         BlockFace direction = rails.getDirection();
         boolean upsideDown = isUpsideDown(railsBlock);
 
@@ -281,17 +281,25 @@ public class RailTypeRegular extends RailTypeHorizontal {
             return RailLogicSloped.get(direction, upsideDown);
         }
 
+        // Curved rails: is straight when entered a certain way
+        if (rails.isCurve()) {
+            BlockFace[] faces = FaceUtil.getFaces(direction);
+            if (minecartDirection == faces[0].getOppositeFace() || minecartDirection == faces[1].getOppositeFace()) {
+                return RailLogicHorizontal.get(minecartDirection);
+            }
+        }
+        
         // Default Horizontal logic
         return RailLogicHorizontal.get(direction, upsideDown);
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
+    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
         Rails rails = BlockUtil.getRails(railsBlock);
         if (rails == null) {
             return RailLogicGround.INSTANCE;
         }
-        return getLogicForRails(railsBlock, rails);
+        return getLogicForRails(railsBlock, rails, direction);
     }
 
     @Override

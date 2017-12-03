@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -16,6 +17,7 @@ import org.bukkit.util.Vector;
 public abstract class RailLogic {
     protected final boolean alongZ, alongX, alongY, curved;
     private final BlockFace horizontalDir;
+    protected RailPath railPath;
 
     public RailLogic(BlockFace horizontalDirection) {
         this.horizontalDir = horizontalDirection;
@@ -23,6 +25,7 @@ public abstract class RailLogic {
         this.alongZ = FaceUtil.isAlongZ(horizontalDirection);
         this.alongY = FaceUtil.isAlongY(horizontalDirection);
         this.curved = !alongZ && !alongY && !alongX;
+        this.railPath = RailPath.EMPTY;
     }
 
     /**
@@ -138,6 +141,17 @@ public abstract class RailLogic {
      * @return the BlockFace direction
      */
     public abstract BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection);
+
+    /**
+     * Obtains a path consisting of connected points along which Minecarts move using this rail logic.
+     * The point coordinates are relative to the coordinates of the rails block.
+     * This allows the rails path to be cached, since they are unlikely to change.
+     * 
+     * @return rails path
+     */
+    public RailPath getPath() {
+        return this.railPath;
+    }
 
     /**
      * Gets the position of the Minecart when snapped to the rails. The input

@@ -312,9 +312,10 @@ public abstract class RailType {
      *
      * @param member to get the logic for (can be null when used by track walkers for e.g. spawning)
      * @param railsBlock the Minecart is driving on
+     * @param direction in which the Minecart is moving. Only block directions (north/east/south/west/up/down) are used.
      * @return Rail Logic
      */
-    public abstract RailLogic getLogic(MinecartMember<?> member, Block railsBlock);
+    public abstract RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction);
 
     /**
      * Called one tick after a block of this Rail Type was placed down in the world

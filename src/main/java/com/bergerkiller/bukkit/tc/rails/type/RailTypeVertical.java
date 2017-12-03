@@ -133,7 +133,7 @@ public class RailTypeVertical extends RailType {
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock) {
+    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
         BlockFace dir = Util.getVerticalRailDirection(railsBlock);
         if (isVerticalSlopeUpsideDown(railsBlock)) {
             return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());

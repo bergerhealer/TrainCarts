@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -117,6 +118,27 @@ public class RailLogicHorizontal extends RailLogic {
         }
         final float newpitch = this.isUpsideDown() ? -180.0f : 0.0f;
         member.setRotationWrap(newyaw, newpitch);
+    }
+
+    @Override
+    public RailPath getPath() {
+        if (this.railPath == RailPath.EMPTY) {
+            // Initialize the rail path, making use of getFixedPosition for each node
+            Vector p1 = new Vector(this.startX + 0.5, Y_POS_OFFSET, this.startZ + 0.5);
+            Vector p2 = p1.clone();
+            if (this.alongZ) {
+                p2.setZ(p2.getZ() + this.dz);
+            } else if (this.alongX) {
+                p2.setX(p2.getX() + this.dx);
+            } else {
+                p2.setX(p2.getX() - this.dx);
+                p2.setZ(p2.getZ() - this.dz);
+            }
+            this.getFixedPosition(p1, IntVector3.ZERO);
+            this.getFixedPosition(p2, IntVector3.ZERO);
+            this.railPath = RailPath.create(p1, p2);
+        }
+        return this.railPath;
     }
 
     /**
