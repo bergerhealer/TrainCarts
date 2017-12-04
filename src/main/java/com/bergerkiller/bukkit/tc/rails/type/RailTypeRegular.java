@@ -288,7 +288,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
                 return RailLogicHorizontal.get(minecartDirection);
             }
         }
-        
+
         // Default Horizontal logic
         return RailLogicHorizontal.get(direction, upsideDown);
     }

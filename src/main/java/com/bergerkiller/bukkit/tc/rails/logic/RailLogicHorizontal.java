@@ -26,8 +26,8 @@ public class RailLogicHorizontal extends RailLogic {
     }
 
     private final boolean upside_down;
-    private final double dx, dz;
-    private final double startX, startZ;
+    protected final double dx, dz;
+    protected final double startX, startZ;
     private final BlockFace horizontalCartDir;
     private final BlockFace[] cartFaces;
     private final BlockFace[] faces;

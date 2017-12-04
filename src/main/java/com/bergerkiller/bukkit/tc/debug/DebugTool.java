@@ -6,6 +6,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -32,13 +33,50 @@ public class DebugTool {
         }
     }
 
+    public static void debugRails(Player player, Block railsBlock) {
+        Vector direction = player.getEyeLocation().getDirection();
+        TrackMap map = new TrackMap(railsBlock, FaceUtil.getDirection(direction, false));
+        final double STEP_DISTANCE = 0.1;
+        double distance = STEP_DISTANCE;
+        Location loc = null;
+        while (map.hasNext()) {
+            Block block = map.next();
+            BlockFace faceDirection = map.getDirection();
+            RailType type = map.getRailType();
+            RailLogic logic = type.getLogic(null, block, faceDirection);
+            RailPath path = logic.getPath();
+
+            // Assign location for the first time (center of rail)
+            if (loc == null) {
+                loc = type.getSpawnLocation(block, faceDirection);
+                showParticle(loc, Particle.BARRIER);
+            }
+
+            // Move along the path
+            Vector position = new Vector(loc.getX() - block.getX(), loc.getY() - block.getY(), loc.getZ() - block.getZ());
+            double moved;
+            while ((moved = path.move(position, direction, distance)) != 0.0) {
+                //System.out.println("MOVE: " + moved + " / " + distance + " : " + position);
+                distance -= moved;
+                loc.setX(position.getX() + block.getX());
+                loc.setY(position.getY() + block.getY());
+                loc.setZ(position.getZ() + block.getZ());
+                if (distance <= 0.0001) {
+                    distance = STEP_DISTANCE;
+                    showParticle(loc);
+                }
+            }            
+        }
+    }
+
     /**
-     * Shows particle effects where the minecart positions would be, to show the calculated path
+     * Shows particle effects where the minecart positions would be, to show the calculated path.
+     * Old version, that does not perform actual movement but instead shows the path segments.
      * 
      * @param player
      * @param railsBlock
      */
-    public static void debugRails(Player player, Block railsBlock) {
+    public static void debugRails_old(Player player, Block railsBlock) {
         TrackMap map = new TrackMap(railsBlock, FaceUtil.yawToFace(player.getLocation().getYaw() - 90, false));
         while (map.hasNext()) {
             Block block = map.next();
@@ -65,6 +103,10 @@ public class DebugTool {
     }
 
     private static void showParticle(Location loc) {
-        loc.getWorld().spawnParticle(Particle.FOOTSTEP, loc, 5);
+        showParticle(loc, Particle.FOOTSTEP);
+    }
+
+    private static void showParticle(Location loc, Particle particle) {
+        loc.getWorld().spawnParticle(particle, loc, 5);
     }
 }

@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
@@ -24,6 +25,14 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
      * @return True if vertical half
      */
     protected abstract boolean isVerticalHalf(double y, IntVector3 blockPos);
+
+    /**
+     * Gets the y-coordinate offset relative to the middle of the block,
+     * where the rail logic changes between sloped and vertical.
+     * 
+     * @return half offset
+     */
+    protected abstract double getHalfOffset();
 
     /**
      * Gets the vertical offset of the Minecart on the sloped rail portion

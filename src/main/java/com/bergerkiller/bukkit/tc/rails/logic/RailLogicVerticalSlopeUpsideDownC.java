@@ -34,12 +34,12 @@ public class RailLogicVerticalSlopeUpsideDownC extends RailLogicVerticalSlopeUps
     }
 
     @Override
-    public boolean isVerticalHalf(double y, IntVector3 blockPos) {
-        return super.isVerticalHalf(y - 1.0, blockPos);
+    protected double getYOffset() {
+        return 1.0;
     }
 
     @Override
-    protected double getYOffset() {
-        return 1.0;
+    protected double getHalfOffset() {
+        return Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
     }
 }
