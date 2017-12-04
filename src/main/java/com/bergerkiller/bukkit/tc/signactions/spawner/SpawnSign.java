@@ -103,7 +103,7 @@ public class SpawnSign {
      * @return remaining time in milliseconds
      */
     public long getRemaining(long currentTime) {
-        if (!this.isActive()) {
+        if (!this.isActive() || !this.hasInterval()) {
             return Long.MAX_VALUE;
         }
         long time = (this.nextSpawnTime - currentTime);
@@ -117,7 +117,7 @@ public class SpawnSign {
      * @return timestamp of next spawn
      */
     public long getNextSpawnTime() {
-        if (!this.isActive()) return Long.MAX_VALUE;
+        if (!this.isActive() || !this.hasInterval()) return Long.MAX_VALUE;
         return this.nextSpawnTime;
     }
 
