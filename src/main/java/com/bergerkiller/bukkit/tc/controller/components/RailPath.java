@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
@@ -128,35 +129,91 @@ public class RailPath {
             }
 
         } else {
-            //TODO: This stuff is presently not fully implemented!
-            
             // Find the start segment closest to the position
-            double closestTheta = 0.0;
-            Segment closestSegment = null;
-            int closestSegmentIndex = -1;
-            double closestDistance = Double.MAX_VALUE;
-            for (int i = 0; i < this.segments.length; i++) {
-                Segment s = this.segments[i];
-                double theta = s.calcTheta(position);
-                double distSquared = s.calcDistanceSquared(position, theta);
-                if (distSquared < closestDistance) {
-                    closestDistance = distSquared;
-                    closestTheta = theta;
-                    closestSegment = s;
-                    closestSegmentIndex = i;
+            double theta = 0.0;
+            Segment s = null;
+            int segmentIndex = -1;
+            {
+                double closestDistance = Double.MAX_VALUE;
+                for (int i = 0; i < this.segments.length; i++) {
+                    Segment tmpSegment = this.segments[i];
+                    if (tmpSegment.isZeroLength()) continue;
+                    double tmpTheta = tmpSegment.calcTheta(position);
+                    double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);
+                    if (tmpDistSquared < closestDistance) {
+                        closestDistance = tmpDistSquared;
+                        theta = tmpTheta;
+                        s = tmpSegment;
+                        segmentIndex = i;
+                    }
+                }
+                if (s == null) {
+                    return 0.0;
                 }
             }
 
-            // Move the full distance along the current segment
-            // When reaching the end of the segment, move on to the next segment
-            
+            // If no distance to move, only snap to the rails and refresh direction
+            if (distance <= 0.0) {
+                s.calcPosition(position, theta);
+                s.calcDirection(direction);
+                return 0.0;
+            }
+
+            // Iterate the segments in order
+            int order = s.calcDirection(direction);
+            double moved = 0.0;
+            while (distance > 0.0) {
+                s.calcPosition(position, theta);
+                if (!s.isZeroLength()) {
+                    if (order == 1) {
+                        // p0 -> p1
+                        if (theta < 0.0) theta = 0.0;
+                        if (theta < 1.0) {
+                            // Perform the movement
+                            double remainingDistance = s.l * (1.0 - theta);
+                            if (distance >= remainingDistance) {
+                                s.p1.toVector(position);
+                                moved += remainingDistance;
+                                distance -= remainingDistance;
+                            } else {
+                                s.calcPosition(position, theta + (distance / s.l));
+                                moved += distance;
+                                distance = 0.0;
+                                break;
+                            }
+                        }
+                    } else {
+                        // p1 -> p0
+                        if (theta > 1.0) theta = 1.0;
+                        if (theta > 0.0) {
+                            // Perform the movement
+                            double remainingDistance = s.l * theta;
+                            if (distance >= remainingDistance) {
+                                s.p0.toVector(position);
+                                moved += remainingDistance;
+                                distance -= remainingDistance;
+                            } else {
+                                s.calcPosition(position, theta - (distance / s.l));
+                                moved += distance;
+                                distance = 0.0;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Move to the next segment
+                segmentIndex += order;
+                if (segmentIndex < 0 || segmentIndex >= this.segments.length) {
+                    break;
+                } else {
+                    s = this.segments[segmentIndex];
+                    theta = s.calcTheta(position);
+                    s.calcDirection(direction);
+                }
+            }
+            return moved;
         }
-
-
-        
-        
-        
-        return 0.0;
     }
 
     public static RailPath create(Vector... pointVectors) {

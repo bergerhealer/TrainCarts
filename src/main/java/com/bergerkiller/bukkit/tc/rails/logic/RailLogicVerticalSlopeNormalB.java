@@ -53,18 +53,18 @@ public class RailLogicVerticalSlopeNormalB extends RailLogicVerticalSlopeBase {
                 p3.setX(0.5 + 0.5 * (double) this.getDirection().getModX());
             }
 
-            this.railPath = RailPath.create(p1, p3);
+            this.railPath = RailPath.create(p1, p2, p3);
         }
         return this.railPath;
     }
 
     @Override
     public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
-        return y < (blockPos.midY() + Y_POS_OFFSET);
+        return y < (blockPos.y + this.getHalfOffset());
     }
 
     @Override
     protected double getHalfOffset() {
-        return Y_POS_OFFSET;
+        return 0.5 + Y_POS_OFFSET;
     }
 }

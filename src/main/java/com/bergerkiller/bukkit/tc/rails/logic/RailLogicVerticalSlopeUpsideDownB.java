@@ -44,8 +44,8 @@ public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBas
             // The other segment is sloped from the middle to the other end
             // The x/z coordinates are asserted from the y-coordinate
             Vector p1 = new Vector(0.5, this.getYOffset() + 1.0, 0.5);
-            Vector p2 = new Vector(0.5, this.getYOffset() + this.getHalfOffset() + 0.5, 0.5);
-            Vector p3 = new Vector(0.5, this.getYOffset() + this.getHalfOffset(), 0.5);
+            Vector p2 = new Vector(0.5, this.getYOffset() + this.getHalfOffset(), 0.5);
+            Vector p3 = new Vector(0.5, this.getYOffset() + this.getHalfOffset() - 0.5, 0.5);
 
             if (this.alongZ) {
                 p3.setZ(0.5 - 0.5 * (double) this.getDirection().getModZ());
@@ -53,18 +53,18 @@ public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBas
                 p3.setX(0.5 - 0.5 * (double) this.getDirection().getModX());
             }
 
-            this.railPath = RailPath.create(p1, p3);
+            this.railPath = RailPath.create(p1, p2, p3);
         }
         return this.railPath;
     }
 
     @Override
     public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
-        return (y - 0.0001) > (blockPos.midY() + this.getHalfOffset());
+        return (y - 0.0001) > (blockPos.y + this.getHalfOffset());
     }
 
     @Override
     protected double getHalfOffset() {
-        return -1.0 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
+        return -0.5 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
     }
 }
