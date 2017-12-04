@@ -190,12 +190,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         this.velocityUpdateReceivers.add(viewer);
         this.updateVelocity(viewer);
-
-        /*
-        for (ICartAttachmentOld attachment : this.attachments) {
-            attachment.addViewer(viewer);
-        }
-        */
     }
 
     private static void makeVisible(CartAttachment attachment, Player viewer) {
@@ -214,12 +208,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.velocityUpdateReceivers.remove(viewer);
         this.passengerControllers.remove(viewer);
         PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), ZERO_VELOCITY));
-
-        /*
-        for (ICartAttachmentOld attachment : this.attachments) {
-            attachment.removeViewer(viewer);
-        }
-        */
     }
 
     private static void makeHidden(CartAttachment attachment, Player viewer) {
@@ -227,14 +215,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             makeHidden(child, viewer);
         }
         attachment.makeHidden(viewer);
-    }
-
-    private void tickAttachments() {
-        /*
-        for (ICartAttachmentOld attachment : this.attachments) {
-            attachment.onTick();
-        }
-        */
     }
 
     @Override
@@ -276,7 +256,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 if (networkControllers[i].member != member) {
                     networkControllers[i].member = member;
                 }
-                networkControllers[i].tickAttachments();
             }
 
             // Synchronize to the clients
@@ -357,18 +336,50 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     public Matrix4x4 getLiveTransform() {
+        MinecartMember<?> member = this.getMember();
         Matrix4x4 transform = new Matrix4x4();
 
-        // Some factor of the movement change needs to be re-predicted
-        // Otherwise things stuck to this Minecart will always move ahead
-        transform.translateRotate(
-                (this.locLive.getX()),
-                (this.locLive.getY()),
-                (this.locLive.getZ()),
-                this.locLive.getYaw() + 90.0f,
-                this.locLive.getPitch(),
-                this.getMember().getRoll()
-        );
+        // Get back and front wheel positions
+        Vector frontWheelPos = member.getFrontWheel().getPosition();
+        Vector backWheelPos = member.getBackWheel().getPosition();
+        if (frontWheelPos == null || backWheelPos == null) {
+
+            // Translate the transform based on yaw/pitch/roll
+            transform.translateRotate(
+                    (this.locLive.getX()),
+                    (this.locLive.getY()),
+                    (this.locLive.getZ()),
+                    this.locLive.getYaw() + 90.0f,
+                    this.locLive.getPitch(),
+                    this.getMember().getRoll()
+            );
+
+        } else {
+            
+            // Translate the transform based on the wheel offsets
+            Vector offset = new Vector();
+            offset.add(frontWheelPos);
+            offset.add(backWheelPos);
+            offset.multiply(0.5);
+            offset.add(this.locLive.vector());
+            transform.translate(offset);
+
+            // Rotate the transform based on the wheel direction
+            Vector direction = new Vector();
+            direction.add(frontWheelPos);
+            direction.subtract(backWheelPos);
+            direction.normalize();
+            
+            transform.rotateY(-(90.0f + MathUtil.getLookAtYaw(direction)));
+            transform.rotateX(MathUtil.getLookAtPitch(direction.getX(), direction.getY(), direction.getZ()));
+            
+           // direction.add
+            
+            
+            // Rotate the transform based on Minecart roll
+            transform.rotateZ(member.getRoll());
+            
+        }
         return transform;
     }
 
