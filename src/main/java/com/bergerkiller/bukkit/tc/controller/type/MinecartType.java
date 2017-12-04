@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.bukkit.entity.EntityType;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 
 /**
  * A type of minecart, which has certain default properties attached
@@ -31,6 +32,16 @@ public class MinecartType {
         this._name = name;
         this._entityType = entityType;
         this._permission = permission;
+    }
+
+    /**
+     * The length of this Minecart entity on the tracks
+     * This distance is required when spawning
+     * 
+     * @return length of the cart
+     */
+    public double getLength() {
+        return 1.0;
     }
 
     public String getName() {

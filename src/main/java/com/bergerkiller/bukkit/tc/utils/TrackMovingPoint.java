@@ -5,7 +5,9 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import java.util.HashSet;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 /**
  * Represents a Minecart moving from Block to Block.
@@ -17,6 +19,7 @@ public class TrackMovingPoint {
     public BlockFace currentDirection, nextDirection;
     public RailType currentRail, nextRail;
     private boolean hasNext;
+    private Set<Block> loopFilter = null;
 
     /**
      * Constructs a new Track Moving Point using the track position
@@ -38,6 +41,16 @@ public class TrackMovingPoint {
             this.currentRail = this.nextRail = type;
             this.hasNext = true;
         }
+    }
+
+    /**
+     * Sets whether a loop filter is employed, which tracks the positions already returned
+     * and stops iteration when encountering a block already visited.
+     * 
+     * @param enabled
+     */
+    public void setLoopFilter(boolean enabled) {
+        this.loopFilter = enabled ? new HashSet<Block>() : null;
     }
 
     /**
@@ -93,6 +106,9 @@ public class TrackMovingPoint {
 
         // Use the current rail to obtain the next Block to go to
         this.next = this.currentRail.getNextPos(this.currentTrack, this.currentDirection);
+        if (this.next != null && this.loopFilter != null && !this.loopFilter.add(this.next)) {
+            this.next = null; // Loop Detected
+        }
         if (this.next == null) {
             // No next position available
             return;

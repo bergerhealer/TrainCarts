@@ -1285,7 +1285,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 }
 
                 // Set the factor to the offset we must make to correct the distance
-                double distanceDiff = (TCConfig.cartDistance - distance);
+                double distanceDiff = (TCConfig.cartDistanceGap + 1.0 - distance);
                 this.speedFactor.setX(direction.getX() * distanceDiff);
                 this.speedFactor.setY(direction.getY() * distanceDiff);
                 this.speedFactor.setZ(direction.getZ() * distanceDiff);

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -16,6 +17,8 @@ import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign.CenterMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -104,7 +107,7 @@ public class SignActionSpawn extends SignAction {
             int sizeLim = ((types.size() - 1) / 2) + 1;
             List<SpawnPositions> modes = new ArrayList<SpawnPositions>();
             for (BlockFace direction : info.getWatchedDirections()) {
-                SpawnPositions mode = getSpawnPositions(info, direction.getOppositeFace(), types.size());
+                SpawnPositions mode = getSpawnPositions(info, direction.getOppositeFace(), types);
                 if (mode.locs.size() >= sizeLim) {
                     modes.add(mode);
                 }
@@ -297,12 +300,12 @@ public class SignActionSpawn extends SignAction {
      * @param nLimit limit amount of minecarts to spawn where we can stop looking for more spaces
      * @return SpawnPositions with locs limited to the amount that could be spawned
      */
-    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace direction, int nLimit) {
+    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace direction, List<MinecartType> types) {
         SpawnPositions result = new SpawnPositions();
         result.direction = direction;
         result.powered = info.isPowered(direction);
         Location centerLoc = info.getCenterLocation();
-        if (nLimit == 1) {
+        if (types.size() == 1) {
             // Single-minecart spawning logic
             if (MinecartMemberStore.getAt(centerLoc) == null) {
                 TrackIterator iter = new TrackIterator(info.getRails(), direction);
@@ -315,10 +318,17 @@ public class SignActionSpawn extends SignAction {
             }
         } else {
             // Multiple-minecart spawning logic
-            TrackWalkIterator iter = new TrackWalkIterator(info.getCenterLocation(), direction);
-            for (int i = 0; i < nLimit && iter.hasNext(); i++) {
-                // Next location, not taken?
-                result.locs.add(iter.next());
+            TrackWalkingPoint walker = new TrackWalkingPoint(info.getRails(), direction, info.getCenterLocation());
+            walker.skipFirst();
+            for (int i = 0; i < types.size(); i++) {
+                MinecartType type = types.get(i);
+                if (!walker.move(0.5 * type.getLength() - (i == 0 ? 0.5 : 0.0))) {
+                    break;
+                }
+                result.locs.add(walker.position.clone());
+                if ((i == types.size() - 1) || !walker.move(0.5 * type.getLength() + TCConfig.cartDistanceGap)) {
+                    break;
+                }
             }
         }
         return result;

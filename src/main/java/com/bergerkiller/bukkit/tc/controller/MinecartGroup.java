@@ -237,10 +237,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return isEmpty() ? null : get(0).getEntity().getWorld();
     }
 
-    public double length() {
-        return TCConfig.cartDistance * (this.size() - 1);
-    }
-
     public int size(EntityType carttype) {
         int rval = 0;
         for (MinecartMember<?> mm : this) {
@@ -457,11 +453,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void teleport(Block start, BlockFace direction) {
-        this.teleport(start, direction, TCConfig.cartDistance);
-    }
-
-    public void teleport(Block start, BlockFace direction, double stepsize) {
-        this.teleport(TrackWalkIterator.walk(start, direction, this.size(), stepsize), true);
+        this.teleport(TrackWalkIterator.walk(start, direction, this.size(), TCConfig.cartDistanceGap + 1.0), true);
     }
 
     public void teleport(Location[] locations) {
@@ -909,7 +901,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (!m1.isDerailed() && !m2.isDerailed()) {
                 continue; // ignore railed minecarts that can still reach each other
             }
-            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= (3.0 * TCConfig.cartDistance)) {
+            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= (3.0 * (TCConfig.cartDistanceGap + 1.0))) {
                 this.split(i + 1);
                 return false;
             }

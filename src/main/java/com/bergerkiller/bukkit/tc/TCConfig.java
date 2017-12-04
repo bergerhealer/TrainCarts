@@ -34,7 +34,7 @@ public class TCConfig {
 
     public static double maxVelocity;
     public static double maxEjectDistance;
-    public static double cartDistance;
+    public static double cartDistanceGap;
     public static double cartDistanceForcer;
     public static double cartDistanceForcerConstant;
     public static double maxCartDistance;
@@ -91,9 +91,14 @@ public class TCConfig {
         config.addHeader("http://forums.bukkit.org/threads/traincarts.29491/");
 
         config.setHeader("normal", "\nSettings for normally-aligned (straight) carts");
-        config.setHeader("normal.cartDistance", "The distance between two carts in a train");
+        config.setHeader("normal.cartDistanceGap", "The distance between two carts in a train");
         config.setHeader("normal.cartDistanceForcer", "The factor at which this distance is kept");
-        cartDistance = config.get("normal.cartDistance", 1.5);
+        if (!config.contains("normal.cartDistanceGap") && config.contains("normal.cartDistance")) {
+            config.set("normal.cartDistanceGap", config.get("normal.cartDistance", 1.5) - 1.0);
+            config.remove("normal.cartDistance");
+        }
+
+        cartDistanceGap = config.get("normal.cartDistanceGap", 0.5);
         cartDistanceForcer = config.get("normal.cartDistanceForcer", 0.1);
         cartDistanceForcerConstant = config.get("normal.cartDistanceForcerConstant", 0.0);
 

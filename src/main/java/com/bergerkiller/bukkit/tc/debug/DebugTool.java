@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 /**
  * Manages the different functionalities provided by /train debug [type]
@@ -34,6 +35,15 @@ public class DebugTool {
     }
 
     public static void debugRails(Player player, Block railsBlock) {
+        Vector direction = player.getEyeLocation().getDirection();
+        TrackWalkingPoint walker = new TrackWalkingPoint(railsBlock, FaceUtil.getDirection(direction, false));
+        walker.setLoopFilter(true);
+        while (walker.move(0.3)) {
+            showParticle(walker.position);
+        }
+    }
+
+    public static void debugRails_old2(Player player, Block railsBlock) {
         Vector direction = player.getEyeLocation().getDirection();
         TrackMap map = new TrackMap(railsBlock, FaceUtil.getDirection(direction, false));
         final double STEP_DISTANCE = 0.1;

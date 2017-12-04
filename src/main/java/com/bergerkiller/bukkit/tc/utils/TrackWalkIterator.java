@@ -10,9 +10,10 @@ import org.bukkit.block.BlockFace;
  * A wrapper around the track iterator, which walks along the tracks
  * The walk step distance can be set
  */
+@Deprecated
 public class TrackWalkIterator {
     private final TrackWalkingPoint walker;
-    private double stepsize = TCConfig.cartDistance;
+    private double stepsize = TCConfig.cartDistanceGap + 1.0;
     private Location current, next;
 
     /**
@@ -25,8 +26,8 @@ public class TrackWalkIterator {
         RailType startRailType = RailType.getType(startRail);
         Block startBlock = startRailType.findMinecartPos(startRail);
         Location startLoc = startBlock == null ? null : startRailType.getSpawnLocation(startRail, direction);
-        this.walker = new TrackWalkingPoint(startLoc, startRail, direction);
-        this.current = this.next = walker.currentPosition == null ? null : walker.currentPosition.clone();
+        this.walker = new TrackWalkingPoint(startRail, direction, startLoc);
+        this.current = this.next = walker.position == null ? null : walker.position.clone();
     }
 
     /**
@@ -38,8 +39,8 @@ public class TrackWalkIterator {
     public TrackWalkIterator(Location start, BlockFace direction) {
         RailInfo railInfo = RailType.findRailInfo(start.getBlock());
         Block railsBlock = (railInfo == null) ? null : railInfo.railBlock;
-        this.walker = new TrackWalkingPoint(start, railsBlock, direction);
-        this.current = this.next = this.walker.currentPosition.clone();
+        this.walker = new TrackWalkingPoint(railsBlock, direction, start);
+        this.current = this.next = this.walker.position.clone();
     }
 
     public static Location[] walk(Block start, BlockFace direction, int size, double stepsize) {
@@ -61,7 +62,7 @@ public class TrackWalkIterator {
     }
 
     private void genNext() {
-        this.next = walker.move(stepsize) ? walker.currentPosition.clone() : null;
+        this.next = walker.move(stepsize) ? walker.position.clone() : null;
     }
 
     public boolean hasNext() {
