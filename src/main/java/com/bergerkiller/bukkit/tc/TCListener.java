@@ -77,7 +77,6 @@ public class TCListener implements Listener {
     private static final boolean DEBUG_DO_INVISIBLE_TRACK = false;
     private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
     private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
-    public static Player lastPlayer = null;
     public static boolean cancelNextDrops = false;
     public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
@@ -192,21 +191,12 @@ public class TCListener implements Listener {
 
         // If placed by a player, only allow conversion for players that have the permissions
         if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId())
-                && !TCConfig.allMinecartsAreTrainCarts && lastPlayer == null) {
+                && !TCConfig.allMinecartsAreTrainCarts) {
             // No conversion allowed
             return;
         }
 
-        MinecartMember<?> member = MinecartMemberStore.convert((Minecart) event.getEntity());
-        if (member != null && !member.isUnloaded() && lastPlayer != null) {
-            // A player just placed a minecart - set defaults and ownership
-            member.getGroup().getProperties().setDefault(lastPlayer);
-            if (TCConfig.setOwnerOnPlacement) {
-                member.getProperties().setOwner(lastPlayer);
-            }
-            CartPropertiesStore.setEditing(lastPlayer, member.getProperties());
-            lastPlayer = null;
-        }
+        MinecartMemberStore.convert((Minecart) event.getEntity());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -665,9 +655,6 @@ public class TCListener implements Listener {
         if (MinecartMemberStore.getAt(at, null, 0.5) != null) {
             return false;
         }
-
-        // Set ownership and convert during the upcoming minecart spawning (entity add) event
-        lastPlayer = player;
 
         //TODO: Check if this rail type is a 'normal' type to see if we need to handle spawning minecarts ourselves
         //if (clickedRailType ==
