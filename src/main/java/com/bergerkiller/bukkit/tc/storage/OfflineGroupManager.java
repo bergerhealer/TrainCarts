@@ -11,6 +11,8 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -198,6 +200,9 @@ public class OfflineGroupManager {
         for (World world : WorldUtil.getWorlds()) {
             count += destroyAll(world);
         }
+        synchronized (managers) {
+            managers.clear();
+        }
         return count;
     }
 
@@ -271,6 +276,11 @@ public class OfflineGroupManager {
                             OfflineGroup wg = OfflineGroup.readFrom(stream);
                             wg.worldUUID = worldUID;
 
+                            // If no train properties exist for this group, there is no use keeping it around
+                            if (!TrainPropertiesStore.exists(wg.name)) {
+                                continue;
+                            }
+
                             // Register the new offline group within (this) Manager
                             for (OfflineMember wm : wg.members) {
                                 containedMinecarts.add(wm.entityUID);
@@ -278,8 +288,8 @@ public class OfflineGroupManager {
                             man.groupmap.add(wg);
                             containedTrains.add(wg.name);
                             totalmembers += wg.members.length;
+                            totalgroups++;
                         }
-                        totalgroups += groupcount;
                     }
                     String msg = totalgroups + " Train";
                     if (totalgroups == 1) msg += " has";

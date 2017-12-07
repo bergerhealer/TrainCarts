@@ -227,6 +227,9 @@ public abstract class MinecartMemberStore {
         MinecartMember<?> spawned = spawn(at, type);
         if (spawned != null && !spawned.getEntity().isDead()) {
             spawned.getGroup().getProperties().setDefault(player);
+            if (TCConfig.setOwnerOnPlacement) {
+                spawned.getProperties().setOwner(player);
+            }
 
             // Make player edit the train
             CartProperties.setEditing(player, spawned.getProperties());
