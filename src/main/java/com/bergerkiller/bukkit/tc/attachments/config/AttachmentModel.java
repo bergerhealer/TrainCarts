@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 public class AttachmentModel {
     private ConfigurationNode config;
     private List<AttachmentModelOwner> owners = new ArrayList<AttachmentModelOwner>();
+    private int seatCount;
 
     public AttachmentModel() {
         this(new ConfigurationNode());
@@ -20,10 +21,15 @@ public class AttachmentModel {
 
     public AttachmentModel(ConfigurationNode config) {
         this.config = config;
+        this.onConfigChanged();
     }
 
     public ConfigurationNode getConfig() {
         return this.config;
+    }
+
+    public int getSeatCount() {
+        return this.seatCount;
     }
 
     public void addOwner(AttachmentModelOwner owner) {
@@ -36,6 +42,7 @@ public class AttachmentModel {
 
     public void update(ConfigurationNode newConfig) {
         this.config = newConfig;
+        this.onConfigChanged();
 
         //TODO: Tell save scheduler we can re-save models.yml
 
@@ -64,6 +71,20 @@ public class AttachmentModel {
         }
     }
 
+    private void onConfigChanged() {
+        this.seatCount = 0;
+        this.loadSeats(this.config);
+    }
+
+    private void loadSeats(ConfigurationNode config) {
+        if (config.get("type", CartAttachmentType.EMPTY) == CartAttachmentType.SEAT) {
+            this.seatCount++;
+        }
+        for (ConfigurationNode node : config.getNodeList("attachments")) {
+            this.loadSeats(node);
+        }
+    }
+
     /**
      * Creates the default, unmodified model for a Vanilla Minecart
      * 
@@ -79,6 +100,7 @@ public class AttachmentModel {
             seatNode.set("type", CartAttachmentType.SEAT);
             result.config.setNodeList("attachments", Arrays.asList(seatNode));
         }
+        result.onConfigChanged();
         return result;
     }
 }

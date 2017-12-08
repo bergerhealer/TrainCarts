@@ -11,8 +11,10 @@ import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
@@ -45,6 +47,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -815,6 +819,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return true;
     }
 
+    @Override
+    public boolean onInteractBy(HumanEntity interacter, HumanHand hand) {
+        // Note: humans can technically sneak too! But Bukkit has no method for it in the API.
+        if ((interacter instanceof Player) && ((Player) interacter).isSneaking()) {
+            return false;
+        }
+
+        // Is there a seat available to add a player?
+        if (this.getAvailableSeatCount() == 0) {
+            return false;
+        }
+
+        // Attempt to add the passenger
+        // This may fail after an event is fired
+        this.entity.addPassenger(interacter);
+        return true;
+    }
+
     /**
      * Tells the Minecart to ignore the very next call to {@link this.onDie()}
      * This is needed to avoid passengers removing their Minecarts.
@@ -1509,5 +1531,36 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public boolean parseSet(String key, String args) {
         return false;
+    }
+
+    /**
+     * Gets the number of seats still available for new entities to enter the minecart
+     * 
+     * @return number of available seats
+     */
+    public int getAvailableSeatCount() {
+        int total = this.getSeatCount();
+        int passengers = this.entity.getPassengers().size();
+        if (passengers >= total) {
+            return 0;
+        } else {
+            return total - passengers;
+        }
+    }
+
+    /**
+     * Gets the number of seats available in this Minecart.
+     * This is based on the model attachments applied if a model is used.
+     * Otherwise, it simply returns 1 when this is a rideable minecart.
+     * 
+     * @return seat count
+     */
+    public int getSeatCount() {
+        AttachmentModel model = this.getProperties().getModel();
+        if (model == null) {
+            return (entity.getType() == EntityType.MINECART) ? 1 : 0;
+        } else {
+            return model.getSeatCount();
+        }
     }
 }
