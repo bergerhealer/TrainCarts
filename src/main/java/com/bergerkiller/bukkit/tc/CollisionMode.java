@@ -156,7 +156,7 @@ public enum CollisionMode {
         }
         switch (this) {
             case ENTER:
-                if (!minecart.hasPassenger() && minecart.isVehicle() && Util.canBePassenger(entity) && member.canCollisionEnter()) {
+                if (member.getAvailableSeatCount() > 0 && Util.canBePassenger(entity) && member.canCollisionEnter()) {
                     minecart.addPassenger(entity);
                 }
                 return false;

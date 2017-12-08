@@ -15,13 +15,18 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
+import com.bergerkiller.bukkit.tc.attachments.old.SeatAttachment;
+import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -101,14 +106,39 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Add passengers that have entered
         for (Entity newPassenger : newPassengers) {
             if (!oldPassengers.contains(newPassenger)) {
+                // Get the LAST known position
+                // We can not use current, because that is set to the location of the Minecart
+                Vector position = new Vector();
+                {
+                    EntityHandle handle = EntityHandle.fromBukkit(newPassenger);
+                    position.setX(handle.getLastX());
+                    position.setY(handle.getLastY());
+                    position.setZ(handle.getLastZ());
+                }
+
                 // Find a free seat and add the player there
-                for (CartAttachmentSeat seat : this.seatAttachments) {
+                List<CartAttachmentSeat> sortedSeats = this.getSeatsClosestTo(position);
+                for (CartAttachmentSeat seat : sortedSeats) {
                     if (seat.getEntity() == null) {
                         seat.setEntity(newPassenger);
+                        break;
                     }
                 }
             }
         }
+    }
+
+    private List<CartAttachmentSeat> getSeatsClosestTo(Vector position) {
+        ArrayList<CartAttachmentSeat> result = new ArrayList<CartAttachmentSeat>(this.seatAttachments);
+        Collections.sort(result, new Comparator<CartAttachmentSeat>() {
+            @Override
+            public int compare(CartAttachmentSeat o1, CartAttachmentSeat o2) {
+                double d1 = o1.getPosition().distanceSquared(position);
+                double d2 = o2.getPosition().distanceSquared(position);
+                return Double.compare(d1, d2);
+            }
+        });
+        return result;
     }
 
     @Override
@@ -521,6 +551,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     @Override
     public void onModelChanged(AttachmentModel model) {
+        // Store the positions of the players in the previous seats
+        // This is used later to re-assign the passengers to seats when the model is changed
+        Map<Entity, Vector> oldSeatPositions = new HashMap<Entity, Vector>();
+        for (CartAttachmentSeat seat : this.seatAttachments) {
+            Entity oldEntity = seat.getEntity();
+            if (oldEntity != null) {
+                oldSeatPositions.put(oldEntity, seat.getPosition());
+            }
+        }
+
         if (this.attachmentModel != null) {
             this.attachmentModel.removeOwner(this);
         }
@@ -549,7 +589,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
         this.rootAttachment = CartAttachment.initialize(this, model.getConfig());
-
+        
         this.seatAttachments.clear();
         this.discoverSeats(this.rootAttachment);
 
@@ -560,12 +600,24 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Let all passengers re-enter us
         // For this, we must find suitable Seat attachments in the tree
         List<Entity> remainingPassengers = new ArrayList<Entity>(this.entity.getPassengers());
-        if (!remainingPassengers.isEmpty()) {
-            for (CartAttachmentSeat seat : this.seatAttachments) {
-                seat.setEntity(remainingPassengers.remove(0));
-                if (remainingPassengers.isEmpty()) {
+        while (!remainingPassengers.isEmpty()) {
+            Entity entity = remainingPassengers.get(0);
+            Vector position = oldSeatPositions.get(entity);
+            if (position == null) {
+                position = entity.getLocation().toVector();
+            }
+            boolean foundSeat = false;
+            List<CartAttachmentSeat> seats = this.getSeatsClosestTo(position);
+            for (CartAttachmentSeat seat : seats) {
+                if (seat.getEntity() == null) {
+                    seat.setEntity(entity);
+                    remainingPassengers.remove(0);
+                    foundSeat = true;
                     break;
                 }
+            }
+            if (!foundSeat) {
+                break;
             }
         }
 

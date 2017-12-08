@@ -85,9 +85,7 @@ public class SignActionEnter extends SignAction {
                 if (canEnter(entity, enterPlayers, enterMobs)) {
                     // Look for an Empty minecart to put him in
                     for (MinecartMember<?> member : members) {
-                        if (!member.getEntity().hasPassenger()) {
-                            // Move Entity to this Minecart and finish
-                            member.getEntity().setPassenger(entity);
+                        if (member.getAvailableSeatCount() > 0 && member.getEntity().addPassenger(entity)) {
                             break;
                         }
                     }
@@ -99,23 +97,35 @@ public class SignActionEnter extends SignAction {
             double distance;
             Entity selectedEntity;
             for (MinecartMember<?> member : members) {
+                if (member.getAvailableSeatCount() == 0) {
+                    continue;
+                }
+
                 List<Entity> nearby = member.getEntity().getNearbyEntities(radiusXZ, radiusY, radiusXZ);
-                lastDistance = Double.MAX_VALUE;
-                selectedEntity = null;
-                for (Entity entity : nearby) {
-                    if (entity.getVehicle() != null || !canEnter(entity, enterPlayers, enterMobs)) {
-                        continue;
+                while (!nearby.isEmpty() && member.getAvailableSeatCount() > 0) {
+                    lastDistance = Double.MAX_VALUE;
+                    selectedEntity = null;
+                    for (Entity entity : nearby) {
+                        if (entity.getVehicle() != null || !canEnter(entity, enterPlayers, enterMobs)) {
+                            continue;
+                        }
+                        distance = member.getEntity().loc.distanceSquared(entity);
+                        if (distance < lastDistance) {
+                            lastDistance = distance;
+                            selectedEntity = entity;
+                        }
                     }
-                    distance = member.getEntity().loc.distanceSquared(entity);
-                    if (distance < lastDistance) {
-                        lastDistance = distance;
-                        selectedEntity = entity;
+
+                    // Try to enter
+                    if (selectedEntity != null) {
+                        nearby.remove(selectedEntity);
+                        member.getEntity().addPassenger(selectedEntity);
+                    } else {
+                        break;
                     }
                 }
-                // Try to enter
-                if (selectedEntity != null) {
-                    member.getEntity().setPassenger(selectedEntity);
-                }
+                
+
             }
         }
     }

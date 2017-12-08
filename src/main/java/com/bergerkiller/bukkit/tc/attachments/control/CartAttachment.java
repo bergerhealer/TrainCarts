@@ -176,4 +176,13 @@ public abstract class CartAttachment {
         Vector pos_new = this.transform.toVector();
         return pos_new.subtract(pos_old);
     }
+
+    /**
+     * Gets the position of this attachment based on the last-applied transformation information.
+     * 
+     * @return position
+     */
+    public Vector getPosition() {
+        return this.transform.toVector();
+    }
 }
