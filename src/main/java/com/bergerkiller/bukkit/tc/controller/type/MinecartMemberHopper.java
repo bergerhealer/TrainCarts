@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;

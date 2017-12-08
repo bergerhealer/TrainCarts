@@ -61,7 +61,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private double collisionDamage = 1.0D;
     private boolean keepChunksLoaded = false;
     private boolean allowManualMovement = false;
-    private boolean allowPlayerTake = true;
+    private boolean allowPlayerTake = false;
     private boolean soundEnabled = true;
     private List<String> tickets = new ArrayList<String>();
     private SignSkipOptions skipOptions = new SignSkipOptions();

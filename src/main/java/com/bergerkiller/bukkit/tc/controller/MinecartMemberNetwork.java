@@ -15,10 +15,8 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
-import com.bergerkiller.bukkit.tc.attachments.old.SeatAttachment;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
-import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -92,14 +90,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     @Override
     protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
         // Clear passengers that have ejected
-        for (Entity oldPassenger : oldPassengers) {
+        for (CartAttachmentSeat seat : this.seatAttachments) {
+            Entity oldPassenger = seat.getEntity();
             if (!newPassengers.contains(oldPassenger)) {
-                // Remove from seat
-                for (CartAttachmentSeat seat : this.seatAttachments) {
-                    if (seat.getEntity() == oldPassenger) {
-                        seat.setEntity(null);
-                    }
-                }
+                seat.setEntity(null);
             }
         }
 

@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Effect;
 import org.bukkit.block.BlockFace;
-import org.bukkit.util.Vector;
 
 public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
     private boolean ignoreDamage = false;

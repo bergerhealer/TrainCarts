@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
-import org.bukkit.util.Vector;
-
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartMobSpawner;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;

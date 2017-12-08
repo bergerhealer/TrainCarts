@@ -15,7 +15,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
     private boolean wasOnVertical = false;

@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.util.Vector;
 
 public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideable> {
     private List<Entity> oldPassengers = new ArrayList<Entity>();

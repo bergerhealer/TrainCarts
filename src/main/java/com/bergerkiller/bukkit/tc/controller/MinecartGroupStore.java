@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.type.MinecartType;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -91,7 +92,16 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         return g;
     }
 
+    @Deprecated
     public static MinecartGroup spawn(Location[] at, EntityType... types) {
+        MinecartType[] minecartTypes = new MinecartType[types.length];
+        for (int i = 0; i < types.length; i++) {
+            minecartTypes[i] = MinecartType.fromEntityType(types[i]);
+        }
+        return spawn(at, minecartTypes);
+    }
+
+    public static MinecartGroup spawn(Location[] at, MinecartType... types) {
         if (at.length != types.length || at.length == 0) return null;
         MinecartGroup g = new MinecartGroup();
         for (int i = 0; i < types.length; i++) {
@@ -102,10 +112,12 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         return g;
     }
 
+    @Deprecated
     public static MinecartGroup spawn(Block startblock, BlockFace direction, EntityType... types) {
         return spawn(startblock, direction, Arrays.asList(types));
     }
 
+    @Deprecated
     public static MinecartGroup spawn(Block startblock, BlockFace direction, List<EntityType> types) {
         Location[] destinations = TrackWalkIterator.walk(startblock, direction, types.size(), TCConfig.cartDistanceGap + 1.0);
         if (types.size() != destinations.length || destinations.length == 0) return null;

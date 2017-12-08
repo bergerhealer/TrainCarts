@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.bukkit.entity.EntityType;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TCConfig;
 
 /**
  * A type of minecart, which has certain default properties attached
