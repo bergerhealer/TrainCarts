@@ -276,11 +276,6 @@ public class OfflineGroupManager {
                             OfflineGroup wg = OfflineGroup.readFrom(stream);
                             wg.worldUUID = worldUID;
 
-                            // If no train properties exist for this group, there is no use keeping it around
-                            if (!TrainPropertiesStore.exists(wg.name)) {
-                                continue;
-                            }
-
                             // Register the new offline group within (this) Manager
                             for (OfflineMember wm : wg.members) {
                                 containedMinecarts.add(wm.entityUID);
