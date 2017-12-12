@@ -1,7 +1,12 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -28,6 +33,10 @@ public class RailPath {
             for (int i = 0; i < this.segments.length; i++) {
                 this.segments[i] = new Segment(points[i], points[i + 1]);
                 distance += this.segments[i].l;
+            }
+            for (int i = 0; i < this.segments.length - 1; i++) {
+                this.segments[i].next = this.segments[i + 1];
+                this.segments[i + 1].prev = this.segments[i];
             }
             this.totalDistance = distance;
         }
@@ -71,41 +80,61 @@ public class RailPath {
     }
 
     /**
-     * Moves along this rail path for a certain distance in the direction specified.
-     * The input absolute position and direction vector are updated with the movement.
+     * Moves along this rail path for a certain distance.
+     * The input position information is updated with the movement.
      * A movement distance of 0 can be used to snap the minecart onto the path.
      * A return distance of 0.0 indicates that the end of the path was reached.
      * This move function allows absolute position calculations, by also specifying the rails block.
      * 
      * @param absolutePosition in world coordinates
-     * @param direction of movement along this path
+     * @param orientation of the Minecart while moving along this path
      * @param railsBlock relative to which is moved
      * @param distance to move
      * @return actual distance moved. Can be less than distance if the end of the path is reached.
      */
-    public double move(Vector absolutePosition, Vector direction, Block railsBlock, double distance) {
-        absolutePosition.setX(absolutePosition.getX() - railsBlock.getX());
-        absolutePosition.setY(absolutePosition.getY() - railsBlock.getY());
-        absolutePosition.setZ(absolutePosition.getZ() - railsBlock.getZ());
-        double result = move(absolutePosition, direction, distance);
-        absolutePosition.setX(absolutePosition.getX() + railsBlock.getX());
-        absolutePosition.setY(absolutePosition.getY() + railsBlock.getY());
-        absolutePosition.setZ(absolutePosition.getZ() + railsBlock.getZ());
+    public double move(Position position, Block railsBlock, double distance) {
+        position.posX -= railsBlock.getX();
+        position.posY -= railsBlock.getY();
+        position.posZ -= railsBlock.getZ();
+        double result = moveRelative(position, distance);
+        position.posX += railsBlock.getX();
+        position.posY += railsBlock.getY();
+        position.posZ += railsBlock.getZ();
         return result;
     }
 
-    /**
-     * Moves along this rail path for a certain distance in the direction specified.
-     * The input position and direction vector are updated with the movement.
-     * A movement distance of 0 can be used to snap the minecart onto the path.
-     * A return distance of 0.0 indicates that the end of the path was reached.
-     * 
-     * @param position relative to the rails
-     * @param direction of movement along this path
-     * @param distance to move
-     * @return actual distance moved. Can be less than distance if the end of the path is reached.
-     */
+    @Deprecated
+    public double move(Vector position, Vector direction, Block railsBlock, double distance) {
+        position.setX(position.getX() - railsBlock.getX());
+        position.setY(position.getY() - railsBlock.getY());
+        position.setZ(position.getZ() - railsBlock.getZ());
+        double result = move(position, direction, distance);
+        position.setX(position.getX() + railsBlock.getX());
+        position.setY(position.getY() + railsBlock.getY());
+        position.setZ(position.getZ() + railsBlock.getZ());
+        return result;
+    }
+
+    @Deprecated
     public double move(Vector position, Vector direction, double distance) {
+        Position tmp = new Position();
+        tmp.posX = position.getX();
+        tmp.posY = position.getY();
+        tmp.posZ = position.getZ();
+        tmp.motX = direction.getX();
+        tmp.motY = direction.getY();
+        tmp.motZ = direction.getZ();
+        double result = this.moveRelative(tmp, distance);
+        position.setX(tmp.posX);
+        position.setY(tmp.posY);
+        position.setZ(tmp.posZ);
+        direction.setX(tmp.motX);
+        direction.setY(tmp.motY);
+        direction.setZ(tmp.motZ);
+        return result;
+    }
+
+    private double moveRelative(Position position, double distance) {
         // If no segments are known, we can't move
         if (this.segments.length == 0) {
             return 0.0;
@@ -121,13 +150,13 @@ public class RailPath {
             // All we do here is snap onto the point
             // The direction remains unchanged
             if (s.isZeroLength()) {
-                s.p0.toVector(position);
+                s.calcPosition(position, 0.0);
                 return 0.0;
             }
 
             double theta = s.calcTheta(position);
             s.calcPosition(position, theta);
-            int order = s.calcDirection(direction, position);
+            int order = s.calcDirection(position);
             if (order == 1) {
                 // p0 -> p1
                 if (theta >= 1.0) {
@@ -139,7 +168,7 @@ public class RailPath {
                 // Perform the movement
                 double remainingDistance = s.l * (1.0 - theta);
                 if (distance >= remainingDistance) {
-                    s.p1.toVector(position);
+                    s.calcPosition(position, 1.0);
                     return remainingDistance;
                 } else {
                     s.calcPosition(position, theta + (distance / s.l));
@@ -156,7 +185,7 @@ public class RailPath {
                 // Perform the movement
                 double remainingDistance = s.l * theta;
                 if (distance >= remainingDistance) {
-                    s.p0.toVector(position);
+                    s.calcPosition(position, 0.0);
                     return remainingDistance;
                 } else {
                     s.calcPosition(position, theta - (distance / s.l));
@@ -191,12 +220,12 @@ public class RailPath {
             // If no distance to move, only snap to the rails and refresh direction
             if (distance <= 0.0) {
                 s.calcPosition(position, theta);
-                s.calcDirection(direction, position);
+                s.calcDirection(position);
                 return 0.0;
             }
 
             // Iterate the segments in order
-            int order = s.calcDirection(direction, position);
+            int order = s.calcDirection(position);
             double moved = 0.0;
             while (distance > 0.0) {
                 s.calcPosition(position, theta);
@@ -208,7 +237,7 @@ public class RailPath {
                             // Perform the movement
                             double remainingDistance = s.l * (1.0 - theta);
                             if (distance >= remainingDistance) {
-                                s.p1.toVector(position);
+                                s.calcPosition(position, 1.0);
                                 moved += remainingDistance;
                                 distance -= remainingDistance;
                             } else {
@@ -225,7 +254,7 @@ public class RailPath {
                             // Perform the movement
                             double remainingDistance = s.l * theta;
                             if (distance >= remainingDistance) {
-                                s.p0.toVector(position);
+                                s.calcPosition(position, 0.0);
                                 moved += remainingDistance;
                                 distance -= remainingDistance;
                             } else {
@@ -245,7 +274,7 @@ public class RailPath {
                 } else {
                     s = this.segments[segmentIndex];
                     theta = s.calcTheta(position);
-                    s.calcDirection(direction, position);
+                    s.calcDirection(position);
                 }
             }
             return moved;
@@ -269,15 +298,93 @@ public class RailPath {
     }
 
     /**
+     * Stores all the transformation information for a single position on the path.
+     * This includes the absolute world-coordinates position, the direction
+     * vector in which is moved, and the orientation 'normal' vector.
+     */
+    public static final class Position {
+        /**
+         * The position of the object in world-coordinates.
+         */
+        public double posX, posY, posZ;
+        /**
+         * The motion unit vector. This is the direction
+         * in which the object moves forwards over the path.
+         */
+        public double motX, motY, motZ;
+        /**
+         * The orientation 'up' unit vector. This is the direction
+         * the object's top-side faces while traveling over the rails.
+         * It is interpolated and calculated from the rail path roll values.
+         */
+        public double upX, upY, upZ;
+
+        public Location toLocation(World world) {
+            return new Location(world, posX, posY, posZ);
+        }
+
+        public static Position fromPosDir(Vector position, Vector direction) {
+            Position p = new Position();
+            p.posX = position.getX();
+            p.posY = position.getY();
+            p.posZ = position.getZ();
+            p.motX = direction.getX();
+            p.motY = direction.getY();
+            p.motZ = direction.getZ();
+            return p;
+        }
+    }
+
+    /**
      * A single point on the path
      */
     public static class Point {
         public final double x, y, z;
+        /**
+         * The up-vector for the Minecart at this point.
+         * This is allowed to be an approximate, since it is automatically
+         * calculated to be orthogonal to the direction vector. The up vector
+         * also does not have to be a unit vector (length = 1).
+         */
+        public final double up_x, up_y, up_z;
+
+        public Point(Vector v) {
+            this(v.getX(), v.getY(), v.getZ());
+        }
+
+        public Point(Vector v, double up_x, double up_y, double up_z) {
+            this(v.getX(), v.getY(), v.getZ(), up_x, up_y, up_z);
+        }
+
+        public Point(Vector v, BlockFace face) {
+            this(v.getX(), v.getY(), v.getZ(), face);
+        }
 
         public Point(double x, double y, double z) {
+            this(x, y, z, BlockFace.UP);
+        }
+
+        public Point(double x, double y, double z, BlockFace face) {
+            this(x, y, z, face.getModX(), face.getModY(), face.getModZ());
+        }
+
+        public Point(double x, double y, double z, double up_x, double up_y, double up_z) {
             this.x = x;
             this.y = y;
             this.z = z;
+            this.up_x = up_x;
+            this.up_y = up_y;
+            this.up_z = up_z;
+        }
+
+        /**
+         * Gets whether this point is vertical, i.e. the x/z values are very close to 0
+         * 
+         * @return True if this point is vertical, where only the y-coordinate has meaning
+         */
+        public boolean isVertical() {
+            final double EP = 0.00001;
+            return this.x >= -EP && this.x <= EP && this.z >= -EP && this.z <= EP;
         }
 
         /**
@@ -291,6 +398,28 @@ public class RailPath {
             double dy = (position.getY() - this.y);
             double dz = (position.getZ() - this.z);
             return dx * dx + dy * dy + dz * dz;
+        }
+
+        /**
+         * Gets the squared distance between this path point and a position
+         * 
+         * @param position
+         * @return distance squared
+         */
+        public double distanceSquared(Position position) {
+            double dx = (position.posX - this.x);
+            double dy = (position.posY - this.y);
+            double dz = (position.posZ - this.z);
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        /**
+         * Obtains the up-vector as a vector
+         * 
+         * @return Up Vector
+         */
+        public final Vector up() {
+            return new Vector(this.up_x, this.up_y, this.up_z);
         }
 
         /**
@@ -336,8 +465,12 @@ public class RailPath {
         public final Point p1;
         public final Point dt;
         public final Point dt_norm;
+        public final Point up0;
+        public final Point up1;
+        public final Point up_dt;
         public final double l;
         public final double ls;
+        private Segment prev, next;
 
         public Segment(Point p0, Point p1) {
             this.p0 = p0;
@@ -350,6 +483,17 @@ public class RailPath {
             } else {
                 this.dt_norm = new Point(this.dt.x / this.l, this.dt.y / this.l, this.dt.z / this.l);
             }
+
+            // Uses the roll values of the points and the segment slope
+            // to calculate the normal 'up' vector. This is the direction
+            // upwards that the Minecart faces. This is especially important
+            // for positions like upside-down, vertical, and twisted
+            Vector dir = this.dt_norm.toVector();
+            Vector up0 = dir.clone().crossProduct(this.p0.up()).crossProduct(dir).normalize();
+            Vector up1 = dir.clone().crossProduct(this.p1.up()).crossProduct(dir).normalize();
+            this.up0 = new Point(up0);
+            this.up1 = new Point(up1);
+            this.up_dt = new Point(this.up1.x - this.up0.x, this.up1.y - this.up0.y, this.up1.z - this.up0.z);
         }
 
         /**
@@ -382,7 +526,7 @@ public class RailPath {
          * A value of 1 indicates p0 -> p1 (increment segments) and -1 indicates p1 -> p0
          * (decrement segments).
          * 
-         * @param direction vector, is assigned the direction of this segment that best matches
+         * @param direction, is assigned the direction and roll of this segment that best matches
          * @param position information, which acts as a fallback in case a 90-degree angle is encountered
          * @return order (-1 for decrement, 1 for increment)
          */
@@ -413,6 +557,92 @@ public class RailPath {
         }
 
         /**
+         * Calculates the dot product of the motion vector with the slope of this segment
+         * 
+         * @param position
+         * @return dot product
+         */
+        public final double dotDirection(Position position) {
+            return (position.motX * this.dt_norm.x) +
+                   (position.motY * this.dt_norm.y) +
+                   (position.motZ * this.dt_norm.z);
+        }
+
+        private final int isHeadingToPrev(Position position) {
+            if (this.prev != null) {
+                double dot = this.prev.dotDirection(position);
+                if (dot < -0.0000001) {
+                    return 1;
+                } else if (dot > 0.0000001) {
+                    return -1;
+                } else {
+                    return this.prev.isHeadingToPrev(position);
+                }
+            } else {
+                return 0;
+            }
+        }
+
+        private final int isHeadingToNext(Position position) {
+            if (this.next != null) {
+                double dot = this.next.dotDirection(position);
+                if (dot > 0.0000001) {
+                    return 1;
+                } else if (dot < -0.0000001) {
+                    return -1;
+                } else {
+                    return this.next.isHeadingToNext(position);
+                }
+            } else {
+                return 0;
+            }
+        }
+
+        /**
+         * Calculates the direction best matching this segment, using vector dot product.
+         * Returns an integer representing the order in which segments should be iterated.
+         * A value of 1 indicates p0 -> p1 (increment segments) and -1 indicates p1 -> p0
+         * (decrement segments).
+         * 
+         * @param position, is assigned the direction and roll of this segment that best matches
+         * @return order (-1 for decrement, 1 for increment)
+         */
+        public final int calcDirection(Position position) {
+            double dot = this.dotDirection(position);
+
+            // Hitting the segment at a 90-degree angle
+            // This means the path direction cannot be easily assessed from the direction
+            // Assume the direction goes from the point closest to the point farthest
+            // TODO: South-west rule or something?
+            if (dot <= 0.0000001 && dot >= -0.0000001) {
+                // Head-on: see if a previous or next segment knows our direction
+                int order = this.isHeadingToPrev(position) - this.isHeadingToNext(position);
+                if (order > 0) {
+                    // Feedback from surrounding segments says go -1
+                    dot = -1.0;
+                } else if (order < 0) {
+                    // Feedback from surrounding segments says go +1
+                    dot = 1.0;
+                } else {
+                    // Dunno. Closest to end-point is from which we go
+                    dot = this.p1.distanceSquared(position) - this.p0.distanceSquared(position);
+                }
+            }
+
+            if (dot >= 0.0) {
+                position.motX = this.dt_norm.x;
+                position.motY = this.dt_norm.y;
+                position.motZ = this.dt_norm.z;
+                return 1;
+            } else {
+                position.motX = -this.dt_norm.x;
+                position.motY = -this.dt_norm.y;
+                position.motZ = -this.dt_norm.z;
+                return -1;
+            }
+        }
+        
+        /**
          * Calculates the squared distance between an arbitrary point and this segment.
          * 
          * @param position relative to the rails
@@ -434,6 +664,23 @@ public class RailPath {
             Vector segmentPosition = new Vector();
             calcPosition(segmentPosition, theta);
             segmentPosition.subtract(position);
+            return segmentPosition.lengthSquared();
+        }
+
+        /**
+         * Calculates the squared distance between an arbitrary point and this segment.
+         * The theta value from {@link #calcTheta(double, double, double)} can be reused here.
+         * 
+         * @param position relative to the rails
+         * @param theta (0.0 ... 1.0)
+         * @return distance squared
+         */
+        public final double calcDistanceSquared(Position position, double theta) {
+            Vector segmentPosition = new Vector();
+            calcPosition(segmentPosition, theta);
+            segmentPosition.setX(segmentPosition.getX() - position.posX);
+            segmentPosition.setY(segmentPosition.getY() - position.posY);
+            segmentPosition.setZ(segmentPosition.getZ() - position.posZ);
             return segmentPosition.lengthSquared();
         }
 
@@ -501,6 +748,38 @@ public class RailPath {
         }
 
         /**
+         * Assigns the x/y/z position and orientation normal vector based on theta,
+         * where the theta is clamped between 0.0 and 1.0
+         * 
+         * @param position where the result is assigned to
+         * @param theta (0.0 ... 1.0)
+         */
+        public void calcPosition(Position position, double theta) {
+            if (theta <= 0.0) {
+                position.posX = p0.x;
+                position.posY = p0.y;
+                position.posZ = p0.z;
+                position.upX = up0.x;
+                position.upY = up0.y;
+                position.upZ = up0.z;
+            } else if (theta >= 1.0) {
+                position.posX = p1.x;
+                position.posY = p1.y;
+                position.posZ = p1.z;
+                position.upX = up1.x;
+                position.upY = up1.y;
+                position.upZ = up1.z;
+            } else {
+                position.posX = p0.x + dt.x * theta;
+                position.posY = p0.y + dt.y * theta;
+                position.posZ = p0.z + dt.z * theta;
+                position.upX = up0.x + up_dt.x * theta;
+                position.upY = up0.y + up_dt.y * theta;
+                position.upZ = up0.z + up_dt.z * theta;
+            }
+        }
+
+        /**
          * Calculates the theta (0.0 ... 1.0) for the point
          * on this segment closest to a particular coordinate.
          * Theta results lower than 0 or higher than 1 indicate
@@ -519,6 +798,19 @@ public class RailPath {
          * Theta results lower than 0 or higher than 1 indicate
          * a point that is beyond the ends of the segment.
          * 
+         * @param position relative to the rails
+         * @return theta
+         */
+        public final double calcTheta(Position position) {
+            return calcTheta(position.posX, position.posY, position.posZ);
+        }
+
+        /**
+         * Calculates the theta (0.0 ... 1.0) for the point
+         * on this segment closest to a particular coordinate.
+         * Theta results lower than 0 or higher than 1 indicate
+         * a point that is beyond the ends of the segment.
+         * 
          * @param x - coordinate
          * @param y - coordinate
          * @param z - coordinate
@@ -526,6 +818,61 @@ public class RailPath {
          */
         public final double calcTheta(double x, double y, double z) {
             return -(((p0.x - x) * dt.x + (p0.y - y) * dt.y + (p0.z - z) * dt.z) / ls);
+        }
+    }
+
+    /**
+     * Builder for paths, which makes it easier to compose paths
+     * consisting of multiple points.
+     */
+    public static class Builder {
+        private List<Point> points = new ArrayList<Point>(3);
+        private double default_up_x = 0.0;
+        private double default_up_y = 1.0;
+        private double default_up_z = 0.0;
+
+        public Builder up(BlockFace up) {
+            return this.up(up.getModX(), up.getModY(), up.getModZ());
+        }
+
+        public Builder up(double up_x, double up_y, double up_z) {
+            this.default_up_x = up_x;
+            this.default_up_y = up_y;
+            this.default_up_z = up_z;
+            return this;
+        }
+
+        public Builder add(double x, double y, double z) {
+            return add(new Point(x, y, z, default_up_x, default_up_y, default_up_z));
+        }
+
+        public Builder add(double x, double y, double z, double up_x, double up_y, double up_z) {
+            return add(new Point(x, y, z, up_x, up_y, up_z));
+        }
+
+        public Builder add(double x, double y, double z, BlockFace face) {
+            return add(new Point(x, y, z, face));
+        }
+
+        public Builder add(Vector point) {
+            return add(new Point(point, default_up_x, default_up_y, default_up_z));
+        }
+
+        public Builder add(Vector point, double up_x, double up_y, double up_z) {
+            return add(new Point(point, up_x, up_y, up_z));
+        }
+
+        public Builder add(Vector point, BlockFace face) {
+            return add(new Point(point, face));
+        }
+
+        public Builder add(Point point) {
+            this.points.add(point);
+            return this;
+        }
+
+        public RailPath build() {
+            return RailPath.create(points.toArray(new Point[points.size()]));
         }
     }
 }

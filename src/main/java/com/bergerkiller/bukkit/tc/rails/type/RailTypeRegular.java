@@ -104,6 +104,23 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
     }
 
+    /**
+     * Checks whether a rails block is a sloped rail leading upwards into
+     * a certain direction. This is used by vertical rails.
+     * 
+     * @param railsBlock
+     * @param direction
+     * @return True if the rails is an upside-down slope leading upwards the direction
+     */
+    public boolean isSlopeUpwardsTo(Block railsBlock, BlockFace direction) {
+        if (!TCConfig.allowUpsideDownRails) {
+            return false;
+        }
+
+        Rails rails = BlockUtil.getRails(railsBlock);
+        return rails != null && rails.isOnSlope() && rails.getDirection() == direction;
+    }
+
     @Override
     public boolean isUpsideDown(Block railsBlock) {
         if (!TCConfig.allowUpsideDownRails) {
@@ -184,6 +201,10 @@ public class RailTypeRegular extends RailTypeHorizontal {
             }
             if (isSimpleForward) {
                 result = currentTrack.getRelative(currentDirection);
+            } else if (FaceUtil.isVertical(currentDirection)) {
+                // Down or Up goes to a fixed direction at all times
+                BlockFace dir = possible[1];
+                result = currentTrack.getRelative(dir);
             } else {
                 // Get connected faces
                 BlockFace dir = currentDirection.getOppositeFace();

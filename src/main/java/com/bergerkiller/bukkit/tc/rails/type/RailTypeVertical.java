@@ -119,12 +119,24 @@ public class RailTypeVertical extends RailType {
             if (isVerticalSlopeUpsideDownB(currentTrack)) {
                 // When moving into the same direction, we go up the vertical rail
                 BlockFace dir = Util.getVerticalRailDirection(currentTrack);
-                if (currentDirection == BlockFace.UP || dir == currentDirection.getOppositeFace()) {
+                if (dir == currentDirection.getOppositeFace()) {
                     return currentTrack.getRelative(BlockFace.UP);
                 }
 
                 // Otherwise, we move down onto the sloped rail below
                 return currentTrack.getRelative(dir.getModX(), -1, dir.getModZ());
+            }
+
+            // Check if an upside-down sloped rail is above us that connects with this sloped rail
+            // and goes towards the current direction. Only applies when not moving down (away).
+            if (currentDirection != BlockFace.DOWN) {
+                Block above = currentTrack.getRelative(BlockFace.UP);
+                RailType railType = RailType.getType(above);
+                if (railType instanceof RailTypeRegular) {
+                    if (((RailTypeRegular) railType).isSlopeUpwardsTo(above, currentDirection)) {
+                        return above;
+                    }
+                }
             }
 
             // Go down straight

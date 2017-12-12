@@ -52,6 +52,10 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         // Skip the first block, as to avoid moving 'backwards' one block
         if (super.hasNext()) {
             super.next(true);
+
+            // Correct the direction vector using the rail information found
+            startDirection = this.currentRail.getLogic(null, this.currentTrack, startDirection).getMovementDirection(startDirection);
+            this.direction = FaceUtil.faceToVector(startDirection).normalize();
         }
     }
 
@@ -84,7 +88,15 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         }
 
         // Walk as much distance as we can along the current rails
+        RailPath.Position position = new RailPath.Position();
+        position.posX = this.position.getX();
+        position.posY = this.position.getY();
+        position.posZ = this.position.getZ();
+        position.motX = this.direction.getX();
+        position.motY = this.direction.getY();
+        position.motZ = this.direction.getZ();
         double remainingDistance = distance;
+        int infCycleCtr = 0;
         while (true) {
             Block block = this.currentTrack;
             BlockFace faceDirection = this.currentDirection;
@@ -93,13 +105,16 @@ public class TrackWalkingPoint extends TrackMovingPoint {
             RailPath path = logic.getPath();
 
             // Move along the path
-            Vector position = new Vector(this.position.getX() - block.getX(), this.position.getY() - block.getY(), this.position.getZ() - block.getZ());
             double moved;
-            if (((moved = path.move(position, this.direction, remainingDistance)) != 0.0) || (remainingDistance <= 0.0001)) {
+            if (((moved = path.move(position, block, remainingDistance)) != 0.0) || (remainingDistance <= 0.0001)) {
+                infCycleCtr = 0;
                 remainingDistance -= moved;
-                this.position.setX(position.getX() + block.getX());
-                this.position.setY(position.getY() + block.getY());
-                this.position.setZ(position.getZ() + block.getZ());
+                this.position.setX(position.posX);
+                this.position.setY(position.posY);
+                this.position.setZ(position.posZ);
+                this.direction.setX(position.motX);
+                this.direction.setY(position.motY);
+                this.direction.setZ(position.motZ);
                 if (remainingDistance <= 0.00001) {
                     // Assign current direction vector as yaw/pitch
                     this.position.setYaw(MathUtil.getLookAtYaw(this.direction));
@@ -109,6 +124,11 @@ public class TrackWalkingPoint extends TrackMovingPoint {
                     this.moved = distance;
                     return true;
                 }
+            } else if (++infCycleCtr > 100) {
+                // Infinite loop detected. Stop here.
+                System.err.println("[TrackWalkingPoint] Infinite rails loop detected at " + block);
+                this.moved = (distance - remainingDistance);
+                return false;
             }
 
             // Load next rails information

@@ -108,7 +108,7 @@ public class RailLogicAir extends RailLogic {
     }
 
     @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+    public BlockFace getMovementDirection(BlockFace endDirection) {
         return endDirection;
     }
 

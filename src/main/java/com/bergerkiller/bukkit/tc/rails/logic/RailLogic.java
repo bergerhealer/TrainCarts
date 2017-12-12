@@ -135,12 +135,14 @@ public abstract class RailLogic {
 
     /**
      * Obtains the direction to which a Minecart is moving on this type of Rail Logic.
+     * DEPRECATED: I'm going to move this to RailPath eventually.
+     * This is only here to handle special if-this-then-down cases.
      *
-     * @param member   that is moving
      * @param endDirection block side the minecart is moving to
      * @return the BlockFace direction
      */
-    public abstract BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection);
+    @Deprecated
+    public abstract BlockFace getMovementDirection(BlockFace endDirection);
 
     /**
      * Obtains a path consisting of connected points along which Minecarts move using this rail logic.

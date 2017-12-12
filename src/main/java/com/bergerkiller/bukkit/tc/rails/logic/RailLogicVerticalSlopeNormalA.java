@@ -53,7 +53,10 @@ public class RailLogicVerticalSlopeNormalA extends RailLogicVerticalSlopeBase {
                 p1.setX(0.5 - 0.5 * (double) this.getDirection().getModX());
             }
 
-            this.railPath = RailPath.create(p1, p2, p3);
+            this.railPath = new RailPath.Builder()
+                    .add(p1, BlockFace.UP)
+                    .add(p2, this.getDirection().getOppositeFace())
+                    .add(p3, this.getDirection().getOppositeFace()).build();
         }
         return this.railPath;
     }

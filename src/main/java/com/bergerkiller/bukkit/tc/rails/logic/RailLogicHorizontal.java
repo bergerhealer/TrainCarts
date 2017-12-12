@@ -136,7 +136,9 @@ public class RailLogicHorizontal extends RailLogic {
             }
             this.getFixedPosition(p1, IntVector3.ZERO);
             this.getFixedPosition(p2, IntVector3.ZERO);
-            this.railPath = RailPath.create(p1, p2);
+            this.railPath = new RailPath.Builder()
+                    .up(this.upside_down ? BlockFace.DOWN : BlockFace.UP)
+                    .add(p1).add(p2).build();
         }
         return this.railPath;
     }
@@ -182,7 +184,7 @@ public class RailLogicHorizontal extends RailLogic {
     }
 
     @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+    public BlockFace getMovementDirection(BlockFace endDirection) {
         final BlockFace raildirection = this.getDirection();
         BlockFace direction;
         if (this.isSloped()) {

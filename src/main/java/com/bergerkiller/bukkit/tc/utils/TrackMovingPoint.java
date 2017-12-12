@@ -116,8 +116,13 @@ public class TrackMovingPoint {
 
         // Re-calculate the direction we are moving
         if (this.current.getX() == this.next.getX() && this.current.getZ() == this.next.getZ()) {
-            // Moving vertically
-            this.nextDirection = FaceUtil.getVertical(this.next.getY() > this.current.getY());
+            if (this.next.getY() == this.current.getY()) {
+                // No change. Keep old.
+                this.nextDirection = this.currentDirection;
+            } else {
+                // Moving vertically
+                this.nextDirection = FaceUtil.getVertical(this.next.getY() > this.current.getY());
+            }
         } else {
             // Moving horizontally
             this.nextDirection = FaceUtil.getDirection(this.current, this.next, false);

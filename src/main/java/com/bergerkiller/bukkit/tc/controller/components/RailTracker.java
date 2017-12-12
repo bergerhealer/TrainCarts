@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
@@ -72,6 +73,59 @@ public abstract class RailTracker {
         }
 
         /**
+         * Creates new rail information with a changed member owner
+         * 
+         * @param member to set to
+         * @return rail information with changed member
+         */
+        public TrackedRail changeMember(MinecartMember<?> member) {
+            return new TrackedRail(member, minecartBlock, block, type, this.disconnected, this.direction);
+        }
+
+        public RailLogic getLogic() {
+            return this.type.getLogic(null, this.block, this.direction);
+        }
+
+        public RailPath getPath() {
+            return getLogic().getPath();
+        }
+
+        /**
+         * Computes Tracked Rail information for a Minecart that is off the rails
+         * 
+         * @param member
+         * @return detailed tracked rail information
+         */
+        public static TrackedRail createDerailed(MinecartMember<?> member) {
+            // When derailed, we must rely on relative positioning to figure out the direction
+            // This only works when the minecart has a direct neighbor
+            // If no direct neighbor is available, it will default to using its own velocity
+            Vector movement = member.getEntity().getVelocity();
+            if (!member.isSingle()) {
+                MinecartMember<?> next = member.getNeighbour(-1);
+                if (next != null) {
+                    movement = member.getEntity().last.offsetTo(next.getEntity().last);
+                } else {
+                    MinecartMember<?> prev = member.getNeighbour(1);
+                    if (prev != null) {
+                        movement = prev.getEntity().last.offsetTo(member.getEntity().last);
+                    }
+                }
+            }
+
+            // Take the movement vector and turn it into a BlockFace
+            BlockFace direction;
+            if (movement.getX() == 0.0 && movement.getZ() == 0.0) {
+                direction = FaceUtil.getVertical(movement.getY());
+            } else {
+                direction = FaceUtil.getDirection(movement, false);
+            }
+
+            Block posBlock = member.getEntity().loc.toBlock();
+            return new TrackedRail(member, posBlock, posBlock, RailType.NONE, false, direction);
+        }
+
+        /**
          * Evaluates the Minecart position information and creates Tracked rail information for it.
          * 
          * @param member to get the tracked rail information for
@@ -79,16 +133,26 @@ public abstract class RailTracker {
          * @return tracked rail information for the member
          */
         public static TrackedRail create(MinecartMember<?> member, boolean disconnected) {
-            final IntVector3 blockPos = member.getEntity().loc.block();
-            final Block block = blockPos.toBlock(member.getEntity().getWorld());
-            Block railsBlock = block;
-
-            RailType railType = RailType.NONE;
-            RailInfo railInfo = RailType.findRailInfo(block);
-            if (railInfo != null) {
-                railType = railInfo.railType;
-                railsBlock = railInfo.railBlock;
+            Block posBlock = member.getEntity().loc.toBlock();
+            RailInfo railInfo = RailType.findRailInfo(posBlock);
+            if (railInfo == null) {
+                railInfo = new RailInfo(posBlock, posBlock, RailType.NONE);
             }
+            return create(member, railInfo, disconnected);
+        }
+
+        /**
+         * Evaluates the Minecart position and rail information and creates Tracked rail information for it.
+         * 
+         * @param member to get the tracked rail information for
+         * @param railInfo of the rails previously calculated for the member
+         * @param disconnected whether the rail is disconnected from the previous
+         * @return tracked rail information for the member
+         */
+        public static TrackedRail create(MinecartMember<?> member, RailInfo railInfo, boolean disconnected) {
+            final Block block = railInfo.posBlock;
+            RailType railType = railInfo.railType;
+            Block railsBlock = railInfo.railBlock;
 
             BlockFace direction = null;
             Vector movement = member.getEntity().getVelocity();
@@ -122,17 +186,17 @@ public abstract class RailTracker {
                     if (dir.getModX() != 0) {
                         // x
                         a = 0.5 * (1 + dir.getModX());
-                        b = entity.loc.getX() - blockPos.x;
+                        b = entity.loc.getX() - block.getX();
                         c = entity.vel.getX();
                     } else if (dir.getModY() != 0) {
                         // y
                         a = 0.5 * (1 + dir.getModY());
-                        b = entity.loc.getY() - blockPos.y;
+                        b = entity.loc.getY() - block.getY();
                         c = entity.vel.getY();
                     } else {
                         // z
                         a = 0.5 * (1 + dir.getModZ());
-                        b = entity.loc.getZ() - blockPos.z;
+                        b = entity.loc.getZ() - block.getZ();
                         c = entity.vel.getZ();
                     }
                     if (c == 0.0) {
@@ -157,5 +221,6 @@ public abstract class RailTracker {
 
             return new TrackedRail(member, block, railsBlock, railType, disconnected, direction);
         }
+
     }
 }

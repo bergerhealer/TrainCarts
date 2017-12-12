@@ -1,16 +1,22 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
@@ -23,6 +29,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
  */
 public class RailTrackerGroup extends RailTracker {
     private final MinecartGroup owner;
+    private final ArrayList<TrackedRail> prevRails = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> rails = new ArrayList<TrackedRail>();
 
     public RailTrackerGroup(MinecartGroup owner) {
@@ -80,8 +87,233 @@ public class RailTrackerGroup extends RailTracker {
      */
     public void refresh() {
         try (Timings t = TCTimings.RAILTRACKER_REFRESH.start()) {
+            this.prevRails.clear();
+            this.prevRails.addAll(this.rails);
             this.rails.clear();
             refreshFrom(this.owner.size() - 1, false);
+            calcWheelTracks();
+            Collections.reverse(this.rails);
+
+            // Log the rail information
+            /*
+            String s = "";
+            for (TrackedRail rail : this.rails) {
+                s += "[" + rail.member.getIndex() + " " + rail.position + "]";
+            }
+            System.out.println(s);
+            */
+
+            // TODO: Detect when the rails are changed
+            // Compare rails with prevRails to do so
+            owner.getBlockTracker().updatePosition();
+        }
+    }
+
+    private final void calcWheelTracks() {
+        // Error condition
+        if (this.rails.isEmpty()) {
+            return;
+        }
+
+        // Go by all the Minecarts and walk additional tracks when their wheels are potentially not found
+        boolean hasPreviousMember = false;
+        for (int i = 0; i < this.rails.size(); i++) {
+            TrackedRail rail = this.rails.get(i);
+
+            // Skip derailed rails
+            // If a previous Minecart did exist, we must recalculate the rails after
+            if (rail.type == RailType.NONE) {
+                if (hasPreviousMember) {
+                    calcWheelTracksAhead(i - 1);
+                    hasPreviousMember = false;
+
+                    // Make sure to continue iteration after these rails again
+                    while (this.rails.get(i) != rail && i < this.rails.size()) {
+                        i++;
+                    }
+                }
+                continue;
+            }
+
+            // If we have no previous member, recalculate the tracks behind
+            if (!hasPreviousMember || rail.disconnected) {
+                calcWheelTracksBehind(i);
+                hasPreviousMember = true;
+
+                // Make sure to continue iteration after these rails again
+                while (this.rails.get(i) != rail && i < this.rails.size()) {
+                    i++;
+                }
+            }
+        }
+
+        // We must always calculate the tracks ahead for the last minecart
+        calcWheelTracksAhead(this.rails.size() - 1);
+    }
+
+    private final void calcWheelTracksAhead(int railIndex) {
+        TrackedRail startInfo = this.rails.get(railIndex);
+        MinecartMember<?> tail = startInfo.member;
+        if (startInfo.type == RailType.NONE) {
+            return;
+        }
+        BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.direction);
+
+        // No next member, so we can't compute a direction from that
+        // Simply walk the wheel distance forwards to find out that angle
+        // Which wheel is in the direction we are going to be looking at?
+        double wheelDistance;
+        Vector ownDirection = MathUtil.getDirection(tail.getEntity().loc.getYaw() + 90.0f, tail.getEntity().loc.getPitch());
+        if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
+            wheelDistance = tail.getFrontWheel().getDistance();
+        } else {
+            wheelDistance = tail.getBackWheel().getDistance();
+        }
+
+        // Calculate the actual direction in which the minecart moves
+        // This is important when initializing the direction to move over the paths
+        Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
+
+        // Walk the distance from the current position (and rails) in the direction
+        if (wheelDistance > 0.0) {
+            TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.direction);
+            Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
+
+            int loopCtr = 0; // This is to prevent infinite loops
+            boolean first = true;
+            while (p.hasNext() && wheelDistance > 0.0001) {
+                p.next();
+
+                RailLogic logic = p.currentRail.getLogic(null, p.currentTrack, p.currentDirection);
+                RailPath path = logic.getPath();
+                double moved = path.move(position, p.currentTrack, wheelDistance);
+
+                if (moved > 0.0) {
+                    wheelDistance -= moved;
+                    loopCtr = 0;
+                } else if (++loopCtr > 10) {
+                    System.err.println("Loop detected logic=" + logic + " rail=" + p.currentTrack);
+                    break;
+                }
+
+                if (first) {
+                    first = false;
+                } else {
+                    // Add rail information
+                    this.rails.add(++railIndex, new TrackedRail(tail, p, false));
+                }
+            }
+
+            //Location loc = position.toLocation(owner.getWorld());
+            //Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+
+            /*
+            Location loc = new Location(tail.getEntity().getWorld(), position.posX, position.posY, position.posZ);
+            loc.setY(loc.getY() - 1.0);
+            Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+            loc.add(new Vector(position.upX, position.upY, position.upZ).multiply(0.5));
+            Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+            */
+        }
+    }
+
+    private final void calcWheelTracksBehind(int railIndex) {
+        TrackedRail startInfo = this.rails.get(railIndex);
+        MinecartMember<?> tail = startInfo.member;
+        if (startInfo.type == RailType.NONE) {
+            return;
+        }
+
+        BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.direction);
+
+        // No next member, so we can't compute a direction from that
+        // Simply walk the wheel distance forwards to find out that angle
+        // Which wheel is in the direction we are going to be looking at?
+        double wheelDistance;
+        Vector ownDirection = MathUtil.getDirection(tail.getEntity().loc.getYaw() + 90.0f, tail.getEntity().loc.getPitch());
+        if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
+            wheelDistance = tail.getBackWheel().getDistance();
+        } else {
+            wheelDistance = tail.getFrontWheel().getDistance();
+        }
+
+        // Use known previous rail information to walk backwards to find the rails of the back wheel
+        // Any distance remaining will have to be settled by walking the rails backwards, which might fail
+        // First, find the index of the rails in prevRails from which we can start looking
+        if (wheelDistance > 0.0) {
+            // Figure out which rail to start looking from
+            Position position = null;
+            int prevRailStartIndex = -1;
+            for (int i = 0; i < this.prevRails.size(); i++) {
+                if (this.prevRails.get(i).position.equals(startInfo.position)) {
+                    prevRailStartIndex = i;
+                }
+            }
+
+            // If we failed to find a start rail, then we have a problem
+            // Try and see if the first entry in this.prevRails leads to startInfo
+            // If so, we can simply append startInfo as is after that one
+            if (prevRailStartIndex == -1 && !this.prevRails.isEmpty()) {
+                TrackedRail prev = this.prevRails.get(0);
+                Block nextPos = prev.type.getNextPos(prev.block, prev.direction);
+                if (nextPos != null && nextPos.equals(startInfo.minecartBlock)) {
+                    this.prevRails.add(1, startInfo);
+                    prevRailStartIndex = 1;
+                }
+            }
+
+            // If previous rails are found, walk them first
+            if (prevRailStartIndex != -1) {
+                TrackedRail startRail = this.prevRails.get(prevRailStartIndex);
+
+                movementDirectionFace = startRail.getLogic().getMovementDirection(startRail.direction);
+
+                // Calculate the actual direction in which the minecart moves
+                // This is important when initializing the direction to move over the paths
+                Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
+
+                position = Position.fromPosDir(tail.getEntity().loc.vector(),
+                        movementDirection.clone().multiply(-1.0));
+
+                // Move as much as possible over the current rail
+                // This sets our position to the end-position of the current rail
+                RailLogic startLogic = startRail.getLogic();
+                RailPath startPath = startLogic.getPath();
+                double startMoved = startPath.move(position, startRail.block, wheelDistance);
+                wheelDistance -= startMoved;
+                if (wheelDistance > 0.0001) {
+                    // We need to walk more tracks. To do so, we must figure out whether we go +1 or -1.
+                    // To find this out, we first obtain the movement direction over the start rails when forwards
+                    int order;
+                    if (MathUtil.isHeadingTo(movementDirection, new Vector(position.motX, position.motY, position.motZ))) {
+                        order = -1;
+                    } else {
+                        order = 1;
+                    }
+                    for (int prevRailIndex = prevRailStartIndex + order; prevRailIndex >= 0 && prevRailIndex < this.prevRails.size() && wheelDistance > 0.0001; prevRailIndex += order) {
+                        TrackedRail rail = this.prevRails.get(prevRailIndex);
+
+                        // Walk this rail backwards
+                        RailPath path = rail.getPath();
+                        double moved = path.move(position, rail.block, wheelDistance);
+                        wheelDistance -= moved;
+
+                        // Create a new version of the tracked rail with the correct member
+                        if (rail.member != startInfo.member) {
+                            rail = rail.changeMember(startInfo.member);
+                        }
+
+                        this.rails.add(railIndex, rail);
+                    }
+                }
+            }
+
+            /*
+            if (position != null) {
+                Location loc = position.toLocation(owner.getWorld());
+                Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+            }
+            */
         }
     }
 
@@ -97,14 +329,14 @@ public class RailTrackerGroup extends RailTracker {
         if (nextMemberIndex < 0) {
             // No next member! Train stops here.
             tail.getRailTracker().refresh(startInfo);
-            this.rails.add(0, startInfo);
+            this.rails.add(startInfo);
             return;
         }
 
         // If derailed, skip checking the tracks for this minecart
         if (startInfo.type == RailType.NONE) {
             tail.getRailTracker().refresh(startInfo);
-            this.rails.add(0, startInfo);
+            this.rails.add(startInfo);
             refreshFrom(nextMemberIndex, false);
             return;
         }
@@ -114,7 +346,9 @@ public class RailTrackerGroup extends RailTracker {
 
         // First use the current direction we know to find the next member in the train
         // If this fails, switch to using all possible directions of the current track
+        int firstEntryIndex = this.rails.size();
         boolean foundNextMember = false;
+        int maximumDistanceBlocks = MathUtil.ceil(tail.getMaximumDistance(nextMember));
         int moveLimitCtr = 0;
         int possibleDirIdx = 0;
         BlockFace[] possible = null;
@@ -136,14 +370,14 @@ public class RailTrackerGroup extends RailTracker {
                         if (!foundNextMember) {
                             foundNextMember = true;
                             tail.getRailTracker().refresh(moveInfo);
-                            this.rails.add(0, moveInfo);
+                            this.rails.add(firstEntryIndex, moveInfo);
                         }
 
                         // Refresh the next minecart with the information currently iterating at
                         nrCachedRails = 0;
                         currInfo = new TrackedRail(nextMember, p, false);
                         nextMember.getRailTracker().refresh(currInfo);
-                        this.rails.add(0, currInfo);
+                        this.rails.add(currInfo);
 
                         // Continue looking for more minecarts
                         if (--nextMemberIndex < 0) {
@@ -153,18 +387,19 @@ public class RailTrackerGroup extends RailTracker {
                         moveLimitCtr = 0;
                         nextMember = owner.get(nextMemberIndex);
                         nextPos = getRailPos(nextMember);
+                        maximumDistanceBlocks = MathUtil.ceil(currInfo.member.getMaximumDistance(nextMember));
                         isFirstBlock = true;
                         if (nextPos == null) {
                             break; // member is derailed
                         }
-                    } else if (p.hasNext() && (++moveLimitCtr) <= 6) {
+                    } else if (p.hasNext() && (++moveLimitCtr) <= maximumDistanceBlocks) {
                         if (isFirstBlock) {
                             isFirstBlock = false;
                         } else {
                             // Keep track of the Minecart we are trying to find for the in-between blocks
                             // This is important for the block space
                             currInfo = new TrackedRail(nextMember, p, false);
-                            this.rails.add(0, currInfo);
+                            this.rails.add(currInfo);
                             nrCachedRails++;
                         }
                         p.next();
@@ -172,7 +407,7 @@ public class RailTrackerGroup extends RailTracker {
                         // Remove all cached rails - rails iteration failed
                         while (nrCachedRails > 0) {
                             nrCachedRails--;
-                            this.rails.remove(0);
+                            this.rails.remove(this.rails.size() - 1);
                         }
                         break; // out of track
                     }

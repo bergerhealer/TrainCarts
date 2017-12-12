@@ -34,6 +34,7 @@ public class TCConfig {
 
     public static double maxVelocity;
     public static double maxEjectDistance;
+    public static double cartDistanceGapMax;
     public static double cartDistanceGap;
     public static double cartDistanceForcer;
     public static double cartDistanceForcerConstant;
@@ -99,6 +100,7 @@ public class TCConfig {
         }
 
         cartDistanceGap = config.get("normal.cartDistanceGap", 0.5);
+        cartDistanceGapMax = cartDistanceGap + 1.0;
         cartDistanceForcer = config.get("normal.cartDistanceForcer", 0.1);
         cartDistanceForcerConstant = config.get("normal.cartDistanceForcerConstant", 0.0);
 

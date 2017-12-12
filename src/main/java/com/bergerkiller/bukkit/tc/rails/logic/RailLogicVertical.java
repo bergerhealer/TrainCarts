@@ -49,7 +49,7 @@ public class RailLogicVertical extends RailLogic {
     }
 
     @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+    public BlockFace getMovementDirection(BlockFace endDirection) {
         if (FaceUtil.isVertical(endDirection)) {
             return endDirection;
         }
@@ -82,7 +82,9 @@ public class RailLogicVertical extends RailLogic {
             Vector p2 = new Vector(0.5, 1.0, 0.5);
             this.getFixedPosition(p1, IntVector3.ZERO);
             this.getFixedPosition(p2, IntVector3.ZERO);
-            this.railPath = RailPath.create(p1, p2);
+            this.railPath = new RailPath.Builder()
+                    .up(this.getDirection().getOppositeFace())
+                    .add(p1).add(p2).build();
         }
         return this.railPath;
     }

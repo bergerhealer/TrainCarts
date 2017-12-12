@@ -62,7 +62,7 @@ public class RailLogicGround extends RailLogic {
     }
 
     @Override
-    public BlockFace getMovementDirection(MinecartMember<?> member, BlockFace endDirection) {
+    public BlockFace getMovementDirection(BlockFace endDirection) {
         return endDirection;
     }
 

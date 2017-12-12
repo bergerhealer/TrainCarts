@@ -738,7 +738,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Obtain logic and the associated direction
         RailLogic logic = this.getRailLogic();
-        this.direction = logic.getMovementDirection(this, blockMovement);
+        this.direction = logic.getMovementDirection(blockMovement);
 
         // Calculate the to direction
         if (FaceUtil.isSubCardinal(this.direction)) {
@@ -1562,5 +1562,39 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             return model.getSeatCount();
         }
+    }
+
+    /**
+     * Gets the length of this Minecart
+     * 
+     * @return length
+     */
+    public double getLength() {
+        //TODO!
+        return 1.0;
+    }
+
+    /**
+     * Calculates the preferred distance between the center of this Minecart
+     * and the member specified. By playing with the speed of the two carts,
+     * this distance is maintained steady.
+     * 
+     * @param member
+     * @return preferred distance
+     */
+    public double getPreferredDistance(MinecartMember<?> member) {
+        return 0.5 * (getLength() + member.getLength()) + TCConfig.cartDistanceGap;
+    }
+
+    /**
+     * Calculates the maximum distance between the center of this Minecart
+     * and the member specified. If the distance between them exceeds this value,
+     * the two Minecarts lose linkage.
+     * 
+     * @param member
+     * @return maximum distance
+     */
+    public double getMaximumDistance(MinecartMember<?> member) {
+        return 0.5 * (getLength() + member.getLength()) + TCConfig.cartDistanceGapMax;
     }
 }

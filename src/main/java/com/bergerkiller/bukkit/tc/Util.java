@@ -15,7 +15,9 @@ import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -892,5 +894,15 @@ public class Util {
         int protOld = EntityTrackerEntryHandle.getProtocolRotation(angleOld);
         int protNew = EntityTrackerEntryHandle.getProtocolRotation(angleNew);
         return Math.abs(protNew - protOld) > 128;
+    }
+
+    /**
+     * For debugging: spawns a particle at a particular location
+     * 
+     * @param loc to spawn at
+     * @param particle to spawn
+     */
+    public static void spawnParticle(Location loc, Particle particle) {
+        loc.getWorld().spawnParticle(particle, loc, 1);
     }
 }

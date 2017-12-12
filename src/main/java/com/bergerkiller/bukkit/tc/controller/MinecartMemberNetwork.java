@@ -4,12 +4,14 @@ import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
@@ -17,6 +19,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -366,7 +370,20 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Get back and front wheel positions
         Vector frontWheelPos = member.getFrontWheel().getPosition();
         Vector backWheelPos = member.getBackWheel().getPosition();
-        if (frontWheelPos == null || backWheelPos == null) {
+        Vector wheelDir = null;
+        if (frontWheelPos != null && backWheelPos != null) {
+            wheelDir = new Vector();
+            wheelDir.add(frontWheelPos);
+            wheelDir.subtract(backWheelPos);
+            double length = wheelDir.length();
+            if (length >= 0.0001) {
+                wheelDir.multiply(1.0 / length);
+            } else {
+                wheelDir = null;
+            }
+        }
+        
+        if (wheelDir == null) {
 
             // Translate the transform based on yaw/pitch/roll
             transform.translateRotate(
@@ -379,7 +396,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             );
 
         } else {
-            
+
             // Translate the transform based on the wheel offsets
             Vector offset = new Vector();
             offset.add(frontWheelPos);
@@ -389,20 +406,33 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             transform.translate(offset);
 
             // Rotate the transform based on the wheel direction
-            Vector direction = new Vector();
-            direction.add(frontWheelPos);
-            direction.subtract(backWheelPos);
-            direction.normalize();
+            Quaternion rot = new Quaternion();
+            rot.rotateY(-(90.0f + MathUtil.getLookAtYaw(wheelDir)));
+            rot.rotateX(MathUtil.getLookAtPitch(wheelDir.getX(), wheelDir.getY(), wheelDir.getZ()));
             
-            transform.rotateY(-(90.0f + MathUtil.getLookAtYaw(direction)));
-            transform.rotateX(MathUtil.getLookAtPitch(direction.getX(), direction.getY(), direction.getZ()));
+            transform.rotate(rot);
+
+            // Calculate average 'up' vector
+            Vector up_average = new Vector();
+            up_average.add(member.getFrontWheel().getUp());
+            up_average.add(member.getBackWheel().getUp());
+            up_average.multiply(0.5);
+
+            /*
+            Location loc = member.getEntity().getLocation();
+            loc.add(up_average);
+            Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+            */
             
-           // direction.add
-            
-            
-            // Rotate the transform based on Minecart roll
-            transform.rotateZ(member.getRoll());
-            
+            // Rotate the up vector so that it is aligned with the direction
+            rot.invert();
+            rot.transformPoint(up_average);
+
+            // Find roll angle around the axis, only x/y is important (z would pitch it)
+            double roll = Math.toDegrees(Math.atan2(-up_average.getX(), up_average.getY()));
+
+            // Roll around the axis, also including roll from maths
+            transform.rotateZ(roll + member.getRoll());      
         }
         return transform;
     }

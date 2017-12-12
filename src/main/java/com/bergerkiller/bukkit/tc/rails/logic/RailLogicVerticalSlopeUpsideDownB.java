@@ -53,7 +53,10 @@ public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBas
                 p3.setX(0.5 - 0.5 * (double) this.getDirection().getModX());
             }
 
-            this.railPath = RailPath.create(p1, p2, p3);
+            this.railPath = new RailPath.Builder()
+                    .add(p1, this.getDirection())
+                    .add(p2, this.getDirection())
+                    .add(p3, BlockFace.DOWN).build();
         }
         return this.railPath;
     }
