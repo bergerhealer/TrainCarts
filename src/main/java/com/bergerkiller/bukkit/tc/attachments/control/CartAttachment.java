@@ -8,6 +8,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
@@ -19,6 +20,7 @@ public abstract class CartAttachment {
     protected ConfigurationNode config = null;
     public Matrix4x4 last_transform;
     public Matrix4x4 transform;
+    public Matrix4x4 local_transform;
     public Vector3 position;
     public Vector3 rotation;
 
@@ -34,6 +36,9 @@ public abstract class CartAttachment {
             this.rotation.y = positionNode.get("rotY", 0.0);
             this.rotation.z = positionNode.get("rotZ", 0.0);
         }
+        this.local_transform = new Matrix4x4();
+        this.local_transform.translate(this.position);
+        this.local_transform.rotateYawPitchRoll(this.rotation);
     }
 
     public void onDetached() {
@@ -69,8 +74,7 @@ public abstract class CartAttachment {
      * Relative positioning of the attachment should happen here.
      */
     public void onPositionUpdate() {
-        this.transform.translate(this.position);
-        this.transform.rotateYawPitchRoll(this.rotation);
+        this.transform.multiply(this.local_transform);
     }
 
     public abstract void onTick();

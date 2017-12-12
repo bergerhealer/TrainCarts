@@ -2,12 +2,13 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;
@@ -15,12 +16,19 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipm
 public class CartAttachmentItem extends CartAttachment {
     private VirtualEntity entity;
     private ItemStack item;
+    private ItemTransformType transformType;
 
     @Override
     public void onAttached() {
         super.onAttached();
 
         this.item = this.config.get("item", ItemStack.class);
+
+        if (this.config.isNode("position")) {
+            this.transformType = this.config.get("position.transform", ItemTransformType.HEAD);
+        } else {
+            this.transformType = ItemTransformType.HEAD;
+        }
 
         this.entity = new VirtualEntity(this.controller);
         this.entity.setEntityType(EntityType.ARMOR_STAND);
@@ -50,7 +58,7 @@ public class CartAttachmentItem extends CartAttachment {
         // Set equipment
         if (this.item != null) {
             PacketPlayOutEntityEquipmentHandle equipment = PacketPlayOutEntityEquipmentHandle.createNew(
-                    this.entity.getEntityId(), EquipmentSlot.HEAD, this.item);
+                    this.entity.getEntityId(), this.transformType.getSlot(), this.item);
             PacketUtil.sendPacket(viewer, equipment);
         }
     }
@@ -65,7 +73,21 @@ public class CartAttachmentItem extends CartAttachment {
     public void onPositionUpdate() {
         super.onPositionUpdate();
         this.entity.updatePosition(this.transform);
-        this.entity.getMetaData().set(EntityArmorStandHandle.DATA_POSE_HEAD, this.transform.getYawPitchRoll());
+
+        Vector rotation = this.transform.getYawPitchRoll();
+        DataWatcher meta = this.entity.getMetaData();
+        if (this.transformType == ItemTransformType.HEAD) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);
+        } else if (this.transformType == ItemTransformType.CHEST) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_BODY, rotation);
+        } else if (this.transformType == ItemTransformType.LEFT_HAND) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_ARM_LEFT, rotation);
+        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
+        } else if (this.transformType == ItemTransformType.LEGS || this.transformType == ItemTransformType.FEET) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
+            meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
+        }
     }
 
     @Override
