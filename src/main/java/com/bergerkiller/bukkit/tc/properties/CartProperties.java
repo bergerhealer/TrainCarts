@@ -424,37 +424,28 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     /**
      * Gets the attachment model set for this particular cart. If no model was previously set,
-     * a model is created based on the vanilla default model that is used.
+     * a model is created based on the vanilla default model that is used. This model is not saved
+     * unless additional changes are made to it.
      * 
-     * @return model set, or newly created model if none was set
+     * @return model set, null for Vanilla
      */
-    public AttachmentModel getOrCreateModel() {
+    public AttachmentModel getModel() {
         if (this.model == null) {
             // No model was set. Create a Vanilla model based on the Minecart information
             MinecartMember<?> member = this.getHolder();
             EntityType minecartType = (member == null) ? EntityType.MINECART : member.getEntity().getType();
             this.model = AttachmentModel.getDefaultModel(minecartType);
-            this.refreshModel();
         }
         return this.model;
     }
 
     /**
-     * Gets the attachment model set for this particular cart.
-     * 
-     * @return model set, null for Vanilla
+     * Resets any set model, restoring the Minecart to its Vanilla defaults.
      */
-    public AttachmentModel getModel() {
-        return this.model;
-    }
-
-    /**
-     * Clears any set model, restoring the Minecart to its Vanilla defaults
-     */
-    public void clearModel() {
+    public void resetModel() {
         if (this.model != null) {
-            this.model = null;
-            this.refreshModel();
+            MinecartMember<?> member = this.getHolder();
+            this.model.resetToDefaults((member == null) ? EntityType.MINECART : member.getEntity().getType());
         }
     }
 
@@ -466,21 +457,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @param modelName
      */
     public void setModelName(String modelName) {
-        this.model = new AttachmentModel();
-        this.model.getConfig().set("type", CartAttachmentType.MODEL);
-        this.model.getConfig().set("model", modelName);
-        this.refreshModel();
-    }
-
-    private void refreshModel() {
-        // Update minecart network controller
-        MinecartMember<?> member = this.getHolder();
-        if (member != null) {
-            EntityNetworkController<?> netController = member.getEntity().getNetworkController();
-            if (netController instanceof MinecartMemberNetwork) {
-                ((MinecartMemberNetwork) netController).onModelChanged(this.model);
-            }
+        if (this.model == null) {
+            this.model = new AttachmentModel();
         }
+        this.model.resetToName(modelName);
     }
 
     @Override
@@ -540,7 +520,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         } else if (key.equals("model")) {
             setModelName(arg);
         } else if (key.equals("clearmodel") || key.equals("resetmodel")) {
-            clearModel();
+            resetModel();
         } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
         } else {
@@ -600,10 +580,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         if (node.isNode("skipOptions")) {
             this.skipOptions.load(node.getNode("skipOptions"));
         }
-        if (node.isNode("model")) {
-            this.model = new AttachmentModel(node.getNode("model").clone());
+        if (this.model != null) {
+            if (node.isNode("model")) {
+                this.model.update(node.getNode("model").clone());
+            }
         } else {
-            this.model = null;
+            if (node.isNode("model")) {
+                this.model = new AttachmentModel(node.getNode("model").clone());
+            } else {
+                this.model = null;
+            }
         }
     }
 
@@ -628,7 +614,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : "");
         node.set("spawnItemDrops", this.spawnItemDrops);
 
-        if (this.model != null) {
+        if (this.model != null && !this.model.isDefault()) {
             node.set("model", this.model.getConfig());
         } else {
             node.remove("model");

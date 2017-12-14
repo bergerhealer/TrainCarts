@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
@@ -19,8 +18,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
-import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -49,7 +46,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private double lastDeltaX = 0.0;
     private double lastDeltaY = 0.0;
     private double lastDeltaZ = 0.0;
-    private AttachmentModel attachmentModel;
 
     private CartAttachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
@@ -147,8 +143,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             this.member = this.entity.getController(MinecartMember.class);
         }
 
-        // Load the attachments / main model information
-        this.onModelChanged(this.member.getProperties().getModel());
+        this.member.getProperties().getModel().addOwner(this);
     }
 
     @Override
@@ -156,7 +151,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         super.onDetached();
 
         CartAttachment.deinitialize(this.rootAttachment);
-        this.attachmentModel.removeOwner(this);
+        if (this.member != null) {
+            this.member.getProperties().getModel().removeOwner(this);
+        }
     }
 
     private static float getAngleKFactor(float angle1, float angle2) {
@@ -584,17 +581,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 oldSeatPositions.put(oldEntity, seat.getPosition());
             }
         }
-
-        if (this.attachmentModel != null) {
-            this.attachmentModel.removeOwner(this);
-        }
-
-        if (model == null) {
-            model = AttachmentModel.getDefaultModel(this.entity.getType());
-        }
-
-        this.attachmentModel = model;
-        this.attachmentModel.addOwner(this);
 
         //TODO: Detect when only a single element is changed, and only update that element
         // This allows for a cleaner update when repositioning/etc.

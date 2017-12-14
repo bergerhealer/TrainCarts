@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
@@ -25,6 +26,8 @@ public class AttachmentEditor extends MapDisplay {
                 AttachmentEditor.this.addWidget(new PositionMenu(node));
             } else if (menu == MenuItem.GENERAL) {
                 AttachmentEditor.this.addWidget(new GeneralMenu(node));
+            } else if (menu == MenuItem.PHYSICAL) {
+                AttachmentEditor.this.addWidget(new PhysicalMenu(node));
             }
         }
     };
@@ -72,7 +75,7 @@ public class AttachmentEditor extends MapDisplay {
 
         CartProperties prop = CartProperties.getEditing(this.getOwners().get(0));
         if (prop != null) {
-            this.model = prop.getOrCreateModel();
+            this.model = prop.getModel();
         } else {
             this.model = AttachmentModel.getDefaultModel(EntityType.MINECART);
         }

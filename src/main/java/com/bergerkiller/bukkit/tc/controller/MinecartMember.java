@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
@@ -66,7 +67,7 @@ import org.bukkit.util.Vector;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IPropertiesHolder {
+public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IPropertiesHolder, AttachmentModelOwner {
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final double VERTRAIL_MULTIPLIER_LEGACY = 0.02; // LEGACY!!! Uses SLOPE_VELOCITY_MULTIPLIER instead by default.
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
@@ -94,6 +95,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
     private Vector speedFactor = new Vector(0.0, 0.0, 0.0);
     private float roll = 0.0f; // Roll is a custom property added, which is not persistently stored.
+    private double cartLength = 1.0; // Loaded from the attachment model (onModelChanged)
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -138,6 +140,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public CartProperties getProperties() {
         if (this.properties == null) {
             this.properties = CartProperties.get(this);
+            this.properties.getModel().addOwner(this);
         }
         return this.properties;
     }
@@ -999,6 +1002,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getBlockTracker().update();
     }
 
+    @Override
+    public void onModelChanged(AttachmentModel model) {
+        this.cartLength = model.getCartLength();
+        this.backWheelTracker.setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
+        this.frontWheelTracker.setDistance(0.5 * model.getWheelDistance() + model.getWheelCenter());
+    }
+
     /**
      * Checks whether this Minecart Member is being controlled externally by an action.
      * If this is True, the default physics such as gravity and slowing-down factors are not applied.
@@ -1291,6 +1301,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 // For head/tail we can adjust our own position to stretch or shrink the train in size
                 MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
                 Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
+                double preferredDistance = this.getPreferredDistance(m);
 
                 // If distance can not be reliably calculated, use BlockFace direction
                 // Otherwise normalize the direction vector
@@ -1307,7 +1318,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 }
 
                 // Set the factor to the offset we must make to correct the distance
-                double distanceDiff = (TCConfig.cartDistanceGap + 1.0 - distance);
+                double distanceDiff = (preferredDistance - distance);
                 this.speedFactor.setX(direction.getX() * distanceDiff);
                 this.speedFactor.setY(direction.getY() * distanceDiff);
                 this.speedFactor.setZ(direction.getZ() * distanceDiff);
@@ -1569,9 +1580,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @return length
      */
-    public double getLength() {
-        //TODO!
-        return 1.0;
+    public double getCartLength() {
+        return this.cartLength;
     }
 
     /**
@@ -1583,7 +1593,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return preferred distance
      */
     public double getPreferredDistance(MinecartMember<?> member) {
-        return 0.5 * (getLength() + member.getLength()) + TCConfig.cartDistanceGap;
+        return 0.5 * (getCartLength() + member.getCartLength()) + TCConfig.cartDistanceGap;
     }
 
     /**
@@ -1595,6 +1605,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return maximum distance
      */
     public double getMaximumDistance(MinecartMember<?> member) {
-        return 0.5 * (getLength() + member.getLength()) + TCConfig.cartDistanceGapMax;
+        return 0.5 * (getCartLength() + member.getCartLength()) + TCConfig.cartDistanceGapMax;
     }
 }

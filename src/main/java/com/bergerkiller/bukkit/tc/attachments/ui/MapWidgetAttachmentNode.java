@@ -167,6 +167,18 @@ public class MapWidgetAttachmentNode extends MapWidget {
                 openMenu(MenuItem.APPEARANCE);
             }
         }.setIcon(getIcon()).setPosition(px, 1));
+        px += 17;
+
+        // Only for root nodes: modify Physical properties of the cart
+        if (this.parentAttachment == null) {
+            this.addWidget(new MapWidgetBlinkyButton() {
+                @Override
+                public void onClick() {
+                    openMenu(MenuItem.PHYSICAL);
+                }
+            }.setIcon("attachments/physical.png").setPosition(px, 1));
+            px += 17;
+        }
 
         // Change 3D position of the attachment
         this.addWidget(new MapWidgetBlinkyButton() {
@@ -174,7 +186,8 @@ public class MapWidgetAttachmentNode extends MapWidget {
             public void onClick() {
                 openMenu(MenuItem.POSITION);
             }
-        }.setIcon("attachments/move.png").setPosition(px + 17, 1));
+        }.setIcon("attachments/move.png").setPosition(px, 1));
+        px += 17;
 
         // Drops down a menu to add/remove/move the attachment entry
         this.addWidget(new MapWidgetBlinkyButton() {
@@ -182,7 +195,8 @@ public class MapWidgetAttachmentNode extends MapWidget {
             public void onClick() {
                 openMenu(MenuItem.GENERAL);
             }
-        }.setIcon("attachments/general_menu.png").setPosition(px + 34, 1));
+        }.setIcon("attachments/general_menu.png").setPosition(px, 1));
+        px += 17;
     }
 
     @Override
@@ -275,6 +289,6 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public static enum MenuItem {
-        APPEARANCE, POSITION, GENERAL
+        APPEARANCE, POSITION, GENERAL, PHYSICAL
     }
 }

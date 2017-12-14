@@ -18,7 +18,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 public class WheelTracker {
     private final MinecartMember<?> member;
     private final boolean _front;
-    private double _distance = 0.4; // Distance from the center this wheel is at
+    private double _distance = 0.0; // Distance from the center this wheel is at
                                     // This will eventually be modified based on the model that is applied
     private Vector _position = null; // Position is relative to the minecart position
     private Vector _up = null;       // Up vector, used for angling the Minecart around the wheels
@@ -26,6 +26,18 @@ public class WheelTracker {
     public WheelTracker(MinecartMember<?> member, boolean front) {
         this.member = member;
         this._front = front;
+    }
+
+    /**
+     * Sets the distance from the center of the Minecart for this wheel
+     * 
+     * @param distance to set to
+     */
+    public void setDistance(double distance) {
+        if (this._distance != distance) {
+            this._distance = distance;
+            this._position = null;
+        }
     }
 
     /**

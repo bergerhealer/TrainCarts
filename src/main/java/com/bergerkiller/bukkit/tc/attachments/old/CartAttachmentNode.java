@@ -1,7 +1,9 @@
-package com.bergerkiller.bukkit.tc.attachments.config;
+package com.bergerkiller.bukkit.tc.attachments.old;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 
 public class CartAttachmentNode {
     private List<CartAttachmentNode> _attachments = new ArrayList<CartAttachmentNode>(1);
