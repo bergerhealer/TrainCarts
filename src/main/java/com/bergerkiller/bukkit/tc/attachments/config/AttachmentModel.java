@@ -14,7 +14,7 @@ public class AttachmentModel {
     private ConfigurationNode config;
     private List<AttachmentModelOwner> owners = new ArrayList<AttachmentModelOwner>();
     private int seatCount;
-    private double cartLength;
+    private float cartLength;
     private double wheelCenter;
     private double wheelDistance;
     private boolean _isDefault;
@@ -37,7 +37,7 @@ public class AttachmentModel {
         return this.seatCount;
     }
 
-    public double getCartLength() {
+    public float getCartLength() {
         return this.cartLength;
     }
 
@@ -137,7 +137,7 @@ public class AttachmentModel {
         this.loadSeats(this.config);
 
         ConfigurationNode physical = this.config.getNode("physical");
-        this.cartLength = physical.get("cartLength", 1.0);
+        this.cartLength = physical.get("cartLength", 0.98f);
         this.wheelCenter = physical.get("wheelCenter", 0.0);
         this.wheelDistance = physical.get("wheelDistance", 0.0);
         this._isDefault = false; // Was changed; no longer default!

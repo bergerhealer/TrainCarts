@@ -348,7 +348,7 @@ public class RailTrackerGroup extends RailTracker {
         // If this fails, switch to using all possible directions of the current track
         int firstEntryIndex = this.rails.size();
         boolean foundNextMember = false;
-        int maximumDistanceBlocks = MathUtil.ceil(tail.getMaximumDistance(nextMember));
+        int maximumDistanceBlocks = tail.getMaximumBlockDistance(nextMember);
         int moveLimitCtr = 0;
         int possibleDirIdx = 0;
         BlockFace[] possible = null;
@@ -387,7 +387,7 @@ public class RailTrackerGroup extends RailTracker {
                         moveLimitCtr = 0;
                         nextMember = owner.get(nextMemberIndex);
                         nextPos = getRailPos(nextMember);
-                        maximumDistanceBlocks = MathUtil.ceil(currInfo.member.getMaximumDistance(nextMember));
+                        maximumDistanceBlocks = currInfo.member.getMaximumBlockDistance(nextMember);
                         isFirstBlock = true;
                         if (nextPos == null) {
                             break; // member is derailed

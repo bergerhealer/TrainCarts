@@ -95,7 +95,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
     private Vector speedFactor = new Vector(0.0, 0.0, 0.0);
     private float roll = 0.0f; // Roll is a custom property added, which is not persistently stored.
-    private double cartLength = 1.0; // Loaded from the attachment model (onModelChanged)
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -617,14 +616,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public boolean isNearOf(MinecartMember<?> member) {
-        double max = TCConfig.maxCartDistance * TCConfig.maxCartDistance;
-        if (entity.loc.xz.distanceSquared(member.entity) > max) {
-            return false;
-        }
-        if (this.isDerailed() || this.isOnVertical() || member.isDerailed() || member.isOnVertical()) {
-            return Math.abs(entity.loc.getY() - member.entity.loc.getY()) <= max;
-        }
-        return true;
+        double max = this.getMaximumDistance(member);
+        return entity.loc.distanceSquared(member.entity) <= (max * max);
     }
 
     public boolean isHeadingTo(org.bukkit.entity.Entity entity) {
@@ -1004,7 +997,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public void onModelChanged(AttachmentModel model) {
-        this.cartLength = model.getCartLength();
+        entity.setSize(model.getCartLength(), 0.7f);
         this.backWheelTracker.setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
         this.frontWheelTracker.setDistance(0.5 * model.getWheelDistance() + model.getWheelCenter());
     }
@@ -1433,12 +1426,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
         }
 
-        // Minecart collisions
+        // Performs linkage with nearby minecarts
+        // This allows trains to link before actually colliding
         for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
             if (near instanceof Minecart && !this.entity.isPassenger(near)) {
                 EntityUtil.doCollision(near, this.entity.getEntity());
             }
         }
+        
+        
+        // Handle collisions for train lengths > 1.0 in a special way
+        
+        /*
+        if (this.getCartLength() > 1.0) {
+            double rad = 0.5 * this.getCartLength();
+            for (Entity near : entity.getNearbyEntities(rad, rad, rad)) {
+                // Skip near entities that are other minecarts in this same train
+                // Saves on performance handling collision events for all of them every tick
+                MinecartMember<?> nearMember = MinecartMemberStore.getFromEntity(near);
+                if (nearMember != null && nearMember.group == this.group) {
+                    continue;
+                }
+
+                // Verify by using the transform of this Minecart whether or not the entity is actually colliding
+                // We do so by performing a 
+                EntityUtil.doCollision(near, this.entity.getEntity());
+            }
+        }
+        */
 
         // Ensure that dead passengers are cleared
         for (Entity passenger : entity.getPassengers()) {
@@ -1576,15 +1591,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Gets the length of this Minecart
-     * 
-     * @return length
-     */
-    public double getCartLength() {
-        return this.cartLength;
-    }
-
-    /**
      * Calculates the preferred distance between the center of this Minecart
      * and the member specified. By playing with the speed of the two carts,
      * this distance is maintained steady.
@@ -1593,7 +1599,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return preferred distance
      */
     public double getPreferredDistance(MinecartMember<?> member) {
-        return 0.5 * (getCartLength() + member.getCartLength()) + TCConfig.cartDistanceGap;
+        return 0.5 * ((double) entity.getWidth() + (double) member.getEntity().getWidth()) + TCConfig.cartDistanceGap;
     }
 
     /**
@@ -1605,6 +1611,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return maximum distance
      */
     public double getMaximumDistance(MinecartMember<?> member) {
-        return 0.5 * (getCartLength() + member.getCartLength()) + TCConfig.cartDistanceGapMax;
+        return 0.5 * ((double) entity.getWidth() + (double) member.getEntity().getWidth()) + TCConfig.cartDistanceGapMax;
+    }
+
+    /**
+     * Calculates the maximum amount of block iterations between the center of this Minecart
+     * and the member specified that should be performed when discovering rails. Generally
+     * aiming too high is not a big deal, this is only here to prevent infinite cycles from
+     * crashing the server.
+     * 
+     * @param member
+     * @return maximum block iteration around
+     */
+    public int getMaximumBlockDistance(MinecartMember<?> member) {
+        return MathUtil.ceil(2.0 * getMaximumDistance(member));
     }
 }

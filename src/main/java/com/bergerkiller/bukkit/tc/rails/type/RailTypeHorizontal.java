@@ -25,13 +25,23 @@ public abstract class RailTypeHorizontal extends RailType {
     }
 
     @Override
-    public boolean onBlockCollision(MinecartMember<?> member, Block railsBlock, Block hitBlock, BlockFace hitFace) {
+    public boolean onBlockCollision(MinecartMember<?> member, Block railsBlock, final Block hitBlock, BlockFace hitFace) {
         if (!super.onBlockCollision(member, railsBlock, hitBlock, hitFace)) {
             return false;
         }
 
         boolean upsideDown = this.isUpsideDown(railsBlock);
-        Block posBlock = findMinecartPos(railsBlock);
+        final Block posBlock = findMinecartPos(railsBlock);
+
+        final int dx = hitBlock.getX() - posBlock.getX();
+        final int dy = hitBlock.getY() - posBlock.getY();
+        final int dz = hitBlock.getZ() - posBlock.getZ();
+
+        // If distance exceeds limit, ignore the collision
+        // This is needed in case larger models (cart length!) are used
+        if (dx < -1 || dx > 1 || dy < -1 || dy > 1 || dz < -1 || dz > 1) {
+            return false;
+        }
 
         if (upsideDown) {
 
@@ -47,10 +57,6 @@ public abstract class RailTypeHorizontal extends RailType {
             if (BlockUtil.equals(blockBwd, hitBlock) && !RailType.VERTICAL.isRail(posBlock.getRelative(BlockFace.DOWN))) {
                 return true;
             }
-
-            int dx = hitBlock.getX() - posBlock.getX();
-            int dy = hitBlock.getY() - posBlock.getY();
-            int dz = hitBlock.getZ() - posBlock.getZ();
 
             // Block directly below
             if (member.isOnSlope() && dx == 0 && dy == -1 && dz == 0) {
@@ -74,8 +80,6 @@ public abstract class RailTypeHorizontal extends RailType {
             final BlockFace hitToFace = hitFace.getOppositeFace();
             if (posBlock.getY() == hitBlock.getY()) {
                 // If the hit face is not a valid direction to go to, ignore it, except if this rail is sub-cardinal
-                int dx = hitBlock.getX() - posBlock.getX();
-                int dz = hitBlock.getZ() - posBlock.getZ();
                 if (Math.abs(dx) > 0 && Math.abs(dz) > 0) {
                     BlockFace railDir = this.getDirection(railsBlock);
                     if (FaceUtil.isSubCardinal(railDir)) {
@@ -128,7 +132,6 @@ public abstract class RailTypeHorizontal extends RailType {
             if (member.isOnSlope()) {
                 // Cancel collisions with blocks two above this sloped rail
                 if (hitBlock.getX() == posBlock.getX() && hitBlock.getZ() == posBlock.getZ()) {
-                    int dy = hitBlock.getY() - posBlock.getY();
                     if (dy >= 2) {
                         return false;
                     }

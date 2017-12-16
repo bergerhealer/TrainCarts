@@ -67,6 +67,13 @@ public class RailTypeVertical extends RailType {
         if (hitBlock.getX() != minecartPos.getX() || hitBlock.getZ() != minecartPos.getZ()) {
             return false;
         }
+
+        // Put a limit on the block offset (larger train models!)
+        int dy = hitBlock.getY() - minecartPos.getY();
+        if (dy < -1 || dy > 1) {
+            return false;
+        }
+
         if (this.isRail(hitBlock)) {
             return false;
         }
