@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
  * detect splitting of trains
  */
 public class RailTrackerGroup extends RailTracker {
+    private static final int LOOP_LIMIT = 10; // This amount of tracks iterated w/o movement = ABORT
     private final MinecartGroup owner;
     private final ArrayList<TrackedRail> prevRails = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> rails = new ArrayList<TrackedRail>();
@@ -191,7 +192,7 @@ public class RailTrackerGroup extends RailTracker {
                 if (moved > 0.0) {
                     wheelDistance -= moved;
                     loopCtr = 0;
-                } else if (++loopCtr > 10) {
+                } else if (++loopCtr > LOOP_LIMIT) {
                     System.err.println("Loop detected logic=" + logic + " rail=" + p.currentTrack);
                     break;
                 }
@@ -242,7 +243,6 @@ public class RailTrackerGroup extends RailTracker {
         // First, find the index of the rails in prevRails from which we can start looking
         if (wheelDistance > 0.0) {
             // Figure out which rail to start looking from
-            Position position = null;
             int prevRailStartIndex = -1;
             for (int i = 0; i < this.prevRails.size(); i++) {
                 if (this.prevRails.get(i).position.equals(startInfo.position)) {
@@ -262,18 +262,17 @@ public class RailTrackerGroup extends RailTracker {
                 }
             }
 
+            // Calculate the actual direction in which the minecart moves
+            // This is important when initializing the direction to move over the paths
+            Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
+            movementDirection.multiply(-1.0);
+
+            Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
+
             // If previous rails are found, walk them first
             if (prevRailStartIndex != -1) {
                 TrackedRail startRail = this.prevRails.get(prevRailStartIndex);
-
-                movementDirectionFace = startRail.getLogic().getMovementDirection(startRail.direction);
-
-                // Calculate the actual direction in which the minecart moves
-                // This is important when initializing the direction to move over the paths
-                Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
-
-                position = Position.fromPosDir(tail.getEntity().loc.vector(),
-                        movementDirection.clone().multiply(-1.0));
+                BlockFace prevStartDirection = startRail.getLogic().getMovementDirection(startRail.direction);
 
                 // Move as much as possible over the current rail
                 // This sets our position to the end-position of the current rail
@@ -285,7 +284,7 @@ public class RailTrackerGroup extends RailTracker {
                     // We need to walk more tracks. To do so, we must figure out whether we go +1 or -1.
                     // To find this out, we first obtain the movement direction over the start rails when forwards
                     int order;
-                    if (MathUtil.isHeadingTo(movementDirection, new Vector(position.motX, position.motY, position.motZ))) {
+                    if (MathUtil.isHeadingTo(prevStartDirection, new Vector(position.motX, position.motY, position.motZ))) {
                         order = -1;
                     } else {
                         order = 1;
@@ -303,7 +302,44 @@ public class RailTrackerGroup extends RailTracker {
                             rail = rail.changeMember(startInfo.member);
                         }
 
+                        // If the direction of the rail is wrong, fix it
+                        if (position.motDot(rail.direction) > 0) {
+                            rail = rail.changeDirection(rail.direction.getOppositeFace());
+                        }
+
                         this.rails.add(railIndex, rail);
+                        startInfo = rail;
+                    }
+                }
+            }
+
+            // If more wheel distance remains, all we can do is walk the tracks in the opposite direction
+            // This can actually be incorrect, for example when taking a junction
+            // It will at least resolve correctly for straight rails
+            if (wheelDistance > 0.0) {
+                int loopCtr = 0;
+                boolean first = true;
+                TrackMovingPoint p = new TrackMovingPoint(startInfo.block, position.getMotionFace());
+                while (p.hasNext() && wheelDistance > 0.0) {
+                    p.next();
+
+                    RailLogic logic = p.currentRail.getLogic(null, p.currentTrack, p.currentDirection);
+                    RailPath path = logic.getPath();
+                    double moved = path.move(position, p.currentTrack, wheelDistance);
+
+                    if (moved > 0.0) {
+                        wheelDistance -= moved;
+                        loopCtr = 0;
+                    } else if (++loopCtr > LOOP_LIMIT) {
+                        System.err.println("Loop detected logic=" + logic + " rail=" + p.currentTrack);
+                        break;
+                    }
+
+                    if (first) {
+                        first = false;
+                    } else {
+                        // Add rail information
+                        this.rails.add(railIndex, new TrackedRail(tail, p, false));
                     }
                 }
             }

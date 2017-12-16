@@ -9,6 +9,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 /**
@@ -323,6 +324,26 @@ public class RailPath {
             return new Location(world, posX, posY, posZ);
         }
 
+        public BlockFace getMotionFace() {
+            if (motX < -0.001 || motX > 0.001 || motZ < -0.001 || motZ > 0.001) {
+                return FaceUtil.getDirection(motX, motZ, true);
+            } else {
+                return FaceUtil.getVertical(motY);
+            }
+        }
+
+        public double motDot(BlockFace face) {
+            return (motX * face.getModX()) + (motY * face.getModY()) + (motZ * face.getModZ());
+        }
+
+        public double motDot(Point point) {
+            return (motX * point.x) + (motY * point.y) + (motZ * point.z);
+        }
+
+        public double motDot(double dx, double dy, double dz) {
+            return (motX * dx) + (motY * dy) + (motZ * dz);
+        }
+
         public static Position fromPosDir(Vector position, Vector direction) {
             Position p = new Position();
             p.posX = position.getX();
@@ -520,57 +541,9 @@ public class RailPath {
                     railsBlock.getZ() + p0.z + dt.z * theta);
         }
 
-        /**
-         * Calculates the direction best matching this segment, using vector dot product.
-         * Returns an integer representing the order in which segments should be iterated.
-         * A value of 1 indicates p0 -> p1 (increment segments) and -1 indicates p1 -> p0
-         * (decrement segments).
-         * 
-         * @param direction, is assigned the direction and roll of this segment that best matches
-         * @param position information, which acts as a fallback in case a 90-degree angle is encountered
-         * @return order (-1 for decrement, 1 for increment)
-         */
-        public final int calcDirection(Vector direction, Vector position) {
-            double dot = (direction.getX() * this.dt_norm.x) +
-                         (direction.getY() * this.dt_norm.y) +
-                         (direction.getZ() * this.dt_norm.z);
-
-            // Hitting the segment at a 90-degree angle
-            // This means the path direction cannot be easily assessed from the direction
-            // Assume the direction goes from the point closest to the point farthest
-            // TODO: South-west rule or something?
-            if (dot <= 0.0000001 && dot >= -0.0000001) {
-                dot = this.p1.distanceSquared(position) - this.p0.distanceSquared(position);
-            }
-
-            if (dot >= 0.0) {
-                direction.setX(this.dt_norm.x);
-                direction.setY(this.dt_norm.y);
-                direction.setZ(this.dt_norm.z);
-                return 1;
-            } else {
-                direction.setX(-this.dt_norm.x);
-                direction.setY(-this.dt_norm.y);
-                direction.setZ(-this.dt_norm.z);
-                return -1;
-            }
-        }
-
-        /**
-         * Calculates the dot product of the motion vector with the slope of this segment
-         * 
-         * @param position
-         * @return dot product
-         */
-        public final double dotDirection(Position position) {
-            return (position.motX * this.dt_norm.x) +
-                   (position.motY * this.dt_norm.y) +
-                   (position.motZ * this.dt_norm.z);
-        }
-
         private final int isHeadingToPrev(Position position) {
             if (this.prev != null) {
-                double dot = this.prev.dotDirection(position);
+                double dot = position.motDot(this.prev.dt_norm);
                 if (dot < -0.0000001) {
                     return 1;
                 } else if (dot > 0.0000001) {
@@ -585,7 +558,7 @@ public class RailPath {
 
         private final int isHeadingToNext(Position position) {
             if (this.next != null) {
-                double dot = this.next.dotDirection(position);
+                double dot = position.motDot(this.next.dt_norm);
                 if (dot > 0.0000001) {
                     return 1;
                 } else if (dot < -0.0000001) {
@@ -608,7 +581,7 @@ public class RailPath {
          * @return order (-1 for decrement, 1 for increment)
          */
         public final int calcDirection(Position position) {
-            double dot = this.dotDirection(position);
+            double dot = position.motDot(this.dt_norm);
 
             // Hitting the segment at a 90-degree angle
             // This means the path direction cannot be easily assessed from the direction
