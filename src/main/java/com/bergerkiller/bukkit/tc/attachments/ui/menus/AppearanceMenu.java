@@ -47,7 +47,7 @@ public class AppearanceMenu extends MapWidgetWindow {
             @Override
             public void onEntityTypeChanged() {
                 getAttachment().getConfig().set("entityType", this.getEntityType());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                markChanged();
             }
         }).setBounds(0, 0, 100, 11);
         tabView.addTab().addWidget(new MapWidgetItemSelector() { // ITEM
@@ -60,7 +60,7 @@ public class AppearanceMenu extends MapWidgetWindow {
             @Override
             public void onSelectedItemChanged() {
                 getAttachment().getConfig().set("item", this.getSelectedItem());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                markChanged();
             }
         });
         tabView.addTab(); // SEAT
@@ -91,7 +91,7 @@ public class AppearanceMenu extends MapWidgetWindow {
     public void setType(CartAttachmentType type) {
         if (getAttachment().getConfig().get("type", CartAttachmentType.EMPTY) != type) {
             getAttachment().getConfig().set("type", type);
-            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+            markChanged();
         }
 
         // Switch tab
@@ -115,4 +115,8 @@ public class AppearanceMenu extends MapWidgetWindow {
         return this.attachment;
     }
 
+    private void markChanged() {
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        getAttachment().resetIcon();
+    }
 }

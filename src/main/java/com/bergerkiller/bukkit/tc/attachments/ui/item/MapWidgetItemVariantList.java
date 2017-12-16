@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -21,6 +23,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 public abstract class MapWidgetItemVariantList extends MapWidget {
     private final MapTexture background;
     private List<ItemStack> variants;
+    private Map<ItemStack, MapTexture> iconCache = new HashMap<ItemStack, MapTexture>();
     private int variantIndex = 0;
 
     public MapWidgetItemVariantList() {
@@ -94,7 +97,14 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
         for (int index = this.variantIndex - 2; index <= this.variantIndex + 2; index++) {
             // Check index valid
             if (index >= 0 && index < this.variants.size()) {
-                view.drawItem(MapResourcePack.SERVER, this.variants.get(index), x, y, 16, 16);
+                ItemStack item = this.variants.get(index);
+                MapTexture icon = this.iconCache.get(item);
+                if (icon == null) {
+                    icon = MapTexture.createEmpty(16, 16);
+                    icon.fillItem(MapResourcePack.SERVER, item);
+                    this.iconCache.put(item, icon);
+                }
+                view.draw(icon, x, y);
             }
             x += 17;
         }

@@ -24,6 +24,7 @@ public class MapWidgetAttachmentNode extends MapWidget {
     private List<MapWidgetAttachmentNode> attachments = new ArrayList<MapWidgetAttachmentNode>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
+    private MapTexture icon = null;
 
     public MapWidgetAttachmentNode() {
         this(new ConfigurationNode());
@@ -284,8 +285,15 @@ public class MapWidgetAttachmentNode extends MapWidget {
         }
     }
 
+    public void resetIcon() {
+        this.icon = null;
+    }
+
     private MapTexture getIcon() {
-        return this.getType().getIcon(this.getConfig());
+        if (this.icon == null) {
+            this.icon = this.getType().getIcon(this.getConfig());
+        }
+        return this.icon;
     }
 
     public static enum MenuItem {
