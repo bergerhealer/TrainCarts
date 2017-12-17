@@ -47,6 +47,7 @@ public class VirtualEntity {
     private boolean cancelUnmountLogic = false;
     private boolean useParentMetadata = false;
     private final ArrayList<Player> viewers = new ArrayList<Player>();
+    private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
 
     public VirtualEntity(MinecartMemberNetwork controller) {
         this(controller, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
@@ -93,7 +94,11 @@ public class VirtualEntity {
             this.liveYaw = this.syncYaw = 0.0f;
         }
     }
-    
+
+    public Vector getYawPitchRoll() {
+        return this.yawPitchRoll;
+    }
+
     /**
      * Updates the position of the displayed part
      * 
@@ -108,14 +113,14 @@ public class VirtualEntity {
         liveAbsZ = v.z + this.relDz;
 
         if (this.hasRotation) {
-            Vector rotation = transform.getYawPitchRoll();
-            liveYaw = (float) rotation.getY();
+            this.yawPitchRoll = transform.getYawPitchRoll();
+            liveYaw = (float) this.yawPitchRoll.getY();
             if (hasPitch(this.entityType)) {
-                livePitch = (float) rotation.getX();
+                livePitch = (float) this.yawPitchRoll.getX();
             } else {
                 livePitch = 0.0f;
             }
-            if (isMinecart(this.entityType)) {
+            if (isMinecart(this.entityType) || this.entityType == EntityType.ARMOR_STAND) {
                 liveYaw -= 90.0f;
             }
         }

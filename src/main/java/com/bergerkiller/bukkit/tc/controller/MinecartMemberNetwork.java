@@ -7,10 +7,12 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
@@ -18,6 +20,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -360,6 +364,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return transform;
     }
 
+    private Vector prevDir = null;
+    
     public Matrix4x4 getLiveTransform() {
         MinecartMember<?> member = this.getMember();
         Matrix4x4 transform = new Matrix4x4();
@@ -379,7 +385,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 wheelDir = null;
             }
         }
-        
+
         if (wheelDir == null) {
 
             // Translate the transform based on yaw/pitch/roll
@@ -428,8 +434,42 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             // Find roll angle around the axis, only x/y is important (z would pitch it)
             double roll = Math.toDegrees(Math.atan2(-up_average.getX(), up_average.getY()));
 
+            // Banking
+            /*
+            {
+                if (prevDir == null) {
+                    prevDir = wheelDir.clone();
+                }
+
+                Vector diff = wheelDir.clone().crossProduct(this.prevDir);
+
+                double f = DebugUtil.getDoubleValue("f", 0.2);
+                this.prevDir.multiply(1.0 - f).add(wheelDir.clone().multiply(f));
+                
+                if (!MathUtil.isHeadingTo(wheelDir, entity.getVelocity())) {
+                    diff.multiply(-1.0);
+                }
+                
+                //rot.transformPoint(diff);
+                
+                //roll += 90.0 * diff.getY();
+                //roll += DebugUtil.getDoubleValue("test",  0.0);
+            }
+            */
+           
+            
+            
             // Roll around the axis, also including roll from maths
-            transform.rotateZ(roll + member.getRoll());      
+            transform.rotateZ(roll + member.getRoll());     
+            
+            {
+                Matrix4x4 a = transform.clone();
+                a.translate(2.0, 0.0, 0.0);
+                Vector v = a.toVector();
+                Location loc = new Location(member.getEntity().getWorld(), v.getX(), v.getY(), v.getZ());
+                Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+            }
+            
         }
         return transform;
     }

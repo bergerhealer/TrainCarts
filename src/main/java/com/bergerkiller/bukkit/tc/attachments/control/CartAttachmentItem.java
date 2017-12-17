@@ -32,7 +32,7 @@ public class CartAttachmentItem extends CartAttachment {
 
         this.entity = new VirtualEntity(this.controller);
         this.entity.setEntityType(EntityType.ARMOR_STAND);
-        this.entity.setHasRotation(false);
+        this.entity.setHasRotation(true);
         this.entity.setRelativeOffset(0.0, -1.2, 0.0);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
     }
@@ -74,7 +74,10 @@ public class CartAttachmentItem extends CartAttachment {
         super.onPositionUpdate();
         this.entity.updatePosition(this.transform);
 
-        Vector rotation = this.transform.getYawPitchRoll();
+        // Convert the pitch/roll into an appropriate pose
+        Vector in_ypr = this.entity.getYawPitchRoll();
+        Vector rotation = new Vector(90.0, 90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
+
         DataWatcher meta = this.entity.getMetaData();
         if (this.transformType == ItemTransformType.HEAD) {
             meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);
