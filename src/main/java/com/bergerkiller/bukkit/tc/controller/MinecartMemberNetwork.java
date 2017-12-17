@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 import org.bukkit.Location;
@@ -359,12 +360,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 (this.locSynched.getX() - fx),
                 (this.locSynched.getY() - fy),
                 (this.locSynched.getZ() - fz),
-                this.locLive.getYaw(), this.locLive.getPitch()
+                this.locLive.getPitch(), this.locLive.getYaw()
         );
         return transform;
     }
 
     private Vector prevDir = null;
+    private Vector prevPos = null;
+    private double r = 0.0;
     
     public Matrix4x4 getLiveTransform() {
         MinecartMember<?> member = this.getMember();
@@ -393,8 +396,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                     (this.locLive.getX()),
                     (this.locLive.getY()),
                     (this.locLive.getZ()),
-                    this.locLive.getYaw() + 90.0f,
                     this.locLive.getPitch(),
+                    this.locLive.getYaw() + 90.0f,
                     this.getMember().getRoll()
             );
 
@@ -431,45 +434,36 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             rot.invert();
             rot.transformPoint(up_average);
 
-            // Find roll angle around the axis, only x/y is important (z would pitch it)
+            // Find base roll angle around the axis, only x/y is important (z would pitch it)
             double roll = Math.toDegrees(Math.atan2(-up_average.getX(), up_average.getY()));
 
-            // Banking
-            /*
-            {
-                if (prevDir == null) {
-                    prevDir = wheelDir.clone();
+            TrainProperties props = member.getGroup().getProperties();
+            if (props.getBankingStrength() != 0.0) {
+                // Track and filter position
+                if (prevPos == null) {
+                    this.prevPos = offset.clone();
+                }
+                Vector mov = offset.clone().subtract(this.prevPos);
+                this.prevPos = offset.clone();
+
+                if (this.prevDir == null) {
+                    this.prevDir = mov.clone();
+                } else {
+                    this.prevDir.add(mov);
+                    this.prevDir.multiply(0.5);
                 }
 
-                Vector diff = wheelDir.clone().crossProduct(this.prevDir);
+                double fr = 1.0 - (1.0 / props.getBankingSmoothness());
+                double forward = fr / props.getBankingStrength(); // this.prevDir.dot(wheelDir);
+                double side = this.prevDir.dot(wheelDir.clone().crossProduct(up_average));
+                r += side;
+                r *= fr;
 
-                double f = DebugUtil.getDoubleValue("f", 0.2);
-                this.prevDir.multiply(1.0 - f).add(wheelDir.clone().multiply(f));
-                
-                if (!MathUtil.isHeadingTo(wheelDir, entity.getVelocity())) {
-                    diff.multiply(-1.0);
-                }
-                
-                //rot.transformPoint(diff);
-                
-                //roll += 90.0 * diff.getY();
-                //roll += DebugUtil.getDoubleValue("test",  0.0);
+                roll -= Math.toDegrees(Math.atan2(r, Math.abs(forward)));
             }
-            */
-           
-            
-            
+
             // Roll around the axis, also including roll from maths
             transform.rotateZ(roll + member.getRoll());     
-            
-            {
-                Matrix4x4 a = transform.clone();
-                a.translate(2.0, 0.0, 0.0);
-                Vector v = a.toVector();
-                Location loc = new Location(member.getEntity().getWorld(), v.getX(), v.getY(), v.getZ());
-                Util.spawnParticle(loc, Particle.WATER_BUBBLE);
-            }
-            
         }
         return transform;
     }

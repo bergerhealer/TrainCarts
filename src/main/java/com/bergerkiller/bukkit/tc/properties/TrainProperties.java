@@ -68,6 +68,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
     private double waitDistance = 0.0;
+    private double bankingStrength = 0.0;
+    private double bankingSmoothness = 10.0;
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -430,6 +432,22 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setPlayerTakeable(boolean takeable) {
         this.allowPlayerTake = takeable;
+    }
+
+    public double getBankingStrength() {
+        return this.bankingStrength;
+    }
+
+    public double getBankingSmoothness() {
+        return this.bankingSmoothness;
+    }
+
+    public void setBankingStrength(double strength) {
+        this.bankingStrength = strength;
+    }
+
+    public void setBankingSmoothness(double smoothness) {
+        this.bankingSmoothness = smoothness;
     }
 
     @Override
@@ -917,6 +935,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setPlayersExit(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "invincible", "godmode")) {
             this.setInvincible(ParseUtil.parseBool(arg));
+        } else if (LogicUtil.contains(key, "banking")) {
+            String[] args = arg.split(" ");
+            setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
+            if (args.length >= 2) {
+                setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
+            }
         } else if (key.equals("setownerperm")) {
             for (CartProperties prop : this) {
                 prop.clearOwnerPermissions();
@@ -1074,6 +1098,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.blockTypes = node.get("blockTypes", "");
         this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
 
+        // Banking
+        if (node.isNode("banking")) {
+            ConfigurationNode banking = node.getNode("banking");
+            this.bankingStrength = banking.get("strength", this.bankingStrength);
+            this.bankingSmoothness = banking.get("smoothness", this.bankingSmoothness);
+        }
+
         // Apply block types / block height to the actual minecart, if set
         if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
             MinecartGroup group = this.getHolder();
@@ -1115,6 +1146,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.blockTypes = source.blockTypes;
         this.blockOffset = source.blockOffset;
         this.waitDistance = source.waitDistance;
+        this.bankingStrength = source.bankingStrength;
+        this.bankingSmoothness = source.bankingSmoothness;
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -1132,6 +1165,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
         node.set("waitDistance", this.waitDistance);
+
+        ConfigurationNode banking = node.getNode("banking");
+        banking.set("strength", this.bankingStrength);
+        banking.set("smoothness", this.bankingSmoothness);
 
         if (this.isSlowingDownAll()) {
             node.set("slowDown", true);
@@ -1168,6 +1205,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
+
+        if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
+            ConfigurationNode banking = node.getNode("banking");
+            banking.set("strength", this.bankingStrength != 0.0 ? this.bankingStrength : null);
+            banking.set("smoothness", this.bankingSmoothness != 10.0 ? this.bankingSmoothness : null);
+        } else {
+            node.remove("banking");
+        }
 
         if (this.isSlowingDownAll()) {
             node.remove("slowDown");

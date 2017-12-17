@@ -460,7 +460,7 @@ public class TrainCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
             }
-        } else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
+        } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
             return true;
         } else {
