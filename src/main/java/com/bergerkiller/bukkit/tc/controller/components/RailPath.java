@@ -326,7 +326,7 @@ public class RailPath {
 
         public BlockFace getMotionFace() {
             if (motX < -0.001 || motX > 0.001 || motZ < -0.001 || motZ > 0.001) {
-                return FaceUtil.getDirection(motX, motZ, true);
+                return FaceUtil.getDirection(motX, motZ, false);
             } else {
                 return FaceUtil.getVertical(motY);
             }

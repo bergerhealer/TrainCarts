@@ -1000,6 +1000,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         entity.setSize(model.getCartLength(), 0.7f);
         this.backWheelTracker.setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
         this.frontWheelTracker.setDistance(0.5 * model.getWheelDistance() + model.getWheelCenter());
+
+        // Limit the wheel distances to the bounds of half the cart length and 0.0
+        double halfLength = 0.5 * model.getCartLength();
+        if (this.backWheelTracker.getDistance() < 0.0) {
+            this.backWheelTracker.setDistance(0.0);
+        } else if (this.backWheelTracker.getDistance() > halfLength) {
+            this.backWheelTracker.setDistance(halfLength);
+        }
+        if (this.frontWheelTracker.getDistance() < 0.0) {
+            this.frontWheelTracker.setDistance(0.0);
+        } else if (this.frontWheelTracker.getDistance() > halfLength) {
+            this.frontWheelTracker.setDistance(halfLength);
+        }
     }
 
     /**

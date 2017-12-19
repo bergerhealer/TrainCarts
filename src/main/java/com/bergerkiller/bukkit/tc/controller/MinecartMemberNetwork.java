@@ -371,100 +371,98 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     
     public Matrix4x4 getLiveTransform() {
         MinecartMember<?> member = this.getMember();
-        Matrix4x4 transform = new Matrix4x4();
 
         // Get back and front wheel positions
-        Vector frontWheelPos = member.getFrontWheel().getPosition();
-        Vector backWheelPos = member.getBackWheel().getPosition();
+        Vector middlePosition = null;
         Vector wheelDir = null;
-        if (frontWheelPos != null && backWheelPos != null) {
-            wheelDir = new Vector();
-            wheelDir.add(frontWheelPos);
-            wheelDir.subtract(backWheelPos);
-            double length = wheelDir.length();
-            if (length >= 0.0001) {
-                wheelDir.multiply(1.0 / length);
-            } else {
-                wheelDir = null;
-            }
-        }
-
-        if (wheelDir == null) {
-
-            // Translate the transform based on yaw/pitch/roll
-            transform.translateRotate(
-                    (this.locLive.getX()),
-                    (this.locLive.getY()),
-                    (this.locLive.getZ()),
-                    this.locLive.getPitch(),
-                    this.locLive.getYaw() + 90.0f,
-                    this.getMember().getRoll()
-            );
-
-        } else {
-
-            // Translate the transform based on the wheel offsets
-            Vector offset = new Vector();
-            offset.add(frontWheelPos);
-            offset.add(backWheelPos);
-            offset.multiply(0.5);
-            offset.add(this.locLive.vector());
-            transform.translate(offset);
-
-            // Rotate the transform based on the wheel direction
-            Quaternion rot = new Quaternion();
-            rot.rotateY(-(90.0f + MathUtil.getLookAtYaw(wheelDir)));
-            rot.rotateX(MathUtil.getLookAtPitch(wheelDir.getX(), wheelDir.getY(), wheelDir.getZ()));
-            
-            transform.rotate(rot);
-
-            // Calculate average 'up' vector
-            Vector up_average = new Vector();
-            up_average.add(member.getFrontWheel().getUp());
-            up_average.add(member.getBackWheel().getUp());
-            up_average.multiply(0.5);
-
-            /*
-            Location loc = member.getEntity().getLocation();
-            loc.add(up_average);
-            Util.spawnParticle(loc, Particle.WATER_BUBBLE);
-            */
-            
-            // Rotate the up vector so that it is aligned with the direction
-            rot.invert();
-            rot.transformPoint(up_average);
-
-            // Find base roll angle around the axis, only x/y is important (z would pitch it)
-            double roll = Math.toDegrees(Math.atan2(-up_average.getX(), up_average.getY()));
-
-            TrainProperties props = member.getGroup().getProperties();
-            if (props.getBankingStrength() != 0.0) {
-                // Track and filter position
-                if (prevPos == null) {
-                    this.prevPos = offset.clone();
-                }
-                Vector mov = offset.clone().subtract(this.prevPos);
-                this.prevPos = offset.clone();
-
-                if (this.prevDir == null) {
-                    this.prevDir = mov.clone();
+        {
+            Vector frontWheelPos = member.getFrontWheel().getPosition();
+            Vector backWheelPos = member.getBackWheel().getPosition();
+            if (frontWheelPos != null && backWheelPos != null) {
+                wheelDir = new Vector();
+                wheelDir.add(frontWheelPos);
+                wheelDir.subtract(backWheelPos);
+                double length = wheelDir.length();
+                if (length >= 0.0001) {
+                    wheelDir.multiply(1.0 / length);
                 } else {
-                    this.prevDir.add(mov);
-                    this.prevDir.multiply(0.5);
+                    wheelDir = null;
                 }
+            }
+            if (wheelDir == null) {
+                // When not known, calculate an approximate from the yaw/pitch/roll of the Minecart
+                wheelDir = new Vector(0.0, 0.0, 1.0);
+                Quaternion quat = new Quaternion();
+                quat.rotateYawPitchRoll(this.locLive.getPitch(), this.locLive.getYaw() + 90.0f, this.getMember().getRoll());
+                quat.transformPoint(wheelDir);
+                middlePosition = this.locLive.vector();
+            } else {
+                // Take average of the two wheel positions for where the Minecart should be
+                // TODO: Is this actually correct?
+                double diff = member.getBackWheel().getDistance() - member.getFrontWheel().getDistance();
 
-                double fr = 1.0 - (1.0 / props.getBankingSmoothness());
-                double forward = fr / props.getBankingStrength(); // this.prevDir.dot(wheelDir);
-                double side = this.prevDir.dot(wheelDir.clone().crossProduct(up_average));
-                r += side;
-                r *= fr;
+                middlePosition = new Vector();
+                middlePosition.add(frontWheelPos);
+                middlePosition.add(backWheelPos);
+                if (diff != 0.0) {
+                    middlePosition.add(wheelDir.clone().multiply(diff));
+                }
+                middlePosition.multiply(0.5);
+                middlePosition.add(this.locLive.vector());
+            }
+        }
 
-                roll -= Math.toDegrees(Math.atan2(r, Math.abs(forward)));
+        // Translate the transform based on the wheel offsets
+        Matrix4x4 transform = new Matrix4x4();
+        transform.translate(middlePosition);
+
+        // Rotate the transform based on the wheel direction
+        Quaternion rot = new Quaternion();
+        rot.rotateY(-(90.0f + MathUtil.getLookAtYaw(wheelDir)));
+        rot.rotateX(MathUtil.getLookAtPitch(wheelDir.getX(), wheelDir.getY(), wheelDir.getZ()));
+        
+        transform.rotate(rot);
+
+        // Calculate average 'up' vector
+        Vector up_average = new Vector();
+        up_average.add(member.getFrontWheel().getUp());
+        up_average.add(member.getBackWheel().getUp());
+        up_average.multiply(0.5);
+
+        // Rotate the up vector so that it is aligned with the direction
+        rot.invert();
+        rot.transformPoint(up_average);
+
+        // Find base roll angle around the axis, only x/y is important (z would pitch it)
+        double roll = Math.toDegrees(Math.atan2(-up_average.getX(), up_average.getY()));
+
+        TrainProperties props = member.getGroup().getProperties();
+        if (props.getBankingStrength() != 0.0) {
+            // Track and filter position
+            if (prevPos == null) {
+                this.prevPos = middlePosition.clone();
+            }
+            Vector mov = middlePosition.clone().subtract(this.prevPos);
+            this.prevPos = middlePosition.clone();
+
+            if (this.prevDir == null) {
+                this.prevDir = mov.clone();
+            } else {
+                this.prevDir.add(mov);
+                this.prevDir.multiply(0.5);
             }
 
-            // Roll around the axis, also including roll from maths
-            transform.rotateZ(roll + member.getRoll());     
+            double fr = 1.0 - (1.0 / props.getBankingSmoothness());
+            double forward = fr / props.getBankingStrength(); // this.prevDir.dot(wheelDir);
+            double side = this.prevDir.dot(wheelDir.clone().crossProduct(up_average));
+            r += side;
+            r *= fr;
+
+            roll -= Math.toDegrees(Math.atan2(r, Math.abs(forward)));
         }
+
+        // Roll around the axis, also including roll from maths
+        transform.rotateZ(roll + member.getRoll());    
         return transform;
     }
 

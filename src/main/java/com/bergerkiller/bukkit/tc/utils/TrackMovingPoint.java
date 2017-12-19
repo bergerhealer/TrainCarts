@@ -26,7 +26,7 @@ public class TrackMovingPoint {
      * and initial direction specified
      *
      * @param startBlock     of the rail to start moving from
-     * @param startDirection to start moving into
+     * @param startDirection to start moving into (CAN NOT BE SUB-CARDINAL!)
      */
     public TrackMovingPoint(Block startBlock, BlockFace startDirection) {
         this.currentTrack = this.nextTrack = startBlock;

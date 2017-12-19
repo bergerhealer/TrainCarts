@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -13,6 +15,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCTimings;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
@@ -193,7 +196,7 @@ public class RailTrackerGroup extends RailTracker {
                     wheelDistance -= moved;
                     loopCtr = 0;
                 } else if (++loopCtr > LOOP_LIMIT) {
-                    System.err.println("Loop detected logic=" + logic + " rail=" + p.currentTrack);
+                    System.err.println("Loop detected [1] logic=" + logic + " rail=" + p.currentTrack);
                     break;
                 }
 
@@ -247,6 +250,7 @@ public class RailTrackerGroup extends RailTracker {
             for (int i = 0; i < this.prevRails.size(); i++) {
                 if (this.prevRails.get(i).position.equals(startInfo.position)) {
                     prevRailStartIndex = i;
+                    break;
                 }
             }
 
@@ -257,8 +261,8 @@ public class RailTrackerGroup extends RailTracker {
                 TrackedRail prev = this.prevRails.get(0);
                 Block nextPos = prev.type.getNextPos(prev.block, prev.direction);
                 if (nextPos != null && nextPos.equals(startInfo.minecartBlock)) {
-                    this.prevRails.add(1, startInfo);
-                    prevRailStartIndex = 1;
+                    this.prevRails.add(0, startInfo);
+                    prevRailStartIndex = 0;
                 }
             }
 
@@ -331,7 +335,7 @@ public class RailTrackerGroup extends RailTracker {
                         wheelDistance -= moved;
                         loopCtr = 0;
                     } else if (++loopCtr > LOOP_LIMIT) {
-                        System.err.println("Loop detected logic=" + logic + " rail=" + p.currentTrack);
+                        System.err.println("Loop detected [2] logic=" + logic + " rail=" + p.currentTrack);
                         break;
                     }
 
@@ -339,7 +343,8 @@ public class RailTrackerGroup extends RailTracker {
                         first = false;
                     } else {
                         // Add rail information
-                        this.rails.add(railIndex, new TrackedRail(tail, p, false));
+                        TrackedRail rail = new TrackedRail(tail, p, false);
+                        this.rails.add(railIndex, rail.changeDirection(rail.direction.getOppositeFace()));
                     }
                 }
             }
@@ -348,6 +353,8 @@ public class RailTrackerGroup extends RailTracker {
             if (position != null) {
                 Location loc = position.toLocation(owner.getWorld());
                 Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+                
+                //Util.spawnParticle(owner.get(0).getEntity().getLocation(), Particle.REDSTONE);
             }
             */
         }
