@@ -966,6 +966,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private double getSpeedAhead() {
+        // Not sure if fixed, but if this train is empty, return MAX_VALUE
+        if (this.isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+
         boolean checkTrains = false;
         double waitDistance = this.getProperties().getWaitDistance();
         if (waitDistance > 0.0) {
@@ -1208,7 +1213,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             this.updateDirection();
 
             // Stop if all dead
-            if (this.size() == 0) {
+            if (this.isEmpty()) {
                 return false;
             }
 
@@ -1234,7 +1239,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 //Perform forward force or not? First check if we are not messing up...
                 boolean performUpdate = true;
                 for (int i = 0; i < this.size() - 1; i++) {
-                    // (!head(i + 1).isFollowingOnTrack(head(i))) {
                     if (get(i).getRailTracker().isTrainSplit()) {
                         performUpdate = false;
                         break;
