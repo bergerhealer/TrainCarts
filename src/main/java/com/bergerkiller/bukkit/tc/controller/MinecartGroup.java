@@ -1270,8 +1270,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // Refresh the positions of the wheels for all Minecarts
             for (MinecartMember<?> member : this) {
-                member.getBackWheel().update();
-                member.getFrontWheel().update();
+                member.getWheels().update();
             }
 
             // Refresh chunks

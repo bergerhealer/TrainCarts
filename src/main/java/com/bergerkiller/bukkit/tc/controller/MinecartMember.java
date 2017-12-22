@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
 import com.bergerkiller.bukkit.tc.controller.components.WheelTracker;
+import com.bergerkiller.bukkit.tc.controller.components.WheelTrackerMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
@@ -78,8 +79,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
     private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
-    private final WheelTracker frontWheelTracker = new WheelTracker(this, true);
-    private final WheelTracker backWheelTracker = new WheelTracker(this, false);
+    private final WheelTrackerMember wheelTracker = new WheelTrackerMember(this);
     private final ToggledState railActivated = new ToggledState(false);
     public boolean vertToSlope = false;
     protected MinecartGroup group;
@@ -119,8 +119,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.railTrackerMember.onAttached();
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.updateDirection();
-        this.backWheelTracker.update();
-        this.frontWheelTracker.update();
+        this.wheelTracker.update();
     }
 
     @Override
@@ -224,12 +223,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return blockTracker;
     }
 
-    public WheelTracker getFrontWheel() {
-        return frontWheelTracker;
-    }
-
-    public WheelTracker getBackWheel() {
-        return backWheelTracker;
+    public WheelTrackerMember getWheels() {
+        return wheelTracker;
     }
 
     /**
@@ -998,20 +993,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onModelChanged(AttachmentModel model) {
         entity.setSize(model.getCartLength(), 0.7f);
-        this.backWheelTracker.setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
-        this.frontWheelTracker.setDistance(0.5 * model.getWheelDistance() + model.getWheelCenter());
+        this.wheelTracker.back().setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
+        this.wheelTracker.front().setDistance(0.5 * model.getWheelDistance() + model.getWheelCenter());
 
         // Limit the wheel distances to the bounds of half the cart length and 0.0
         double halfLength = 0.5 * model.getCartLength();
-        if (this.backWheelTracker.getDistance() < 0.0) {
-            this.backWheelTracker.setDistance(0.0);
-        } else if (this.backWheelTracker.getDistance() > halfLength) {
-            this.backWheelTracker.setDistance(halfLength);
+        if (this.wheelTracker.back().getDistance() < 0.0) {
+            this.wheelTracker.back().setDistance(0.0);
+        } else if (this.wheelTracker.back().getDistance() > halfLength) {
+            this.wheelTracker.back().setDistance(halfLength);
         }
-        if (this.frontWheelTracker.getDistance() < 0.0) {
-            this.frontWheelTracker.setDistance(0.0);
-        } else if (this.frontWheelTracker.getDistance() > halfLength) {
-            this.frontWheelTracker.setDistance(halfLength);
+        if (this.wheelTracker.front().getDistance() < 0.0) {
+            this.wheelTracker.front().setDistance(0.0);
+        } else if (this.wheelTracker.front().getDistance() > halfLength) {
+            this.wheelTracker.front().setDistance(halfLength);
         }
     }
 

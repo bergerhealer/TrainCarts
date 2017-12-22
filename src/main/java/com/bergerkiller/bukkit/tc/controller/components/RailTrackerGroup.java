@@ -169,9 +169,9 @@ public class RailTrackerGroup extends RailTracker {
         double wheelDistance;
         Vector ownDirection = MathUtil.getDirection(tail.getEntity().loc.getYaw() + 90.0f, tail.getEntity().loc.getPitch());
         if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
-            wheelDistance = tail.getFrontWheel().getDistance();
+            wheelDistance = tail.getWheels().front().getDistance();
         } else {
-            wheelDistance = tail.getBackWheel().getDistance();
+            wheelDistance = tail.getWheels().back().getDistance();
         }
 
         // Calculate the actual direction in which the minecart moves
@@ -236,9 +236,9 @@ public class RailTrackerGroup extends RailTracker {
         double wheelDistance;
         Vector ownDirection = MathUtil.getDirection(tail.getEntity().loc.getYaw() + 90.0f, tail.getEntity().loc.getPitch());
         if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
-            wheelDistance = tail.getBackWheel().getDistance();
+            wheelDistance = tail.getWheels().back().getDistance();
         } else {
-            wheelDistance = tail.getFrontWheel().getDistance();
+            wheelDistance = tail.getWheels().front().getDistance();
         }
 
         // Use known previous rail information to walk backwards to find the rails of the back wheel

@@ -7,12 +7,10 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
@@ -21,8 +19,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
-import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -372,70 +368,15 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public Matrix4x4 getLiveTransform() {
         MinecartMember<?> member = this.getMember();
 
-        // Get back and front wheel positions
-        Vector middlePosition = null;
-        Vector wheelDir = null;
-        {
-            Vector frontWheelPos = member.getFrontWheel().getPosition();
-            Vector backWheelPos = member.getBackWheel().getPosition();
-            if (frontWheelPos != null && backWheelPos != null) {
-                wheelDir = new Vector();
-                wheelDir.add(frontWheelPos);
-                wheelDir.subtract(backWheelPos);
-                double length = wheelDir.length();
-                if (length >= 0.0001) {
-                    wheelDir.multiply(1.0 / length);
-                } else {
-                    wheelDir = null;
-                }
-            }
-            if (wheelDir == null) {
-                // When not known, calculate an approximate from the yaw/pitch/roll of the Minecart
-                wheelDir = new Vector(0.0, 0.0, 1.0);
-                Quaternion quat = new Quaternion();
-                quat.rotateYawPitchRoll(this.locLive.getPitch(), this.locLive.getYaw() + 90.0f, this.getMember().getRoll());
-                quat.transformPoint(wheelDir);
-                middlePosition = this.locLive.vector();
-            } else {
-                // Take average of the two wheel positions for where the Minecart should be
-                // TODO: Is this actually correct?
-                double diff = member.getBackWheel().getDistance() - member.getFrontWheel().getDistance();
-
-                middlePosition = new Vector();
-                middlePosition.add(frontWheelPos);
-                middlePosition.add(backWheelPos);
-                if (diff != 0.0) {
-                    middlePosition.add(wheelDir.clone().multiply(diff));
-                }
-                middlePosition.multiply(0.5);
-                middlePosition.add(this.locLive.vector());
-            }
-        }
-
         // Translate the transform based on the wheel offsets
-        Matrix4x4 transform = new Matrix4x4();
-        transform.translate(middlePosition);
+        Quaternion rotation = member.getWheels().getRotation();
 
-        // Rotate the transform based on the wheel direction
-        Quaternion rot = new Quaternion();
-        rot.rotateY(-(90.0f + MathUtil.getLookAtYaw(wheelDir)));
-        rot.rotateX(MathUtil.getLookAtPitch(wheelDir.getX(), wheelDir.getY(), wheelDir.getZ()));
+        // Additional roll provided by banking/shaking
+        double roll = member.getRoll();
+               
         
-        transform.rotate(rot);
-
-        // Calculate average 'up' vector
-        Vector up_average = new Vector();
-        up_average.add(member.getFrontWheel().getUp());
-        up_average.add(member.getBackWheel().getUp());
-        up_average.multiply(0.5);
-
-        // Rotate the up vector so that it is aligned with the direction
-        rot.invert();
-        rot.transformPoint(up_average);
-
-        // Find base roll angle around the axis, only x/y is important (z would pitch it)
-        double roll = Math.toDegrees(Math.atan2(-up_average.getX(), up_average.getY()));
-
+        
+        /*
         TrainProperties props = member.getGroup().getProperties();
         if (props.getBankingStrength() != 0.0) {
             // Track and filter position
@@ -454,15 +395,19 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
             double fr = 1.0 - (1.0 / props.getBankingSmoothness());
             double forward = fr / props.getBankingStrength(); // this.prevDir.dot(wheelDir);
-            double side = this.prevDir.dot(wheelDir.clone().crossProduct(up_average));
+            double side = this.prevDir.dot(wheelDir.clone().crossProduct(wheelUp));
             r += side;
             r *= fr;
 
-            roll -= Math.toDegrees(Math.atan2(r, Math.abs(forward)));
+            //roll -= Math.toDegrees(Math.atan2(r, Math.abs(forward)));
         }
+        */
 
-        // Roll around the axis, also including roll from maths
-        transform.rotateZ(roll + member.getRoll());    
+        // Combine translation and rotation information into a 4x4 matrix
+        Matrix4x4 transform = new Matrix4x4();
+        transform.translate(member.getWheels().getPosition());
+        transform.rotate(rotation);
+        transform.rotateZ(member.getWheels().getBankingRoll());
         return transform;
     }
 
