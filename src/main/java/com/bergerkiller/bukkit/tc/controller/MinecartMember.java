@@ -247,7 +247,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             double dy = this.cachedOrientation_quat.getY() - orientation.getY();
             double dz = this.cachedOrientation_quat.getZ() - orientation.getZ();
             double dw = this.cachedOrientation_quat.getW() - orientation.getW();
-            if ((dx*dx+dy*dy+dz*dz+dw*dw) < 1E-5) {
+            if ((dx*dx+dy*dy+dz*dz+dw*dw) < 1E-20) {
+                this.cachedOrientation_quat = orientation.clone();
                 return;
             }
         }
