@@ -176,7 +176,7 @@ public class RailTrackerGroup extends RailTracker {
         Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
 
         // Walk the distance from the current position (and rails) in the direction
-        if (wheelDistance > WheelTracker.MIN_WHEEL_DISTANCE) {
+        if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
             TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.direction);
             Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
 
@@ -241,7 +241,7 @@ public class RailTrackerGroup extends RailTracker {
         // Use known previous rail information to walk backwards to find the rails of the back wheel
         // Any distance remaining will have to be settled by walking the rails backwards, which might fail
         // First, find the index of the rails in prevRails from which we can start looking
-        if (wheelDistance > WheelTracker.MIN_WHEEL_DISTANCE) {
+        if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
             // Figure out which rail to start looking from
             int prevRailStartIndex = -1;
             for (int i = 0; i < this.prevRails.size(); i++) {
