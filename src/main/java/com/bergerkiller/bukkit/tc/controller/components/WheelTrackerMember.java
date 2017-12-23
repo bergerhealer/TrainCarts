@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.List;
 
-import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -280,57 +279,32 @@ public class WheelTrackerMember {
                 return;
             }
 
+            // Start by doing a movement of 0 distance to correctly calculate the movement direction
+            // This initializes the running Position object correctly
             TrackedRail rail = rails.get(railIndex);
-
-            // Calculate the approximate direction of this Minecart based on yaw/pitch
-            // This is used to decide whether we move +/- by the members for front/back
-            Vector direction = FaceUtil.faceToVector(this.member.getDirection());
-            boolean isFrontFacing = MathUtil.isHeadingTo(this.member.getDirection(), this.member.getOrientationForward());
-            if (!isFrontFacing) {
-                direction.multiply(-1.0);
-            }
-            if (!this._front) {
-                direction.multiply(-1.0);
-            }
-
-            // Walk along the paths we know
-            BlockFace memberDir = member.getDirection();
             RailPath.Position position = new RailPath.Position();
             position.posX = this.member.getEntity().loc.getX();
             position.posY = this.member.getEntity().loc.getY();
             position.posZ = this.member.getEntity().loc.getZ();
-            position.reverse = this._front ^ isFrontFacing;
+            position.setMotion(member.getDirection());
+            rail.getPath().move(position, rail.block, 0.0);
+
+            // Flip the direction when the orientation vs front differs
+            int order = 1;
+            if ((position.motDot(member.getOrientationForward()) > 0.0) ^ this._front) {
+                position.motX = -position.motX;
+                position.motY = -position.motY;
+                position.motZ = -position.motZ;
+                position.reverse = true;
+                order = -1;
+            }
+
             if (this._distance > MIN_WHEEL_DISTANCE) {
                 // Distance is set: walk the path
-                position.motX = memberDir.getModX();
-                position.motY = memberDir.getModY();
-                position.motZ = memberDir.getModZ();
-                int order = 0;
                 double remainingDistance = this._distance;
                 for (int index = railIndex; index >= 0 && index < rails.size() && remainingDistance >= 0.0001; index += order) {
                     rail = rails.get(index);
                     RailPath path = rail.getPath();
-                    if (order == 0)  {
-                        // Calculate the current movement direction of this Minecart
-                        // This is done by taking the getDirection() blockface and feeding it into the path
-                        // By using length 0, no actual movement is done, and only direction is retrieved
-                        // Use this information to figure out whether we iterate +1 or -1
-                        path.move(position, rail.block, 0.0);
-                        double dot = (position.motX * direction.getX()) +
-                                     (position.motY * direction.getY()) +
-                                     (position.motZ * direction.getZ());
-
-                        if (dot >= 0.0) {
-                            order = -1;
-                        } else {
-                            order = 1;
-                        }
-
-                        // Restore position motion for actual movement (re-use Position)
-                        position.motX = direction.getX();
-                        position.motY = direction.getY();
-                        position.motZ = direction.getZ();
-                    }
                     remainingDistance -= path.move(position, rail.block, remainingDistance);
                 }
 
@@ -338,15 +312,6 @@ public class WheelTrackerMember {
                 position.posX += position.motX * remainingDistance;
                 position.posY += position.motY * remainingDistance;
                 position.posZ += position.motZ * remainingDistance;
-            } else {
-                // No distance is set: refresh position on the current rail without moving
-                rail = rails.get(railIndex);
-                RailPath path = rail.getPath();
-
-                position.motX = direction.getX();
-                position.motY = direction.getY();
-                position.motZ = direction.getZ();
-                path.move(position, rail.block, 0.0);
             }
 
             // Refresh vectors

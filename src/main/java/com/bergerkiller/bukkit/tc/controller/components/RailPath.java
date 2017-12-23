@@ -338,6 +338,10 @@ public class RailPath {
             }
         }
 
+        public double motDot(Vector v) {
+            return (motX * v.getX()) + (motY * v.getY()) + (motZ * v.getZ());
+        }
+
         public double motDot(BlockFace face) {
             return (motX * face.getModX()) + (motY * face.getModY()) + (motZ * face.getModZ());
         }
@@ -348,6 +352,12 @@ public class RailPath {
 
         public double motDot(double dx, double dy, double dz) {
             return (motX * dx) + (motY * dy) + (motZ * dz);
+        }
+
+        public void setMotion(BlockFace movement) {
+            this.motX = movement.getModX();
+            this.motY = movement.getModY();
+            this.motZ = movement.getModZ();
         }
 
         public static Position fromPosDir(Vector position, Vector direction) {
