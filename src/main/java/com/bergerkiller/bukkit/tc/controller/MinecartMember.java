@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
@@ -94,7 +95,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private CartProperties properties;
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
     private Vector speedFactor = new Vector(0.0, 0.0, 0.0);
-    private float roll = 0.0f; // Roll is a custom property added, which is not persistently stored.
+    private double roll = 0.0; // Roll is a custom property added, which is not persistently stored.
+    private Quaternion cachedOrientation_quat = null;
+    private float cachedOrientation_yaw = 0.0f;
+    private float cachedOrientation_pitch = 0.0f;
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -188,6 +192,70 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             return this.group.indexOf(this);
         }
+    }
+
+    /**
+     * Gets the orientation of the Minecart. This is the direction
+     * of the 'front' of the Minecart model. The orientation is automatically
+     * synchronized from/to the yaw/pitch rotation angles of the Entity.
+     * To avoid gymbal lock, the Quaternion is cached and returned for so long
+     * the yaw/pitch of the Entity is not altered.
+     * 
+     * @return orientation
+     */
+    public Quaternion getOrientation() {
+        if (entity.loc.getYaw() != this.cachedOrientation_yaw) {
+            this.cachedOrientation_yaw = entity.loc.getYaw();
+            this.cachedOrientation_quat = null;
+        }
+        if (entity.loc.getPitch() != this.cachedOrientation_pitch) {
+            this.cachedOrientation_pitch = entity.loc.getPitch();
+            this.cachedOrientation_quat = null;
+        }
+        if (this.cachedOrientation_quat == null) {
+            this.cachedOrientation_quat = Quaternion.fromYawPitchRoll(
+                    this.cachedOrientation_pitch,
+                    this.cachedOrientation_yaw + 90.0f,
+                    0.0f);
+        }
+        return this.cachedOrientation_quat.clone();
+    }
+
+    /**
+     * Gets the forward direction vector of the orientation of the Minecart.
+     * See also: {@link #getOrientation()}.
+     * 
+     * @return forward orientation vector
+     */
+    public Vector getOrientationForward() {
+        //TODO: Beneficial to cache this maybe?
+        return this.getOrientation().forwardVector();
+    }
+
+    /**
+     * Sets the orientation of the Minecart. This is the direction vector
+     * of the 'front' of the Minecart model. The orientation is automatically
+     * synchronized from/to the yaw/pitch rotation angles of the Entity.
+     * 
+     * @param orientation
+     */
+    public void setOrientation(Quaternion orientation) {
+        // Check if not already equal. Don't do anything if it is.
+        // Saves unneeded trig function calls
+        if (this.cachedOrientation_quat != null) {
+            double dx = this.cachedOrientation_quat.getX() - orientation.getX();
+            double dy = this.cachedOrientation_quat.getY() - orientation.getY();
+            double dz = this.cachedOrientation_quat.getZ() - orientation.getZ();
+            double dw = this.cachedOrientation_quat.getW() - orientation.getW();
+            if ((dx*dx+dy*dy+dz*dz+dw*dw) < 1E-5) {
+                return;
+            }
+        }
+
+        // Refresh
+        this.cachedOrientation_quat = orientation.clone();
+        Vector ypr = this.cachedOrientation_quat.getYawPitchRoll();
+        entity.setRotation((float) ypr.getY() - 90.0f, (float) ypr.getX());
     }
 
     public MinecartMember<?> getNeighbour(int offset) {
@@ -1259,7 +1327,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Normalize the vector. Take extra care to avoid a NaN when the vector length approaches zero
         double length = MathUtil.length(dx, dy, dz);
         if (length < 0.0001) {
-            return MathUtil.getDirection(entity.loc.getYaw(), entity.loc.getPitch());
+            return this.getOrientationForward();
         } else {
             return new Vector(dx / length, dy / length, dz / length);
         }
@@ -1410,7 +1478,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         getRailType().onPostMove(this);
 
         // Update rotation
-        getRailLogic().onRotationUpdate(this);
+        //getRailLogic().onRotationUpdate(this);
 
         // Invalidate volatile information
         getRailTracker().setLiveRailLogic();
@@ -1503,7 +1571,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @param newroll
      */
-    public void setRoll(float newroll) {
+    public void setRoll(double newroll) {
         if (newroll != this.roll) {
             this.roll = newroll;
         }
@@ -1515,10 +1583,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @return roll angle
      */
-    public float getRoll() {
-        float result = this.roll;
+    public double getRoll() {
+        double result = this.roll;
         //TODO: Integrate shaking direction / shaking power into this roll value
-        return result;
+        return result + getWheels().getBankingRoll();
     }
 
     /**

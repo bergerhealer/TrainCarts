@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -12,17 +12,15 @@ public class WheelTrackerMember {
     private final MinecartMember<?> _owner;
     private final WheelTracker _front;
     private final WheelTracker _back;
-    private Quaternion _memberDir = null;
-    private Quaternion _rotation = null;
-    private Quaternion _rotation_last = null;
+    private Quaternion _orientation_last = null;
     private Vector _position = null;
     private double _centripetalForce = 0.0;
     private double _bankingRoll = 0.0;
 
     public WheelTrackerMember(MinecartMember<?> owner) {
         this._owner = owner;
-        this._front = new WheelTracker(this, true);
-        this._back = new WheelTracker(this, false);
+        this._front = new WheelTracker(owner, true);
+        this._back = new WheelTracker(owner, false);
     }
 
     public MinecartMember<?> getOwner() {
@@ -37,31 +35,11 @@ public class WheelTrackerMember {
         return this._back;
     }
 
-    public Quaternion getLastRotation() {
-        if (this._rotation_last == null) {
-            this._rotation_last = this.getRotation();
+    public Quaternion getLastOrientation() {
+        if (this._orientation_last == null) {
+            this._orientation_last = this._owner.getOrientation();
         }
-        return this._rotation_last;
-    }
-    
-    /**
-     * Obtains the rotation transformation that is applied
-     * 
-     * @return rotation
-     */
-    public Quaternion getRotation() {
-        if (this._rotation == null) {
-            Vector dir = front().getPosition().clone().subtract(back().getPosition());
-            if (dir.lengthSquared() < 0.0001) {
-                dir = this.getMemberDirection().forwardVector();
-            }
-            Vector up = front().getUp().clone().add(back().getUp()).multiply(0.5);
-            if (up.lengthSquared() < 0.0001) {
-                up = this.getMemberDirection().upVector();
-            }
-            this._rotation = Quaternion.fromLookDirection(dir, up);
-        }
-        return this._rotation;
+        return this._orientation_last;
     }
 
     /**
@@ -88,45 +66,59 @@ public class WheelTrackerMember {
         return this._position;
     }
 
-    /**
-     * Gets the (cached) direction a Minecart faces based on its own yaw/pitch/roll
-     * 
-     * @return member direction from entity yaw/pitch/roll
-     */
-    public Quaternion getMemberDirection() {
-        if (this._memberDir == null) {
-            this._memberDir = new Quaternion();
-            this._memberDir.rotateYawPitchRoll(
-                    _owner.getEntity().loc.getPitch(),
-                    _owner.getEntity().loc.getYaw() + 90.0f,
-                    _owner.getRoll()
-            );
-        }
-        return this._memberDir;
-    }
-
     public double getBankingRoll() {
         return this._bankingRoll;
     }
-    
+
     public void update() {
-        this._rotation_last = this.getRotation();
-        this._memberDir = null; // Reset
-        this._rotation = null; // Reset
+        this._orientation_last = this._owner.getOrientation();
         this._position = null; // Reset
         this._front.update();
         this._back.update();
+
+        // Calculate new orientation
+        Quaternion new_orientation;
+        {
+            Vector dir = front().getPosition().clone().subtract(back().getPosition());
+            if (dir.lengthSquared() < 0.0001) {
+                Vector fwd_a = front().getForward();
+                Vector fwd_b = back().getForward();
+
+                // Only allow this when the wheels have somewhat the same direction
+                // If they don't, then there is probably a glitch!
+                // Glitches often happen when a path crosses another path at a 90-degree angle
+                // There is no way to 'track back' correctly, so forward and backward direction are equal
+                // Because one wheel is 'backwards', it multiplies it with -1
+                // In those cases, the forward direction (in which we move) is most reliable
+                // This slightly suppresses it, but does not fix it...
+                if (fwd_a.dot(fwd_b) > 0.0) {
+                    dir = fwd_a.clone().add(fwd_b);
+                } else {
+                    Vector a = this._owner.getOrientationForward();
+                    if (a.dot(FaceUtil.faceToVector(this._owner.getDirection())) >= 0.0) {
+                        dir = fwd_a;
+                    } else {
+                        dir = fwd_b;
+                    }
+                }
+            }
+            Vector up = front().getUp().clone().add(back().getUp());
+            if (up.lengthSquared() < 0.0001) {
+                up = this._owner.getOrientation().upVector();
+            }
+            new_orientation = Quaternion.fromLookDirection(dir, up);
+        }
 
         // Calculate banking effects
         TrainProperties props = this._owner.getGroup().getProperties();
         if (props.getBankingStrength() != 0.0) {
             // Get the orientation difference between the current and last rotation
-            Quaternion q = Quaternion.divide(getRotation(), getLastRotation());
+            Quaternion q = Quaternion.divide(new_orientation, this.getLastOrientation());
 
             // Calculate the forward vector - the x (left/right) is what is interesting
             // This stores the change in direction, which allows calculation of centripetal force
             double centripetalForceStep = q.forwardVector().getX();
-            if (MathUtil.isHeadingTo(_owner.getDirection(), getRotation().forwardVector())) {
+            if (MathUtil.isHeadingTo(_owner.getDirection(), new_orientation.forwardVector())) {
                 centripetalForceStep = -centripetalForceStep;
             }
 
@@ -153,5 +145,8 @@ public class WheelTrackerMember {
         } else {
             this._bankingRoll = 0.0;
         }
+
+        // Refresh member orientation through rail logic
+        this._owner.getRailLogic().onUpdateOrientation(this._owner, new_orientation);
     }
 }

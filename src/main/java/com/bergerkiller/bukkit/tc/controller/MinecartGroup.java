@@ -1259,8 +1259,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Perform the move and post-movement logic
-            try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
-                for (MinecartMember<?> member : this) {
+            for (MinecartMember<?> member : this) {
+                try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
                     member.onPhysicsPostMove();
                     if (this.breakPhysics) return true;
                 }
@@ -1272,13 +1272,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return true; //false;
             }
 
-            // Refresh the positions of the wheels for all Minecarts
-            for (MinecartMember<?> member : this) {
-                member.getWheels().update();
-            }
-
             // Refresh chunks
             this.updateChunkInformation();
+
+            // Refresh wheel position information, important to do it AFTER updateDirection()
+            for (MinecartMember<?> member : this) {
+                try (Timings t = TCTimings.MEMBER_PHYSICS_UPDATE_WHEELS.start()) {
+                    member.getWheels().update();
+                }
+            }
 
             return true;
         } catch (MemberMissingException ex) {

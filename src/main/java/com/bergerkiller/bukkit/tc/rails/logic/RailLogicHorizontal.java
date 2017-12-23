@@ -109,18 +109,6 @@ public class RailLogicHorizontal extends RailLogic {
     }
 
     @Override
-    public void onRotationUpdate(MinecartMember<?> member) {
-        final float newyaw;
-        if (this.curved) {
-            newyaw = FaceUtil.faceToYaw(this.getDirection()) - 90.0f;
-        } else {
-            newyaw = FaceUtil.faceToYaw(this.getDirection());
-        }
-        final float newpitch = this.isUpsideDown() ? -180.0f : 0.0f;
-        member.setRotationWrap(newyaw, newpitch);
-    }
-
-    @Override
     public RailPath getPath() {
         if (this.railPath == RailPath.EMPTY) {
             // Initialize the rail path, making use of getFixedPosition for each node

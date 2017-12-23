@@ -43,18 +43,6 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
     }
 
     @Override
-    public void onRotationUpdate(MinecartMember<?> member) {
-        final float newyaw = FaceUtil.faceToYaw(this.getDirection());
-        final float newpitch;
-        if (this.isVerticalHalf(member)) {
-            newpitch = this.isUpsideDown() ? 90.0f : -90.f;
-        } else {
-            newpitch = this.isUpsideDown() ? 135.0f : -45.0f;
-        }
-        member.setRotationWrap(newyaw, newpitch);
-    }
-
-    @Override
     public boolean hasVerticalMovement() {
         return true;
     }

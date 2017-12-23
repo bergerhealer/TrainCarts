@@ -319,6 +319,12 @@ public class RailPath {
          * It is interpolated and calculated from the rail path roll values.
          */
         public double upX, upY, upZ;
+        /**
+         * Whether we are walking the path in reverse. This is important
+         * when applying the south-east rule when encountering an orthogonal
+         * rail path intersection.
+         */
+        public boolean reverse = false;
 
         public Location toLocation(World world) {
             return new Location(world, posX, posY, posZ);
@@ -586,8 +592,7 @@ public class RailPath {
             // Hitting the segment at a 90-degree angle
             // This means the path direction cannot be easily assessed from the direction
             // Assume the direction goes from the point closest to the point farthest
-            // TODO: South-west rule or something?
-            if (dot <= 0.0000001 && dot >= -0.0000001) {
+            if (dot <= 1e-8 && dot >= -1e-8) {
                 // Head-on: see if a previous or next segment knows our direction
                 int order = this.isHeadingToPrev(position) - this.isHeadingToNext(position);
                 if (order > 0) {
@@ -597,8 +602,14 @@ public class RailPath {
                     // Feedback from surrounding segments says go +1
                     dot = 1.0;
                 } else {
-                    // Dunno. Closest to end-point is from which we go
                     dot = this.p1.distanceSquared(position) - this.p0.distanceSquared(position);
+                    if (dot <= 1e-8 && dot >= -1e-8) {
+                        //TODO: South-east rule
+                    }
+
+                    if (position.reverse) {
+                        dot = -dot;
+                    }
                 }
             }
 

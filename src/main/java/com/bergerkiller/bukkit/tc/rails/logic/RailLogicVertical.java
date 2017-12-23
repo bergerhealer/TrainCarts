@@ -35,20 +35,6 @@ public class RailLogicVertical extends RailLogic {
     }
 
     @Override
-    public void onRotationUpdate(MinecartMember<?> member) {
-        //Update yaw and pitch based on motion
-        CommonMinecart<?> entity = member.getEntity();
-        final float oldyaw = entity.loc.getYaw();
-        float newyaw = oldyaw;
-        float newpitch = entity.loc.getPitch();
-
-        // Update yaw
-        newyaw = FaceUtil.faceToYaw(this.getDirection());
-        newpitch = TCConfig.allowVerticalPitch ? -90.0f : 0.0f;
-        member.setRotationWrap(newyaw, newpitch);
-    }
-
-    @Override
     public BlockFace getMovementDirection(BlockFace endDirection) {
         if (FaceUtil.isVertical(endDirection)) {
             return endDirection;

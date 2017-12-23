@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -15,7 +13,6 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCTimings;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
@@ -167,7 +164,7 @@ public class RailTrackerGroup extends RailTracker {
         // Simply walk the wheel distance forwards to find out that angle
         // Which wheel is in the direction we are going to be looking at?
         double wheelDistance;
-        Vector ownDirection = MathUtil.getDirection(tail.getEntity().loc.getYaw() + 90.0f, tail.getEntity().loc.getPitch());
+        Vector ownDirection = tail.getOrientationForward();
         if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
             wheelDistance = tail.getWheels().front().getDistance();
         } else {
@@ -179,7 +176,7 @@ public class RailTrackerGroup extends RailTracker {
         Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
 
         // Walk the distance from the current position (and rails) in the direction
-        if (wheelDistance > 0.0) {
+        if (wheelDistance > WheelTracker.MIN_WHEEL_DISTANCE) {
             TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.direction);
             Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
 
@@ -234,7 +231,7 @@ public class RailTrackerGroup extends RailTracker {
         // Simply walk the wheel distance forwards to find out that angle
         // Which wheel is in the direction we are going to be looking at?
         double wheelDistance;
-        Vector ownDirection = MathUtil.getDirection(tail.getEntity().loc.getYaw() + 90.0f, tail.getEntity().loc.getPitch());
+        Vector ownDirection = tail.getOrientationForward();
         if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
             wheelDistance = tail.getWheels().back().getDistance();
         } else {
@@ -244,7 +241,7 @@ public class RailTrackerGroup extends RailTracker {
         // Use known previous rail information to walk backwards to find the rails of the back wheel
         // Any distance remaining will have to be settled by walking the rails backwards, which might fail
         // First, find the index of the rails in prevRails from which we can start looking
-        if (wheelDistance > 0.0) {
+        if (wheelDistance > WheelTracker.MIN_WHEEL_DISTANCE) {
             // Figure out which rail to start looking from
             int prevRailStartIndex = -1;
             for (int i = 0; i < this.prevRails.size(); i++) {
@@ -272,6 +269,7 @@ public class RailTrackerGroup extends RailTracker {
             movementDirection.multiply(-1.0);
 
             Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
+            position.reverse = true;
 
             // If previous rails are found, walk them first
             if (prevRailStartIndex != -1) {

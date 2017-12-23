@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -36,7 +37,7 @@ public class RailLogicAir extends RailLogic {
     }
 
     @Override
-    public void onRotationUpdate(MinecartMember<?> member) {
+    public void onUpdateOrientation(MinecartMember<?> member, Quaternion orientation) {
         CommonMinecart<?> entity = member.getEntity();
         boolean upsideDown = MathUtil.getAngleDifference(entity.loc.getPitch(), 180.0f) < 89.0f;
         float newYaw = member.getEntity().loc.getYaw();

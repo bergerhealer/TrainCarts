@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 import org.bukkit.entity.Entity;
@@ -361,53 +359,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return transform;
     }
 
-    private Vector prevDir = null;
-    private Vector prevPos = null;
-    private double r = 0.0;
-    
     public Matrix4x4 getLiveTransform() {
         MinecartMember<?> member = this.getMember();
-
-        // Translate the transform based on the wheel offsets
-        Quaternion rotation = member.getWheels().getRotation();
-
-        // Additional roll provided by banking/shaking
-        double roll = member.getRoll();
-               
-        
-        
-        /*
-        TrainProperties props = member.getGroup().getProperties();
-        if (props.getBankingStrength() != 0.0) {
-            // Track and filter position
-            if (prevPos == null) {
-                this.prevPos = middlePosition.clone();
-            }
-            Vector mov = middlePosition.clone().subtract(this.prevPos);
-            this.prevPos = middlePosition.clone();
-
-            if (this.prevDir == null) {
-                this.prevDir = mov.clone();
-            } else {
-                this.prevDir.add(mov);
-                this.prevDir.multiply(0.5);
-            }
-
-            double fr = 1.0 - (1.0 / props.getBankingSmoothness());
-            double forward = fr / props.getBankingStrength(); // this.prevDir.dot(wheelDir);
-            double side = this.prevDir.dot(wheelDir.clone().crossProduct(wheelUp));
-            r += side;
-            r *= fr;
-
-            //roll -= Math.toDegrees(Math.atan2(r, Math.abs(forward)));
-        }
-        */
 
         // Combine translation and rotation information into a 4x4 matrix
         Matrix4x4 transform = new Matrix4x4();
         transform.translate(member.getWheels().getPosition());
-        transform.rotate(rotation);
-        transform.rotateZ(member.getWheels().getBankingRoll());
+        transform.rotate(member.getOrientation());
+        transform.rotateZ(member.getRoll());
         return transform;
     }
 
@@ -517,7 +476,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());
         CartAttachment.performTick(this.rootAttachment);
         CartAttachment.performMovement(this.rootAttachment, absolute);
-        
+
         //onSyncAtt(absolute);
 
         this.syncPassengers();

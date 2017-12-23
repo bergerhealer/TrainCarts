@@ -302,11 +302,19 @@ public class RailTypeRegular extends RailTypeHorizontal {
             return RailLogicSloped.get(direction, upsideDown);
         }
 
-        // Curved rails: is straight when entered a certain way
         if (rails.isCurve()) {
+            // Curved rails: is straight when entered a certain way
             BlockFace[] faces = FaceUtil.getFaces(direction);
             if (minecartDirection == faces[0].getOppositeFace() || minecartDirection == faces[1].getOppositeFace()) {
                 return RailLogicHorizontal.get(minecartDirection);
+            }
+        } else {
+            // Straight rails: is curve when entered from the side
+            // It is here that the south-east rule is applied
+            BlockFace sideFace = FaceUtil.rotate(direction, 2);
+            if (minecartDirection == sideFace || minecartDirection == sideFace.getOppositeFace()) {
+                BlockFace curvedDir = FaceUtil.combine(minecartDirection, direction.getOppositeFace());
+                return RailLogicHorizontal.get(curvedDir);
             }
         }
 

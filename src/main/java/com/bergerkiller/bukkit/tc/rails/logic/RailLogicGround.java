@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -30,7 +31,7 @@ public class RailLogicGround extends RailLogic {
     }
 
     @Override
-    public void onRotationUpdate(MinecartMember<?> member) {
+    public void onUpdateOrientation(MinecartMember<?> member, Quaternion orientation) {
         //Update yaw and pitch based on motion
         CommonMinecart<?> entity = member.getEntity();
         final double movedX = entity.getMovedX();

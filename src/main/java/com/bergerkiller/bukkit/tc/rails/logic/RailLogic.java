@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -166,11 +167,18 @@ public abstract class RailLogic {
 
     /**
      * Is called right after all physics updates have completed, and the final orientation of the Minecart
-     * entity has to be calculated. The yaw and pitch of the Minecart should be calculated here.
+     * entity can be adjusted. Before this is called, the orientation is already calculated from the rail path.
+     * For most rail logic there is no further need to calculate rotation.<br>
+     * <br>
+     * The {@link MinecartMember#setOrientation(orientation) setOrientation(o)} method can be used to set
+     * the orientation of the Minecart in this function. By default this is the only thing that happens,
+     * which means calling super.onUpdateOrientation() with the desired orientation is enough.
      * 
      * @param member to update
+     * @param orientation that is set based on rail path information
      */
-    public void onRotationUpdate(MinecartMember<?> member) {
+    public void onUpdateOrientation(MinecartMember<?> member, Quaternion orientation) {
+        member.setOrientation(orientation);
     }
 
     /**
