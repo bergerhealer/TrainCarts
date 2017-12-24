@@ -158,31 +158,33 @@ public class RailTrackerGroup extends RailTracker {
         if (startInfo.type == RailType.NONE) {
             return;
         }
-        BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.direction);
 
-        // No next member, so we can't compute a direction from that
-        // Simply walk the wheel distance forwards to find out that angle
-        // Which wheel is in the direction we are going to be looking at?
+        // Don't do anything if no wheel distance is set
+        if (!tail.getWheels().hasWheelDistance()) {
+            return;
+        }
+
+        // Walk 0.0 distance forwards to calculate the orientation of the start rails
+        RailLogic startLogic = startInfo.getLogic();
+        BlockFace movementDirectionFace = startLogic.getMovementDirection(startInfo.direction);
+        Position position = Position.fromPosDir(tail.getEntity().loc.vector(), FaceUtil.faceToVector(movementDirectionFace));
+        startLogic.getPath().move(position, startInfo.block, 0.0);
+
+        // Find the forwards wheel distance
         double wheelDistance;
-        Vector ownDirection = tail.getOrientationForward();
-        if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
+        if ((position.motDot(tail.getOrientationForward()) > 0.0)) {
             wheelDistance = tail.getWheels().front().getDistance();
         } else {
             wheelDistance = tail.getWheels().back().getDistance();
         }
 
-        // Calculate the actual direction in which the minecart moves
-        // This is important when initializing the direction to move over the paths
-        Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
-
         // Walk the distance from the current position (and rails) in the direction
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
             TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.direction);
-            Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
 
             int loopCtr = 0; // This is to prevent infinite loops
             boolean first = true;
-            while (p.hasNext() && wheelDistance > 0.0001) {
+            while (p.hasNext() && wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
                 p.next();
 
                 RailLogic logic = p.currentRail.getLogic(null, p.currentTrack, p.currentDirection);
@@ -193,7 +195,7 @@ public class RailTrackerGroup extends RailTracker {
                     wheelDistance -= moved;
                     loopCtr = 0;
                 } else if (++loopCtr > LOOP_LIMIT) {
-                    System.err.println("Loop detected [1] logic=" + logic + " rail=" + p.currentTrack);
+                    System.err.println("Loop detected [1] logic=" + startLogic + " rail=" + startInfo.block);
                     break;
                 }
 

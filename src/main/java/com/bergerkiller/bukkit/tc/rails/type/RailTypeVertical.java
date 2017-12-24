@@ -111,7 +111,9 @@ public class RailTypeVertical extends RailType {
 
     @Override
     public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        if (currentDirection == BlockFace.UP) {
+        // Check for a possible sloped rail leading up from next
+        // This logic applies when going UP or into the direction of the vertical rails
+        if (currentDirection == BlockFace.UP || currentDirection == getSignColumnDirection(currentTrack)) {
             Block next = currentTrack.getRelative(BlockFace.UP);
             if (!Util.ISTCRAIL.get(next)) {
                 // Check for a possible sloped rail leading up from next
@@ -120,35 +122,37 @@ public class RailTypeVertical extends RailType {
                     return afterSlope;
                 }
             }
-            return next;
-        } else {
-            // Check if an upside-down sloped rail below us
-            if (isVerticalSlopeUpsideDownB(currentTrack)) {
-                // When moving into the same direction, we go up the vertical rail
-                BlockFace dir = Util.getVerticalRailDirection(currentTrack);
-                if (dir == currentDirection.getOppositeFace()) {
-                    return currentTrack.getRelative(BlockFace.UP);
-                }
-
-                // Otherwise, we move down onto the sloped rail below
-                return currentTrack.getRelative(dir.getModX(), -1, dir.getModZ());
+            if (currentDirection == BlockFace.UP) {
+                return next;
             }
-
-            // Check if an upside-down sloped rail is above us that connects with this sloped rail
-            // and goes towards the current direction. Only applies when not moving down (away).
-            if (currentDirection != BlockFace.DOWN) {
-                Block above = currentTrack.getRelative(BlockFace.UP);
-                RailType railType = RailType.getType(above);
-                if (railType instanceof RailTypeRegular) {
-                    if (((RailTypeRegular) railType).isSlopeUpwardsTo(above, currentDirection)) {
-                        return above;
-                    }
-                }
-            }
-
-            // Go down straight
-            return currentTrack.getRelative(BlockFace.DOWN);
         }
+
+        // Check if an upside-down sloped rail below us
+        if (isVerticalSlopeUpsideDownB(currentTrack)) {
+            // When moving into the same direction, we go up the vertical rail
+            BlockFace dir = Util.getVerticalRailDirection(currentTrack);
+            if (dir == currentDirection.getOppositeFace()) {
+                return currentTrack.getRelative(BlockFace.UP);
+            }
+
+            // Otherwise, we move down onto the sloped rail below
+            return currentTrack.getRelative(dir.getModX(), -1, dir.getModZ());
+        }
+
+        // Check if an upside-down sloped rail is above us that connects with this sloped rail
+        // and goes towards the current direction. Only applies when not moving down (away).
+        if (currentDirection != BlockFace.DOWN) {
+            Block above = currentTrack.getRelative(BlockFace.UP);
+            RailType railType = RailType.getType(above);
+            if (railType instanceof RailTypeRegular) {
+                if (((RailTypeRegular) railType).isSlopeUpwardsTo(above, currentDirection)) {
+                    return above;
+                }
+            }
+        }
+
+        // Go down straight
+        return currentTrack.getRelative(BlockFace.DOWN);
     }
 
     @Override

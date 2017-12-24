@@ -54,6 +54,16 @@ public class WheelTrackerMember {
         return this._back;
     }
 
+    /**
+     * Whether either wheel has a wheel distance set. If none is set, then the Minecart moves
+     * along a singular point.
+     * 
+     * @return True if wheel distance is set
+     */
+    public boolean hasWheelDistance() {
+        return this._front.getDistance() > MIN_WHEEL_DISTANCE || this._back.getDistance() > MIN_WHEEL_DISTANCE;
+    }
+
     public Quaternion getLastOrientation() {
         if (this._orientation_last == null) {
             this._orientation_last = this._owner.getOrientation();
@@ -290,13 +300,13 @@ public class WheelTrackerMember {
             rail.getPath().move(position, rail.block, 0.0);
 
             // Flip the direction when the orientation vs front differs
-            int order = 1;
+            int order = -1;
             if ((position.motDot(member.getOrientationForward()) > 0.0) ^ this._front) {
                 position.motX = -position.motX;
                 position.motY = -position.motY;
                 position.motZ = -position.motZ;
                 position.reverse = true;
-                order = -1;
+                order = 1;
             }
 
             if (this._distance > MIN_WHEEL_DISTANCE) {
