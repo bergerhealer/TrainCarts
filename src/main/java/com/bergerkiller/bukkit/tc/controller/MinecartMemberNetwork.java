@@ -98,7 +98,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Add passengers that have entered
         for (Entity newPassenger : newPassengers) {
-            if (!oldPassengers.contains(newPassenger)) {
+            boolean hasSeat = false;
+            for (CartAttachmentSeat seat : this.seatAttachments) {
+                if (seat.getEntity() == newPassenger) {
+                    hasSeat = true;
+                    break;
+                }
+            }
+            if (!hasSeat) {
                 // Get the LAST known position
                 // We can not use current, because that is set to the location of the Minecart
                 Vector position = new Vector();
