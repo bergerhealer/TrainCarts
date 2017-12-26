@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -53,6 +54,7 @@ public class TrainCarts extends PluginBase {
     private FileConfiguration config;
     private AttachmentModelStore attachmentModels;
     private SpawnSignManager spawnSignManager;
+    private SavedTrainPropertiesStore savedTrainsStore;
 
     /**
      * Gets the program component responsible for automatically spawning trains from spawn signs periodically.
@@ -70,6 +72,15 @@ public class TrainCarts extends PluginBase {
      */
     public AttachmentModelStore getAttachmentModels() {
         return this.attachmentModels;
+    }
+
+    /**
+     * Gets access to a manager for saved trains
+     * 
+     * @return saved trains store
+     */
+    public SavedTrainPropertiesStore getSavedTrains() {
+        return this.savedTrainsStore;
     }
 
     public static boolean canBreak(Material type) {
@@ -264,6 +275,9 @@ public class TrainCarts extends PluginBase {
         //Load tickets
         TicketStore.load();
 
+        //Load saved trains
+        this.savedTrainsStore = new SavedTrainPropertiesStore(getDataFolder() + File.separator + "SavedTrainProperties.yml");
+
         //Load groups
         OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
@@ -329,6 +343,9 @@ public class TrainCarts extends PluginBase {
     public void save(boolean autosave) {
         //Save properties
         TrainProperties.save(autosave);
+
+        //Save saved trains
+        this.savedTrainsStore.save(autosave);
 
         //Save Train tickets
         TicketStore.save(autosave);

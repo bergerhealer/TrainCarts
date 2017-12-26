@@ -1060,6 +1060,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public void onModelChanged(AttachmentModel model) {
+        if (entity == null) {
+            model.removeOwner(this);
+            return;
+        }
         entity.setSize(model.getCartLength(), 0.7f);
         this.wheelTracker.back().setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
         this.wheelTracker.front().setDistance(0.5 * model.getWheelDistance() + model.getWheelCenter());
@@ -1702,4 +1706,5 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public int getMaximumBlockDistance(MinecartMember<?> member) {
         return MathUtil.ceil(2.0 * getMaximumDistance(member));
     }
+
 }

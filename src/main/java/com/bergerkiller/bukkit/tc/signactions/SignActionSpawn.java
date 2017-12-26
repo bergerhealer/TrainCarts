@@ -9,12 +9,12 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
-import com.bergerkiller.bukkit.tc.controller.type.MinecartType;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup.CenterMode;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
-import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign.CenterMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -67,8 +67,8 @@ public class SignActionSpawn extends SignAction {
 
         // Check for all minecart types specified, whether the player has permission for it.
         // No permission? Cancel the building of the sign.
-        for (MinecartType type : sign.getTypes()) {
-            if (!type.getPermission().handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of type " + type.getName())) {
+        for (SpawnableMember member : sign.getSpawnableGroup().getMembers()) {
+            if (!member.getPermission().handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of type " + member.toString())) {
                 sign.remove();
                 return false;
             }
@@ -96,12 +96,12 @@ public class SignActionSpawn extends SignAction {
         if ((info.isTrainSign() || info.isCartSign()) && info.hasRails()) {
             final double spawnForce = spawnSign.getSpawnForce();
 
-            if (spawnSign.getTypes().isEmpty()) {
+            if (spawnSign.getSpawnableGroup().getMembers().isEmpty()) {
                 return null;
             }
 
-            CenterMode centerMode = spawnSign.getCenterMode();
-            List<MinecartType> types = spawnSign.getTypes();
+            CenterMode centerMode = spawnSign.getSpawnableGroup().getCenterMode();
+            List<SpawnableMember> types = spawnSign.getSpawnableGroup().getMembers();
 
             // Find minecart spawn position information for each possible direction
             int sizeLim = ((types.size() - 1) / 2) + 1;
@@ -276,11 +276,12 @@ public class SignActionSpawn extends SignAction {
             //Spawn
             MinecartGroup group = MinecartGroup.create();
             for (int i = spawnLocations.size() - 1; i >= 0; i--) {
-                MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLocations.get(i), types.get(i));
+                MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLocations.get(i), types.get(i).getEntityType());
+                mm.getProperties().load(types.get(i).getConfig());
                 group.add(mm);
             }
             group.updateDirection();
-            group.getProperties().setDefault("spawner");
+            group.getProperties().load(spawnSign.getSpawnableGroup().getConfig());
             if (spawnForce != 0 && launchDirection != BlockFace.SELF) {
                 group.head().getActions().addActionLaunch(launchDirection, 2, spawnForce);
             }
@@ -300,7 +301,7 @@ public class SignActionSpawn extends SignAction {
      * @param nLimit limit amount of minecarts to spawn where we can stop looking for more spaces
      * @return SpawnPositions with locs limited to the amount that could be spawned
      */
-    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace direction, List<MinecartType> types) {
+    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace direction, List<SpawnableMember> types) {
         SpawnPositions result = new SpawnPositions();
         result.direction = direction;
         result.powered = info.isPowered(direction);
@@ -321,7 +322,7 @@ public class SignActionSpawn extends SignAction {
             TrackWalkingPoint walker = new TrackWalkingPoint(info.getRails(), direction, info.getCenterLocation());
             walker.skipFirst();
             for (int i = 0; i < types.size(); i++) {
-                MinecartType type = types.get(i);
+                SpawnableMember type = types.get(i);
                 if (!walker.move(0.5 * type.getLength() - (i == 0 ? 0.5 : 0.0))) {
                     break;
                 }

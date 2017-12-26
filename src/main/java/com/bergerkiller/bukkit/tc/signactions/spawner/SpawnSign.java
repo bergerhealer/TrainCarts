@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.signactions.spawner;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -25,7 +23,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.controller.type.MinecartType;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -38,8 +36,7 @@ public class SpawnSign {
     private long interval = 0L;
     private long nextSpawnTime = System.currentTimeMillis();
     private double spawnForce = 0.0;
-    private CenterMode centerMode = CenterMode.NONE;
-    private List<MinecartType> minecartTypes = new ArrayList<MinecartType>();
+    private SpawnableGroup spawnableGroup = new SpawnableGroup();
     private LongHashSet chunks = new LongHashSet();
 
     // This is used to track and load chunks in preparation of a spawn
@@ -60,10 +57,7 @@ public class SpawnSign {
         this.active = signEvent.isPowered();
         this.interval = getSpawnTime(signEvent);
         this.spawnForce = getSpawnForce(signEvent);
-
-        SpawnTypes types = getSpawnTypes(signEvent.getLine(2) + signEvent.getLine(3));
-        this.centerMode = types.centerMode;
-        this.minecartTypes = types.types;
+        this.spawnableGroup = SpawnableGroup.parse(signEvent.getLine(2) + signEvent.getLine(3));
     }
 
     /**
@@ -140,21 +134,12 @@ public class SpawnSign {
     }
 
     /**
-     * In what way the train is position when spawning
+     * Gets the spawnable group that is spawned by this spawn sign
      * 
-     * @return center mode
+     * @return spawnable group
      */
-    public CenterMode getCenterMode() {
-        return this.centerMode;
-    }
-
-    /**
-     * Gets the types of minecarts to spawn
-     * 
-     * @return spawned minecart types
-     */
-    public List<MinecartType> getTypes() {
-        return this.minecartTypes;
+    public SpawnableGroup getSpawnableGroup() {
+        return this.spawnableGroup;
     }
 
     /**
@@ -311,18 +296,8 @@ public class SpawnSign {
         str.append(", interval=").append(this.getInterval());
         str.append(", remaining=").append(this.getRemaining(System.currentTimeMillis()));
         str.append(", spawnForce=").append(this.getSpawnForce());
-        str.append(", centerMode=").append(this.getCenterMode());
-        str.append(", types=[");
-        boolean first = true;
-        for (MinecartType type : this.minecartTypes) {
-            if (first) {
-                first = false;
-            } else {
-                str.append(" ");
-            }
-            str.append(type.getName());
-        }
-        str.append("]}");
+        str.append(", spawnable=").append(this.spawnableGroup.toString());
+        str.append("}");
         return str.toString();
     }
 
@@ -406,67 +381,8 @@ public class SpawnSign {
         return 0;
     }
 
-    public static SpawnTypes getSpawnTypes(String text) {
-        SpawnTypes result = new SpawnTypes();
-        result.centerMode = CenterMode.NONE;
-        StringBuilder amountBuilder = new StringBuilder();
-        MinecartType type;
-        for (char cart : text.toCharArray()) {
-            // Center-Mode designating characters
-            if (isLeftChar(cart)) {
-                result.addCenterMode(CenterMode.LEFT);
-                continue;
-            }
-            if (isRightChar(cart)) {
-                result.addCenterMode(CenterMode.RIGHT);
-                continue;
-            }
-
-            // Types and amounts for each type
-            type = MinecartType.get(Character.toString(cart));
-            if (type != null) {
-                if (amountBuilder.length() > 0) {
-                    int amount = ParseUtil.parseInt(amountBuilder.toString(), 1);
-                    amountBuilder.setLength(0);
-                    for (int i = 0; i < amount; i++) {
-                        result.types.add(type);
-                    }
-                } else {
-                    result.types.add(type);
-                }
-            } else if (Character.isDigit(cart)) {
-                amountBuilder.append(cart);
-            }
-        }
-        return result;
-    }
-
     public static boolean isValid(SignActionEvent event) {
         return event != null && event.getMode() != SignActionMode.NONE && event.isType("spawn");
     }
 
-    private static boolean isLeftChar(char c) {
-        return LogicUtil.containsChar(c, "]>)}");
-    }
-
-    private static boolean isRightChar(char c) {
-        return LogicUtil.containsChar(c, "[<({");
-    }
-
-    public static class SpawnTypes {
-        public CenterMode centerMode = CenterMode.MIDDLE;
-        public List<MinecartType> types = new ArrayList<MinecartType>();
-
-        public void addCenterMode(CenterMode mode) {
-            if (this.centerMode == CenterMode.NONE || this.centerMode == mode) {
-                this.centerMode = mode;
-            } else {
-                this.centerMode = CenterMode.MIDDLE;
-            }
-        }
-    }
-
-    public static enum CenterMode {
-        NONE, MIDDLE, LEFT, RIGHT
-    }
 }

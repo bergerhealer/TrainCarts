@@ -460,6 +460,25 @@ public class TrainCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
             }
+        } else if (LogicUtil.contains(cmd, "save")) {
+            Permission.COMMAND_SAVE_TRAIN.handle(p);
+            if (args.length > 0) {
+                MinecartGroup group = prop.getHolder();
+                if (group != null) {
+                    String name = args[0];
+                    boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
+                    TrainCarts.plugin.getSavedTrains().save(group, name);
+                    if (wasContained) {
+                        p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
+                    } else {
+                        p.sendMessage(ChatColor.GREEN + "The train was saved as " + name);
+                    }
+                } else {
+                    p.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");
+                }
+            } else {
+                p.sendMessage(ChatColor.YELLOW + "You need to specify the name to save the train as");
+            }
         } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
             return true;

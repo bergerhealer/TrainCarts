@@ -901,7 +901,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (!m1.isDerailed() && !m2.isDerailed()) {
                 continue; // ignore railed minecarts that can still reach each other
             }
-            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= (3.0 * (TCConfig.cartDistanceGap + 1.0))) {
+            if (m1.getEntity().loc.distance(m2.getEntity().loc) >= m1.getMaximumDistance(m2)) {
                 this.split(i + 1);
                 return false;
             }

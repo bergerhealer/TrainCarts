@@ -277,6 +277,7 @@ public class GlobalCommands {
             }
             return true;
         } else if (args[0].equals("attachments")) {
+            Permission.COMMAND_GIVE_EDITOR.handle(sender);
             ((Player) sender).getInventory().addItem(MapDisplay.createMapItem(AttachmentEditor.class));
             return true;
         } else if (args[0].equals("debug")) {

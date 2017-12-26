@@ -142,7 +142,7 @@ public class AttachmentModel {
         this.wheelDistance = physical.get("wheelDistance", 0.0);
         this._isDefault = false; // Was changed; no longer default!
 
-        for (AttachmentModelOwner owner : this.owners) {
+        for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
             owner.onModelChanged(this);
         }
     }

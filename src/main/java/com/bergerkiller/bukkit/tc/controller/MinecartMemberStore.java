@@ -151,20 +151,9 @@ public abstract class MinecartMemberStore {
      * @param entityType of the controller to create
      * @return new MinecartMember instance suitable for the type of Entity, or null if none found
      */
-    @Deprecated
     public static MinecartMember<?> createController(EntityType entityType) {
-        return createController(MinecartType.fromEntityType(entityType));
-    }
-
-    /**
-     * Creates a suitable Minecart Member controller for an Entity
-     *
-     * @param entityType of the controller to create
-     * @return new MinecartMember instance suitable for the type of Entity, or null if none found
-     */
-    public static MinecartMember<?> createController(MinecartType minecartType) {
         try {
-            Class<?> commonType = CommonEntityType.byEntityType(minecartType.getEntityType()).commonType.getType();
+            Class<?> commonType = CommonEntityType.byEntityType(entityType).commonType.getType();
             Class<?> controllerClass = controllers.get(commonType);
 
             if (controllerClass != null) {
@@ -237,17 +226,12 @@ public abstract class MinecartMemberStore {
         return spawned;
     }
 
-    @Deprecated
     public static MinecartMember<?> spawn(Location at, EntityType type) {
-        return spawn(at, MinecartType.fromEntityType(type));
-    }
-
-    public static MinecartMember<?> spawn(Location at, MinecartType type) {
         MinecartMember<?> controller = createController(type);
         if (controller == null) {
             throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
         }
-        CommonEntity.spawn(type.getEntityType(), at, controller, createNetworkController());
+        CommonEntity.spawn(type, at, controller, createNetworkController());
         controller.invalidateDirection();
         controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();

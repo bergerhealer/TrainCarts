@@ -15,7 +15,7 @@ import java.util.Map.Entry;
 /**
  * Stores all the Train Properties available by name
  */
-public class TrainPropertiesStore extends HashSet<CartProperties> {
+public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     private static boolean hasChanges = false;
     private static final long serialVersionUID = 1L;
     private static final String propertiesFile = "TrainProperties.yml";
