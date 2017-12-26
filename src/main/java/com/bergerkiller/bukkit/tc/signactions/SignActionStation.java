@@ -42,7 +42,9 @@ public class SignActionStation extends SignAction {
         if (station.getInstruction() == null) {
             // Clear actions, but only if requested to do so because of a redstone change
             if (info.isAction(SignActionType.REDSTONE_CHANGE)) {
-                info.getGroup().getActions().clear();
+                if (info.getGroup().getActions().isCurrentActionTag(station.getTag())) {
+                    info.getGroup().getActions().clear();
+                }
             }
         } else if (station.getInstruction() == BlockFace.SELF) {
             MinecartMember<?> centerMember = station.getCenterCart();

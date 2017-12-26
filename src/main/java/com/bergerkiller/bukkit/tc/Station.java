@@ -3,7 +3,9 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchDirection;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
@@ -114,6 +116,16 @@ public class Station {
             this.launchConfig.setDistance(length);
         }
         this.valid = true;
+    }
+
+    /**
+     * Gets a tag unique to this station's location.
+     * Is applied to all actions executed by this station
+     * 
+     * @return tag
+     */
+    public String getTag() {
+        return StringUtil.blockToString(this.info.getBlock());
     }
 
     /**
@@ -234,16 +246,16 @@ public class Station {
     public void waitTrain(long delay) {
         ActionTrackerGroup actions = info.getGroup().getActions();
         if (TCConfig.playSoundAtStation) {
-            actions.addActionSizzle();
+            actions.addActionSizzle().addTag(this.getTag());
         }
         if (TCConfig.refillAtStations) {
-            actions.addActionRefill();
+            actions.addActionRefill().addTag(this.getTag());
         }
-        actions.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true));
+        actions.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true)).addTag(this.getTag());
         if (delay == Long.MAX_VALUE) {
-            actions.addActionWaitForever();
+            actions.addActionWaitForever().addTag(this.getTag());
         } else if (delay > 0) {
-            actions.addActionWait(delay);
+            actions.addActionWait(delay).addTag(this.getTag());
         }
     }
 
@@ -259,10 +271,10 @@ public class Station {
             // We have to launch to get the train stopped at the station
             if (stationInfo.cartDir != null) {
                 // Launch the center cart into the direction of the station
-                getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0);
+                getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0).addTag(this.getTag());
             } else {
                 // Alternative: get as close as possible (may fail)
-                getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0);
+                getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0).addTag(this.getTag());
             }
         }
         this.wasCentered = true;
@@ -284,7 +296,8 @@ public class Station {
                 this.launchConfig.setDistance(this.launchConfig.getDistance() + stationInfo.distance);
             }
         }
-        getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
+        MemberActionLaunchDirection action = getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
+        action.addTag(this.getTag());
         this.wasCentered = false;
     }
 

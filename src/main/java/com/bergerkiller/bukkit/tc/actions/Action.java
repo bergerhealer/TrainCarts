@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.util.HashSet;
+
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 
@@ -7,6 +9,7 @@ public class Action {
     private final ToggledState started = new ToggledState();
     private int _timeTicks = 0;
     private long _startTimeMillis = 0;
+    private final HashSet<String> tags = new HashSet<String>();
 
     public boolean doTick() {
         if (this.started.set()) {
@@ -47,6 +50,25 @@ public class Action {
      */
     public final long elapsedTimeMillis() {
         return System.currentTimeMillis() - this._startTimeMillis;
+    }
+
+    /**
+     * Adds a metadata tag for this action
+     * 
+     * @param tag
+     */
+    public void addTag(String tag) {
+        this.tags.add(tag);
+    }
+
+    /**
+     * Checks whether a metadata tag is set for this action
+     * 
+     * @param tag
+     * @return True if the tag is set
+     */
+    public boolean hasTag(String tag) {
+        return this.tags.contains(tag);
     }
 
     public boolean update() {

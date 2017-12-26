@@ -79,6 +79,10 @@ public class ActionTracker {
         return this.getCurrentAction() instanceof WaitAction;
     }
 
+    public boolean isCurrentActionTag(String tag) {
+        return !this.actions.isEmpty() && this.actions.peek().hasTag(tag);
+    }
+
     public Action getCurrentAction() {
         return this.actions.peek();
     }
