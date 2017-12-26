@@ -142,6 +142,9 @@ public class VirtualEntity {
 
                 // Limit to a maximum of 1.0, above this it's kind of pointless
                 if (liveVel > 1.0) liveVel = 1.0;
+
+                // Audio cutoff
+                if (liveVel < 0.001) liveVel = 0.0;
             }
         }
     }
@@ -262,7 +265,7 @@ public class VirtualEntity {
         // Minecraft does not play minecart audio for the Y-axis. To make sound on vertical rails,
         // we instead apply the vector length to just the X-axis so that this works.
         // Velocity packets are only relevant when minecarts are used (with audio enabled)
-        if (Math.abs(this.liveVel - this.syncVel) > 0.01) {
+        if (Math.abs(this.liveVel - this.syncVel) > 0.01 || (this.syncVel > 0.0 && this.liveVel == 0.0)) {
             this.syncVel = this.liveVel;
             CommonPacket packet = PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0);
             broadcast(packet);
