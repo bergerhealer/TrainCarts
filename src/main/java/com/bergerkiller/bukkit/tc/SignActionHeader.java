@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 public class SignActionHeader {
     private boolean power_inverted = false;
     private boolean power_always_on = false;
+    private boolean power_always_off = false;
     private boolean power_rising = false;
     private boolean power_falling = false;
     private boolean is_converted = false;
@@ -64,6 +65,15 @@ public class SignActionHeader {
     }
 
     /**
+     * The sign is always inactive, ignoring Redstone changes
+     * 
+     * @return power always off
+     */
+    public boolean isAlwaysOff() {
+        return power_always_off;
+    }
+
+    /**
      * Sign should be triggered on the rising edge of Redstone changes
      * 
      * @return power on rising edge (power -> on)
@@ -89,6 +99,8 @@ public class SignActionHeader {
     public SignRedstoneMode getRedstoneMode() {
         if (this.power_always_on) {
             return SignRedstoneMode.ALWAYS;
+        } else if (this.power_always_off) {
+            return SignRedstoneMode.NEVER;
         } else if (this.power_rising && this.power_falling) {
             return SignRedstoneMode.PULSE_ALWAYS;
         } else if (this.power_falling) {
@@ -110,36 +122,49 @@ public class SignActionHeader {
     public void setRedstoneMode(SignRedstoneMode mode) {
         switch (mode) {
         case ALWAYS:
+            this.power_always_off = false;
             this.power_always_on = true;
             this.power_inverted = false;
             this.power_falling = false;
             this.power_rising = false;
             break;
+        case NEVER:
+            this.power_always_off = true;
+            this.power_always_on = false;
+            this.power_inverted = false;
+            this.power_falling = false;
+            this.power_rising = false;
+            break;
         case ON:
+            this.power_always_off = false;
             this.power_always_on = false;
             this.power_inverted = false;
             this.power_falling = false;
             this.power_rising = false;
             break;
         case OFF:
+            this.power_always_off = false;
             this.power_always_on = false;
             this.power_inverted = true;
             this.power_falling = false;
             this.power_rising = false;
             break;
         case PULSE_ALWAYS:
+            this.power_always_off = false;
             this.power_always_on = false;
             this.power_inverted = false;
             this.power_falling = true;
             this.power_rising = true;
             break;
         case PULSE_ON:
+            this.power_always_off = false;
             this.power_always_on = false;
             this.power_inverted = false;
             this.power_falling = false;
             this.power_rising = true;
             break;
         case PULSE_OFF:
+            this.power_always_off = false;
             this.power_always_on = false;
             this.power_inverted = false;
             this.power_falling = true;
@@ -276,7 +301,7 @@ public class SignActionHeader {
      * @return sign action type to send to the sign action handlers
      */
     public SignActionType getRedstoneAction(boolean newPowerState) {
-        if (this.power_always_on) {
+        if (this.power_always_on || this.power_always_off) {
             // Always powered; redstone events are ignored
             return SignActionType.NONE;
         }
@@ -319,7 +344,7 @@ public class SignActionHeader {
      * @return True if execution should be cancelled, False if not and execution can continue
      */
     public boolean isActionFiltered(SignActionType type) {
-        if (this.power_always_on && type.isRedstone()) {
+        if ((this.power_always_on || this.power_always_off) && type.isRedstone()) {
             return true;
         }
         if ((this.power_rising || this.power_falling) && !type.isRedstone()) {
@@ -340,6 +365,7 @@ public class SignActionHeader {
         // [+
         String prefix = "[";
         if (this.power_always_on) prefix += "+";
+        if (this.power_always_off) prefix += "-";
         if (this.power_inverted) prefix += "!";
         if (this.power_rising) prefix += "/";
         if (this.power_falling) prefix += "\\";
@@ -452,6 +478,8 @@ public class SignActionHeader {
                 header.power_inverted = true;
             } else if (c == '+') {
                 header.power_always_on = true;
+            } else if (c == '-') {
+                header.power_always_off = true;
             } else if (c == '/') {
                 header.power_rising = true;
             } else if (c == '\\') {

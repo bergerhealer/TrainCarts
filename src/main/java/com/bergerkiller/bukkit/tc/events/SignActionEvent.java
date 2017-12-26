@@ -265,6 +265,9 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public boolean isPowered(BlockFace from) {
+        if (this.header.isAlwaysOff()) {
+            return false;
+        }
         return this.header.isAlwaysOn() || this.header.isInverted() != this.getPower(from).hasPower();
     }
 
@@ -281,6 +284,9 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if the sign is powered, False if not
      */
     public boolean isPowered() {
+        if (this.header.isAlwaysOff()) {
+            return false;
+        }
         if (this.actionType == SignActionType.REDSTONE_ON) {
             return true;
         }
