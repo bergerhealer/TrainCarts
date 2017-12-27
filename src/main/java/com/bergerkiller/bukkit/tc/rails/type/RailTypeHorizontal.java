@@ -118,6 +118,8 @@ public abstract class RailTypeHorizontal extends RailType {
                             }
                         }
                         return false; // cancel the collision
+                    } else {
+                        return false; // sub-cardinal on a straight rail, cancel the collision
                     }
                 } else {
                     // Hit the block head-on or is on the side of the rails
