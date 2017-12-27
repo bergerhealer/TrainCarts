@@ -15,6 +15,8 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
  */
 public class MapWidgetNumberBox extends MapWidget {
     private double _value = 0.0;
+    private double _min = Double.NEGATIVE_INFINITY;
+    private double _max = Double.POSITIVE_INFINITY;
     private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
 
@@ -22,9 +24,19 @@ public class MapWidgetNumberBox extends MapWidget {
         this.setFocusable(true);
     }
     
+    public void setRange(double min, double max) {
+        this._min = min;
+        this._max = max;
+    }
+
     public void setValue(double value) {
         if (value != this._value) {
             this._value = value;
+            if (this._value < this._min) {
+                this._value = this._min;
+            } else if (this._value > this._max) {
+                this._value = this._max;
+            }
             this.invalidate();
             this.onValueChanged();
         }
@@ -53,13 +65,32 @@ public class MapWidgetNumberBox extends MapWidget {
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == MapPlayerInput.Key.LEFT) {
             nav_left.sendFocus();
-            this.setValue(getValue() - 0.1);
+            this.addValue(-0.01, event.getRepeat());
         } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
             nav_right.sendFocus();
-            this.setValue(getValue() + 0.1);
+            this.addValue(0.01, event.getRepeat());
         } else {
             super.onKeyPressed(event);
         }
+    }
+
+    // 1 -> 2 -> 5 -> 10 -> 20 -> 50 -> 100 etc.
+    private static double getExp(int repeat) {
+        int a = (repeat / 3);
+        int b = (repeat % 3);
+        double f = (b==0) ? 1.0 : (b==1) ? 2.0 : 5.0;
+        return f * Math.pow(10.0, a);
+    }
+
+    private void addValue(double incr, int repeat) {
+        incr *= getExp(repeat / 50);
+        double value = this.getValue();
+
+        // Only keep precision of increment
+        value = incr * Math.round(value / incr);
+
+        // Increment and set
+        this.setValue(value + incr);
     }
 
     @Override
