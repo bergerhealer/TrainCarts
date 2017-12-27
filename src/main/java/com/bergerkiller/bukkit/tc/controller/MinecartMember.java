@@ -230,7 +230,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         //TODO: Beneficial to cache this maybe?
         return this.getOrientation().forwardVector();
     }
-
+    
     /**
      * Sets the orientation of the Minecart. This is the direction vector
      * of the 'front' of the Minecart model. The orientation is automatically
@@ -256,6 +256,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.cachedOrientation_quat = orientation.clone();
         Vector ypr = this.cachedOrientation_quat.getYawPitchRoll();
         entity.setRotation((float) ypr.getY() - 90.0f, (float) ypr.getX());
+    }
+
+    /**
+     * Flips the orientation of this Minecart, making front back and back front.
+     */
+    public void flipOrientation() {
+        Quaternion orientation = this.getOrientation();
+        orientation.rotateAxis(orientation.upVector(), 180.0);
+        this.setOrientation(orientation);
     }
 
     public MinecartMember<?> getNeighbour(int offset) {
