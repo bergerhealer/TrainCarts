@@ -57,6 +57,7 @@ public class TCConfig {
     public static boolean showTransferAnimations;
     public static boolean craftingRequireWorkbench;
     public static boolean slowDownEmptyCarts;
+    public static boolean enableSeatThirdPersonView;
     public static double slowDownMultiplierSlow;
     public static double slowDownMultiplierNormal;
     public static boolean refillAtStations;
@@ -181,6 +182,10 @@ public class TCConfig {
         config.addHeader("useNetworkSynchronizer", "With this enabled, trains are expected to move smoother with less bumping");
         config.addHeader("useNetworkSynchronizer", "With this disabled, no smoothing is applied. Only disable it if it causes problems/incompatibility");
         useNetworkSynchronizer = config.get("useNetworkSynchronizer", true);
+
+        config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
+        config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");
+        enableSeatThirdPersonView = config.get("enableSeatThirdPersonView", true);
 
         config.setHeader("maxDetectorLength", "\nThe maximum length a detector region (between two detectors) can be");
         maxDetectorLength = config.get("maxDetectorLength", 2000);

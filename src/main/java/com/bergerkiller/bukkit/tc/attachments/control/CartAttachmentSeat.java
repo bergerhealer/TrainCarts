@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
@@ -347,7 +348,7 @@ public class CartAttachmentSeat extends CartAttachment {
             setUpsideDown(false);
         }
 
-        if ((selfPitch < -46.0f) || (selfPitch > 46.0f)) {
+        if (TCConfig.enableSeatThirdPersonView && ((selfPitch < -46.0f) || (selfPitch > 46.0f))) {
             setUseVirtualCamera(true);
         } else {
             setUseVirtualCamera(false);
