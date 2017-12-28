@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -50,6 +51,7 @@ public class SavedTrainPropertiesStore {
             ConfigurationNode cartConfig = new ConfigurationNode();
             member.getProperties().save(cartConfig);
             cartConfig.set("entityType", member.getEntity().getType());
+            cartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
             cartConfig.remove("owners");
             cartConfigList.add(cartConfig);
         }

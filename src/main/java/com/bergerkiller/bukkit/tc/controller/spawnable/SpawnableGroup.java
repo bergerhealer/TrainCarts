@@ -126,8 +126,8 @@ public class SpawnableGroup {
                     result.config.set(key, savedTrainConfig.get(key));
                 }
                 List<ConfigurationNode> cartConfigList = savedTrainConfig.getNodeList("carts");
-                for (ConfigurationNode cartConfig : cartConfigList) {
-                    result.addMember(cartConfig);
+                for (int i = cartConfigList.size() - 1; i >= 0; i--) {
+                    result.addMember(cartConfigList.get(i));
                     countAdded++;
                 }
             } else if (c == 'm' || c == 'M') {

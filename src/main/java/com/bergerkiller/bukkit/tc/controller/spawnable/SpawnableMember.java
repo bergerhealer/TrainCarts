@@ -13,6 +13,7 @@ public class SpawnableMember {
     private final ConfigurationNode config;
     private final double length;
     private final EntityType entityType;
+    private final boolean flipped;
 
     protected SpawnableMember(SpawnableGroup group, ConfigurationNode config) {
         this.group = group;
@@ -25,6 +26,7 @@ public class SpawnableMember {
             this.length = 1.0;
         }
         this.entityType = this.config.get("entityType", EntityType.MINECART);
+        this.flipped = this.config.get("flipped", false);
     }
 
     /**
@@ -53,6 +55,15 @@ public class SpawnableMember {
      */
     public double getLength() {
         return this.length;
+    }
+
+    /**
+     * Gets whether the Minecart's orientation is flipped 180 degrees when spawning
+     * 
+     * @return True if flipped
+     */
+    public boolean isFlipped() {
+        return this.flipped;
     }
 
     /**

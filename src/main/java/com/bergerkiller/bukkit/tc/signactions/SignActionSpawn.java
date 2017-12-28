@@ -193,7 +193,7 @@ public class SignActionSpawn extends SignAction {
                     if (mode && iter0.hasNext()) {
                         spawnLocations.add(iter0.next());
                     } else if (iter1.hasNext()) {
-                        spawnLocations.add(0, iter1.next());
+                        spawnLocations.add(0, Util.invertRotation(iter1.next()));
                     } else {
                         break; // failure
                     }
@@ -276,7 +276,12 @@ public class SignActionSpawn extends SignAction {
             //Spawn
             MinecartGroup group = MinecartGroup.create();
             for (int i = spawnLocations.size() - 1; i >= 0; i--) {
-                MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLocations.get(i), types.get(i).getEntityType());
+                Location spawnLoc = spawnLocations.get(i);
+                if (types.get(i).isFlipped()) {
+                    spawnLoc = Util.invertRotation(spawnLoc);
+                }
+
+                MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLoc, types.get(i).getEntityType());
                 mm.getProperties().load(types.get(i).getConfig());
                 group.add(mm);
             }
@@ -323,8 +328,14 @@ public class SignActionSpawn extends SignAction {
             walker.skipFirst();
             for (int i = 0; i < types.size(); i++) {
                 SpawnableMember type = types.get(i);
-                if (!walker.move(0.5 * type.getLength() - (i == 0 ? 0.5 : 0.0))) {
-                    break;
+                if (i == 0) {
+                    if (!walker.move(0.0)) {
+                        break;
+                    }
+                } else {
+                    if (!walker.move(0.5 * type.getLength() - (i == 0 ? 0.5 : 0.0))) {
+                        break;
+                    }
                 }
                 result.locs.add(walker.position.clone());
                 if ((i == types.size() - 1) || !walker.move(0.5 * type.getLength() + TCConfig.cartDistanceGap)) {

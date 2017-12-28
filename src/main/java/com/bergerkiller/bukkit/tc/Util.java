@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
@@ -904,5 +905,21 @@ public class Util {
      */
     public static void spawnParticle(Location loc, Particle particle) {
         loc.getWorld().spawnParticle(particle, loc, 1);
+    }
+
+    /**
+     * Rotates the yaw/pitch of a Location to invert the direction it is pointing into
+     * 
+     * @param loc to rotate
+     * @return input loc (loc is modified)
+     */
+    public static Location invertRotation(Location loc) {
+        //TODO: Maybe this can be done without Quaternion?
+        Quaternion q = Quaternion.fromYawPitchRoll(loc.getPitch(), loc.getYaw(), 0.0);
+        q.rotateAxis(q.upVector(), 180.0);
+        Vector ypr_new = q.getYawPitchRoll();
+        loc.setYaw((float) ypr_new.getY());
+        loc.setPitch((float) ypr_new.getX());
+        return loc;
     }
 }
