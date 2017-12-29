@@ -2,24 +2,34 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 
 import org.bukkit.inventory.EquipmentSlot;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
+
 /**
  * Transformation mode for displaying an Item.
  * For now only includes armor-stand based transforms.
  */
 public enum ItemTransformType {
-    HEAD("head", EquipmentSlot.HEAD),
-    CHEST("chest", EquipmentSlot.CHEST),
-    LEFT_HAND("left hand", EquipmentSlot.OFF_HAND),
-    RIGHT_HAND("right hand", EquipmentSlot.HAND),
-    LEGS("legs", EquipmentSlot.LEGS),
-    FEET("feet", EquipmentSlot.FEET);
+    HEAD("head", "HEAD"),
+    CHEST("chest", "CHEST"),
+    LEFT_HAND("left hand", "OFF_HAND"),
+    RIGHT_HAND("right hand", "HAND"),
+    LEGS("legs", "LEGS"),
+    FEET("feet", "FEET");
 
     private final String name;
     private final EquipmentSlot slot;
 
-    private ItemTransformType(String name, EquipmentSlot slot) {
+    private ItemTransformType(String name, String slotName) {
         this.name = name;
-        this.slot = slot;
+        EquipmentSlot slot = ParseUtil.parseEnum(EquipmentSlot.class, slotName, null);
+        if (slot == null && slotName.equals("OFF_HAND")) {
+            slot = ParseUtil.parseEnum(EquipmentSlot.class, "HAND", null);
+        }
+        if (slot != null) {
+            this.slot = slot;
+        } else {
+            this.slot = EquipmentSlot.HEAD;
+        }
     }
 
     @Override

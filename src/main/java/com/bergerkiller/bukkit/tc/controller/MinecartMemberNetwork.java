@@ -402,6 +402,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             return;
         }
 
+        // Set attachment to a fallback if for whatever reason it is null
+        if (this.rootAttachment == null) {
+            this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
+        }
+
         // Read live location
         double posX = locLive.getX();
         double posY = locLive.getY();
