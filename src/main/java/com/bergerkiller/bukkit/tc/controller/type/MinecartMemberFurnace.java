@@ -62,7 +62,6 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         // Get forward vector of the human's head
         Location humanEye = human.getEyeLocation();
         Vector eyeFwd = MathUtil.getDirection(humanEye.getYaw(), humanEye.getPitch());
-        System.out.println("EYE: " + eyeFwd);
         this.isPushingForwards = (this.getOrientationForward().dot(eyeFwd) >= 0.0);
         this.updatePushXZ();
         return true;
