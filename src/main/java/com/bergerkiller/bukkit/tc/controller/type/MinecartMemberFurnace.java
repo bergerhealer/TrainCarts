@@ -10,22 +10,40 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
-    private boolean wasOnVertical = false;
     private int fuelCheckCounter = 0;
+    private boolean isPushingForwards = true; // Whether pushing forwards, or backwards, relative to orientation
 
     @Override
     public void onAttached() {
         super.onAttached();
         this.soundLoop = new PoweredCartSoundLoop(this);
-        //double pushX = entity.getPushX();
-        //double pushZ = entity.getPushZ();
+
+        Vector pushVector = new Vector(entity.getPushX(), 0.0, entity.getPushZ());
+        pushVector.multiply(MathUtil.getNormalizationFactorLS(pushVector.lengthSquared()));
+        this.isPushingForwards = this.getOrientationForward().dot(pushVector) >= 0.0;
+    }
+
+    // Only needed for saving/restoring, otherwise unused!
+    private void updatePushXZ() {
+        Vector fwd = this.getOrientationForward();
+        fwd.setY(0.0);
+        fwd.multiply(MathUtil.getNormalizationFactorLS(fwd.lengthSquared()));
+        if (this.isPushingForwards) {
+            entity.setPushX(fwd.getX());
+            entity.setPushZ(fwd.getZ());
+        } else {
+            entity.setPushX(-fwd.getX());
+            entity.setPushZ(-fwd.getZ());
+        }
     }
 
     @Override
@@ -41,78 +59,19 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
             addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
         }
 
-        if (this.isOnVertical()) {
-            // When on vertical rail we only use PushX for up/down momentum
-            boolean isCartAbove = (entity.loc.getY() - EntityUtil.getLocY(human)) > 0.0;
-            boolean isCartUpward = this.getDirection() == BlockFace.UP;
-            entity.setPushX((isCartAbove == isCartUpward) ? 1.0 : -1.0);
-            this.wasOnVertical = true;
-        } else {
-            // Otherwise, use the position of the human vs minecart for the push vector
-            double dx = entity.loc.getX() - EntityUtil.getLocX(human);
-            double dz = entity.loc.getZ() - EntityUtil.getLocZ(human);
-            entity.setPushX(dx);
-            entity.setPushZ(dz);
-            this.wasOnVertical = false;
-        }
-
-        /*
-        if (this.isOnVertical()) {
-            boolean isCartAbove = (entity.loc.getY() - EntityUtil.getLocY(human)) > 0.0;
-            boolean isCartUpward = this.getDirection() == BlockFace.UP;
-            this.isPushingReverse = (isCartAbove != isCartUpward);
-        } else {
-            BlockFace dir = this.getDirection();
-            this.isPushingReverse = !MathUtil.isHeadingTo(dir, new Vector(entity.loc.getX() - EntityUtil.getLocX(human), 0.0, entity.loc.getZ() - EntityUtil.getLocZ(human)));
-        }
-        */
-
-        /*if (this.isMoving()) {
-            if (this.pushDirection == this.getDirection().getOppositeFace()) {
-                this.getGroup().reverse();
-                // Prevent push direction being inverted
-                this.pushDirection = this.pushDirection.getOppositeFace();
-            }
-        }*/
+        // Get forward vector of the human's head
+        Location humanEye = human.getEyeLocation();
+        Vector eyeFwd = MathUtil.getDirection(humanEye.getYaw(), humanEye.getPitch());
+        System.out.println("EYE: " + eyeFwd);
+        this.isPushingForwards = (this.getOrientationForward().dot(eyeFwd) >= 0.0);
+        this.updatePushXZ();
         return true;
     }
 
-    public BlockFace updatePushDirection() {
-        BlockFace direction = this.getDirection();
-        if (FaceUtil.isVertical(direction)) {
-            if (!wasOnVertical) {
-                wasOnVertical = true;
-                entity.setPushX(direction.getModY());
-            }
-            return entity.getPushX() > 0.0 ? BlockFace.UP : BlockFace.DOWN;
-        }
-
-        BlockFace last = FaceUtil.getDirection(entity.getPushX(), entity.getPushZ(), true);
-        if (!wasOnVertical && FaceUtil.getFaceYawDifference(last, direction) > 90) {
-            direction = direction.getOppositeFace();
-        }
-
-        entity.setPushX(direction.getModX());
-        entity.setPushZ(direction.getModZ());
-        wasOnVertical = false;
-
-        return direction;
-    }
-
     public void addFuelTicks(int fuelTicks) {
-        boolean hadFuel = entity.hasFuel();
         int newFuelTicks = entity.getFuelTicks() + fuelTicks;
         if (newFuelTicks <= 0) {
             newFuelTicks = 0;
-        } else if (!hadFuel) {
-            if (this.isOnVertical()) {
-                entity.setPushX(this.getDirection().getModY());
-                wasOnVertical = true;
-            } else {
-                entity.setPushX(this.getDirection().getModX());
-                entity.setPushZ(this.getDirection().getModZ());
-                wasOnVertical = false;
-            }
         }
         entity.setFuelTicks(newFuelTicks);
     }
@@ -179,37 +138,35 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public void doPostMoveLogic() {
-        super.doPostMoveLogic();
+    public void onPhysicsPreMove() {
+        super.onPhysicsPreMove();
         if (!this.isDerailed()) {
-            // Update pushing direction
-            /*if (this.pushDirection != 0) {
-                BlockFace dir = this.getDirection();
-                if (this.isOnVertical()) {
-                    if (dir != this.pushDirection.getOppositeFace()) {
-                        this.pushDirection = dir;
-                    }
-                } else {
-                    if (FaceUtil.isVertical(this.pushDirection) || FaceUtil.getFaceYawDifference(dir, this.pushDirection) <= 45) {
-                        this.pushDirection = dir;
-                    }
-                }
-            }*/
-
             // Velocity boost is applied
-            if (!isMovementControlled()) {
+            if (isMovementControlled()) {
+                // Station or launcher sign is launching us
+                // Make sure to set the orientation forwards to match
+                Vector fwd = FaceUtil.faceToVector(this.getDirection());
+                double dot = this.getOrientationForward().dot(fwd);
+                if (dot < -0.0001 || dot > 0.0001) {
+                    this.isPushingForwards = (dot > 0.0);
+                }
+            } else {
                 if (entity.hasFuel()) {
-                    BlockFace pd = updatePushDirection();
+                    Vector dir = this.getOrientationForward();
+                    if (!this.isPushingForwards) {
+                        dir.multiply(-1.0);
+                    }
+                    dir.multiply(0.04 + TCConfig.poweredCartBoost);
 
-                    double boost = 0.04 + TCConfig.poweredCartBoost;
                     entity.vel.multiply(0.8);
-                    entity.vel.x.add(boost * FaceUtil.cos(pd));
-                    entity.vel.y.add((boost + 0.04) * pd.getModY());
-                    entity.vel.z.add(boost * FaceUtil.sin(pd));
+                    entity.vel.add(dir);
                 } else if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
                     entity.vel.multiply(0.98);
                 }
             }
+
+            // Persistence
+            this.updatePushXZ();
         }
     }
 
