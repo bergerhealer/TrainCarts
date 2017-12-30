@@ -191,6 +191,7 @@ public class WheelTrackerMember {
         private Vector _position = null; // Position is relative to the minecart position
         private Vector _forward = null;  // The forward direction vector of this wheel
         private Vector _up = null;       // Up vector, used for angling the Minecart around the wheels
+        private boolean _oriented;       // Last-known state whether we are moving in the same direction as orientation or not
 
         public Wheel(MinecartMember<?> member, boolean front) {
             this.member = member;
@@ -300,8 +301,16 @@ public class WheelTrackerMember {
             rail.getPath().move(position, rail.block, 0.0);
 
             // Flip the direction when the orientation vs front differs
+            // When dot is 0.0, we hit an odd 90-degree incline
+            // 'Remember' the orientation from previous round in that case
             int order = -1;
-            if ((position.motDot(member.getOrientationForward()) > 0.0) ^ this._front) {
+            double dot = position.motDot(member.getOrientationForward());
+            boolean oriented = (dot > 0.0);
+            if (dot >= -0.0001 && dot <= 0.0001) {
+                oriented = _oriented;
+            }
+            _oriented = oriented;
+            if (oriented ^ this._front) {
                 position.motX = -position.motX;
                 position.motY = -position.motY;
                 position.motZ = -position.motZ;
