@@ -980,8 +980,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Two blocks are used to slow down the train, to make it match up to speed with the train up ahead
         // Check for any mutex zones ~2 blocks ahead, and stop before we enter them
         // If a wait distance is set, also check for trains there
-        final double CHECK_MARGIN = 2.0;
-        double checkDistance = waitDistance + CHECK_MARGIN - this.head().calcSubBlockDistance();
+        final double CHECK_MARGIN = 1.5;
+        double checkDistance = waitDistance + (0.5 * this.head().getEntity().getWidth()) + CHECK_MARGIN - this.head().calcSubBlockDistance();
 
         UUID worldUUID = this.getWorld().getUID();
         double cartDistance;
