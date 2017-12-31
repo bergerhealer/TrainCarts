@@ -76,11 +76,14 @@ public class RailLogicSloped extends RailLogicHorizontal {
         final CommonMinecart<?> entity = member.getEntity();
 
         // Retrieve the Y-position of the minecart before the movement update
+        // DISABLED: This stuff broke at some point, and now we can't fix it anymore
+        /*
         RailLogic logic = member.getRailTracker().getLastLogic();
         IntVector3 lastRailPos = new IntVector3(member.getRailTracker().getLastBlock());
         Vector lastPos = entity.last.vector();
         logic.getFixedPosition(lastPos, lastRailPos);
         double startY = lastPos.getY();
+        */
 
         // Correct the Y-coordinate for the newly moved position
         // This also makes sure we don't clip through the floor moving down a slope
@@ -89,12 +92,15 @@ public class RailLogicSloped extends RailLogicHorizontal {
         entity.setPosition(pos.getX(), pos.getY(), pos.getZ());
 
         // Apply velocity factors from going up/down the slope
+        // DISABLED: This stuff broke at some point, and now we can't fix it anymore
+        /*
         if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
             final double motLength = entity.vel.xz.length();
             if (motLength > 0) {
                 entity.vel.xz.multiply((startY - pos.getY()) * 0.05 / motLength + 1.0);
             }
         }
+        */
     }
 
     @Override
