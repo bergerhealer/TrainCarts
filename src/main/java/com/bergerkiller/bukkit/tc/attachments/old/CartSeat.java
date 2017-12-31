@@ -85,7 +85,7 @@ public class CartSeat {
         }
 
         // Move the fake mount with this Minecart
-        this.fakeMount.updatePosition(network.getTransform());
+        //this.fakeMount.updatePosition(network.getTransform());
 
         Collection<Entity> passengers = network.getSynchedPassengers();
         for (Player viewer : network.getViewers()) {
@@ -199,7 +199,7 @@ public class CartSeat {
             this.fakeMount.setPosition(member.getPassengerPosition(passenger));
 
             // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
-            this.fakeMount.updatePosition(network.getTransform(false));
+            //this.fakeMount.updatePosition(network.getTransform(false));
             this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
             //this.fakeMount.setPassengers(new int[] {passenger.getEntityId()});

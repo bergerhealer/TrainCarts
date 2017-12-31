@@ -21,8 +21,13 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutEntityLookHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
 
 /**
  * Represents a single Virtual entity, that only exists for clients using packet protocol.
@@ -267,6 +272,7 @@ public class VirtualEntity {
         // Velocity packets are only relevant when minecarts are used (with audio enabled)
         if (Math.abs(this.liveVel - this.syncVel) > 0.01 || (this.syncVel > 0.0 && this.liveVel == 0.0)) {
             this.syncVel = this.liveVel;
+
             CommonPacket packet = PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0);
             broadcast(packet);
         }
@@ -274,20 +280,18 @@ public class VirtualEntity {
         // Synchronize metadata
         DataWatcher metaData = getUsedMeta();
         if (metaData.isChanged()) {
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metaData, false);
-            broadcast(metaPacket.toCommonPacket());
+            broadcast(PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metaData, false));
         }
 
         // Live motion. Check if the distance change is too large.
         double dx = (this.liveAbsX - this.syncAbsX);
         double dy = (this.liveAbsY - this.syncAbsY);
         double dz = (this.liveAbsZ - this.syncAbsZ);
-        boolean largeChange = (Math.abs(dx) > EntityNetworkController.MAX_RELATIVE_DISTANCE) ||
-                              (Math.abs(dy) > EntityNetworkController.MAX_RELATIVE_DISTANCE) ||
-                              (Math.abs(dz) > EntityNetworkController.MAX_RELATIVE_DISTANCE);
+        double abs_delta = Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
+        boolean largeChange = (abs_delta > EntityNetworkController.MAX_RELATIVE_DISTANCE);
 
         // Detect a glitched pitch rotation, and perform a respawn then
-        if (hasPitch(this.entityType) && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
+        if (this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
             this.cancelUnmountLogic = true;
             ArrayList<Player> old_viewers = new ArrayList<Player>(this.viewers);
             for (Player viewer : old_viewers) {
@@ -303,19 +307,19 @@ public class VirtualEntity {
 
         // When an absolute update is required, send a teleport packet and refresh the synchronized position instantly
         if (absolute || largeChange) {
-            broadcast(PacketType.OUT_ENTITY_TELEPORT.newInstance(this.entityId, this.liveAbsX, this.liveAbsY, this.liveAbsZ, this.liveYaw, this.livePitch, false));
+            broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId, this.liveAbsX, this.liveAbsY, this.liveAbsZ, this.liveYaw, this.livePitch, false));
             refreshSyncPos();
             return;
         }
 
+        boolean moved, rotated;
+
         // Check for changes in position
-        boolean moved = (Math.abs(dx) > EntityNetworkController.MIN_RELATIVE_POS_CHANGE) ||
-                        (Math.abs(dy) > EntityNetworkController.MIN_RELATIVE_POS_CHANGE) ||
-                        (Math.abs(dz) > EntityNetworkController.MIN_RELATIVE_POS_CHANGE);
-        
+        moved = (abs_delta > EntityNetworkController.MIN_RELATIVE_POS_CHANGE);
+
         // Check for changes in rotation
-        boolean rotated = (EntityTrackerEntryHandle.getProtocolRotation(this.liveYaw) != EntityTrackerEntryHandle.getProtocolRotation(this.syncYaw)) ||
-                          (EntityTrackerEntryHandle.getProtocolRotation(this.livePitch) != EntityTrackerEntryHandle.getProtocolRotation(this.syncPitch));
+        rotated = rotChanged(this.liveYaw, this.syncYaw) || rotChanged(this.livePitch, this.syncPitch);
+
         // Remember the rotation change for X more ticks. This prevents partial rotation on the client.
         if (rotated) {
             rotateCtr = 14;
@@ -326,33 +330,38 @@ public class VirtualEntity {
 
         if (moved && rotated) {
             // Position and rotation changed
-            CommonPacket packet = PacketType.OUT_ENTITY_MOVE_LOOK.newInstance(this.entityId, 
-                    (this.liveAbsX - this.syncAbsX),
-                    (this.liveAbsY - this.syncAbsY),
-                    (this.liveAbsZ - this.syncAbsZ),
+            PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                    this.entityId,
+                    dx, dy, dz,
                     this.liveYaw,
-                    this.livePitch, false);
+                    this.livePitch,
+                    false);
+
             this.syncYaw = this.liveYaw;
             this.syncPitch = this.livePitch;
-            this.syncAbsX += packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.dx);
-            this.syncAbsY += packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.dy);
-            this.syncAbsZ += packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.dz);
+            this.syncAbsX += packet.getDeltaX();
+            this.syncAbsY += packet.getDeltaY();
+            this.syncAbsZ += packet.getDeltaZ();
             broadcast(packet);
         } else if (moved) {
             // Only position changed
-            CommonPacket packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId,
-                    (this.liveAbsX - this.syncAbsX),
-                    (this.liveAbsY - this.syncAbsY),
-                    (this.liveAbsZ - this.syncAbsZ),
+            PacketPlayOutRelEntityMoveHandle packet = PacketPlayOutRelEntityMoveHandle.createNew(
+                    this.entityId,
+                    dx, dy, dz,
                     false);
-            this.syncAbsX += packet.read(PacketType.OUT_ENTITY_MOVE.dx);
-            this.syncAbsY += packet.read(PacketType.OUT_ENTITY_MOVE.dy);
-            this.syncAbsZ += packet.read(PacketType.OUT_ENTITY_MOVE.dz);
+
+            this.syncAbsX += packet.getDeltaX();
+            this.syncAbsY += packet.getDeltaY();
+            this.syncAbsZ += packet.getDeltaZ();
             broadcast(packet);
         } else if (rotated) {
             // Only rotation changed
-            CommonPacket packet = PacketType.OUT_ENTITY_LOOK.newInstance(this.entityId,
-                    this.liveYaw, this.livePitch, false);
+            PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
+                    this.entityId,
+                    this.liveYaw,
+                    this.livePitch,
+                    false);
+
             this.syncYaw = this.liveYaw;
             this.syncPitch = this.livePitch;
             broadcast(packet);
@@ -370,6 +379,9 @@ public class VirtualEntity {
 
     public void destroy(Player viewer) {
         this.viewers.remove(viewer);
+        if (this.syncVel > 0.0) {
+            PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
+        }
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.entityId});
         PacketUtil.sendPacket(viewer, destroyPacket);
         if (!this.cancelUnmountLogic) {
@@ -378,6 +390,12 @@ public class VirtualEntity {
     }
 
     private void broadcast(CommonPacket packet) {
+        for (Player viewer : this.viewers) {
+            PacketUtil.sendPacket(viewer, packet);
+        }
+    }
+
+    private void broadcast(PacketHandle packet) {
         for (Player viewer : this.viewers) {
             PacketUtil.sendPacket(viewer, packet);
         }
@@ -409,4 +427,20 @@ public class VirtualEntity {
             return false;
         }
     }
+
+    // ==================== Just for backwards compatibility ==========================
+    private static boolean HAS_ROT_CHANGE_FUNC = true;
+    private static boolean rotChanged(float angle1, float angle2) {
+        if (HAS_ROT_CHANGE_FUNC) {
+            try {
+                return EntityTrackerEntryHandle.hasProtocolRotationChanged(angle1, angle2);
+            } catch (Throwable t) {
+                HAS_ROT_CHANGE_FUNC = false;
+            }
+        }
+        if (angle1 == angle2) return false;
+        return EntityTrackerEntryHandle.getProtocolRotation(angle1) != EntityTrackerEntryHandle.getProtocolRotation(angle2);
+    }
+    // ==================================================================================
+
 }

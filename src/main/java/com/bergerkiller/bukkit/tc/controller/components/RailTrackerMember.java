@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import org.bukkit.block.Block;
@@ -157,9 +156,6 @@ public class RailTrackerMember extends RailTracker {
      */
     public void snapshotRailLogic() {
         this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block, this.rail.direction);
-        if (this.railLogic instanceof RailLogicVertical) {
-            this.rail = new TrackedRail(this.rail.member, this.rail.minecartBlock, this.rail.block, RailType.VERTICAL, this.rail.disconnected, this.rail.direction);
-        }
         this.railLogicSnapshotted = true;
     }
 

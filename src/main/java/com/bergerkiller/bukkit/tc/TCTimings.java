@@ -19,4 +19,7 @@ public class TCTimings {
     public static final Timings RAILTRACKER_REFRESH = timings.create("Train Physics - RailTracker::refresh()");
     public static final Timings RAILTYPE_FINDRAILINFO = timings.create("Train Physics - RailType::findRailInfo()");
     public static final Timings SIGNACTION_SPAWN = timings.create("Sign Action Spawn - SpawnSign::spawn()");
+    public static final Timings NETWORK_UPDATE_POSITIONS = timings.create("Network - updatePositions()");
+    public static final Timings NETWORK_PERFORM_TICK = timings.create("Network - performTick()");
+    public static final Timings NETWORK_PERFORM_MOVEMENT = timings.create("Network - performMovement()");
 }

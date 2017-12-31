@@ -226,6 +226,9 @@ public class RailTrackerGroup extends RailTracker {
         if (startInfo.type == RailType.NONE) {
             return;
         }
+        if (!tail.getWheels().hasWheelDistance()) {
+            return;
+        }
 
         BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.direction);
 

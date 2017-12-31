@@ -1,14 +1,15 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -33,18 +35,13 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> implements AttachmentModelOwner {
-    public static final float ROTATION_K = 0.55f;
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
-    private static final Vector ZERO_VELOCITY = new Vector(0.0, 0.0, 0.0);
+
     private MinecartMember<?> member = null;
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
     private final Map<Player, PassengerController> passengerControllers = new HashMap<Player, PassengerController>();
-    private boolean isFirstUpdate = true;
-    private double lastDeltaX = 0.0;
-    private double lastDeltaY = 0.0;
-    private double lastDeltaZ = 0.0;
 
     private CartAttachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
@@ -162,17 +159,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    private static float getAngleKFactor(float angle1, float angle2) {
-        float diff = angle1 - angle2;
-        while (diff <= -180.0f) {
-            diff += 360.0f;
-        }
-        while (diff > 180.0f) {
-            diff -= 360.0f;
-        }
-        return (ROTATION_K * diff);
-    }
-
     public void setMember(MinecartMember<?> member) {
         this.member = member;
     }
@@ -238,7 +224,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         this.velocityUpdateReceivers.remove(viewer);
         this.passengerControllers.remove(viewer);
-        PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(getEntity().getEntityId(), ZERO_VELOCITY));
     }
 
     private static void makeHidden(CartAttachment attachment, Player viewer) {
@@ -291,6 +276,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
             // Synchronize to the clients
             if (this.getTicksSinceLocationSync() > ABSOLUTE_UPDATE_INTERVAL) {
+                EntityTrackerEntryHandle.createHandle(this.getHandle()).setTimeSinceLocationSync(0);
+
                 // Perform absolute updates
                 for (i = 0; i < count; i++) {
                     networkControllers[i].syncSelf(true, true, true);
@@ -331,53 +318,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     /**
-     * Gets the position transform of this Minecart with motion prediction taken into account
-     * 
-     * @return transform
-     */
-    public Matrix4x4 getTransform() {
-        return getTransform(true);
-    }
-
-    /**
-     * Gets the position transform of this Minecart
-     * 
-     * @param motion whether motion prediction needs to be taken into account
-     * @return transform
-     */
-    public Matrix4x4 getTransform(boolean motion) {
-        Matrix4x4 transform = new Matrix4x4();
-
-        double fx = 0.0, fy = 0.0, fz = 0.0;
-        if (motion) {
-            fx = this.lastDeltaX * 0.625;
-            fy = this.lastDeltaY * 0.625;
-            fz = this.lastDeltaZ * 0.625;
-        }
-
-        // Some factor of the movement change needs to be re-predicted
-        // Otherwise things stuck to this Minecart will always move ahead
-        transform.translateRotate(
-                (this.locSynched.getX() - fx),
-                (this.locSynched.getY() - fy),
-                (this.locSynched.getZ() - fz),
-                this.locLive.getPitch(), this.locLive.getYaw()
-        );
-        return transform;
-    }
-
-    public Matrix4x4 getLiveTransform() {
-        MinecartMember<?> member = this.getMember();
-
-        // Combine translation and rotation information into a 4x4 matrix
-        Matrix4x4 transform = new Matrix4x4();
-        transform.translate(member.getWheels().getPosition());
-        transform.rotate(member.getOrientation());
-        transform.rotateZ(member.getRoll());
-        return transform;
-    }
-
-    /**
      * Handles a player clicking on a virtual attachment part.
      * Returns true if this minecart was indeed interacted with.
      * Tracks the interaction that was performed so that it can later
@@ -398,7 +338,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     public void syncSelf(boolean moved, boolean rotated, boolean absolute) {
         // Check
-        if (this.getMember() == null) {
+        MinecartMember<?> member = this.getMember();
+        if (member == null) {
             return;
         }
 
@@ -407,93 +348,35 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
         }
 
-        // Read live location
-        double posX = locLive.getX();
-        double posY = locLive.getY();
-        double posZ = locLive.getZ();
-        float rotYawLive = locLive.getYaw();
-        float rotPitchLive = locLive.getPitch();
-        float rotYaw = rotYawLive;
-        float rotPitch = rotPitchLive;
-
-        // Synchronize location
-        if (rotated && !member.isDerailed() && !isFirstUpdate) {
-            // Update rotation with control system function
-            // This ensures that the Client animation doesn't glitch the rotation
-            rotYaw += getAngleKFactor(rotYaw, locSynched.getYaw());
-            rotPitch += getAngleKFactor(rotPitch, locSynched.getPitch());
-        }
-
-        // Minecraft has really shitty pitch angle calculations for Minecarts
-        // For example, if the pitch angle crosses a 180-degree boundary, it bugs out!
-        // But we can detect this consistent behavior, and respawn the Minecart when we detect it happening
-        // This prevents a really ugly 360 rotation from occurring
-        /*
-        if (rotated && Util.isProtocolRotationGlitched(locSynched.getPitch(), rotPitch)) {
-            rotYaw = rotYawLive;
-            rotPitch = rotPitchLive;
-            absolute = false;
-            rotated = false;
-
-            // Instantly set the newly requested rotation
-            locSynched.setRotation(rotYaw, rotPitch);
-
-            // Destroy and re-spawn the minecart with the new coordinates
-            // Do not do any wacky passenger mounting/unmounting here
-            // We only want to respawn the Minecart itself
-            this.disableMountHandling = true;
-            for (Player viewer : this.getViewers()) {
-                super.makeHidden(viewer, true);
-                super.makeVisible(viewer);
-            }
-            this.disableMountHandling = false;
-            this.needsPassengerResync = true;
-            this.syncDirectPassengers();
-        }
-        */
-
-        isFirstUpdate = false;
         getEntity().setPositionChanged(false);
 
         this.locSynched.set(this.locLive);
-        
-        // Absolute/relative movement updates
-        if (absolute) {
-            //syncLocationAbsolute(posX, posY, posZ, rotYaw, rotPitch);
-
-            lastDeltaX = 0.0;
-            lastDeltaY = 0.0;
-            lastDeltaZ = 0.0;
-        } else {
-            if (moved) {
-                lastDeltaX = (posX - this.locSynched.getX());
-                lastDeltaY = (posY - this.locSynched.getY());
-                lastDeltaZ = (posZ - this.locSynched.getZ());
-            }
-
-            //syncLocation(moved, rotated, posX, posY, posZ, rotYaw, rotPitch);
-        }
 
         // Unused, but set it to false for unknown reasons!
         getEntity().setVelocityChanged(false);
 
-        // Synchronize meta data
-        /*
-        syncMetaData();
-
-
-        */
-        //CartAttachment.updatePositions(this.rootAttachment, this.getTransform(false));
-        
-        CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());
-        CartAttachment.performTick(this.rootAttachment);
-        CartAttachment.performMovement(this.rootAttachment, absolute);
-
-        //onSyncAtt(absolute);
+        // Tick the attachments
+        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+            CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());
+        }
+        try (Timings t = TCTimings.NETWORK_PERFORM_TICK.start()) {
+            CartAttachment.performTick(this.rootAttachment);
+        }
+        try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
+            CartAttachment.performMovement(this.rootAttachment, absolute);
+        }
 
         this.syncPassengers();
-        //this.syncPassengers();
-        //this.syncDirectPassengers();
+    }
+
+    public Matrix4x4 getLiveTransform() {
+        // Combine translation and rotation information into a 4x4 matrix
+        MinecartMember<?> member = this.getMember();
+        Matrix4x4 transform = new Matrix4x4();
+        transform.translate(member.getWheels().getPosition());
+        transform.rotate(member.getOrientation());
+        transform.rotateZ(member.getRoll());
+        return transform;
     }
 
     public PassengerController getPassengerController(Player viewer) {
