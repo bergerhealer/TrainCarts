@@ -101,7 +101,7 @@ public class TCConfig {
         }
 
         cartDistanceGap = config.get("normal.cartDistanceGap", 0.5);
-        cartDistanceGapMax = cartDistanceGap + 1.0;
+        cartDistanceGapMax = cartDistanceGap + 2.0;
         cartDistanceForcer = config.get("normal.cartDistanceForcer", 0.1);
         cartDistanceForcerConstant = config.get("normal.cartDistanceForcerConstant", 0.0);
 
