@@ -1264,6 +1264,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Perform rails logic
         getRailLogic().onPreMove(this);
 
+        // Refresh last-update direction and block information
+        this.getRailTracker().updateLast();
+
         // Update the entity shape
         entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
 
@@ -1446,6 +1449,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             vel.setY(0.0);
         }
 
+        this.directionFrom = this.directionTo;
+
         // Move using set motion, and perform post-move rail logic
         try (Timings t = TCTimings.MEMBER_PHYSICS_MOVE.start()) {
             this.onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
@@ -1485,10 +1490,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Perform post-movement rail logic
         getRailType().onPostMove(this);
-
-        // Refresh last-update direction and block information
-        this.directionFrom = this.directionTo;
-        this.getRailTracker().updateLast();
 
         // Invalidate volatile information
         getRailTracker().setLiveRailLogic();

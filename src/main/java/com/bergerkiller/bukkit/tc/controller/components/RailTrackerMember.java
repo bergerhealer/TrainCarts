@@ -162,7 +162,7 @@ public class RailTrackerMember extends RailTracker {
     public void updateLast() {
         // Store the last rail information
         this.lastRail = this.rail;
-        this.lastRailLogic = this.railLogic;
+        this.lastRailLogic = this.getRailLogic();
         owner.vertToSlope = false;
     }
 
