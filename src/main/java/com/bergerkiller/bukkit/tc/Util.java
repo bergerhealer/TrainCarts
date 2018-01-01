@@ -916,7 +916,7 @@ public class Util {
     public static Location invertRotation(Location loc) {
         //TODO: Maybe this can be done without Quaternion?
         Quaternion q = Quaternion.fromYawPitchRoll(loc.getPitch(), loc.getYaw(), 0.0);
-        q.rotateAxis(q.upVector(), 180.0);
+        q.rotateYFlip();
         Vector ypr_new = q.getYawPitchRoll();
         loc.setYaw((float) ypr_new.getY());
         loc.setPitch((float) ypr_new.getX());

@@ -263,7 +263,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public void flipOrientation() {
         Quaternion orientation = this.getOrientation();
-        orientation.rotateAxis(orientation.upVector(), 180.0);
+        orientation.rotateYFlip();
         this.setOrientation(orientation);
     }
 

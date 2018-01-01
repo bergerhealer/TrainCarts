@@ -318,7 +318,8 @@ public class VirtualEntity {
         moved = (abs_delta > EntityNetworkController.MIN_RELATIVE_POS_CHANGE);
 
         // Check for changes in rotation
-        rotated = rotChanged(this.liveYaw, this.syncYaw) || rotChanged(this.livePitch, this.syncPitch);
+        rotated = EntityTrackerEntryHandle.hasProtocolRotationChanged(this.liveYaw, this.syncYaw) ||
+                  EntityTrackerEntryHandle.hasProtocolRotationChanged(this.livePitch, this.syncPitch);
 
         // Remember the rotation change for X more ticks. This prevents partial rotation on the client.
         if (rotated) {
@@ -427,20 +428,5 @@ public class VirtualEntity {
             return false;
         }
     }
-
-    // ==================== Just for backwards compatibility ==========================
-    private static boolean HAS_ROT_CHANGE_FUNC = true;
-    private static boolean rotChanged(float angle1, float angle2) {
-        if (HAS_ROT_CHANGE_FUNC) {
-            try {
-                return EntityTrackerEntryHandle.hasProtocolRotationChanged(angle1, angle2);
-            } catch (Throwable t) {
-                HAS_ROT_CHANGE_FUNC = false;
-            }
-        }
-        if (angle1 == angle2) return false;
-        return EntityTrackerEntryHandle.getProtocolRotation(angle1) != EntityTrackerEntryHandle.getProtocolRotation(angle2);
-    }
-    // ==================================================================================
 
 }
