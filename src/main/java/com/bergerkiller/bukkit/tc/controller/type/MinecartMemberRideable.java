@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.type;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 import java.util.ArrayList;
@@ -23,7 +24,9 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
     @Override
     public void onActivate() {
         super.onActivate();
-        this.eject();
+        if (TCConfig.activatorEjectEnabled) {
+            this.eject();
+        }
     }
 
     @Override

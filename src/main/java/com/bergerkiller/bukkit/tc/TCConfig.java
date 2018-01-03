@@ -74,6 +74,7 @@ public class TCConfig {
     public static boolean EssentialsEnabled = false;
     public static boolean SignLinkEnabled = false;
     public static boolean MinecartManiaEnabled = false;
+    public static boolean activatorEjectEnabled = true;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -259,6 +260,10 @@ public class TCConfig {
             allowedBlockBreakTypes.add(Material.CROPS);
             allowedBlockBreakTypes.add(Material.LOG);
         }
+
+        config.setHeader("activatorEjectEnabled", "Whether powered activator rails eject players inside Minecarts (Vanilla)");
+        config.addHeader("activatorEjectEnabled", "If activator rails are used for decoration purposes, this should be disabled");
+        activatorEjectEnabled = config.get("activatorEjectEnabled", true);
 
         config.setHeader("disabledWorlds", "\nA list of world names where TrainCarts should be disabled");
         config.addHeader("disabledWorlds", "World names are not case-sensitive");
