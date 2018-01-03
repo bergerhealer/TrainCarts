@@ -310,8 +310,8 @@ public class RailTrackerGroup extends RailTracker {
                         }
 
                         // If the direction of the rail is wrong, fix it
-                        if (position.motDot(rail.direction) > 0) {
-                            rail = rail.changeDirection(rail.direction.getOppositeFace());
+                        if (order < 0) {
+                            rail = rail.changeDirection(position.getMotionFace().getOppositeFace());
                         }
 
                         this.rails.add(railIndex, rail);
@@ -354,8 +354,8 @@ public class RailTrackerGroup extends RailTracker {
 
             /*
             if (position != null) {
-                Location loc = position.toLocation(owner.getWorld());
-                Util.spawnParticle(loc, Particle.WATER_BUBBLE);
+                org.bukkit.Location loc = position.toLocation(owner.getWorld());
+                com.bergerkiller.bukkit.tc.Util.spawnParticle(loc, org.bukkit.Particle.WATER_BUBBLE);
                 
                 //Util.spawnParticle(owner.get(0).getEntity().getLocation(), Particle.REDSTONE);
             }
