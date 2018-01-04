@@ -23,23 +23,24 @@ public class OfflineMember {
     public double motX, motZ;
     public UUID entityUID;
     public int cx, cz;
-    public OfflineGroup group;
+    public final OfflineGroup group;
 
-    public OfflineMember() {
+    private OfflineMember(OfflineGroup group) {
+        this.group = group;
     }
 
     public OfflineMember(OfflineGroup group, MinecartMember<?> instance) {
+        this(group);
         CommonEntity<?> entity = instance.getEntity();
         this.motX = entity.vel.getX();
         this.motZ = entity.vel.getZ();
         this.entityUID = entity.getUniqueId();
         this.cx = entity.loc.x.chunk();
         this.cz = entity.loc.z.chunk();
-        this.group = group;
     }
 
-    public static OfflineMember readFrom(DataInputStream stream) throws IOException {
-        OfflineMember wm = new OfflineMember();
+    public static OfflineMember readFrom(OfflineGroup group, DataInputStream stream) throws IOException {
+        OfflineMember wm = new OfflineMember(group);
         wm.entityUID = new UUID(stream.readLong(), stream.readLong());
         wm.motX = stream.readDouble();
         wm.motZ = stream.readDouble();

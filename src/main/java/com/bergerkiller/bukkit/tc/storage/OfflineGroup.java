@@ -58,7 +58,7 @@ public class OfflineGroup {
     public static OfflineGroup readFrom(DataInputStream stream) throws IOException {
         OfflineGroup wg = new OfflineGroup(stream.readInt());
         for (int i = 0; i < wg.members.length; i++) {
-            wg.members[i] = OfflineMember.readFrom(stream);
+            wg.members[i] = OfflineMember.readFrom(wg, stream);
         }
         wg.name = stream.readUTF();
         wg.genChunks();
