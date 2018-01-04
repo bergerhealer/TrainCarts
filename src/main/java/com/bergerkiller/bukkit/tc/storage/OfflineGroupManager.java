@@ -11,8 +11,8 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -28,7 +28,7 @@ public class OfflineGroupManager {
     public static Long lastUnloadChunk = null;
     private static boolean chunkLoadReq = false;
     private static boolean isRefreshingGroups = false;
-    private static Set<String> containedTrains = new HashSet<>();
+    private static Map<String, OfflineGroup> containedTrains = new HashMap<>();
     private static HashSet<UUID> containedMinecarts = new HashSet<>();
     private static final Map<UUID, OfflineGroupManager> managers = new HashMap<>();
     private OfflineGroupMap groupmap = new OfflineGroupMap();
@@ -281,7 +281,7 @@ public class OfflineGroupManager {
                                 containedMinecarts.add(wm.entityUID);
                             }
                             man.groupmap.add(wg);
-                            containedTrains.add(wg.name);
+                            containedTrains.put(wg.name, wg);
                             totalmembers += wg.members.length;
                             totalgroups++;
                         }
@@ -350,7 +350,7 @@ public class OfflineGroupManager {
             OfflineGroup wg = new OfflineGroup(group);
             wg.updateLoadedChunks(world);
             get(world).groupmap.add(wg);
-            containedTrains.add(wg.name);
+            containedTrains.put(wg.name, wg);
         }
     }
 
@@ -368,8 +368,25 @@ public class OfflineGroupManager {
         return containedTrains.size();
     }
 
+    public static int getStoredCountInLoadedWorlds() {
+        int count = 0;
+        synchronized (managers) {
+            for (Map.Entry<UUID, OfflineGroupManager> entry : managers.entrySet()) {
+                if (Bukkit.getWorld(entry.getKey()) != null) {
+                    count += entry.getValue().groupmap.size();
+                }
+            }
+        }
+        return count;
+    }
+
     public static boolean contains(String trainname) {
-        return containedTrains.contains(trainname);
+        return containedTrains.containsKey(trainname);
+    }
+
+    public static boolean containsInLoadedWorld(String trainname) {
+        OfflineGroup offlineGroup = containedTrains.get(trainname);
+        return offlineGroup != null && Bukkit.getWorld(offlineGroup.worldUUID) != null;
     }
 
     public static void rename(String oldtrainname, String newtrainname) {
@@ -379,7 +396,7 @@ public class OfflineGroupManager {
                     if (group.name.equals(oldtrainname)) {
                         group.name = newtrainname;
                         containedTrains.remove(oldtrainname);
-                        containedTrains.add(newtrainname);
+                        containedTrains.put(newtrainname, group);
                         return;
                     }
                 }

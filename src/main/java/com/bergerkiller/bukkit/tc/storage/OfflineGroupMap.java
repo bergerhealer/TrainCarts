@@ -126,4 +126,5 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
     public Set<OfflineGroup> values() {
         return this.groups;
     }
+
 }

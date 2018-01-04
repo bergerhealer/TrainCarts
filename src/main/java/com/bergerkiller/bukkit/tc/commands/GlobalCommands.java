@@ -138,7 +138,7 @@ public class GlobalCommands {
                     // Get properties: ensures that ALL trains are listed
                     group.getProperties();
                 }
-                count += OfflineGroupManager.getStoredCount();
+                count += OfflineGroupManager.getStoredCountInLoadedWorlds();
                 int minecartCount = 0;
                 for (World world : WorldUtil.getWorlds()) {
                     for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
@@ -336,6 +336,12 @@ public class GlobalCommands {
             if (!prop.hasOwnership(player)) {
                 continue;
             }
+
+            // Check if train is loaded, or stored in a loaded world
+            if (!prop.hasHolder() && !OfflineGroupManager.containsInLoadedWorld(prop.getTrainName())) {
+                continue;
+            }
+
             if (prop.hasHolder() && statement.length() > 0) {
                 MinecartGroup group = prop.getHolder();
                 SignActionEvent event = new SignActionEvent(null, group);
