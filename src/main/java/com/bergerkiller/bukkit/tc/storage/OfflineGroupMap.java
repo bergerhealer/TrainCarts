@@ -30,7 +30,20 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
         this.groups.add(group);
         for (long chunk : group.chunks) {
             if (!group.loadedChunks.contains(chunk)) {
-                getOrCreate(chunk).add(group);
+                getOrCreateChunk(chunk).add(group);
+            }
+        }
+    }
+
+    public void remove(OfflineGroup group) {
+        this.groups.remove(group);
+        for (long chunk : group.chunks) {
+            Set<OfflineGroup> groups = getOrCreateChunk(chunk);
+            if (groups != null) {
+                groups.remove(group);
+                if (groups.isEmpty()) {
+                    this.groupmap.remove(chunk);
+                }
             }
         }
     }
@@ -42,15 +55,17 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
                     // Undo previous registration
                     remove(group);
                     // Remove this member from the group
-                    ArrayList<OfflineMember> members = new ArrayList<>();
-                    for (OfflineMember m : group.members) {
-                        if (!m.entityUID.equals(memberUUID)) {
-                            members.add(m);
+                    {
+                        ArrayList<OfflineMember> members = new ArrayList<>();
+                        for (OfflineMember m : group.members) {
+                            if (!m.entityUID.equals(memberUUID)) {
+                                members.add(m);
+                            }
                         }
-                    }
-                    if (!members.isEmpty()) {
                         group.members = members.toArray(new OfflineMember[0]);
-                        group.genChunks();
+                    }
+                    group.genChunks();
+                    if (group.members.length > 0) {
                         add(group);
                     }
                     // Finished
@@ -61,7 +76,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
         return false;
     }
 
-    public OfflineGroup remove(String groupName) {
+    public final OfflineGroup remove(String groupName) {
         for (OfflineGroup group : groups) {
             if (group.name.equals(groupName)) {
                 remove(group);
@@ -71,28 +86,15 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
         return null;
     }
 
-    public void remove(OfflineGroup group) {
-        this.groups.remove(group);
-        for (long chunk : group.chunks) {
-            Set<OfflineGroup> groups = get(chunk);
-            if (groups != null) {
-                groups.remove(group);
-                if (groups.isEmpty()) {
-                    this.groupmap.remove(chunk);
-                }
-            }
-        }
+    public Set<OfflineGroup> removeFromChunk(Chunk chunk) {
+        return removeFromChunk(chunk.getX(), chunk.getZ());
     }
 
-    public Set<OfflineGroup> remove(Chunk chunk) {
-        return remove(chunk.getX(), chunk.getZ());
+    public Set<OfflineGroup> removeFromChunk(int x, int z) {
+        return removeFromChunk(MathUtil.longHashToLong(x, z));
     }
 
-    public Set<OfflineGroup> remove(int x, int z) {
-        return remove(MathUtil.longHashToLong(x, z));
-    }
-
-    public Set<OfflineGroup> remove(long chunk) {
+    public Set<OfflineGroup> removeFromChunk(long chunk) {
         Set<OfflineGroup> rval = this.groupmap.remove(chunk);
         if (rval != null) {
             for (OfflineGroup group : rval) {
@@ -102,19 +104,19 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
         return rval;
     }
 
-    public Set<OfflineGroup> get(Chunk chunk) {
-        return get(chunk.getX(), chunk.getZ());
+    public Set<OfflineGroup> getFromChunk(Chunk chunk) {
+        return this.getFromChunk(chunk.getX(), chunk.getZ());
     }
 
-    public Set<OfflineGroup> get(int x, int z) {
-        return this.get(MathUtil.longHashToLong(x, z));
+    public Set<OfflineGroup> getFromChunk(int x, int z) {
+        return this.getFromChunk(MathUtil.longHashToLong(x, z));
     }
 
-    public Set<OfflineGroup> get(long chunk) {
+    public Set<OfflineGroup> getFromChunk(long chunk) {
         return this.groupmap.get(chunk);
     }
 
-    public Set<OfflineGroup> getOrCreate(long chunk) {
+    public Set<OfflineGroup> getOrCreateChunk(long chunk) {
         HashSet<OfflineGroup> rval = this.groupmap.get(chunk);
         if (rval == null) {
             rval = new HashSet<>(1);

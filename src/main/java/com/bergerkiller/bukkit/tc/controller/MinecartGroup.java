@@ -373,6 +373,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void unload() {
+        // Do not unload if already unloaded!
+        if (super.isEmpty()) {
+            return;
+        }
+        for (MinecartMember<?> member : this) {
+            if (member.isUnloaded()) {
+                return;
+            }
+        }
+
         // Undo partial-unloading before calling the event
         for (MinecartMember<?> member : this) {
             member.group = this;
@@ -390,6 +400,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         // Free memory cached in train properties
         getProperties().getSkipOptions().unloadSigns();
+        for (MinecartMember<?> member : this) {
+            member.getProperties().getSkipOptions().unloadSigns();
+        }
 
         // Unload
         this.stop(true);
@@ -397,11 +410,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         for (MinecartMember<?> member : this) {
             member.group = null;
             member.unloaded = true;
-            member.getProperties().getSkipOptions().unloadSigns();
 
             // We must correct position here, because it will no longer be ticked!
             member.getEntity().doPostTick();
         }
+
+        // Clear group members
+        super.clear();
     }
 
     /**
