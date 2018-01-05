@@ -81,7 +81,6 @@ public class OfflineGroupManager {
                             if (group.testFullyLoaded()) {
                                 //a participant to be restored
                                 if (group.updateLoadedChunks(chunk.getWorld())) {
-                                    System.out.println("RESTORE GROUP " + group.name);
                                     man.restoreGroup(group, chunk.getWorld());
                                 } else {
                                     //add it again
