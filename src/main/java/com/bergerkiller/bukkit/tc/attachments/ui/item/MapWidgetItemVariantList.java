@@ -53,7 +53,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
         if (maxDurability > 0) {
             // Uses durability
             this.variants = new ArrayList<ItemStack>(maxDurability);
-            for (int i = 0; i < maxDurability; i++) {
+            for (int i = 0; i <= maxDurability; i++) {
                 ItemStack tmp = item.clone();
                 tmp.setDurability((short) i);
                 this.variants.add(tmp);
