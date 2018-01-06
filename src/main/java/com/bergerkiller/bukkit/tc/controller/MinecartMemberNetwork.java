@@ -203,6 +203,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void makeVisible(Player viewer) {
         //super.makeVisible(viewer);
 
+        // Ensures mount packets are sent out after the spawn packets of entities involved
+        this.getPassengerController(viewer).startTickDelay();
+
         makeVisible(this.rootAttachment, viewer);
 
         this.velocityUpdateReceivers.add(viewer);

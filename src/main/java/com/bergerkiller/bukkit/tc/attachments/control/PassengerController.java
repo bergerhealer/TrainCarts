@@ -7,7 +7,9 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.generated.net.minecraft.server.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutAttachEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
@@ -19,9 +21,37 @@ public class PassengerController {
     private static final boolean MULTIPLE_PASSENGERS = PacketPlayOutMountHandle.T.isAvailable();
     private final Player viewer;
     private final List<Vehicle> vehicles = new ArrayList<Vehicle>();
+    private boolean isSpawned = true;
+    private List<PacketHandle> tickDelayedPackets = null;
 
     public PassengerController(Player viewer) {
         this.viewer = viewer;
+    }
+
+    /**
+     * Sends all mount packets enqueued from now on in the current tick, one tick delayed.
+     * This makes sure mount packets are sent after the spawn packets of the mountee.
+     */
+    public void startTickDelay() {
+        if (this.isSpawned) {
+            this.isSpawned = false;
+            this.tickDelayedPackets = new ArrayList<PacketHandle>();
+            CommonUtil.nextTick(new Runnable() {
+                @Override
+                public void run() {
+                    // Note: swap out packets so that if startTickDelay() fires sending packets,
+                    // no NPE exceptions occur and no packets get lost
+                    isSpawned = true;
+                    List<PacketHandle> packets = tickDelayedPackets;
+                    tickDelayedPackets = null;
+                    if (packets != null) {
+                        for (PacketHandle packet : packets) {
+                            PacketUtil.sendPacket(viewer, packet);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -224,14 +254,22 @@ public class PassengerController {
     }
 
     private void sendMount(int vehicleId, int[] passengerIds) {
-        PacketUtil.sendPacket(this.viewer, PacketPlayOutMountHandle.createNew(vehicleId, passengerIds));
+        sendPacket(PacketPlayOutMountHandle.createNew(vehicleId, passengerIds));
     }
 
     private void sendAttach(int vehicleId, int passengerId) {
         PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
         attach.setVehicleId(vehicleId);
         attach.setPassengerId(passengerId);
-        PacketUtil.sendPacket(this.viewer, attach);
+        sendPacket(attach);
+    }
+
+    private void sendPacket(PacketHandle packet) {
+        if (this.isSpawned) {
+            PacketUtil.sendPacket(this.viewer, packet);
+        } else {
+            this.tickDelayedPackets.add(packet);
+        }
     }
 
     private static class Vehicle {
