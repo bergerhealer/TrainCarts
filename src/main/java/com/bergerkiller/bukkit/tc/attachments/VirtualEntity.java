@@ -41,6 +41,7 @@ public class VirtualEntity {
     private double posX, posY, posZ;
     private double liveAbsX, liveAbsY, liveAbsZ;
     private double syncAbsX, syncAbsY, syncAbsZ;
+    private double velSyncAbsX, velSyncAbsY, velSyncAbsZ;
     private float liveYaw, livePitch;
     private float syncYaw, syncPitch;
     private double liveVel;
@@ -64,6 +65,7 @@ public class VirtualEntity {
         this.entityUUID = entityUUID;
         this.metaData = new DataWatcher();
         this.syncAbsX = this.syncAbsY = this.syncAbsZ = Double.NaN;
+        this.velSyncAbsX = this.velSyncAbsY = this.velSyncAbsZ = Double.NaN;
         this.syncVel = 0.0;
     }
 
@@ -143,7 +145,12 @@ public class VirtualEntity {
         if (hasVelocityPacket(this.entityType)) {
             MinecartMember<?> member = controller.getMember();
             if (member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
-                liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, syncAbsX, syncAbsY, syncAbsZ);
+                if (!Double.isNaN(velSyncAbsX)) {
+                    liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, velSyncAbsX, velSyncAbsY, velSyncAbsZ);
+                }
+                velSyncAbsX = liveAbsX;
+                velSyncAbsY = liveAbsY;
+                velSyncAbsZ = liveAbsZ;
 
                 // Limit to a maximum of 1.0, above this it's kind of pointless
                 if (liveVel > 1.0) liveVel = 1.0;

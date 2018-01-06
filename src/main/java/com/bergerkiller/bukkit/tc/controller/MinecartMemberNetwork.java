@@ -275,6 +275,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 if (networkControllers[i].member != member) {
                     networkControllers[i].member = member;
                 }
+                networkControllers[i].tickSelf();
             }
 
             // Synchronize to the clients
@@ -339,16 +340,25 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return true;
     }
 
+    public void tickSelf() {
+        // Set attachment to a fallback if for whatever reason it is null
+        if (this.rootAttachment == null) {
+            this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
+        }
+
+        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+            CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());
+        }
+        try (Timings t = TCTimings.NETWORK_PERFORM_TICK.start()) {
+            CartAttachment.performTick(this.rootAttachment);
+        }
+    }
+
     public void syncSelf(boolean moved, boolean rotated, boolean absolute) {
         // Check
         MinecartMember<?> member = this.getMember();
         if (member == null) {
             return;
-        }
-
-        // Set attachment to a fallback if for whatever reason it is null
-        if (this.rootAttachment == null) {
-            this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
         }
 
         getEntity().setPositionChanged(false);
@@ -358,13 +368,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Unused, but set it to false for unknown reasons!
         getEntity().setVelocityChanged(false);
 
-        // Tick the attachments
-        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
-            CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());
-        }
-        try (Timings t = TCTimings.NETWORK_PERFORM_TICK.start()) {
-            CartAttachment.performTick(this.rootAttachment);
-        }
+        // Perform actual movement, which sends movement update packets
         try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
             CartAttachment.performMovement(this.rootAttachment, absolute);
         }
