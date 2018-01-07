@@ -8,6 +8,8 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
@@ -108,24 +110,39 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
             }
             x += 17;
         }
+
+        // If variants are based on durability, show durability value
+        if (this.variantIndex >= 0 && this.variantIndex < this.variants.size()) {
+            ItemStack item = this.variants.get(this.variantIndex);
+            if (ItemUtil.getMaxDurability(item) > 0) {
+                view.setAlignment(MapFont.Alignment.MIDDLE);
+                view.draw(MapFont.TINY, 44, 12, MapColorPalette.COLOR_RED, Short.toString(item.getDurability()));
+            }
+        }
+    }
+
+    private void changeVariantIndex(int offset) {
+        int newVariantIndex = this.variantIndex + offset;
+        if (newVariantIndex < 0) {
+            newVariantIndex = 0;
+        } else if (newVariantIndex >= this.variants.size()) {
+            newVariantIndex = this.variants.size()-1;
+        }
+        if (this.variantIndex == newVariantIndex) {
+            return;
+        }
+        this.variantIndex = newVariantIndex;
+        this.invalidate();
+        this.onItemChanged();
+        this.display.playSound(CommonSounds.CLICK);
     }
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == Key.LEFT) {
-            if (this.variantIndex > 0) {
-                this.variantIndex--;
-                this.invalidate();
-                this.onItemChanged();
-                this.display.playSound(CommonSounds.CLICK);
-            }
+            changeVariantIndex(-1 - (event.getRepeat() / 40));
         } else if (event.getKey() == Key.RIGHT) {
-            if (this.variantIndex < (this.variants.size() - 1)) {
-                this.variantIndex++;
-                this.invalidate();
-                this.onItemChanged();
-                this.display.playSound(CommonSounds.CLICK);
-            }
+            changeVariantIndex(1 + (event.getRepeat() / 40));
         } else {
             super.onKeyPressed(event);
         }
