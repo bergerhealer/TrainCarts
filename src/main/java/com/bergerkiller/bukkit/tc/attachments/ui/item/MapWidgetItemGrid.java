@@ -15,11 +15,12 @@ import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 
 /**
  * Shows a grid of items that can be selected using W/A/S/D
  */
-public class MapWidgetItemGrid extends MapWidget {
+public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
     private int _columns = 4;
     private int _rows = 3;
     private int _itemSize = 16;
@@ -227,6 +228,14 @@ public class MapWidgetItemGrid extends MapWidget {
         }
     }
 
+    @Override
+    public boolean acceptItem(ItemStack item) {
+        if (this.parent instanceof ItemDropTarget) {
+            return ((ItemDropTarget) this.parent).acceptItem(item);
+        }
+        return false;
+    }
+
     private int calcX(int col) {
         return (col == 0) ? 0 : (col * this._itemSize + (col - 1) * this._itemSpacing);
     }
@@ -288,4 +297,5 @@ public class MapWidgetItemGrid extends MapWidget {
 
     public void onSelectionChanged() {
     }
+
 }

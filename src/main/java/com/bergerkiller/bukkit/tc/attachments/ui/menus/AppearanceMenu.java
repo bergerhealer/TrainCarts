@@ -9,16 +9,18 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 
-public class AppearanceMenu extends MapWidgetWindow {
+public class AppearanceMenu extends MapWidgetWindow implements ItemDropTarget {
     private final MapWidgetAttachmentNode attachment;
     private final MapWidgetTabView tabView = new MapWidgetTabView();
 
@@ -107,6 +109,16 @@ public class AppearanceMenu extends MapWidgetWindow {
         super.onKeyPressed(event);
     }
 
+    @Override
+    public boolean acceptItem(ItemStack item) {
+        for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
+            if (widget instanceof ItemDropTarget && ((ItemDropTarget) widget).acceptItem(item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public ConfigurationNode getConfig() {
         return this.attachment.getConfig();
     }
@@ -119,4 +131,5 @@ public class AppearanceMenu extends MapWidgetWindow {
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
         getAttachment().resetIcon();
     }
+
 }

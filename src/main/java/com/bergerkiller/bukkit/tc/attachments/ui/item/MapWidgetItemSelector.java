@@ -7,13 +7,14 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
 
 /**
  * Combines a toggleable item grid with preview and an item variant item selector list
  * to select an ItemStack
  */
-public abstract class MapWidgetItemSelector extends MapWidget {
+public abstract class MapWidgetItemSelector extends MapWidget implements ItemDropTarget {
     private final MapWidgetItemPreview preview = new MapWidgetItemPreview() {
         
     };
@@ -126,6 +127,13 @@ public abstract class MapWidgetItemSelector extends MapWidget {
         this.addWidget(this.nav_left);
         this.addWidget(this.nav_right);
         setGridOpened(false);
+    }
+
+    @Override
+    public boolean acceptItem(ItemStack item) {
+        setGridOpened(false);
+        this.variantList.setItem(item);
+        return true;
     }
 
     private void setGridOpened(boolean opened) {

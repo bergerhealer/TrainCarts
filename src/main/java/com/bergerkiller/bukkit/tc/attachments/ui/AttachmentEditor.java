@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapStatusEvent;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
@@ -54,6 +56,7 @@ public class AttachmentEditor extends MapDisplay {
         this.setGlobal(false);
         this.setUpdateWithoutViewers(false);
         this.setSessionMode(MapSessionMode.HOLDING);
+        this.setMasterVolume(0.3f);
 
         /*
         CartProperties properties = CartProperties.getEditing(this.getViewers().get(0));
@@ -140,4 +143,13 @@ public class AttachmentEditor extends MapDisplay {
         */
     }
 
+    public boolean acceptItem(ItemStack item) {
+        if (item == null) {
+            return false;
+        }
+
+        MapWidget activated = this.getActivatedWidget();
+        return (activated instanceof ItemDropTarget) ?
+                ((ItemDropTarget) activated).acceptItem(item) : false;
+    }
 }
