@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
 
@@ -133,6 +134,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
     public boolean acceptItem(ItemStack item) {
         setGridOpened(false);
         this.variantList.setItem(item);
+        display.playSound(CommonSounds.CLICK_WOOD);
         return true;
     }
 
