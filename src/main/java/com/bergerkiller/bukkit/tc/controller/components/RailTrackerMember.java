@@ -60,7 +60,7 @@ public class RailTrackerMember extends RailTracker {
     }
 
     public BlockFace getRailDirection() {
-        return this.rail.direction;
+        return this.rail.enterFace;
     }
     
     /**
@@ -117,7 +117,7 @@ public class RailTrackerMember extends RailTracker {
         if (this.railLogicSnapshotted && this.railLogic != null) {
             return this.railLogic;
         } else {
-            return this.rail.type.getLogic(this.owner, this.rail.block, this.rail.direction);
+            return this.rail.type.getLogic(this.owner, this.rail.block, this.rail.enterFace);
         }
     }
 
@@ -155,7 +155,7 @@ public class RailTrackerMember extends RailTracker {
      * Creates a snapshot of the Rail Logic for the entire next run
      */
     public void snapshotRailLogic() {
-        this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block, this.rail.direction);
+        this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block, this.rail.enterFace);
         this.railLogicSnapshotted = true;
     }
 

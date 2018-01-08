@@ -40,9 +40,11 @@ public abstract class RailTracker {
         /** Type of rails */
         public final RailType type;
         /** The direction at which the rail was entered by the minecart */
-        public final BlockFace direction;
+        public final BlockFace enterFace;
         /** Whether this rail is disconnected from the previous rails */
         public final boolean disconnected;
+        /** Cached rail path taken on this rail */
+        public RailPath cachedPath = null;
 
         public TrackedRail(MinecartMember<?> member, TrackMovingPoint point, boolean disconnected) {
             this(member, point.current, point.currentTrack, point.currentRail, disconnected, point.currentDirection);
@@ -53,7 +55,7 @@ public abstract class RailTracker {
             this.minecartBlock = minecartBlock;
             this.block = railsBlock;
             this.type = railsType;
-            this.direction = direction;
+            this.enterFace = direction;
             this.disconnected = disconnected;
             if (railsBlock == null) {
                 this.position = new IntVector3(0, 0, 0);
@@ -79,15 +81,18 @@ public abstract class RailTracker {
          * @return rail information with changed member
          */
         public TrackedRail changeMember(MinecartMember<?> member) {
-            return new TrackedRail(member, minecartBlock, block, type, this.disconnected, this.direction);
+            return new TrackedRail(member, minecartBlock, block, type, this.disconnected, this.enterFace);
         }
 
         public RailLogic getLogic() {
-            return this.type.getLogic(null, this.block, this.direction);
+            return this.type.getLogic(null, this.block, this.enterFace);
         }
 
         public RailPath getPath() {
-            return getLogic().getPath();
+            if (this.cachedPath == null) {
+                this.cachedPath = getLogic().getPath();
+            }
+            return this.cachedPath;
         }
 
         /**

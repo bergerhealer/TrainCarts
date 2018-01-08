@@ -166,7 +166,7 @@ public class RailTrackerGroup extends RailTracker {
 
         // Walk 0.0 distance forwards to calculate the orientation of the start rails
         RailLogic startLogic = startInfo.getLogic();
-        BlockFace movementDirectionFace = startLogic.getMovementDirection(startInfo.direction);
+        BlockFace movementDirectionFace = startLogic.getMovementDirection(startInfo.enterFace);
         Position position = Position.fromPosDir(tail.getEntity().loc.vector(), FaceUtil.faceToVector(movementDirectionFace));
         startLogic.getPath().move(position, startInfo.block, 0.0);
 
@@ -180,7 +180,7 @@ public class RailTrackerGroup extends RailTracker {
 
         // Walk the distance from the current position (and rails) in the direction
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
-            TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.direction);
+            TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.enterFace);
 
             int loopCtr = 0; // This is to prevent infinite loops
             boolean first = true;
@@ -230,7 +230,7 @@ public class RailTrackerGroup extends RailTracker {
             return;
         }
 
-        BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.direction);
+        BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.enterFace);
 
         // No next member, so we can't compute a direction from that
         // Simply walk the wheel distance forwards to find out that angle
@@ -260,11 +260,16 @@ public class RailTrackerGroup extends RailTracker {
             // Try and see if the first entry in this.prevRails leads to startInfo
             // If so, we can simply append startInfo as is after that one
             if (prevRailStartIndex == -1 && !this.prevRails.isEmpty()) {
-                TrackedRail prev = this.prevRails.get(0);
-                Block nextPos = prev.type.getNextPos(prev.block, prev.direction);
-                if (nextPos != null && nextPos.equals(startInfo.minecartBlock)) {
-                    this.prevRails.add(0, startInfo);
-                    prevRailStartIndex = 0;
+                for (int i = 0; i < this.prevRails.size(); i++) {
+                    if (this.prevRails.get(i).member == startInfo.member) {
+                        TrackedRail prev = this.prevRails.get(i);
+                        Block nextPos = prev.type.getNextPos(prev.block, prev.enterFace);
+                        if (nextPos != null && nextPos.equals(startInfo.minecartBlock)) {
+                            this.prevRails.add(i, startInfo);
+                            prevRailStartIndex = i;
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -279,7 +284,7 @@ public class RailTrackerGroup extends RailTracker {
             // If previous rails are found, walk them first
             if (prevRailStartIndex != -1) {
                 TrackedRail startRail = this.prevRails.get(prevRailStartIndex);
-                BlockFace prevStartDirection = startRail.getLogic().getMovementDirection(startRail.direction);
+                BlockFace prevStartDirection = startRail.getLogic().getMovementDirection(startRail.enterFace);
 
                 // Move as much as possible over the current rail
                 // This sets our position to the end-position of the current rail
@@ -314,6 +319,7 @@ public class RailTrackerGroup extends RailTracker {
                             rail = rail.changeDirection(position.getMotionFace().getOppositeFace());
                         }
 
+                        rail.cachedPath = path;
                         this.rails.add(railIndex, rail);
                         startInfo = rail;
                     }
@@ -347,7 +353,9 @@ public class RailTrackerGroup extends RailTracker {
                     } else {
                         // Add rail information
                         TrackedRail rail = new TrackedRail(tail, p, false);
-                        this.rails.add(railIndex, rail.changeDirection(rail.direction.getOppositeFace()));
+                        rail = rail.changeDirection(p.currentDirection.getOppositeFace());
+                        rail.cachedPath = path;
+                        this.rails.add(railIndex, rail);
                     }
                 }
             }
@@ -403,7 +411,7 @@ public class RailTrackerGroup extends RailTracker {
             if (nextPos == null) {
                 break; // member is not on a rail. Do not look for it.
             }
-            TrackMovingPoint p = new TrackMovingPoint(moveInfo.block, moveInfo.direction);
+            TrackMovingPoint p = new TrackMovingPoint(moveInfo.block, moveInfo.enterFace);
             if (p.hasNext()) {
                 p.next();
                 moveLimitCtr = 0;

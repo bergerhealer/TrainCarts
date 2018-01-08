@@ -907,6 +907,10 @@ public class Util {
         loc.getWorld().spawnParticle(particle, loc, 1);
     }
 
+    public static void spawnBubble(Location loc) {
+        spawnParticle(loc, Particle.WATER_BUBBLE);
+    }
+
     /**
      * Rotates the yaw/pitch of a Location to invert the direction it is pointing into
      * 
