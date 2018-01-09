@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
+import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -55,6 +56,17 @@ public class TrainCarts extends PluginBase {
     private AttachmentModelStore attachmentModels;
     private SpawnSignManager spawnSignManager;
     private SavedTrainPropertiesStore savedTrainsStore;
+    private TCMountPacketHandler mountHandler;
+
+    /**
+     * Gets the packet handler responsible for sending entity mount packets at the right time.
+     * The handler makes sure the vehicle and passengers are spawned before issueing the mount packet.
+     * 
+     * @return mount handler
+     */
+    public TCMountPacketHandler getMountHandler() {
+        return this.mountHandler;
+    }
 
     /**
      * Gets the program component responsible for automatically spawning trains from spawn signs periodically.
@@ -259,6 +271,10 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        //Initialize mount packet handler
+        this.mountHandler = new TCMountPacketHandler();
+        this.register((PacketMonitor) this.mountHandler, TCMountPacketHandler.MONITORED_TYPES);
+
         //Load attachment models
         attachmentModels = new AttachmentModelStore(getDataFolder() + File.separator + "models.yml");
         attachmentModels.load();
@@ -373,6 +389,12 @@ public class TrainCarts extends PluginBase {
         // Save train information
         if (!autosave) {
             OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
+        }
+
+        // Not really saving, but good to do regularly: clean up mount packet handler
+        // In case players that left the server are still stored there, this cleans that up
+        if (autosave) {
+            this.mountHandler.cleanup();
         }
     }
 

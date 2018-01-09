@@ -7,10 +7,8 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.generated.net.minecraft.server.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutAttachEntityHandle;
+import com.bergerkiller.bukkit.tc.TCMountPacketHandler;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 
 /**
@@ -19,39 +17,11 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
  */
 public class PassengerController {
     private static final boolean MULTIPLE_PASSENGERS = PacketPlayOutMountHandle.T.isAvailable();
-    private final Player viewer;
     private final List<Vehicle> vehicles = new ArrayList<Vehicle>();
-    private boolean isSpawned = true;
-    private List<PacketHandle> tickDelayedPackets = null;
+    private final TCMountPacketHandler.PlayerHandler mountHandler;
 
     public PassengerController(Player viewer) {
-        this.viewer = viewer;
-    }
-
-    /**
-     * Sends all mount packets enqueued from now on in the current tick, one tick delayed.
-     * This makes sure mount packets are sent after the spawn packets of the mountee.
-     */
-    public void startTickDelay() {
-        if (this.isSpawned) {
-            this.isSpawned = false;
-            this.tickDelayedPackets = new ArrayList<PacketHandle>();
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    // Note: swap out packets so that if startTickDelay() fires sending packets,
-                    // no NPE exceptions occur and no packets get lost
-                    isSpawned = true;
-                    List<PacketHandle> packets = tickDelayedPackets;
-                    tickDelayedPackets = null;
-                    if (packets != null) {
-                        for (PacketHandle packet : packets) {
-                            PacketUtil.sendPacket(viewer, packet);
-                        }
-                    }
-                }
-            });
-        }
+        this.mountHandler = TrainCarts.plugin.getMountHandler().get(viewer);
     }
 
     /**
@@ -65,10 +35,10 @@ public class PassengerController {
             if (vehicle.id == entityId) {
                 // Resend as vehicle
                 if (MULTIPLE_PASSENGERS) {
-                    sendMount(vehicle.id, vehicle.passengers);
+                    mountHandler.mount(vehicle.id, vehicle.passengers);
                 } else {
                     for (int passengerId : vehicle.passengers) {
-                        sendAttach(vehicle.id, passengerId);
+                        mountHandler.attach(vehicle.id, passengerId);
                     }
                 }
             } else {
@@ -76,9 +46,9 @@ public class PassengerController {
                     if (passengerId == entityId) {
                         // Resend for passenger
                         if (MULTIPLE_PASSENGERS) {
-                            sendMount(vehicle.id, vehicle.passengers);
+                            mountHandler.mount(vehicle.id, vehicle.passengers);
                         } else {
-                            sendAttach(vehicle.id, passengerId);
+                            mountHandler.attach(vehicle.id, passengerId);
                         }
                         break;
                     }
@@ -103,10 +73,10 @@ public class PassengerController {
                 // Send packets indicating removal
                 if (sendPackets) {
                     if (MULTIPLE_PASSENGERS) {
-                        sendMount(vehicle.id, new int[0]);
+                        mountHandler.mount(vehicle.id, new int[0]);
                     } else {
                         for (int passengerId : vehicle.passengers) {
-                            sendAttach(-1, passengerId);
+                            mountHandler.attach(-1, passengerId);
                         }
                     }
                 }
@@ -121,9 +91,9 @@ public class PassengerController {
                     // Send packets
                     if (sendPackets) {
                         if (MULTIPLE_PASSENGERS) {
-                            sendMount(vehicle.id, vehicle.passengers);
+                            mountHandler.mount(vehicle.id, vehicle.passengers);
                         } else {
-                            sendAttach(-1, entityId);
+                            mountHandler.attach(-1, entityId);
                         }
                     }
 
@@ -155,9 +125,9 @@ public class PassengerController {
                 // Remove entire vehicle
                 vehicle_iter.remove();
                 if (MULTIPLE_PASSENGERS) {
-                    sendMount(vehicle.id, new int[0]);
+                    mountHandler.mount(vehicle.id, new int[0]);
                 } else {
-                    sendAttach(-1, passengerEntityId);
+                    mountHandler.attach(-1, passengerEntityId);
                 }
                 return;
             }
@@ -165,9 +135,9 @@ public class PassengerController {
                 if (vehicle.passengers[i] == passengerEntityId) {
                     vehicle.removePassengerAt(i);
                     if (MULTIPLE_PASSENGERS) {
-                        sendMount(vehicle.id, vehicle.passengers);
+                        mountHandler.mount(vehicle.id, vehicle.passengers);
                     } else {
-                        sendAttach(-1, passengerEntityId);
+                        mountHandler.attach(-1, passengerEntityId);
                     }
                     return;
                 }
@@ -212,9 +182,9 @@ public class PassengerController {
 
                 // Send mount packets
                 if (MULTIPLE_PASSENGERS) {
-                    sendMount(vehicle.id, vehicle.passengers);
+                    mountHandler.mount(vehicle.id, vehicle.passengers);
                 } else {
-                    sendAttach(vehicle.id, passengerEntityId);
+                    mountHandler.attach(vehicle.id, passengerEntityId);
                 }
                 return true;
             }
@@ -228,9 +198,9 @@ public class PassengerController {
         Vehicle new_vehicle = new Vehicle(vehicleEntityId, passengerEntityId);
         this.vehicles.add(new_vehicle);
         if (MULTIPLE_PASSENGERS) {
-            sendMount(new_vehicle.id, new_vehicle.passengers);
+            mountHandler.mount(new_vehicle.id, new_vehicle.passengers);
         } else {
-            sendAttach(new_vehicle.id, passengerEntityId);
+            mountHandler.attach(new_vehicle.id, passengerEntityId);
         }
 
         return true;
@@ -250,25 +220,6 @@ public class PassengerController {
                     break;
                 }
             }
-        }
-    }
-
-    private void sendMount(int vehicleId, int[] passengerIds) {
-        sendPacket(PacketPlayOutMountHandle.createNew(vehicleId, passengerIds));
-    }
-
-    private void sendAttach(int vehicleId, int passengerId) {
-        PacketPlayOutAttachEntityHandle attach = PacketPlayOutAttachEntityHandle.T.newHandleNull();
-        attach.setVehicleId(vehicleId);
-        attach.setPassengerId(passengerId);
-        sendPacket(attach);
-    }
-
-    private void sendPacket(PacketHandle packet) {
-        if (this.isSpawned) {
-            PacketUtil.sendPacket(this.viewer, packet);
-        } else {
-            this.tickDelayedPackets.add(packet);
         }
     }
 

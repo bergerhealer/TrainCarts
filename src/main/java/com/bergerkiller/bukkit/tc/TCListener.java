@@ -100,6 +100,7 @@ public class TCListener implements Listener {
             mode.getTeam().remove(event.getPlayer());
         }
         ProfileNameModifier.onViewerQuit(event.getPlayer());
+        TrainCarts.plugin.getMountHandler().remove(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
