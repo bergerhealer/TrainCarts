@@ -531,7 +531,7 @@ public class TCListener implements Listener {
 
                 // Custom placement of an upside-down normal rail
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, placedBlock.getState(),
-                        event.getClickedBlock(), event.getItem(), event.getPlayer(), true);
+                        event.getClickedBlock(), heldItem.clone(), event.getPlayer(), true);
 
                 // Build a standard south-facing straight track
                 // The onBlockPlace event trigger will shape up this track the next tick
