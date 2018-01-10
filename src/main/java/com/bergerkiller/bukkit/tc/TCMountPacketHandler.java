@@ -28,7 +28,8 @@ public class TCMountPacketHandler implements PacketMonitor {
             PacketType.OUT_ENTITY_SPAWN,
             PacketType.OUT_ENTITY_SPAWN_LIVING,
             PacketType.OUT_ENTITY_SPAWN_NAMED,
-            PacketType.OUT_ENTITY_DESTROY
+            PacketType.OUT_ENTITY_DESTROY,
+            PacketType.OUT_RESPAWN
     };
 
     public synchronized void cleanup() {
@@ -137,6 +138,9 @@ public class TCMountPacketHandler implements PacketMonitor {
                 spawn(packet.read(PacketType.OUT_ENTITY_SPAWN_NAMED.entityId));
             } else if (type == PacketType.OUT_ENTITY_DESTROY) {
                 despawn(packet.read(PacketType.OUT_ENTITY_DESTROY.entityIds));
+            } else if (type == PacketType.OUT_RESPAWN) {
+                this._map.clear();
+                this._checkTasks.clear();
             }
         }
 
