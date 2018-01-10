@@ -147,7 +147,7 @@ public class TCMountPacketHandler implements PacketMonitor {
         // called before running a task to handle pre-spawn dependencies
         // adds the pending task to the metadata of the entity, if the entity is not yet spawned
         private boolean require(PendingTask task, int entityId) {
-            if (entityId < 0) {
+            if (entityId < 0 || entityId == this._player.getEntityId()) {
                 return true;
             }
             EntityMeta meta = _map.get(entityId);
