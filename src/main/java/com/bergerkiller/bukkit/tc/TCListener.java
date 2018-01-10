@@ -548,7 +548,7 @@ public class TCListener implements Listener {
                     // If not survival, subtract one item from player's inventory
                     //TODO: Isn't this the 'instant build' property or something?
                     if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
-                        ItemStack oldItem = placeEvent.getItemInHand();
+                        ItemStack oldItem = HumanHand.getItemInMainHand(event.getPlayer());
                         if (oldItem == null || oldItem.getAmount() <= 1) {
                             oldItem = null;
                         } else {
