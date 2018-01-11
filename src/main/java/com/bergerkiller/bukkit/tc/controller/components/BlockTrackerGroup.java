@@ -164,7 +164,7 @@ public class BlockTrackerGroup extends BlockTracker {
                     }
 
                     List<TrackedSign> signs = info.member.getBlockTracker().liveActiveSigns;
-                    Util.addSignsFromRails(signListBuffer, info.block, info.type.getSignColumnDirection(info.block));
+                    Util.addSignsFromRails(signListBuffer, info.type.getSignColumnStart(info.block), info.type.getSignColumnDirection(info.block));
                     for (Block signBlock : signListBuffer) {
                         signs.add(new TrackedSign(signBlock, info.block));
                     }

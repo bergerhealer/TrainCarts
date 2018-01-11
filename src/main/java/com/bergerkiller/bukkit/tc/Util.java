@@ -138,9 +138,9 @@ public class Util {
         addSignsFromRails(rval, railsBlock, dir);
     }
 
-    public static void addSignsFromRails(List<Block> rval, Block railsBlock, BlockFace signDirection) {
+    public static void addSignsFromRails(List<Block> rval, Block startBlock, BlockFace signDirection) {
         final boolean hasSignPost = FaceUtil.isVertical(signDirection);
-        Block currentBlock = railsBlock;
+        Block currentBlock = startBlock;
         int offsetCtr = 0;
         while (true) {
             if (hasSignPost && MaterialUtil.isType(currentBlock, Material.SIGN_POST)) {

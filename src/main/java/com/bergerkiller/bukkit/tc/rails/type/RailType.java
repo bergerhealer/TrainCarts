@@ -300,12 +300,22 @@ public abstract class RailType {
     public abstract BlockFace getDirection(Block railsBlock);
 
     /**
-     * Gets the track-relative position to look for signs related to this Rails
+     * Gets the track-relative direction to look for signs related to this Rails
      * 
      * @param railsBlock to find the sign column direction for
      * @return direction to look for signs relating to this rails block
      */
     public abstract BlockFace getSignColumnDirection(Block railsBlock);
+
+    /**
+     * Gets the first block of the sign column where signs for this rail are located.
+     * 
+     * @param railsBlock
+     * @return sign column start
+     */
+    public Block getSignColumnStart(Block railsBlock) {
+        return railsBlock;
+    }
 
     /**
      * Obtains the Rail Logic to use for the Minecart at the (previously calculated) rail position in a World.
