@@ -4,7 +4,9 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
@@ -49,9 +51,10 @@ public class PositionMenu extends MapWidgetWindow {
                     getConfig().set("transform", getSelectedItem());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 }
-            }).setBounds(10, 5, 100, 11);
+            }).setBounds(30, 5, 80, 11);
+            addLabel(5, 8, "Mode");
         }
-        
+
         //this.transformType
         this.addWidget(new MapWidgetNumberBox() { // Position X
             @Override
@@ -65,8 +68,10 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(10, y_offset, 100, 11);
-        
+        }).setBounds(30, y_offset, 80, 11);
+        addLabel(5, y_offset + 3, "Pos.X");
+        y_offset += y_step;
+
         this.addWidget(new MapWidgetNumberBox() { // Position Y
             @Override
             public void onAttached() {
@@ -79,8 +84,10 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(10, y_offset + y_step, 100, 11);
-        
+        }).setBounds(30, y_offset, 80, 11);
+        addLabel(5, y_offset + 3, "Pos.Y");
+        y_offset += y_step;
+
         this.addWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
@@ -93,8 +100,10 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posZ", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(10, y_offset + 2 * y_step, 100, 11);
-        
+        }).setBounds(30, y_offset, 80, 11);
+        addLabel(5, y_offset + 3, "Pos.Z");
+        y_offset += y_step;
+
         this.addWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
@@ -108,8 +117,10 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(10, y_offset + 3 * y_step, 100, 11);
-        
+        }).setBounds(30, y_offset, 80, 11);
+        addLabel(5, y_offset + 3, "Pitch");
+        y_offset += y_step;
+
         this.addWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
@@ -123,8 +134,10 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(10, y_offset + 4 * y_step, 100, 11);
-        
+        }).setBounds(30, y_offset, 80, 11);
+        addLabel(5, y_offset + 3, "Yaw");
+        y_offset += y_step;
+
         this.addWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
@@ -138,7 +151,18 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotZ", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(10, y_offset + 5 * y_step, 100, 11);
+        }).setBounds(30, y_offset, 80, 11);
+        addLabel(5, y_offset + 3, "Roll");
+        y_offset += y_step;
+    }
+
+    private void addLabel(int x, int y, String text) {
+        MapWidgetText label = new MapWidgetText();
+        label.setFont(MapFont.TINY);
+        label.setText(text);
+        label.setPosition(x, y);
+        label.setColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_GREEN, 0.5f));
+        this.addWidget(label);
     }
 
     @Override

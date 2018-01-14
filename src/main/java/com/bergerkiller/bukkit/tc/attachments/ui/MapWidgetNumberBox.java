@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapFont.Alignment;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 /**
@@ -124,6 +125,7 @@ public class MapWidgetNumberBox extends MapWidget {
     public void onDraw() {
         int offset = nav_left.getWidth() + 1;
 
+        MapWidgetButton.fillBackground(this.view.getView(offset + 1, 1, getWidth() - 2 * offset - 2, getHeight() - 2), this.isEnabled(), this.isFocused());
         this.view.drawRectangle(offset, 0, getWidth() - 2 * offset, getHeight(), this.isFocused() ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
 
         String text = Double.toString(MathUtil.round(getValue(), 4));
