@@ -132,8 +132,10 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
      * @return this item grid widget
      */
     public MapWidgetItemGrid addItem(ItemStack item) {
-        this._items.add(item);
-        this.invalidate();
+        if (item != null) {
+            this._items.add(item);
+            this.invalidate();
+        }
         return this;
     }
 

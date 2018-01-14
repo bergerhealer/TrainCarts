@@ -6,11 +6,13 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
+import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
+import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -57,6 +59,17 @@ public class TrainCarts extends PluginBase {
     private SpawnSignManager spawnSignManager;
     private SavedTrainPropertiesStore savedTrainsStore;
     private TCMountPacketHandler mountHandler;
+    private SeatAttachmentMap seatAttachmentMap;
+
+    /**
+     * Gets a mapping of passenger entity Ids to the cart attachment seat they are occupying,
+     * if any.
+     * 
+     * @return seat attachment map
+     */
+    public SeatAttachmentMap getSeatAttachmentMap() {
+        return this.seatAttachmentMap;
+    }
 
     /**
      * Gets the packet handler responsible for sending entity mount packets at the right time.
@@ -274,6 +287,10 @@ public class TrainCarts extends PluginBase {
         //Initialize mount packet handler
         this.mountHandler = new TCMountPacketHandler();
         this.register((PacketMonitor) this.mountHandler, TCMountPacketHandler.MONITORED_TYPES);
+
+        //Initialize seat attachment map
+        this.seatAttachmentMap = new SeatAttachmentMap();
+        this.register((PacketListener) this.seatAttachmentMap, SeatAttachmentMap.LISTENED_TYPES);
 
         //Load attachment models
         attachmentModels = new AttachmentModelStore(getDataFolder() + File.separator + "models.yml");

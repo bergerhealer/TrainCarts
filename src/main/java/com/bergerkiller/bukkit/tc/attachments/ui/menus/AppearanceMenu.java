@@ -10,8 +10,10 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
@@ -65,7 +67,29 @@ public class AppearanceMenu extends MapWidgetWindow implements ItemDropTarget {
                 markChanged();
             }
         });
-        tabView.addTab(); // SEAT
+        tabView.addTab().addWidget(new MapWidgetButton() { // SEAT
+            private boolean checked = false;
+
+            @Override
+            public void onAttached() {
+                super.onAttached();
+                this.checked = getAttachment().getConfig().get("lockRotation", false);
+                updateText();
+            }
+
+            private void updateText() {
+                this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
+            }
+
+            @Override
+            public void onActivate() {
+                this.checked = !this.checked;
+                updateText();
+                getAttachment().getConfig().set("lockRotation", this.checked);
+                markChanged();
+                display.playSound(CommonSounds.CLICK);
+            }
+        }).setBounds(0, 10, 100, 16);
         tabView.addTab(); // MODEL
 
         tabView.setPosition(7, 16);

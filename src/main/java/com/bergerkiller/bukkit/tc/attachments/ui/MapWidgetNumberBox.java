@@ -17,13 +17,18 @@ public class MapWidgetNumberBox extends MapWidget {
     private double _value = 0.0;
     private double _min = Double.NEGATIVE_INFINITY;
     private double _max = Double.POSITIVE_INFINITY;
+    private double _incr = 0.01;
     private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
 
     public MapWidgetNumberBox() {
         this.setFocusable(true);
     }
-    
+
+    public void setIncrement(double increment) {
+        this._incr = increment;
+    }
+
     public void setRange(double min, double max) {
         this._min = min;
         this._max = max;
@@ -65,10 +70,10 @@ public class MapWidgetNumberBox extends MapWidget {
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == MapPlayerInput.Key.LEFT) {
             nav_left.sendFocus();
-            this.addValue(-0.01, event.getRepeat());
+            this.addValue(-this._incr, event.getRepeat());
         } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
             nav_right.sendFocus();
-            this.addValue(0.01, event.getRepeat());
+            this.addValue(this._incr, event.getRepeat());
         } else {
             super.onKeyPressed(event);
         }

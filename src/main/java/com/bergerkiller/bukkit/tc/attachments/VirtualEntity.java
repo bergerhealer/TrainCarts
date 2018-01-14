@@ -49,7 +49,7 @@ public class VirtualEntity {
     private double relDx, relDy, relDz;
     private EntityType entityType = EntityType.CHICKEN;
     private int rotateCtr = 0;
-    private boolean hasRotation = true;
+    private SyncMode syncMode = SyncMode.NORMAL;
     private boolean cancelUnmountLogic = false;
     private boolean useParentMetadata = false;
     private final ArrayList<Player> viewers = new ArrayList<Player>();
@@ -93,12 +93,11 @@ public class VirtualEntity {
         this.relDy = dy;
         this.relDz = dz;
     }
-    
-    public void setHasRotation(boolean rotation) {
-        this.hasRotation = rotation;
-        if (!rotation) {
+
+    public void setSyncMode(SyncMode mode) {
+        this.syncMode = mode;
+        if (mode == SyncMode.SEAT) {
             this.livePitch = this.syncPitch = 0.0f;
-            this.liveYaw = this.syncYaw = 0.0f;
         }
     }
 
@@ -119,17 +118,15 @@ public class VirtualEntity {
         liveAbsY = v.y + this.relDy;
         liveAbsZ = v.z + this.relDz;
 
-        if (this.hasRotation) {
-            this.yawPitchRoll = transform.getYawPitchRoll();
-            liveYaw = (float) this.yawPitchRoll.getY();
-            if (hasPitch(this.entityType)) {
-                livePitch = (float) this.yawPitchRoll.getX();
-            } else {
-                livePitch = 0.0f;
-            }
-            if (isMinecart(this.entityType) || this.entityType == EntityType.ARMOR_STAND) {
-                liveYaw -= 90.0f;
-            }
+        this.yawPitchRoll = transform.getYawPitchRoll();
+        liveYaw = (float) this.yawPitchRoll.getY();
+        if (this.syncMode != SyncMode.SEAT && hasPitch(this.entityType)) {
+            livePitch = (float) this.yawPitchRoll.getX();
+        } else {
+            livePitch = 0.0f;
+        }
+        if (isMinecart(this.entityType) || this.entityType == EntityType.ARMOR_STAND) {
+            liveYaw -= 90.0f;
         }
 
         // If sync is not yet set, set it to live
@@ -215,50 +212,70 @@ public class VirtualEntity {
         } else if (this.entityType == EntityType.MINECART_COMMAND) {
             entitySpawnId = 10; entitySpawnExtraData = 6;
         }
-        
-        // Create a spawn packet appropriate for the type of entity being spawned
-        CommonPacket packet;
-        if (LivingEntity.class.isAssignableFrom(this.entityType.getEntityClass())) {
-            // Spawn living entity
-            packet = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, this.entityUUID);
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, entitySpawnId);
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motion.getX());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motion.getY());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motion.getZ());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motion.getX());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motion.getY());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motion.getZ());
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.yaw, this.syncYaw);
-            packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.pitch, this.syncPitch);
-        } else {
-            // Spawn entity (generic)
-            packet = PacketType.OUT_ENTITY_SPAWN.newInstance();
-            packet.write(PacketType.OUT_ENTITY_SPAWN.entityId, this.entityId);
-            packet.write(PacketType.OUT_ENTITY_SPAWN.UUID, this.entityUUID);
-            packet.write(PacketType.OUT_ENTITY_SPAWN.entityType, entitySpawnId);
-            packet.write(PacketType.OUT_ENTITY_SPAWN.posX, this.syncAbsX - motion.getX());
-            packet.write(PacketType.OUT_ENTITY_SPAWN.posY, this.syncAbsY - motion.getY());
-            packet.write(PacketType.OUT_ENTITY_SPAWN.posZ, this.syncAbsZ - motion.getZ());
-            packet.write(PacketType.OUT_ENTITY_SPAWN.motX, motion.getX());
-            packet.write(PacketType.OUT_ENTITY_SPAWN.motY, motion.getY());
-            packet.write(PacketType.OUT_ENTITY_SPAWN.motZ, motion.getZ());
-            packet.write(PacketType.OUT_ENTITY_SPAWN.yaw, this.syncYaw);
-            packet.write(PacketType.OUT_ENTITY_SPAWN.pitch, this.syncPitch);
-            packet.write(PacketType.OUT_ENTITY_SPAWN.extraData, entitySpawnExtraData);
+
+        // Ensure we spawn with a little bit of movement when we are a seat
+        if (this.syncMode == SyncMode.SEAT) {
+            double xzls = (motion.getX() * motion.getX()) + (motion.getZ() * motion.getZ());
+            if (xzls < (0.002 * 0.002)) {
+                double y = motion.getY();
+                motion = this.getUnstuckVector();
+                motion.setY(y);
+            }
         }
 
-        PacketUtil.sendPacket(viewer, packet);
+        // Create a spawn packet appropriate for the type of entity being spawned
+        if (LivingEntity.class.isAssignableFrom(this.entityType.getEntityClass())) {
+            // Spawn living entity
+            //Vector us_vector = (this.syncMode == SyncMode.SEAT) ? getUnstuckVector() : new Vector();
+            CommonPacket spawnPacket = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, this.entityUUID);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, entitySpawnId);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motion.getX());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motion.getY());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motion.getZ());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motion.getX());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motion.getY());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motion.getZ());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.yaw, this.syncYaw);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.pitch, this.syncPitch);
+            PacketUtil.sendPacket(viewer, spawnPacket);
+        } else {
+            // Spawn entity (generic)
+            CommonPacket spawnPacket = PacketType.OUT_ENTITY_SPAWN.newInstance();
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.entityId, this.entityId);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.UUID, this.entityUUID);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.entityType, entitySpawnId);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.posX, this.syncAbsX - motion.getX());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.posY, this.syncAbsY - motion.getY());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.posZ, this.syncAbsZ - motion.getZ());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.motX, motion.getX());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.motY, motion.getY());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.motZ, motion.getZ());
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.yaw, this.syncYaw);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.pitch, this.syncPitch);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.extraData, entitySpawnExtraData);
+            PacketUtil.sendPacket(viewer, spawnPacket);
+        }
 
         PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
         PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
         
         this.controller.getPassengerController(viewer).resend(this.entityId);
 
-        packet = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
-        PacketUtil.sendPacket(viewer, packet);
+        if (this.syncMode == SyncMode.SEAT) {
+            PacketPlayOutRelEntityMoveLookHandle movePacket = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                    this.entityId,
+                    motion.getX(), motion.getY(), motion.getZ(),
+                    this.syncYaw,
+                    this.syncPitch,
+                    false);
+            PacketUtil.sendPacket(viewer, movePacket);
+        } else if (motion.lengthSquared() > 0.001) {
+            CommonPacket movePacket = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
+            PacketUtil.sendPacket(viewer, movePacket);
+        }
 
         // Resend velocity if one is set
         if (this.syncVel > 0.0) {
@@ -319,18 +336,20 @@ public class VirtualEntity {
             return;
         }
 
-        boolean moved, rotated;
+        boolean moved, rotated, rotatedNow;
 
         // Check for changes in position
         moved = (abs_delta > EntityNetworkController.MIN_RELATIVE_POS_CHANGE);
 
         // Check for changes in rotation
-        rotated = EntityTrackerEntryHandle.hasProtocolRotationChanged(this.liveYaw, this.syncYaw) ||
-                  EntityTrackerEntryHandle.hasProtocolRotationChanged(this.livePitch, this.syncPitch);
+        rotatedNow = EntityTrackerEntryHandle.hasProtocolRotationChanged(this.liveYaw, this.syncYaw) ||
+                     EntityTrackerEntryHandle.hasProtocolRotationChanged(this.livePitch, this.syncPitch);
 
         // Remember the rotation change for X more ticks. This prevents partial rotation on the client.
-        if (rotated) {
+        rotated = false;
+        if (rotatedNow) {
             rotateCtr = 14;
+            rotated = true;
         } else if (rotateCtr > 0) {
             rotateCtr--;
             rotated = true;
@@ -363,17 +382,43 @@ public class VirtualEntity {
             this.syncAbsZ += packet.getDeltaZ();
             broadcast(packet);
         } else if (rotated) {
-            // Only rotation changed
-            PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
-                    this.entityId,
-                    this.liveYaw,
-                    this.livePitch,
-                    false);
+            if (this.syncMode == SyncMode.SEAT && rotatedNow) {
+                // Send a very small movement change to correct rotation in a pulse
+                Vector v = getUnstuckVector();
+                PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                        this.entityId,
+                        v.getX(), 0.0, v.getZ(),
+                        this.liveYaw,
+                        this.livePitch,
+                        false);
+                this.syncYaw = this.liveYaw;
+                this.syncPitch = this.livePitch;
+                this.syncAbsX += packet.getDeltaX();
+                this.syncAbsY += packet.getDeltaY();
+                this.syncAbsZ += packet.getDeltaZ();
+                broadcast(packet);
+            } else {
+                // Only rotation changed
+                PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
+                        this.entityId,
+                        this.liveYaw,
+                        this.livePitch,
+                        false);
 
-            this.syncYaw = this.liveYaw;
-            this.syncPitch = this.livePitch;
-            broadcast(packet);
+                this.syncYaw = this.liveYaw;
+                this.syncPitch = this.livePitch;
+                broadcast(packet);
+            }
         }
+    }
+
+    // this vector is used to fix up the rotation of passengers in seats
+    // by moving a very tiny amount (and back), the rotation is 'unstuck'
+    private Vector getUnstuckVector() {
+        double yawRad = Math.toRadians(this.liveYaw);
+        double unstuck_dx = 0.002 * -Math.sin(yawRad);
+        double unstuck_dz = 0.002 * Math.cos(yawRad);
+        return new Vector(unstuck_dx, 0.0, unstuck_dz);
     }
 
     private void refreshSyncPos() {
@@ -436,4 +481,8 @@ public class VirtualEntity {
         }
     }
 
+    public static enum SyncMode {
+        NORMAL,
+        SEAT
+    }
 }

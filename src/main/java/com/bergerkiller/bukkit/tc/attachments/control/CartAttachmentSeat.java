@@ -12,8 +12,10 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
@@ -31,10 +33,12 @@ public class CartAttachmentSeat extends CartAttachment {
     private int _fakeEntityLastYaw = 0;
     private int _fakeEntityLastPitch = 0;
     private int _fakeEntityLastHeadYaw = 0;
+    private int _fakeEntityRotationCtr = 0;
     private VirtualEntity _fakeCameraMount = null;
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
     private int _parentMountId = -1;
     private boolean _hasPosition = false;
+    private boolean _rotationLocked = false;
 
     public void updateSeater() {
         for (Player viewer : this.controller.getViewers()) {
@@ -60,7 +64,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     this._fakeMount = new VirtualEntity(this.controller);
                     this._fakeMount.setEntityType(EntityType.CHICKEN);
                     this._fakeMount.setRelativeOffset(0.0, -0.625, 0.0);
-                    this._fakeMount.setHasRotation(false);
+                    this._fakeMount.setSyncMode(SyncMode.SEAT);
 
                     // Put the entity on a fake mount that we move around at an offset
                     this._fakeMount.updatePosition(this.transform);
@@ -93,6 +97,7 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
         this._hasPosition = this.config.isNode("position");
+        this._rotationLocked = this.config.get("lockRotation", false);
     }
 
     @Override
@@ -120,7 +125,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
                 this._fakeCameraMount.setPosition(new Vector(0.0, 1.0, 0.0));
                 this._fakeCameraMount.setRelativeOffset(0.0, -1.32, 0.0);
-                this._fakeCameraMount.setHasRotation(false);
+                this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
                 this._fakeCameraMount.updatePosition(this.transform);
@@ -150,6 +155,25 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Re-attach entity to it's appropriate mount
         this.updateSeater(viewer);
+
+        // If rotation locked, send the rotation of the passenger if available
+        if (this.isRotationLocked() && this._entity != null) {
+            int entityId = (this._fakeEntityId != -1) ? this._fakeEntityId : this._entity.getEntityId();
+
+            // Do not send viewer to self - bad things happen
+            if (entityId != viewer.getEntityId()) {
+                CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
+                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
+                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) this._fakeEntityLastHeadYaw);
+                PacketUtil.sendPacket(viewer, headPacket);
+
+                CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
+                lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, entityId);
+                lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) this._fakeEntityLastYaw);
+                lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) this._fakeEntityLastPitch);
+                PacketUtil.sendPacket(viewer, lookPacket);
+            }
+        }
     }
 
     @Override
@@ -206,6 +230,15 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
+     * Whether the passengers inside have their rotation locked based on the orientation of this seat
+     * 
+     * @return True if rotation is locked
+     */
+    public boolean isRotationLocked() {
+        return this._rotationLocked;
+    }
+
+    /**
      * Gets the Entity that is displayed and controlled in this seat
      * 
      * @return seated entity
@@ -237,6 +270,7 @@ public class CartAttachmentSeat extends CartAttachment {
             for (Player viewer : this.controller.getViewers()) {
                 this.makeHidden(viewer);
             }
+            TrainCarts.plugin.getSeatAttachmentMap().set(this._entity.getEntityId(), this);
         }
 
         // Switch entity
@@ -246,6 +280,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Re-seat new entity
         if (this._entity != null) {
+            TrainCarts.plugin.getSeatAttachmentMap().set(this._entity.getEntityId(), this);
             for (Player viewer : this.controller.getViewers()) {
                 this.makeVisible(viewer);
             }
@@ -336,6 +371,18 @@ public class CartAttachmentSeat extends CartAttachment {
         this.makeVisible((Player) this._entity);
     }
 
+    public int getPassengerYaw() {
+        return this._fakeEntityLastYaw;
+    }
+
+    public int getPassengerPitch() {
+        return this._fakeEntityLastPitch;
+    }
+
+    public int getPassengerHeadYaw() {
+        return this._fakeEntityLastHeadYaw;
+    }
+
     @Override
     public void onTick() {
         float selfPitch = (float) this.transform.getYawPitchRoll().getX();
@@ -368,10 +415,15 @@ public class CartAttachmentSeat extends CartAttachment {
             }
         }
 
-        // Refresh head rotation and body yaw/pitch for a fake player entity
-        if (this._entity instanceof Player && this._fakeEntityId != -1) {
+        if (this._entity != null && this.isRotationLocked()) {
             EntityHandle realPlayer = EntityHandle.fromBukkit(this._entity);
-            float yaw = realPlayer.getYaw();
+            float yaw;
+            if (this._fakeMount != null) {
+                yaw = (float) this._fakeMount.getYawPitchRoll().getY();
+            } else {
+                yaw = (float) this.transform.getYawPitchRoll().getY();
+            }
+
             float pitch = realPlayer.getPitch();
             float headRot = realPlayer.getHeadRotation();
 
@@ -381,34 +433,98 @@ public class CartAttachmentSeat extends CartAttachment {
                 headRot = -headRot + 2.0f * yaw;
             }
 
+            // Limit head rotation within range of yaw
+            final float HEAD_ROT_LIM = 30.0f;
+            if (MathUtil.getAngleDifference(headRot, yaw) > HEAD_ROT_LIM) {
+                if (MathUtil.getAngleDifference(headRot, yaw + HEAD_ROT_LIM) <
+                    MathUtil.getAngleDifference(headRot, yaw - HEAD_ROT_LIM)) {
+                    headRot = yaw + HEAD_ROT_LIM;
+                } else {
+                    headRot = yaw - HEAD_ROT_LIM;
+                }
+            }
+
             // Protocolify
+            int entityId = (this._fakeEntityId != -1) ? this._fakeEntityId : this._entity.getEntityId();
             int protYaw = EntityTrackerEntryHandle.getProtocolRotation(yaw);
             int protPitch = EntityTrackerEntryHandle.getProtocolRotation(pitch);
             int protHeadRot = EntityTrackerEntryHandle.getProtocolRotation(headRot);
 
-            if (protYaw != this._fakeEntityLastYaw || protPitch != this._fakeEntityLastPitch) {
-                CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
-                lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, this._fakeEntityId);
-                lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
-                lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
-                for (Player viewer : this.controller.getViewers()) {
-                    PacketUtil.sendPacket(viewer, lookPacket);
-                }
-                this._fakeEntityLastYaw = protYaw;
-                this._fakeEntityLastPitch = protPitch;
-            }
-
+            // Refresh head rotation
             if (protHeadRot != this._fakeEntityLastHeadYaw) {
                 CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
-                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this._fakeEntityId);
+                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
                 headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
                 for (Player viewer : this.controller.getViewers()) {
-                    PacketUtil.sendPacket(viewer, headPacket);
+                    if (viewer.getEntityId() != entityId) {
+                        PacketUtil.sendPacket(viewer, headPacket);
+                    }
                 }
                 this._fakeEntityLastHeadYaw = protHeadRot;
             }
 
+            // Refresh body yaw and head pitch
+            // Repeat this packet every 15 ticks to make sure the entity's orientation stays correct
+            // The client will automatically rotate the body towards the head after a short delay
+            // Sending look packets regularly prevents that from happening
+            if (this._fakeEntityRotationCtr == 0 || protYaw != this._fakeEntityLastYaw || protPitch != this._fakeEntityLastPitch) {
+                this._fakeEntityRotationCtr = 10;
 
+                CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
+                lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, entityId);
+                lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
+                lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
+                for (Player viewer : this.controller.getViewers()) {
+                    if (viewer.getEntityId() != entityId) {
+                        PacketUtil.sendPacket(viewer, lookPacket);
+                    }
+                }
+                this._fakeEntityLastYaw = protYaw;
+                this._fakeEntityLastPitch = protPitch;
+            } else {
+                this._fakeEntityRotationCtr--;
+            }
+        } else {
+            // Refresh head rotation and body yaw/pitch for a fake player entity
+            if (this._entity instanceof Player && this._fakeEntityId != -1) {
+                EntityHandle realPlayer = EntityHandle.fromBukkit(this._entity);
+                float yaw = realPlayer.getYaw();
+                float pitch = realPlayer.getPitch();
+                float headRot = realPlayer.getHeadRotation();
+
+                // Reverse the values and correct head yaw, because the player is upside-down
+                if (this._upsideDown) {
+                    pitch = -pitch;
+                    headRot = -headRot + 2.0f * yaw;
+                }
+
+                // Protocolify
+                int protYaw = EntityTrackerEntryHandle.getProtocolRotation(yaw);
+                int protPitch = EntityTrackerEntryHandle.getProtocolRotation(pitch);
+                int protHeadRot = EntityTrackerEntryHandle.getProtocolRotation(headRot);
+
+                if (protYaw != this._fakeEntityLastYaw || protPitch != this._fakeEntityLastPitch) {
+                    CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
+                    lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, this._fakeEntityId);
+                    lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
+                    lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
+                    for (Player viewer : this.controller.getViewers()) {
+                        PacketUtil.sendPacket(viewer, lookPacket);
+                    }
+                    this._fakeEntityLastYaw = protYaw;
+                    this._fakeEntityLastPitch = protPitch;
+                }
+
+                if (protHeadRot != this._fakeEntityLastHeadYaw) {
+                    CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
+                    headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this._fakeEntityId);
+                    headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
+                    for (Player viewer : this.controller.getViewers()) {
+                        PacketUtil.sendPacket(viewer, headPacket);
+                    }
+                    this._fakeEntityLastHeadYaw = protHeadRot;
+                }
+            }
         }
     }
 

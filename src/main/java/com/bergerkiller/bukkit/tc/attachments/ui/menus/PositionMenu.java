@@ -99,6 +99,7 @@ public class PositionMenu extends MapWidgetWindow {
             @Override
             public void onAttached() {
                 super.onAttached();
+                this.setIncrement(0.1);
                 this.setValue(getConfig().get("rotX", 0.0));
             }
 
@@ -113,6 +114,7 @@ public class PositionMenu extends MapWidgetWindow {
             @Override
             public void onAttached() {
                 super.onAttached();
+                this.setIncrement(0.1);
                 this.setValue(getConfig().get("rotY", 0.0));
             }
 
@@ -127,6 +129,7 @@ public class PositionMenu extends MapWidgetWindow {
             @Override
             public void onAttached() {
                 super.onAttached();
+                this.setIncrement(0.1);
                 this.setValue(getConfig().get("rotZ", 0.0));
             }
 
