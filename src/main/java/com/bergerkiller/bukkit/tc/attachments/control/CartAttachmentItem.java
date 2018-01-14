@@ -6,7 +6,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -38,19 +37,8 @@ public class CartAttachmentItem extends CartAttachment {
         this.entity.setSyncMode(SyncMode.NORMAL);
         this.entity.setRelativeOffset(0.0, -1.2, 0.0);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-
-        Vector3 poseTransform = new Vector3(0.0, 0.0, 0.0);
-        if (this.transformType == ItemTransformType.LEFT_HAND) {
-            poseTransform.x = -0.4;
-            poseTransform.y = 0.3;
-            poseTransform.z = 0.9375;
-        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
-            poseTransform.x = -0.4;
-            poseTransform.y = 0.3;
-            poseTransform.z = -0.9375;
-        }
         this.local_transform = new Matrix4x4();
-        this.local_transform.translate(Vector3.add(this.position, poseTransform));
+        this.local_transform.translate(this.position);
         this.local_transform.rotateYawPitchRoll(this.rotation);
     }
 
@@ -88,8 +76,24 @@ public class CartAttachmentItem extends CartAttachment {
 
     @Override
     public void onPositionUpdate() {
-        super.onPositionUpdate();
-        this.entity.updatePosition(this.transform);
+        // Perform additional translation for certain attached pose positions
+        // This correct model offsets
+        if (this.transformType == ItemTransformType.LEFT_HAND) {
+            Matrix4x4 tmp = this.transform.clone();
+            tmp.translate(-0.4, 0.3, 0.9375);
+            tmp.multiply(this.local_transform);
+            this.entity.updatePosition(tmp);
+            super.onPositionUpdate();
+        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+            Matrix4x4 tmp = this.transform.clone();
+            tmp.translate(-0.4, 0.3, -0.9375);
+            tmp.multiply(this.local_transform);
+            this.entity.updatePosition(tmp);
+            super.onPositionUpdate();
+        } else {
+            super.onPositionUpdate();
+            this.entity.updatePosition(this.transform);
+        }
 
         // Convert the pitch/roll into an appropriate pose
         Vector in_ypr = this.entity.getYawPitchRoll();
