@@ -133,6 +133,11 @@ public class MapWidgetNumberBox extends MapWidget {
         this.view.draw(MapFont.MINECRAFT, getWidth() / 2, 2, MapColorPalette.COLOR_WHITE, text);
     }
 
+    @Override
+    public void onActivate() {
+        this.setValue(0.0);
+    }
+
     public void onValueChanged() {
     }
 }
