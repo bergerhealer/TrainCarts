@@ -45,6 +45,15 @@ public abstract class CartAttachment {
     }
 
     /**
+     * Gets the network controller that owns and manages this attachment
+     * 
+     * @return controller
+     */
+    public MinecartMemberNetwork getController() {
+        return this.controller;
+    }
+
+    /**
      * Gets whether a particular Entity Id is in use by this attachment.
      * This is called when the player interacts to find out which entity was interacted with.
      * 

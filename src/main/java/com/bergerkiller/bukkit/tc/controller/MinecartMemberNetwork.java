@@ -384,8 +384,12 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     public PassengerController getPassengerController(Player viewer) {
+        return getPassengerController(viewer, true);
+    }
+
+    public PassengerController getPassengerController(Player viewer, boolean createIfNotFound) {
         PassengerController controller = this.passengerControllers.get(viewer);
-        if (controller == null) {
+        if (controller == null && createIfNotFound) {
             controller = new PassengerController(viewer);
             this.passengerControllers.put(viewer, controller);
         }
