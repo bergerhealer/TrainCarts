@@ -156,6 +156,13 @@ public abstract class RailTypeHorizontal extends RailType {
                     }
                 }
 
+                // Cancel collisions left/right of the slope
+                if (FaceUtil.isAlongX(railDirection) && dz != 0) {
+                    return false;
+                } else if (FaceUtil.isAlongZ(railDirection) && dx != 0) {
+                    return false;
+                }
+
                 // Cancel collisions with blocks 'right above' the next rail when going down the slope
                 if (!TCConfig.enableCeilingBlockCollision) {
                     IntVector3 diff = new IntVector3(hitBlock).subtract(posBlock.getX(), posBlock.getY(), posBlock.getZ());
