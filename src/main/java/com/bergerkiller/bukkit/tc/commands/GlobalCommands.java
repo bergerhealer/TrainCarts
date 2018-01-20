@@ -358,7 +358,9 @@ public class GlobalCommands {
             return true;
         } else if (args[0].equals("attachments")) {
             Permission.COMMAND_GIVE_EDITOR.handle(sender);
-            ((Player) sender).getInventory().addItem(MapDisplay.createMapItem(AttachmentEditor.class));
+            ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
+            ItemUtil.setDisplayName(item, "TrainCarts Attachments Editor");
+            ((Player) sender).getInventory().addItem(item);
             return true;
         } else if (args[0].equals("debug")) {
             Permission.DEBUG_COMMAND_DEBUG.handle(sender);
