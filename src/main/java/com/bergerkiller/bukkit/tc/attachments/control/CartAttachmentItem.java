@@ -34,7 +34,7 @@ public class CartAttachmentItem extends CartAttachment {
 
         this.entity = new VirtualEntity(this.controller);
         this.entity.setEntityType(EntityType.ARMOR_STAND);
-        this.entity.setSyncMode(SyncMode.NORMAL);
+        this.entity.setSyncMode(SyncMode.ITEM);
         this.entity.setRelativeOffset(0.0, -1.2, 0.0);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.local_transform = new Matrix4x4();

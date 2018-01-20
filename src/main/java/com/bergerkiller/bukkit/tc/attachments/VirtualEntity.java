@@ -120,7 +120,7 @@ public class VirtualEntity {
 
         this.yawPitchRoll = transform.getYawPitchRoll();
         liveYaw = (float) this.yawPitchRoll.getY();
-        if (this.syncMode != SyncMode.SEAT && hasPitch(this.entityType)) {
+        if (this.syncMode != SyncMode.SEAT && this.hasPitch()) {
             livePitch = (float) this.yawPitchRoll.getX();
         } else {
             livePitch = 0.0f;
@@ -224,7 +224,7 @@ public class VirtualEntity {
         }
 
         // Create a spawn packet appropriate for the type of entity being spawned
-        if (LivingEntity.class.isAssignableFrom(this.entityType.getEntityClass())) {
+        if (isLivingEntity()) {
             // Spawn living entity
             //Vector us_vector = (this.syncMode == SyncMode.SEAT) ? getUnstuckVector() : new Vector();
             CommonPacket spawnPacket = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
@@ -240,6 +240,7 @@ public class VirtualEntity {
             spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
             spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.yaw, this.syncYaw);
             spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.pitch, this.syncPitch);
+            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.headYaw, (this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
             PacketUtil.sendPacket(viewer, spawnPacket);
         } else {
             // Spawn entity (generic)
@@ -333,6 +334,7 @@ public class VirtualEntity {
         if (absolute || largeChange) {
             broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId, this.liveAbsX, this.liveAbsY, this.liveAbsZ, this.liveYaw, this.livePitch, false));
             refreshSyncPos();
+            refreshHeadRotation();
             return;
         }
 
@@ -353,6 +355,11 @@ public class VirtualEntity {
         } else if (rotateCtr > 0) {
             rotateCtr--;
             rotated = true;
+        }
+
+        // Refresh head rotation first
+        if (rotatedNow) {
+            this.refreshHeadRotation();
         }
 
         if (moved && rotated) {
@@ -412,6 +419,20 @@ public class VirtualEntity {
         }
     }
 
+    private void refreshHeadRotation() {
+        // Refresh head rotation first
+        if (this.syncMode == SyncMode.NORMAL && isLivingEntity()) {
+            CommonPacket packet = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
+            packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this.entityId);
+            packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) EntityTrackerEntryHandle.getProtocolRotation(this.liveYaw));
+            broadcast(packet);
+        }
+    }
+
+    private boolean isLivingEntity() {
+        return LivingEntity.class.isAssignableFrom(this.entityType.getEntityClass());
+    }
+    
     // this vector is used to fix up the rotation of passengers in seats
     // by moving a very tiny amount (and back), the rotation is 'unstuck'
     private Vector getUnstuckVector() {
@@ -461,9 +482,9 @@ public class VirtualEntity {
     private static boolean hasVelocityPacket(EntityType entityType) {
         return isMinecart(entityType);
     }
-    
-    private static boolean hasPitch(EntityType entityType) {
-        return isMinecart(entityType);
+
+    private boolean hasPitch() {
+        return isLivingEntity() || isMinecart(this.entityType);
     }
 
     public static boolean isMinecart(EntityType entityType) {
@@ -482,6 +503,7 @@ public class VirtualEntity {
     }
 
     public static enum SyncMode {
+        ITEM,
         NORMAL,
         SEAT
     }
