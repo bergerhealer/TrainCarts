@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.*;
@@ -31,6 +32,8 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -468,7 +471,24 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void teleport(Block start, BlockFace direction) {
-        this.teleport(TrackWalkIterator.walk(start, direction, this.size(), TCConfig.cartDistanceGap + 1.0), true);
+        Location[] locations = new Location[this.size()];
+        TrackWalkingPoint walker = new TrackWalkingPoint(start, direction);
+        for (int i = 0; i < locations.length; i++) {
+            boolean canMove;
+            if (i == 0) {
+                canMove = walker.move(0.0);
+            } else {
+                canMove = walker.move(get(i - 1).getPreferredDistance(get(i)));
+            }
+            if (canMove) {
+                locations[i] = walker.position.clone();
+            } else if (i > 0) {
+                locations[i] = locations[i - 1].clone();
+            } else {
+                return; // Failed!
+            }
+        }
+        this.teleport(locations, true);
     }
 
     public void teleport(Location[] locations) {
