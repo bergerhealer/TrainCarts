@@ -316,7 +316,7 @@ public class VirtualEntity {
         boolean largeChange = (abs_delta > EntityNetworkController.MAX_RELATIVE_DISTANCE);
 
         // Detect a glitched pitch rotation, and perform a respawn then
-        if (this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
+        if (this.syncMode == SyncMode.NORMAL && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
             this.cancelUnmountLogic = true;
             ArrayList<Player> old_viewers = new ArrayList<Player>(this.viewers);
             for (Player viewer : old_viewers) {
