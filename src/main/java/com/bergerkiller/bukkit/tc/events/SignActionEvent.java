@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
@@ -120,6 +121,18 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     public BlockFace getCartDirection() {
         if (this.hasMember()) {
+            // Find the rails block matching the one that triggered this event
+            // Return the enter ('from') direction for that rails block if found
+            if (this.hasRails()) {
+                Block rails = this.getRails();
+                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
+                    if (rail.member == this.member && rail.block.equals(rails)) {
+                        return rail.enterFace;
+                    }
+                }
+            }
+
+            // Ask the minecart itself alternatively
             return this.member.getDirectionFrom();
         }
         if (this.hasRails()) {
