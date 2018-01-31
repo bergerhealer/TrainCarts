@@ -73,11 +73,64 @@ public class RailPath {
     /**
      * Gets whether this Rail Path is empty. An empty rail path offers no
      * point information, essentially allowing free movement through the space.
+     * This is the case when the number of segments is 0.
      * 
      * @return True if empty
      */
     public boolean isEmpty() {
-        return this.points.length == 0;
+        return this.segments.length == 0;
+    }
+
+    /**
+     * Finds the segment of this rail path that is used at the relative position specified
+     * 
+     * @param position (relative to rails block)
+     * @return segment, null if this rail path has no segments
+     */
+    public Segment findSegment(Vector position) {
+        if (this.segments.length == 0) {
+            return null;
+        } else if (this.segments.length == 1) {
+            return this.segments[0];
+        } else {
+            // Find the start segment closest to the position
+            Segment s = null;
+            {
+                double closestDistance = Double.MAX_VALUE;
+                for (int i = 0; i < this.segments.length; i++) {
+                    Segment tmpSegment = this.segments[i];
+                    if (tmpSegment.isZeroLength()) continue;
+                    double tmpTheta = tmpSegment.calcTheta(position);
+                    double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);
+                    if (tmpDistSquared < closestDistance) {
+                        closestDistance = tmpDistSquared;
+                        s = tmpSegment;
+                    }
+                }
+            }
+            return s;
+        }
+    }
+
+    /**
+     * Finds the segment of this rail path that is used at the absolute position specified
+     * 
+     * @param position (absolute)
+     * @param rails (relative to which this path exists)
+     * @return segment, null if this rail path has no segments
+     */
+    public Segment findSegment(Vector position, Block rails) {
+        if (this.segments.length == 0) {
+            return null;
+        } else if (this.segments.length == 1) {
+            return this.segments[0];
+        } else {
+            Vector relPos = position.clone();
+            relPos.setX(relPos.getX() - rails.getX());
+            relPos.setY(relPos.getY() - rails.getY());
+            relPos.setZ(relPos.getZ() - rails.getZ());
+            return findSegment(relPos);
+        }
     }
 
     /**

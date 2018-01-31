@@ -69,6 +69,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IPropertiesHolder, AttachmentModelOwner {
+    public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final double VERTRAIL_MULTIPLIER_LEGACY = 0.02; // LEGACY!!! Uses SLOPE_VELOCITY_MULTIPLIER instead by default.
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
@@ -453,15 +454,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     /*
      * Velocity functions
      */
-    public double getForceSquared() {
-        if (entity.isOnGround()) {
-            return entity.vel.xz.lengthSquared();
-        }
-        return entity.vel.lengthSquared();
-    }
-
     public double getForce() {
-        return Math.sqrt(this.getForceSquared());
+        return entity.vel.length();
     }
 
     public double getForwardForce() {
@@ -1249,11 +1243,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (entity.loc.getY() < -64.0D) {
             this.onDie();
             throw new MemberMissingException();
-        }
-
-        // Perform gravity
-        if (!isMovementControlled()) {
-            entity.vel.y.subtract(getRailLogic().getGravityMultiplier(this));
         }
 
         // reset fall distance

@@ -4,9 +4,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -75,32 +73,11 @@ public class RailLogicSloped extends RailLogicHorizontal {
     public void onPostMove(MinecartMember<?> member) {
         final CommonMinecart<?> entity = member.getEntity();
 
-        // Retrieve the Y-position of the minecart before the movement update
-        // DISABLED: This stuff broke at some point, and now we can't fix it anymore
-        /*
-        RailLogic logic = member.getRailTracker().getLastLogic();
-        IntVector3 lastRailPos = new IntVector3(member.getRailTracker().getLastBlock());
-        Vector lastPos = entity.last.vector();
-        logic.getFixedPosition(lastPos, lastRailPos);
-        double startY = lastPos.getY();
-        */
-
         // Correct the Y-coordinate for the newly moved position
         // This also makes sure we don't clip through the floor moving down a slope
         Vector pos = entity.loc.vector();
         getFixedPosition(pos, member.getBlockPos());
         entity.setPosition(pos.getX(), pos.getY(), pos.getZ());
-
-        // Apply velocity factors from going up/down the slope
-        // DISABLED: This stuff broke at some point, and now we can't fix it anymore
-        /*
-        if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
-            final double motLength = entity.vel.xz.length();
-            if (motLength > 0) {
-                entity.vel.xz.multiply((startY - pos.getY()) * 0.05 / motLength + 1.0);
-            }
-        }
-        */
     }
 
     @Override
@@ -126,19 +103,11 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
     @Override
     public void onPreMove(MinecartMember<?> member) {
-        final CommonMinecart<?> entity = member.getEntity();
-
-        MinecartGroup group = member.getGroup();
-        // Velocity modifier for sloped tracks
-        if (group.getProperties().isSlowingDown(SlowdownMode.GRAVITY) && !member.isMovementControlled()) {
-            entity.vel.xz.subtract(this.getDirection(), MinecartMember.SLOPE_VELOCITY_MULTIPLIER);
-        }
-
-        entity.vel.xz.add(this.getDirection(), entity.vel.getY());
-        entity.vel.y.setZero();
+        super.onPreMove(member);
 
         if (checkSlopeBlockCollisions()) {
             // Stop movement if colliding with a block at the slope
+            final CommonMinecart<?> entity = member.getEntity();
             Block inside = member.getRailType().findMinecartPos(member.getBlock());
             double blockedDistance = Double.MAX_VALUE;
             Block heading = inside.getRelative(this.getDirection().getOppositeFace());
@@ -156,9 +125,6 @@ public class RailLogicSloped extends RailLogicHorizontal {
                 member.getGroup().setForwardForce(blockedDistance);
             }
         }
-
-        // Perform remaining positioning updates
-        super.onPreMove(member);
     }
 
     protected boolean checkSlopeBlockCollisions() {

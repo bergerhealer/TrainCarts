@@ -21,6 +21,11 @@ public class RailLogicGround extends RailLogic {
     }
 
     @Override
+    public double getGravityMultiplier(MinecartMember<?> member) {
+        return MinecartMember.GRAVITY_MULTIPLIER;
+    }
+
+    @Override
     public void onSpacingUpdate(MinecartMember<?> member, Vector velocity, Vector factor) {
         double motLen = velocity.length();
         if (motLen > 0.01) {

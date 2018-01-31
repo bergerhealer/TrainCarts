@@ -171,7 +171,7 @@ public enum CollisionMode {
                     if (this == DAMAGENODROPS) {
                         TCListener.cancelNextDrops = true;
                     }
-                    Double minecartEnergy = member.getForceSquared() * member.getProperties().getTrainProperties().getCollisionDamage();
+                    double minecartEnergy = member.getEntity().vel.lengthSquared() * member.getProperties().getTrainProperties().getCollisionDamage();
                     damage(member, entity, minecartEnergy);
                     push(member, entity);
                     if (this == DAMAGENODROPS) {

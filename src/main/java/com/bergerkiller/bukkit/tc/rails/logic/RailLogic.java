@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -67,12 +68,13 @@ public abstract class RailLogic {
     }
 
     /**
-     * Gets the vertical motion factor caused by gravity
+     * Gets the vertical motion factor caused by gravity.
+     * When gravity should be disabled for particular rail logic, it should be done here.
      *
      * @return gravity multiplier
      */
     public double getGravityMultiplier(MinecartMember<?> member) {
-        return this.hasVerticalMovement() ? MinecartMember.GRAVITY_MULTIPLIER : 0.0;
+        return MinecartMember.GRAVITY_MULTIPLIER_RAILED;
     }
 
     @Override
@@ -107,6 +109,16 @@ public abstract class RailLogic {
      * @return Forwards velocity of the minecart
      */
     public double getForwardVelocity(MinecartMember<?> member) {
+        // Find segment of path we are at, and use motDot to get the velocity along it
+        RailPath.Segment segment = this.getPath().findSegment(member.getEntity().loc.vector(), member.getBlock());
+        if (segment != null) {
+            RailPath.Position pos = new RailPath.Position();
+            pos.setMotion(member.getDirection());
+            segment.calcDirection(pos);
+            return pos.motDot(member.getEntity().vel.vector());
+        }
+
+        // Fallback
         final CommonEntity<?> e = member.getEntity();
         final BlockFace direction = member.getDirection();
         double vel = 0.0;
@@ -123,14 +135,26 @@ public abstract class RailLogic {
      * @param force  to set to, negative to reverse
      */
     public void setForwardVelocity(MinecartMember<?> member, double force) {
+        // Find segment of path we are at, and set a forward velocity along this segment
+        RailPath.Segment segment = this.getPath().findSegment(member.getEntity().loc.vector(), member.getBlock());
+        if (segment != null) {
+            RailPath.Position pos = new RailPath.Position();
+            pos.setMotion(member.getDirection());
+            segment.calcDirection(pos);
+            member.getEntity().vel.set(pos.motX * force, pos.motY * force, pos.motZ * force);
+            return;
+        }
+
+        // Fallback
         final CommonEntity<?> e = member.getEntity();
         if (force == 0.0) {
             e.vel.setZero();
         } else if (!this.hasVerticalMovement() || !member.isMovingVerticalOnly()) {
             e.vel.setX(force * FaceUtil.cos(member.getDirection()));
+            e.vel.setY(0.0);
             e.vel.setZ(force * FaceUtil.sin(member.getDirection()));
         } else {
-            e.vel.setY(force * member.getDirection().getModY());
+            e.vel.set(0.0, force * member.getDirection().getModY(), 0.0);
         }
     }
 
@@ -189,7 +213,20 @@ public abstract class RailLogic {
      *
      * @param member to update
      */
-    public abstract void onPreMove(MinecartMember<?> member);
+    public void onPreMove(MinecartMember<?> member) {
+        // Adjust the velocity vector to be oriented along the rail path slope
+        if (!this.getPath().isEmpty()) {
+            CommonMinecart<?> entity = member.getEntity();
+            double vel = entity.vel.length();
+            RailPath.Position pos = new RailPath.Position();
+            pos.posX = entity.loc.getX();
+            pos.posY = entity.loc.getY();
+            pos.posZ = entity.loc.getZ();
+            pos.setMotion(member.getDirection());
+            this.getPath().move(pos, member.getBlock(), 0.0);
+            entity.vel.set(vel * pos.motX, vel * pos.motY, vel * pos.motZ);
+        }
+    }
 
     /**
      * Is called after the minecart performed the movement updates<br>

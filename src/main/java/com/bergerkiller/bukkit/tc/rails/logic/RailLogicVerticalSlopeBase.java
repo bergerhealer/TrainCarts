@@ -6,9 +6,8 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
 public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
 
@@ -57,51 +56,44 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
     }
 
     @Override
-    public void setForwardVelocity(MinecartMember<?> member, double force) {
-        if (isVerticalHalf(member)) {
-            member.getEntity().vel.set(0.0, force * getVertFactor(member), 0.0);
-        } else {
-            super.setForwardVelocity(member, force);
-        }
-    }
-
-    @Override
     public void onPreMove(MinecartMember<?> member) {
+        // Select correct segment to align the velocity along
         final CommonMinecart<?> entity = member.getEntity();
+        RailPath.Segment s;
         if (isVerticalHalf(entity.loc.getY(), member.getBlockPos())) {
-            // Vertical part
-            entity.vel.y.add(entity.vel.getX() * this.getDirection().getModX() +
-                             entity.vel.getZ() * this.getDirection().getModZ());
-
-            entity.vel.xz.setZero();
-
-            // Restrain position before move
-            Vector position = entity.loc.vector();
-            this.getFixedPosition(position, member.getBlockPos());
-            entity.loc.set(position);
+            // Vertical part (select correct segment)
+            s = getPath().getSegments()[0];
+            if (s.dt_norm.x != 0.0 || s.dt_norm.z != 0.0) {
+                s = getPath().getSegments()[1];
+            }
         } else {
-            // Slope part
-            super.onPreMove(member);
+            // Slope part (select correct segment)
+            s = getPath().getSegments()[1];
+            if (s.dt_norm.x == 0.0 && s.dt_norm.z == 0.0) {
+                s = getPath().getSegments()[0];
+            }
         }
+
+        // Align velocity along the segment we are at
+        RailPath.Position pos = new RailPath.Position();
+        pos.setMotion(member.getDirection());
+        s.calcDirection(pos);
+        double vel = entity.vel.length();
+        entity.vel.set(pos.motX * vel, pos.motY * vel, pos.motZ * vel);
+
+        // Restrain position before move
+        Vector position = entity.loc.vector();
+        this.getFixedPosition(position, member.getBlockPos());
+        entity.loc.set(position);
     }
 
     @Override
     public void onPostMove(MinecartMember<?> member) {
-        final CommonMinecart<?> entity = member.getEntity();
-        IntVector3 railPos = member.getBlockPos();
-        boolean isVertical = this.isVerticalHalf(entity.loc.getY(), railPos);
-
         // Restrain vertical or sloped movement
+        final CommonMinecart<?> entity = member.getEntity();
         Vector position = entity.loc.vector();
-        this.getFixedPosition(position, railPos);
+        this.getFixedPosition(position, member.getBlockPos());
         entity.loc.set(position);
-
-        // Do sloped rail logic. Convert Y-velocity into X/Z velocity.
-        if (!isVertical) {
-            entity.vel.xz.add(this.getDirection(), entity.vel.getY());
-            entity.vel.y.setZero();
-            super.onPostMove(member);
-        }
     }
 
     @Override
@@ -122,15 +114,6 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
             position.setX(railPos.midX());
             position.setZ(railPos.midZ());
         }
-    }
-
-    @Override
-    public double getGravityMultiplier(MinecartMember<?> member) {
-        if (member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
-            return TCConfig.legacyVerticalGravity ? 
-                    MinecartMember.VERTRAIL_MULTIPLIER_LEGACY : MinecartMember.SLOPE_VELOCITY_MULTIPLIER;
-        }
-        return 0.0;
     }
 
     @Override

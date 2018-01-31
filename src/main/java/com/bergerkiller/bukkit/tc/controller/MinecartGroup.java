@@ -17,8 +17,8 @@ import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
-import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.*;
@@ -26,10 +26,12 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -1291,6 +1293,31 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Calculate the speed factor that will be used to adjust the distance between the minecarts
             for (MinecartMember<?> member : this) {
                 member.calculateSpeedFactor();
+            }
+
+            // Add the gravity effects right before moving the Minecart
+            // This changes velocity slightly so that minecarts go downslope or fall down
+            // It is important to do it here, so that gravity is taken into account
+            // when sliding over the ground. Doing this in the wrong spot will make the minecart 'hover'.
+            if (this.getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
+                for (MinecartMember<?> member : this) {
+                    if (member.isUnloaded()) continue; // not loaded - no physics occur
+                    if (member.isMovementControlled()) continue; // launched by station, launcher, etc.
+
+                    // Find segment of the rails path the Minecart is on
+                    RailLogic logic = member.getRailLogic();
+                    CommonMinecart<?> entity = member.getEntity();
+                    Block block = member.getRailTracker().getBlock();
+                    RailPath.Segment segment = logic.getPath().findSegment(entity.loc.vector(), block);
+                    if (segment == null) {
+                        // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
+                        entity.vel.y.subtract(logic.getGravityMultiplier(member));
+                    } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
+                        // On a non-level segment, gravity must be applied based on the slope the segment is at
+                        double f = logic.getGravityMultiplier(member) * segment.dt_norm.y;
+                        entity.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
+                    }
+                }
             }
 
             // Perform the move and post-movement logic
