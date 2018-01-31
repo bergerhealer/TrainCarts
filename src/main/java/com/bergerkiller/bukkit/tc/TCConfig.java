@@ -29,7 +29,6 @@ public class TCConfig {
 
     // Some updates break things people did in the past
     // This allows people to restore older logic
-    public static boolean legacyVerticalGravity;
     public static boolean legacySpeedLimiting;
 
     public static double maxVelocity;
@@ -219,11 +218,6 @@ public class TCConfig {
         config.setHeader("allowUpsideDownRails", "\nWhether upside-down rail functionality is enabled on the server");
         config.addHeader("allowUpsideDownRails", "When disabled, minecarts can not be rotated upside-down");
         allowUpsideDownRails = config.get("allowUpsideDownRails", true);
-
-        config.setHeader("legacyVerticalGravity", "\nBefore TrainCarts v1.12.1-v2 vertical rail gravity was kind of awful");
-        config.addHeader("legacyVerticalGravity", "It took a lot more speed to get up a vertical rail compared to sloped rails");
-        config.addHeader("legacyVerticalGravity", "This was fixed. If you depend on this legacy behavior, change this option to True");
-        legacyVerticalGravity = config.get("legacyVerticalGravity", false);
 
         config.setHeader("legacySpeedLimiting", "\nBefore TrainCarts v1.12.2-v1 speed limiting was done on each individual axis");
         config.addHeader("legacySpeedLimiting", "This had a big impact on air physics, because it never made a good ellipse fall");
