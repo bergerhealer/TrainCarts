@@ -56,23 +56,19 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
     }
 
     @Override
+    public void setForwardVelocity(MinecartMember<?> member, double force) {
+        RailPath.Segment segment = findRailSegment(member.getEntity().loc.getY(), member.getBlockPos());
+        RailPath.Position pos = new RailPath.Position();
+        pos.setMotion(member.getDirection());
+        segment.calcDirection(pos);
+        member.getEntity().vel.set(pos.motX * force, pos.motY * force, pos.motZ * force);
+    }
+
+    @Override
     public void onPreMove(MinecartMember<?> member) {
         // Select correct segment to align the velocity along
         final CommonMinecart<?> entity = member.getEntity();
-        RailPath.Segment s;
-        if (isVerticalHalf(entity.loc.getY(), member.getBlockPos())) {
-            // Vertical part (select correct segment)
-            s = getPath().getSegments()[0];
-            if (s.dt_norm.x != 0.0 || s.dt_norm.z != 0.0) {
-                s = getPath().getSegments()[1];
-            }
-        } else {
-            // Slope part (select correct segment)
-            s = getPath().getSegments()[1];
-            if (s.dt_norm.x == 0.0 && s.dt_norm.z == 0.0) {
-                s = getPath().getSegments()[0];
-            }
-        }
+        RailPath.Segment s = findRailSegment(entity.loc.getY(), member.getBlockPos());
 
         // Align velocity along the segment we are at
         RailPath.Position pos = new RailPath.Position();
@@ -85,6 +81,24 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
         Vector position = entity.loc.vector();
         this.getFixedPosition(position, member.getBlockPos());
         entity.loc.set(position);
+    }
+
+    private RailPath.Segment findRailSegment(double y, IntVector3 blockPos) {
+        RailPath.Segment s;
+        if (this.isVerticalHalf(y, blockPos)) {
+            // Vertical part (select correct segment)
+            s = getPath().getSegments()[0];
+            if (s.dt_norm.x != 0.0 || s.dt_norm.z != 0.0) {
+                s = getPath().getSegments()[1];
+            }
+        } else {
+            // Slope part (select correct segment)
+            s = getPath().getSegments()[1];
+            if (s.dt_norm.x == 0.0 && s.dt_norm.z == 0.0) {
+                s = getPath().getSegments()[0];
+            }
+        }
+        return s;
     }
 
     @Override
