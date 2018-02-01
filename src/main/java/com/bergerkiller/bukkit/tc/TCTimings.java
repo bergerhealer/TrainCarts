@@ -11,8 +11,10 @@ public class TCTimings {
     public static final Timings GROUP_TICK_ACTIONS = timings.create("Train Physics - update actions");
     public static final Timings MEMBER_PHYSICS_PRE = timings.create("Train Physics - MinecartMember::onPhysicsPreMove()");
     public static final Timings MEMBER_PHYSICS_POST = timings.create("Train Physics - MinecartMember::onPhysicsPostMove()");
-    public static final Timings MEMBER_PHYSICS_MOVE = timings.create("Train Physics - MinecartMember::onPhysicsPostMove() - onMove()");
-    public static final Timings MEMBER_PHYSICS_MOVE_EVENT = timings.create("Train Physics - MinecartMember::onPhysicsPostMove() - MEMBER_MOVE");
+    public static final Timings MEMBER_PHYSICS_POST_MOVE = timings.create("Train Physics - MinecartMember::onPhysicsPostMove() - onMove()");
+    public static final Timings MEMBER_PHYSICS_POST_MOVE_EVENT = timings.create("Train Physics - MinecartMember::onPhysicsPostMove() - MEMBER_MOVE");
+    public static final Timings MEMBER_PHYSICS_POST_LINK_COLLISION = timings.create("Train Physics - MinecartMember::onPhysicsPostMove() - MINECART_LINK_COLLISION");
+    public static final Timings MEMBER_PHYSICS_POST_RAIL_LOGIC = timings.create("Train Physics - MinecartMember::onPhysicsPostMove() - RAIL_LOGIC");
     public static final Timings MEMBER_PHYSICS_BLOCK_COLLISION = timings.create("Train Physics - block collision handling");
     public static final Timings MEMBER_PHYSICS_UPDATE_WHEELS = timings.create("Train Physics - WheelTrackerMember::update()");
     public static final Timings BLOCKTRACKER_REFRESH = timings.create("Train Physics - BlockTracker::refresh()");

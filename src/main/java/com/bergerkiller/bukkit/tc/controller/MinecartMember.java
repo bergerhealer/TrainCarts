@@ -1441,12 +1441,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.directionFrom = this.directionTo;
 
         // Move using set motion, and perform post-move rail logic
-        try (Timings t = TCTimings.MEMBER_PHYSICS_MOVE.start()) {
+        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE.start()) {
             this.onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
         }
 
         this.checkMissing();
-        this.getRailLogic().onPostMove(this);
+        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_RAIL_LOGIC.start()) {
+            this.getRailLogic().onPostMove(this);
+        }
 
         // Update manual movement from player input
         updateManualMovement();
@@ -1494,7 +1496,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
             Collection<TrackedSign> trackedSigns = this.getBlockTracker().getActiveTrackedSigns();
             if (!trackedSigns.isEmpty()) {
-                try (Timings t = TCTimings.MEMBER_PHYSICS_MOVE_EVENT.start()) {
+                try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE_EVENT.start()) {
                     for (TrackedSign sign : trackedSigns) {
                         SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
                     }
@@ -1504,13 +1506,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Performs linkage with nearby minecarts
         // This allows trains to link before actually colliding
-        for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
-            if (near instanceof Minecart && !this.entity.isPassenger(near)) {
-                EntityUtil.doCollision(near, this.entity.getEntity());
+        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_LINK_COLLISION.start()) {
+            for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
+                if (near instanceof Minecart && !this.entity.isPassenger(near)) {
+                    EntityUtil.doCollision(near, this.entity.getEntity());
+                }
             }
         }
-        
-        
+
         // Handle collisions for train lengths > 1.0 in a special way
         
         /*
