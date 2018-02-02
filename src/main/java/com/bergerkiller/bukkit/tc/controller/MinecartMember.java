@@ -99,6 +99,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Quaternion cachedOrientation_quat = null;
     private float cachedOrientation_yaw = 0.0f;
     private float cachedOrientation_pitch = 0.0f;
+    private boolean hasLinkedFarMinecarts = false;
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -124,6 +125,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.updateDirection();
         this.wheelTracker.update();
+        this.hasLinkedFarMinecarts = false;
     }
 
     @Override
@@ -1506,10 +1508,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Performs linkage with nearby minecarts
         // This allows trains to link before actually colliding
-        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_LINK_COLLISION.start()) {
-            for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
-                if (near instanceof Minecart && !this.entity.isPassenger(near)) {
-                    EntityUtil.doCollision(near, this.entity.getEntity());
+        // Version 1.12.2-v3: only do this ONCE after placing/spawning to reduce cpu usage
+        if (!this.hasLinkedFarMinecarts) {
+            this.hasLinkedFarMinecarts = true;
+            try (Timings t = TCTimings.MEMBER_PHYSICS_POST_LINK_COLLISION.start()) {
+                for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
+                    if (near instanceof Minecart && !this.entity.isPassenger(near)) {
+                        EntityUtil.doCollision(near, this.entity.getEntity());
+                    }
                 }
             }
         }
