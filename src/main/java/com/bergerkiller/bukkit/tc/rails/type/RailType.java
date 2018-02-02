@@ -58,6 +58,11 @@ public abstract class RailType {
      * @param reason for unregistering
      */
     public static void handleCriticalError(RailType railType, Throwable reason) {
+        // If not a registered rail type, ignore the error. We had already disabled this rail.
+        if (!values.contains(railType)) {
+            return;
+        }
+
         Plugin plugin = CommonUtil.getPluginByClass(railType.getClass());
         Logger logger = TrainCarts.plugin.getLogger();
         if (plugin == TrainCarts.plugin) {

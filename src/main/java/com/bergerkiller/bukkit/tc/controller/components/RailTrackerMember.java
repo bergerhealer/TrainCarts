@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
@@ -117,7 +118,20 @@ public class RailTrackerMember extends RailTracker {
         if (this.railLogicSnapshotted && this.railLogic != null) {
             return this.railLogic;
         } else {
-            return this.rail.type.getLogic(this.owner, this.rail.block, this.rail.enterFace);
+            try {
+                return this.rail.type.getLogic(this.owner, this.rail.block, this.rail.enterFace);
+            } catch (Throwable t) {
+                RailType.handleCriticalError(this.rail.type, t);
+
+                // Change rail type to rail type none, returning AIR logic as a fallback
+                this.rail = new TrackedRail(this.rail.member,
+                        this.rail.minecartBlock,
+                        this.rail.minecartBlock,
+                        RailType.NONE,
+                        this.rail.disconnected,
+                        this.rail.enterFace);
+                return RailLogicAir.INSTANCE;
+            }
         }
     }
 
