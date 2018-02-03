@@ -84,7 +84,9 @@ public abstract class RailType {
      * @param type to unregister
      */
     public static void unregister(RailType type) {
-        values.remove(type);
+        if (values.remove(type)) {
+            RailTypeCache.reset();
+        }
     }
 
     /**
@@ -99,6 +101,7 @@ public abstract class RailType {
         } else {
             values.add(type);
         }
+        RailTypeCache.reset();
     }
 
     /**

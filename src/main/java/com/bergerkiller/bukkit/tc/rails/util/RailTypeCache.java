@@ -45,6 +45,11 @@ public class RailTypeCache {
         cachedRailTypes.put(info.posBlock, new CachedRailType(info));
     }
 
+    // removes all cached rails, forcing a global recalculation
+    public static void reset() {
+        cachedRailTypes.clear();
+    }
+
     // cleans up cached rail types that haven't been accessed in quite a while
     public static void cleanup() {
         Iterator<CachedRailType> iter = cachedRailTypes.values().iterator();
