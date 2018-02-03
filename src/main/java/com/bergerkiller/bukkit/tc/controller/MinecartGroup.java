@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
-import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -10,6 +9,7 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -57,7 +56,7 @@ import java.util.logging.Level;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
     private static final long serialVersionUID = 3;
-    private static final HashSet<IntVector2> chunksBuffer = new HashSet<>(50);
+    private static final LongHashSet chunksBuffer = new LongHashSet(50);
     protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
@@ -951,7 +950,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Create a set of all chunks directly occupied by the minecarts in this group
             chunksBuffer.clear();
             for (MinecartMember<?> mm : this) {
-                chunksBuffer.add(new IntVector2(mm.getEntity().loc.x.chunk(), mm.getEntity().loc.z.chunk()));
+                chunksBuffer.add(mm.getEntity().loc.x.chunk(), mm.getEntity().loc.z.chunk());
             }
 
             // Refresh the chunk area tracker using this information

@@ -2,17 +2,15 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.World;
 
-import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 
 /**
  * Stores all the chunks nearby a train. This information is essential for performing
@@ -28,8 +26,9 @@ public class ChunkArea {
     public static final int CHUNK_EDGE = 2 * CHUNK_RANGE + 1;
     public static final int CHUNK_AREA = CHUNK_EDGE * CHUNK_EDGE;
     private World current_world = null;
-    private final Set<IntVector2> added_chunk_centers = new HashSet<IntVector2>();
-    private final Map<IntVector2, OwnedChunk> chunks = new HashMap<IntVector2, OwnedChunk>();
+    private final LongHashSet added_chunk_centers = new LongHashSet();
+    private LongHashMap<OwnedChunk> chunks = new LongHashMap<OwnedChunk>();
+    private final List<OwnedChunk> all_chunks = new ArrayList<OwnedChunk>();
     private final List<OwnedChunk> removed_chunks = new ArrayList<OwnedChunk>();
     private final List<OwnedChunk> added_chunks = new ArrayList<OwnedChunk>();
 
@@ -40,7 +39,7 @@ public class ChunkArea {
      * @param world the minecarts are in (to detect world changes)
      * @param coordinates of the chunks all minecarts are in
      */
-    public void refresh(World world, Set<IntVector2> coordinates) {
+    public void refresh(World world, LongHashSet coordinates) {
         // Reset
         this.removed_chunks.clear();
         this.added_chunks.clear();
@@ -48,33 +47,39 @@ public class ChunkArea {
         // When world changes, perform a full reset
         if (this.current_world != world) {
             this.current_world = world;
-            this.removed_chunks.addAll(this.chunks.values());
+            this.removed_chunks.addAll(this.chunks.getValues());
             this.added_chunk_centers.clear();
-            this.chunks.clear();
+            this.chunks = new LongHashMap<OwnedChunk>();
+            this.all_chunks.clear();
         }
 
         // Sync previous distance
-        for (OwnedChunk owned : this.chunks.values()) {
+        for (OwnedChunk owned : this.all_chunks) {
             owned.distance_previous = owned.distance;
         }
 
         // Find chunk centers that have been added
-        for (IntVector2 coord : coordinates) {
+        LongHashSet.LongIterator iter = coordinates.longIterator();
+        while (iter.hasNext()) {
+            long coord = iter.next();
             if (this.added_chunk_centers.add(coord)) {
                 // Iterate all 5x5 neighbours of this coordinate and store them in the owned chunks
                 // If new owned chunks are created, store them in a special 'added' set
+                int mx = MathUtil.longHashMsw(coord);
+                int mz = MathUtil.longHashLsw(coord);
                 int cx, cz;
                 for (cx = -CHUNK_RANGE; cx <= CHUNK_RANGE; cx++) {
                     for (cz = -CHUNK_RANGE; cz <= CHUNK_RANGE; cz++) {
-                        IntVector2 ownedCoord = new IntVector2(coord.x + cx, coord.z + cz);
+                        long ownedCoord = MathUtil.longHashToLong(mx + cx, mz + cz);
                         OwnedChunk ownedChunk = this.chunks.get(ownedCoord);
                         if (ownedChunk == null) {
-                            ownedChunk = new OwnedChunk(world, ownedCoord);
-                            ownedChunk.addChunk(coord);
+                            ownedChunk = new OwnedChunk(world, mx + cx, mz + cz);
+                            ownedChunk.addChunk(coord, mx, mz);
+                            this.all_chunks.add(ownedChunk);
                             this.chunks.put(ownedCoord, ownedChunk);
                             this.added_chunks.add(ownedChunk);
                         } else {
-                            ownedChunk.addChunk(coord);
+                            ownedChunk.addChunk(coord, mx, mz);
                         }
                     }
                 }
@@ -82,24 +87,27 @@ public class ChunkArea {
         }
 
         // Find chunk centers that have been removed
-        Iterator<IntVector2> added_iter = this.added_chunk_centers.iterator();
+        LongHashSet.LongIterator added_iter = this.added_chunk_centers.longIterator();
         while (added_iter.hasNext()) {
-            IntVector2 coord = added_iter.next();
+            long coord = added_iter.next();
             if (!coordinates.contains(coord)) {
                 added_iter.remove();
 
                 // Iterate all 5x5 neighbours of this coordinate and remove them from the owned chunks
                 // If owned chunks become empty, store them in a special 'removed' set
+                int mx = MathUtil.longHashMsw(coord);
+                int mz = MathUtil.longHashLsw(coord);
                 int cx, cz;
                 for (cx = -CHUNK_RANGE; cx <= CHUNK_RANGE; cx++) {
                     for (cz = -CHUNK_RANGE; cz <= CHUNK_RANGE; cz++) {
-                        IntVector2 ownedCoord = new IntVector2(coord.x + cx, coord.z + cz);
+                        long ownedCoord = MathUtil.longHashToLong(mx + cx, mz + cz);
                         OwnedChunk ownedChunk = this.chunks.get(ownedCoord);
                         if (ownedChunk != null) {
-                            ownedChunk.removeChunk(coord);
+                            ownedChunk.removeChunk(coord, mx, mz);
                             if (ownedChunk.isEmpty()) {
                                 this.removed_chunks.add(ownedChunk);
                                 this.chunks.remove(ownedCoord);
+                                this.all_chunks.remove(ownedChunk);
                             }
                         }
                     }
@@ -113,7 +121,7 @@ public class ChunkArea {
      * 
      * @return chunk centers
      */
-    public final Set<IntVector2> getAllCenters() {
+    public final LongHashSet getAllCenters() {
         return this.added_chunk_centers;
     }
 
@@ -123,7 +131,7 @@ public class ChunkArea {
      * @return all chunks nearby the minecart
      */
     public final Collection<OwnedChunk> getAll() {
-        return this.chunks.values();
+        return this.all_chunks;
     }
 
     /**
@@ -150,14 +158,14 @@ public class ChunkArea {
     public static final class OwnedChunk {
         private final int cx, cz;
         private final World world;
-        private final Set<IntVector2> chunks = new HashSet<IntVector2>();
+        private final LongHashSet chunks = new LongHashSet();
         private int distance;
         private int distance_previous;
 
-        public OwnedChunk(World world, IntVector2 coord) {
+        public OwnedChunk(World world, int cx, int cz) {
             this.world = world;
-            this.cx = coord.x;
-            this.cz = coord.z;
+            this.cx = cx;
+            this.cz = cz;
             this.distance = Integer.MAX_VALUE;
             this.distance_previous = Integer.MAX_VALUE;
         }
@@ -206,21 +214,26 @@ public class ChunkArea {
             return (this.distance == Integer.MAX_VALUE) && (this.distance_previous < Integer.MAX_VALUE);
         }
 
-        public void addChunk(IntVector2 chunk) {
+        private void addChunk(long key, int cx, int cz) {
             // Add the chunk. If actually added, update distance if less.
-            if (this.chunks.add(chunk)) {
-                this.distance = Math.min(this.distance, this.calcDistance(chunk));
+            if (this.chunks.add(key)) {
+                this.distance = Math.min(this.distance, this.calcDistance(cx, cz));
             }
         }
 
-        public void removeChunk(IntVector2 chunk) {
+        private void removeChunk(long key, int cx, int cz) {
             // Remove the chunk. If actually removed, update distance if more.
-            if (this.chunks.remove(chunk)) {
-                int oldDistance = this.calcDistance(chunk);
+            if (this.chunks.remove(key)) {
+                int oldDistance = this.calcDistance(cx, cz);
                 if (oldDistance <= this.distance) {
                     this.distance = Integer.MAX_VALUE;
-                    for (IntVector2 storedChunk : this.chunks) {
-                        this.distance = Math.min(this.distance, this.calcDistance(storedChunk));
+                    LongHashSet.LongIterator iter = this.chunks.longIterator();
+                    while (iter.hasNext()) {
+                        long storedChunk = iter.next();
+                        int distance = this.calcDistance(MathUtil.longHashMsw(storedChunk), MathUtil.longHashLsw(storedChunk));
+                        if (distance < this.distance) {
+                            this.distance = distance;
+                        }
                     }
                 }
             }
@@ -230,9 +243,9 @@ public class ChunkArea {
             return this.chunks.isEmpty();
         }
 
-        private final int calcDistance(IntVector2 chunk) {
-            return Math.max(Math.abs(chunk.x - this.cx),
-                            Math.abs(chunk.z - this.cz));
+        private final int calcDistance(int cx, int cz) {
+            return Math.max(Math.abs(cx - this.cx),
+                            Math.abs(cz - this.cz));
         }
     }
 
