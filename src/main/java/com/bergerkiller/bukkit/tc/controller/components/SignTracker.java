@@ -7,9 +7,9 @@ import org.bukkit.block.Block;
 import java.util.*;
 
 /**
- * Keeps track of the active rails, signs and detector regions
+ * Keeps track of the active signs and detector regions from rail information
  */
-public abstract class BlockTracker {
+public abstract class SignTracker {
     protected static final Set<TrackedSign> blockBuffer = new HashSet<TrackedSign>();
     protected final Map<Block, TrackedSign> activeSigns = new LinkedHashMap<Block, TrackedSign>();
     protected final List<DetectorRegion> detectorRegions = new ArrayList<>(0);

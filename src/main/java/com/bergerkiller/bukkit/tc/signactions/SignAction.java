@@ -145,7 +145,7 @@ public abstract class SignAction {
                 if (info.hasRails()) {
                     final MinecartMember<?> member = MinecartMemberStore.getAt(info.getRails());
                     if (member != null) {
-                        member.getGroup().getBlockTracker().updatePosition();
+                        member.getGroup().getSignTracker().updatePosition();
                     }
                 }
                 // Call loaded
@@ -172,7 +172,7 @@ public abstract class SignAction {
         if (action != null) {
             // First, remove this sign from all Minecarts on the world
             for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
-                group.getBlockTracker().removeSign(info.getBlock());
+                group.getSignTracker().removeSign(info.getBlock());
             }
             // Handle sign destroy logic
             action.destroy(info);

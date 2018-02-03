@@ -854,7 +854,7 @@ public class TCListener implements Listener {
     public void onRailsBreak(Block railsBlock) {
         MinecartMember<?> mm = MinecartMemberStore.getAt(railsBlock);
         if (mm != null) {
-            mm.getGroup().getBlockTracker().updatePosition();
+            mm.getGroup().getSignTracker().updatePosition();
         }
         // Remove path node from path finding
         PathNode.remove(railsBlock);

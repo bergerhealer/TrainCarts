@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
-import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
@@ -61,7 +61,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
-    private final BlockTrackerGroup blockTracker = new BlockTrackerGroup(this);
+    private final SignTrackerGroup signTracker = new SignTrackerGroup(this);
     private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
     protected long lastSync = Long.MIN_VALUE;
@@ -96,8 +96,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.prop = properties;
     }
 
-    public BlockTrackerGroup getBlockTracker() {
-        return this.blockTracker;
+    public SignTrackerGroup getSignTracker() {
+        return this.signTracker;
     }
 
     /**
@@ -181,7 +181,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     private void addMember(MinecartMember<?> member) {
         member.setGroup(this);
-        this.getBlockTracker().updatePosition();
+        this.getSignTracker().updatePosition();
         this.getProperties().add(member);
     }
 
@@ -285,7 +285,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         super.remove(index);
         this.getProperties().remove(member);
         this.getActions().removeActions(member);
-        this.getBlockTracker().updatePosition();
+        this.getSignTracker().updatePosition();
         member.group = null;
         return member;
     }
@@ -342,7 +342,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     @Override
     public void clear() {
-        this.getBlockTracker().clear();
+        this.getSignTracker().clear();
         this.getActions().clear();
         for (MinecartMember<?> mm : this.toArray()) {
             this.getProperties().remove(mm);
@@ -398,7 +398,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         GroupUnloadEvent.call(this);
 
         // Unload in detector regions
-        getBlockTracker().unload();
+        getSignTracker().unload();
 
         // Store the group offline
         OfflineGroupManager.storeGroup(this);
@@ -502,8 +502,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             return;
         }
         this.teleportImmunityTick = 10;
-        this.getBlockTracker().clear();
-        this.getBlockTracker().updatePosition();
+        this.getSignTracker().clear();
+        this.getSignTracker().updatePosition();
         this.breakPhysics();
         if (reversed) {
             for (int i = 0; i < locations.length; i++) {
@@ -515,7 +515,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
         this.updateDirection();
-        this.getBlockTracker().updatePosition();
+        this.getSignTracker().updatePosition();
     }
 
     private void teleportMember(MinecartMember<?> member, Location location) {
@@ -820,7 +820,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     @Override
     public void onPropertiesChanged() {
-        this.getBlockTracker().update();
+        this.getSignTracker().update();
     }
 
     /**
@@ -1086,6 +1086,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return Double.MAX_VALUE;
     }
 
+    private void tickActions() {
+        try (Timings t = TCTimings.GROUP_TICK_ACTIONS.start()) {
+            this.getActions().doTick();
+        }
+    }
+
     public void doPhysics() {
         // Remove minecarts from this group that don't actually belong to this group
         // This is a fallback/workaround for a reported resource bug where fake trains are created
@@ -1207,7 +1213,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // Update direction and executed actions prior to updates
             this.updateDirection();
-            this.getBlockTracker().refresh();
+            this.getSignTracker().refresh();
 
             // Perform block change Minecart logic, also take care of potential new block changes
             for (MinecartMember<?> member : this) {
@@ -1217,20 +1223,18 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     MemberBlockChangeEvent.call(member, member.getLastBlock(), member.getBlock());
                     member.checkMissing();
                     member.onBlockChange(member.getLastBlock(), member.getBlock());
-                    this.getBlockTracker().updatePosition();
+                    this.getSignTracker().updatePosition();
                     member.checkMissing();
                 }
             }
-            this.getBlockTracker().refresh();
+            this.getSignTracker().refresh();
 
             this.updateDirection();
             if (!this.doConnectionCheck()) {
                 return true; //false;
             }
 
-            try (Timings t = TCTimings.GROUP_TICK_ACTIONS.start()) {
-                this.getActions().doTick();
-            }
+            this.tickActions();
 
             this.updateDirection();
 

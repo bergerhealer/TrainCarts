@@ -18,8 +18,8 @@ import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
-import com.bergerkiller.bukkit.tc.controller.components.BlockTracker.TrackedSign;
-import com.bergerkiller.bukkit.tc.controller.components.BlockTrackerMember;
+import com.bergerkiller.bukkit.tc.controller.components.SignTracker.TrackedSign;
+import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
 import com.bergerkiller.bukkit.tc.controller.components.WheelTrackerMember;
@@ -77,7 +77,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
-    private final BlockTrackerMember blockTracker = new BlockTrackerMember(this);
+    private final SignTrackerMember signTracker = new SignTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
     private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
     private final WheelTrackerMember wheelTracker = new WheelTrackerMember(this);
@@ -299,8 +299,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    public BlockTrackerMember getBlockTracker() {
-        return blockTracker;
+    public SignTrackerMember getSignTracker() {
+        return signTracker;
     }
 
     public WheelTrackerMember getWheels() {
@@ -927,7 +927,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     }
                     if (this.group != null) {
                         entity.setDead(false);
-                        this.getBlockTracker().clear();
+                        this.getSignTracker().clear();
                         entity.setDead(true);
                     }
                     if (entity.hasPassenger()) {
@@ -1060,7 +1060,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public void onPropertiesChanged() {
-        this.getBlockTracker().update();
+        this.getSignTracker().update();
     }
 
     @Override
@@ -1496,12 +1496,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             // Execute move events
             CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
 
-            Collection<TrackedSign> trackedSigns = this.getBlockTracker().getActiveTrackedSigns();
+            Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
             if (!trackedSigns.isEmpty()) {
-                try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE_EVENT.start()) {
-                    for (TrackedSign sign : trackedSigns) {
-                        SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
-                    }
+                for (TrackedSign sign : trackedSigns) {
+                    SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
                 }
             }
         }
@@ -1511,11 +1509,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Version 1.12.2-v3: only do this ONCE after placing/spawning to reduce cpu usage
         if (!this.hasLinkedFarMinecarts) {
             this.hasLinkedFarMinecarts = true;
-            try (Timings t = TCTimings.MEMBER_PHYSICS_POST_LINK_COLLISION.start()) {
-                for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
-                    if (near instanceof Minecart && !this.entity.isPassenger(near)) {
-                        EntityUtil.doCollision(near, this.entity.getEntity());
-                    }
+            for (Entity near : entity.getNearbyEntities(0.2, 0, 0.2)) {
+                if (near instanceof Minecart && !this.entity.isPassenger(near)) {
+                    EntityUtil.doCollision(near, this.entity.getEntity());
                 }
             }
         }

@@ -106,7 +106,7 @@ public class RailTrackerGroup extends RailTracker {
 
             // TODO: Detect when the rails are changed
             // Compare rails with prevRails to do so
-            owner.getBlockTracker().updatePosition();
+            owner.getSignTracker().updatePosition();
         }
     }
 

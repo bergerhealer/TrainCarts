@@ -40,7 +40,7 @@ public class EditedSign {
         if (rails != null) {
             MinecartMember<?> member = MinecartMemberStore.getAt(rails);
             if (member != null) {
-                member.getBlockTracker().update();
+                member.getSignTracker().update();
             }
         }
     }

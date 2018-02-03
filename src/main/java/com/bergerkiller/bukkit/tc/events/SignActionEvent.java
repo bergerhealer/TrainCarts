@@ -537,7 +537,7 @@ public class SignActionEvent extends Event implements Cancellable {
                 } else {
                     // Get the Minecart in the group that contains this sign
                     for (MinecartMember<?> member : this.group) {
-                        if (member.getBlockTracker().containsSign(this.signblock)) {
+                        if (member.getSignTracker().containsSign(this.signblock)) {
                             this.member = member;
                             break;
                         }

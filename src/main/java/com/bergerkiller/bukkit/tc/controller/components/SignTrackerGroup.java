@@ -22,12 +22,12 @@ import java.util.*;
  * Keeps track of the active rails, signs and detector regions below a
  * MinecartGroup
  */
-public class BlockTrackerGroup extends BlockTracker {
+public class SignTrackerGroup extends SignTracker {
     private static final List<Block> signListBuffer = new ArrayList<Block>();
     private final MinecartGroup owner;
     private final ToggledState needsPositionUpdate = new ToggledState(true);
 
-    public BlockTrackerGroup(MinecartGroup owner) {
+    public SignTrackerGroup(MinecartGroup owner) {
         this.owner = owner;
     }
 
@@ -78,7 +78,7 @@ public class BlockTrackerGroup extends BlockTracker {
     @Override
     public void clear() {
         for (MinecartMember<?> member : owner) {
-            member.getBlockTracker().clear();
+            member.getSignTracker().clear();
         }
         super.clear();
         detectorRegions.clear();
@@ -94,7 +94,7 @@ public class BlockTrackerGroup extends BlockTracker {
             this.detectorRegions.clear();
         }
         for (MinecartMember<?> member : owner) {
-            member.getBlockTracker().unload();
+            member.getSignTracker().unload();
         }
     }
 
@@ -115,7 +115,7 @@ public class BlockTrackerGroup extends BlockTracker {
     public boolean removeSign(Block signBlock) {
         if (super.removeSign(signBlock)) {
             for (MinecartMember<?> member : owner) {
-                member.getBlockTracker().removeSign(signBlock);
+                member.getSignTracker().removeSign(signBlock);
             }
             return true;
         } else {
@@ -126,7 +126,7 @@ public class BlockTrackerGroup extends BlockTracker {
     private List<TrackedSign> getSignList() {
         ArrayList<List<TrackedSign>> signsList = new ArrayList<List<TrackedSign>>(owner.size());
         for (MinecartMember<?> member : owner) {
-            List<TrackedSign> memberList = member.getBlockTracker().liveActiveSigns;
+            List<TrackedSign> memberList = member.getSignTracker().liveActiveSigns;
             if (!memberList.isEmpty()) {
                 signsList.add(memberList); // optimization
             }
@@ -142,7 +142,7 @@ public class BlockTrackerGroup extends BlockTracker {
      * Refreshes the block space and active signs if required
      */
     public void refresh() {
-        try (Timings t = TCTimings.BLOCKTRACKER_REFRESH.start()) {
+        try (Timings t = TCTimings.SIGNTRACKER_REFRESH.start()) {
             // No need to update anything for empty trains
             if (owner.isEmpty()) {
                 clear();
@@ -154,7 +154,7 @@ public class BlockTrackerGroup extends BlockTracker {
 
                 // First clear the live active sign buffer of all members
                 for (MinecartMember<?> member : owner) {
-                    member.getBlockTracker().liveActiveSigns.clear();
+                    member.getSignTracker().liveActiveSigns.clear();
                 }
 
                 // Add all active signs to the block tracker of all members
@@ -163,7 +163,7 @@ public class BlockTrackerGroup extends BlockTracker {
                         continue;
                     }
 
-                    List<TrackedSign> signs = info.member.getBlockTracker().liveActiveSigns;
+                    List<TrackedSign> signs = info.member.getSignTracker().liveActiveSigns;
                     Util.addSignsFromRails(signListBuffer, info.type.getSignColumnStart(info.block), info.type.getSignColumnDirection(info.block));
                     for (Block signBlock : signListBuffer) {
                         signs.add(new TrackedSign(signBlock, info.block));
@@ -173,7 +173,7 @@ public class BlockTrackerGroup extends BlockTracker {
 
                 // Filter based on cart skip options
                 for (MinecartMember<?> member : owner) {
-                    member.getProperties().getSkipOptions().filterSigns(member.getBlockTracker().liveActiveSigns);
+                    member.getProperties().getSkipOptions().filterSigns(member.getSignTracker().liveActiveSigns);
                 }
 
                 // Combine all signs into one list and filter based on train options
@@ -182,7 +182,7 @@ public class BlockTrackerGroup extends BlockTracker {
 
                 // Update cart signs
                 for (MinecartMember<?> member : owner) {
-                    BlockTrackerMember tracker = member.getBlockTracker();
+                    SignTrackerMember tracker = member.getSignTracker();
                     tracker.updateActiveSigns(tracker.liveActiveSigns);
                 }
 
@@ -192,7 +192,7 @@ public class BlockTrackerGroup extends BlockTracker {
                 // Update detector regions
                 detectorRegions.clear();
                 for (MinecartMember<?> member : owner) {
-                    BlockTrackerMember tracker = member.getBlockTracker();
+                    SignTrackerMember tracker = member.getSignTracker();
                     tracker.detectorRegions.clear();
                     tracker.detectorRegions.addAll(DetectorRegion.handleMove(member, member.getLastBlock(), member.getBlock()));
                     detectorRegions.addAll(tracker.detectorRegions);
@@ -209,7 +209,7 @@ public class BlockTrackerGroup extends BlockTracker {
                 }
                 // Member updates
                 for (MinecartMember<?> member : owner) {
-                    BlockTrackerMember tracker = member.getBlockTracker();
+                    SignTrackerMember tracker = member.getSignTracker();
                     if (tracker.needsUpdate.clear()) {
                         for (Block signBlock : tracker.getActiveSigns()) {
                             SignAction.executeAll(new SignActionEvent(signBlock, tracker.getOwner()), SignActionType.MEMBER_UPDATE);

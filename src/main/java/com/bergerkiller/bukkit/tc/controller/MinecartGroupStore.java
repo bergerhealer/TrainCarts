@@ -189,8 +189,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             }
 
             //Clear targets and active signs
-            g1.getBlockTracker().clear();
-            g2.getBlockTracker().clear();
+            g1.getSignTracker().clear();
+            g2.getSignTracker().clear();
 
             //Finally link
             if (m1index == 0 && m2index == 0) {
@@ -207,7 +207,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             //Correct the yaw and order
             g2.getAverageForce();
             g2.updateDirection();
-            g2.getBlockTracker().updatePosition();
+            g2.getSignTracker().updatePosition();
 
             g1.remove();
             m2.playLinkEffect();

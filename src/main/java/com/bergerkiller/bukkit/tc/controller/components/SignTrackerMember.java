@@ -15,11 +15,11 @@ import java.util.List;
  * Keeps track of the active rails, signs and detector regions below a MinecartMember.
  * This tracker is routinely updated by the BlockTracker of the MinecartGroup.
  */
-public class BlockTrackerMember extends BlockTracker {
+public class SignTrackerMember extends SignTracker {
     private final MinecartMember<?> owner;
     protected List<TrackedSign> liveActiveSigns = new ArrayList<TrackedSign>();
 
-    public BlockTrackerMember(MinecartMember<?> owner) {
+    public SignTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
     }
 
@@ -63,7 +63,7 @@ public class BlockTrackerMember extends BlockTracker {
             MinecartGroup group = owner.getGroup();
             // Member owner could be dead and have no group
             if (group != null) {
-                group.getBlockTracker().update();
+                group.getSignTracker().update();
             }
         }
     }
