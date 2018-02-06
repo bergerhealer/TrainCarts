@@ -31,7 +31,9 @@ public class ActionTrackerMember extends ActionTracker {
     @Override
     public void clear() {
         super.clear();
-        owner.getGroup().getActions().removeActions(owner);
+        if (!owner.isUnloaded()) {
+            owner.getGroup().getActions().removeActions(owner);
+        }
     }
 
     @Override
