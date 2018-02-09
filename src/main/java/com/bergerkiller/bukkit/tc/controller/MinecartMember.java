@@ -12,12 +12,12 @@ import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
-import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.SignTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
@@ -50,7 +50,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -100,6 +99,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private float cachedOrientation_yaw = 0.0f;
     private float cachedOrientation_pitch = 0.0f;
     private boolean hasLinkedFarMinecarts = false;
+    private Location preMovePosition = null;
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -313,7 +313,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if it is unloaded, False if not
      */
     public boolean isUnloaded() {
-        return this.unloaded;
+        return this.unloaded || this.entity == null;
     }
 
     /**
@@ -323,7 +323,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if interactable, False if not
      */
     public boolean isInteractable() {
-        return !this.entity.isDead() && !this.isUnloaded();
+        return this.entity != null && !this.entity.isDead() && !this.isUnloaded();
     }
 
     /**
@@ -569,7 +569,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @throws MemberMissingException
      */
     public void checkMissing() throws MemberMissingException {
-        if (entity.isDead()) {
+        if (entity == null) {
+            throw new MemberMissingException();
+        } else if (entity.isDead()) {
             this.onDie();
             throw new MemberMissingException();
         } else if (this.isUnloaded()) {
@@ -615,6 +617,33 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public Block getBlock() {
         return getRailTracker().getBlock();
+    }
+
+    /**
+     * Snaps a minecart onto a rail path, preserving moved distance from the last position moved.
+     * Can be used in rail logic pre/post-move to adjust and correct position on the path.
+     * 
+     * @param member to snap to this path
+     */
+    public void snapToPath(RailPath path) {
+        if (path.isEmpty()) {
+            return;
+        }
+        if (this.preMovePosition == null) {
+            this.preMovePosition = this.entity.getLocation();
+        }
+        RailPath.Position pos = RailPath.Position.fromTo(this.preMovePosition, entity.getLocation());
+        double toMove = MathUtil.length(pos.motX, pos.motY, pos.motZ);
+        toMove -= path.move(pos, this.getBlock(), toMove);
+        this.preMovePosition.setX(pos.posX);
+        this.preMovePosition.setY(pos.posY);
+        this.preMovePosition.setZ(pos.posZ);
+        if (toMove > 0.0) {
+            pos.posX += toMove * pos.motX;
+            pos.posY += toMove * pos.motY;
+            pos.posZ += toMove * pos.motZ;
+        }
+        this.entity.setPosition(pos.posX, pos.posY, pos.posZ);
     }
 
     /*
@@ -883,24 +912,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return true;
     }
 
-    @Override
-    public boolean onInteractBy(HumanEntity interacter, HumanHand hand) {
-        // Note: humans can technically sneak too! But Bukkit has no method for it in the API.
-        if ((interacter instanceof Player) && ((Player) interacter).isSneaking()) {
-            return false;
-        }
-
-        // Is there a seat available to add a player?
-        if (this.getAvailableSeatCount() == 0) {
-            return false;
-        }
-
-        // Attempt to add the passenger
-        // This may fail after an event is fired
-        this.entity.addPassenger(interacter);
-        return true;
-    }
-
     /**
      * Tells the Minecart to ignore the very next call to {@link this.onDie()}
      * This is needed to avoid passengers removing their Minecarts.
@@ -1133,7 +1144,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     protected void updateUnloaded() {
-        unloaded = OfflineGroupManager.containsMinecart(entity.getUniqueId());
+        unloaded = (entity == null) || OfflineGroupManager.containsMinecart(entity.getUniqueId());
         if (!unloaded && (this.group == null || this.group.canUnload())) {
             // Check a 5x5 chunk area around this Minecart to see if it is loaded
             World world = entity.getWorld();
@@ -1444,6 +1455,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Move using set motion, and perform post-move rail logic
         try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE.start()) {
+            if (this.preMovePosition == null) {
+                this.preMovePosition = entity.getLocation();
+            } else {
+                entity.getLocation(this.preMovePosition);
+            }
             this.onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
         }
 

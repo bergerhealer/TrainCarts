@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -10,9 +11,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 
 public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideable> {
     private List<Entity> oldPassengers = new ArrayList<Entity>();
+
+    @Override
+    public boolean onInteractBy(HumanEntity interacter, HumanHand hand) {
+        // Note: humans can technically sneak too! But Bukkit has no method for it in the API.
+        if ((interacter instanceof Player) && ((Player) interacter).isSneaking()) {
+            return false;
+        }
+
+        // Is there a seat available to add a player?
+        if (this.getAvailableSeatCount() == 0) {
+            return false;
+        }
+
+        // Attempt to add the passenger
+        // This may fail after an event is fired
+        this.entity.addPassenger(interacter);
+        return true;
+    }
 
     @Override
     public void onAttached() {
