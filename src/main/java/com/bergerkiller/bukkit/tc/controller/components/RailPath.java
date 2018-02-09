@@ -423,6 +423,17 @@ public class RailPath {
             p.motZ = direction.getZ();
             return p;
         }
+
+        public static Position fromTo(Location from, Location to) {
+            Position p = new Position();
+            p.posX = from.getX();
+            p.posY = from.getY();
+            p.posZ = from.getZ();
+            p.motX = to.getX() - p.posX;
+            p.motY = to.getY() - p.posY;
+            p.motZ = to.getZ() - p.posZ;
+            return p;
+        }
     }
 
     /**
