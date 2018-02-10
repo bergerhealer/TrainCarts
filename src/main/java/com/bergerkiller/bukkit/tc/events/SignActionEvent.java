@@ -400,8 +400,7 @@ public class SignActionEvent extends Event implements Cancellable {
         if (!member.isMoving()) {
             return true;
         }
-        final BlockFace dir = this.isAction(SignActionType.MEMBER_MOVE) ? member.getDirectionTo() : member.getDirectionFrom();
-        return this.isWatchedDirection(dir);
+        return this.isWatchedDirection(this.getCartDirection());
     }
 
     /**
