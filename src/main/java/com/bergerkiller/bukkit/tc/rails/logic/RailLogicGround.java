@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -75,11 +74,6 @@ public class RailLogicGround extends RailLogic {
     @Override
     public boolean hasVerticalMovement() {
         return true;
-    }
-
-    @Override
-    public void getFixedPosition(Vector position, IntVector3 railPos) {
-        // NOP
     }
 
     @Override

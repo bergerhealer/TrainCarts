@@ -41,8 +41,8 @@ public class RailTypeCache {
         return null;
     }
 
-    public static void storeInfo(RailInfo info) {
-        cachedRailTypes.put(info.posBlock, new CachedRailType(info));
+    public static void storeInfo(Block block, RailInfo info) {
+        cachedRailTypes.put(block, new CachedRailType(info));
     }
 
     // removes all cached rails, forcing a global recalculation

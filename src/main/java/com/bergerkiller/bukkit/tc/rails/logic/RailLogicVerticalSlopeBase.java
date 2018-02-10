@@ -64,6 +64,72 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
         member.getEntity().vel.set(pos.motX * force, pos.motY * force, pos.motZ * force);
     }
 
+    //TODO: This code must be entirely replaced & working using solely rail paths!
+    private void getFixedPosition_slope(Vector position, IntVector3 railPos) {
+        double newLocX = railPos.midX() + this.startX;
+        double newLocZ = railPos.midZ() + this.startZ;
+        if (this.alongZ) {
+            // Moving along the X-axis
+            newLocZ += this.dz * (position.getZ() - railPos.z);
+        } else if (this.alongX) {
+            // Moving along the Z-axis
+            newLocX += this.dx * (position.getX() - railPos.x);
+        } else {
+            // Curve
+            double factor = 2.0 * (this.dx * (position.getX() - newLocX) + this.dz * (position.getZ() - newLocZ));
+            if (factor >= -0.001) {
+                factor = -0.001;
+            } else if (factor <= -0.999) {
+                factor = -0.999;
+            }
+            newLocX += factor * this.dx;
+            newLocZ += factor * this.dz;
+        }
+        position.setX(newLocX);
+        position.setZ(newLocZ);
+
+        if (isUpsideDown()) {
+            position.setY((double) railPos.y - 1.0 + Y_POS_OFFSET_UPSIDEDOWN);
+        } else {
+            position.setY((double) railPos.y + Y_POS_OFFSET);
+        }
+        
+        double stage = 0.0; // stage on the minecart track, where 0.0 is exactly in the middle
+        if (alongZ) {
+            stage = step * (position.getZ() - (double) railPos.midZ());
+        } else if (alongX) {
+            stage = step * (position.getX() - (double) railPos.midX());
+        }
+
+        double dy = (stage + 0.5);
+        if (dy < 0.0) dy = 0.0;
+
+        position.setY(position.getY() + dy);
+
+        if (this.isUpsideDown()) {
+            position.setY(position.getY() + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
+        }
+    }
+    
+    private void getFixedPosition2(Vector position, IntVector3 railPos) {
+        // When dy >= 0.5 of block, move vertical, sloped logic will not apply
+        if (isVerticalHalf(position.getY(), railPos)) {
+            position.setX(railPos.midX());
+            position.setZ(railPos.midZ());
+            return;
+        }
+
+        // Execute default sloped logic
+        this.getFixedPosition_slope(position, railPos);
+        position.setY(position.getY() + this.getYOffset());
+
+        // When crossing the boundary to vertical, fix the x/z positions
+        if (isVerticalHalf(position.getY(), railPos)) {
+            position.setX(railPos.midX());
+            position.setZ(railPos.midZ());
+        }
+    }
+
     @Override
     public void onPreMove(MinecartMember<?> member) {
         // Select correct segment to align the velocity along
@@ -79,7 +145,7 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
 
         // Restrain position before move
         Vector position = entity.loc.vector();
-        this.getFixedPosition(position, member.getBlockPos());
+        this.getFixedPosition2(position, member.getBlockPos());
         entity.loc.set(position);
     }
 
@@ -106,28 +172,8 @@ public abstract class RailLogicVerticalSlopeBase extends RailLogicSloped {
         // Restrain vertical or sloped movement
         final CommonMinecart<?> entity = member.getEntity();
         Vector position = entity.loc.vector();
-        this.getFixedPosition(position, member.getBlockPos());
+        this.getFixedPosition2(position, member.getBlockPos());
         entity.loc.set(position);
-    }
-
-    @Override
-    public void getFixedPosition(Vector position, IntVector3 railPos) {
-        // When dy >= 0.5 of block, move vertical, sloped logic will not apply
-        if (isVerticalHalf(position.getY(), railPos)) {
-            position.setX(railPos.midX());
-            position.setZ(railPos.midZ());
-            return;
-        }
-
-        // Execute default sloped logic
-        super.getFixedPosition(position, railPos);
-        position.setY(position.getY() + this.getYOffset());
-
-        // When crossing the boundary to vertical, fix the x/z positions
-        if (isVerticalHalf(position.getY(), railPos)) {
-            position.setX(railPos.midX());
-            position.setZ(railPos.midZ());
-        }
     }
 
     @Override

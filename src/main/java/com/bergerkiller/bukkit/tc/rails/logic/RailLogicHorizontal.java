@@ -1,11 +1,9 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
 import org.bukkit.block.BlockFace;
@@ -109,26 +107,23 @@ public class RailLogicHorizontal extends RailLogic {
     }
 
     @Override
-    public RailPath getPath() {
-        if (this.railPath == RailPath.EMPTY) {
-            // Initialize the rail path, making use of getFixedPosition for each node
-            Vector p1 = new Vector(this.startX + 0.5, Y_POS_OFFSET, this.startZ + 0.5);
-            Vector p2 = p1.clone();
-            if (this.alongZ) {
-                p2.setZ(p2.getZ() + this.dz);
-            } else if (this.alongX) {
-                p2.setX(p2.getX() + this.dx);
-            } else {
-                p2.setX(p2.getX() - this.dx);
-                p2.setZ(p2.getZ() - this.dz);
-            }
-            this.getFixedPosition(p1, IntVector3.ZERO);
-            this.getFixedPosition(p2, IntVector3.ZERO);
-            this.railPath = new RailPath.Builder()
-                    .up(this.upside_down ? BlockFace.DOWN : BlockFace.UP)
-                    .add(p1).add(p2).build();
+    protected RailPath createPath() {
+        double base_y = isUpsideDown() ? (Y_POS_OFFSET_UPSIDEDOWN - 1.0) : Y_POS_OFFSET;
+        Vector p1 = new Vector(this.startX + 0.5, base_y, this.startZ + 0.5);
+        Vector p2 = p1.clone();
+        if (this.alongZ) {
+            p2.setZ(p2.getZ() + this.dz);
+        } else if (this.alongX) {
+            p2.setX(p2.getX() + this.dx);
+        } else {
+            p2.setX(p2.getX() - this.dx);
+            p2.setZ(p2.getZ() - this.dz);
         }
-        return this.railPath;
+        getFixedPosition(p1, IntVector3.ZERO);
+        getFixedPosition(p2, IntVector3.ZERO);
+        return new RailPath.Builder()
+                .up(this.isUpsideDown() ? BlockFace.DOWN : BlockFace.UP)
+                .add(p1).add(p2).build();
     }
 
     /**
@@ -140,35 +135,20 @@ public class RailLogicHorizontal extends RailLogic {
         return upside_down;
     }
 
-    @Override
+    /**
+     * <b>Deprecated: was used before the introduction of Rail Paths. This is here
+     * for backwards compatibility with plugins like TC Hangrail</b><br><br>
+     * 
+     * Gets the position of the Minecart when snapped to the rails. The input
+     * position vector is adjusted, with the result written into the same vector.
+     * This is only used once when creating the path for this rail logic.
+     * 
+     * @param position input and result output
+     * @param railPos of the rails using this logic
+     */
+    @Deprecated
     public void getFixedPosition(Vector position, IntVector3 railPos) {
-        double newLocX = railPos.midX() + this.startX;
-        double newLocZ = railPos.midZ() + this.startZ;
-        if (this.alongZ) {
-            // Moving along the X-axis
-            newLocZ += this.dz * (position.getZ() - railPos.z);
-        } else if (this.alongX) {
-            // Moving along the Z-axis
-            newLocX += this.dx * (position.getX() - railPos.x);
-        } else {
-            // Curve
-            double factor = 2.0 * (this.dx * (position.getX() - newLocX) + this.dz * (position.getZ() - newLocZ));
-            if (factor >= -0.001) {
-                factor = -0.001;
-            } else if (factor <= -0.999) {
-                factor = -0.999;
-            }
-            newLocX += factor * this.dx;
-            newLocZ += factor * this.dz;
-        }
-        position.setX(newLocX);
-        position.setZ(newLocZ);
-
-        if (isUpsideDown()) {
-            position.setY((double) railPos.y - 1.0 + Y_POS_OFFSET_UPSIDEDOWN);
-        } else {
-            position.setY((double) railPos.y + Y_POS_OFFSET);
-        }
+        //nop
     }
 
     @Override
@@ -210,28 +190,5 @@ public class RailLogicHorizontal extends RailLogic {
             }
         }
         return direction;
-    }
-
-    @Override
-    public void onPostMove(MinecartMember<?> member) {
-        final CommonMinecart<?> entity = member.getEntity();
-
-        // Correct the Y-coordinate for the newly moved position
-        // This also makes sure we don't clip through the floor moving down a slope
-        Vector tmp = entity.loc.vector();
-        getFixedPosition(tmp, member.getBlockPos());
-        entity.setPosition(entity.loc.getX(), tmp.getY(), entity.loc.getZ());
-    }
-
-    @Override
-    public void onPreMove(MinecartMember<?> member) {
-        super.onPreMove(member);
-
-        // Adjust position of Entity on rail
-        CommonMinecart<?> entity = member.getEntity();
-        IntVector3 railPos = member.getBlockPos();
-        Vector position = entity.loc.vector();
-        getFixedPosition(position, railPos);
-        entity.loc.set(position);
     }
 }

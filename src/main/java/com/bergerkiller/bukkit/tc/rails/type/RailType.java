@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
@@ -160,7 +161,7 @@ public abstract class RailType {
                         Block railsBlock = type.findRail(posBlock);
                         if (railsBlock != null) {
                             RailInfo info = new RailInfo(posBlock, railsBlock, type);
-                            RailTypeCache.storeInfo(info);
+                            RailTypeCache.storeInfo(posBlock, info);
                             return info;
                         }
                     } catch (Throwable t) {
@@ -225,6 +226,18 @@ public abstract class RailType {
      */
     public final boolean isRail(Block block) {
         return isRail(block.getWorld(), block.getX(), block.getY(), block.getZ());
+    }
+
+    /**
+     * Gets the bounding box of a rails block. This bounding box is used
+     * to calculate the face direction when a minecart enters the rails.
+     * It should surround the entire rails block for optimal results.
+     * 
+     * @param railsBlock
+     * @return bounding box
+     */
+    public RailAABB getBoundingBox(Block railsBlock) {
+        return RailAABB.BLOCK;
     }
 
     /**

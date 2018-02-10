@@ -36,29 +36,26 @@ public class RailLogicVerticalSlopeNormalB extends RailLogicVerticalSlopeBase {
     }
 
     @Override
-    public RailPath getPath() {
-        if (this.railPath == RailPath.EMPTY) {
-            // Initialize the rail path, making use of getFixedPosition for each node
-            // This type of logic has a path consisting of two line segments
-            // One segment is vertical, and leads to somewhere in the middle
-            // The other segment is sloped from the middle to the other end
-            // The x/z coordinates are asserted from the y-coordinate
-            Vector p1 = new Vector(0.5, this.getYOffset(), 0.5);
-            Vector p2 = new Vector(0.5, this.getYOffset() + this.getHalfOffset(), 0.5);
-            Vector p3 = new Vector(0.5, this.getYOffset() + 1.0, 0.5);
+    protected RailPath createPath() {
+        // Initialize the rail path, making use of getFixedPosition for each node
+        // This type of logic has a path consisting of two line segments
+        // One segment is vertical, and leads to somewhere in the middle
+        // The other segment is sloped from the middle to the other end
+        // The x/z coordinates are asserted from the y-coordinate
+        Vector p1 = new Vector(0.5, this.getYOffset(), 0.5);
+        Vector p2 = new Vector(0.5, this.getYOffset() + this.getHalfOffset(), 0.5);
+        Vector p3 = new Vector(0.5, this.getYOffset() + 1.0, 0.5);
 
-            if (this.alongZ) {
-                p3.setZ(0.5 + 0.5 * (double) this.getDirection().getModZ());
-            } else if (this.alongX) {
-                p3.setX(0.5 + 0.5 * (double) this.getDirection().getModX());
-            }
-
-            this.railPath = new RailPath.Builder()
-                    .add(p1, this.getDirection().getOppositeFace())
-                    .add(p2, this.getDirection().getOppositeFace())
-                    .add(p3, BlockFace.UP).build();
+        if (this.alongZ) {
+            p3.setZ(0.5 + 0.5 * (double) this.getDirection().getModZ());
+        } else if (this.alongX) {
+            p3.setX(0.5 + 0.5 * (double) this.getDirection().getModX());
         }
-        return this.railPath;
+
+        return new RailPath.Builder()
+                .add(p1, this.getDirection().getOppositeFace())
+                .add(p2, this.getDirection().getOppositeFace())
+                .add(p3, BlockFace.UP).build();
     }
 
     @Override

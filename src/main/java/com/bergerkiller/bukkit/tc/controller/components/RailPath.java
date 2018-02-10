@@ -352,6 +352,32 @@ public class RailPath {
     }
 
     /**
+     * Takes a rail path and translates its position based on a vector offset.
+     * The up vectors of the original path are left unaffected.
+     * 
+     * @param original_path to offset
+     * @param position_offset to offset
+     * @return original rail path offset by the position offset
+     */
+    public static RailPath offset(RailPath original_path, Vector position_offset) {
+        if (original_path.isEmpty()) {
+            return EMPTY;
+        }
+        RailPath.Point[] originalPoints = original_path.getPoints();
+        RailPath.Point[] points_offset = new RailPath.Point[originalPoints.length];
+        for (int i = 0; i < originalPoints.length; i++) {
+            RailPath.Point original = originalPoints[i];
+            points_offset[i] = new RailPath.Point(
+                    original.x + position_offset.getX(),
+                    original.y + position_offset.getY(),
+                    original.z + position_offset.getZ(),
+                    original.up_x, original.up_y, original.up_z
+            );
+        }
+        return create(points_offset);
+    }
+
+    /**
      * Stores all the transformation information for a single position on the path.
      * This includes the absolute world-coordinates position, the direction
      * vector in which is moved, and the orientation 'normal' vector.

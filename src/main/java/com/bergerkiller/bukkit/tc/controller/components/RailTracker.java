@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -138,9 +139,9 @@ public abstract class RailTracker {
          * @return tracked rail information for the member
          */
         public static TrackedRail create(MinecartMember<?> member, boolean disconnected) {
-            Block posBlock = member.getEntity().loc.toBlock();
-            RailInfo railInfo = RailType.findRailInfo(posBlock);
+            RailInfo railInfo = member.discoverRail();
             if (railInfo == null) {
+                Block posBlock = member.getEntity().loc.toBlock();
                 railInfo = new RailInfo(posBlock, posBlock, RailType.NONE);
             }
             return create(member, railInfo, disconnected);
@@ -178,41 +179,12 @@ public abstract class RailTracker {
                     }
                 }
             } else {
-                // Track back the location of the minecart using the velocity towards the edge of the current block
-                // The edge we encounter is the direction we have to use
-                // For x/y/z, see how many times we have to inversely multiply the velocity to get to it
-                // The one with the lowest multiplication indicates the edge we will hit first
-                // Imagine taking steps back at the current velocity until the minecart hits an edge of the current block
-                // The first edge encountered is the edge the minecart came from
-                double minFact = Double.MAX_VALUE;
                 CommonMinecart<?> entity = member.getEntity();
-                for (BlockFace dir : FaceUtil.BLOCK_SIDES) {
-                    double a, b, c;
-                    if (dir.getModX() != 0) {
-                        // x
-                        a = 0.5 * (1 + dir.getModX());
-                        b = entity.loc.getX() - block.getX();
-                        c = entity.vel.getX();
-                    } else if (dir.getModY() != 0) {
-                        // y
-                        a = 0.5 * (1 + dir.getModY());
-                        b = entity.loc.getY() - block.getY();
-                        c = entity.vel.getY();
-                    } else {
-                        // z
-                        a = 0.5 * (1 + dir.getModZ());
-                        b = entity.loc.getZ() - block.getZ();
-                        c = entity.vel.getZ();
-                    }
-                    if (c == 0.0) {
-                        continue;
-                    }
-                    double f = ((b - a) / c);
-                    if (f >= 0.0 && f < minFact) {
-                        minFact = f;
-                        direction = dir.getOppositeFace();
-                    }
-                }
+                Vector pos = new Vector(entity.loc.getX() - block.getX(),
+                                        entity.loc.getY() - block.getY(),
+                                        entity.loc.getZ() - block.getZ());
+                //TODO: Use railsBlock and rail type bounding box instead
+                direction = Util.calculateEnterFace(pos, entity.vel.vector());
             }
 
             // By default we take the movement vector and turn it into a BlockFace

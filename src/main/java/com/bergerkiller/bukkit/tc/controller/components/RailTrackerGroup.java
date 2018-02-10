@@ -443,6 +443,7 @@ public class RailTrackerGroup extends RailTracker {
                         nextPos = getRailPos(nextMember);
                         maximumDistanceBlocks = currInfo.member.getMaximumBlockDistance(nextMember);
                         isFirstBlock = true;
+                        foundNextMember = false;
                         if (nextPos == null) {
                             break; // member is derailed
                         }

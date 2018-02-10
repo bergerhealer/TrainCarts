@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -620,6 +621,55 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Looks at the current position information and attempts to discover any rails
+     * at these positions. The movement of the minecart is taken into account.
+     * 
+     * @return rail info, null if not found
+     */
+    public RailInfo discoverRail() {
+        // No pre-move position? Simply return block at current position.
+        if (this.preMovePosition == null) {
+            return RailType.findRailInfo(entity.loc.toBlock());
+        }
+
+        // Detect the movement vector
+        Vector direction = new Vector(entity.loc.getX() - this.preMovePosition.getX(),
+                                      entity.loc.getY() - this.preMovePosition.getY(),
+                                      entity.loc.getZ() - this.preMovePosition.getZ());
+        double moved = direction.length();
+
+        // When distance is too small or too large (teleport), simply use the current position only
+        final double smallStep = 1e-7;
+        if (moved <= smallStep || moved > 0.45) {
+            return RailType.findRailInfo(entity.loc.toBlock());
+        }
+
+        // Normalize direction vector
+        direction.multiply(1.0 / moved);
+
+        // Iterate the blocks from the preMovePosition to the current position and discover rails here
+        // Because we move such a short distance (<=0.45) it is very rare for more than two blocks to ever be iterated
+        // So we take a shortcut and only check the pre-move and current positions for blocks in that order
+        // The pre-move position might contain an outdated block though, so add a very small amount to it in the direction
+        // There is a TODO here to use a proper block iterator.
+        Block preBlock = entity.loc.getWorld().getBlockAt(
+                MathUtil.floor(this.preMovePosition.getX() + smallStep * direction.getX()),
+                MathUtil.floor(this.preMovePosition.getY() + smallStep * direction.getY()),
+                MathUtil.floor(this.preMovePosition.getZ() + smallStep * direction.getZ()));
+        RailInfo preInfo = RailType.findRailInfo(preBlock);
+        if (preInfo != null) {
+            return preInfo;
+        }
+
+        // Current block
+        Block curBlock = entity.loc.toBlock();
+        if (curBlock.getX() == preBlock.getX() && curBlock.getY() == preBlock.getY() && curBlock.getZ() == preBlock.getZ()) {
+            return null; // Same block as pre-move block, skip
+        }
+        return RailType.findRailInfo(curBlock);
+    }
+
+    /**
      * Snaps a minecart onto a rail path, preserving moved distance from the last position moved.
      * Can be used in rail logic pre/post-move to adjust and correct position on the path.
      * 
@@ -634,6 +684,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
         RailPath.Position pos = RailPath.Position.fromTo(this.preMovePosition, entity.getLocation());
         double toMove = MathUtil.length(pos.motX, pos.motY, pos.motZ);
+
+        // When movement is large, teleport is almost certain
+        // Because the only movement allowed in onMove is limited to 0.4
+        if (toMove > 0.45) {
+            this.entity.getLocation(this.preMovePosition);
+            pos = RailPath.Position.fromTo(this.preMovePosition, this.preMovePosition);
+            toMove = 0.0;
+        }
+
         toMove -= path.move(pos, this.getBlock(), toMove);
         this.preMovePosition.setX(pos.posX);
         this.preMovePosition.setY(pos.posY);
@@ -1447,9 +1506,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getRailLogic().onSpacingUpdate(this, vel, this.speedFactor);
 
         // No vertical motion if stuck to the rails that way
+        /*
         if (!getRailLogic().hasVerticalMovement()) {
             vel.setY(0.0);
         }
+        */
 
         this.directionFrom = this.directionTo;
 

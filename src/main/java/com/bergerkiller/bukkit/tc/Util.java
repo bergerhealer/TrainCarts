@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -925,5 +928,19 @@ public class Util {
         loc.setYaw((float) ypr_new.getY());
         loc.setPitch((float) ypr_new.getX());
         return loc;
+    }
+
+    /**
+     * Calculates the face of a block that is first entered when moving in a direction from a position.
+     * The movement is that of an infinite line. The face first hit is returned. The position is
+     * relative to the block.
+     * 
+     * @param position x/y/z of the position relative to the block
+     * @param direction x/y/z of the direction in which is moved
+     * @return face of the block first entered
+     */
+    public static BlockFace calculateEnterFace(Vector position, Vector direction) {
+        //TODO: No longer needed!
+        return RailAABB.BLOCK.calculateEnterFace(position, direction);
     }
 }

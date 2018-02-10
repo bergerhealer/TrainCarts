@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -24,7 +25,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
         }
     }
 
-    private final double step;
+    protected final double step;
 
     protected RailLogicSloped(BlockFace direction) {
         this(direction, false);
@@ -70,35 +71,33 @@ public class RailLogicSloped extends RailLogicHorizontal {
     }
 
     @Override
-    public void onPostMove(MinecartMember<?> member) {
-        final CommonMinecart<?> entity = member.getEntity();
-
-        // Correct the Y-coordinate for the newly moved position
-        // This also makes sure we don't clip through the floor moving down a slope
-        Vector pos = entity.loc.vector();
-        getFixedPosition(pos, member.getBlockPos());
-        entity.setPosition(pos.getX(), pos.getY(), pos.getZ());
-    }
-
-    @Override
-    public void getFixedPosition(Vector position, IntVector3 railPos) {
-        super.getFixedPosition(position, railPos);
-        
-        double stage = 0.0; // stage on the minecart track, where 0.0 is exactly in the middle
-        if (alongZ) {
-            stage = step * (position.getZ() - (double) railPos.midZ());
-        } else if (alongX) {
-            stage = step * (position.getX() - (double) railPos.midX());
+    protected RailPath createPath() {
+        double base_y = isUpsideDown() ? (Y_POS_OFFSET_UPSIDEDOWN - 1.0 + Y_POS_OFFSET_UPSIDEDOWN_SLOPE) : Y_POS_OFFSET;
+        Vector p1, p2;
+        switch (this.getDirection()) {
+        case NORTH:
+            p1 = new Vector(0.5, base_y+1.0, 0.0);
+            p2 = new Vector(0.5, base_y, 1.0);
+            break;
+        case EAST:
+            p1 = new Vector(0.0, base_y, 0.5);
+            p2 = new Vector(1.0, base_y+1.0, 0.5);
+            break;
+        case SOUTH:
+            p1 = new Vector(0.5, base_y, 0.0);
+            p2 = new Vector(0.5, base_y+1.0, 1.0);
+            break;
+        case WEST:
+        default:
+            p1 = new Vector(0.0, base_y+1.0, 0.5);
+            p2 = new Vector(1.0, base_y, 0.5);
+            break;
         }
-
-        double dy = (stage + 0.5);
-        if (dy < 0.0) dy = 0.0;
-
-        position.setY(position.getY() + dy);
-
-        if (this.isUpsideDown()) {
-            position.setY(position.getY() + Y_POS_OFFSET_UPSIDEDOWN_SLOPE);
-        }
+        getFixedPosition(p1, IntVector3.ZERO);
+        getFixedPosition(p2, IntVector3.ZERO);
+        return new RailPath.Builder()
+                .up(this.isUpsideDown() ? BlockFace.DOWN : BlockFace.UP)
+                .add(p1).add(p2).build();
     }
 
     @Override
