@@ -416,7 +416,6 @@ public class RailTrackerGroup extends RailTracker {
                 p.next();
                 moveLimitCtr = 0;
                 boolean isFirstBlock = true;
-                TrackedRail currInfo;
                 int nrCachedRails = 0; // rails added without certainty of being correct
                 while (true) {
                     if (p.currentTrack.getX() == nextPos.getX() && p.currentTrack.getY() == nextPos.getY() && p.currentTrack.getZ() == nextPos.getZ()) {
@@ -429,7 +428,7 @@ public class RailTrackerGroup extends RailTracker {
 
                         // Refresh the next minecart with the information currently iterating at
                         nrCachedRails = 0;
-                        currInfo = new TrackedRail(nextMember, p, false);
+                        TrackedRail currInfo = new TrackedRail(nextMember, p, false);
                         nextMember.getRailTracker().refresh(currInfo);
                         this.rails.add(currInfo);
 
@@ -443,7 +442,6 @@ public class RailTrackerGroup extends RailTracker {
                         nextPos = getRailPos(nextMember);
                         maximumDistanceBlocks = currInfo.member.getMaximumBlockDistance(nextMember);
                         isFirstBlock = true;
-                        foundNextMember = false;
                         if (nextPos == null) {
                             break; // member is derailed
                         }
@@ -453,7 +451,7 @@ public class RailTrackerGroup extends RailTracker {
                         } else {
                             // Keep track of the Minecart we are trying to find for the in-between blocks
                             // This is important for the block space
-                            currInfo = new TrackedRail(nextMember, p, false);
+                            TrackedRail currInfo = new TrackedRail(nextMember, p, false);
                             this.rails.add(currInfo);
                             nrCachedRails++;
                         }
@@ -502,8 +500,7 @@ public class RailTrackerGroup extends RailTracker {
     }
 
     private static Block getRailPos(MinecartMember<?> member) {
-        Block block = member.getEntity().loc.block().toBlock(member.getEntity().getWorld());
-        RailInfo railInfo = RailType.findRailInfo(block);
+        RailInfo railInfo = member.discoverRail();
         return (railInfo == null) ? null : railInfo.railBlock;
     }
 }
