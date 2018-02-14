@@ -69,6 +69,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private int teleportImmunityTick = 0;
     private double updateSpeedFactor = 1.0;
     private boolean lastUpdateStep = true;
+    private boolean unloaded = false;
 
     protected MinecartGroup() {
         this.ticked.set();
@@ -77,6 +78,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     @Override
     public TrainProperties getProperties() {
         if (this.prop == null) {
+            if (this.isUnloaded()) {
+                throw new IllegalStateException("Group is unloaded");
+            }
             this.prop = TrainPropertiesStore.create();
             for (MinecartMember<?> member : this) {
                 this.prop.add(member);
@@ -88,6 +92,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     public void setProperties(TrainProperties properties) {
         if (properties == null) {
             throw new IllegalArgumentException("Can not set properties to null");
+        }
+        if (this.isUnloaded()) {
+            throw new IllegalStateException("Group is unloaded");
         }
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
@@ -376,21 +383,32 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.remove();
     }
 
+    /**
+     * Whether this group has been unloaded. This means members of this group can no longer be addressed
+     * and methods and properties of this group are unreliable.
+     * 
+     * @return True if unloaded
+     */
+    public boolean isUnloaded() {
+        return this.unloaded;
+    }
+
+    /**
+     * Unloads this group, saving it in offline storage for later reloading. Does nothing if already unloaded.
+     */
     public void unload() {
-        // Do not unload if already unloaded!
-        if (super.isEmpty()) {
+        // If already unloaded, do nothing
+        if (this.unloaded) {
             return;
         }
-        for (MinecartMember<?> member : this) {
-            if (member.isUnloaded()) {
-                return;
-            }
-        }
+
+        // Protect.
+        this.unloaded = true;
 
         // Undo partial-unloading before calling the event
         for (MinecartMember<?> member : this) {
             member.group = this;
-            member.unloaded = false;
+            member.setUnloaded(false);
         }
 
         // Event
@@ -413,14 +431,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         groups.remove(this);
         for (MinecartMember<?> member : this) {
             member.group = null;
-            member.unloaded = true;
+            member.setUnloaded(true);
 
             // We must correct position here, because it will no longer be ticked!
             member.getEntity().doPostTick();
         }
 
-        // Clear group members
+        // Clear group members and disable this group further
         super.clear();
+        this.prop = null;
     }
 
     /**
@@ -1092,6 +1111,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void doPhysics() {
+        // NOP if unloaded
+        if (this.isUnloaded()) {
+            return;
+        }
+
         // Remove minecarts from this group that don't actually belong to this group
         // This is a fallback/workaround for a reported resource bug where fake trains are created
         {
@@ -1129,7 +1153,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         } else {
             for (MinecartMember<?> m : this) {
-                m.unloaded = false;
+                m.setUnloaded(false);
             }
         }
         try {

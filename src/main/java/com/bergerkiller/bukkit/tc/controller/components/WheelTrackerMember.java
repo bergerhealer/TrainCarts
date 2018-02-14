@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.util.Vector;
@@ -139,8 +140,8 @@ public class WheelTrackerMember {
         }
 
         // Calculate banking effects
-        TrainProperties props = this._owner.getGroup().getProperties();
-        if (props.getBankingStrength() != 0.0) {
+        TrainProperties props = (this._owner.isUnloaded() ? null : this._owner.getGroup().getProperties());
+        if (props != null && props.getBankingStrength() != 0.0) {
             // Get the orientation difference between the current and last rotation
             Quaternion q = Quaternion.divide(new_orientation, this.getLastOrientation());
 
@@ -265,7 +266,12 @@ public class WheelTrackerMember {
          */
         public void update() {
             // Find the index of the rails for this member
-            List<TrackedRail> rails = this.member.getGroup().getRailTracker().getRailInformation();
+            List<TrackedRail> rails;
+            if (this.member.isUnloaded()) {
+                rails = Collections.emptyList();
+            } else {
+                rails = this.member.getGroup().getRailTracker().getRailInformation();
+            }
 
             int railIndex = -1;
             if (!this.member.isDerailed()) {

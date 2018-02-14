@@ -235,6 +235,7 @@ public abstract class MinecartMemberStore {
         controller.invalidateDirection();
         controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();
+        result.setUnloaded(false);
         return result;
     }
 

@@ -85,7 +85,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public boolean vertToSlope = false;
     protected MinecartGroup group;
     protected boolean died = false;
-    protected boolean unloaded = false;
+    private boolean unloaded = true;
     protected SoundLoop<?> soundLoop;
     private BlockFace direction;
     private BlockFace directionTo;
@@ -122,6 +122,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onAttached() {
         super.onAttached();
+        this.unloaded = true;
         this.railTrackerMember.onAttached();
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.updateDirection();
@@ -306,6 +307,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public WheelTrackerMember getWheels() {
         return wheelTracker;
+    }
+
+    /**
+     * Sets whether this Minecart is unloaded. An unloaded minecart can not move and can not be part of a group.
+     * Minecarts that are set unloaded will have all standard behavior frozen until they are loaded again.
+     * 
+     * @param unloaded to set to
+     */
+    public void setUnloaded(boolean unloaded) {
+        this.unloaded = unloaded;
     }
 
     /**

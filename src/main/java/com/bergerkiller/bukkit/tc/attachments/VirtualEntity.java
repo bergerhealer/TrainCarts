@@ -141,7 +141,7 @@ public class VirtualEntity {
         liveVel = 0.0;
         if (hasVelocityPacket(this.entityType)) {
             MinecartMember<?> member = controller.getMember();
-            if (member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
+            if (!member.isUnloaded() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
                 if (!Double.isNaN(velSyncAbsX)) {
                     liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, velSyncAbsX, velSyncAbsY, velSyncAbsZ);
                 }

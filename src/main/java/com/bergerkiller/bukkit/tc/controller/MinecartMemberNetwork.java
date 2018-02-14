@@ -142,11 +142,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void onAttached() {
         super.onAttached();
 
-        if (this.member == null) {
-            this.member = this.entity.getController(MinecartMember.class);
-        }
-
-        this.member.getProperties().getModel().addOwner(this);
+        this.getMember().getProperties().getModel().addOwner(this);
     }
 
     @Override
@@ -175,7 +171,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     private boolean isSoundEnabled() {
-        MinecartMember<?> member = (MinecartMember<?>) entity.getController();
+        MinecartMember<?> member = this.getMember();
         return !(member == null || member.isUnloaded()) && member.getGroup().getProperties().isSoundEnabled();
     }
 
@@ -236,24 +232,20 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     @Override
     public void onTick() {
         try {
-            if (entity.isDead()) {
+            if (entity.isDead() || this.getMember() == null) {
                 return;
             }
 
-            // Retrieve group from this Minecart + addtional checks
-            MinecartGroup group;
-            {
-                MinecartMember<?> member = (MinecartMember<?>) entity.getController();
-                if (member.isUnloaded()) {
-                    // Unloaded: Synchronize just this Minecart
-                    super.onTick();
-                    return;
-                } else if (member.getIndex() != 0) {
-                    // Ignore minecarts other than the first
-                    return;
-                } else {
-                    group = member.getGroup();
-                }
+            // If this minecart is unloaded, simply sync self only without any movement updates
+            if (this.getMember().isUnloaded()) {
+                this.syncSelf(false, false, false);
+                return;
+            }
+
+            // When synchronizing the first member of the train, sync the entire train
+            MinecartGroup group = this.getMember().getGroup();
+            if (this.getMember() != group.head()) {
+                return;
             }
 
             // Update the entire group
