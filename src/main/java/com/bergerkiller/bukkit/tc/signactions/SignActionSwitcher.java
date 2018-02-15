@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -167,6 +168,8 @@ public class SignActionSwitcher extends SignAction {
                         PathConnection conn = node.findConnection(destination);
                         if (conn != null) {
                             info.setRailsTo(conn.direction);
+                        } else {
+                            Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
                         }
                     }
                 }

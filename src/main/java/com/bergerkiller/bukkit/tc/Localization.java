@@ -1,7 +1,13 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+
+import java.util.HashSet;
+
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 
 public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_ABOUT = new Localization("command.about", "TrainCarts %0% - See WIKI page for more information");
@@ -24,6 +30,10 @@ public class Localization extends LocalizationEnum {
     public static final Localization TICKET_BUYFAIL = new Localization("ticket.buyfail", ChatColor.WHITE + "[Ticket System]" + ChatColor.RED + " You can't afford a Ticket for %0%, sorry.");
     public static final Localization TICKET_BUY = new Localization("ticket.buy", ChatColor.WHITE + "[Ticket System]" + ChatColor.YELLOW + " You bought a Ticket for %0%.");
 
+    // pathfinding
+    public static final Localization PATHING_BUSY = new Localization("pathfinding.busy", ChatColor.YELLOW + "Looking for a way to reach the destination...");
+    public static final Localization PATHING_FAILED = new Localization("pathfinding.failed", ChatColor.RED + "Destination " + ChatColor.YELLOW + "%0%" + ChatColor.RED + " could not be reached from here!");
+
     private Localization(String name, String defValue) {
         super(name, defValue);
     }
@@ -31,5 +41,20 @@ public class Localization extends LocalizationEnum {
     @Override
     public String get(String... arguments) {
         return TrainCarts.plugin.getLocale(this.getName(), arguments);
+    }
+
+    public void broadcast(MinecartGroup group, String... arguments) {
+        HashSet<Player> receivers = new HashSet<>();
+        for (MinecartMember<?> member : group) {
+            // Editing
+            receivers.addAll(member.getProperties().getEditingPlayers());
+            // Occupants
+            if (member.getEntity().hasPlayerPassenger()) {
+                receivers.add(member.getEntity().getPlayerPassenger());
+            }
+        }
+        for (Player player : receivers) {
+            this.message(player, arguments);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
@@ -29,18 +30,7 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
     public boolean update() {
         if (PathProvider.isProcessing()) {
             if (this.failCounter++ == 20) {
-                HashSet<Player> receivers = new HashSet<>();
-                for (MinecartMember<?> member : this.getGroup()) {
-                    // Editing
-                    receivers.addAll(member.getProperties().getEditingPlayers());
-                    // Occupants
-                    if (member.getEntity().hasPlayerPassenger()) {
-                        receivers.add(member.getEntity().getPlayerPassenger());
-                    }
-                }
-                for (Player player : receivers) {
-                    player.sendMessage(ChatColor.YELLOW + "Looking for a way to reach the destination...");
-                }
+                Localization.PATHING_BUSY.broadcast(this.getGroup());
             }
             return super.update();
         } else {
@@ -48,6 +38,8 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
             PathConnection conn = this.from.findConnection(this.destination);
             if (conn != null) {
                 this.info.setRailsFromTo(this.cartDirection.getOppositeFace(), conn.direction);
+            } else {
+                Localization.PATHING_FAILED.broadcast(this.getGroup(), this.destination);
             }
             return true;
         }
