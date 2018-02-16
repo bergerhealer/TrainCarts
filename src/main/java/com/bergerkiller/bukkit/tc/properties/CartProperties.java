@@ -69,10 +69,19 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         return "cart";
     }
 
+    /**
+     * Sets the holder of these properties. Internal use only.
+     * 
+     * @param holder
+     */
+    protected void setHolder(MinecartMember<?> holder) {
+        this.member.set(holder);
+    }
+
     @Override
     public MinecartMember<?> getHolder() {
         MinecartMember<?> member = this.member.get();
-        if (member == null || !member.isInteractable() || !member.getEntity().getUniqueId().equals(this.uuid)) {
+        if (member == null || member.getEntity() == null || !member.getEntity().getUniqueId().equals(this.uuid)) {
             return this.member.set(MinecartMemberStore.getFromUID(this.uuid));
         } else {
             return member;

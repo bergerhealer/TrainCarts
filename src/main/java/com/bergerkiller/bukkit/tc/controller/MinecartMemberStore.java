@@ -252,7 +252,7 @@ public abstract class MinecartMemberStore {
                 continue;
             }
             MinecartMember<?> member = getFromEntity(EntityUtil.getEntity(world, uuid));
-            if (member != null && !member.isUnloaded()) {
+            if (member != null && member.getEntity() != null) {
                 return member;
             }
         }
