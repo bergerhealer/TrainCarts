@@ -176,8 +176,12 @@ public class WheelTrackerMember {
             this._bankingRoll = 0.0;
         }
 
-        // Refresh member orientation through rail logic
-        this._owner.getRailLogic().onUpdateOrientation(this._owner, new_orientation);
+        // Refresh member orientation through rail logic (when not unloaded)
+        if (this._owner.isUnloaded()) {
+            this._owner.setOrientation(new_orientation);
+        } else {
+            this._owner.getRailLogic().onUpdateOrientation(this._owner, new_orientation);
+        }
     }
 
     /**
