@@ -101,6 +101,12 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     @Override
+    public void onDetached() {
+        super.onDetached();
+        this.setEntity(null);
+    }
+
+    @Override
     public void makeVisible(Player viewer) {
         if (this._entity == null) {
             return;
@@ -270,7 +276,7 @@ public class CartAttachmentSeat extends CartAttachment {
             for (Player viewer : this.controller.getViewers()) {
                 this.makeHidden(viewer);
             }
-            TrainCarts.plugin.getSeatAttachmentMap().set(this._entity.getEntityId(), this);
+            TrainCarts.plugin.getSeatAttachmentMap().remove(this._entity.getEntityId(), this);
         }
 
         // Switch entity
