@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
@@ -42,9 +41,10 @@ public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBas
         // One segment is vertical, and leads to somewhere in the middle
         // The other segment is sloped from the middle to the other end
         // The x/z coordinates are asserted from the y-coordinate
-        Vector p1 = new Vector(0.5, this.getYOffset() + 1.0, 0.5);
-        Vector p2 = new Vector(0.5, this.getYOffset() + this.getHalfOffset(), 0.5);
-        Vector p3 = new Vector(0.5, this.getYOffset() + this.getHalfOffset() - 0.5, 0.5);
+        final double half_offset = -0.5 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
+        Vector p1 = new Vector(0.5, 1.0, 0.5);
+        Vector p2 = new Vector(0.5, Y_POS_OFFSET + half_offset, 0.5);
+        Vector p3 = new Vector(0.5, Y_POS_OFFSET + half_offset - 0.5, 0.5);
 
         if (this.alongZ) {
             p3.setZ(0.5 - 0.5 * (double) this.getDirection().getModZ());
@@ -58,13 +58,4 @@ public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBas
                 .add(p3, BlockFace.DOWN).build();
     }
 
-    @Override
-    public final boolean isVerticalHalf(double y, IntVector3 blockPos) {
-        return (y - 0.0001) > (blockPos.y + this.getHalfOffset());
-    }
-
-    @Override
-    protected double getHalfOffset() {
-        return -0.5 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
-    }
 }
