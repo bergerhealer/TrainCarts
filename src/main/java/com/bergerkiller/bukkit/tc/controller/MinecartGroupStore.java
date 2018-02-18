@@ -136,7 +136,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 
     public static MinecartGroup get(TrainProperties prop) {
         for (MinecartGroup group : groups) {
-            if (group.getProperties() == prop) return group;
+            if (group.isPropertiesEqual(prop)) return group;
         }
         return null;
     }

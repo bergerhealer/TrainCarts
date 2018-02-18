@@ -75,6 +75,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.ticked.set();
     }
 
+    public boolean isPropertiesEqual(TrainProperties prop) {
+        return this.prop == prop;
+    }
+
     @Override
     public TrainProperties getProperties() {
         if (this.prop == null) {
