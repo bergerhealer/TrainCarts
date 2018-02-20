@@ -263,10 +263,14 @@ public class RailTrackerGroup extends RailTracker {
                 for (int i = 0; i < this.prevRails.size(); i++) {
                     if (this.prevRails.get(i).member == startInfo.member) {
                         TrackedRail prev = this.prevRails.get(i);
-                        Block nextPos = prev.type.getNextPos(prev.block, prev.enterFace);
-                        if (nextPos != null && nextPos.equals(startInfo.minecartBlock)) {
-                            this.prevRails.add(i, startInfo);
-                            prevRailStartIndex = i;
+                        TrackMovingPoint p = new TrackMovingPoint(prev.block, prev.enterFace);
+                        p.next(); // skip start rail
+                        if (p.hasNext()) {
+                            p.next(false);
+                            if (p.currentTrack.equals(startInfo.block)) {
+                                this.prevRails.add(i, startInfo);
+                                prevRailStartIndex = i;
+                            }
                         }
                         break;
                     }
