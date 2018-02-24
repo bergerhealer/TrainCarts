@@ -100,6 +100,12 @@ public class WheelTrackerMember {
         return this._bankingRoll;
     }
 
+    public void startTeleport() {
+        this._front._position = new Vector();
+        this._back._position = new Vector();
+        this._position = null;
+    }
+
     public void update() {
         this._orientation_last = this._owner.getOrientation();
         this._position = null; // Reset

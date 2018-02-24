@@ -8,7 +8,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
@@ -42,6 +41,8 @@ public abstract class CartAttachment {
     }
 
     public void onDetached() {
+        this.last_transform = null;
+        this.transform = null;
     }
 
     /**

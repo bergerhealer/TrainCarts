@@ -14,6 +14,12 @@ public class CartAttachmentEntity extends CartAttachment {
     private VirtualEntity entity;
 
     @Override
+    public void onDetached() {
+        super.onDetached();
+        this.entity = null;
+    }
+
+    @Override
     public void onAttached() {
         super.onAttached();
 

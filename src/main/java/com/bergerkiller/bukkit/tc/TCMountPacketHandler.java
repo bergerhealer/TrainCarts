@@ -223,6 +223,16 @@ public class TCMountPacketHandler implements PacketMonitor {
             }
             PacketUtil.sendPacket(handler.getPlayer(), PacketPlayOutMountHandle.createNew(vehicleId, passengerIds));
         }
+
+        @Override
+        public String toString() {
+            String s = "MOUNT[veh=" + vehicleId + ",pass=[";
+            for (int i = 0; i < this.passengerIds.length; i++) {
+                if (i > 0) s += ", ";
+                s += this.passengerIds[i];
+            }
+            return s + "]";
+        }
     }
 
     private static class PendingAttach implements PendingTask {
@@ -246,6 +256,11 @@ public class TCMountPacketHandler implements PacketMonitor {
             attach.setVehicleId(this.vehicleId);
             attach.setPassengerId(this.passengerId);
             PacketUtil.sendPacket(handler.getPlayer(), attach);
+        }
+
+        @Override
+        public String toString() {
+            return "ATTACH[veh=" + vehicleId + ", pass=" + passengerId + "]";
         }
     }
 }

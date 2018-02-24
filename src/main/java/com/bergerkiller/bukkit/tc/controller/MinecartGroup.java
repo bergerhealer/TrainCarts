@@ -546,6 +546,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             location = location.clone();
             location.setYaw(location.getYaw() + 180.0f);
         }
+        member.getWheels().startTeleport();
         member.getEntity().teleport(location);
         member.ignoreDie.clear();
     }
