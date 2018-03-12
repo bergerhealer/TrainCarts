@@ -70,6 +70,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private double waitDistance = 0.0;
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
+    private boolean suffocation = true;
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -714,6 +715,26 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
+     * Gets whether passengers inside this train sustain suffocation damage when their
+     * head is submerged inside a block.
+     * 
+     * @return True if suffocation damage is enabled
+     */
+    public boolean hasSuffocation() {
+        return this.suffocation;
+    }
+
+    /**
+     * Sets whether passengers inside this train sustain suffocation damage when their
+     * head is submerged inside a block.
+     * 
+     * @param suffocation option
+     */
+    public void setSuffocation(boolean suffocation) {
+        this.suffocation = suffocation;
+    }
+
+    /**
      * Gets whether minecart passengers can manually move the train they are in
      *
      * @return True if manual movement is allowed, False if not
@@ -878,6 +899,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.trainCollision = mode;
         } else if (key.equals("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(CollisionMode.parse(arg).toString()));
+        } else if (key.equals("suffocation")) {
+            this.suffocation = ParseUtil.parseBool(arg);
         } else if (setCollisionMode(key, arg)) {
             return true;
         } else if (LogicUtil.contains(key, "collision", "collide")) {
@@ -1067,6 +1090,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
         this.waitDistance = node.get("waitDistance", this.waitDistance);
+        this.suffocation = node.get("suffocation", this.suffocation);
         for (String ticket : node.getList("tickets", String.class)) {
             this.tickets.add(ticket);
         }
@@ -1148,6 +1172,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.waitDistance = source.waitDistance;
         this.bankingStrength = source.bankingStrength;
         this.bankingSmoothness = source.bankingSmoothness;
+        this.suffocation = source.suffocation;
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -1165,6 +1190,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
         node.set("waitDistance", this.waitDistance);
+        node.set("suffocation", this.suffocation);
 
         ConfigurationNode banking = node.getNode("banking");
         banking.set("strength", this.bankingStrength);
@@ -1198,13 +1224,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void save(ConfigurationNode node) {
         node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
         node.set("soundEnabled", this.soundEnabled ? null : false);
-        node.set("allowPlayerTake", this.allowPlayerTake ? null : false);
+        node.set("allowPlayerTake", this.allowPlayerTake ? true : null);
         node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
         node.set("trainCollision", this.collision ? null : false);
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
+        node.set("suffocation", this.suffocation ? null : false);
 
         if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
             ConfigurationNode banking = node.getNode("banking");

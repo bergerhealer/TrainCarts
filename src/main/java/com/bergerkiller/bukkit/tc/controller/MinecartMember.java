@@ -388,6 +388,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if suffocating
      */
     public boolean isPassengerSuffocating(Entity passenger) {
+        // If unloaded or suffocation is disabled, return false
+        if (this.isUnloaded() || !this.getGroup().getProperties().hasSuffocation()) {
+            return false;
+        }
+
         // Turn Minecart position into a 4x4 transform matrix
         Matrix4x4 transform = new Matrix4x4();
         transform.translateRotate(this.entity.getLocation());

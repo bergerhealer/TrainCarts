@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
@@ -309,7 +310,17 @@ public abstract class RailType {
      * @param currentDirection the 'Minecart' is moving
      * @return next Block the minecart is at after moving over this rail
      */
-    public abstract Block getNextPos(Block currentTrack, BlockFace currentDirection);
+    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
+        RailLogic logic = this.getLogic(null, currentTrack, currentDirection);
+        if (logic == null) {
+            return null;
+        }
+        RailPath path = logic.getPath();
+        if (path == null) {
+            return null;
+        }
+        return null;
+    }
 
     /**
      * Obtains the direction of this type of Rails.
