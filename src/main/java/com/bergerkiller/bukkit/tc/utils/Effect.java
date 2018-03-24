@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -123,6 +124,13 @@ public class Effect {
                 location.getWorld().playSound(location, sound, volume, pitch);
                 continue;
             }
+            location.getWorld().playSound(location, name, volume, pitch);
+        }
+    }
+
+    public void play(Player player) {
+        for (String name : effects) {
+            player.playSound(player.getLocation(), name, volume, pitch);
         }
     }
 }
