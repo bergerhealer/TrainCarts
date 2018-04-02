@@ -41,6 +41,8 @@ import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 
 import org.bukkit.Chunk;
@@ -1044,6 +1046,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!this.isInteractable()) {
             return false;
         }
+
+        // Verify that the entity is actually inside the bounding box of this entity
+        // This involves a complicated rotated box intersection test
+        if (!this.isModelIntersectingWith(e)) {
+            return false;
+        }
+
         CollisionMode mode = this.getGroup().getProperties().getCollisionMode(e);
         if (!mode.execute(this, e)) {
             return false;
@@ -1074,6 +1083,78 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
         }
         return true;
+    }
+
+    /**
+     * Checks whether the bounding box of another Entity is intersecting with this
+     * minecart's 3d model bounding box
+     * 
+     * @param entity
+     * @return True if intersecting
+     */
+    public boolean isModelIntersectingWith(Entity entity) {
+        MinecartMember<?> other = MinecartMemberStore.getFromEntity(entity);
+        if (other != null) {
+            // Have to do both ways around!
+            return this.isModelIntersectingWith_impl(entity) &&
+                   other.isModelIntersectingWith_impl(this.entity.getEntity());
+        } else {
+            return this.isModelIntersectingWith_impl(entity);
+        }
+    }
+
+    private final boolean isModelIntersectingWith_impl(Entity entity) {
+        // We lack a proper bounding box collision test
+        // Instead we do a poor man's method of probing various points on the entity
+        AxisAlignedBBHandle aabb = EntityHandle.fromBukkit(entity).getBoundingBox();
+        double[] xval = {aabb.getMinX(), 0.5 * (aabb.getMinX() + aabb.getMaxX()), aabb.getMaxX()};
+        double[] yval = {aabb.getMinY(), 0.5 * (aabb.getMinY() + aabb.getMaxY()), aabb.getMaxY()};
+        double[] zval = {aabb.getMinZ(), 0.5 * (aabb.getMinZ() + aabb.getMaxZ()), aabb.getMaxZ()};
+        for (double x : xval) {
+            for (double y : yval) {
+                for (double z : zval) {
+                    if (isModelIntersectingWith_pointTest(x, y, z)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private final boolean isModelIntersectingWith_pointTest(double x, double y, double z) {
+        return calculateModelDistance(new Vector(x, y, z)) <= 0.1;
+    }
+
+    /**
+     * Calculates the distance between a point and this minecart's 3d model shape.
+     * The position as controlled by the wheels is used for this.
+     * 
+     * @param point
+     * @return distance
+     */
+    public double calculateModelDistance(Vector point) {
+        // Factor in the offset of the minecart in world coordinates versus the point
+        point = point.clone().subtract(this.getWheels().getPosition());
+
+        // Undo the effects of the orientation of the Minecart
+        Quaternion invOri = this.getOrientation().clone();
+        invOri.invert();
+        invOri.transformPoint(point);
+
+        // Compute the 3d box coordinates of this Minecart
+        double x_min = -0.5;
+        double x_max = 0.5;
+        double y_min = 0.0;
+        double y_max = 1.0;
+        double z_min = -0.5 * this.entity.getWidth();
+        double z_max = 0.5 * this.entity.getWidth();
+
+        // Perform box to point distance test using max and length
+        double dx = Math.max(0.0, Math.max(x_min - point.getX(), point.getX() - x_max));
+        double dy = Math.max(0.0, Math.max(y_min - point.getY(), point.getY() - y_max));
+        double dz = Math.max(0.0, Math.max(z_min - point.getZ(), point.getZ() - z_max));
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
     }
 
     /**
