@@ -52,6 +52,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public CollisionMode playerCollision = CollisionMode.DEFAULT;
     public CollisionMode miscCollision = CollisionMode.PUSH;
     public CollisionMode trainCollision = CollisionMode.LINK;
+    public CollisionMode blockCollision = CollisionMode.DEFAULT;
     public boolean requirePoweredMinecart = false;
     protected String trainname;
     private String displayName;
@@ -832,6 +833,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         for (CartProperties prop : this) {
             prop.load(node);
         }
+        this.tryUpdate();
     }
 
     public void setDefault(Player player) {
@@ -897,6 +899,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
             this.trainCollision = mode;
+        } else if (key.equals("blockcollision")) {
+            CollisionMode mode = CollisionMode.parse(arg);
+            if (mode == null) return false;
+            this.blockCollision = mode;
         } else if (key.equals("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(CollisionMode.parse(arg).toString()));
         } else if (key.equals("suffocation")) {
@@ -1009,6 +1015,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else {
             return false;
         }
+        this.tryUpdate();
         return true;
     }
 
@@ -1084,6 +1091,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.playerCollision = node.get("collision.players", this.playerCollision);
             this.miscCollision = node.get("collision.misc", this.miscCollision);
             this.trainCollision = node.get("collision.train", this.trainCollision);
+            this.blockCollision = node.get("collision.block", this.blockCollision);
         }
         this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
@@ -1160,6 +1168,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.playerCollision = source.playerCollision;
         this.miscCollision = source.miscCollision;
         this.trainCollision = source.trainCollision;
+        this.blockCollision = source.blockCollision;
         this.setCollisionDamage(source.collisionDamage);
         this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
         this.requirePoweredMinecart = source.requirePoweredMinecart;
@@ -1212,6 +1221,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collision.players", this.playerCollision);
         node.set("collision.misc", this.miscCollision);
         node.set("collision.train", this.trainCollision);
+        node.set("collision.block", this.blockCollision);
         node.set("blockTypes", (this.blockTypes == null) ? "" : this.blockTypes);
         node.set("blockOffset", (this.blockOffset == SignActionBlockChanger.BLOCK_OFFSET_NONE) ? "unset" : this.blockOffset);
         for (CartProperties prop : this) {
@@ -1268,6 +1278,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         if (this.trainCollision != CollisionMode.LINK) {
             node.set("collision.train", this.trainCollision);
+        }
+        if (this.blockCollision != CollisionMode.DEFAULT) {
+            node.set("collision.block", this.blockCollision);
         }
         if (!this.isEmpty()) {
             ConfigurationNode carts = node.getNode("carts");

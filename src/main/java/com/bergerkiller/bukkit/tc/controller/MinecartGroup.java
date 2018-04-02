@@ -844,6 +844,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     @Override
     public void onPropertiesChanged() {
         this.getSignTracker().update();
+        for (MinecartMember<?> member : this.toArray()) {
+            member.onPropertiesChanged();
+        }
     }
 
     /**

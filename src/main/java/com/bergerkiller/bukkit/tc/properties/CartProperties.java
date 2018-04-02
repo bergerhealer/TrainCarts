@@ -532,6 +532,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         } else {
             return false;
         }
+        this.tryUpdate();
         return true;
     }
 

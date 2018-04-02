@@ -75,6 +75,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
+    private static boolean HAS_COLLISION_TOGGLE_FUNCTIONS = true;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -1147,6 +1148,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onPropertiesChanged() {
         this.getSignTracker().update();
+
+        // Enable/disable collision handling to improve performance
+        // This only works on BKC beyond a certain version - add check!
+        if (this.group != null && HAS_COLLISION_TOGGLE_FUNCTIONS) {
+            try {
+                this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
+                this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
+            } catch (NoSuchMethodError e) {
+                HAS_COLLISION_TOGGLE_FUNCTIONS = false;
+            }
+        }
     }
 
     @Override
