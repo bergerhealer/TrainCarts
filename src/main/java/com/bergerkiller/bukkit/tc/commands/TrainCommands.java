@@ -483,6 +483,35 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.YELLOW + "You need to specify the name to save the train as");
             }
+        } else if (LogicUtil.contains(cmd, "enter")) {
+            Permission.COMMAND_ENTER.handle(p);
+            if (prop.isLoaded()) {
+                CartProperties cprop = CartProperties.getEditing(p);
+                MinecartMember<?> member = (cprop == null) ? null : cprop.getHolder();
+                if (member != null && member.getAvailableSeatCount() == 0) {
+                    member = null;
+                }
+                if (member == null) {
+                    for (MinecartMember<?> groupMember : prop.getHolder()) {
+                        if (groupMember.getAvailableSeatCount() > 0) {
+                            member = groupMember;
+                            break;
+                        }
+                    }
+                }
+                if (member != null) {
+                    if (p.teleport(member.getEntity().getLocation())) {
+                        member.getEntity().addPassenger(p);
+                        p.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + prop.getTrainName() + "'!");
+                    } else {
+                        p.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
+                    }
+                } else {
+                    p.sendMessage(ChatColor.RED + "Failed to enter train: no free seat available");
+                }
+            } else {
+                p.sendMessage(ChatColor.RED + "Can not enter the train: it is not loaded");
+            }
         } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
             return true;

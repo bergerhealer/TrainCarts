@@ -1492,17 +1492,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (this != group.head()) {
                 // Add difference between this cart and the cart before
                 MinecartMember<?> m = this.getNeighbour(-1);
-                dx += m.getEntity().loc.getX() - entity.loc.getX();
-                dy += m.getEntity().loc.getY() - entity.loc.getY();
-                dz += m.getEntity().loc.getZ() - entity.loc.getZ();
+                Vector m_pos = m.calcSpeedFactorPos();
+                Vector s_pos = this.calcSpeedFactorPos();
+                dx += m_pos.getX() - s_pos.getX();
+                dy += m_pos.getY() - s_pos.getY();
+                dz += m_pos.getZ() - s_pos.getZ();
                 n++;
             }
             if (this != group.tail()) {
                 // Add difference between this cart and the cart after
                 MinecartMember<?> m = this.getNeighbour(1);
-                dx += entity.loc.getX() - m.getEntity().loc.getX();
-                dy += entity.loc.getY() - m.getEntity().loc.getY();
-                dz += entity.loc.getZ() - m.getEntity().loc.getZ();
+                Vector m_pos = m.calcSpeedFactorPos();
+                Vector s_pos = this.calcSpeedFactorPos();
+                dx += s_pos.getX() - m_pos.getX();
+                dy += s_pos.getY() - m_pos.getY();
+                dz += s_pos.getZ() - m_pos.getZ();
                 n++;
             }
             dx /= n;
@@ -1519,6 +1523,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
+    private Vector calcSpeedFactorPos() {
+        return getWheels().getPosition();
+    }
+
     public void calculateSpeedFactor() {
         this.speedFactor.setX(0.0).setY(0.0).setZ(0.0);
         MinecartGroup group = this.getGroup();
@@ -1532,19 +1540,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 // The middle to use depends on the velocities (directions) of the carts in-between
                 MinecartMember<?> m1 = this.getNeighbour(-1);
                 MinecartMember<?> m2 = this.getNeighbour(1);
-                
- 
+
+                Vector m1_pos = m1.calcSpeedFactorPos();
+                Vector m2_pos = m2.calcSpeedFactorPos();
+
                 Vector m1d = m1.calculateOrientation();
                 Vector m2d = m2.calculateOrientation();
+
+                double dist = 0.5 * m1_pos.distance(m2_pos);
                 
-                double dist = 0.5 * m1.getEntity().loc.distance(m2.getEntity().loc);
-                
-                double px = 0.5 * ( (m1.getEntity().loc.getX() + dist * m1d.getX()) +
-                            (m2.getEntity().loc.getX() - dist * m2d.getX()) );
-                double py = 0.5 * ( (m1.getEntity().loc.getY() + dist * m1d.getY()) +
-                            (m2.getEntity().loc.getY() - dist * m2d.getY()) );
-                double pz = 0.5 * ( (m1.getEntity().loc.getZ() + dist * m1d.getZ()) +
-                            (m2.getEntity().loc.getZ() - dist * m2d.getZ()) );
+                double px = 0.5 * ( (m1_pos.getX() + dist * m1d.getX()) +
+                            (m2_pos.getX() - dist * m2d.getX()) );
+                double py = 0.5 * ( (m1_pos.getY() + dist * m1d.getY()) +
+                            (m2_pos.getY() - dist * m2d.getY()) );
+                double pz = 0.5 * ( (m1_pos.getZ() + dist * m1d.getZ()) +
+                            (m2_pos.getZ() - dist * m2d.getZ()) );
 
                 //double mx = 0.5 * (m1.getEntity().loc.getX() + m2.getEntity().loc.getX());
                 //double my = 0.5 * (m1.getEntity().loc.getY() + m2.getEntity().loc.getY());
@@ -1555,7 +1565,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             } else {
                 // For head/tail we can adjust our own position to stretch or shrink the train in size
                 MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
-                Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
+                //Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
+                Vector direction = this.calcSpeedFactorPos().clone().subtract(m.calcSpeedFactorPos());
                 double preferredDistance = this.getPreferredDistance(m);
 
                 // If distance can not be reliably calculated, use BlockFace direction
