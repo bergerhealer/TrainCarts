@@ -579,6 +579,7 @@ public class TrainCommands {
                 message.red(prop.getCollisionMode(collisionConfigObject).getOperationName()).yellow(" " + collisionConfigObject.getFriendlyMobName() + ", ");
             }
         }
+        message.red(prop.blockCollision.getOperationName()).yellow(" blocks, ");
         message.red(prop.playerCollision.getOperationName()).yellow(" players, ");
         message.red(prop.miscCollision.getOperationName()).yellow(" misc entities and ");
         message.red(prop.trainCollision.getOperationName()).yellow(" other trains");
