@@ -41,4 +41,12 @@ public enum ItemTransformType {
         return this.slot;
     }
 
+    public static ItemTransformType get(String name) {
+        for (ItemTransformType type : values()) {
+            if (type.toString().equals(name)) {
+                return type;
+            }
+        }
+        return HEAD;
+    }
 }
