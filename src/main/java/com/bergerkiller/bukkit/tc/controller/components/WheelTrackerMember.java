@@ -56,6 +56,39 @@ public class WheelTrackerMember {
     }
 
     /**
+     * Gets the other wheel compared to a wheel.
+     * Passing back() returns front() and vice versa.
+     * 
+     * @param wheel
+     * @return other wheel
+     */
+    public Wheel other(Wheel wheel) {
+        return (this._front == wheel) ? this._back : this._front;
+    }
+
+    /**
+     * Gets the wheel thats moving forwards at the front of the cart
+     * 
+     * @return forwards moving wheel
+     */
+    public Wheel movingForwards() {
+        Vector vel = this._owner.calculateOrientation();
+        Quaternion q = this.getLastOrientation().clone();
+        q.invert();
+        q.transformPoint(vel);
+        return (vel.getZ() > 0.0) ? this._front : this._back;
+    }
+
+    /**
+     * Gets the wheel thats moving backwards at the back of the cart
+     * 
+     * @return backwards moving wheel
+     */
+    public Wheel movingBackwards() {
+        return this.other(this.movingForwards());
+    }
+
+    /**
      * Whether either wheel has a wheel distance set. If none is set, then the Minecart moves
      * along a singular point.
      * 
@@ -231,6 +264,17 @@ public class WheelTrackerMember {
         }
 
         /**
+         * Gets the distance between this wheel and the nearest edge of the Minecart
+         * 
+         * @return edge distance
+         */
+        public double getEdgeDistance() {
+            double edgeDistance = 0.5 * this.member.getEntity().getWidth();
+            edgeDistance -= this._distance;
+            return edgeDistance;
+        }
+
+        /**
          * Gets the center-relative position of this wheel.
          * The center is the exact coordinates of the Minecart itself.
          * 
@@ -241,6 +285,15 @@ public class WheelTrackerMember {
                 this.update(); // Required
             }
             return this._position;
+        }
+
+        /**
+         * Gets the position of this wheel in world coordinates.
+         * 
+         * @return absolute position
+         */
+        public Vector getAbsolutePosition() {
+            return this.getPosition().clone().add(this.member.getEntity().loc.vector());
         }
 
         /**

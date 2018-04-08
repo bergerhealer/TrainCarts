@@ -1531,65 +1531,57 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.speedFactor.setX(0.0).setY(0.0).setZ(0.0);
         MinecartGroup group = this.getGroup();
         if (group.size() != 1) {
-            boolean isHead = (this == group.head());
-            boolean isTail = (this == group.tail());
-            if (!isHead && !isTail) {
-                // If this is in between two carts, ideally we'd center right in the middle
-                // The head and tail should spread out to correct any wrong cart distances
-                // In between the two carts there is a rail along which the true middle is achieved
-                // The middle to use depends on the velocities (directions) of the carts in-between
-                MinecartMember<?> m1 = this.getNeighbour(-1);
-                MinecartMember<?> m2 = this.getNeighbour(1);
-
-                Vector m1_pos = m1.calcSpeedFactorPos();
-                Vector m2_pos = m2.calcSpeedFactorPos();
-
-                Vector m1d = m1.calculateOrientation();
-                Vector m2d = m2.calculateOrientation();
-
-                double dist = 0.5 * m1_pos.distance(m2_pos);
-                
-                double px = 0.5 * ( (m1_pos.getX() + dist * m1d.getX()) +
-                            (m2_pos.getX() - dist * m2d.getX()) );
-                double py = 0.5 * ( (m1_pos.getY() + dist * m1d.getY()) +
-                            (m2_pos.getY() - dist * m2d.getY()) );
-                double pz = 0.5 * ( (m1_pos.getZ() + dist * m1d.getZ()) +
-                            (m2_pos.getZ() - dist * m2d.getZ()) );
-
-                //double mx = 0.5 * (m1.getEntity().loc.getX() + m2.getEntity().loc.getX());
-                //double my = 0.5 * (m1.getEntity().loc.getY() + m2.getEntity().loc.getY());
-                //double mz = 0.5 * (m1.getEntity().loc.getZ() + m2.getEntity().loc.getZ());
-                this.speedFactor.setX(px - this.getEntity().loc.getX());
-                this.speedFactor.setY(py - this.getEntity().loc.getY());
-                this.speedFactor.setZ(pz - this.getEntity().loc.getZ());
-            } else {
-                // For head/tail we can adjust our own position to stretch or shrink the train in size
-                MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
-                //Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
-                Vector direction = this.calcSpeedFactorPos().clone().subtract(m.calcSpeedFactorPos());
-                double preferredDistance = this.getPreferredDistance(m);
-
-                // If distance can not be reliably calculated, use BlockFace direction
-                // Otherwise normalize the direction vector
-                double distance = direction.length();
-                if (distance < 0.01) {
-                    direction.setX(this.getDirection().getModX());
-                    direction.setY(this.getDirection().getModY());
-                    direction.setZ(this.getDirection().getModZ());
-                    direction.normalize();
-                } else {
-                    direction.setX(direction.getX() / distance);
-                    direction.setY(direction.getY() / distance);
-                    direction.setZ(direction.getZ() / distance);
-                }
-
-                // Set the factor to the offset we must make to correct the distance
-                double distanceDiff = (preferredDistance - distance);
-                this.speedFactor.setX(direction.getX() * distanceDiff);
-                this.speedFactor.setY(direction.getY() * distanceDiff);
-                this.speedFactor.setZ(direction.getZ() * distanceDiff);
+            MinecartMember<?> n1 = this.getNeighbour(-1);
+            MinecartMember<?> n2 = this.getNeighbour(1);
+            if (n1 != null) {
+                this.speedFactor.add(calculateSpeedFactor(n1, this));
+            }
+            if (n2 != null) {
+                this.speedFactor.add(calculateSpeedFactor(this, n2));
+            }
+            if (n1 != null && n2 != null) {
+                this.speedFactor.multiply(0.5);
             }
         }
+    }
+
+    private final Vector calculateSpeedFactor(MinecartMember<?> m1, MinecartMember<?> m2) {
+        // Retrieve the positions of the backwards moving part of the cart,
+        // and the forwards moving part of the cart behind. The gap
+        // between these two positions must be kept.
+        WheelTrackerMember.Wheel m1wheel = m1.getWheels().movingBackwards();
+        WheelTrackerMember.Wheel m2wheel = m2.getWheels().movingForwards();
+        Vector m1pos = m1wheel.getAbsolutePosition();
+        Vector m2pos = m2wheel.getAbsolutePosition();
+        Vector direction;
+        if (m1 == this) {
+            direction = m1pos.subtract(m2pos);
+        } else {
+            direction = m2pos.subtract(m1pos);
+        }
+
+        // If distance can not be reliably calculated, use BlockFace direction
+        // Otherwise normalize the direction vector
+        double distance = direction.length();
+        if (distance < 0.01) {
+            direction.setX(this.getDirection().getModX());
+            direction.setY(this.getDirection().getModY());
+            direction.setZ(this.getDirection().getModZ());
+            direction.normalize();
+        } else {
+            direction.setX(direction.getX() / distance);
+            direction.setY(direction.getY() / distance);
+            direction.setZ(direction.getZ() / distance);
+        }
+
+        // Calculate the preferred distance between these two wheels
+        // Keep the edge between wheel and edge of cart in mind
+        double preferredDistance = m1wheel.getEdgeDistance() + m2wheel.getEdgeDistance() + TCConfig.cartDistanceGap;
+
+        // Set the factor to the offset we must make to correct the distance
+        double distanceDiff = (preferredDistance - distance);
+        direction.multiply(distanceDiff);
+        return direction;
     }
 
     /**
