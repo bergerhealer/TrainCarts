@@ -10,12 +10,12 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
@@ -103,7 +103,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
                 MapTexture icon = this.iconCache.get(item);
                 if (icon == null) {
                     icon = MapTexture.createEmpty(16, 16);
-                    icon.fillItem(MapResourcePack.SERVER, item);
+                    icon.fillItem(TCConfig.resourcePack, item);
                     this.iconCache.put(item, icon);
                 }
                 view.draw(icon, x, y);

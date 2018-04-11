@@ -270,8 +270,6 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
-        MapResourcePack.SERVER.load();
-
         //Load configuration
         loadConfig();
 

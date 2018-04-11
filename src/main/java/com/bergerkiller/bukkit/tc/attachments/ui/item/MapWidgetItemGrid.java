@@ -11,10 +11,10 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 
 /**
@@ -149,7 +149,7 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
                 int x = calcX(col);
                 int y = calcY(row);
                 if (index >= 0 && index < this._items.size()) {
-                    view.drawItem(MapResourcePack.SERVER, this._items.get(index), x, y, this._itemSize, this._itemSize);
+                    view.drawItem(TCConfig.resourcePack, this._items.get(index), x, y, this._itemSize, this._itemSize);
                     if (this._selectedIndex == index) {
                         if (activated) {
                             view.drawRectangle(x, y, this._itemSize, this._itemSize, MapColorPalette.COLOR_RED);
