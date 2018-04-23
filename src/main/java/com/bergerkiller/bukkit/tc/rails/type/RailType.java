@@ -10,9 +10,11 @@ import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
@@ -311,7 +313,8 @@ public abstract class RailType {
      * @return next Block the minecart is at after moving over this rail
      */
     public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        RailLogic logic = this.getLogic(null, currentTrack, currentDirection);
+        RailLogicState state = new RailLogicState(null, currentTrack, currentDirection);
+        RailLogic logic = this.getLogic(state);
         if (logic == null) {
             return null;
         }
@@ -351,13 +354,28 @@ public abstract class RailType {
 
     /**
      * Obtains the Rail Logic to use for the Minecart at the (previously calculated) rail position in a World.
+     * <br>
+     * <b>Deprecated: use {@link #getLogic(RailLogicState)} instead.</b>
      *
      * @param member to get the logic for (can be null when used by track walkers for e.g. spawning)
      * @param railsBlock the Minecart is driving on
      * @param direction in which the Minecart is moving. Only block directions (north/east/south/west/up/down) are used.
      * @return Rail Logic
      */
-    public abstract RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction);
+    @Deprecated
+    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
+        return RailLogicAir.INSTANCE;
+    }
+
+    /**
+     * Obtains the Rail Logic to use for the rail logic state situation specified
+     * 
+     * @param state input
+     * @return desired rail logic
+     */
+    public RailLogic getLogic(RailLogicState state) {
+        return getLogic(state.getMember(), state.getRailsBlock(), state.getEnterDirection());
+    }
 
     /**
      * Called one tick after a block of this Rail Type was placed down in the world

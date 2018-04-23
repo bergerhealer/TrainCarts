@@ -86,7 +86,8 @@ public abstract class RailTracker {
         }
 
         public RailLogic getLogic() {
-            return this.type.getLogic(null, this.block, this.enterFace);
+            RailLogicState state = new RailLogicState(null, this.block, this.enterFace);
+            return this.type.getLogic(state);
         }
 
         public RailPath getPath() {

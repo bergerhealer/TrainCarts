@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -54,7 +55,8 @@ public class TrackWalkingPoint extends TrackMovingPoint {
             super.next(true);
 
             // Correct the direction vector using the rail information found
-            startDirection = this.currentRail.getLogic(null, this.currentTrack, startDirection).getMovementDirection(startDirection);
+            RailLogicState state = new RailLogicState(null, this.currentTrack, startDirection);
+            startDirection = this.currentRail.getLogic(state).getMovementDirection(startDirection);
             this.direction = FaceUtil.faceToVector(startDirection).normalize();
         }
     }
@@ -101,7 +103,8 @@ public class TrackWalkingPoint extends TrackMovingPoint {
             Block block = this.currentTrack;
             BlockFace faceDirection = this.currentDirection;
             RailType type = this.currentRail;
-            RailLogic logic = type.getLogic(null, block, faceDirection);
+            RailLogicState state = new RailLogicState(null, block, faceDirection);
+            RailLogic logic = type.getLogic(state);
             RailPath path = logic.getPath();
 
             // Move along the path

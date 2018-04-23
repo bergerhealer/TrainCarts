@@ -119,7 +119,8 @@ public class RailTrackerMember extends RailTracker {
             return this.railLogic;
         } else {
             try {
-                return this.rail.type.getLogic(this.owner, this.rail.block, this.rail.enterFace);
+                RailLogicState state = new RailLogicState(this.owner, this.rail.block, this.rail.enterFace);
+                return this.rail.type.getLogic(state);
             } catch (Throwable t) {
                 RailType.handleCriticalError(this.rail.type, t);
 
@@ -169,7 +170,8 @@ public class RailTrackerMember extends RailTracker {
      * Creates a snapshot of the Rail Logic for the entire next run
      */
     public void snapshotRailLogic() {
-        this.railLogic = this.rail.type.getLogic(this.owner, this.rail.block, this.rail.enterFace);
+        RailLogicState state = new RailLogicState(this.owner, this.rail.block, this.rail.enterFace);
+        this.railLogic = this.rail.type.getLogic(state);
         this.railLogicSnapshotted = true;
     }
 

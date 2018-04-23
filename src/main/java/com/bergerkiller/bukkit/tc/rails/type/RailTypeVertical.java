@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
@@ -156,13 +157,13 @@ public class RailTypeVertical extends RailType {
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
-        BlockFace dir = Util.getVerticalRailDirection(railsBlock);
-        if (isVerticalSlopeUpsideDown(railsBlock)) {
+    public RailLogic getLogic(RailLogicState state) {
+        BlockFace dir = Util.getVerticalRailDirection(state.getRailsBlock());
+        if (isVerticalSlopeUpsideDown(state.getRailsBlock())) {
             return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
-        } else if (isVerticalSlopeUpsideDownB(railsBlock)) {
+        } else if (isVerticalSlopeUpsideDownB(state.getRailsBlock())) {
             return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
-        } else if (getAfterSlope(railsBlock) != null) {
+        } else if (getAfterSlope(state.getRailsBlock()) != null) {
             return RailLogicVerticalSlopeNormalB.get(dir);
         } else {
             return RailLogicVertical.get(dir);

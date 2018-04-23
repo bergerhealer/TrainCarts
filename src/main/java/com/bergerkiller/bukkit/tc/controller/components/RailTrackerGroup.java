@@ -187,7 +187,8 @@ public class RailTrackerGroup extends RailTracker {
             while (p.hasNext() && wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
                 p.next();
 
-                RailLogic logic = p.currentRail.getLogic(null, p.currentTrack, p.currentDirection);
+                RailLogicState state = new RailLogicState(null, p.currentTrack, p.currentDirection);
+                RailLogic logic = p.currentRail.getLogic(state);
                 RailPath path = logic.getPath();
                 double moved = path.move(position, p.currentTrack, wheelDistance);
 
@@ -340,7 +341,8 @@ public class RailTrackerGroup extends RailTracker {
                 while (p.hasNext() && wheelDistance > 0.0) {
                     p.next();
 
-                    RailLogic logic = p.currentRail.getLogic(null, p.currentTrack, p.currentDirection);
+                    RailLogicState state = new RailLogicState(null, p.currentTrack, p.currentDirection);
+                    RailLogic logic = p.currentRail.getLogic(state);
                     RailPath path = logic.getPath();
                     double moved = path.move(position, p.currentTrack, wheelDistance);
 

@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -53,7 +54,8 @@ public class DebugTool {
             Block block = map.next();
             BlockFace faceDirection = map.getDirection();
             RailType type = map.getRailType();
-            RailLogic logic = type.getLogic(null, block, faceDirection);
+            RailLogicState state = new RailLogicState(null, block, faceDirection);
+            RailLogic logic = type.getLogic(state);
             RailPath path = logic.getPath();
 
             // Assign location for the first time (center of rail)
@@ -92,7 +94,8 @@ public class DebugTool {
             Block block = map.next();
             BlockFace direction = map.getDirection();
             RailType type = map.getRailType();
-            RailLogic logic = type.getLogic(null, block, direction);
+            RailLogicState state = new RailLogicState(null, block, direction);
+            RailLogic logic = type.getLogic(state);
             RailPath path = logic.getPath();
             if (!path.isEmpty()) {
                 RailPath.Point prev = null;
