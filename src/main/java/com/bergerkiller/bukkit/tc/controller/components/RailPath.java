@@ -479,6 +479,10 @@ public class RailPath {
             this(v.getX(), v.getY(), v.getZ());
         }
 
+        public Point(Vector v, Vector up) {
+            this(v.getX(), v.getY(), v.getZ(), up.getX(), up.getY(), up.getZ());
+        }
+
         public Point(Vector v, double up_x, double up_y, double up_z) {
             this(v.getX(), v.getY(), v.getZ(), up_x, up_y, up_z);
         }
@@ -581,6 +585,13 @@ public class RailPath {
                     railsBlock.getX() + this.x,
                     railsBlock.getY() + this.y,
                     railsBlock.getZ() + this.z);
+        }
+
+        @Override
+        public String toString() {
+            return "[v={" + this.x + "/" + this.y + "/" + this.z + "} " +
+                   "up={" + this.up_x + "/" + this.up_y + "/" + this.up_z + "}]";
+                       
         }
     }
 
