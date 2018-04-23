@@ -1,11 +1,17 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -18,16 +24,18 @@ import org.bukkit.util.Vector;
  * and accurate Minecart positioning information for spawning on rails.
  */
 public class TrackWalkingPoint {
-    //TODO: REMOVE
-    private TrackMovingPoint _movingPoint;
     /**
      * The current track
      */
     public Block currentTrack;
     /**
-     * The next track, shifted to {@link #currentTrack} upon the next {@link #move(double)}
+     * Rail type of {@link #currentTrack}
      */
-    public Block nextTrack;
+    public RailType currentRailType;
+    /**
+     * Rail logic of {@link #currentTrack}
+     */
+    public RailLogic currentRailLogic;
     /**
      * The current position of the current rails
      */
@@ -40,6 +48,10 @@ public class TrackWalkingPoint {
      * The actual distance moved during the last {@link #move(double)} call
      */
     public double moved;
+    /**
+     * Is used to make sure rails are only crossed once, if enabled
+     */
+    private Set<Block> loopFilter = null;
 
     private boolean first = true;
 
@@ -48,31 +60,36 @@ public class TrackWalkingPoint {
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace startDirection, Location startPos) {
-        _movingPoint = new TrackMovingPoint(startRail, startDirection);
+        // Retrieve track information of the start rail
+        this.currentTrack = startRail;
+        this.currentRailType = RailType.getType(this.currentTrack);
+        if (this.currentRailType == RailType.NONE) {
+            this.position = null;
+            this.direction = FaceUtil.faceToVector(startDirection);
+            this.currentRailLogic = RailLogicAir.INSTANCE;
+            return;
+        }
+
+        // Retrieve start rail logic
+        RailLogicState state;
         if (startPos == null) {
-            if (_movingPoint.hasNext()) {
-                this.position = _movingPoint.currentRail.getSpawnLocation(_movingPoint.currentTrack, _movingPoint.currentDirection);
-            } else {
-                this.position = null;
-            }
+            state = new RailLogicState(null, new Vector(0.5, 0.5, 0.5), startRail, startDirection);
+        } else {
+            state = new RailLogicState(null, startPos, startRail, startDirection);
+        }
+        this.currentRailLogic = this.currentRailType.getLogic(state);
+
+        // TODO: This should not be a Block Face at all!
+        // Make use the rail logic path to find the direction at the startDirection vector?
+        // Could also put that kind of logic inside getMovementDirection(), though ugly.
+        this.direction = FaceUtil.faceToVector(this.currentRailLogic.getMovementDirection(startDirection)).normalize();
+
+        // If startPos is null, ask the start rail (type) for the spawn location and use that
+        if (startPos == null) {
+            this.position = this.currentRailType.getSpawnLocation(startRail, vecToFace(this.direction, true));
         } else {
             this.position = startPos.clone();
         }
-        this.direction = FaceUtil.faceToVector(startDirection).normalize();
-
-        // Skip the first block, as to avoid moving 'backwards' one block
-        if (_movingPoint.hasNext()) {
-            _movingPoint.next(true);
-
-            // Correct the direction vector using the rail information found
-            RailLogicState state = new RailLogicState(null, this.position, _movingPoint.currentTrack, startDirection);
-            startDirection = _movingPoint.currentRail.getLogic(state).getMovementDirection(startDirection);
-            this.direction = FaceUtil.faceToVector(startDirection).normalize();
-        }
-
-        // Init
-        this.currentTrack = _movingPoint.currentTrack;
-        this.nextTrack = _movingPoint.nextTrack;
     }
 
     /**
@@ -93,7 +110,7 @@ public class TrackWalkingPoint {
      */
     public boolean move(final double distance) {
         // If no position is known, then we did not have a valid starting point at all
-        if (this.position == null) {
+        if (this.position == null || this.currentRailType == RailType.NONE) {
             return false;
         }
 
@@ -114,12 +131,8 @@ public class TrackWalkingPoint {
         double remainingDistance = distance;
         int infCycleCtr = 0;
         while (true) {
-            Block block = _movingPoint.currentTrack;
-            BlockFace faceDirection = _movingPoint.currentDirection;
-            RailType type = _movingPoint.currentRail;
-            RailLogicState state = new RailLogicState(null, position, block, faceDirection);
-            RailLogic logic = type.getLogic(state);
-            RailPath path = logic.getPath();
+            Block block = this.currentTrack;
+            RailPath path = this.currentRailLogic.getPath();
 
             // Move along the path
             double moved;
@@ -144,24 +157,79 @@ public class TrackWalkingPoint {
             } else if (++infCycleCtr > 100) {
                 // Infinite loop detected. Stop here.
                 System.err.println("[TrackWalkingPoint] Infinite rails loop detected at " + block);
+                System.err.println("[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
+                System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.currentRailType);
                 this.moved = (distance - remainingDistance);
                 return false;
             }
 
             // Load next rails information
-            if (_movingPoint.hasNext()) {
-                _movingPoint.next(true);
-                this.currentTrack = _movingPoint.currentTrack;
-                this.nextTrack = _movingPoint.nextTrack;
-            } else {
-                // No next rail available. This is it.
+            // Move the path an infinitesmall amount to beyond the current rail
+            this.position.setX(position.posX + 1e-10 * position.motX);
+            this.position.setY(position.posY + 1e-10 * position.motY);
+            this.position.setZ(position.posZ + 1e-10 * position.motZ);
+
+            // Look up the rails Block at the new found position
+            Block nextPosBlock = this.position.getBlock();
+            RailInfo nextRailInfo = RailType.findRailInfo(nextPosBlock);
+            if (nextRailInfo == null) {
+                this.currentTrack = nextPosBlock;
+                this.currentRailType = RailType.NONE;
+            } else if (!BlockUtil.equals(this.currentTrack, nextRailInfo.railBlock)) {
+                // Check loop filter
+                this.currentTrack = nextRailInfo.railBlock;
+                if (this.loopFilter != null && !this.loopFilter.add(this.currentTrack)) {
+                    this.currentRailType = RailType.NONE;
+                } else {
+                    this.currentRailType = RailType.getType(this.currentTrack);
+                }
+            }
+
+            // No next rail available. This is it.
+            if (this.currentRailType == RailType.NONE) {
                 this.moved = (distance - remainingDistance);
                 return false;
             }
+
+            // Calculate the face of the rails block position being entered
+            BlockFace enteredFace = Util.calculateEnterFace(
+                    new Vector(this.position.getX() - nextPosBlock.getX(),
+                               this.position.getY() - nextPosBlock.getY(),
+                               this.position.getZ() - nextPosBlock.getZ()),
+                    new Vector(position.motX, position.motY, position.motZ));
+
+            // Refresh rail logic for the new position and state
+            RailLogicState state = new RailLogicState(null, this.position, this.currentTrack, enteredFace);
+            this.currentRailLogic = this.currentRailType.getLogic(state);
         }
     }
 
+    /**
+     * Sets whether a loop filter is employed, which tracks the positions already returned
+     * and stops iteration when encountering a block already visited.
+     * 
+     * @param enabled
+     */
     public void setLoopFilter(boolean enabled) {
-        this._movingPoint.setLoopFilter(enabled);
+        this.loopFilter = enabled ? new HashSet<Block>() : null;
+        if (enabled && this.currentTrack != null) {
+            this.loopFilter.add(this.currentTrack);
+        }
+    }
+
+    // some magic to turn a vector into the most appropriate block face
+    private static BlockFace vecToFace(Vector vector, boolean useSubCardinalDirections) {
+        return vecToFace(vector.getX(), vector.getY(), vector.getZ(), useSubCardinalDirections);
+    }
+
+    // some magic to turn a vector into the most appropriate block face
+    private static BlockFace vecToFace(double dx, double dy, double dz, boolean useSubCardinalDirections) {
+        double sqlenxz = dx*dx + dz*dz;
+        double sqleny = dy*dy;
+        if (sqleny > (sqlenxz + 1e-6)) {
+            return FaceUtil.getVertical(dy);
+        } else {
+            return FaceUtil.getDirection(dx, dz, useSubCardinalDirections);
+        }
     }
 }

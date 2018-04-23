@@ -160,6 +160,12 @@ public class RailTypeVertical extends RailType {
     public RailLogic getLogic(RailLogicState state) {
         BlockFace dir = Util.getVerticalRailDirection(state.getRailsBlock());
         if (isVerticalSlopeUpsideDown(state.getRailsBlock())) {
+            // Check if there is also one upside-down rail below leading to a slope
+            // If so, when y-position is below a threshold, pick UpsideDownB instead.
+            if (state.getRailsPosition().getY() < 0.0 && isVerticalSlopeUpsideDownB(state.getRailsBlock())) {
+                return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
+            }
+
             return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
         } else if (isVerticalSlopeUpsideDownB(state.getRailsBlock())) {
             return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());

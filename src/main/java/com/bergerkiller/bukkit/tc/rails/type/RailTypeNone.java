@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
+
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -79,6 +81,13 @@ public class RailTypeNone extends RailType {
     @Override
     public BlockFace getSignColumnDirection(Block railsBlock) {
         return BlockFace.SELF;
+    }
+
+    @Override
+    public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
+        Location loc = super.getSpawnLocation(railsBlock, orientation);
+        loc.setY(0.5);
+        return loc;
     }
 
     @Override
