@@ -17,7 +17,17 @@ import org.bukkit.util.Vector;
  * restricting to full-block movement, allowing for accurate distance calculations
  * and accurate Minecart positioning information for spawning on rails.
  */
-public class TrackWalkingPoint extends TrackMovingPoint {
+public class TrackWalkingPoint {
+    //TODO: REMOVE
+    private TrackMovingPoint _movingPoint;
+    /**
+     * The current track
+     */
+    public Block currentTrack;
+    /**
+     * The next track, shifted to {@link #currentTrack} upon the next {@link #move(double)}
+     */
+    public Block nextTrack;
     /**
      * The current position of the current rails
      */
@@ -38,10 +48,10 @@ public class TrackWalkingPoint extends TrackMovingPoint {
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace startDirection, Location startPos) {
-        super(startRail, startDirection);
+        _movingPoint = new TrackMovingPoint(startRail, startDirection);
         if (startPos == null) {
-            if (super.hasNext()) {
-                this.position = this.currentRail.getSpawnLocation(this.currentTrack, this.currentDirection);
+            if (_movingPoint.hasNext()) {
+                this.position = _movingPoint.currentRail.getSpawnLocation(_movingPoint.currentTrack, _movingPoint.currentDirection);
             } else {
                 this.position = null;
             }
@@ -51,14 +61,18 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         this.direction = FaceUtil.faceToVector(startDirection).normalize();
 
         // Skip the first block, as to avoid moving 'backwards' one block
-        if (super.hasNext()) {
-            super.next(true);
+        if (_movingPoint.hasNext()) {
+            _movingPoint.next(true);
 
             // Correct the direction vector using the rail information found
-            RailLogicState state = new RailLogicState(null, this.currentTrack, startDirection);
-            startDirection = this.currentRail.getLogic(state).getMovementDirection(startDirection);
+            RailLogicState state = new RailLogicState(null, this.position, _movingPoint.currentTrack, startDirection);
+            startDirection = _movingPoint.currentRail.getLogic(state).getMovementDirection(startDirection);
             this.direction = FaceUtil.faceToVector(startDirection).normalize();
         }
+
+        // Init
+        this.currentTrack = _movingPoint.currentTrack;
+        this.nextTrack = _movingPoint.nextTrack;
     }
 
     /**
@@ -100,10 +114,10 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         double remainingDistance = distance;
         int infCycleCtr = 0;
         while (true) {
-            Block block = this.currentTrack;
-            BlockFace faceDirection = this.currentDirection;
-            RailType type = this.currentRail;
-            RailLogicState state = new RailLogicState(null, block, faceDirection);
+            Block block = _movingPoint.currentTrack;
+            BlockFace faceDirection = _movingPoint.currentDirection;
+            RailType type = _movingPoint.currentRail;
+            RailLogicState state = new RailLogicState(null, position, block, faceDirection);
             RailLogic logic = type.getLogic(state);
             RailPath path = logic.getPath();
 
@@ -135,8 +149,10 @@ public class TrackWalkingPoint extends TrackMovingPoint {
             }
 
             // Load next rails information
-            if (this.hasNext()) {
-                this.next(true);
+            if (_movingPoint.hasNext()) {
+                _movingPoint.next(true);
+                this.currentTrack = _movingPoint.currentTrack;
+                this.nextTrack = _movingPoint.nextTrack;
             } else {
                 // No next rail available. This is it.
                 this.moved = (distance - remainingDistance);
@@ -145,4 +161,7 @@ public class TrackWalkingPoint extends TrackMovingPoint {
         }
     }
 
+    public void setLoopFilter(boolean enabled) {
+        this._movingPoint.setLoopFilter(enabled);
+    }
 }

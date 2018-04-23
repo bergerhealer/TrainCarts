@@ -138,4 +138,5 @@ public class TrackMovingPoint {
             this.hasNext = true;
         }
     }
+
 }
