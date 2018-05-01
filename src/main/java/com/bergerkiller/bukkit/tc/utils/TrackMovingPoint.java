@@ -51,7 +51,7 @@ public class TrackMovingPoint {
             this.currentDirection = this.nextDirection = this.walkingPoint.state.enterFace();
             this.current = this.next = this.walkingPoint.state.positionBlock();
             this.currentRail = this.nextRail = this.walkingPoint.state.railType();
-            this.hasNext = (this.currentRail != RailType.NONE);
+            this.hasNext = true;
         } else {
             this.currentTrack = this.nextTrack = null;
             this.currentDirection = this.nextDirection = BlockFace.SELF;
@@ -132,6 +132,7 @@ public class TrackMovingPoint {
         this.nextTrack = this.walkingPoint.state.railBlock();
         this.nextRail = this.walkingPoint.state.railType();
         this.nextDirection = this.walkingPoint.state.enterFace();
+        this.hasNext = true;
     }
 
 }

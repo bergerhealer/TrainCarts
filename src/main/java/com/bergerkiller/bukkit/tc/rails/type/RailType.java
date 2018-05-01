@@ -189,8 +189,9 @@ public abstract class RailType {
 
         // If more than one rails exists here, pick the most appropriate one for this position
         // This is a little bit slower, but required for rare instances of multiple rails per block
-        RailInfo result = null;
+        RailInfo result;
         if (cachedInfo.length >= 2) {
+            result = cachedInfo[0];
             double minDistSq = Double.MAX_VALUE;
             for (RailInfo info : cachedInfo) {
                 state.setRailBlock(info.railBlock);
