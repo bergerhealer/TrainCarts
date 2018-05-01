@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -13,12 +15,12 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCTimings;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
@@ -165,11 +167,8 @@ public class RailTrackerGroup extends RailTracker {
             return;
         }
 
-        // Walk 0.0 distance forwards to calculate the orientation of the start rails
-        RailLogic startLogic = startInfo.getLogic();
-        BlockFace movementDirectionFace = startLogic.getMovementDirection(startInfo.enterFace);
-        Position position = Position.fromPosDir(tail.getEntity().loc.vector(), FaceUtil.faceToVector(movementDirectionFace));
-        startLogic.getPath().move(position, startInfo.block, 0.0);
+        // Retrieve start position
+        Position position = startInfo.state.position().clone();
 
         // Find the forwards wheel distance
         double wheelDistance;
@@ -181,32 +180,28 @@ public class RailTrackerGroup extends RailTracker {
 
         // Walk the distance from the current position (and rails) in the direction
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
-            TrackMovingPoint p = new TrackMovingPoint(startInfo.block, startInfo.enterFace);
+            TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
             int loopCtr = 0; // This is to prevent infinite loops
             boolean first = true;
-            while (p.hasNext() && wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
-                p.next();
-
-                RailLogicState state = new RailLogicState(null, p.currentTrack, p.currentDirection);
-                RailLogic logic = p.currentRail.getLogic(state);
-                RailPath path = logic.getPath();
-                double moved = path.move(position, p.currentTrack, wheelDistance);
+            while (true) {
+                RailPath path = p.currentRailLogic.getPath();
+                double moved = path.move(position, p.state.railBlock(), wheelDistance);
 
                 if (moved > 0.0) {
                     wheelDistance -= moved;
                     loopCtr = 0;
                 } else if (++loopCtr > LOOP_LIMIT) {
-                    System.err.println("Loop detected [1] logic=" + startLogic + " rail=" + startInfo.block);
+                    System.err.println("Loop detected [1] logic=" + p.currentRailLogic + " rail=" + startInfo.block);
                     break;
                 }
 
-                if (first) {
-                    first = false;
-                } else {
-                    // Add rail information
-                    this.rails.add(++railIndex, new TrackedRail(tail, p.current.getLocation(), p, false));
+                if (wheelDistance <= WheelTrackerMember.MIN_WHEEL_DISTANCE || !p.moveFull()) {
+                    break;
                 }
+
+                // More rails. Add the rail.
+                this.rails.add(++railIndex, new TrackedRail(tail, p.state, false));
             }
 
             //Location loc = position.toLocation(owner.getWorld());
@@ -367,14 +362,12 @@ public class RailTrackerGroup extends RailTracker {
                 }
             }
 
-            /*
             if (position != null) {
-                org.bukkit.Location loc = position.toLocation(owner.getWorld());
-                com.bergerkiller.bukkit.tc.Util.spawnParticle(loc, org.bukkit.Particle.WATER_BUBBLE);
+                //org.bukkit.Location loc = position.toLocation(owner.getWorld());
+                //com.bergerkiller.bukkit.tc.Util.spawnParticle(loc, org.bukkit.Particle.WATER_BUBBLE);
                 
                 //Util.spawnParticle(owner.get(0).getEntity().getLocation(), Particle.REDSTONE);
             }
-            */
         }
     }
 
@@ -398,7 +391,7 @@ public class RailTrackerGroup extends RailTracker {
         }
 
         // Number of remaining carts to be found
-        int remainingCnt = owner.size() - finder.startIndex;
+        int remainingCnt = memberIndex;
 
         // First, test the startInfo, which is the direction in which the cart is moving
         // If this yields insufficient number of carts, try the opposite direction

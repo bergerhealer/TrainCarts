@@ -532,6 +532,13 @@ public class RailPath {
         }
 
         @Override
+        public Position clone() {
+            Position p = new Position();
+            this.copyTo(p);;
+            return p;
+        }
+
+        @Override
         public String toString() {
             return "{pos={" + MathUtil.round(posX, 4) + "/" +
                     MathUtil.round(posY, 4) + "/" +

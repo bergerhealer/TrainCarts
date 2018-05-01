@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 import org.bukkit.Location;
@@ -30,6 +31,16 @@ public class TrackMovingPoint {
      */
     public TrackMovingPoint(Location startPos, Vector motionVector) {
         this(new TrackWalkingPoint(startPos, motionVector));
+    }
+
+    /**
+     * Constructs a new Track Moving Point using the initial rail state to start
+     * iterating from
+     * 
+     * @param state
+     */
+    public TrackMovingPoint(RailState state) {
+        this(new TrackWalkingPoint(state));
     }
 
     /**

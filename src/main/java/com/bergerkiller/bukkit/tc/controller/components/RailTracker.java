@@ -61,7 +61,7 @@ public abstract class RailTracker {
 
         public TrackedRail(MinecartMember<?> member, RailState state, boolean disconnected) {
             this.member = member;
-            this.state = state;
+            this.state = state.clone();
             this.minecartBlock = state.positionBlock();
             this.type = state.railType();
             this.block = state.railBlock();
@@ -194,7 +194,7 @@ public abstract class RailTracker {
             // When derailed, we must rely on relative positioning to figure out the direction
             // This only works when the minecart has a direct neighbor
             // If no direct neighbor is available, it will default to using its own velocity
-            if (state.railType() == RailType.NONE || member.getRailTracker().getLastRailType() == RailType.NONE) {
+            if (motionVector.lengthSquared() <= 1e-5 || state.railType() == RailType.NONE || member.getRailTracker().getLastRailType() == RailType.NONE) {
                 if (!member.isSingle()) {
                     MinecartMember<?> next = member.getNeighbour(-1);
                     if (next != null) {
