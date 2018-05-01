@@ -126,8 +126,10 @@ public class CartAttachmentItem extends CartAttachment {
         } else if (this.transformType == ItemTransformType.CHEST) {
             meta.set(EntityArmorStandHandle.DATA_POSE_BODY, rotation);
         } else if (this.transformType == ItemTransformType.LEFT_HAND) {
+            rotation.setX(rotation.getX() - 90.0);
             meta.set(EntityArmorStandHandle.DATA_POSE_ARM_LEFT, rotation);
         } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+            rotation.setX(rotation.getX() - 90.0);
             meta.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
         } else if (this.transformType == ItemTransformType.LEGS || this.transformType == ItemTransformType.FEET) {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
