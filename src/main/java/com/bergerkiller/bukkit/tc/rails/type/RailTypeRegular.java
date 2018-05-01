@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
@@ -283,7 +282,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
     }
 
-    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails, BlockFace minecartDirection) {
+    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails, BlockFace enterFace) {
         BlockFace direction = rails.getDirection();
         boolean upsideDown = isUpsideDown(railsBlock);
 
@@ -306,15 +305,15 @@ public class RailTypeRegular extends RailTypeHorizontal {
         if (rails.isCurve()) {
             // Curved rails: is straight when entered a certain way
             BlockFace[] faces = FaceUtil.getFaces(direction);
-            if (minecartDirection == faces[0].getOppositeFace() || minecartDirection == faces[1].getOppositeFace()) {
-                return RailLogicHorizontal.get(minecartDirection);
+            if (enterFace == faces[0].getOppositeFace() || enterFace == faces[1].getOppositeFace()) {
+                return RailLogicHorizontal.get(enterFace);
             }
         } else {
             // Straight rails: is curve when entered from the side
             // It is here that the south-east rule is applied
             BlockFace sideFace = FaceUtil.rotate(direction, 2);
-            if (minecartDirection == sideFace || minecartDirection == sideFace.getOppositeFace()) {
-                BlockFace curvedDir = FaceUtil.combine(minecartDirection, direction.getOppositeFace());
+            if (enterFace == sideFace || enterFace == sideFace.getOppositeFace()) {
+                BlockFace curvedDir = FaceUtil.combine(enterFace, direction.getOppositeFace());
                 return RailLogicHorizontal.get(curvedDir);
             }
         }

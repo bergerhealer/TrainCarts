@@ -49,11 +49,6 @@ public class RailTypeNone extends RailType {
     }
 
     @Override
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        return pos;
-    }
-
-    @Override
     public Block findMinecartPos(Block trackBlock) {
         return trackBlock;
     }

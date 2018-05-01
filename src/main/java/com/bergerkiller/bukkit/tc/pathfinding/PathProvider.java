@@ -155,9 +155,12 @@ public class PathProvider extends Task {
         //NB: Do not use the cached call here because we walk through a lot of rails only once!
         for (RailType nextType : RailType.values()) {
             try {
-                Block startRail = nextType.findRail(startBlock);
-                if (startRail != null) {
+                boolean found = false;
+                for (Block startRail : nextType.findRails(startBlock)) {
                     schedule(node, startRail, direction);
+                    found = true;
+                }
+                if (found) {
                     return;
                 }
             } catch (Throwable t) {

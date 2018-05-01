@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -149,6 +150,19 @@ public class RailLogicHorizontal extends RailLogic {
     @Deprecated
     public void getFixedPosition(Vector position, IntVector3 railPos) {
         //nop
+    }
+
+    @Override
+    public void onPathAdjust(RailState state) {
+        // When coming in from the side, set motion to move down the slope
+        if (this.isSloped()) {
+            BlockFace enterFaceRot = state.enterFace();
+            if (enterFaceRot == FaceUtil.rotate(this.horizontalCartDir, 2) ||
+                enterFaceRot == FaceUtil.rotate(this.horizontalCartDir, -2))
+            {
+                state.position().setMotion(this.horizontalCartDir.getOppositeFace());
+            }
+        }
     }
 
     @Override

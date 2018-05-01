@@ -109,8 +109,19 @@ public class VirtualEntity {
      * Updates the position of the displayed part
      * 
      * @param transform relative to which the part should be positioned
+     * @param yawPitchRoll rotation
      */
     public void updatePosition(Matrix4x4 transform) {
+        updatePosition(transform, transform.getYawPitchRoll());
+    }
+
+    /**
+     * Updates the position of the displayed part
+     * 
+     * @param transform relative to which the part should be positioned
+     * @param yawPitchRoll rotation
+     */
+    public void updatePosition(Matrix4x4 transform, Vector yawPitchRoll) {
         Vector3 v = new Vector3(this.posX, this.posY, this.posZ);
         transform.transformPoint(v);
 
@@ -118,15 +129,15 @@ public class VirtualEntity {
         liveAbsY = v.y + this.relDy;
         liveAbsZ = v.z + this.relDz;
 
-        this.yawPitchRoll = transform.getYawPitchRoll();
-        liveYaw = (float) this.yawPitchRoll.getY();
+        this.yawPitchRoll = yawPitchRoll;
+        this.liveYaw = (float) this.yawPitchRoll.getY();
         if (this.syncMode != SyncMode.SEAT && this.hasPitch()) {
             livePitch = (float) this.yawPitchRoll.getX();
         } else {
             livePitch = 0.0f;
         }
-        if (isMinecart(this.entityType) || this.entityType == EntityType.ARMOR_STAND) {
-            liveYaw -= 90.0f;
+        if (isMinecart(this.entityType)) {
+            this.liveYaw -= 90.0f;
         }
 
         // If sync is not yet set, set it to live

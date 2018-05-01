@@ -84,6 +84,9 @@ public class RailAABB {
                 result_end_z = end_z;
             }
         }
+        if (result == null) {
+            return BlockFace.DOWN; // Fallback
+        }
         return result;
     }
 }

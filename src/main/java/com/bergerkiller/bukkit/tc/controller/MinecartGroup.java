@@ -33,7 +33,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.Chunk;
@@ -505,7 +504,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 canMove = walker.move(get(i - 1).getPreferredDistance(get(i)));
             }
             if (canMove) {
-                locations[i] = walker.position.clone();
+                locations[i] = walker.state.positionLocation();
             } else if (i > 0) {
                 locations[i] = locations[i - 1].clone();
             } else {
@@ -1032,6 +1031,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Not sure if fixed, but if this train is empty, return MAX_VALUE
         if (this.isEmpty()) {
             return Double.MAX_VALUE;
+        }
+
+        // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
+        if (this.getProperties().getWaitDistance() <= 0.0) {
+            UUID world = this.head().getEntity().getWorld().getUID();
+            IntVector3 block = this.head().getBlockPos();
+            if (!MutexZoneCache.isMutexZoneNearby(world, block)) {
+                return Double.MAX_VALUE;
+            }
         }
 
         boolean checkTrains = false;

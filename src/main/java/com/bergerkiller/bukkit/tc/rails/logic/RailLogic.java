@@ -6,9 +6,12 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -138,7 +141,7 @@ public abstract class RailLogic {
         RailPath.Segment segment = this.getPath().findSegment(member.getEntity().loc.vector(), member.getBlock());
         if (segment != null) {
             RailPath.Position pos = new RailPath.Position();
-            pos.setMotion(member.getDirection());
+            pos.setMotion(member.getRailTracker().getMotionVector());
             segment.calcDirection(pos);
             member.getEntity().vel.set(pos.motX * force, pos.motY * force, pos.motZ * force);
             return;
@@ -166,7 +169,32 @@ public abstract class RailLogic {
      * @return the BlockFace direction
      */
     @Deprecated
-    public abstract BlockFace getMovementDirection(BlockFace endDirection);
+    public BlockFace getMovementDirection(BlockFace endDirection) {
+        return endDirection;
+    }
+
+    public BlockFace getMovementDirection(Block railsBlock, Block positionBlock, BlockFace endDirection) {
+        RailPath path = this.getPath();
+        if (path.isEmpty()) {
+            return endDirection;
+        }
+        RailPath.Position position = new RailPath.Position();
+        position.posX = positionBlock.getX() + 0.5 - 0.5 * endDirection.getModX();
+        position.posY = positionBlock.getY() + 0.5 - 0.5 * endDirection.getModY();
+        position.posZ = positionBlock.getZ() + 0.5 - 0.5 * endDirection.getModZ();
+        position.setMotion(endDirection);
+        path.snap(position, railsBlock);
+        return Util.vecToFace(position.motX, position.motY, position.motZ, true);
+    }
+
+    /**
+     * Callback which allows Rail Logic to alter the movement direction or general positioning
+     * of the rail state during path tracking.
+     * 
+     * @param state
+     */
+    public void onPathAdjust(RailState state) {
+    }
 
     /**
      * Obtains a path consisting of connected points along which Minecarts move using this rail logic.

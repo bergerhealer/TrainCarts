@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.SignTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
@@ -37,7 +38,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -283,7 +283,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Refresh
         this.cachedOrientation_quat = orientation.clone();
         Vector ypr = this.cachedOrientation_quat.getYawPitchRoll();
-        entity.setRotation((float) ypr.getY() - 90.0f, (float) ypr.getX());
+        this.cachedOrientation_yaw = (float) ypr.getY() - 90.0f;
+        this.cachedOrientation_pitch = (float) ypr.getX();
+        entity.setRotation(this.cachedOrientation_yaw, this.cachedOrientation_pitch);
     }
 
     /**
@@ -662,13 +664,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     /**
      * Looks at the current position information and attempts to discover any rails
      * at these positions. The movement of the minecart is taken into account.
+     * If derailed, the rail type of the state is set to NONE and False is returned.
      * 
-     * @return rail info, null if not found
+     * @param state to fill with information
+     * @return True if rails are found, False if not
      */
-    public RailInfo discoverRail() {
+    public boolean discoverRail(RailState state) {
+        // Need an initial Rail Block set
+        state.setRailBlock(entity.loc.toBlock());
+
         // No pre-move position? Simply return block at current position.
         if (this.preMovePosition == null) {
-            return RailType.findRailInfo(entity.loc.toBlock());
+            state.position().setLocation(entity.getLocation());
+            state.position().setMotion(entity.getVelocity());
+            return RailType.loadRailInformation(state, this);
         }
 
         // Detect the movement vector
@@ -680,32 +689,32 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // When distance is too small or too large (teleport), simply use the current position only
         final double smallStep = 1e-7;
         if (moved <= smallStep || moved > 0.45) {
-            return RailType.findRailInfo(entity.loc.toBlock());
+            state.position().setLocation(entity.getLocation());
+            state.position().setMotion(entity.getVelocity());
+            return RailType.loadRailInformation(state, this);
         }
 
         // Normalize direction vector
         direction.multiply(1.0 / moved);
+        state.position().setMotion(direction);
 
         // Iterate the blocks from the preMovePosition to the current position and discover rails here
         // Because we move such a short distance (<=0.45) it is very rare for more than two blocks to ever be iterated
         // So we take a shortcut and only check the pre-move and current positions for blocks in that order
         // The pre-move position might contain an outdated block though, so add a very small amount to it in the direction
         // There is a TODO here to use a proper block iterator.
-        Block preBlock = entity.loc.getWorld().getBlockAt(
-                MathUtil.floor(this.preMovePosition.getX() + smallStep * direction.getX()),
-                MathUtil.floor(this.preMovePosition.getY() + smallStep * direction.getY()),
-                MathUtil.floor(this.preMovePosition.getZ() + smallStep * direction.getZ()));
-        RailInfo preInfo = RailType.findRailInfo(preBlock);
-        if (preInfo != null) {
-            return preInfo;
+        Location prePos = new Location(this.entity.getWorld(),
+                this.preMovePosition.getX() + smallStep * direction.getX(),
+                this.preMovePosition.getY() + smallStep * direction.getY(),
+                this.preMovePosition.getZ() + smallStep * direction.getZ());
+        state.position().setLocation(prePos);
+        if (RailType.loadRailInformation(state, this)) {
+            return true;
         }
 
-        // Current block
-        Block curBlock = entity.loc.toBlock();
-        if (curBlock.getX() == preBlock.getX() && curBlock.getY() == preBlock.getY() && curBlock.getZ() == preBlock.getZ()) {
-            return null; // Same block as pre-move block, skip
-        }
-        return RailType.findRailInfo(curBlock);
+        // Current position
+        state.position().setLocation(entity.getLocation());
+        return RailType.loadRailInformation(state, this);
     }
 
     /**
@@ -927,9 +936,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
         }
 
-        // Obtain logic and the associated direction
+        // Obtain logic and the associated direction from its path
         RailLogic logic = this.getRailLogic();
-        this.direction = logic.getMovementDirection(blockMovement);
+        //this.direction = logic.getMovementDirection(tracker.getBlock(), tracker.getMinecartPos(), blockMovement);
+        this.direction = Util.vecToFace(tracker.getMotionVector(), true);
 
         // Calculate the to direction
         if (FaceUtil.isSubCardinal(this.direction)) {

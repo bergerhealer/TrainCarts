@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+@Deprecated
 public class TrackIterator implements Iterator<Block> {
     private final int maxdistance;
     private final boolean onlyInLoadedChunks;

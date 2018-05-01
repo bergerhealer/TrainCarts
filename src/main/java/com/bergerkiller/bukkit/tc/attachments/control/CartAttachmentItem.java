@@ -8,17 +8,21 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;
 
 public class CartAttachmentItem extends CartAttachment {
     private VirtualEntity entity;
     private ItemStack item;
     private ItemTransformType transformType;
+    private double last_yaw = 0.0;
 
     @Override
     public void onAttached() {
@@ -78,35 +82,44 @@ public class CartAttachmentItem extends CartAttachment {
     public void onPositionUpdate() {
         // Perform additional translation for certain attached pose positions
         // This correct model offsets
+        Matrix4x4 entity_transform;
         if (this.transformType == ItemTransformType.LEFT_HAND) {
-            Matrix4x4 tmp = this.transform.clone();
-            tmp.translate(-0.4, 0.3, 0.9375);
-            tmp.multiply(this.local_transform);
-            this.entity.updatePosition(tmp);
+            entity_transform = this.transform.clone();
+            entity_transform.translate(-0.4, 0.3, 0.9375);
+            entity_transform.multiply(this.local_transform);
             super.onPositionUpdate();
         } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
-            Matrix4x4 tmp = this.transform.clone();
-            tmp.translate(-0.4, 0.3, -0.9375);
-            tmp.multiply(this.local_transform);
-            this.entity.updatePosition(tmp);
+            entity_transform = this.transform.clone();
+            entity_transform.translate(-0.4, 0.3, -0.9375);
+            entity_transform.multiply(this.local_transform);
             super.onPositionUpdate();
         } else {
             super.onPositionUpdate();
-            this.entity.updatePosition(this.transform);
+            entity_transform = this.transform;
         }
 
-        // Convert the pitch/roll into an appropriate pose
-        Vector in_ypr = this.entity.getYawPitchRoll();
-
-        Vector rotation;
-        if (this.transformType == ItemTransformType.LEFT_HAND) {
-            rotation = new Vector(180.0, -90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
-        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
-            rotation = new Vector(0.0, 90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
-        } else {
-            rotation = new Vector(90.0, 90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
+        // Detect changes in yaw that we can apply to the entity directly
+        // The remainder or 'error' is applied to the pose of the model
+        Vector new_rotation = entity_transform.getYawPitchRoll();
+        double new_yaw = new_rotation.getY();
+        double yaw_change = new_yaw - last_yaw;
+        while (yaw_change > 180.0) yaw_change -= 360.0;
+        while (yaw_change < -180.0) yaw_change += 360.0;
+        last_yaw = new_yaw;
+        Vector new_entity_ypr = this.entity.getYawPitchRoll().clone();
+        if (yaw_change >= -90.0 && yaw_change <= 90.0) {
+            new_entity_ypr.setY(new_entity_ypr.getY() + yaw_change);
         }
+        this.entity.updatePosition(entity_transform, new_entity_ypr);
 
+        // Subtract rotation of Entity (keep protocol error into account)
+        Quaternion q_rotation = entity_transform.getRotation();
+        int prot_yaw_rot = EntityTrackerEntryHandle.getProtocolRotation((float) new_entity_ypr.getY());
+        Quaternion q = new Quaternion();
+        q.rotateY(EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot));
+        q_rotation = Quaternion.multiply(q, q_rotation);
+
+        Vector rotation = Util.getArmorStandPose(q_rotation);
         DataWatcher meta = this.entity.getMetaData();
         if (this.transformType == ItemTransformType.HEAD) {
             meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);

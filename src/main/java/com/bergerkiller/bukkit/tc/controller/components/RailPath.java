@@ -11,6 +11,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Util;
 
 /**
  * Represents a series of points along which a minecart moves over the rails.
@@ -82,6 +83,27 @@ public class RailPath {
     }
 
     /**
+     * Finds the distance squared between a rail-relative position and this rail path.
+     * Returns {@link Double#MAX_VALUE} if this path has no segments.
+     * 
+     * @param position
+     * @return distance squared between the position and this rail path
+     */
+    public double distanceSquared(Vector position) {
+        double closestDistance = Double.MAX_VALUE;
+        for (int i = 0; i < this.segments.length; i++) {
+            Segment tmpSegment = this.segments[i];
+            if (tmpSegment.isZeroLength()) continue;
+            double tmpTheta = tmpSegment.calcTheta(position);
+            double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);
+            if (tmpDistSquared < closestDistance) {
+                closestDistance = tmpDistSquared;
+            }
+        }
+        return closestDistance;
+    }
+
+    /**
      * Finds the segment of this rail path that is used at the relative position specified
      * 
      * @param position (relative to rails block)
@@ -134,6 +156,18 @@ public class RailPath {
     }
 
     /**
+     * Snaps onto this rail path.
+     * The input position information is updated to be on this path.
+     * This snap function allows absolute position calculations, by also specifying the rails block.
+     * 
+     * @param absolutePosition in world coordinates
+     * @param railsBlock relative to which this path is
+     */
+    public void snap(Position position, Block railsBlock) {
+        this.move(position, railsBlock, 0.0);
+    }
+
+    /**
      * Moves along this rail path for a certain distance.
      * The input position information is updated with the movement.
      * A movement distance of 0 can be used to snap the minecart onto the path.
@@ -141,7 +175,6 @@ public class RailPath {
      * This move function allows absolute position calculations, by also specifying the rails block.
      * 
      * @param absolutePosition in world coordinates
-     * @param orientation of the Minecart while moving along this path
      * @param railsBlock relative to which is moved
      * @param distance to move
      * @return actual distance moved. Can be less than distance if the end of the path is reached.
@@ -188,7 +221,18 @@ public class RailPath {
         return result;
     }
 
-    private double moveRelative(Position position, double distance) {
+    /**
+     * Moves along this rail path for a certain distance.
+     * The input position information is updated with the movement.
+     * A movement distance of 0 can be used to snap the minecart onto the path.
+     * A return distance of 0.0 indicates that the end of the path was reached.
+     * This move function allows relative position calculations; the positions are relative to the rails.
+     * 
+     * @param position in rail-relative coordinates
+     * @param distance to move
+     * @return actual distance moved. Can be less than distance if the end of the path is reached.
+     */
+    public double moveRelative(Position position, double distance) {
         // If no segments are known, we can't move
         if (this.segments.length == 0) {
             return 0.0;
@@ -409,6 +453,18 @@ public class RailPath {
             return new Location(world, posX, posY, posZ);
         }
 
+        public void getLocation(Location location) {
+            location.setX(this.posX);
+            location.setY(this.posY);
+            location.setZ(this.posZ);
+        }
+
+        public void setLocation(Location location) {
+            this.posX = location.getX();
+            this.posY = location.getY();
+            this.posZ = location.getZ();
+        }
+
         public BlockFace getMotionFace() {
             if (motX < -0.001 || motX > 0.001 || motZ < -0.001 || motZ > 0.001) {
                 return FaceUtil.getDirection(motX, motZ, false);
@@ -433,10 +489,56 @@ public class RailPath {
             return (motX * dx) + (motY * dy) + (motZ * dz);
         }
 
+        public Vector getMotion() {
+            return new Vector(this.motX, this.motY, this.motZ);
+        }
+
+        public Vector getMotion(Vector v) {
+            v.setX(this.motX);
+            v.setY(this.motY);
+            v.setZ(this.motZ);
+            return v;
+        }
+
+        public void setMotion(Vector movement) {
+            this.motX = movement.getX();
+            this.motY = movement.getY();
+            this.motZ = movement.getZ();
+        }
+
         public void setMotion(BlockFace movement) {
             this.motX = movement.getModX();
             this.motY = movement.getModY();
             this.motZ = movement.getModZ();
+        }
+
+        public void invertMotion() {
+            this.motX = -this.motX;
+            this.motY = -this.motY;
+            this.motZ = -this.motZ;
+        }
+
+        public void copyTo(Position p) {
+            p.posX = this.posX;
+            p.posY = this.posY;
+            p.posZ = this.posZ;
+            p.motX = this.motX;
+            p.motY = this.motY;
+            p.motZ = this.motZ;
+            p.upX = this.upX;
+            p.upY = this.upY;
+            p.upZ = this.upZ;
+            p.reverse = this.reverse;
+        }
+
+        @Override
+        public String toString() {
+            return "{pos={" + MathUtil.round(posX, 4) + "/" +
+                    MathUtil.round(posY, 4) + "/" +
+                    MathUtil.round(posZ, 4) + "},mot={" +
+                    MathUtil.round(motX, 4) + "/" +
+                    MathUtil.round(motY, 4) + "/" +
+                    MathUtil.round(motZ, 4) + "}}";
         }
 
         public static Position fromPosDir(Vector position, Vector direction) {
@@ -603,16 +705,12 @@ public class RailPath {
         public final Point p1;
         public final Point dt;
         public final Point dt_norm;
-        public final Point up0;
-        public final Point up1;
-        public final Point up_dt;
+        public final boolean lerp_roll;
         public final double l;
         public final double ls;
         private Segment prev, next;
 
         public Segment(Point p0, Point p1) {
-            this.p0 = p0;
-            this.p1 = p1;
             this.dt = new Point(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
             this.ls = MathUtil.lengthSquared(this.dt.x, this.dt.y, this.dt.z);
             this.l = Math.sqrt(this.ls);
@@ -627,11 +725,11 @@ public class RailPath {
             // upwards that the Minecart faces. This is especially important
             // for positions like upside-down, vertical, and twisted
             Vector dir = this.dt_norm.toVector();
-            Vector up0 = dir.clone().crossProduct(this.p0.up()).crossProduct(dir).normalize();
-            Vector up1 = dir.clone().crossProduct(this.p1.up()).crossProduct(dir).normalize();
-            this.up0 = new Point(up0);
-            this.up1 = new Point(up1);
-            this.up_dt = new Point(this.up1.x - this.up0.x, this.up1.y - this.up0.y, this.up1.z - this.up0.z);
+            Vector up0 = dir.clone().crossProduct(p0.up()).crossProduct(dir).normalize();
+            Vector up1 = dir.clone().crossProduct(p1.up()).crossProduct(dir).normalize();
+            this.p0 = new Point(p0.x, p0.y, p0.z, up0.getX(), up0.getY(), up0.getZ());
+            this.p1 = new Point(p1.x, p1.y, p1.z, up1.getX(), up1.getY(), up1.getZ());
+            this.lerp_roll = (up0.distanceSquared(up1) > 1e-6);
         }
 
         /**
@@ -854,23 +952,27 @@ public class RailPath {
                 position.posX = p0.x;
                 position.posY = p0.y;
                 position.posZ = p0.z;
-                position.upX = up0.x;
-                position.upY = up0.y;
-                position.upZ = up0.z;
+                position.upX = p0.up_x;
+                position.upY = p0.up_y;
+                position.upZ = p0.up_z;
             } else if (theta >= 1.0) {
                 position.posX = p1.x;
                 position.posY = p1.y;
                 position.posZ = p1.z;
-                position.upX = up1.x;
-                position.upY = up1.y;
-                position.upZ = up1.z;
+                position.upX = p1.up_x;
+                position.upY = p1.up_y;
+                position.upZ = p1.up_z;
             } else {
                 position.posX = p0.x + dt.x * theta;
                 position.posY = p0.y + dt.y * theta;
                 position.posZ = p0.z + dt.z * theta;
-                position.upX = up0.x + up_dt.x * theta;
-                position.upY = up0.y + up_dt.y * theta;
-                position.upZ = up0.z + up_dt.z * theta;
+                if (this.lerp_roll) {
+                    Util.lerpOrientation(position, this.p0, this.p1, theta);
+                } else {
+                    position.upX = p0.up_x;
+                    position.upY = p0.up_y;
+                    position.upZ = p0.up_z;
+                }
             }
         }
 

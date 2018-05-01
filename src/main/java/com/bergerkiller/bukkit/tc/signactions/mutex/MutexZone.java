@@ -25,6 +25,10 @@ public class MutexZone {
                 block.x <= end.x && block.y <= end.y && block.z <= end.z;
     }
 
+    public boolean isNearby(UUID world, IntVector3 block) {
+        return world.equals(this.world); //TODO: Also check block
+    }
+
     public static MutexZone fromSign(SignActionEvent info) {
         // mutex dx/dy/dz
         // mutex (dx+dz)/dy

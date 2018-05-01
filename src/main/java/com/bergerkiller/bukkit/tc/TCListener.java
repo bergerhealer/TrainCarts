@@ -409,10 +409,6 @@ public class TCListener implements Listener {
             if (clickedBlock == null) {
                 // Use ray tracing to obtain the correct block
                 clickedBlock = CommonEntity.get(event.getPlayer()).getTargetBlock();
-                if (clickedBlock == null) {
-                    // No interaction occurred
-                    return;
-                }
             }
 
             // Debug tools
@@ -424,6 +420,11 @@ public class TCListener implements Listener {
                         DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), debugType);
                     }
                 }
+            }
+
+            // No interaction occurred
+            if (clickedBlock == null) {
+                return;
             }
 
             //System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");

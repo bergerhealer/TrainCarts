@@ -1,13 +1,12 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -942,5 +941,86 @@ public class Util {
     public static BlockFace calculateEnterFace(Vector position, Vector direction) {
         //TODO: No longer needed!
         return RailAABB.BLOCK.calculateEnterFace(position, direction);
+    }
+
+    // some magic to turn a vector into the most appropriate block face
+    public static BlockFace vecToFace(Vector vector, boolean useSubCardinalDirections) {
+        return vecToFace(vector.getX(), vector.getY(), vector.getZ(), useSubCardinalDirections);
+    }
+
+    // some magic to turn a vector into the most appropriate block face
+    public static BlockFace vecToFace(double dx, double dy, double dz, boolean useSubCardinalDirections) {
+        double sqlenxz = dx*dx + dz*dz;
+        double sqleny = dy*dy;
+        if (sqleny > (sqlenxz + 1e-6)) {
+            return FaceUtil.getVertical(dy);
+        } else {
+            return FaceUtil.getDirection(dx, dz, useSubCardinalDirections);
+        }
+    }
+
+    /**
+     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
+     * rotation between the two.
+     * 
+     * @param up0
+     * @param up1
+     * @param theta
+     * @return orientation up-vector at theta
+     */
+    public static Vector lerpOrientation(Vector up0, Vector up1, double theta) {
+        Quaternion qa = Quaternion.fromLookDirection(up0);
+        Quaternion qb = Quaternion.fromLookDirection(up1);
+        Quaternion q = Quaternion.slerp(qa, qb, theta);
+        return q.forwardVector();
+    }
+
+    /**
+     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
+     * rotation between the two.
+     * 
+     * @param result to store the lerp result into
+     * @param p0
+     * @param p1
+     * @param theta
+     */
+    public static void lerpOrientation(RailPath.Position result, RailPath.Point p0, RailPath.Point p1, double theta) {
+        Vector vup0 = p0.up();
+        Vector vup1 = p1.up();
+        Vector vup = lerpOrientation(vup0, vup1, theta);
+        result.upX = vup.getX();
+        result.upY = vup.getY();
+        result.upZ = vup.getZ();
+    }
+
+    /**
+     * Calculates the 3 rotation angles for an armor stand pose from a Quaternion rotation
+     * 
+     * @param rotation
+     * @return armor stand x/y/z rotation angles
+     */
+    public static Vector getArmorStandPose(Quaternion rotation) {
+        double qx = rotation.getX();
+        double qy = rotation.getY();
+        double qz = rotation.getZ();
+        double qw = rotation.getW();
+
+        double rx = 1.0 + 2.0 * (-qy*qy-qz*qz);
+        double ry = 2.0 * (qx*qy+qz*qw);
+        double rz = 2.0 * (qx*qz-qy*qw);
+        double uz = 2.0 * (qy*qz+qx*qw);
+        double fz = 1.0 + 2.0 * (-qx*qx-qy*qy);
+
+        if (Math.abs(rz) < (1.0 - 1E-15)) {
+            // Standard calculation
+            return new Vector(Math.toDegrees(Math.atan2(uz, fz)),
+                              Math.toDegrees(Math.asin(rz)),
+                              Math.toDegrees(Math.atan2(-ry, rx)));
+        } else {
+            // At the -90 or 90 degree angle singularity
+            final double sign = (rz < 0) ? -1.0 : 1.0;
+            return new Vector(0.0, sign * 90.0,
+                    Math.toDegrees(-sign * 2.0 * Math.atan2(qx, qw)));
+        }
     }
 }

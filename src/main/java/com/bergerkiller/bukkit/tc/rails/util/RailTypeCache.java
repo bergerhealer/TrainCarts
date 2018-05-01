@@ -12,36 +12,59 @@ import com.bergerkiller.bukkit.tc.utils.RailInfo;
  * Caches rail types found at Minecart positions to improve performance when walking tracks
  */
 public class RailTypeCache {
+    private static final RailInfo[] EMPTY_INFO = new RailInfo[0];
     private static final HashMap<Block, CachedRailType> cachedRailTypes = new HashMap<Block, CachedRailType>();
 
     public static void removeInfo(Block posBlock) {
         cachedRailTypes.remove(posBlock);
     }
 
-    public static RailInfo getInfo(Block posBlock) {
+    /**
+     * Gets all the cached rail informations available at a particular block position
+     * 
+     * @param posBlock
+     * @return list of valid rails at a block position
+     */
+    public static RailInfo[] getInfo(Block posBlock) {
         CachedRailType cached = cachedRailTypes.get(posBlock);
-        if (cached != null) {
-            // Verify if needed
-            if (cached.life > 0) {
+        if (cached == null) {
+            return EMPTY_INFO; // No rails
+        }
+
+        // Verify if needed
+        if (cached.life > 0) {
+            // Verify that all stored rails types are actually still valid (the rails exists)
+            // It is incredibly rare that the rails stops existing, so make this as fast as possible!
+            // Hence we use an array instead of a list because why not?
+            // If we detect a single rail being missing, invalidate the entire cache for that block
+            for (int i = 0; i < cached.info.length; i++) {
+                RailInfo info = cached.info[i];
                 try {
-                    if (cached.info.railType.isRail(cached.info.railBlock)) {
-                        cached.life = 0;
-                    } else {
+                    if (!info.railType.isRail(info.railBlock)) {
                         removeInfo(posBlock);
-                        return null; // Invalid!
+                        return EMPTY_INFO; // Invalid
                     }
                 } catch (Throwable t) {
                     removeInfo(posBlock);
-                    RailType.handleCriticalError(cached.info.railType, t);
-                    return null; // Error!
+                    RailType.handleCriticalError(info.railType, t);
+                    return EMPTY_INFO; // Error
                 }
             }
-            return cached.info;
+
+            // Still good. Reset life to 0 so that we don't do this check upon the next invocation.
+            cached.life = 0;
         }
-        return null;
+
+        return cached.info;
     }
 
-    public static void storeInfo(Block block, RailInfo info) {
+    @Deprecated
+    public static RailInfo getInfoOld(Block posBlock) {
+        RailInfo[] info = getInfo(posBlock);
+        return (info.length > 0) ? info[0] : null;
+    }
+
+    public static void storeInfo(Block block, RailInfo[] info) {
         cachedRailTypes.put(block, new CachedRailType(info));
     }
 
@@ -61,10 +84,10 @@ public class RailTypeCache {
     }
 
     private static final class CachedRailType {
-        public final RailInfo info;
+        public final RailInfo[] info;
         public int life; // for automatic purging
 
-        public CachedRailType(RailInfo info) {
+        public CachedRailType(RailInfo[] info) {
             this.info = info;
             this.life = 0;
         }

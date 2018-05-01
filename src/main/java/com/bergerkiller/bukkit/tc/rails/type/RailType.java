@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.Timings;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -12,6 +11,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
@@ -27,7 +27,9 @@ import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -143,38 +145,106 @@ public abstract class RailType {
     }
 
     /**
-     * Checks all registered rail types and attempts to find it for the Minecart position specified.
-     * Some performance enhancements are used to make this lookup faster for repeated calls for the same positions.
+     * Checks all registered rail types and attempts to load it into a {@link RailState} object. This provides
+     * information such as rails block and rail type used. Some performance enhancements are used to make this
+     * lookup faster for repeated calls for positions inside the same block. Note that the position does not
+     * have to be the same position as the rails block itself. For example, rails that have trains hover above
+     * or below it will have entirely different rails blocks.
      * 
-     * @param posBlock block position where the Minecart is at
-     * @return rail info at this block, null if no rails are found
+     * @param state to load with rail information
+     * @param member hint when resolving multiple rails in one block, null to ignore
+     * @return True if rails were found (railtype != NONE), False otherwise
      */
-    public static RailInfo findRailInfo(Block posBlock) {
-        if (posBlock != null) {
-            // First try to look up from the cache
-            RailInfo cachedInfo = RailTypeCache.getInfo(posBlock);
-            if (cachedInfo != null) {
-                return cachedInfo;
-            }
-
+    public static boolean loadRailInformation(RailState state, MinecartMember<?> member) {
+        Block positionBlock = state.positionBlock();
+        RailInfo[] cachedInfo = RailTypeCache.getInfo(positionBlock);
+        if (cachedInfo.length == 0) {
             // Standard lookup. Cache the result if we succeed.
             try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
                 for (RailType type : values()) {
                     try {
-                        Block railsBlock = type.findRail(posBlock);
-                        if (railsBlock != null) {
-                            RailInfo info = new RailInfo(posBlock, railsBlock, type);
-                            RailTypeCache.storeInfo(posBlock, info);
-                            return info;
+                        List<Block> rails = type.findRails(positionBlock);
+                        if (!rails.isEmpty()) {
+                            for (Block railsBlock : rails) {
+                                cachedInfo = Arrays.copyOf(cachedInfo, cachedInfo.length + 1);
+                                cachedInfo[cachedInfo.length - 1] = new RailInfo(positionBlock, railsBlock, type);
+                            }
+                            break;
                         }
                     } catch (Throwable t) {
                         handleCriticalError(type, t);
-                        return null;
                     }
                 }
             }
+
+            // Store in cache if we have results
+            if (cachedInfo.length > 0) {
+                RailTypeCache.storeInfo(positionBlock, cachedInfo);
+            } else {
+                state.setRailBlock(positionBlock);
+                state.setRailType(RailType.NONE);
+                return false;
+            }
         }
-        return null;
+
+        // If more than one rails exists here, pick the most appropriate one for this position
+        // This is a little bit slower, but required for rare instances of multiple rails per block
+        RailInfo result = null;
+        if (cachedInfo.length >= 2) {
+            double minDistSq = Double.MAX_VALUE;
+            for (RailInfo info : cachedInfo) {
+                state.setRailBlock(info.railBlock);
+                state.setRailType(info.railType);
+                RailLogic logic = state.loadRailLogic(member);
+                RailPath path = logic.getPath();
+                double distSq = path.distanceSquared(state.railPosition());
+                if (distSq < minDistSq) {
+                    minDistSq = distSq;
+                    result = info;
+                }
+            }
+        } else {
+            result = cachedInfo[0];
+        }
+
+        state.setRailBlock(result.railBlock);
+        state.setRailType(result.railType);
+        return true;
+    }
+
+    /**
+     * <b>Deprecated: use {@link #findRailInfo(Location)} instead</b>
+     * 
+     * @param posBlock block position where the Minecart is at
+     * @return rail info at this block, null if no rails are found
+     */
+    @Deprecated
+    public static RailInfo findRailInfo(Block posBlock) {
+        return findRailInfo(new Location(posBlock.getWorld(), posBlock.getX() + 0.5, posBlock.getY() + 0.5, posBlock.getZ() + 0.5));
+    }
+
+    /**
+     * Checks all registered rail types and attempts to find it for the Minecart position specified.
+     * Some performance enhancements are used to make this lookup faster for repeated calls for positions inside
+     * the same block. Note that the position does not have to be the same position as the rails block
+     * itself. For example, rails that have trains hover above or below it will have entirely different
+     * rails blocks.
+     * 
+     * @param position in world coordinates where to look for rails
+     * @return rail info at this block, null if no rails are found
+     */
+    public static RailInfo findRailInfo(Location position) {
+        Block positionBlock = position.getBlock();
+        RailState state = new RailState();
+        state.position().setLocation(position);
+        state.setRailBlock(positionBlock);
+        state.setRailType(RailType.NONE);
+        if (loadRailInformation(state, null)) {
+            //public RailInfo(Block posBlock, Block railBlock, RailType railType) {
+            return new RailInfo(positionBlock, state.railBlock(), state.railType());
+        } else {
+            return null;
+        }
     }
 
     public RailType() {
@@ -267,29 +337,36 @@ public abstract class RailType {
     }
 
     /**
-     * <b>Deprecated: this function is never used anymore, only {@link #findRail(Block)} is</b>
-     */
-    @Deprecated
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        Block rail = this.findRail(pos.toBlock(world));
-        return (rail == null) ? null : new IntVector3(rail);
-    }
-
-    /**
-     * Tries to find this Rail Type near a 'next' Block returned by {@link #getNextPos(Block, BlockFace)}
+     * <b>Deprecated: use {@link #findRails(Block)} instead.</b>
      *
      * @param pos Block a Minecart is 'at'
      * @return the rail of this type, or null if not found
      */
-    public abstract Block findRail(Block pos);
+    @Deprecated
+    public Block findRail(Block pos) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     /**
-     * Gets the Block where a Minecart would be if it was using this rail.
-     * This is the inverse of {@link #findRail(Block)}.
+     * Tries to find all the Rails blocks of this Rail Type for a Minecart whose position is inside
+     * a particular Block. Multiple different rails can have logic for a single block area. If no rails
+     * are found, it is recommended to return {@link Collections#emptyList()}.
+     * 
+     * @param positionBlock to find rails at
+     * @return railsBlocks list of rails blocks of this rail type (do NOT return null!)
+     */
+    public List<Block> findRails(Block positionBlock) {
+        Block rail = this.findRail(positionBlock);
+        return (rail == null) ? Collections.emptyList() : Collections.singletonList(rail);
+    }
+
+    /**
+     * <b>Deprecated: this is no longer being used</b>
      *
      * @param trackBlock where this Rail Type is at
      * @return Minecart position
      */
+    @Deprecated
     public abstract Block findMinecartPos(Block trackBlock);
 
     /**
