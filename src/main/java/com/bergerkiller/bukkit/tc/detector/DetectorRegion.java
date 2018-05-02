@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -66,47 +67,14 @@ public final class DetectorRegion {
         }
     }
 
-    public static List<DetectorRegion> handleMove(MinecartMember<?> mm, Block from, Block to) {
-        if (from == to) {
-            // Minecart is not moving
-        } else if (from.getWorld() != to.getWorld()) {
-            handleLeave(mm, from);
-        } else {
-            List<DetectorRegion> list = regions.get(from);
-            //Leave the regions if the to-location is not contained
-            if (list != null) {
-                IntVector3 toCoords = new IntVector3(to);
-                for (DetectorRegion region : list) {
-                    if (!region.coordinates.contains(toCoords)) {
-                        region.remove(mm);
-                    }
-                }
-            }
-        }
-        //Enter possible new locations
-        return handleEnter(mm, to);
-    }
-
-    public static List<DetectorRegion> handleLeave(MinecartMember<?> mm, Block block) {
-        List<DetectorRegion> list = regions.get(block);
-        if (list == null) {
-            return Collections.emptyList();
-        }
-        for (DetectorRegion region : list) {
-            region.remove(mm);
-        }
-        return list;
-    }
-
-    public static List<DetectorRegion> handleEnter(MinecartMember<?> mm, Block block) {
-        List<DetectorRegion> list = regions.get(block);
-        if (list == null) {
-            return Collections.emptyList();
-        }
-        for (DetectorRegion region : list) {
-            region.add(mm);
-        }
-        return list;
+    /**
+     * Gets all the regions occuping a particular rails block
+     * 
+     * @param railsBlock
+     * @return list of detector regions, empty list if no regions exist
+     */
+    public static List<DetectorRegion> getRegions(Block at) {
+        return LogicUtil.fixNull(regions.get(at), Collections.emptyList());
     }
 
     public static void detectAllMinecarts() {
@@ -148,15 +116,6 @@ public final class DetectorRegion {
             break;
         }
         return new DetectorRegion(UUID.randomUUID(), world, coordinates);
-    }
-
-    public static List<DetectorRegion> getRegions(Block at) {
-        List<DetectorRegion> rval = regions.get(at);
-        if (rval == null) {
-            return new ArrayList<>(0);
-        } else {
-            return rval;
-        }
     }
 
     public static DetectorRegion getRegion(UUID uniqueId) {
@@ -307,9 +266,12 @@ public final class DetectorRegion {
         }
     }
 
-    public void add(MinecartMember<?> mm) {
+    public boolean add(MinecartMember<?> mm) {
         if (this.members.add(mm)) {
             this.onEnter(mm);
+            return true;
+        } else {
+            return false;
         }
     }
 
