@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -79,7 +80,7 @@ public class MutexZone {
     public boolean tryEnter(MinecartGroup group) {
         // Check not occupied by someone else
         int serverTicks = CommonUtil.getServerTicks();
-        if (this.currentGroup != null && this.currentGroup != group && !this.currentGroup.isUnloaded()) {
+        if (this.currentGroup != null && this.currentGroup != group && MinecartGroupStore.getGroups().contains(this.currentGroup)) {
             if (serverTicks < this.currentGroupTimeout) {
                 return false;
             }
