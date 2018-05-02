@@ -1063,23 +1063,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
             if (iter.getDistance() == 2) {
                 MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(rail));
-                if (zone != null) {
-                    // Check if already occupied (and not by self)
-                    boolean zoneOccupied = false;
-                    for (MinecartGroup group : MinecartGroupStore.groups) {
-                        if (group == this || group.getWorld() != this.getWorld()) {
-                            continue;
-                        }
-                        for (MinecartMember<?> member : group) {
-                            if (zone.containsBlock(worldUUID, member.getBlockPos())) {
-                                zoneOccupied = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (zoneOccupied) {
-                        return 0.0;
-                    }
+                if (zone != null && !zone.tryEnter(this)) {
+                    return 0.0;
                 }
 
                 if (!checkTrains) {
