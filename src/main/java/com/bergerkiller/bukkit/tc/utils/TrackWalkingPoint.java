@@ -33,6 +33,10 @@ public class TrackWalkingPoint {
      */
     public double moved = 0.0;
     /**
+     * The total distance moved since instantiating this walking point
+     */
+    public double movedTotal = 0.0;
+    /**
      * Is used to make sure rails are only crossed once, if enabled
      */
     private Set<Block> loopFilter = null;
@@ -102,15 +106,16 @@ public class TrackWalkingPoint {
 
         // Move the full length of the path, to the end of the path
         RailPath path = this.currentRailLogic.getPath();
-        path.move(this.state.position(), this.state.railBlock(), Double.MAX_VALUE);
+        this.moved = path.move(this.state, Double.MAX_VALUE);
+        this.movedTotal += this.moved;
 
         // Attempt moving to next rails block
         if (!loadNextRail()) {
             return false;
         }
 
-        // Stop right there! Should we 'snap' onto the position of the new rail, or not?
-        // Is this extra CPU usage worth it?
+        // Snap onto the path before returning
+        this.currentRailLogic.getPath().snap(this.state.position(), this.state.railBlock());
         return true;
     }
 
@@ -141,12 +146,13 @@ public class TrackWalkingPoint {
 
             // Move along the path
             double moved;
-            if (((moved = path.move(this.state.position(), this.state.railBlock(), remainingDistance)) != 0.0) || (remainingDistance <= 0.0001)) {
+            if (((moved = path.move(this.state, remainingDistance)) != 0.0) || (remainingDistance <= 0.0001)) {
                 infCycleCtr = 0;
                 remainingDistance -= moved;
                 if (remainingDistance <= 0.00001) {
                     // Moved the full distance
                     this.moved = distance;
+                    this.movedTotal += this.moved;
                     return true;
                 }
             } else if (++infCycleCtr > 100) {
@@ -155,12 +161,14 @@ public class TrackWalkingPoint {
                 System.err.println("[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
                 System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
                 this.moved = (distance - remainingDistance);
+                this.movedTotal += this.moved;
                 return false;
             }
 
             // Attempt moving to next rails block
             if (!loadNextRail()) {
                 this.moved = (distance - remainingDistance);
+                this.movedTotal += this.moved;
                 return false;
             }
         }
@@ -229,4 +237,40 @@ public class TrackWalkingPoint {
         }
     }
 
+    /**
+     * Moves full or smaller steps until a particular rails block is reached.
+     * The Spawn Location of the rails block is moved towards.
+     * 
+     * @param railsBlock to find
+     * @param maxDistance when to stop looking (and return False)
+     * @return True when the rails was found, False if not.
+     */
+    public boolean moveFindRail(Block railsBlock, double maxDistance) {
+        // Move full rail distances until the rails block is found
+        this.movedTotal = 0.0;
+        while (!BlockUtil.equals(this.state.railBlock(), railsBlock)) {
+            // Out of tracks or distance exceeded
+            if (!this.moveFull() || this.movedTotal > maxDistance) {
+                return false;
+            }
+        }
+
+        // Found our rails Block! Move a tiny step further onto it.
+        // Query the desired spawn location that we should move towards.
+        Location spawnLocation = this.state.railType().getSpawnLocation(railsBlock, this.state.enterFace());
+        RailPath path = this.currentRailLogic.getPath();
+        for (int i = 0; i < 10; i++) {
+            double distance = this.state.position().distance(spawnLocation);
+            if (distance < 1e-4) {
+                break; // 
+            }
+            double moved = path.move(this.state, distance);
+            this.movedTotal += moved;
+            if (moved < 1e-4) {
+                break; // End of path
+            }
+        }
+        this.moved = this.movedTotal;
+        return this.movedTotal <= maxDistance;
+    }
 }

@@ -661,22 +661,35 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return getRailTracker().getBlock();
     }
 
-    /**
-     * Looks at the current position information and attempts to discover any rails
-     * at these positions. The movement of the minecart is taken into account.
-     * If derailed, the rail type of the state is set to NONE and False is returned.
-     * 
-     * @param state to fill with information
-     * @return True if rails are found, False if not
-     */
-    public boolean discoverRail(RailState state) {
+    private final Vector calcMotionVector(boolean ignoreVelocity) {
+        // When derailed, we must rely on relative positioning to figure out the direction
+        // This only works when the minecart has a direct neighbor
+        // If no direct neighbor is available, it will default to using its own velocity
+        Vector motionVector = this.entity.getVelocity();
+        if (ignoreVelocity || motionVector.lengthSquared() <= 1e-5) {
+            if (!this.isSingle()) {
+                MinecartMember<?> next = this.getNeighbour(-1);
+                if (next != null) {
+                    motionVector = this.getEntity().last.offsetTo(next.getEntity().last);
+                } else {
+                    MinecartMember<?> prev = this.getNeighbour(1);
+                    if (prev != null) {
+                        motionVector = prev.getEntity().last.offsetTo(this.getEntity().last);
+                    }
+                }
+            }
+        }
+        return motionVector;
+    }
+
+    private final boolean fillRailInformation(RailState state) {
         // Need an initial Rail Block set
         state.setRailBlock(entity.loc.toBlock());
 
         // No pre-move position? Simply return block at current position.
         if (this.preMovePosition == null) {
             state.position().setLocation(entity.getLocation());
-            state.position().setMotion(entity.getVelocity());
+            state.position().setMotion(this.calcMotionVector(false));
             return RailType.loadRailInformation(state, this);
         }
 
@@ -690,7 +703,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         final double smallStep = 1e-7;
         if (moved <= smallStep || moved > 0.45) {
             state.position().setLocation(entity.getLocation());
-            state.position().setMotion(entity.getVelocity());
+            state.position().setMotion(this.calcMotionVector(false));
             return RailType.loadRailInformation(state, this);
         }
 
@@ -714,7 +727,41 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Current position
         state.position().setLocation(entity.getLocation());
+        state.position().setMotion(this.calcMotionVector(false));
         return RailType.loadRailInformation(state, this);
+    }
+
+    /**
+     * Looks at the current position information and attempts to discover any rails
+     * at these positions. The movement of the minecart is taken into account.
+     * If derailed, the rail type of the state is set to NONE.
+     * 
+     * @return rail state
+     */
+    public RailState discoverRail() {
+        // Store motion vector in state
+        RailState state = new RailState();
+        boolean result = this.fillRailInformation(state);
+        if (!result) {
+            state.setMotionVector(this.calcMotionVector(true));
+        }
+
+        // Normalize motion vector
+        state.position().normalizeMotion();
+
+        // When railed, compute the direction by snapping the motion vector onto the rail
+        // This creates a motion vector perfectly aligned with the rail path.
+        // This is important for later when looking for more rails, because we can
+        // invert the motion vector to go 'the other way'.
+        if (state.railType() != RailType.NONE) {
+            RailLogic logic = state.loadRailLogic(this);
+            RailPath path = logic.getPath();
+            if (!path.isEmpty()) {
+                path.snap(state.position(), state.railBlock());
+            }
+        }
+
+        return state;
     }
 
     /**

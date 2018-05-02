@@ -101,6 +101,16 @@ public class RailTrackerMember extends RailTracker {
     }
 
     /**
+     * Gets rail state information of this Minecart.
+     * This includes rail type, rail block, position and motion vector on the rails.
+     * 
+     * @return rail state
+     */
+    public RailState getState() {
+        return this.rail.state;
+    }
+
+    /**
      * Gets the position of the rail of the current tick
      * 
      * @return current rail position

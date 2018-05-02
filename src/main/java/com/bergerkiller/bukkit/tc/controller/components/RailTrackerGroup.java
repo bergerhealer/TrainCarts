@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -90,12 +89,58 @@ public class RailTrackerGroup extends RailTracker {
      * Refreshes rail information, recalculating rail positions, directions and disconnect states
      */
     public void refresh() {
+        final boolean DEBUG_RAILS = false;
+
         try (Timings t = TCTimings.RAILTRACKER_REFRESH.start()) {
             this.prevRails.clear();
             this.prevRails.addAll(this.rails);
             this.rails.clear();
             refreshFrom(this.owner.size() - 1, false);
-            calcWheelTracks();
+
+            if (DEBUG_RAILS) {
+                List<TrackedRail> behindRails = new ArrayList<TrackedRail>();
+                List<TrackedRail> midRails = new ArrayList<TrackedRail>(this.rails);
+                List<TrackedRail> aheadRails = new ArrayList<TrackedRail>();
+
+                calcWheelTracks();
+
+                boolean gotToAhead = false;
+                for (TrackedRail rail : this.rails) {
+                    if (midRails.contains(rail)) {
+                        gotToAhead = true;
+                    } else if (gotToAhead) {
+                        aheadRails.add(rail);
+                    } else {
+                        behindRails.add(rail);
+                    }
+                }
+
+                // Red: Behind tracks
+                for (int i = 0; i < behindRails.size(); i++) {
+                    Location loc = behindRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    double theta =  (double) i / (double) (behindRails.size() - 1);
+
+                    Util.spawnDustParticle(loc, 0.5 * theta + 0.5, 0.0, 0.0);
+                }
+                // Red-Green with blueish: Middle tracks
+                for (int i = 0; i < midRails.size(); i++) {
+                    Location loc = midRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    double theta = (double) i / (double) (midRails.size() - 1);
+
+                    Util.spawnDustParticle(loc, 0.5 * (1.0 - theta), 0.5 * theta, 1.0);
+                }
+                // Green: Ahead tracks
+                for (int i = 0; i < aheadRails.size(); i++) {
+                    Location loc = aheadRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    double theta = (double) i / (double) (aheadRails.size() - 1);
+
+                    Util.spawnDustParticle(loc, 0.0, 0.5 * (1.0 - theta) + 0.5, 0.0);
+                }
+
+            } else {
+                calcWheelTracks();
+            }
+
             Collections.reverse(this.rails);
 
             // Log the rail information
@@ -183,7 +228,6 @@ public class RailTrackerGroup extends RailTracker {
             TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
             int loopCtr = 0; // This is to prevent infinite loops
-            boolean first = true;
             while (true) {
                 RailPath path = p.currentRailLogic.getPath();
                 double moved = path.move(position, p.state.railBlock(), wheelDistance);
@@ -317,7 +361,7 @@ public class RailTrackerGroup extends RailTracker {
 
                         // If the direction of the rail is wrong, fix it
                         if (order < 0) {
-                            rail = rail.changeDirection(position.getMotionFace().getOppositeFace());
+                            rail = rail.invertMotionVector();
                         }
 
                         rail.cachedPath = path;
@@ -337,8 +381,7 @@ public class RailTrackerGroup extends RailTracker {
                 while (p.hasNext() && wheelDistance > 0.0) {
                     p.next();
 
-                    RailLogicState state = new RailLogicState(null, p.currentTrack, p.currentDirection);
-                    RailLogic logic = p.currentRail.getLogic(state);
+                    RailLogic logic = p.getState().loadRailLogic(null);
                     RailPath path = logic.getPath();
                     double moved = path.move(position, p.currentTrack, wheelDistance);
 
@@ -354,8 +397,8 @@ public class RailTrackerGroup extends RailTracker {
                         first = false;
                     } else {
                         // Add rail information
-                        TrackedRail rail = new TrackedRail(tail, p.current.getLocation(), p, false);
-                        rail = rail.changeDirection(p.currentDirection.getOppositeFace());
+                        TrackedRail rail = new TrackedRail(tail, p.getState(), false);
+                        rail = rail.invertMotionVector();
                         rail.cachedPath = path;
                         this.rails.add(railIndex, rail);
                     }
@@ -426,8 +469,8 @@ public class RailTrackerGroup extends RailTracker {
     }
 
     private static RailState getRailPos(MinecartMember<?> member) {
-        RailState state = new RailState();
-        return member.discoverRail(state) ? state : null;
+        RailState state = member.discoverRail();
+        return (state.railType() == RailType.NONE) ? null : state;
     }
 
     private class RailFinder {
@@ -467,9 +510,11 @@ public class RailTrackerGroup extends RailTracker {
                     if (p.state.isSameRails(nextPos)) {
                         // If we found the next member for the first time, also update the starting minecart with the correct info
                         result.numMembers++;
- 
-                        // Invert direction if needed
-                        if (nextPos.position().motDot(p.state.motionVector()) < 0.0) {
+
+                        // Preserve motion vector from walking point
+                        // TODO: Should we instead 'move' towards nextPos from p.state?
+                        //       This would better handle curved paths
+                        if (p.state.position().motDot(nextPos.motionVector()) < 0.0) {
                             nextPos.position().invertMotion();
                         }
 

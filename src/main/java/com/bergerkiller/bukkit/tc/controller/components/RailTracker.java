@@ -164,7 +164,7 @@ public abstract class RailTracker {
             state.position().setMotion(member.getEntity().getVelocity());
             state.setRailBlock(loc.getBlock());
             state.setRailType(RailType.NONE);
-            return create(member, state, false);
+            return new TrackedRail(member, state, false);
         }
 
         /**
@@ -175,64 +175,7 @@ public abstract class RailTracker {
          * @return tracked rail information for the member
          */
         public static TrackedRail create(MinecartMember<?> member, boolean disconnected) {
-            RailState state = new RailState();
-            member.discoverRail(state);
-            return create(member, state, disconnected);
-        }
-
-        /**
-         * Evaluates the Minecart position and rail information and creates Tracked rail information for it.
-         * 
-         * @param member to get the tracked rail information for
-         * @param state of the rails previously calculated for the member
-         * @param disconnected whether the rail is disconnected from the previous
-         * @return tracked rail information for the member
-         */
-        public static TrackedRail create(MinecartMember<?> member, RailState state, boolean disconnected) {
-            Vector motionVector = member.getEntity().getVelocity();
-
-            // When derailed, we must rely on relative positioning to figure out the direction
-            // This only works when the minecart has a direct neighbor
-            // If no direct neighbor is available, it will default to using its own velocity
-            if (motionVector.lengthSquared() <= 1e-5 || state.railType() == RailType.NONE || member.getRailTracker().getLastRailType() == RailType.NONE) {
-                if (!member.isSingle()) {
-                    MinecartMember<?> next = member.getNeighbour(-1);
-                    if (next != null) {
-                        motionVector = member.getEntity().last.offsetTo(next.getEntity().last);
-                    } else {
-                        MinecartMember<?> prev = member.getNeighbour(1);
-                        if (prev != null) {
-                            motionVector = prev.getEntity().last.offsetTo(member.getEntity().last);
-                        }
-                    }
-                }
-            }
-
-            // Normalize motion vector
-            double n = MathUtil.getNormalizationFactor(motionVector);
-            if (Double.isInfinite(n)) {
-                motionVector.setX(0.0);
-                motionVector.setY(-1.0);
-                motionVector.setZ(0.0);
-            } else {
-                motionVector.multiply(n);
-            }
-
-            state.position().setMotion(motionVector);
-
-            // When railed, compute the direction by snapping the motion vector onto the rail
-            // This creates a motion vector perfectly aligned with the rail path.
-            // This is important for later when looking for more rails, because we can
-            // invert the motion vector to go 'the other way'.
-            if (state.railType() != RailType.NONE) {
-                RailLogic logic = state.loadRailLogic(member);
-                RailPath path = logic.getPath();
-                if (!path.isEmpty()) {
-                    path.snap(state.position(), state.railBlock());
-                }
-            }
-
-            return new TrackedRail(member, state, disconnected);
+            return new TrackedRail(member, member.discoverRail(), disconnected);
         }
 
     }

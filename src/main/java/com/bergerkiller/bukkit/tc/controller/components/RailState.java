@@ -82,6 +82,15 @@ public class RailState {
     }
 
     /**
+     * Sets the motion vector of {@link #position()}.
+     * 
+     * @param motionVector to set to
+     */
+    public void setMotionVector(Vector motionVector) {
+        this._position.setMotion(motionVector);
+    }
+
+    /**
      * Gets the rails block which is currently used to control the movement of the path.
      * 
      * @return rails block

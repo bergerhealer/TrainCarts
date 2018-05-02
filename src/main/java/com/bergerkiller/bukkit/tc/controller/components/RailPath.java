@@ -169,6 +169,20 @@ public class RailPath {
 
     /**
      * Moves along this rail path for a certain distance.
+     * The input rail state information is updated with the movement.
+     * A movement distance of 0 can be used to snap the minecart onto the path.
+     * A return distance of 0.0 indicates that the end of the path was reached.
+     * 
+     * @param state with rail position, direction and block information
+     * @param distance to move
+     * @return actual distance moved. Can be less than distance if the end of the path is reached.
+     */
+    public double move(RailState state, double distance) {
+        return this.move(state.position(), state.railBlock(), distance);
+    }
+
+    /**
+     * Moves along this rail path for a certain distance.
      * The input position information is updated with the movement.
      * A movement distance of 0 can be used to snap the minecart onto the path.
      * A return distance of 0.0 indicates that the end of the path was reached.
@@ -449,6 +463,11 @@ public class RailPath {
          */
         public boolean reverse = false;
 
+        public double distance(Location location) {
+            return MathUtil.distance(posX, posY, posZ,
+                    location.getX(), location.getY(), location.getZ());
+        }
+
         public Location toLocation(World world) {
             return new Location(world, posX, posY, posZ);
         }
@@ -516,6 +535,19 @@ public class RailPath {
             this.motX = -this.motX;
             this.motY = -this.motY;
             this.motZ = -this.motZ;
+        }
+
+        public void normalizeMotion() {
+            double n = MathUtil.getNormalizationFactor(this.motX, this.motY, this.motZ);
+            if (Double.isInfinite(n)) {
+                this.motX = 0.0;
+                this.motY = -1.0;
+                this.motZ = 0.0;
+            } else {
+                this.motX *= n;
+                this.motY *= n;
+                this.motZ *= n;
+            }
         }
 
         public void copyTo(Position p) {

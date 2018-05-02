@@ -146,4 +146,7 @@ public class TrackMovingPoint {
         this.hasNext = true;
     }
 
+    public RailState getState() {
+        return this.walkingPoint.state;
+    }
 }

@@ -914,6 +914,32 @@ public class Util {
     }
 
     /**
+     * Spawns a colored dust particle, the color can be specified
+     * 
+     * @param loc to spawn at
+     * @param red color value [0.0 ... 1.0]
+     * @param green color value [0.0 ... 1.0]
+     * @param blue color value [0.0 ... 1.0]
+     */
+    public static void spawnDustParticle(Location loc, double red, double green, double blue) {
+        red = MathUtil.clamp(red, 0.0, 1.0);
+        green = MathUtil.clamp(green, 0.0, 1.0);
+        blue = MathUtil.clamp(blue, 0.0, 1.0);
+        if (red > 0.5) {
+            red -= 1.0;
+            if (red > -0.01) {
+                red = -0.01;
+            }
+        } else {
+            red *= 1.7;
+            if (red < 0.00001) {
+                red = 0.00001;
+            }
+        }
+        loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 0, red, green, blue, 1.0);
+    }
+
+    /**
      * Rotates the yaw/pitch of a Location to invert the direction it is pointing into
      * 
      * @param loc to rotate
