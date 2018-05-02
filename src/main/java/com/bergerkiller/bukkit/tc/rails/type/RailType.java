@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
@@ -196,6 +197,7 @@ public abstract class RailType {
             for (RailInfo info : cachedInfo) {
                 state.setRailBlock(info.railBlock);
                 state.setRailType(info.railType);
+                Util.calculateEnterFace(state);
                 RailLogic logic = state.loadRailLogic(member);
                 RailPath path = logic.getPath();
                 double distSq = path.distanceSquared(state.railPosition());
@@ -210,6 +212,7 @@ public abstract class RailType {
 
         state.setRailBlock(result.railBlock);
         state.setRailType(result.railType);
+        Util.calculateEnterFace(state);
         return true;
     }
 

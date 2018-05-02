@@ -7,7 +7,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -19,11 +18,13 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 public class RailState {
     private Block _railBlock;
     private RailType _railType;
+    private BlockFace _enterFace;
     private final RailPath.Position _position;
 
     public RailState() {
         this._railBlock = null;
         this._railType = RailType.NONE;
+        this._enterFace = null;
         this._position = new RailPath.Position();
     }
 
@@ -141,19 +142,24 @@ public class RailState {
     }
 
     /**
-     * Calculates the Block Face that was entered of the Block at the current position.
+     * Sets the Block Face that was entered of the Block at the current position.
      * 
      * @return entered Block Face
      */
     public BlockFace enterFace() {
-        Vector pos = new Vector(this._position.posX - MathUtil.floor(this._position.posX),
-                                this._position.posY - MathUtil.floor(this._position.posY),
-                                this._position.posZ - MathUtil.floor(this._position.posZ));
-        Vector dir = this._position.getMotion();
-        return Util.calculateEnterFace(pos, dir);
-        
-        
-        //return this.railType().getBoundingBox(this.railBlock()).calculateEnterFace(railPosition(), this._position.getMotion());
+        if (this._enterFace == null) {
+            throw new IllegalStateException("Enter face has not been initialized");
+        }
+        return this._enterFace;
+    }
+
+    /**
+     * Sets the Block Face that was entered of the rails Block at the current position.
+     * 
+     * @param enterFace to set to
+     */
+    public void setEnterFace(BlockFace enterFace) {
+        this._enterFace = enterFace;
     }
 
     /**
@@ -185,6 +191,7 @@ public class RailState {
         this.position().copyTo(state.position());
         state.setRailBlock(this.railBlock());
         state.setRailType(this.railType());
+        state.setEnterFace(this.enterFace());
         return state;
     }
 

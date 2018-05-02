@@ -116,18 +116,8 @@ public abstract class RailTracker {
             p.motX = -p.motX;
             p.motY = -p.motY;
             p.motZ = -p.motZ;
+            Util.calculateEnterFace(state);
             return new TrackedRail(member, state, this.disconnected);
-        }
-
-        /**
-         * Creates new rail information with a changed movement direction
-         * 
-         * @param dir to set the direction to
-         * @return rail information with changed direction
-         */
-        @Deprecated
-        public TrackedRail changeDirection(BlockFace dir) {
-            return new TrackedRail(member, state.positionLocation(), minecartBlock, block, type, this.disconnected, FaceUtil.faceToVector(dir)/*this.motionVector*/, dir);
         }
 
         /**
@@ -164,6 +154,7 @@ public abstract class RailTracker {
             state.position().setMotion(member.getEntity().getVelocity());
             state.setRailBlock(loc.getBlock());
             state.setRailType(RailType.NONE);
+            Util.calculateEnterFace(state);
             return new TrackedRail(member, state, false);
         }
 

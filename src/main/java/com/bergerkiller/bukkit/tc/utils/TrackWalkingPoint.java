@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -72,6 +73,7 @@ public class TrackWalkingPoint {
             this.state.setRailType(RailType.getType(startRail));
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
+            Util.calculateEnterFace(this.state);
             this.currentRailLogic = this.state.loadRailLogic(null);
         }
     }
@@ -108,6 +110,7 @@ public class TrackWalkingPoint {
         RailPath path = this.currentRailLogic.getPath();
         this.moved = path.move(this.state, Double.MAX_VALUE);
         this.movedTotal += this.moved;
+        Util.calculateEnterFace(this.state);
 
         // Attempt moving to next rails block
         if (!loadNextRail()) {
@@ -153,6 +156,7 @@ public class TrackWalkingPoint {
                     // Moved the full distance
                     this.moved = distance;
                     this.movedTotal += this.moved;
+                    Util.calculateEnterFace(this.state);
                     return true;
                 }
             } else if (++infCycleCtr > 100) {
@@ -162,6 +166,7 @@ public class TrackWalkingPoint {
                 System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
+                Util.calculateEnterFace(this.state);
                 return false;
             }
 
@@ -169,6 +174,7 @@ public class TrackWalkingPoint {
             if (!loadNextRail()) {
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
+                Util.calculateEnterFace(this.state);
                 return false;
             }
         }

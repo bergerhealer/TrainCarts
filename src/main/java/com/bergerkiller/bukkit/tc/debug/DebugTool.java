@@ -11,6 +11,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -44,6 +45,7 @@ public class DebugTool {
             RailState state = new RailState();
             state.setRailBlock(loc.getBlock());
             state.position().setMotion(dir);
+            Util.calculateEnterFace(state);
 
             double minDist = Double.MAX_VALUE;
             for (double d = 0.0; d <= 200.0; d += 0.01) {

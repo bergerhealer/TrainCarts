@@ -744,6 +744,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         boolean result = this.fillRailInformation(state);
         if (!result) {
             state.setMotionVector(this.calcMotionVector(true));
+            Util.calculateEnterFace(state);
         }
 
         // Normalize motion vector

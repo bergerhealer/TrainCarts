@@ -271,17 +271,21 @@ public class RailTrackerGroup extends RailTracker {
             return;
         }
 
-        BlockFace movementDirectionFace = startInfo.getLogic().getMovementDirection(startInfo.enterFace);
+        // Calculate the actual direction in which the minecart moves
+        // This is important when initializing the direction to move over the paths
+        // Behind, so invert it (-1)
+        Vector movementDirection = startInfo.state.motionVector();
+        movementDirection.multiply(-1.0);
 
         // No next member, so we can't compute a direction from that
         // Simply walk the wheel distance forwards to find out that angle
         // Which wheel is in the direction we are going to be looking at?
         double wheelDistance;
         Vector ownDirection = tail.getOrientationForward();
-        if (MathUtil.isHeadingTo(movementDirectionFace, ownDirection)) {
-            wheelDistance = tail.getWheels().back().getDistance();
-        } else {
+        if (MathUtil.isHeadingTo(movementDirection, ownDirection)) {
             wheelDistance = tail.getWheels().front().getDistance();
+        } else {
+            wheelDistance = tail.getWheels().back().getDistance();
         }
 
         // Use known previous rail information to walk backwards to find the rails of the back wheel
@@ -304,11 +308,10 @@ public class RailTrackerGroup extends RailTracker {
                 for (int i = 0; i < this.prevRails.size(); i++) {
                     if (this.prevRails.get(i).member == startInfo.member) {
                         TrackedRail prev = this.prevRails.get(i);
-                        TrackMovingPoint p = new TrackMovingPoint(prev.block, prev.enterFace);
-                        p.next(); // skip start rail
-                        if (p.hasNext()) {
-                            p.next(false);
-                            if (p.currentTrack.equals(startInfo.block)) {
+                        TrackWalkingPoint p = new TrackWalkingPoint(prev.state);
+                        p.skipFirst();
+                        if (p.moveFull()) {
+                            if (p.state.isSameRails(startInfo.state)) {
                                 this.prevRails.add(i, startInfo);
                                 prevRailStartIndex = i;
                             }
@@ -318,18 +321,13 @@ public class RailTrackerGroup extends RailTracker {
                 }
             }
 
-            // Calculate the actual direction in which the minecart moves
-            // This is important when initializing the direction to move over the paths
-            Vector movementDirection = FaceUtil.faceToVector(movementDirectionFace);
-            movementDirection.multiply(-1.0);
-
             Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
             position.reverse = true;
 
             // If previous rails are found, walk them first
             if (prevRailStartIndex != -1) {
                 TrackedRail startRail = this.prevRails.get(prevRailStartIndex);
-                BlockFace prevStartDirection = startRail.getLogic().getMovementDirection(startRail.enterFace);
+                Vector prevStartVector = startRail.state.motionVector();
 
                 // Move as much as possible over the current rail
                 // This sets our position to the end-position of the current rail
@@ -341,7 +339,7 @@ public class RailTrackerGroup extends RailTracker {
                     // We need to walk more tracks. To do so, we must figure out whether we go +1 or -1.
                     // To find this out, we first obtain the movement direction over the start rails when forwards
                     int order;
-                    if (MathUtil.isHeadingTo(prevStartDirection, new Vector(position.motX, position.motY, position.motZ))) {
+                    if (MathUtil.isHeadingTo(prevStartVector, new Vector(position.motX, position.motY, position.motZ))) {
                         order = -1;
                     } else {
                         order = 1;
