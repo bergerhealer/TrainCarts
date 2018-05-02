@@ -179,12 +179,39 @@ public final class DetectorRegion {
         return this.coordinates;
     }
 
+    private void cleanUnloadedMembers() {
+        Iterator<MinecartMember<?>> iter = this.members.iterator();
+        while (iter.hasNext()) {
+            MinecartMember<?> mm = iter.next();
+            if (mm.isUnloaded()) {
+                iter.remove();
+
+                // Attempt to retrieve position info
+                Block pos = null;
+                if (mm.getEntity() != null) {
+                    pos = mm.getEntity().getLocation().getBlock();
+                } else {
+                    pos = mm.getRailTracker().getBlock();
+                    if (pos == null) {
+                        pos = mm.getRailTracker().getLastBlock();
+                    }
+                }
+                String posStr = "Unknown";
+                if (pos != null) {
+                    posStr = "[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "]";
+                }
+                TrainCarts.plugin.getLogger().warning("[Detector] Purged unloaded Minecart at " + posStr);
+            }
+        }
+    }
+
     public Set<MinecartMember<?>> getMembers() {
         return this.members;
     }
 
     public Set<MinecartGroup> getGroups() {
         Set<MinecartGroup> rval = new HashSet<>();
+        this.cleanUnloadedMembers();
         for (MinecartMember<?> mm : this.members) {
             if (mm.getGroup() == null) continue;
             rval.add(mm.getGroup());
@@ -223,6 +250,7 @@ public final class DetectorRegion {
         if (mm.isUnloaded()) {
             return;
         }
+        this.cleanUnloadedMembers();
         final MinecartGroup group = mm.getGroup();
         for (MinecartMember<?> ex : this.members) {
             if (ex != mm && ex.getGroup() == group) {
@@ -241,6 +269,7 @@ public final class DetectorRegion {
         if (mm.isUnloaded()) {
             return;
         }
+        this.cleanUnloadedMembers();
         final MinecartGroup group = mm.getGroup();
         for (MinecartMember<?> ex : this.members) {
             if (ex != mm && ex.getGroup() == group) {
@@ -292,6 +321,7 @@ public final class DetectorRegion {
     }
 
     public void remove() {
+        this.cleanUnloadedMembers();
         Iterator<MinecartMember<?>> iter = this.members.iterator();
         while (iter.hasNext()) {
             this.onLeave(iter.next());

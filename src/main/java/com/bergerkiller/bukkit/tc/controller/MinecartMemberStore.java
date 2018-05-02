@@ -336,7 +336,7 @@ public abstract class MinecartMemberStore {
             for (MinecartGroup group : MinecartGroupStore.getGroups()) {
                 if (group.getWorld() != world) continue;
                 mm = group.getAt(coord);
-                if (mm == null) continue;
+                if (mm == null || mm.isUnloaded()) continue;
                 return mm;
             }
         }
