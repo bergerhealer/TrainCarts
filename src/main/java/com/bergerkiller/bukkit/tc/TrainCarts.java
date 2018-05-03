@@ -270,6 +270,9 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
+        // Do this first
+        Conversion.registerConverters(MinecartMemberStore.class);
+
         //Load configuration
         loadConfig();
 
@@ -365,7 +368,11 @@ public class TrainCarts extends PluginBase {
         this.register(TCListener.class);
         this.register(RedstoneTracker.class);
         this.register("train", "cart");
-        Conversion.registerConverters(MinecartMemberStore.class);
+
+        // Destroy all trains after initializing if specified
+        if (TCConfig.destroyAllOnShutdown) {
+            getLogger().info("[DestroyOnShutdown] Destroyed " + OfflineGroupManager.destroyAll() + " trains or minecarts");
+        }
     }
 
     /**
@@ -414,6 +421,11 @@ public class TrainCarts extends PluginBase {
     }
 
     public void disable() {
+        //Destroy all trains after initializing if specified
+        if (TCConfig.destroyAllOnShutdown) {
+            getLogger().info("[DestroyOnShutdown] Destroyed " + OfflineGroupManager.destroyAll() + " trains or minecarts");
+        }
+
         //Unregister listeners
         this.unregister(packetListener);
         packetListener = null;

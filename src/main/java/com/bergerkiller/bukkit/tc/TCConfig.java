@@ -32,6 +32,7 @@ public class TCConfig {
     // This allows people to restore older logic
     public static boolean legacySpeedLimiting;
 
+    public static boolean destroyAllOnShutdown;
     public static double maxVelocity;
     public static double maxEjectDistance;
     public static double cartDistanceGapMax;
@@ -139,6 +140,8 @@ public class TCConfig {
         config.setHeader("launchForce", "\nThe amount of velocity stations give when launching trains");
         launchForce = config.get("launchForce", 10.0);
 
+        config.setHeader("destroyAllOnShutdown", "\nDestroys all existing minecarts on startup and shutdown of the plugin");
+        destroyAllOnShutdown = config.get("destroyAllOnShutdown", false);
 
         // Deprecation backwards compatibility
         if (config.contains("pushAway")) {
