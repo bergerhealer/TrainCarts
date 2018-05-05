@@ -21,7 +21,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     private static final String propertiesFile = "TrainProperties.yml";
     private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
     private static FileConfiguration defconfig = null;
-    private static HashMap<String, TrainProperties> trainProperties = new HashMap<>();
+    private static Map<String, TrainProperties> trainProperties = new TreeMap<>();
 
     /**
      * Gets all the TrainProperties available
