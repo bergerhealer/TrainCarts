@@ -84,7 +84,9 @@ public class SignTrackerGroup extends SignTracker {
         detectorRegions.clear();
     }
 
-    @Override
+    /**
+     * Tells detector regions (and signs?) that the tracker owner has unloaded
+     */
     public void unload() {
         // Unload in detector regions
         if (!this.detectorRegions.isEmpty()) {
@@ -93,9 +95,9 @@ public class SignTrackerGroup extends SignTracker {
             }
             this.detectorRegions.clear();
         }
-        for (MinecartMember<?> member : owner) {
-            member.getSignTracker().unload();
-        }
+
+        // Send leave events to all signs
+        this.clear();
     }
 
     @Override

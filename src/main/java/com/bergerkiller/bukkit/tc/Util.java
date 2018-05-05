@@ -14,11 +14,13 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -1065,5 +1067,14 @@ public class Util {
                                 p.posZ - MathUtil.floor(p.posZ));
         Vector dir = p.getMotion();
         state.setEnterFace(calculateEnterFace(pos, dir));
+    }
+
+    /**
+     * Marks a chunk as dirty, so that it is saved again when it unloads
+     * 
+     * @param chunk
+     */
+    public static final void markChunkDirty(Chunk chunk) {
+        ChunkHandle.fromBukkit(chunk).markDirty();
     }
 }
