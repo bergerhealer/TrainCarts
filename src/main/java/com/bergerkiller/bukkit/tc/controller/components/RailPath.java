@@ -492,6 +492,10 @@ public class RailPath {
             }
         }
 
+        public double motDot(Position pos) {
+            return (motX * pos.motX) + (motY * pos.motY) + (motZ * pos.motZ);
+        }
+
         public double motDot(Vector v) {
             return (motX * v.getX()) + (motY * v.getY()) + (motZ * v.getZ());
         }

@@ -294,8 +294,8 @@ public class RailTrackerGroup extends RailTracker {
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
             // Figure out which rail to start looking from
             int prevRailStartIndex = -1;
-            for (int i = 0; i < this.prevRails.size(); i++) {
-                if (this.prevRails.get(i).position.equals(startInfo.position)) {
+            for (int i = this.prevRails.size() - 1; i >= 0; --i) {
+                if (this.prevRails.get(i).state.isSameRails(startInfo.state)) {
                     prevRailStartIndex = i;
                     break;
                 }
@@ -327,7 +327,6 @@ public class RailTrackerGroup extends RailTracker {
             // If previous rails are found, walk them first
             if (prevRailStartIndex != -1) {
                 TrackedRail startRail = this.prevRails.get(prevRailStartIndex);
-                Vector prevStartVector = startRail.state.motionVector();
 
                 // Move as much as possible over the current rail
                 // This sets our position to the end-position of the current rail
@@ -339,13 +338,17 @@ public class RailTrackerGroup extends RailTracker {
                     // We need to walk more tracks. To do so, we must figure out whether we go +1 or -1.
                     // To find this out, we first obtain the movement direction over the start rails when forwards
                     int order;
-                    if (MathUtil.isHeadingTo(prevStartVector, new Vector(position.motX, position.motY, position.motZ))) {
+                    if (startRail.state.position().motDot(position) > 0.0) {
                         order = -1;
                     } else {
                         order = 1;
                     }
+
                     for (int prevRailIndex = prevRailStartIndex + order; prevRailIndex >= 0 && prevRailIndex < this.prevRails.size() && wheelDistance > 0.0001; prevRailIndex += order) {
                         TrackedRail rail = this.prevRails.get(prevRailIndex);
+                        if (rail.state.isSameRails(startInfo.state)) {
+                            continue;
+                        }
 
                         // Walk this rail backwards
                         RailPath path = rail.getPath();
