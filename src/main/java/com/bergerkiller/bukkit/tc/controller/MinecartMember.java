@@ -19,7 +19,6 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
-import com.bergerkiller.bukkit.tc.controller.components.SignTracker.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
@@ -34,6 +33,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.rails.type.RailTypeActivator;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -1766,7 +1766,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
             if (!trackedSigns.isEmpty()) {
                 for (TrackedSign sign : trackedSigns) {
-                    SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
+                    SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railBlock), SignActionType.MEMBER_MOVE);
                 }
             }
         }

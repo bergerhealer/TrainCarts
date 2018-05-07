@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.components.SignTracker.TrackedSign;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache.TrackedSign;
 
 /**
  * Stores information about sign skipping configurations.

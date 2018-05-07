@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
@@ -124,42 +125,35 @@ public class Util {
         }
     }
 
+    /**
+     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     */
+    @Deprecated
     public static List<Block> getSignsFromRails(Block railsblock) {
         return getSignsFromRails(blockbuff, railsblock);
     }
 
+    /**
+     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     */
+    @Deprecated
     public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
         rval.clear();
         addSignsFromRails(rval, railsblock);
         return rval;
     }
 
+    /**
+     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     */
+    @Deprecated
     public static void addSignsFromRails(List<Block> rval, Block railsBlock) {
-        BlockFace dir = RailType.getType(railsBlock).getSignColumnDirection(railsBlock);
-        // Has sign support at all?
-        if (dir == null || dir == BlockFace.SELF) {
+        RailType railType = RailType.getType(railsBlock);
+        if (railType == RailType.NONE) {
             return;
         }
-        addSignsFromRails(rval, railsBlock, dir);
-    }
-
-    public static void addSignsFromRails(List<Block> rval, Block startBlock, BlockFace signDirection) {
-        final boolean hasSignPost = FaceUtil.isVertical(signDirection);
-        Block currentBlock = startBlock;
-        int offsetCtr = 0;
-        while (true) {
-            if (hasSignPost && MaterialUtil.isType(currentBlock, Material.SIGN_POST)) {
-                // Found a sign post - add it and continue
-                rval.add(currentBlock);
-            } else if (addAttachedSigns(currentBlock, rval)) {
-                // Found one or more signs attached to the current block - continue
-            } else if (offsetCtr > 1) {
-                // No signs found here. If this is too far down, stop.
-                break;
-            }
-
-            currentBlock = currentBlock.getRelative(signDirection);
-            offsetCtr++;
+        for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(railType, railsBlock)) {
+            rval.add(trackedSign.signBlock);
         }
     }
 

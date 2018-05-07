@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import org.bukkit.block.Block;
@@ -51,7 +52,7 @@ public class SignTrackerMember extends SignTracker {
 
     @Override
     protected void onSignChange(TrackedSign sign, boolean active) {
-        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railsBlock, owner);
+        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock, owner);
         event.setAction(active ? SignActionType.MEMBER_ENTER : SignActionType.MEMBER_LEAVE);
         SignAction.executeAll(event);
     }

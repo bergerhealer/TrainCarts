@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -23,6 +22,7 @@ import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache;
 import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -478,6 +478,8 @@ public class TrainCarts extends PluginBase {
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
         PathProvider.deinit();
+        RailTypeCache.reset();
+        RailSignCache.reset();
     }
 
     public boolean command(CommandSender sender, String cmd, String[] args) {
@@ -503,6 +505,7 @@ public class TrainCarts extends PluginBase {
         @Override
         public void run() {
             RailTypeCache.cleanup();
+            RailSignCache.cleanup();
         }
     }
     

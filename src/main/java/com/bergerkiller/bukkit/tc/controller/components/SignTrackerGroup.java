@@ -5,13 +5,14 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.List2D;
 import com.bergerkiller.bukkit.tc.TCTimings;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import org.bukkit.block.Block;
@@ -23,7 +24,6 @@ import java.util.*;
  * MinecartGroup
  */
 public class SignTrackerGroup extends SignTracker {
-    private static final List<Block> signListBuffer = new ArrayList<Block>();
     private final MinecartGroup owner;
     private final ToggledState needsPositionUpdate = new ToggledState(true);
 
@@ -42,7 +42,7 @@ public class SignTrackerGroup extends SignTracker {
 
     @Override
     protected void onSignChange(TrackedSign sign, boolean active) {
-        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railsBlock, owner);
+        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock, owner);
         event.setAction(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE);
         SignAction.executeAll(event);
     }
@@ -166,11 +166,7 @@ public class SignTrackerGroup extends SignTracker {
                     }
 
                     List<TrackedSign> signs = info.member.getSignTracker().liveActiveSigns;
-                    Util.addSignsFromRails(signListBuffer, info.type.getSignColumnStart(info.block), info.type.getSignColumnDirection(info.block));
-                    for (Block signBlock : signListBuffer) {
-                        signs.add(new TrackedSign(signBlock, info.block));
-                    }
-                    signListBuffer.clear();
+                    signs.addAll(Arrays.asList(RailSignCache.getSigns(info.type, info.block)));
                 }
 
                 // Filter based on cart skip options

@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache.TrackedSign;
+
 import org.bukkit.block.Block;
 
 import java.util.*;
@@ -117,23 +119,4 @@ public abstract class SignTracker {
         }
     }
 
-    public class TrackedSign {
-        public final Block signBlock;
-        public final Block railsBlock;
-
-        public TrackedSign(Block signBlock, Block railsBlock) {
-            this.signBlock = signBlock;
-            this.railsBlock = railsBlock;
-        }
-
-        @Override
-        public int hashCode() {
-            return this.signBlock.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return ((TrackedSign) o).signBlock.equals(this.signBlock);
-        }
-    }
 }

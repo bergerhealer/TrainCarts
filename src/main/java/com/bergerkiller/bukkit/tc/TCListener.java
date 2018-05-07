@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.util.RailSignCache;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
@@ -779,6 +780,10 @@ public class TCListener implements Listener {
         if (event.isCancelled() || TrainCarts.isWorldDisabled(event)) {
             return;
         }
+
+        // Reset cache to make sure all signs are recomputed later, after the sign was made
+        // Doing it here, in the most generic case, so that custom addon signs are also refreshed
+        RailSignCache.reset();
 
         SignAction.handleBuild(event);
         if (event.isCancelled()) {
