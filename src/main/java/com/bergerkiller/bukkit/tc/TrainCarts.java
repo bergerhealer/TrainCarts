@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.commands.Commands;
@@ -480,6 +481,7 @@ public class TrainCarts extends PluginBase {
         PathProvider.deinit();
         RailTypeCache.reset();
         RailSignCache.reset();
+        RailMemberCache.reset();
     }
 
     public boolean command(CommandSender sender, String cmd, String[] args) {

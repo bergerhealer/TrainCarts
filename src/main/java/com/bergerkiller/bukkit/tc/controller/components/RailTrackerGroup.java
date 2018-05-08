@@ -2,19 +2,19 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
@@ -32,11 +32,36 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 public class RailTrackerGroup extends RailTracker {
     private static final int LOOP_LIMIT = 10; // This amount of tracks iterated w/o movement = ABORT
     private final MinecartGroup owner;
+    private final ArrayList<TrackedRail> railsBuffer = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> prevRails = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> rails = new ArrayList<TrackedRail>();
 
     public RailTrackerGroup(MinecartGroup owner) {
         this.owner = owner;
+    }
+
+    /**
+     * Removes all the tracked rails belonging to a particular minecart
+     * 
+     * @param member to remove all rails for
+     */
+    public void removeMemberRails(MinecartMember<?> member) {
+        {
+            Iterator<TrackedRail> iter = prevRails.iterator();
+            while (iter.hasNext()) {
+                if (iter.next().member == member) {
+                    iter.remove();
+                }
+            }
+        }
+        {
+            Iterator<TrackedRail> iter = rails.iterator();
+            while (iter.hasNext()) {
+                if (iter.next().member == member) {
+                    iter.remove();
+                }
+            }
+        }
     }
 
     /**
@@ -155,6 +180,41 @@ public class RailTrackerGroup extends RailTracker {
             // TODO: Detect when the rails are changed
             // Compare rails with prevRails to do so
             owner.getSignTracker().updatePosition();
+        }
+
+        // Remove all previous rails from the rail member cache, and add the new rails
+        try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
+            this.railsBuffer.clear();
+            this.railsBuffer.addAll(this.prevRails);
+            for (TrackedRail newRail : this.rails) {
+                boolean found = false;
+                Iterator<TrackedRail> tmpIter = this.railsBuffer.iterator();
+                while (tmpIter.hasNext()) {
+                    TrackedRail oldRail = tmpIter.next();
+                    if (oldRail.position.equals(newRail.position)) {
+                        tmpIter.remove();
+                        RailMemberCache.changeMember(newRail.block, oldRail.member, newRail.member);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    RailMemberCache.addBlock(newRail.block, newRail.member);
+                }
+            }
+            for (TrackedRail oldRail : this.railsBuffer) {
+                RailMemberCache.removeBlock(oldRail.block, oldRail.member);
+            }
+
+            // Alternative: remove and re-add all the members
+            /*
+            for (TrackedRail prevRail : this.prevRails) {
+                RailMemberCache.removeBlock(prevRail.member, prevRail.block);
+            }
+            for (TrackedRail newRail : this.rails) {
+                RailMemberCache.addBlock(newRail.member, newRail.block);
+            }
+            */
         }
     }
 

@@ -15,10 +15,13 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.mountiplex.conversion.annotations.ConverterMethod;
 
 import org.bukkit.GameMode;
@@ -313,7 +316,9 @@ public abstract class MinecartMemberStore {
      * @return Minecart Member that drives on this Rail Block, null if not found
      */
     public static MinecartMember<?> getAt(Block block) {
-        return getAt(block.getWorld(), new IntVector3(block));
+        return RailMemberCache.find(block);
+        
+        //return getAt(block.getWorld(), new IntVector3(block));
     }
 
     /**
@@ -324,6 +329,9 @@ public abstract class MinecartMemberStore {
      * @return Minecart Member that drives on this Rail Block, null if not found
      */
     public static MinecartMember<?> getAt(org.bukkit.World world, IntVector3 coord) {
+        return getAt(BlockUtil.getBlock(world, coord));
+
+        /*
         org.bukkit.Chunk chunk = WorldUtil.getChunk(world, coord.x >> 4, coord.z >> 4);
         if (chunk != null) {
             MinecartMember<?> mm;
@@ -346,10 +354,14 @@ public abstract class MinecartMemberStore {
             }
         }
         return null;
+        */
     }
 
     public static MinecartMember<?> getAt(Location at) {
-        return getAt(at, null);
+        RailInfo info = RailType.findRailInfo(at);
+        return (info == null) ? null : getAt(info.railBlock);
+        
+        //return getAt(at, null);
     }
 
     public static MinecartMember<?> getAt(Location at, MinecartGroup in) {

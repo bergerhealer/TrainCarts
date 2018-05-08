@@ -17,6 +17,7 @@ public class TCTimings {
     public static final Timings MEMBER_PHYSICS_UPDATE_WHEELS = timings.create("updateWheels  (Train Physics, Wheel Tracker)");
     public static final Timings SIGNTRACKER_REFRESH = timings.create("refreshSigns  (Train Physics, Sign Tracker)");
     public static final Timings RAILTRACKER_REFRESH = timings.create("refreshRails  (Train Physics, Rail Tracker)");
+    public static final Timings RAILMEMBERCACHE = timings.create("cacheRailMembers  (Train Physics, Rail Tracker, Cache)");
     public static final Timings RAILTYPE_FINDRAILINFO = timings.create("findRailInfo  (Rail Type Cache)");
     public static final Timings SIGNACTION_SPAWN = timings.create("spawn  (Sign Action, Spawner)");
     public static final Timings NETWORK_UPDATE_POSITIONS = timings.create("updatePositions  (Network)");
