@@ -857,6 +857,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (key.equals("exitoffset")) {
             Vector vec = Util.parseVector(arg, null);
             if (vec != null) {
+                if (vec.length() > TCConfig.maxEjectDistance) {
+                    vec.normalize().multiply(TCConfig.maxEjectDistance);
+                }
                 for (CartProperties prop : this) {
                     prop.exitOffset = vec;
                 }

@@ -62,6 +62,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BUILD_DESTRUCTOR = new Permission("train.build.destructor", PermissionDefault.OP, "The player can build train destructors");
     public static final Permission BUILD_DETECTOR = new Permission("train.build.detector", PermissionDefault.OP, "The player can build train detectors");
     public static final Permission BUILD_EJECTOR = new Permission("train.build.ejector", PermissionDefault.OP, "The player can build train ejectors");
+    public static final Permission BUILD_EJECTOR_ABSOLUTE = new Permission("train.build.ejector.absolute", PermissionDefault.OP, "The player can build train ejectors that teleport to absolute world coordinates");
     public static final Permission BUILD_PROPERTY = new Permission("train.build.property", PermissionDefault.OP, "The player can build train property setters");
     public static final Permission BUILD_COLLECTOR = new Permission("train.build.collector", PermissionDefault.OP, "The player can build systems to let trains collect from storage blocks");
     public static final Permission BUILD_DEPOSITOR = new Permission("train.build.depositor", PermissionDefault.OP, "The player can build systems to fill storage blocks with items from trains");

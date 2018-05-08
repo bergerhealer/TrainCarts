@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
@@ -475,6 +476,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         if (key.equals("exitoffset")) {
             Vector vec = Util.parseVector(arg, null);
             if (vec != null) {
+                if (vec.length() > TCConfig.maxEjectDistance) {
+                    vec.normalize().multiply(TCConfig.maxEjectDistance);
+                }
                 exitOffset = vec;
             }
         } else if (key.equals("exityaw")) {

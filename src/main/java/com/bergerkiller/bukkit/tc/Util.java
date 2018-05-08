@@ -624,9 +624,6 @@ public class Util {
         } else {
             return def;
         }
-        if (offset.length() > TCConfig.maxEjectDistance) {
-            offset.normalize().multiply(TCConfig.maxEjectDistance);
-        }
         return offset;
     }
 
