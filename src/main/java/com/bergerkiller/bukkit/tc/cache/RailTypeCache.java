@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.rails.util;
+package com.bergerkiller.bukkit.tc.cache;
 
 import java.util.HashMap;
 import java.util.Iterator;

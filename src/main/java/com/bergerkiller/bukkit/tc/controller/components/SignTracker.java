@@ -1,8 +1,8 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.rails.util.RailSignCache.TrackedSign;
 
 import org.bukkit.block.Block;
 
