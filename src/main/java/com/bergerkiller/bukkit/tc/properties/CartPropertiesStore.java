@@ -73,7 +73,7 @@ public class CartPropertiesStore {
                 }
             }
             TrainProperties tprop = prop.getTrainProperties();
-            if (tprop.contains(prop)) {
+            if (tprop != null && tprop.contains(prop)) {
                 tprop.remove(prop);
             }
         }
