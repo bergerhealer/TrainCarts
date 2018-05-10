@@ -1,15 +1,13 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
 
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -86,9 +84,9 @@ public class RailTypeNone extends RailType {
     }
 
     @Override
-    public RailLogic getLogic(RailLogicState state) {
+    public RailLogic getLogic(RailState state) {
         // Two no-rail logic types
-        MinecartMember<?> member = state.getMember();
+        MinecartMember<?> member = state.member();
         if (member == null || member.isFlying()) {
             return RailLogicAir.INSTANCE;
         } else {

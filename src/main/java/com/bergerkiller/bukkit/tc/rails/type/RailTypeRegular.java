@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 import com.bergerkiller.bukkit.tc.utils.MinecartTrackLogic;
@@ -323,12 +323,12 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
-    public RailLogic getLogic(RailLogicState state) {
-        Rails rails = BlockUtil.getRails(state.getRailsBlock());
+    public RailLogic getLogic(RailState state) {
+        Rails rails = BlockUtil.getRails(state.railBlock());
         if (rails == null) {
             return RailLogicGround.INSTANCE;
         }
-        return getLogicForRails(state.getRailsBlock(), rails, state.getEnterDirection());
+        return getLogicForRails(state.railBlock(), rails, state.enterFace());
     }
 
     @Override

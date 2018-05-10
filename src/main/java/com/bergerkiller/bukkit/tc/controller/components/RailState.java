@@ -19,12 +19,14 @@ public class RailState {
     private Block _railBlock;
     private RailType _railType;
     private BlockFace _enterFace;
+    private MinecartMember<?> _member;
     private final RailPath.Position _position;
 
     public RailState() {
         this._railBlock = null;
         this._railType = RailType.NONE;
         this._enterFace = null;
+        this._member = null;
         this._position = new RailPath.Position();
     }
 
@@ -163,6 +165,25 @@ public class RailState {
     }
 
     /**
+     * When applicable and available, returns the minecart that is using these
+     * rails right now.
+     * 
+     * @return member using these rails
+     */
+    public MinecartMember<?> member() {
+        return this._member;
+    }
+
+    /**
+     * Sets the minecart member that is using these rails right now.
+     * 
+     * @param member
+     */
+    public void setMember(MinecartMember<?> member) {
+        this._member = member;
+    }
+
+    /**
      * Checks whether this rail state has the exact same rails as another rail state
      * 
      * @param other state
@@ -178,9 +199,8 @@ public class RailState {
      * @param member hint for the logic, null to ignore
      * @return Rail Logic
      */
-    public RailLogic loadRailLogic(MinecartMember<?> member) {
-        RailLogicState state = new RailLogicState(member, this.railPosition(), this.railBlock(), this.enterFace());
-        RailLogic logic = this.railType().getLogic(state);
+    public RailLogic loadRailLogic() {
+        RailLogic logic = this.railType().getLogic(this);
         logic.onPathAdjust(this);
         return logic;
     }
@@ -192,6 +212,7 @@ public class RailState {
         state.setRailBlock(this.railBlock());
         state.setRailType(this.railType());
         state.setEnterFace(this.enterFace());
+        state.setMember(this.member());
         return state;
     }
 

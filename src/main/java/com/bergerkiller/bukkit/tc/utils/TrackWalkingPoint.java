@@ -54,7 +54,7 @@ public class TrackWalkingPoint {
 
     public TrackWalkingPoint(RailState state) {
         this.state = state.clone();
-        this.currentRailLogic = this.state.loadRailLogic(null);
+        this.currentRailLogic = this.state.loadRailLogic();
     }
 
     public TrackWalkingPoint(Location startPos, Vector motionVector) {
@@ -62,8 +62,8 @@ public class TrackWalkingPoint {
         this.state.setRailBlock(startPos.getBlock());
         this.state.position().setMotion(motionVector);
         this.state.position().setLocation(startPos);
-        RailType.loadRailInformation(this.state, null);
-        this.currentRailLogic = this.state.loadRailLogic(null);
+        RailType.loadRailInformation(this.state);
+        this.currentRailLogic = this.state.loadRailLogic();
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace motionFace) {
@@ -74,7 +74,7 @@ public class TrackWalkingPoint {
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
             Util.calculateEnterFace(this.state);
-            this.currentRailLogic = this.state.loadRailLogic(null);
+            this.currentRailLogic = this.state.loadRailLogic();
         }
     }
 
@@ -213,9 +213,10 @@ public class TrackWalkingPoint {
 
         // Rail Type lookup + loop filter logic
         Block prevRailBlock = this.state.railBlock();
-        if (RailType.loadRailInformation(this.state, null) &&
+        if (RailType.loadRailInformation(this.state) &&
+            this.loopFilter != null &&
             !BlockUtil.equals(this.state.railBlock(), prevRailBlock) &&
-            this.loopFilter != null && !this.loopFilter.add(this.state.railBlock()))
+            !this.loopFilter.add(this.state.railBlock()))
         {
             this.state.setRailType(RailType.NONE);
         }
@@ -226,7 +227,7 @@ public class TrackWalkingPoint {
         }
 
         // Refresh rail logic for the new position and state
-        this.currentRailLogic = this.state.loadRailLogic(null);
+        this.currentRailLogic = this.state.loadRailLogic();
         return true;
     }
 

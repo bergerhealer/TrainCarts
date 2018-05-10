@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
@@ -157,19 +157,19 @@ public class RailTypeVertical extends RailType {
     }
 
     @Override
-    public RailLogic getLogic(RailLogicState state) {
-        BlockFace dir = Util.getVerticalRailDirection(state.getRailsBlock());
-        if (isVerticalSlopeUpsideDown(state.getRailsBlock())) {
+    public RailLogic getLogic(RailState state) {
+        BlockFace dir = Util.getVerticalRailDirection(state.railBlock());
+        if (isVerticalSlopeUpsideDown(state.railBlock())) {
             // Check if there is also one upside-down rail below leading to a slope
             // If so, when y-position is below a threshold, pick UpsideDownB instead.
-            if (state.getRailsPosition().getY() < 0.0 && isVerticalSlopeUpsideDownB(state.getRailsBlock())) {
+            if (state.railPosition().getY() < 0.0 && isVerticalSlopeUpsideDownB(state.railBlock())) {
                 return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
             }
 
             return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
-        } else if (isVerticalSlopeUpsideDownB(state.getRailsBlock())) {
+        } else if (isVerticalSlopeUpsideDownB(state.railBlock())) {
             return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
-        } else if (getAfterSlope(state.getRailsBlock()) != null) {
+        } else if (getAfterSlope(state.railBlock()) != null) {
             return RailLogicVerticalSlopeNormalB.get(dir);
         } else {
             return RailLogicVertical.get(dir);

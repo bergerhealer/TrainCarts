@@ -440,10 +440,11 @@ public class RailTrackerGroup extends RailTracker {
                 int loopCtr = 0;
                 boolean first = true;
                 TrackMovingPoint p = new TrackMovingPoint(startInfo.block, position.getMotionFace());
+                p.getState().setMember(startInfo.member);
                 while (p.hasNext() && wheelDistance > 0.0) {
                     p.next();
 
-                    RailLogic logic = p.getState().loadRailLogic(null);
+                    RailLogic logic = p.getState().loadRailLogic();
                     RailPath path = logic.getPath();
                     double moved = path.move(position, p.currentTrack, wheelDistance);
 

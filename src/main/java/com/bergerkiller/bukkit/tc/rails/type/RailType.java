@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
-import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
@@ -19,6 +18,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
+import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -153,10 +153,9 @@ public abstract class RailType {
      * or below it will have entirely different rails blocks.
      * 
      * @param state to load with rail information
-     * @param member hint when resolving multiple rails in one block, null to ignore
      * @return True if rails were found (railtype != NONE), False otherwise
      */
-    public static boolean loadRailInformation(RailState state, MinecartMember<?> member) {
+    public static boolean loadRailInformation(RailState state) {
         Block positionBlock = state.positionBlock();
         RailInfo[] cachedInfo = RailTypeCache.getInfo(positionBlock);
         if (cachedInfo.length == 0) {
@@ -198,7 +197,7 @@ public abstract class RailType {
                 state.setRailBlock(info.railBlock);
                 state.setRailType(info.railType);
                 Util.calculateEnterFace(state);
-                RailLogic logic = state.loadRailLogic(member);
+                RailLogic logic = state.loadRailLogic();
                 RailPath path = logic.getPath();
                 double distSq = path.distanceSquared(state.railPosition());
                 if (distSq < minDistSq) {
@@ -243,7 +242,7 @@ public abstract class RailType {
         state.position().setLocation(position);
         state.setRailBlock(positionBlock);
         state.setRailType(RailType.NONE);
-        if (loadRailInformation(state, null)) {
+        if (loadRailInformation(state)) {
             //public RailInfo(Block posBlock, Block railBlock, RailType railType) {
             return new RailInfo(positionBlock, state.railBlock(), state.railType());
         } else {
@@ -393,17 +392,18 @@ public abstract class RailType {
      * @param currentDirection the 'Minecart' is moving
      * @return next Block the minecart is at after moving over this rail
      */
+    @Deprecated
     public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        RailLogicState state = new RailLogicState(null, currentTrack, currentDirection);
-        RailLogic logic = this.getLogic(state);
-        if (logic == null) {
+        TrackMovingPoint p = new TrackMovingPoint(currentTrack, currentDirection);
+        if (!p.hasNext()) {
             return null;
         }
-        RailPath path = logic.getPath();
-        if (path == null) {
+        p.next();
+        if (!p.hasNext()) {
             return null;
         }
-        return null;
+        p.next(false);
+        return p.current;
     }
 
     /**
@@ -449,13 +449,13 @@ public abstract class RailType {
     }
 
     /**
-     * Obtains the Rail Logic to use for the rail logic state situation specified
+     * Obtains the Rail Logic to use for the rail state situation specified
      * 
      * @param state input
      * @return desired rail logic
      */
-    public RailLogic getLogic(RailLogicState state) {
-        return getLogic(state.getMember(), state.getRailsBlock(), state.getEnterDirection());
+    public RailLogic getLogic(RailState state) {
+        return getLogic(state.member(), state.railBlock(), state.enterFace());
     }
 
     /**

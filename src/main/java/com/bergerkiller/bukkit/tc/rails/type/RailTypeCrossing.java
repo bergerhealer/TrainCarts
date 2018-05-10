@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailLogicState;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 
@@ -41,12 +41,12 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     }
 
     @Override
-    public RailLogic getLogic(RailLogicState state) {
+    public RailLogic getLogic(RailState state) {
         // Get the direction of the rails to find out the logic to use
-        BlockFace dir = Util.getPlateDirection(state.getRailsBlock());
+        BlockFace dir = Util.getPlateDirection(state.railBlock());
         if (dir == BlockFace.SELF) {
             //set track direction based on direction of this cart
-            dir = FaceUtil.toRailsDirection(state.getEnterDirection());
+            dir = FaceUtil.toRailsDirection(state.enterFace());
         }
         return RailLogicHorizontal.get(dir);
     }

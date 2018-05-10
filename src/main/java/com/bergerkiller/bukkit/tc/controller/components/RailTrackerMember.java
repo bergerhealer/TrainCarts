@@ -149,7 +149,7 @@ public class RailTrackerMember extends RailTracker {
             return this.railLogic;
         } else {
             try {
-                return this.rail.state.loadRailLogic(this.owner);
+                return this.rail.state.loadRailLogic();
             } catch (Throwable t) {
                 RailType.handleCriticalError(this.rail.type, t);
 

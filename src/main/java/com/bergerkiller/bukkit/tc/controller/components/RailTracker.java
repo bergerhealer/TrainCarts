@@ -7,7 +7,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -62,6 +61,7 @@ public abstract class RailTracker {
         public TrackedRail(MinecartMember<?> member, RailState state, boolean disconnected) {
             this.member = member;
             this.state = state.clone();
+            this.state.setMember(member);
             this.minecartBlock = state.positionBlock();
             this.type = state.railType();
             this.block = state.railBlock();
@@ -78,6 +78,7 @@ public abstract class RailTracker {
         public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected, Vector motionVector, BlockFace direction) {
             this.member = member;
             this.state = new RailState();
+            this.state.setMember(member);
             this.minecartBlock = minecartBlock;
             this.block = railsBlock;
             this.type = railsType;
@@ -131,7 +132,7 @@ public abstract class RailTracker {
         }
 
         public RailLogic getLogic() {
-            return this.state.loadRailLogic(this.member);
+            return this.state.loadRailLogic();
         }
 
         public RailPath getPath() {

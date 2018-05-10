@@ -685,12 +685,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final boolean fillRailInformation(RailState state) {
         // Need an initial Rail Block set
         state.setRailBlock(entity.loc.toBlock());
+        state.setMember(this);
 
         // No pre-move position? Simply return block at current position.
         if (this.preMovePosition == null) {
             state.position().setLocation(entity.getLocation());
             state.position().setMotion(this.calcMotionVector(false));
-            return RailType.loadRailInformation(state, this);
+            return RailType.loadRailInformation(state);
         }
 
         // Detect the movement vector
@@ -704,7 +705,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (moved <= smallStep || moved > 0.45) {
             state.position().setLocation(entity.getLocation());
             state.position().setMotion(this.calcMotionVector(false));
-            return RailType.loadRailInformation(state, this);
+            return RailType.loadRailInformation(state);
         }
 
         // Normalize direction vector
@@ -721,14 +722,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 this.preMovePosition.getY() + smallStep * direction.getY(),
                 this.preMovePosition.getZ() + smallStep * direction.getZ());
         state.position().setLocation(prePos);
-        if (RailType.loadRailInformation(state, this)) {
+        if (RailType.loadRailInformation(state)) {
             return true;
         }
 
         // Current position
         state.position().setLocation(entity.getLocation());
         state.position().setMotion(this.calcMotionVector(false));
-        return RailType.loadRailInformation(state, this);
+        return RailType.loadRailInformation(state);
     }
 
     /**
@@ -739,8 +740,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return rail state
      */
     public RailState discoverRail() {
+        try (Timings t = Timings.start(getClass(), "discoverRail")) {
         // Store motion vector in state
         RailState state = new RailState();
+        state.setMember(this);
         boolean result = this.fillRailInformation(state);
         if (!result) {
             state.setMotionVector(this.calcMotionVector(true));
@@ -755,7 +758,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // This is important for later when looking for more rails, because we can
         // invert the motion vector to go 'the other way'.
         if (state.railType() != RailType.NONE) {
-            RailLogic logic = state.loadRailLogic(this);
+            RailLogic logic = state.loadRailLogic();
             RailPath path = logic.getPath();
             if (!path.isEmpty()) {
                 path.snap(state.position(), state.railBlock());
@@ -763,6 +766,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         return state;
+        }
     }
 
     /**
