@@ -969,44 +969,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public void updateDirection() {
         RailTrackerMember tracker = this.getRailTracker();
-        BlockFace blockMovement = tracker.getRailDirection();
 
-        // Take care of invalid directions before continuing
-        if (this.direction == null) {
-            this.direction = BlockFace.DOWN;
-        }
-        if (this.directionTo == null) {
-            BlockFace[] dirs = this.getRailType().getPossibleDirections(this.getBlock());
-            if (dirs != null && dirs.length > 0) {
-                this.directionTo = dirs[0];
-            } else {
-                this.directionTo = this.direction;
-            }
-        }
-
-        // Obtain logic and the associated direction from its path
-        RailLogic logic = this.getRailLogic();
-        //this.direction = logic.getMovementDirection(tracker.getBlock(), tracker.getMinecartPos(), blockMovement);
+        // Direction is simply the motion vector on the rail, turned into a BlockFace
         this.direction = Util.vecToFace(tracker.getMotionVector(), true);
 
-        // Calculate the to direction
-        if (FaceUtil.isSubCardinal(this.direction)) {
-            // Compare with the rail direction for curved rails
-            // TODO: Turn this into an understandable transformation
-            final BlockFace raildirection = logic.getDirection();
-            if (this.direction == BlockFace.NORTH_EAST) {
-                this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
-            } else if (this.direction == BlockFace.SOUTH_EAST) {
-                this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
-            } else if (this.direction == BlockFace.SOUTH_WEST) {
-                this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.SOUTH : BlockFace.WEST;
-            } else if (this.direction == BlockFace.NORTH_WEST) {
-                this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
-            }
-        } else {
-            // Simply set it for other types of rails
-            this.directionTo = this.direction;
-        }
+        // TO direction is simply the enter face in the opposite direction
+        RailState state = tracker.getRail().state.clone();
+        state.position().invertMotion();
+        Util.calculateEnterFace(state);
+        this.directionTo = state.enterFace().getOppositeFace();
     }
 
     @Override

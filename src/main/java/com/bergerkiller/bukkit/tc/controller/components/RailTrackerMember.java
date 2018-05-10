@@ -41,6 +41,17 @@ public class RailTrackerMember extends RailTracker {
     }
 
     /**
+     * Gets the rail the Minecart is on. This includes information such as from
+     * what direction the minecart got onto the rail and what position on the rail
+     * the minecart is moving.
+     * 
+     * @return current rail
+     */
+    public TrackedRail getRail() {
+        return this.rail;
+    }
+
+    /**
      * Obtains a new track iterator iterating the tracks from this point towards the direction
      * the Minecart is moving.
      *

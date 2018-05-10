@@ -655,7 +655,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     }
                     double fforce = 0;
                     for (MinecartMember<?> m : this) {
-                        fforce += m.getForwardForce();
+                        // Use rail tracker instead of recalculating for improved performance
+                        // fforce += m.getForwardForce();
+                        fforce += m.getRailTracker().getState().position().motDot(m.getEntity().getVelocity());
                     }
                     if (fforce >= 0) {
                         break;
