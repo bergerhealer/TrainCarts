@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.bukkit.Location;
@@ -500,24 +501,61 @@ public class RailTrackerGroup extends RailTracker {
         // First, test the startInfo, which is the direction in which the cart is moving
         // If this yields insufficient number of carts, try the opposite direction
         // Select the one with the most detected carts and use the rails contained
-        RailFinderResult result = finder.test(finder.startInfo);
-        if (result.numMembers < remainingCnt && !result.endIsDerailed) {
-            RailFinderResult alter = finder.test(finder.startInfo.invertMotionVector());
-            if (alter.numMembers > result.numMembers) {
-                result = alter;
+        // In the normal case, all carts will be found and no special logic is needed
+        // We can fill the main rails list instantly, without using a temporary buffer
+        // When not all carts can be found and multiple directions must be asked, use a buffer
+        boolean isAbormal = false;
+        RailFinderResult result;
+        if (this.rails.isEmpty()) {
+            result = finder.test(finder.startInfo, this.rails);
+            if (result.numMembers < remainingCnt && !result.endIsDerailed) {
+                isAbormal = true;
+
+                // Restore back into a buffer
+                result.rails = new ArrayList<TrackedRail>(result.rails);
+                this.rails.clear();
             }
+        } else {
+            result = finder.test(finder.startInfo);
+            isAbormal = true;
+        }
+
+        if (isAbormal) {
+            // Try the opposite direction when not all carts could be found
+            if (result.numMembers < remainingCnt && !result.endIsDerailed) {
+                RailFinderResult alter = finder.test(finder.startInfo.invertMotionVector());
+                if (alter.numMembers > result.numMembers) {
+                    result = alter;
+                }
+            }
+
+            // Add the rails result
+            this.rails.addAll(result.rails);
         }
 
         // Apply found rails to the members themselves
-        for (int i = 0; i < result.rails.size(); i++) {
-            TrackedRail rail = result.rails.get(i);
-            if (i == (result.rails.size() - 1) || rail.member != result.rails.get(i + 1).member) {
-                rail.member.getRailTracker().refresh(rail);
+        // Use a somewhat complex iteration scheme to avoid get(index)
+        // LinkedList does not like the use of indices
+        {
+            Iterator<TrackedRail> iter = result.rails.iterator();
+            if (iter.hasNext()) {
+                TrackedRail prev = iter.next();
+                while (iter.hasNext()) {
+                    TrackedRail next = iter.next();
+
+                    // Refresh when the member bound to a rail changes
+                    // The last rail iterated is for the member to use
+                    if (prev.member != next.member) {
+                        prev.member.getRailTracker().refresh(prev);
+                    }
+
+                    prev = next;
+                }
+
+                // Refresh last member rail in list
+                prev.member.getRailTracker().refresh(prev);
             }
         }
-
-        // Add the rails result
-        this.rails.addAll(result.rails);
 
         // If not all members are found, continue looking for more (= disconnected)
         // If there are more minecarts remaining in the chain, these could not be found using the iterator
@@ -527,11 +565,6 @@ public class RailTrackerGroup extends RailTracker {
         if (result.nextMemberIndex >= 0) {
             refreshFrom(result.nextMemberIndex, !result.endIsDerailed);
         }
-    }
-
-    private static RailState getRailPos(MinecartMember<?> member) {
-        RailState state = member.discoverRail();
-        return (state.railType() == RailType.NONE) ? null : state;
     }
 
     private class RailFinder {
@@ -549,12 +582,17 @@ public class RailTrackerGroup extends RailTracker {
         }
 
         public RailFinderResult test(TrackedRail moveInfo) {
-            RailFinderResult result = new RailFinderResult(this.startIndex);
+            return test(moveInfo, new LinkedList<TrackedRail>());
+        }
+
+        public RailFinderResult test(TrackedRail moveInfo, List<TrackedRail> buffer) {
+            RailFinderResult result = new RailFinderResult(this.startIndex, buffer);
             result.rails.add(moveInfo);
 
             MinecartMember<?> nextMember = owner.get(result.nextMemberIndex);
-            RailState nextPos = getRailPos(nextMember);
-            if (nextPos == null) {
+
+            RailState nextPos = nextMember.discoverRail();
+            if (nextPos.railType() == RailType.NONE) {
                 result.endIsDerailed = true;
                 return result;
             }
@@ -592,10 +630,10 @@ public class RailTrackerGroup extends RailTracker {
                         }
                         moveLimitCtr = 0;
                         nextMember = owner.get(result.nextMemberIndex);
-                        nextPos = getRailPos(nextMember);
+                        nextPos = nextMember.discoverRail();
                         maximumDistanceBlocks = currInfo.member.getMaximumBlockDistance(nextMember);
                         isFirstBlock = true;
-                        if (nextPos == null) {
+                        if (nextPos.railType() == RailType.NONE) {
                             result.endIsDerailed = true;
                             break; // member is derailed
                         }
@@ -629,8 +667,8 @@ public class RailTrackerGroup extends RailTracker {
         public int nextMemberIndex;
         public boolean endIsDerailed;
 
-        public RailFinderResult(int nextMemberIndex) {
-            this.rails = new ArrayList<TrackedRail>();
+        public RailFinderResult(int nextMemberIndex, List<TrackedRail> buffer) {
+            this.rails = buffer;
             this.numMembers = 0;
             this.nextMemberIndex = nextMemberIndex;
             this.endIsDerailed = false;
