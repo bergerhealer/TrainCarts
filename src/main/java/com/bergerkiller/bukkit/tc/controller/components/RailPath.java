@@ -9,7 +9,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
@@ -72,6 +72,50 @@ public class RailPath {
     }
 
     /**
+     * Gets the start position of this rail path. This is the final position
+     * at the start of the first segment of this path.
+     * 
+     * @return start position
+     */
+    public Position getStartPosition() {
+        Segment firstSegment = this.segments[0];
+        Position p = new Position();
+        p.relative = true;
+        p.posX = firstSegment.p0.x;
+        p.posY = firstSegment.p0.y;
+        p.posZ = firstSegment.p0.z;
+        p.upX = firstSegment.p0.up_x;
+        p.upY = firstSegment.p0.up_y;
+        p.upZ = firstSegment.p0.up_z;
+        p.motX = -firstSegment.dt_norm.x;
+        p.motY = -firstSegment.dt_norm.y;
+        p.motZ = -firstSegment.dt_norm.z;
+        return p;
+    }
+
+    /**
+     * Gets the end position of this rail path. This is the final position
+     * at the end of the last segment of this path.
+     * 
+     * @return end position
+     */
+    public Position getEndPosition() {
+        Segment lastSegment = this.segments[this.segments.length - 1];
+        Position p = new Position();
+        p.relative = true;
+        p.posX = lastSegment.p1.x;
+        p.posY = lastSegment.p1.y;
+        p.posZ = lastSegment.p1.z;
+        p.upX = lastSegment.p1.up_x;
+        p.upY = lastSegment.p1.up_y;
+        p.upZ = lastSegment.p1.up_z;
+        p.motX = lastSegment.dt_norm.x;
+        p.motY = lastSegment.dt_norm.y;
+        p.motZ = lastSegment.dt_norm.z;
+        return p;
+    }
+
+    /**
      * Gets whether this Rail Path is empty. An empty rail path offers no
      * point information, essentially allowing free movement through the space.
      * This is the case when the number of segments is 0.
@@ -86,7 +130,7 @@ public class RailPath {
      * Finds the distance squared between a rail-relative position and this rail path.
      * Returns {@link Double#MAX_VALUE} if this path has no segments.
      * 
-     * @param position
+     * @param position (relative)
      * @return distance squared between the position and this rail path
      */
     public double distanceSquared(Vector position) {
@@ -160,7 +204,7 @@ public class RailPath {
      * The input position information is updated to be on this path.
      * This snap function allows absolute position calculations, by also specifying the rails block.
      * 
-     * @param absolutePosition in world coordinates
+     * @param position in relative or absolute world coordinates
      * @param railsBlock relative to which this path is
      */
     public void snap(Position position, Block railsBlock) {
@@ -188,19 +232,16 @@ public class RailPath {
      * A return distance of 0.0 indicates that the end of the path was reached.
      * This move function allows absolute position calculations, by also specifying the rails block.
      * 
-     * @param absolutePosition in world coordinates
-     * @param railsBlock relative to which is moved
+     * @param position in absolute world coordinates
+     * @param railBlock relative to which is moved
      * @param distance to move
      * @return actual distance moved. Can be less than distance if the end of the path is reached.
      */
-    public double move(Position position, Block railsBlock, double distance) {
-        position.posX -= railsBlock.getX();
-        position.posY -= railsBlock.getY();
-        position.posZ -= railsBlock.getZ();
+    public double move(Position position, Block railBlock, double distance) {
+        position.assertAbsolute();
+        position.makeRelative(railBlock);;
         double result = moveRelative(position, distance);
-        position.posX += railsBlock.getX();
-        position.posY += railsBlock.getY();
-        position.posZ += railsBlock.getZ();
+        position.makeAbsolute(railBlock);
         return result;
     }
 
@@ -209,7 +250,7 @@ public class RailPath {
         position.setX(position.getX() - railsBlock.getX());
         position.setY(position.getY() - railsBlock.getY());
         position.setZ(position.getZ() - railsBlock.getZ());
-        double result = move(position, direction, distance);
+        double result = moveRelative(position, direction, distance);
         position.setX(position.getX() + railsBlock.getX());
         position.setY(position.getY() + railsBlock.getY());
         position.setZ(position.getZ() + railsBlock.getZ());
@@ -217,8 +258,9 @@ public class RailPath {
     }
 
     @Deprecated
-    public double move(Vector position, Vector direction, double distance) {
+    public double moveRelative(Vector position, Vector direction, double distance) {
         Position tmp = new Position();
+        tmp.relative = true;
         tmp.posX = position.getX();
         tmp.posY = position.getY();
         tmp.posZ = position.getZ();
@@ -247,6 +289,9 @@ public class RailPath {
      * @return actual distance moved. Can be less than distance if the end of the path is reached.
      */
     public double moveRelative(Position position, double distance) {
+        // Check
+        position.assertRelative();
+
         // If no segments are known, we can't move
         if (this.segments.length == 0) {
             return 0.0;
@@ -462,34 +507,117 @@ public class RailPath {
          * rail path intersection.
          */
         public boolean reverse = false;
+        
+        /**
+         * Whether this position is relative to the rails (true), or absolute
+         * world coordinates (false). Property is automatically switched when
+         * {@link #makeRelative(Block)} or {@link #makeAbsolute(Block)} are used.
+         */
+        public boolean relative = true;
+
+        /**
+         * Makes the position relative to the block, if not already {@link #relative}.
+         * 
+         * @param railBlock
+         */
+        public void makeRelative(Block railBlock) {
+            if (!this.relative) {
+                this.relative = true;
+                this.posX -= railBlock.getX();
+                this.posY -= railBlock.getY();
+                this.posZ -= railBlock.getZ();
+            }
+        }
+
+        /**
+         * Makes the position absolute world coordinates, if not already NOT {@link #relative}.
+         * 
+         * @param railBlock
+         */
+        public void makeAbsolute(Block railBlock) {
+            if (this.relative) {
+                this.relative = false;
+                this.posX += railBlock.getX();
+                this.posY += railBlock.getY();
+                this.posZ += railBlock.getZ();
+            }
+        }
+
+        /**
+         * Verifies that this Position is using relative position coordinates.
+         * Throws an {@link IllegalStateException} if this is not the case.
+         */
+        public final void assertRelative() {
+            if (!this.relative) {
+                throw new IllegalStateException("Rail Position must be in relative coordinates");
+            }
+        }
+
+        /**
+         * Verifies that this Position is using absolute position coordinates.
+         * Throws an {@link IllegalStateException} if this is not the case.
+         */
+        public final void assertAbsolute() {
+            if (this.relative) {
+                throw new IllegalStateException("Rail Position must be in absolute world coordinates");
+            }
+        }
+
+        public void smallAdvance() {
+            posX += 1e-10 * motX;
+            posY += 1e-10 * motY;
+            posZ += 1e-10 * motZ;
+        }
 
         public double distance(Location location) {
+            this.assertAbsolute();
             return MathUtil.distance(posX, posY, posZ,
                     location.getX(), location.getY(), location.getZ());
         }
 
+        public double distanceSquared(RailPath.Position pos) {
+            if (pos.relative != this.relative) {
+                throw new IllegalStateException("Self and pos must both be relative or both be absolute");
+            }
+            return MathUtil.distanceSquared(this.posX, this.posY, this.posZ,
+                                            pos.posX, pos.posY, pos.posZ);
+        }
+
         public Location toLocation(World world) {
+            this.assertAbsolute();
             return new Location(world, posX, posY, posZ);
         }
 
         public void getLocation(Location location) {
+            this.assertAbsolute();
             location.setX(this.posX);
             location.setY(this.posY);
             location.setZ(this.posZ);
         }
 
         public void setLocation(Location location) {
+            this.relative = false;
             this.posX = location.getX();
             this.posY = location.getY();
             this.posZ = location.getZ();
         }
 
+        public void setLocation(LocationAbstract location) {
+            this.relative = false;
+            this.posX = location.getX();
+            this.posY = location.getY();
+            this.posZ = location.getZ();
+        }
+
+        public void setLocationMidOf(Block block) {
+            this.relative = false;
+            this.posX = block.getX() + 0.5;
+            this.posY = block.getY() + 0.5;
+            this.posZ = block.getZ() + 0.5;
+        }
+
         public BlockFace getMotionFace() {
-            if (motX < -0.001 || motX > 0.001 || motZ < -0.001 || motZ > 0.001) {
-                return FaceUtil.getDirection(motX, motZ, false);
-            } else {
-                return FaceUtil.getVertical(motY);
-            }
+            return Util.vecToFace(motX, motY, motZ, false);
         }
 
         public double motDot(Position pos) {
@@ -565,6 +693,7 @@ public class RailPath {
             p.upY = this.upY;
             p.upZ = this.upZ;
             p.reverse = this.reverse;
+            p.relative = this.relative;
         }
 
         @Override
@@ -576,16 +705,26 @@ public class RailPath {
 
         @Override
         public String toString() {
-            return "{pos={" + MathUtil.round(posX, 4) + "/" +
+            return (this.relative ? "{r_pos={" : "{a_pos={") +
+                    MathUtil.round(posX, 4) + "/" +
                     MathUtil.round(posY, 4) + "/" +
                     MathUtil.round(posZ, 4) + "},mot={" +
                     MathUtil.round(motX, 4) + "/" +
                     MathUtil.round(motY, 4) + "/" +
-                    MathUtil.round(motZ, 4) + "}}";
+                    MathUtil.round(motZ, 4) + "},f=" +
+                    this.getMotionFace().name() + "}";
         }
 
+        /**
+         * Creates a Position from an absolute position on the rails and a movement direction vector
+         * 
+         * @param position in absolute world coordinates
+         * @param direction vector
+         * @return absolute Position
+         */
         public static Position fromPosDir(Vector position, Vector direction) {
             Position p = new Position();
+            p.relative = false;
             p.posX = position.getX();
             p.posY = position.getY();
             p.posZ = position.getZ();
@@ -595,8 +734,16 @@ public class RailPath {
             return p;
         }
 
+        /**
+         * Creates a Position from an absolute from and to position in world coordinates
+         * 
+         * @param from
+         * @param to
+         * @return absolute Position
+         */
         public static Position fromTo(Location from, Location to) {
             Position p = new Position();
+            p.relative = false;
             p.posX = from.getX();
             p.posY = from.getY();
             p.posZ = from.getZ();

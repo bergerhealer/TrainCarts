@@ -53,6 +53,7 @@ public class TrackWalkingPoint {
     private boolean first = true;
 
     public TrackWalkingPoint(RailState state) {
+        state.position().assertAbsolute();
         this.state = state.clone();
         this.currentRailLogic = this.state.loadRailLogic();
     }
@@ -68,6 +69,7 @@ public class TrackWalkingPoint {
 
     public TrackWalkingPoint(Block startRail, BlockFace motionFace) {
         this.state = new RailState();
+        this.state.position().relative = false;
         if (startRail != null) {
             this.state.setRailBlock(startRail);
             this.state.setRailType(RailType.getType(startRail));
@@ -207,9 +209,7 @@ public class TrackWalkingPoint {
 
         // Load next rails information
         // Move the path an infinitesmall amount to beyond the current rail
-        position.posX += 1e-10 * position.motX;
-        position.posY += 1e-10 * position.motY;
-        position.posZ += 1e-10 * position.motZ;
+        position.smallAdvance();
 
         // Rail Type lookup + loop filter logic
         Block prevRailBlock = this.state.railBlock();

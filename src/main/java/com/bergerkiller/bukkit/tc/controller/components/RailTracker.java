@@ -59,6 +59,7 @@ public abstract class RailTracker {
         }
 
         public TrackedRail(MinecartMember<?> member, RailState state, boolean disconnected) {
+            state.position().assertAbsolute();
             this.member = member;
             this.state = state.clone();
             this.state.setMember(member);
@@ -93,6 +94,8 @@ public abstract class RailTracker {
             this.state.setRailType(railsType);
             if (location != null) {
                 this.state.position().setLocation(location);
+            } else if (railsBlock != null) {
+                this.state.position().setLocationMidOf(railsBlock);
             }
             this.state.position().setMotion(motionVector);
         }

@@ -31,11 +31,6 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     }
 
     @Override
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        return currentTrack.getRelative(currentDirection);
-    }
-
-    @Override
     public BlockFace getDirection(Block railsBlock) {
         return Util.getPlateDirection(railsBlock);
     }

@@ -98,6 +98,7 @@ public abstract class RailTypeHorizontal extends RailType {
                             // Check if there is rails in the next direction of the current rail
                             // If not, then we would go into the block diagonally as nothing re-routes it
                             // If there is, and the rails direct the cart into the block, prevent it as well
+                            // TODO: This is more than likely broken.
                             Block dirBlock = railsBlock.getRelative(hitDir);
                             RailType dirRail = RailType.getType(dirBlock);
                             if (dirRail == RailType.NONE) {
@@ -106,10 +107,7 @@ public abstract class RailTypeHorizontal extends RailType {
                             }
 
                             if (dirRail != RailType.NONE) {
-                                Block nextPosBlock = dirRail.getNextPos(dirBlock, hitDir);
-                                if (nextPosBlock != null) {
-                                    nextPosBlock = dirRail.findMinecartPos(nextPosBlock);
-                                }
+                                Block nextPosBlock = Util.getNextPos(dirBlock, hitDir);
                                 if (nextPosBlock != null && hitBlock.equals(nextPosBlock)) {
                                     return true; // will enter the block, prevent with collision
                                 }

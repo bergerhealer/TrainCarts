@@ -576,10 +576,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void reverse() {
+        // Reverse velocity of all carts and then perform a full refresh
         for (MinecartMember<?> mm : this) {
-            mm.reverse();
+            mm.getEntity().vel.multiply(-1.0);
         }
-        Collections.reverse(this);
+        this.updateDirection();
     }
 
     public void setForwardForce(double force) {
@@ -591,7 +592,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 mm.getEntity().vel.multiply(force / currvel);
             }
         }
-        
+
         /*
         final double currvel = this.head().getForce();
         if (currvel <= 0.01 || Math.abs(force) < 0.01) {

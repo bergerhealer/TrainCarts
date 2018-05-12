@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
@@ -15,6 +16,8 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
@@ -658,6 +661,22 @@ public class Util {
      * @return straight length
      */
     public static double calculateStraightLength(Block railsBlock, BlockFace direction) {
+        TrackWalkingPoint p = new TrackWalkingPoint(railsBlock, direction);
+        Vector start_dir = null;
+        while (p.movedTotal < 20.0 && p.move(0.1)) {
+            if (start_dir == null) {
+                start_dir = p.state.motionVector();
+            } else {
+                // Verify that the start and current motion vector are still somewhat the same
+                // Somewhat is subjective, so use the dot product and hope for the best
+                if (p.state.position().motDot(start_dir) < 0.75) {
+                    break;
+                }
+            }
+        }
+        return p.movedTotal;
+        
+        /*
         // Read track information and parameters
         RailType type = RailType.getType(railsBlock);
         boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock));
@@ -724,6 +743,7 @@ public class Util {
             }
         }
         return length;
+        */
     }
 
     /**
@@ -1061,11 +1081,51 @@ public class Util {
     }
 
     /**
+     * Calculates the next Minecart block position when going on a rail block in a particular direction.
+     * This logic is largely deprecated and is only used in places where there is no alternative possible yet.
+     * 
+     * @param railBlock
+     * @param direction
+     * @return next minecart Block position, null if no such rail exists
+     */
+    public static Block getNextPos(Block railBlock, BlockFace direction) {
+        TrackMovingPoint p = new TrackMovingPoint(railBlock, direction);
+        if (!p.hasNext()) {
+            return null;
+        }
+        p.next();
+        if (!p.hasNext()) {
+            return null;
+        }
+        p.next(false);
+        return p.current;
+    }
+
+    /**
      * Marks a chunk as dirty, so that it is saved again when it unloads
      * 
      * @param chunk
      */
     public static final void markChunkDirty(Chunk chunk) {
         ChunkHandle.fromBukkit(chunk).markDirty();
+    }
+
+    /**
+     * Attempts to find the most appropriate junction for a BlockFace wind direction.
+     * This is used when switcher signs have to switch rails based on wind directions, but
+     * no wind direction names are used for the junction names. This is also used for sign-relative
+     * left/right/forward/backward logic, which is first turned into a BlockFace.
+     * 
+     * @param junctions to select from
+     * @param face to find
+     * @return the best matching junction, null if not found
+     */
+    public static RailJunction faceToJunction(List<RailJunction> junctions, BlockFace face) {
+        for (RailJunction junc : junctions) {
+            if (junc.position().getMotionFace() == face) {
+                return junc;
+            }
+        }
+        return null;
     }
 }

@@ -28,6 +28,7 @@ public class RailState {
         this._enterFace = null;
         this._member = null;
         this._position = new RailPath.Position();
+        this._position.relative = false;
     }
 
     /**
@@ -50,10 +51,17 @@ public class RailState {
         if (this._railBlock == null) {
             throw new IllegalStateException("Rails Block must be set before positionBlock can be obtained");
         }
-        return this._railBlock.getWorld().getBlockAt(
-                MathUtil.floor(this._position.posX),
-                MathUtil.floor(this._position.posY),
-                MathUtil.floor(this._position.posZ));
+        if (this._position.relative) {
+            return this._railBlock.getWorld().getBlockAt(
+                    this._railBlock.getX() + MathUtil.floor(this._position.posX),
+                    this._railBlock.getY() + MathUtil.floor(this._position.posY),
+                    this._railBlock.getZ() + MathUtil.floor(this._position.posZ));
+        } else {
+            return this._railBlock.getWorld().getBlockAt(
+                    MathUtil.floor(this._position.posX),
+                    MathUtil.floor(this._position.posY),
+                    MathUtil.floor(this._position.posZ));
+        }
     }
 
     /**
@@ -66,13 +74,23 @@ public class RailState {
         if (this._railBlock == null) {
             throw new IllegalStateException("Rails Block must be set before positionLocation can be obtained");
         }
-        return new Location(
-                this._railBlock.getWorld(),
-                this._position.posX,
-                this._position.posY,
-                this._position.posZ,
-                MathUtil.getLookAtYaw(this._position.motX, this._position.motZ),
-                MathUtil.getLookAtPitch(this._position.motX, this._position.motY, this._position.motZ));
+        if (this._position.relative) {
+            return new Location(
+                    this._railBlock.getWorld(),
+                    this._railBlock.getX() + this._position.posX,
+                    this._railBlock.getY() + this._position.posY,
+                    this._railBlock.getZ() + this._position.posZ,
+                    MathUtil.getLookAtYaw(this._position.motX, this._position.motZ),
+                    MathUtil.getLookAtPitch(this._position.motX, this._position.motY, this._position.motZ));
+        } else {
+            return new Location(
+                    this._railBlock.getWorld(),
+                    this._position.posX,
+                    this._position.posY,
+                    this._position.posZ,
+                    MathUtil.getLookAtYaw(this._position.motX, this._position.motZ),
+                    MathUtil.getLookAtPitch(this._position.motX, this._position.motY, this._position.motZ));
+        }
     }
 
     /**
@@ -138,9 +156,15 @@ public class RailState {
         if (this._railBlock == null) {
             throw new IllegalStateException("Rails Block must be set before railPosition can be obtained");
         }
-        return new Vector(this._position.posX - this._railBlock.getX(),
-                          this._position.posY - this._railBlock.getY(),
-                          this._position.posZ - this._railBlock.getZ());
+        if (this._position.relative) {
+            return new Vector(this._position.posX,
+                              this._position.posY,
+                              this._position.posZ);
+        } else {
+            return new Vector(this._position.posX - this._railBlock.getX(),
+                              this._position.posY - this._railBlock.getY(),
+                              this._position.posZ - this._railBlock.getZ());
+        }
     }
 
     /**
@@ -223,5 +247,22 @@ public class RailState {
                 this._railBlock.getZ() + "/" +
                 this._railType + "}" +
                 ", pos=" + this._position + "}";
+    }
+
+    /**
+     * Gets the Rail State when spawned on a rails block
+     * 
+     * @param railType
+     * @param railBlock
+     * @return spawn state
+     */
+    public static RailState getSpawnState(RailType railType, Block railBlock) {
+        RailState state = new RailState();
+        state.setRailType(railType);
+        state.setRailBlock(railBlock);
+        state.position().setLocation(railType.getSpawnLocation(railBlock, BlockFace.NORTH));
+        RailType.loadRailInformation(state);
+        state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
+        return state;
     }
 }

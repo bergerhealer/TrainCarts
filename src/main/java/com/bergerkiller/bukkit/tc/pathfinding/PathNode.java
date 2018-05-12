@@ -148,9 +148,6 @@ public class PathNode {
         currentDistance += conn.distance;
         // Consider taking turns as one distance longer
         // This avoids the excessive use of turns in 2-way 'X' intersections
-        if (from.direction != conn.direction) {
-            currentDistance++;
-        }
         if (destination == node) {
             return currentDistance;
         }
@@ -262,7 +259,7 @@ public class PathNode {
         }
         int maxDistance = Integer.MAX_VALUE;
         int distance;
-        final PathConnection from = new PathConnection(this, 0, BlockFace.SELF);
+        final PathConnection from = new PathConnection(this, 0, "");
         for (PathConnection connection : this.neighbors) {
             distance = getDistanceTo(from, connection, 0, maxDistance, destination);
             if (maxDistance > distance) {
@@ -273,7 +270,7 @@ public class PathNode {
         if (this.lastTaken == null) {
             return null;
         } else {
-            return new PathConnection(destination, maxDistance, this.lastTaken.direction);
+            return new PathConnection(destination, maxDistance, this.lastTaken.junctionName);
         }
     }
 
@@ -302,10 +299,10 @@ public class PathNode {
      *
      * @param to        the node to make a connection with
      * @param distance  of the connection
-     * @param direction of the connection
+     * @param junctionName of the connection
      * @return The connection that was made
      */
-    public PathConnection addNeighbour(final PathNode to, final int distance, final BlockFace direction) {
+    public PathConnection addNeighbour(final PathNode to, final int distance, final String junctionName) {
         PathConnection conn;
         Iterator<PathConnection> iter = this.neighbors.iterator();
         while (iter.hasNext()) {
@@ -322,7 +319,7 @@ public class PathNode {
             }
         }
         // Add a new one
-        conn = new PathConnection(to, distance, direction);
+        conn = new PathConnection(to, distance, junctionName);
         this.neighbors.add(conn);
         hasChanges = true;
         return conn;

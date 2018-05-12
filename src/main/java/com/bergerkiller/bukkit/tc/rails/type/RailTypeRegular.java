@@ -10,10 +10,14 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 import com.bergerkiller.bukkit.tc.utils.MinecartTrackLogic;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -262,15 +266,6 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        Rails rail = BlockUtil.getRails(currentTrack);
-        if (rail == null) {
-            return null;
-        }
-        return getNextPos(currentTrack, currentDirection, rail.getDirection(), rail.isOnSlope(), this.isUpsideDown(currentTrack));
-    }
-
-    @Override
     public BlockFace[] getPossibleDirections(Block trackBlock) {
         Rails rails = BlockUtil.getRails(trackBlock);
         if (rails == null) {
@@ -279,6 +274,41 @@ public class RailTypeRegular extends RailTypeHorizontal {
             return new BlockFace[] { rails.getDirection().getOppositeFace(), BlockFace.UP };
         } else {
             return getPossibleDirections(rails.getDirection());
+        }
+    }
+
+    @Override
+    public List<RailJunction> getJunctions(Block railBlock) {
+        Rails rails = BlockUtil.getRails(railBlock);
+        if (rails == null || rails.isOnSlope()) {
+            return super.getJunctions(railBlock);
+        }
+
+        return Arrays.asList(
+                new RailJunction("n", RailLogicHorizontal.get(BlockFace.NORTH).getPath().getStartPosition()),
+                new RailJunction("e", RailLogicHorizontal.get(BlockFace.EAST).getPath().getEndPosition()),
+                new RailJunction("s", RailLogicHorizontal.get(BlockFace.SOUTH).getPath().getEndPosition()),
+                new RailJunction("w", RailLogicHorizontal.get(BlockFace.WEST).getPath().getStartPosition())
+                );
+    }
+
+    @Override
+    public void switchJunction(Block railBlock, RailJunction from, RailJunction to) {
+        BlockUtil.setRails(railBlock, juncToFace(from), juncToFace(to));
+    }
+
+    private static final BlockFace juncToFace(RailJunction junction) {
+        switch (junction.name()) {
+        case "n":
+            return BlockFace.NORTH;
+        case "e":
+            return BlockFace.EAST;
+        case "s":
+            return BlockFace.SOUTH;
+        case "w":
+            return BlockFace.WEST;
+        default:
+            return BlockFace.NORTH;
         }
     }
 

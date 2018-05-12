@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
@@ -18,7 +19,6 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
-import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -156,6 +156,7 @@ public abstract class RailType {
      * @return True if rails were found (railtype != NONE), False otherwise
      */
     public static boolean loadRailInformation(RailState state) {
+        state.position().assertAbsolute();
         Block positionBlock = state.positionBlock();
         RailInfo[] cachedInfo = RailTypeCache.getInfo(positionBlock);
         if (cachedInfo.length == 0) {
@@ -373,37 +374,72 @@ public abstract class RailType {
     public abstract Block findMinecartPos(Block trackBlock);
 
     /**
-     * Gets an array containing all possible directions a Minecart can move on the trackBlock.
+     * Gets an array containing all possible directions a Minecart can move on the trackBlock.<br>
+     * <b>Deprecated: implement {@link #getJunctions()} instead (if needed)</b>
      *
      * @param trackBlock to use
      * @return all possible directions the Minecart can move
      */
+    @Deprecated
     public abstract BlockFace[] getPossibleDirections(Block trackBlock);
 
     /**
-     * Gets the next Minecart Position Block while moving on this type of Rail.
-     * The goal of this method is to find out where Minecarts that enter this rail
-     * end up at when moving forward.<br><br>
-     * <p/>
-     * If the result is null, then this Rail Type forcibly disallows that direction
-     * from being used, and no movement was possible.
-     *
-     * @param currentTrack     of this rail type the 'Minecart' is using to drive on
-     * @param currentDirection the 'Minecart' is moving
-     * @return next Block the minecart is at after moving over this rail
+     * Gets an array containing all possible junctions that can be taken for a particular rail block.
+     * There does not have to be a valid rail at the end for a junction to exist. By default the two end
+     * points of the path returned by the logic for a 'down' direction are returned.
+     * 
+     * @param railBlock where this Rail Type is at
+     * @return list of junctions supported by this rail type, empty if no junctions are available
      */
-    @Deprecated
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        TrackMovingPoint p = new TrackMovingPoint(currentTrack, currentDirection);
-        if (!p.hasNext()) {
-            return null;
+    public List<RailJunction> getJunctions(Block railBlock) {
+        RailState state = new RailState();
+        state.setRailBlock(railBlock);
+        state.setRailType(this);
+        state.position().setLocation(this.getSpawnLocation(railBlock, BlockFace.DOWN));
+        state.position().setMotion(BlockFace.DOWN);
+        state.setEnterFace(BlockFace.DOWN);
+
+        RailPath path = this.getLogic(state).getPath();
+        if (path.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            return Arrays.asList(new RailJunction("1", path.getStartPosition()),
+                                 new RailJunction("2", path.getEndPosition()));
         }
-        p.next();
-        if (!p.hasNext()) {
-            return null;
+    }
+
+    /**
+     * Prepares a {@link RailState} when taking a junction returned by {@link #getJunctions(Block)}.
+     * Feeding this state into a walking point will enable further discovery past the junction.
+     * 
+     * @param railBlock where this Rail Type is at
+     * @param junction to check
+     * @return RailState after taking the junction, null if there is no rails here
+     */
+    public RailState takeJunction(Block railBlock, RailJunction junction) {
+        RailState state = new RailState();
+        state.setRailBlock(railBlock);
+        state.setRailType(this);
+        junction.position().copyTo(state.position());
+        state.position().makeAbsolute(railBlock);
+        state.position().smallAdvance();
+        if (!loadRailInformation(state)) {
+            return null; // No rail here
         }
-        p.next(false);
-        return p.current;
+        if (state.railType() == this && state.railBlock().equals(railBlock)) {
+            return null; // Same rail - avoid cyclical loop error
+        }
+        return state;
+    }
+
+    /**
+     * Switches the rails from one junction to another. Junctions are used from {@link #getJunctions(railBlock)}.
+     * 
+     * @param railBlock where this Rail Type is at
+     * @param from junction
+     * @param to junction
+     */
+    public void switchJunction(Block railBlock, RailJunction from, RailJunction to) {
     }
 
     /**

@@ -5,10 +5,14 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -56,19 +60,6 @@ public class PathProvider extends Task {
     }
 
     /**
-     * Tells this Path Provider to start finding the next node(s) from the start point specified
-     *
-     * @param startNode      from which to seek and to which connections should be made
-     * @param startBlock     from which to start searching
-     * @param startDirection towards which direction to start searching
-     */
-    public static void schedule(PathNode startNode, Block startBlock, BlockFace startDirection) {
-        if (task != null) {
-            task.pendingOperations.offer(new PathFindOperation(startNode, startBlock, startDirection));
-        }
-    }
-
-    /**
      * Checks whether this Path Provider is currently busy processing path finding
      *
      * @return True if processing is being performed, False if not
@@ -106,7 +97,7 @@ public class PathProvider extends Task {
             done = false;
             if (DEBUG_MODE) {
                 System.out.println("DISCOVERING EVERYTHING FROM " + operation.startNode.getDisplayName() +
-                        " INTO " + operation.startDir);
+                        " INTO " + operation.junctionName);
             }
             // Perform the operations in steps
             // Not per step, because System.currentTimeMillis is not entirely cheap!
@@ -137,48 +128,55 @@ public class PathProvider extends Task {
                         System.out.println("NODE " + node.getDisplayName() + " CONTAINS A SWITCHER");
                     }
                     // Check north-east-south-west for possible routes
-                    for (BlockFace dir : FaceUtil.AXIS) {
-                        scheduleNode(node, startType.findMinecartPos(startRail).getRelative(dir), dir);
+                    // Skip PAST the switcher sign rails, to avoid problems
+                    for (RailJunction junc : startType.getJunctions(startRail)) {
+                        RailState state = startType.takeJunction(startRail, junc);
+                        if (state != null) {
+                            scheduleNode(node, state, junc.name());
+                        }
                     }
                 } else {
                     // Only check available routes
-                    for (BlockFace dir : startType.getPossibleDirections(startRail)) {
-                        scheduleNode(node, startType.getNextPos(startRail, dir), dir);
+                    RailState state = new RailState();
+                    state.setRailBlock(startRail);
+                    state.setRailType(startType);
+                    state.position().setLocation(startType.getSpawnLocation(startRail, BlockFace.NORTH));
+                    if (!RailType.loadRailInformation(state)) {
+                        continue;
                     }
+
+                    // Snap onto rails
+                    state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
+
+                    // Schedule current direction AND opposite direction
+                    RailState state_opposite = state.clone();
+                    state_opposite.position().invertMotion();
+                    Util.calculateEnterFace(state_opposite);
+                    scheduleNode(node, state, "1");
+                    scheduleNode(node, state_opposite, "2");
                 }
             }
             this.pendingNodes.clear();
         }
     }
 
-    private void scheduleNode(PathNode node, Block startBlock, BlockFace direction) {
-        //NB: Do not use the cached call here because we walk through a lot of rails only once!
-        for (RailType nextType : RailType.values()) {
-            try {
-                boolean found = false;
-                for (Block startRail : nextType.findRails(startBlock)) {
-                    schedule(node, startRail, direction);
-                    found = true;
-                }
-                if (found) {
-                    return;
-                }
-            } catch (Throwable t) {
-                RailType.handleCriticalError(nextType, t);
-                break;
-            }
+    private void scheduleNode(PathNode node, RailState state, String junctionName) {
+        if (task != null) {
+            task.pendingOperations.offer(new PathFindOperation(node, state, junctionName));
         }
     }
 
     private static class PathFindOperation {
-        private final TrackIterator iter;
-        private final BlockFace startDir;
+        private final TrackWalkingPoint p;
         private final PathNode startNode;
+        private final String junctionName;
 
-        public PathFindOperation(PathNode startNode, Block startBlock, BlockFace startFace) {
-            this.iter = new TrackIterator(startBlock, startFace);
-            this.startDir = startFace;
+        public PathFindOperation(PathNode startNode, RailState state, String junctionName) {
+            this.p = new TrackWalkingPoint(state);
+            this.p.setLoopFilter(true);
+            this.junctionName = junctionName;
             this.startNode = startNode;
+            System.out.println("START FROM " + state);
         }
 
         /**
@@ -187,10 +185,11 @@ public class PathProvider extends Task {
          * @return True if this task is finished, False if not
          */
         public boolean next() {
-            if (!iter.hasNext()) {
+            if (!this.p.moveFull()) {
                 return true;
             }
-            Block nextRail = iter.next();
+            Block nextRail = p.state.railBlock();
+            System.out.println("CHECK: " + nextRail);
             BlockLocation newNodeLocation;
             String newNodeName;
             boolean hasFinished = false;
@@ -203,7 +202,7 @@ public class PathProvider extends Task {
                     } else if (event.isType("destination")) {
                         newNodeLocation = new BlockLocation(nextRail);
                         newNodeName = event.getLine(2);
-                    } else if (event.isType("blocker") && event.isWatchedDirection(iter.currentDirection()) && event.isPowerAlwaysOn()) {
+                    } else if (event.isType("blocker") && event.isWatchedDirection(p.state.enterFace()) && event.isPowerAlwaysOn()) {
                         hasFinished = true;
                         break;
                     } else {
@@ -212,7 +211,7 @@ public class PathProvider extends Task {
                     if (!newNodeName.isEmpty() && !startNode.containsName(newNodeName)) {
                         //finished, we found our first target - create connection
                         PathNode to = PathNode.getOrCreate(newNodeName, newNodeLocation);
-                        this.startNode.addNeighbour(to, iter.getDistance() + 1, this.startDir);
+                        this.startNode.addNeighbour(to, (int) p.movedTotal, this.junctionName);
                         hasFinished = true;
                         if (DEBUG_MODE) {
                             System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + newNodeName);

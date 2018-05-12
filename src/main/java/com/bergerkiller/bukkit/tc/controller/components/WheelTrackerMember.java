@@ -407,9 +407,7 @@ public class WheelTrackerMember {
             // This initializes the running Position object correctly
             TrackedRail rail = rails.get(railIndex);
             RailPath.Position position = new RailPath.Position();
-            position.posX = this.member.getEntity().loc.getX();
-            position.posY = this.member.getEntity().loc.getY();
-            position.posZ = this.member.getEntity().loc.getZ();
+            position.setLocation(this.member.getEntity().loc);
             position.setMotion(member.getDirection());
             rail.getPath().move(position, rail.block, 0.0);
 

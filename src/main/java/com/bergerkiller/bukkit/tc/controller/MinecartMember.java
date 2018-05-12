@@ -686,11 +686,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Need an initial Rail Block set
         state.setRailBlock(entity.loc.toBlock());
         state.setMember(this);
+        state.position().setMotion(this.calcMotionVector(false));
 
         // No pre-move position? Simply return block at current position.
         if (this.preMovePosition == null) {
             state.position().setLocation(entity.getLocation());
-            state.position().setMotion(this.calcMotionVector(false));
             return RailType.loadRailInformation(state);
         }
 
@@ -704,13 +704,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         final double smallStep = 1e-7;
         if (moved <= smallStep || moved > 0.45) {
             state.position().setLocation(entity.getLocation());
-            state.position().setMotion(this.calcMotionVector(false));
             return RailType.loadRailInformation(state);
         }
 
         // Normalize direction vector
         direction.multiply(1.0 / moved);
-        state.position().setMotion(direction);
+        //TODO: Do we use this direction vector for motion or not?
+        // Using this causes reverse() to not work anymore
 
         // Iterate the blocks from the preMovePosition to the current position and discover rails here
         // Because we move such a short distance (<=0.45) it is very rare for more than two blocks to ever be iterated
@@ -728,7 +728,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Current position
         state.position().setLocation(entity.getLocation());
-        state.position().setMotion(this.calcMotionVector(false));
         return RailType.loadRailInformation(state);
     }
 
@@ -1346,22 +1345,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (cancelLocationChange) {
             entity.loc.set(entity.last);
         }
-    }
-
-    public void reverse() {
-        reverse(true);
-    }
-
-    public void reverse(boolean reverseVelocity) {
-        if (reverseVelocity) {
-            entity.vel.multiply(-1.0);
-        }
-        if (this.direction != null) {
-            this.direction = this.direction.getOppositeFace();
-        }
-        this.directionFrom = null;
-        this.directionTo = null;
-        this.updateDirection();
     }
 
     protected void updateUnloaded() {

@@ -11,12 +11,22 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -27,8 +37,6 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.material.Rails;
-
-import java.util.*;
 
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
@@ -144,52 +152,43 @@ public class SignActionEvent extends Event implements Cancellable {
         return this.getFacing().getOppositeFace();
     }
 
+    /* ============================= Deprecated BlockFace Junctions =============================== */
+
     /**
      * Sets the rails above this sign to connect with the from and to directions<br>
-     * If the cart has to be reversed, that is done
+     * If the cart has to be reversed, that is done<br>
+     * <br>
+     * <b>Deprecated: no longer limited to BlockFace directions, use junctions instead</b>
      *
      * @param from direction
      * @param to   direction
      */
+    @Deprecated
     public void setRailsFromTo(BlockFace from, BlockFace to) {
-        if (this.hasRails()) {
-            if (from == to) {
-                // Try to find out a better from direction
-                for (BlockFace face : FaceUtil.getFaces(this.getRailDirection())) {
-                    if (face != to) {
-                        from = face;
-                        break;
-                    }
-                }
-            }
-            BlockUtil.setRails(this.getRails(), from, to);
-            if (this.hasMember() && this.member.getDirectionFrom().getOppositeFace() == to) {
-                // Break this cart from the train if needed
-                this.member.getGroup().split(this.member.getIndex());
-                // Launch in the other direction
-                double force = this.member.getForce();
-                this.getGroup().stop();
-                this.getGroup().getActions().clear();
-                this.member.getActions().addActionLaunch(to, 1, force);
-            }
-        }
+        setRailsFromTo(findJunction(from), findJunction(to));
     }
 
     /**
-     * Sets the rails above this sign to lead from the minecart direction to the direction specified
+     * Sets the rails above this sign to lead from the minecart direction to the direction specified<br>
+     * <br>
+     * <b>Deprecated: no longer limited to BlockFace directions, use junctions instead</b>
      *
      * @param to direction
      */
+    @Deprecated
     public void setRailsTo(BlockFace to) {
-        setRailsFromTo(getCartDirection().getOppositeFace(), to);
+        setRailsTo(findJunction(to));
     }
 
     /**
      * Sets the rails above this sign to lead from the minecart direction into a direction specified<br>
-     * Relative directions, like left and right, are relative to the sign direction
+     * Relative directions, like left and right, are relative to the sign direction<br>
+     * <br>
+     * <b>Deprecated: no longer limited to BlockFace directions, use junctions instead</b>
      *
      * @param direction to set the rails to
      */
+    @Deprecated
     public void setRailsTo(Direction direction) {
         BlockFace to = direction.getDirection(this.getFacing());
         if (direction == Direction.LEFT || direction == Direction.RIGHT) {
@@ -198,6 +197,160 @@ public class SignActionEvent extends Event implements Cancellable {
             }
         }
         this.setRailsTo(to);
+    }
+
+    /* ===================================================================================== */
+
+    /**
+     * Gets a list of valid junctions that can be taken on the rails block of this sign
+     * 
+     * @return junctions
+     */
+    public List<RailJunction> getJunctions() {
+        return RailType.getType(this.getRails()).getJunctions(this.getRails());
+    }
+
+    /**
+     * Attempts to find a junction of the rails block belonging to this sign event by name
+     * 
+     * @param junctionName
+     * @return junction, null if not found
+     */
+    public RailJunction findJunction(String junctionName) {
+        for (RailJunction junc : getJunctions()) {
+            if (junc.name().equals(junctionName)) {
+                return junc;
+            }
+        }
+        //TODO: Advanced logic for left/right/cardinal/etc.
+        return null;
+    }
+
+    /**
+     * Attempts to find a junction of the rails block belonging to this sign event by face direction
+     * 
+     * @param face
+     * @return junction, null if not found
+     */
+    public RailJunction findJunction(BlockFace face) {
+        return Util.faceToJunction(getJunctions(), face);
+    }
+
+    /**
+     * Gets the rail junction from which the rails of this sign were entered.
+     * This is used when switching rails to select the 'from' junction.
+     * 
+     * @return rail junction
+     */
+    public RailJunction getEnterJunction() {
+        if (this.hasMember()) {
+            // Find the rails block matching the one that triggered this event
+            // Return the enter ('from') direction for that rails block if found
+            TrackedRail memberRail = null;
+            if (this.hasRails()) {
+                Block rails = this.getRails();
+                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
+                    if (rail.member == this.member && rail.block.equals(rails)) {
+                        memberRail = rail;
+                        break;
+                    }
+                }
+            }
+
+            // Ask the minecart itself alternatively
+            if (memberRail == null) {
+                memberRail = this.member.getRailTracker().getRail();
+            }
+
+            // Compute the position at the start of the rail's path by walking 'back'
+            RailPath.Position pos = memberRail.state.position().clone();
+            pos.invertMotion();
+            memberRail.getPath().move(pos, memberRail.block, Double.MAX_VALUE);
+            pos.makeRelative(memberRail.block);
+
+            // Find the junction closest to this start position
+            double min_dist = Double.MAX_VALUE;
+            RailJunction best_junc = null;
+            for (RailJunction junc : memberRail.type.getJunctions(memberRail.block)) {
+                double dist_sq = junc.position().distanceSquared(pos);
+                if (dist_sq < min_dist) {
+                    min_dist = dist_sq;
+                    best_junc = junc;
+                }
+            }
+            return best_junc;
+        }
+
+        //TODO: Do we NEED a fallback?
+        return null;
+    }
+
+    public void setRailsTo(String toJunctionName) {
+        setRailsFromTo(getEnterJunction(), findJunction(toJunctionName));
+    }
+
+    public void setRailsTo(RailJunction toJunction) {
+        setRailsFromTo(getEnterJunction(), toJunction);
+    }
+
+    public void setRailsFromTo(RailJunction fromJunction, String toJunctionName) {
+        setRailsFromTo(fromJunction, findJunction(toJunctionName));
+    }
+
+    public void setRailsFromTo(RailJunction fromJunction, RailJunction toJunction) {
+        if (!this.hasRails() || fromJunction == null || toJunction == null) {
+            return;
+        }
+
+        Block railBlock = this.getRails();
+        RailType railType = RailType.getType(railBlock);
+
+        // If from and to are the same, the train is launched back towards where it came
+        // In this special case, select another junction part of the path as the from
+        // and launch the train backwards
+        if (fromJunction.name().equals(toJunction.name())) {
+            // Pick any other junction that is not equal to 'to'
+            // Prefer junctions that have already been selected (assert from rail path)
+            RailState state = RailState.getSpawnState(railType, railBlock);
+            RailPath path = state.loadRailLogic().getPath();
+            RailPath.Position p0 = path.getStartPosition();
+            RailPath.Position p1 = path.getEndPosition();
+            double min_dist = Double.MAX_VALUE;
+            for (RailJunction junc : railType.getJunctions(railBlock)) {
+                if (junc.name().equals(fromJunction.name())) {
+                    continue;
+                }
+                if (junc.position().relative) {
+                    p0.makeRelative(railBlock);
+                    p1.makeRelative(railBlock);
+                } else {
+                    p0.makeAbsolute(railBlock);
+                    p1.makeAbsolute(railBlock);
+                }
+                double dist_sq = Math.min(p0.distanceSquared(junc.position()),
+                                          p1.distanceSquared(junc.position()));
+                if (dist_sq < min_dist) {
+                    min_dist = dist_sq;
+                    fromJunction = junc;
+                }
+            }
+
+            // Switch it
+            railType.switchJunction(this.getRails(), fromJunction, toJunction);
+
+            // Launch train into the opposite direction, if required
+            if (this.hasMember()) {
+                // Break this cart from the train if needed
+                this.member.getGroup().split(this.member.getIndex());
+                this.member.getGroup().getActions().clear();
+                this.member.getGroup().reverse();
+            }
+
+            return;
+        }
+
+        // Normal switching. Nothing special here.
+        railType.switchJunction(this.getRails(), fromJunction, toJunction);
     }
 
     /**
@@ -442,46 +595,17 @@ public class SignActionEvent extends Event implements Cancellable {
             return false;
         }
 
+        // If minecart is coming from the same direction, then there obviously is rails there
+        if (this.hasMember() && this.getMember().getDirectionTo() == direction.getOppositeFace()) {
+            return true;
+        }
+
         // Move from the current rail minecart position one block into the direction
         // Check if a rail exists there. If there is, check if it points at this rail
         // If so, then there is a rails there!
         RailType currentType = RailType.getType(getRails());
-        Block currentPos = currentType.findMinecartPos(getRails());
-        Block nextPos = currentType.getNextPos(getRails(), direction);
-
-        // If not null, verify its the general direction we had chosen
-        if (nextPos != null && currentPos != null) {
-            if (direction.getModX() != 0 && direction.getModX() != (nextPos.getX() - currentPos.getX())) {
-                nextPos = null;
-            } else if (direction.getModY() != 0 && direction.getModY() != (nextPos.getY() - currentPos.getY())) {
-                nextPos = null;
-            } else if (direction.getModZ() != 0 && direction.getModZ() != (nextPos.getZ() - currentPos.getZ())) {
-                nextPos = null;
-            }
-        }
-
-        if (nextPos == null) {
-            if (currentPos == null) {
-                return false;
-            } else {
-                nextPos = currentPos.getRelative(direction);
-            }
-        }
-
-        // Find a rails at this offset position
-        Block nextRail = null;
-        RailInfo nextRailInfo = RailType.findRailInfo(nextPos);
-        RailType nextRailType = RailType.NONE;
-        if (nextRailInfo != null) {
-            nextRailType = nextRailInfo.railType;
-            nextRail = nextRailInfo.railBlock;
-        }
-        if (nextRailType == RailType.NONE) {
-            return false;
-        }
-
-        // Find out if the direction we came from is one of the possible directions
-        return LogicUtil.contains(direction.getOppositeFace(), nextRailType.getPossibleDirections(nextRail));
+        RailJunction junction = Util.faceToJunction(currentType.getJunctions(getRails()), direction);
+        return junction != null && currentType.takeJunction(getRails(), junction) != null;
     }
 
     /**

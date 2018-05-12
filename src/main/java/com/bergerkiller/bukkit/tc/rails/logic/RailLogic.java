@@ -179,9 +179,10 @@ public abstract class RailLogic {
             return endDirection;
         }
         RailPath.Position position = new RailPath.Position();
-        position.posX = positionBlock.getX() + 0.5 - 0.5 * endDirection.getModX();
-        position.posY = positionBlock.getY() + 0.5 - 0.5 * endDirection.getModY();
-        position.posZ = positionBlock.getZ() + 0.5 - 0.5 * endDirection.getModZ();
+        position.setLocationMidOf(positionBlock);
+        position.posX -= 0.5 * endDirection.getModX();
+        position.posY -= 0.5 * endDirection.getModY();
+        position.posZ -= 0.5 * endDirection.getModZ();
         position.setMotion(endDirection);
         path.snap(position, railsBlock);
         return Util.vecToFace(position.motX, position.motY, position.motZ, true);
@@ -255,9 +256,7 @@ public abstract class RailLogic {
             CommonMinecart<?> entity = member.getEntity();
             double vel = entity.vel.length();
             RailPath.Position pos = new RailPath.Position();
-            pos.posX = entity.loc.getX();
-            pos.posY = entity.loc.getY();
-            pos.posZ = entity.loc.getZ();
+            pos.setLocation(entity.loc);
             pos.setMotion(member.getDirection());
             this.getPath().move(pos, member.getBlock(), 0.0);
             entity.vel.set(vel * pos.motX, vel * pos.motY, vel * pos.motZ);
