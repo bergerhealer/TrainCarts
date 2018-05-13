@@ -41,15 +41,24 @@ public class RailLogicVerticalSlopeUpsideDownC extends RailLogicVerticalSlopeBas
         // One segment is vertical, and leads to somewhere in the middle
         // The other segment is sloped from the middle to the other end
         // The x/z coordinates are asserted from the y-coordinate
-        final double half_offset = 0.5 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
-        Vector p1 = new Vector(0.5, 0.0, 0.5);
-        Vector p2 = new Vector(0.5, half_offset, 0.5);
-        Vector p3 = new Vector(0.5, half_offset + 0.5, 0.5);
+        double dx = 0.5 - RailLogicVertical.XZ_POS_OFFSET * this.getDirection().getModX();
+        double dz = 0.5 - RailLogicVertical.XZ_POS_OFFSET * this.getDirection().getModZ();
+        Vector p1 = new Vector(dx, 0.0, dz);
+        Vector p2 = new Vector(dx, 0.81, dz);
+        Vector p3 = new Vector(dx, 2.0 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE, dz);
 
         if (this.alongZ) {
             p3.setZ(0.5 + 0.5 * (double) this.getDirection().getModZ());
         } else if (this.alongX) {
             p3.setX(0.5 + 0.5 * (double) this.getDirection().getModX());
+        }
+
+        // Guarantee that the top of the slope cuts off where UpsideDownA begins
+        // This prevents trains splitting up when crossing the rails
+        if (p3.getY() > 1.0) {
+            Vector d = p3.clone().subtract(p2).normalize();
+            d.multiply((p3.getY() - 1.0) / d.getY());
+            p3.subtract(d);
         }
 
         return new RailPath.Builder()

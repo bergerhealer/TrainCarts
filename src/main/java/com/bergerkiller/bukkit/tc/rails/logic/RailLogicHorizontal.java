@@ -32,8 +32,8 @@ public class RailLogicHorizontal extends RailLogic {
     private final BlockFace[] faces;
     private final BlockFace[] ends;
     public static final double Y_POS_OFFSET = 0.0625;
-    public static final double Y_POS_OFFSET_UPSIDEDOWN = 0.25;
-    public static final double Y_POS_OFFSET_UPSIDEDOWN_SLOPE = -0.4;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN = -Y_POS_OFFSET;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN_SLOPE = -0.2;
 
     protected RailLogicHorizontal(BlockFace direction) {
         this(direction, false);
@@ -109,7 +109,7 @@ public class RailLogicHorizontal extends RailLogic {
 
     @Override
     protected RailPath createPath() {
-        double base_y = isUpsideDown() ? (Y_POS_OFFSET_UPSIDEDOWN - 1.0) : Y_POS_OFFSET;
+        double base_y = isUpsideDown() ? Y_POS_OFFSET_UPSIDEDOWN : Y_POS_OFFSET;
         Vector p1 = new Vector(this.startX + 0.5, base_y, this.startZ + 0.5);
         Vector p2 = p1.clone();
         if (this.alongZ) {

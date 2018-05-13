@@ -133,10 +133,12 @@ public class RailTypeVertical extends RailType {
     @Override
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         BlockFace dir = Util.getVerticalRailDirection(railsBlock);
+        double dx = 0.5 + RailLogicVertical.XZ_POS_OFFSET * dir.getModX();
+        double dz = 0.5 + RailLogicVertical.XZ_POS_OFFSET * dir.getModZ();
         return new Location(railsBlock.getWorld(),
-                railsBlock.getX() + 0.5,
+                railsBlock.getX() + dx,
                 railsBlock.getY() + 0.5,
-                railsBlock.getZ() + 0.5,
+                railsBlock.getZ() + dz,
                 FaceUtil.faceToYaw(dir),
                 -90.0f);
     }

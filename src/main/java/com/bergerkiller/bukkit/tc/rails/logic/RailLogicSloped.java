@@ -72,7 +72,7 @@ public class RailLogicSloped extends RailLogicHorizontal {
 
     @Override
     protected RailPath createPath() {
-        double base_y = isUpsideDown() ? (Y_POS_OFFSET_UPSIDEDOWN - 1.0 + Y_POS_OFFSET_UPSIDEDOWN_SLOPE) : Y_POS_OFFSET;
+        double base_y = isUpsideDown() ? (Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE) : Y_POS_OFFSET;
         Vector p1, p2;
         switch (this.getDirection()) {
         case NORTH:

@@ -587,7 +587,7 @@ public abstract class RailType {
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         Location at = this.findMinecartPos(railsBlock).getLocation();
         if (this.isUpsideDown(railsBlock)) {
-            at.add(0.5, RailLogicHorizontal.Y_POS_OFFSET_UPSIDEDOWN, 0.5);
+            at.add(0.5, 1.0 + RailLogicHorizontal.Y_POS_OFFSET_UPSIDEDOWN, 0.5);
             at.setPitch(-180.0F);
         } else {
             at.add(0.5, RailLogicHorizontal.Y_POS_OFFSET, 0.5);
