@@ -1122,6 +1122,23 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public boolean onBlockCollision(org.bukkit.block.Block hitBlock, BlockFace hitFace) {
         try (Timings t = TCTimings.MEMBER_PHYSICS_BLOCK_COLLISION.start()) {
+            // When the minecart is vertical, minecraft likes to make it collide with blocks on the opposite facing
+            // Detect this and cancel this collision. This allows smooth air<>vertical logic.
+            Vector upVector = this.getOrientation().upVector();
+            if (upVector.getY() >= -0.1 && upVector.getY() <= 0.1) {
+                if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
+                    double closest_dz = hitBlock.getZ() - this.entity.loc.getZ();
+                    if (closest_dz < -0.5) closest_dz += 1.0;
+                    if ((upVector.getZ() > 0.0 && closest_dz < -0.01)) return false;
+                    if ((upVector.getZ() < 0.0 && closest_dz > 0.01)) return false;
+                } else if (upVector.getZ() >= -0.1 && upVector.getZ() <= 0.1) {
+                    double closest_dx = hitBlock.getX() - this.entity.loc.getX();
+                    if (closest_dx < -0.5) closest_dx += 1.0;
+                    if ((upVector.getX() > 0.0 && closest_dx < -0.01)) return false;
+                    if ((upVector.getX() < 0.0 && closest_dx > 0.01)) return false;
+                }
+            }
+
             if (!RailType.getType(hitBlock).onCollide(this, hitBlock, hitFace)) {
                 return false;
             }
