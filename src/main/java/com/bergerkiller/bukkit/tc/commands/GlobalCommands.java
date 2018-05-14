@@ -162,16 +162,14 @@ public class GlobalCommands {
                 builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
                 builder.send(sender);
                 // Show additional information about owned trains to players
-                if (sender instanceof Player) {
-                    StringBuilder statement = new StringBuilder();
-                    for (int i = 1; i < args.length; i++) {
-                        if (i > 1) {
-                            statement.append(' ');
-                        }
-                        statement.append(args[i]);
+                StringBuilder statement = new StringBuilder();
+                for (int i = 1; i < args.length; i++) {
+                    if (i > 1) {
+                        statement.append(' ');
                     }
-                    listTrains((Player) sender, statement.toString());
+                    statement.append(args[i]);
                 }
+                listTrains(sender, statement.toString());
             }
             return true;
         } else if (args[0].equals("edit")) {
@@ -409,13 +407,17 @@ public class GlobalCommands {
         builder.send(sender);
     }
 
-    public static void listTrains(Player player, String statement) {
+    public static void listTrains(CommandSender sender, String statement) {
         MessageBuilder builder = new MessageBuilder();
-        builder.yellow("You are the proud owner of the following trains:");
+        if (sender instanceof Player) {
+            builder.yellow("You are the proud owner of the following trains:");
+        } else {
+            builder.yellow("The following trains exist on this server:");
+        }
         builder.newLine().setSeparator(ChatColor.WHITE, " / ");
         boolean found = false;
         for (TrainProperties prop : TrainProperties.getAll()) {
-            if (!prop.hasOwnership(player)) {
+            if (sender instanceof Player && !prop.hasOwnership((Player) sender)) {
                 continue;
             }
 
@@ -439,9 +441,9 @@ public class GlobalCommands {
             }
         }
         if (found) {
-            builder.send(player);
+            builder.send(sender);
         } else {
-            Localization.EDIT_NONEFOUND.message(player);
+            Localization.EDIT_NONEFOUND.message(sender);
         }
     }
 }
