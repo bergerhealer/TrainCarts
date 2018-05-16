@@ -431,7 +431,15 @@ public class RailPath {
                 } else {
                     s = this.segments[segmentIndex];
                     theta = s.calcTheta(position);
-                    s.calcDirection(position);
+                    if (order > 0) {
+                        position.motX = s.dt_norm.x;
+                        position.motY = s.dt_norm.y;
+                        position.motZ = s.dt_norm.z;
+                    } else {
+                        position.motX = -s.dt_norm.x;
+                        position.motY = -s.dt_norm.y;
+                        position.motZ = -s.dt_norm.z;
+                    }
                 }
             }
             return moved;
