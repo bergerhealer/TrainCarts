@@ -176,7 +176,6 @@ public class PathProvider extends Task {
             this.p.setLoopFilter(true);
             this.junctionName = junctionName;
             this.startNode = startNode;
-            System.out.println("START FROM " + state);
         }
 
         /**
@@ -189,7 +188,6 @@ public class PathProvider extends Task {
                 return true;
             }
             Block nextRail = p.state.railBlock();
-            System.out.println("CHECK: " + nextRail);
             BlockLocation newNodeLocation;
             String newNodeName;
             boolean hasFinished = false;
