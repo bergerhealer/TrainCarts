@@ -266,12 +266,16 @@ public class SignActionEvent extends Event implements Cancellable {
             RailPath.Position pos = memberRail.state.position().clone();
             pos.invertMotion();
             memberRail.getPath().move(pos, memberRail.block, Double.MAX_VALUE);
-            pos.makeRelative(memberRail.block);
 
             // Find the junction closest to this start position
             double min_dist = Double.MAX_VALUE;
             RailJunction best_junc = null;
             for (RailJunction junc : memberRail.type.getJunctions(memberRail.block)) {
+                if (junc.position().relative) {
+                    pos.makeRelative(memberRail.block);
+                } else {
+                    pos.makeAbsolute(memberRail.block);
+                }
                 double dist_sq = junc.position().distanceSquared(pos);
                 if (dist_sq < min_dist) {
                     min_dist = dist_sq;
