@@ -190,13 +190,7 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     @Deprecated
     public void setRailsTo(Direction direction) {
-        BlockFace to = direction.getDirection(this.getFacing());
-        if (direction == Direction.LEFT || direction == Direction.RIGHT) {
-            if (!this.isConnectedRails(to)) {
-                to = Direction.FORWARD.getDirection(this.getFacing());
-            }
-        }
-        this.setRailsTo(to);
+        setRailsTo(findJunction(direction));
     }
 
     /* ===================================================================================== */
@@ -217,13 +211,23 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return junction, null if not found
      */
     public RailJunction findJunction(String junctionName) {
+        // Match the junction by name exactly
         for (RailJunction junc : getJunctions()) {
             if (junc.name().equals(junctionName)) {
                 return junc;
             }
         }
-        //TODO: Advanced logic for left/right/cardinal/etc.
-        return null;
+
+        // Attempt parsing the junctionName into a Direction statement
+        // This includes special handling for continue/reverse, which uses cart direction
+        final String dirText = junctionName.toLowerCase(Locale.ENGLISH);
+        if (LogicUtil.contains(dirText, "c", "continue")) {
+            return findJunction(Direction.fromFace(this.getCartDirection()));
+        } else if (LogicUtil.contains(dirText, "i", "rev", "reverse", "inverse")) {
+            return findJunction(Direction.fromFace(this.getCartDirection().getOppositeFace()));
+        } else {
+            return findJunction(Direction.parse(dirText));
+        }
     }
 
     /**
@@ -234,6 +238,26 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     public RailJunction findJunction(BlockFace face) {
         return Util.faceToJunction(getJunctions(), face);
+    }
+
+    /**
+     * Attempts to find a junction of the rails block belonging to this sign event by a
+     * Direction statement. This also handles logic such as sign-relative left, right and forward.
+     * 
+     * @param direction
+     * @return junction, null if not found
+     */
+    public RailJunction findJunction(Direction direction) {
+        if (direction == Direction.NONE || direction == null) {
+            return null;
+        }
+        BlockFace to = direction.getDirection(this.getFacing());
+        if (direction == Direction.LEFT || direction == Direction.RIGHT) {
+            if (!this.isConnectedRails(to)) {
+                to = Direction.FORWARD.getDirection(this.getFacing());
+            }
+        }
+        return findJunction(to);
     }
 
     /**

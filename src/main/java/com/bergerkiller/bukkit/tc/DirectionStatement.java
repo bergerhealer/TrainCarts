@@ -1,45 +1,25 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.statements.Statement;
-import org.bukkit.block.BlockFace;
-
-import java.util.Locale;
 
 public class DirectionStatement {
-    public Direction direction;
+    public String direction;
     public String text;
     public Integer number;
 
-    public DirectionStatement(String text, BlockFace cartDirection) {
-        this(text, BlockFace.SELF, Direction.NONE);
-    }
-
-    public DirectionStatement(String text, BlockFace cartDirection, Direction alternative) {
+    public DirectionStatement(String text, String defaultDirection) {
         int idx = text.indexOf(':');
         if (idx == -1) {
             this.text = text;
-            this.direction = alternative;
+            this.direction = defaultDirection;
         } else {
             this.text = text.substring(idx + 1);
-            // Parse Direction from String text
-            final String dirText = text.substring(0, idx).toLowerCase(Locale.ENGLISH);
-            if (LogicUtil.contains(dirText, "c", "continue")) {
-                this.direction = Direction.fromFace(cartDirection);
-            } else if (LogicUtil.contains(dirText, "i", "rev", "reverse", "inverse")) {
-                this.direction = Direction.fromFace(cartDirection.getOppositeFace());
-            } else {
-                this.direction = Direction.parse(dirText);
-            }
-            // If direction parsing fails, resolve back to alternative text and direction
-            if (this.direction == Direction.NONE) {
-                this.text = text;
-                this.direction = alternative;
-            }
+            this.direction = text.substring(0, idx);
         }
+
         // Number (counter) statements
         try {
             this.number = Integer.parseInt(this.text);
