@@ -25,6 +25,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.ListIterator;
 import java.util.logging.Level;
 
 /**
@@ -36,34 +37,40 @@ public class RedstoneTracker implements Listener {
 
     /* ============= Handles raw block physics in a cached manner to reduce overhead ============ */
     private HashSet<Block> nextTickPhysicsBlocks = new HashSet<Block>();
-    private boolean nextTickQueued = false;
     private final Runnable nextTickPhysicsHandler = new Runnable() {
         private final ArrayList<Block> pending = new ArrayList<Block>();
 
         @Override
         public void run() {
+            // Detect all signs from the blocks we've cached
+            // Detect signs around redstone torches that fired events
+            // Verify other blocks are indeed signs
             CollectionBasics.setAll(this.pending, nextTickPhysicsBlocks);
-            nextTickPhysicsBlocks.clear();
-            nextTickQueued = false;
-
-            for (final Block block : this.pending) {
-                final Material type = block.getType();
-                if (MaterialUtil.ISSIGN.get(type)) {
-                    if (Util.isSignSupported(block)) {
-                        // Check for potential redstone changes
-                        updateRedstonePower(block);
-                    } else {
-                        // Remove from block power storage
-                        poweredBlocks.remove(block);
-                    }
-                } else if (MaterialUtil.ISREDSTONETORCH.get(type)) {
-                    // Send proper update events for all signs around this power source
+            ListIterator<Block> iter = this.pending.listIterator();
+            while (iter.hasNext()) {
+                Block block = iter.next();
+                Material type = block.getType();
+                if (MaterialUtil.ISREDSTONETORCH.get(type)) {
                     for (BlockFace face : FaceUtil.RADIAL) {
                         final Block rel = block.getRelative(face);
-                        if (MaterialUtil.ISSIGN.get(rel)) {
-                            updateRedstonePower(rel);
+                        if (MaterialUtil.ISSIGN.get(rel) && nextTickPhysicsBlocks.add(rel)) {
+                            iter.add(rel);
                         }
                     }
+                } else if (!MaterialUtil.ISSIGN.get(type)) {
+                    iter.remove(); // Not a sign, ignore it
+                }
+            }
+            nextTickPhysicsBlocks.clear();
+
+            // Handle all signs we've found
+            for (Block signBlock : this.pending) {
+                if (Util.isSignSupported(signBlock)) {
+                    // Check for potential redstone changes
+                    updateRedstonePower(signBlock);
+                } else {
+                    // Remove from block power storage
+                    poweredBlocks.remove(signBlock);
                 }
             }
         }
@@ -75,9 +82,12 @@ public class RedstoneTracker implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
-        nextTickPhysicsBlocks.add(event.getBlock());
-        if (!nextTickQueued) {
-            CommonUtil.nextTick(nextTickPhysicsHandler);
+        Material type = event.getBlock().getType();
+        if (MaterialUtil.ISSIGN.get(type) || MaterialUtil.ISREDSTONETORCH.get(type)) {
+            if (nextTickPhysicsBlocks.isEmpty()) {
+                CommonUtil.nextTick(nextTickPhysicsHandler);
+            }
+            nextTickPhysicsBlocks.add(event.getBlock());
         }
     }
 
