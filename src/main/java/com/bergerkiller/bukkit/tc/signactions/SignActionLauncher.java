@@ -44,6 +44,7 @@ public class SignActionLauncher extends SignAction {
                 if (reverse) {
                     group.reverse();
                 }
+                group.getActions().clear();
                 group.head().getActions().addActionLaunch(launchConfig, velocity);
             }
         } else if (info.hasRailedMember()) {
@@ -56,6 +57,7 @@ public class SignActionLauncher extends SignAction {
             }
 
             // Launch
+            info.getGroup().getActions().clear();
             info.getMember().getActions().addActionLaunch(direction, launchConfig, velocity);
         }
     }
