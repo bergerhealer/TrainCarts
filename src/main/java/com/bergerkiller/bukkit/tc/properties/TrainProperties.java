@@ -72,6 +72,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
+    private String killMessage = "";
 
     protected TrainProperties(String trainname) {
         this.displayName = this.trainname = trainname;
@@ -794,6 +795,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.skipOptions.skipCtr = options.skipCtr;
     }
 
+    public String getKillMessage() {
+        return this.killMessage;
+    }
+
+    public void setKillMessage(String killMessage) {
+        this.killMessage = killMessage;
+    }
+
     public boolean isTrainRenamed() {
         return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
     }
@@ -888,6 +897,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 prop.exitYaw = yaw;
                 prop.exitPitch = pitch;
             }
+        } else if (key.equals("killmessage")) {
+            this.killMessage = arg;
         } else if (key.equals("sound") || key.equals("minecartsound")) {
             this.soundEnabled = ParseUtil.parseBool(arg);
         } else if (key.equals("playercollision")) {
@@ -1102,6 +1113,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
         this.waitDistance = node.get("waitDistance", this.waitDistance);
         this.suffocation = node.get("suffocation", this.suffocation);
+        this.killMessage = node.get("killMessage", this.killMessage);
         for (String ticket : node.getList("tickets", String.class)) {
             this.tickets.add(ticket);
         }
@@ -1185,6 +1197,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.bankingStrength = source.bankingStrength;
         this.bankingSmoothness = source.bankingSmoothness;
         this.suffocation = source.suffocation;
+        this.killMessage = source.killMessage;
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
@@ -1203,6 +1216,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("speedLimit", this.speedLimit);
         node.set("waitDistance", this.waitDistance);
         node.set("suffocation", this.suffocation);
+        node.set("killMessage", this.killMessage);
 
         ConfigurationNode banking = node.getNode("banking");
         banking.set("strength", this.bankingStrength);
@@ -1245,6 +1259,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
         node.set("suffocation", this.suffocation ? null : false);
+        node.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
 
         if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
             ConfigurationNode banking = node.getNode("banking");

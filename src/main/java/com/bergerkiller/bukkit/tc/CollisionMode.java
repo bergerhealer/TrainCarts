@@ -185,7 +185,15 @@ public enum CollisionMode {
                     if (this == KILLNODROPS) {
                         TCListener.cancelNextDrops = true;
                     }
-                    damage(member, entity, (double) Short.MAX_VALUE);
+
+                    MinecartMember<?> oldKilledByMember = TCListener.killedByMember;
+                    try {
+                        TCListener.killedByMember = member;
+                        damage(member, entity, (double) Short.MAX_VALUE);
+                    } finally {
+                        TCListener.killedByMember = oldKilledByMember;
+                    }
+
                     if (this == KILLNODROPS) {
                         TCListener.cancelNextDrops = false;
                     }

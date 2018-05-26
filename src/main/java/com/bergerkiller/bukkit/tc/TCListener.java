@@ -57,6 +57,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -82,6 +83,7 @@ public class TCListener implements Listener {
     private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
     private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
     public static boolean cancelNextDrops = false;
+    public static MinecartMember<?> killedByMember = null;
     public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
@@ -184,6 +186,18 @@ public class TCListener implements Listener {
         for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
             if (group.getWorld() == event.getWorld()) {
                 group.unload();
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        if (killedByMember != null) {
+            String deathMessage = killedByMember.getGroup().getProperties().getKillMessage();
+            if (!deathMessage.isEmpty()) {
+                deathMessage = deathMessage.replaceAll("%0%", event.getEntity().getDisplayName());
+                deathMessage = deathMessage.replaceAll("%1%", killedByMember.getGroup().getProperties().getDisplayName());
+                event.setDeathMessage(deathMessage);
             }
         }
     }
