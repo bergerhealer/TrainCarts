@@ -9,6 +9,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_DESTROY = new Permission("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands");
     public static final Permission COMMAND_DESTROYALL = new Permission("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server");
     public static final Permission COMMAND_FIXBUGGED = new Permission("train.command.fixbugged", PermissionDefault.OP, "The player can destroy all bugged minecarts on the server");
+    public static final Permission COMMAND_UPGRADESAVED = new Permission("train.command.upgradesavedtrains", PermissionDefault.OP, "The player can upgrade all saved trains model positions to the new TC version");
     public static final Permission COMMAND_REROUTE = new Permission("train.command.reroute", PermissionDefault.OP, "The player can force path finding to re-calculate");
     public static final Permission COMMAND_RELOAD = new Permission("train.command.reload", PermissionDefault.OP, "The player can reload the configuration");
     public static final Permission COMMAND_BREAKBLOCK = new Permission("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list");

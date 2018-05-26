@@ -121,6 +121,16 @@ public class GlobalCommands {
             TrainCarts.plugin.save(false);
             sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
             return true;
+        } else if (args[0].equals("upgradesavedtrains")) {
+            Permission.COMMAND_UPGRADESAVED.handle(sender);
+            boolean undo = (args.length >= 2 && args[1].equalsIgnoreCase("undo"));
+            TrainCarts.plugin.getSavedTrains().upgradeSavedTrains(undo);
+            if (undo) {
+                sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "All saved trains have been upgraded to use the new position calibration of Traincarts v1.12.2-v3");
+            }
+            return true;
         } else if (args[0].equals("fixbugged")) {
             Permission.COMMAND_FIXBUGGED.handle(sender);
             for (World world : WorldUtil.getWorlds()) {
