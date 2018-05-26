@@ -107,7 +107,11 @@ public class Station {
         if (!this.launchConfig.hasDuration() && !this.launchConfig.hasDistance() && this.instruction != null) {
             // Manually calculate the length
             // Use the amount of straight blocks
-            double length = Util.calculateStraightLength(this.railsBlock, this.instruction);
+            BlockFace launchDir = this.instruction;
+            if (launchDir == BlockFace.SELF) {
+                launchDir = getNextDirectionFace();
+            }
+            double length = Util.calculateStraightLength(this.railsBlock, launchDir);
             if (length == 0.0) {
                 length++;
             }
@@ -172,6 +176,15 @@ public class Station {
      */
     public BlockFace getInstruction() {
         return this.instruction;
+    }
+
+    /**
+     * Gets the direction to launch to after waiting, as a BlockFace
+     *
+     * @return post wait launch direction
+     */
+    public BlockFace getNextDirectionFace() {
+        return getNextDirection().getDirection(info.getFacing(), info.getMember().getDirection());
     }
 
     /**
