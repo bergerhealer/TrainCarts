@@ -249,12 +249,17 @@ public class Station {
         if (TCConfig.refillAtStations) {
             actions.addActionRefill().addTag(this.getTag());
         }
-        actions.addAction(new BlockActionSetLevers(info.getAttachedBlock(), true)).addTag(this.getTag());
+        setLevers(true);
         if (delay == Long.MAX_VALUE) {
             actions.addActionWaitForever().addTag(this.getTag());
         } else if (delay > 0) {
             actions.addActionWait(delay).addTag(this.getTag());
+            setLevers(false);
         }
+    }
+
+    public void setLevers(boolean down) {
+        info.getGroup().getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), down)).addTag(this.getTag());
     }
 
     /**
@@ -294,6 +299,8 @@ public class Station {
                 this.launchConfig.setDistance(this.launchConfig.getDistance() + stationInfo.distance);
             }
         }
+
+        setLevers(false);
         MemberActionLaunchDirection action = getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
         action.addTag(this.getTag());
         this.wasCentered = false;
