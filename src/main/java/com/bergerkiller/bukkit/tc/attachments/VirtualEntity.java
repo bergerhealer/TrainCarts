@@ -441,9 +441,10 @@ public class VirtualEntity {
     }
 
     private boolean isLivingEntity() {
-        return LivingEntity.class.isAssignableFrom(this.entityType.getEntityClass());
+        Class<?> entityClass = this.entityType.getEntityClass();
+        return entityClass != null && LivingEntity.class.isAssignableFrom(entityClass);
     }
-    
+
     // this vector is used to fix up the rotation of passengers in seats
     // by moving a very tiny amount (and back), the rotation is 'unstuck'
     private Vector getUnstuckVector() {
