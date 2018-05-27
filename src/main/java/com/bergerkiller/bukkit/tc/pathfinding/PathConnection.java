@@ -14,8 +14,8 @@ public class PathConnection {
 
     public PathConnection(PathNode destination, DataInputStream stream) throws IOException {
         this.destination = destination;
-        this.distance = stream.readInt();
-        
+        this.distance = Math.max(1, stream.readInt());
+
         byte n = stream.readByte();
         if (n == (byte) 0xFF) {
             this.junctionName = stream.readUTF();
@@ -44,7 +44,7 @@ public class PathConnection {
 
     public PathConnection(PathNode destination, int distance, String junctionName) {
         this.destination = destination;
-        this.distance = distance;
+        this.distance = Math.max(1, distance);
         this.junctionName = junctionName;
     }
 
