@@ -1,9 +1,12 @@
 package com.bergerkiller.bukkit.tc.controller.spawnable;
 
+import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 
 /**
  * The information about a single Minecart to be spawned as part of a {@link SpawnableGroup}
@@ -27,6 +30,24 @@ public class SpawnableMember {
         }
         this.entityType = this.config.get("entityType", EntityType.MINECART);
         this.flipped = this.config.get("flipped", false);
+    }
+
+    /**
+     * Spawns this Spawnable Member in the world
+     * 
+     * @param spawnLoc
+     * @return spawned Minecart
+     */
+    public MinecartMember<?> spawn(Location spawnLoc) {
+        // When initializing the config, act as unloaded to avoid creation of group
+        MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLoc, getEntityType());
+        mm.setUnloaded(true);
+        mm.getProperties().load(this.config);
+        if (this.config.isNode("data")) {
+            mm.onTrainSpawned(this.config.getNode("data"));
+        }
+        mm.setUnloaded(false);
+        return mm;
     }
 
     /**

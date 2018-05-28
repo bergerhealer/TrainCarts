@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -37,6 +38,8 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Stairs;
 import org.bukkit.util.Vector;
@@ -1127,5 +1130,51 @@ public class Util {
             }
         }
         return null;
+    }
+
+    /**
+     * Checks for a 'contents' field in the configuration, and if it exists, loads
+     * all items contained within. The inventory is wiped beforehand.
+     * 
+     * @param inventory
+     * @param config
+     */
+    public static void loadInventoryFromConfig(Inventory inventory, ConfigurationNode config) {
+        inventory.clear();
+        if (config.isNode("contents")) {
+            ConfigurationNode contents = config.getNode("contents");
+            for (String indexStr : contents.getKeys()) {
+                int index;
+                try {
+                    index = Integer.parseInt(indexStr);
+                } catch (NumberFormatException ex) {
+                    continue;
+                }
+                ItemStack item = contents.get(indexStr, ItemStack.class);
+                if (!ItemUtil.isEmpty(item)) {
+                    inventory.setItem(index, item.clone());
+                }
+            }
+        }
+    }
+
+    /**
+     * Saves all items in the inventory to the configuration under a 'contents' field. If
+     * the inventory is empty, nothing is saved.
+     * 
+     * @param inventory
+     * @param config
+     */
+    public static void saveInventoryToConfig(Inventory inventory, ConfigurationNode config) {
+        ConfigurationNode contents = null;
+        for (int i = 0; i < inventory.getSize(); i++) {
+            ItemStack item = inventory.getItem(i);
+            if (!ItemUtil.isEmpty(item)) {
+                if (contents == null) {
+                    contents = config.getNode("contents");
+                }
+                contents.set(Integer.toString(i), item.clone());
+            }
+        }
     }
 }

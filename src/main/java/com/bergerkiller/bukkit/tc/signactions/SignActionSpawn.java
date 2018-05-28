@@ -281,12 +281,8 @@ public class SignActionSpawn extends SignAction {
                     spawnLoc = Util.invertRotation(spawnLoc);
                 }
 
-                // Spawn the minecart. When initializing the config, act as unloaded to avoid creation of group
-                MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLoc, types.get(i).getEntityType());
-                mm.setUnloaded(true);
-                mm.getProperties().load(types.get(i).getConfig());
-                mm.setUnloaded(false);
-                group.add(mm);
+                // Spawn the minecart
+                group.add(types.get(i).spawn(spawnLoc));
             }
             group.updateDirection();
             group.getProperties().load(spawnSign.getSpawnableGroup().getConfig());

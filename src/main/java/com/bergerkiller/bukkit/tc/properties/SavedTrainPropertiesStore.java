@@ -8,7 +8,9 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.NBTUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -58,6 +60,13 @@ public class SavedTrainPropertiesStore {
             cartConfig.set("entityType", member.getEntity().getType());
             cartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
             cartConfig.remove("owners");
+
+            ConfigurationNode data = new ConfigurationNode();
+            member.onTrainSaved(data);
+            if (!data.isEmpty()) {
+                cartConfig.set("data", data);
+            }
+
             cartConfigList.add(cartConfig);
         }
         config.setNodeList("carts", cartConfigList);

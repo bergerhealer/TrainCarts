@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -219,6 +220,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             return this.group.indexOf(this);
         }
+    }
+
+    /**
+     * Called when a train is being saved, allowing this Minecart Member to include additional data
+     * specific to the entity itself.
+     * 
+     * @param data
+     */
+    public void onTrainSaved(ConfigurationNode data) {
+    }
+
+    /**
+     * Called when a train is being spawned, allowing this Minecart Member to load additional data
+     * specific to the entity itself.
+     * 
+     * @param data
+     */
+    public void onTrainSpawned(ConfigurationNode data) {
     }
 
     /**
