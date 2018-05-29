@@ -120,7 +120,9 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
     public MapWidgetItemGrid addCreativeItems() {
         for (Material type : ItemUtil.getItemTypes()) {
             if (type == Material.AIR) continue;
-            this.addItem(new ItemStack(type));
+            ItemStack item = ItemUtil.createItem(type, 1);
+            ItemUtil.getMetaTag(item, true).putValue("Unbreakable", true);
+            this.addItem(item);
         }
         return this;
     }
