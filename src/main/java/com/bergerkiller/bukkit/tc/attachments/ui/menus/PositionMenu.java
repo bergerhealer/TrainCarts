@@ -30,6 +30,7 @@ public class PositionMenu extends MapWidgetWindow {
     public void onAttached() {
         this.activate();
 
+        int slider_width = 86;
         int y_offset = 5;
         int y_step = 12;
 
@@ -49,7 +50,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("anchor", PositionAnchorType.get(getSelectedItem()).name());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Anchor");
         y_offset += y_step;
 
@@ -70,7 +71,7 @@ public class PositionMenu extends MapWidgetWindow {
                     getConfig().set("transform", ItemTransformType.get(getSelectedItem()).name());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 }
-            }).setBounds(30, y_offset, 80, 11);
+            }).setBounds(30, y_offset, slider_width, 11);
             addLabel(5, y_offset + 3, "Mode");
             y_offset += y_step;
         }
@@ -91,7 +92,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.X");
         y_offset += y_step;
 
@@ -107,7 +108,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Y");
         y_offset += y_step;
 
@@ -123,7 +124,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posZ", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Z");
         y_offset += y_step;
 
@@ -140,7 +141,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pitch");
         y_offset += y_step;
 
@@ -157,7 +158,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Yaw");
         y_offset += y_step;
 
@@ -174,7 +175,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotZ", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Roll");
         y_offset += y_step;
     }

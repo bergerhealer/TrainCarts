@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -42,6 +41,10 @@ public class CartAttachmentItem extends CartAttachment {
         this.entity = new VirtualEntity(this.controller);
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.ITEM);
+
+        if (this.transformType.isSmall()) {
+            this.entity.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) EntityArmorStandHandle.DATA_FLAG_IS_SMALL);
+        }
 
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.local_transform = new Matrix4x4();
@@ -125,40 +128,32 @@ public class CartAttachmentItem extends CartAttachment {
         // Adjust relative offset of the armorstand entity to take shoulder angle into account
         // This doesn't apply for head, and only matters for the left/right hand
         // This ensures any further positioning is relative to the base of the shoulder controlled
-        final double SHOULDER_WIDTH = 0.3125;
-        final double SHOULDER_HEIGHT = 1.38;
-        final double NECK_HEIGHT = 1.44;
-        if (this.transformType == ItemTransformType.LEFT_HAND) {
+        double hor_offset = this.transformType.getHorizontalOffset();
+        double ver_offset = this.transformType.getVerticalOffset();
+        if (hor_offset != 0.0) {
             this.entity.setRelativeOffset(
-                    -SHOULDER_WIDTH * Math.cos(Math.toRadians(entity_yaw)),
-                    -SHOULDER_HEIGHT,
-                    -SHOULDER_WIDTH * Math.sin(Math.toRadians(entity_yaw)));
-
-        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
-            this.entity.setRelativeOffset(
-                    SHOULDER_WIDTH * Math.cos(Math.toRadians(entity_yaw)),
-                    -SHOULDER_HEIGHT,
-                    SHOULDER_WIDTH * Math.sin(Math.toRadians(entity_yaw)));
-
+                    -hor_offset * Math.cos(Math.toRadians(entity_yaw)),
+                    -ver_offset,
+                    -hor_offset * Math.sin(Math.toRadians(entity_yaw)));
         } else {
-            this.entity.setRelativeOffset(0.0, -NECK_HEIGHT, 0.0);
+            this.entity.setRelativeOffset(0.0, -ver_offset, 0.0);
         }
 
         // Apply the transform to the entity position and pose of the model
         this.entity.updatePosition(this.transform, new_entity_ypr);
         Vector rotation = Util.getArmorStandPose(q_rotation);
         DataWatcher meta = this.entity.getMetaData();
-        if (this.transformType == ItemTransformType.HEAD) {
+        if (this.transformType.isHead()) {
             meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);
         } else if (this.transformType == ItemTransformType.CHEST) {
             meta.set(EntityArmorStandHandle.DATA_POSE_BODY, rotation);
-        } else if (this.transformType == ItemTransformType.LEFT_HAND) {
+        } else if (this.transformType.isLeftHand()) {
             rotation.setX(rotation.getX() - 90.0);
             meta.set(EntityArmorStandHandle.DATA_POSE_ARM_LEFT, rotation);
-        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+        } else if (this.transformType.isRightHand()) {
             rotation.setX(rotation.getX() - 90.0);
             meta.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
-        } else if (this.transformType == ItemTransformType.LEGS || this.transformType == ItemTransformType.FEET) {
+        } else if (this.transformType.isLeg()) {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
