@@ -111,7 +111,7 @@ public class AttachmentEditor extends MapDisplay {
     }
 
     /**
-     * Reloads the editor
+     * Reloads the editor. Happens when switching between carts being edited.
      */
     public void reload() {
         this.window.clearWidgets();

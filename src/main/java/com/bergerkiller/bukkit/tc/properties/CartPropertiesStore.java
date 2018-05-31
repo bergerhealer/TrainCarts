@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.properties;
 
+import com.bergerkiller.bukkit.common.map.MapDisplay;
+import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -52,10 +55,21 @@ public class CartPropertiesStore {
      * @param properties to set to
      */
     public static void setEditing(UUID playerUUID, CartProperties properties) {
+        boolean changed;
         if (properties == null) {
-            editing.remove(playerUUID);
+            changed = (editing.remove(playerUUID) != null);
         } else {
-            editing.put(playerUUID, properties);
+            changed = editing.put(playerUUID, properties) != properties;
+        }
+        if (changed) {
+            Player player = Bukkit.getPlayer(playerUUID);
+            if (player != null) {
+                // Refresh attachment editor, if open
+                AttachmentEditor editor = MapDisplay.getHeldDisplay(player, AttachmentEditor.class);
+                if (editor != null) {
+                    editor.reload();
+                }
+            }
         }
     }
 

@@ -22,7 +22,9 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     public void setModel(AttachmentModel model) {
         this.model = model;
+        this.root = new MapWidgetAttachmentNode();
         this.root.loadConfig(model.getConfig());
+        this.updateView(0);
     }
 
     public void updateModel() {
