@@ -118,13 +118,13 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     /**
-     * Gets a collection of lower-case player names that are editing these properties
+     * Gets a collection of player UUIDs that are editing these properties
      *
-     * @return Collection of editing player names
+     * @return Collection of editing player UUIDs
      */
-    public Collection<String> getEditing() {
-        ArrayList<String> players = new ArrayList<>();
-        for (Map.Entry<String, CartProperties> entry : editing.entrySet()) {
+    public Collection<UUID> getEditing() {
+        ArrayList<UUID> players = new ArrayList<>();
+        for (Map.Entry<UUID, CartProperties> entry : editing.entrySet()) {
             if (entry.getValue() == this) {
                 players.add(entry.getKey());
             }
@@ -138,10 +138,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return Collection of editing players
      */
     public Collection<Player> getEditingPlayers() {
-        Collection<String> names = getEditing();
-        ArrayList<Player> players = new ArrayList<>(names.size());
-        for (String name : names) {
-            Player p = Bukkit.getServer().getPlayer(name);
+        Collection<UUID> uuids = getEditing();
+        ArrayList<Player> players = new ArrayList<>(uuids.size());
+        for (UUID uuid : uuids) {
+            Player p = Bukkit.getServer().getPlayer(uuid);
             if (p != null) {
                 players.add(p);
             }

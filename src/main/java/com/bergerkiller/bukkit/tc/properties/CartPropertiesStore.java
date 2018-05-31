@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -11,7 +12,7 @@ import java.util.UUID;
  * Stores all the Cart Properties available by Minecart UUID
  */
 public class CartPropertiesStore {
-    protected static HashMap<String, CartProperties> editing = new HashMap<>();
+    protected static HashMap<UUID, CartProperties> editing = new HashMap<>();
     private static HashMap<UUID, CartProperties> properties = new HashMap<>();
 
     /**
@@ -21,17 +22,17 @@ public class CartPropertiesStore {
      * @return the Cart Properties the player is editing
      */
     public static CartProperties getEditing(Player player) {
-        return getEditing(player.getName());
+        return getEditing(player.getUniqueId());
     }
 
     /**
      * Gets the properties of the Minecart the specified player is currently editing
      *
-     * @param playername of the player
+     * @param playerUUID of the player
      * @return the Cart Properties the player is editing
      */
-    public static CartProperties getEditing(String playername) {
-        return editing.get(playername.toLowerCase());
+    public static CartProperties getEditing(UUID playerUUID) {
+        return editing.get(playerUUID);
     }
 
     /**
@@ -41,20 +42,20 @@ public class CartPropertiesStore {
      * @param properties to set to
      */
     public static void setEditing(Player player, CartProperties properties) {
-        setEditing(player.getName(), properties);
+        setEditing(player.getUniqueId(), properties);
     }
 
     /**
      * Sets the properties of the Minecart the specified player is currently editing
      *
-     * @param playername of the player
+     * @param playerUUID of the player
      * @param properties to set to
      */
-    public static void setEditing(String playername, CartProperties properties) {
+    public static void setEditing(UUID playerUUID, CartProperties properties) {
         if (properties == null) {
-            editing.remove(playername.toLowerCase());
+            editing.remove(playerUUID);
         } else {
-            editing.put(playername.toLowerCase(), properties);
+            editing.put(playerUUID, properties);
         }
     }
 
