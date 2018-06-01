@@ -54,7 +54,7 @@ public class CartAttachmentSeat extends CartAttachment {
         // Find a parent to mount to
         if (this._parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (!this._hasPosition) {
+            if (this.parent != null && !this._hasPosition) {
                 this._parentMountId = this.parent.getMountEntityId();
             }
 
