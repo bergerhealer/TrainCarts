@@ -75,6 +75,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BUILD_TICKET = new Permission("train.build.ticket", PermissionDefault.OP, "The player can build a sign that will charge money or ejects a player if he can't pay");
     public static final Permission BUILD_ANNOUNCER = new Permission("train.build.announcer", PermissionDefault.OP, "The player can build a sign that sends a message to all the players in a train");
     public static final Permission BUILD_EFFECT = new Permission("train.build.effect", PermissionDefault.OP, "The player can build a sign that can play an effect");
+    public static final Permission BUILD_SOUND = new Permission("train.build.sound", PermissionDefault.OP, "The player can build a sign that can play a sound");
     public static final Permission BUILD_BLOCKCHANGER = new Permission("train.build.blockchanger", PermissionDefault.OP, "The player can build a sign that alters the block displayed in minecarts");
     public static final Permission BUILD_JUMPER = new Permission("train.build.jumper", PermissionDefault.OP, "The player can build a sign that can cause a train to jump in a certain direction");
     public static final Permission BUILD_LAUNCHER = new Permission("train.build.launcher", PermissionDefault.OP, "The player can build a sign that can launch trains");
