@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions.mutex;
 
 import java.util.UUID;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -72,9 +73,16 @@ public class MutexZone {
                 }
             }
         }
+        return new MutexZone(info.getWorld().getUID(), getPosition(info), dx, dy, dz);
+    }
 
-        IntVector3 pos = new IntVector3(info.getBlock());
-        return new MutexZone(info.getWorld().getUID(), pos, dx, dy, dz);
+    public static IntVector3 getPosition(SignActionEvent info) {
+        Location middlePos = info.getCenterLocation();
+        if (middlePos == null) {
+            return new IntVector3(middlePos);
+        } else {
+            return new IntVector3(info.getBlock());
+        }
     }
 
     public boolean tryEnter(MinecartGroup group) {

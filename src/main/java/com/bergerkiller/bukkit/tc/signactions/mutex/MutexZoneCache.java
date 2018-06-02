@@ -32,7 +32,7 @@ public class MutexZoneCache {
     }
 
     public static void removeMutexSign(SignActionEvent info) {
-        zones.remove(info.getBlock());
+        zones.remove(info.getWorld(), MutexZone.getPosition(info));
     }
 
     /**
