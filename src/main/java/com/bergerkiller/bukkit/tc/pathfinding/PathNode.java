@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -25,7 +24,7 @@ public class PathNode {
     private final Set<String> names = new HashSet<>();
     private final List<PathConnection> neighbors = new ArrayList<>(3);
     public int index;
-    private int lastDistance;
+    private double lastDistance;
     private PathConnection lastTaken;
 
     private PathNode(final String name, final BlockLocation location) {
@@ -143,7 +142,7 @@ public class PathNode {
         return node;
     }
 
-    private static int getDistanceTo(PathConnection from, PathConnection conn, int currentDistance, int maxDistance, PathNode destination) {
+    private static double getDistanceTo(PathConnection from, PathConnection conn, double currentDistance, double maxDistance, PathNode destination) {
         final PathNode node = conn.destination;
         currentDistance += conn.distance;
         // Consider taking turns as one distance longer
@@ -157,7 +156,7 @@ public class PathNode {
         }
         node.lastDistance = currentDistance;
         // Check all neighbors and obtain the lowest distance recursively
-        int distance;
+        double distance;
         for (PathConnection connection : node.neighbors) {
             distance = getDistanceTo(conn, connection, currentDistance, maxDistance, destination);
             if (maxDistance > distance) {
@@ -257,11 +256,11 @@ public class PathNode {
             node.lastDistance = Integer.MAX_VALUE;
             node.lastTaken = null;
         }
-        int maxDistance = Integer.MAX_VALUE;
-        int distance;
+        double maxDistance = Integer.MAX_VALUE;
+        double distance;
         final PathConnection from = new PathConnection(this, 0, "");
         for (PathConnection connection : this.neighbors) {
-            distance = getDistanceTo(from, connection, 0, maxDistance, destination);
+            distance = getDistanceTo(from, connection, 0.0, maxDistance, destination);
             if (maxDistance > distance) {
                 maxDistance = distance;
                 this.lastTaken = connection;
@@ -302,7 +301,7 @@ public class PathNode {
      * @param junctionName of the connection
      * @return The connection that was made
      */
-    public PathConnection addNeighbour(final PathNode to, final int distance, final String junctionName) {
+    public PathConnection addNeighbour(final PathNode to, final double distance, final String junctionName) {
         PathConnection conn;
         Iterator<PathConnection> iter = this.neighbors.iterator();
         while (iter.hasNext()) {

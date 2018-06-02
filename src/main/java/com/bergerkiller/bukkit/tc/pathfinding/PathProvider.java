@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.pathfinding;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
@@ -13,6 +12,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -97,7 +97,7 @@ public class PathProvider extends Task {
             done = false;
             if (DEBUG_MODE) {
                 System.out.println("DISCOVERING EVERYTHING FROM " + operation.startNode.getDisplayName() +
-                        " INTO " + operation.junctionName);
+                        " INTO " + operation.getJunctionName());
             }
             // Perform the operations in steps
             // Not per step, because System.currentTimeMillis is not entirely cheap!
@@ -132,37 +132,43 @@ public class PathProvider extends Task {
                     for (RailJunction junc : startType.getJunctions(startRail)) {
                         RailState state = startType.takeJunction(startRail, junc);
                         if (state != null) {
-                            scheduleNode(node, state, junc.name());
+                            scheduleNode(node, state, junc);
                         }
                     }
                 } else {
                     // Only check available routes
-                    RailState state = new RailState();
-                    state.setRailBlock(startRail);
-                    state.setRailType(startType);
-                    state.position().setLocation(startType.getSpawnLocation(startRail, BlockFace.NORTH));
-                    if (!RailType.loadRailInformation(state)) {
+                    RailState state1 = new RailState();
+                    state1.setRailBlock(startRail);
+                    state1.setRailType(startType);
+                    state1.position().setLocation(startType.getSpawnLocation(startRail, BlockFace.NORTH));
+                    if (!RailType.loadRailInformation(state1)) {
                         continue;
                     }
 
                     // Snap onto rails
-                    state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
+                    state1.loadRailLogic().getPath().snap(state1.position(), state1.railBlock());
 
-                    // Schedule current direction AND opposite direction
-                    RailState state_opposite = state.clone();
-                    state_opposite.position().invertMotion();
-                    Util.calculateEnterFace(state_opposite);
-                    scheduleNode(node, state, "1");
-                    scheduleNode(node, state_opposite, "2");
+                    // Create opposite direction state
+                    RailState state2 = state1.clone();
+                    state2.position().invertMotion();
+                    Util.calculateEnterFace(state2);
+
+                    // Walk both states to the end of the path
+                    state1.loadRailLogic().getPath().move(state1, Double.MAX_VALUE);
+                    state2.loadRailLogic().getPath().move(state2, Double.MAX_VALUE);
+
+                    // Schedule them
+                    scheduleNode(node, state1, new RailJunction("1", state1.position().clone()));
+                    scheduleNode(node, state2, new RailJunction("2", state2.position().clone()));
                 }
             }
             this.pendingNodes.clear();
         }
     }
 
-    private void scheduleNode(PathNode node, RailState state, String junctionName) {
+    private void scheduleNode(PathNode node, RailState state, RailJunction junction) {
         if (task != null) {
-            task.pendingOperations.offer(new PathFindOperation(node, state, junctionName));
+            task.pendingOperations.offer(new PathFindOperation(node, state, junction));
         }
     }
 
@@ -171,11 +177,19 @@ public class PathProvider extends Task {
         private final PathNode startNode;
         private final String junctionName;
 
-        public PathFindOperation(PathNode startNode, RailState state, String junctionName) {
+        public PathFindOperation(PathNode startNode, RailState state, RailJunction junction) {
             this.p = new TrackWalkingPoint(state);
             this.p.setLoopFilter(true);
-            this.junctionName = junctionName;
+            this.junctionName = junction.name();
             this.startNode = startNode;
+
+            // Include distance from spawn position of rails, to the junction start
+            Location spawnPos = state.railType().getSpawnLocation(state.railBlock(), state.enterFace());
+            this.p.movedTotal += state.positionLocation().distance(spawnPos);
+        }
+
+        public String getJunctionName() {
+            return this.junctionName;
         }
 
         /**
@@ -207,9 +221,13 @@ public class PathProvider extends Task {
                         continue;
                     }
                     if (!newNodeName.isEmpty() && !startNode.containsName(newNodeName)) {
-                        //finished, we found our first target - create connection
+                        // include distance between spawn position on rail, and the current position with the walker
+                        Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.enterFace());
+                        double totalDistance = p.movedTotal + spawnPos.distanceSquared(p.state.positionLocation());
+
+                        // finished, we found our first target - create connection
                         PathNode to = PathNode.getOrCreate(newNodeName, newNodeLocation);
-                        this.startNode.addNeighbour(to, (int) p.movedTotal, this.junctionName);
+                        this.startNode.addNeighbour(to, totalDistance, this.getJunctionName());
                         hasFinished = true;
                         if (DEBUG_MODE) {
                             System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + newNodeName);

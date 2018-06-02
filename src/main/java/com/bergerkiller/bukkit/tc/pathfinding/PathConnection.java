@@ -8,13 +8,19 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 public class PathConnection {
-    public final int distance;
+    public final double distance;
     public final String junctionName;
     public final PathNode destination;
 
     public PathConnection(PathNode destination, DataInputStream stream) throws IOException {
         this.destination = destination;
-        this.distance = Math.max(1, stream.readInt());
+
+        int dist_in = stream.readInt();
+        if (dist_in == Integer.MAX_VALUE) {
+            this.distance = Math.max(1e-5, stream.readDouble());
+        } else {
+            this.distance = Math.max(1, dist_in);
+        }
 
         byte n = stream.readByte();
         if (n == (byte) 0xFF) {
@@ -42,9 +48,9 @@ public class PathConnection {
         }
     }
 
-    public PathConnection(PathNode destination, int distance, String junctionName) {
+    public PathConnection(PathNode destination, double distance, String junctionName) {
         this.destination = destination;
-        this.distance = Math.max(1, distance);
+        this.distance = Math.max(1e-4, distance);
         this.junctionName = junctionName;
     }
 
@@ -55,7 +61,8 @@ public class PathConnection {
 
     public void writeTo(DataOutputStream stream) throws IOException {
         stream.writeInt(this.destination.index);
-        stream.writeInt(this.distance);
+        stream.writeInt(Integer.MAX_VALUE); // Deprecated
+        stream.writeDouble(this.distance);
         stream.writeByte(0xFF);
         stream.writeUTF(this.junctionName);
     }
