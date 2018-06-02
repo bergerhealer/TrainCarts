@@ -78,7 +78,7 @@ public class MutexZone {
 
     public static IntVector3 getPosition(SignActionEvent info) {
         Location middlePos = info.getCenterLocation();
-        if (middlePos == null) {
+        if (middlePos != null) {
             return new IntVector3(middlePos);
         } else {
             return new IntVector3(info.getBlock());
