@@ -530,6 +530,11 @@ public class TCListener implements Listener {
             return;
         }
 
+        // When clicked block is interactable, do not place
+        if (MaterialUtil.ISINTERACTABLE.get(event.getClickedBlock()) && !event.getPlayer().isSneaking()) {
+            return;
+        }
+
         Block placedBlock = event.getClickedBlock().getRelative(event.getBlockFace());
         if (placedBlock.getType() != Material.AIR) {
             return;
