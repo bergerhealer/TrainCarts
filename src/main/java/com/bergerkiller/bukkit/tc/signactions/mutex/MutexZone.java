@@ -61,15 +61,15 @@ public class MutexZone {
             coords = coords.substring(firstSpace).trim();
             if (!coords.isEmpty()) {
                 String[] parts = coords.split("/");
-                if (parts.length >= 1) {
-                    dx = dy = dz = ParseUtil.parseInt(parts[0], dx);
-                } else if (parts.length >= 2) {
-                    dx = dz = ParseUtil.parseInt(parts[0], dx);
-                    dy = ParseUtil.parseInt(parts[1], dy);
-                } else if (parts.length >= 3) {
+                if (parts.length >= 3) {
                     dx = ParseUtil.parseInt(parts[0], dx);
                     dz = ParseUtil.parseInt(parts[1], dx);
                     dy = ParseUtil.parseInt(parts[2], dy);
+                } else if (parts.length >= 2) {
+                    dx = dz = ParseUtil.parseInt(parts[0], dx);
+                    dy = ParseUtil.parseInt(parts[1], dy);
+                } else if (parts.length >= 1) {
+                    dx = dy = dz = ParseUtil.parseInt(parts[0], dx);
                 }
             }
         }
