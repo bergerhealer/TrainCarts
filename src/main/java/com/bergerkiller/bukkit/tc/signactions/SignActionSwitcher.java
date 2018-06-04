@@ -39,6 +39,7 @@ public class SignActionSwitcher extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
+        boolean toggleRails = info.isAction(SignActionType.GROUP_ENTER, SignActionType.MEMBER_ENTER);
         boolean doCart = false;
         boolean doTrain = false;
         if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
@@ -131,7 +132,9 @@ public class SignActionSwitcher extends SignAction {
             info.setLevers(!dir.isEmpty());
             if (!dir.isEmpty() && info.isPowered()) {
                 //handle this direction
-                info.setRailsTo(dir);
+                if (toggleRails) {
+                    info.setRailsTo(dir);
+                }
                 return; //don't do destination stuff
             }
         }
@@ -164,7 +167,9 @@ public class SignActionSwitcher extends SignAction {
                         // Switch the rails to the right direction
                         PathConnection conn = node.findConnection(destination);
                         if (conn != null) {
-                            info.setRailsTo(conn.junctionName);
+                            if (toggleRails) {
+                                info.setRailsTo(conn.junctionName);
+                            }
                         } else {
                             Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
                         }
