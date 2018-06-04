@@ -962,7 +962,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setTags(arg);
         } else if (key.equals("destination")) {
             this.setDestination(arg);
-        } else if (key.equals("remtag")) {
+        } else if (key.equals("remtag") || key.equals("removetag")) {
             this.removeTags(arg);
         } else if (LogicUtil.contains(key, "name", "rename", "setname")) {
             this.setName(generateTrainName(arg));
