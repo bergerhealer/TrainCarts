@@ -7,8 +7,11 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -62,14 +65,7 @@ public class CartPropertiesStore {
             changed = editing.put(playerUUID, properties) != properties;
         }
         if (changed) {
-            Player player = Bukkit.getPlayer(playerUUID);
-            if (player != null) {
-                // Refresh attachment editor, if open
-                AttachmentEditor editor = MapDisplay.getHeldDisplay(player, AttachmentEditor.class);
-                if (editor != null) {
-                    editor.reload();
-                }
-            }
+            refreshAttachmentEditor(playerUUID);
         }
     }
 
@@ -81,15 +77,33 @@ public class CartPropertiesStore {
     public static void remove(UUID uuid) {
         CartProperties prop = properties.remove(uuid);
         if (prop != null) {
-            Iterator<CartProperties> iter = editing.values().iterator();
+            Iterator<Map.Entry<UUID, CartProperties>> iter = editing.entrySet().iterator();
+            List<UUID> refreshPlayers = new ArrayList<UUID>(0);
             while (iter.hasNext()) {
-                if (iter.next() == prop) {
+                Map.Entry<UUID, CartProperties> e = iter.next();
+                if (e.getValue() == prop) {
+                    refreshPlayers.add(e.getKey());
                     iter.remove();
                 }
             }
             TrainProperties tprop = prop.getTrainProperties();
             if (tprop != null && tprop.contains(prop)) {
                 tprop.remove(prop);
+            }
+
+            for (UUID playerUUID : refreshPlayers) {
+                refreshAttachmentEditor(playerUUID);
+            }
+        }
+    }
+
+    private static void refreshAttachmentEditor(UUID playerUUID) {
+        Player player = Bukkit.getPlayer(playerUUID);
+        if (player != null) {
+            // Refresh attachment editor, if open
+            AttachmentEditor editor = MapDisplay.getHeldDisplay(player, AttachmentEditor.class);
+            if (editor != null) {
+                editor.reload();
             }
         }
     }

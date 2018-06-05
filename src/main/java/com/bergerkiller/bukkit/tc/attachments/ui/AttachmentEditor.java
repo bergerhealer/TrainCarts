@@ -100,13 +100,6 @@ public class AttachmentEditor extends MapDisplay {
         this.setUpdateWithoutViewers(false);
         this.setSessionMode(MapSessionMode.HOLDING);
         this.setMasterVolume(0.3f);
-
-        this.window.setBounds(0, 0, getWidth(), getHeight());
-        this.window.getTitle().setText("Attachment Editor");
-        this.addWidget(this.window);
-
-        this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
-
         this.reload();
     }
 
@@ -114,12 +107,20 @@ public class AttachmentEditor extends MapDisplay {
      * Reloads the editor. Happens when switching between carts being edited.
      */
     public void reload() {
-        this.window.clearWidgets();
+        this.clearWidgets();
+
+        this.window = new MapWidgetWindow();
+        this.window.setBounds(0, 0, getWidth(), getHeight());
+        this.window.getTitle().setText("Attachment Editor");
+        this.addWidget(this.window);
+
         CartProperties prop = CartProperties.getEditing(this.getOwners().get(0));
         if (prop != null) {
-            this.setReceiveInputWhenHolding(true);
+            this.sneakWalking = this.getOwners().get(0).isSneaking();
+            this.setReceiveInputWhenHolding(!this.sneakWalking);
             this.model = prop.getModel();
             this.tree.setModel(this.model);
+            this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
             this.window.addWidget(this.tree);
         } else {
             this.setReceiveInputWhenHolding(false);
