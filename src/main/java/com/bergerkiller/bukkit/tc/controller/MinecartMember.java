@@ -812,14 +812,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         toMove -= path.move(pos, this.getBlock(), toMove);
-        this.preMovePosition.setX(pos.posX);
-        this.preMovePosition.setY(pos.posY);
-        this.preMovePosition.setZ(pos.posZ);
         if (toMove > 0.0) {
             pos.posX += toMove * pos.motX;
             pos.posY += toMove * pos.motY;
             pos.posZ += toMove * pos.motZ;
         }
+        this.preMovePosition.setX(pos.posX);
+        this.preMovePosition.setY(pos.posY);
+        this.preMovePosition.setZ(pos.posZ);
         this.entity.setPosition(pos.posX, pos.posY, pos.posZ);
     }
 
