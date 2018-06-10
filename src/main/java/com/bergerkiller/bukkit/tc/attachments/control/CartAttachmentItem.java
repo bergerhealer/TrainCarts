@@ -24,7 +24,7 @@ public class CartAttachmentItem extends CartAttachment {
     private VirtualEntity entity;
     private ItemStack item;
     private ItemTransformType transformType;
-    private double last_yaw = 0.0;
+    private Quaternion last_rot = null;
 
     @Override
     public void onAttached() {
@@ -107,12 +107,18 @@ public class CartAttachmentItem extends CartAttachment {
 
         // Detect changes in yaw that we can apply to the entity directly
         // The remainder or 'error' is applied to the pose of the model
-        Vector new_rotation = q_rotation.getYawPitchRoll();
-        double new_yaw = new_rotation.getY();
-        double yaw_change = new_yaw - last_yaw;
-        while (yaw_change > 180.0) yaw_change -= 360.0;
-        while (yaw_change < -180.0) yaw_change += 360.0;
-        last_yaw = new_yaw;
+        double yaw_change;
+        if (last_rot != null) {
+            Quaternion changes = last_rot.clone();
+            changes.invert();
+            changes.multiply(q_rotation);
+            yaw_change = changes.getYawPitchRoll().getY();
+        } else {
+            yaw_change = 0.0;
+        }
+        last_rot = q_rotation;
+
+        // Apply when the yaw change isn't too extreme (does not cause a flip)
         Vector new_entity_ypr = this.entity.getYawPitchRoll().clone();
         if (yaw_change >= -90.0 && yaw_change <= 90.0) {
             new_entity_ypr.setY(new_entity_ypr.getY() + yaw_change);
