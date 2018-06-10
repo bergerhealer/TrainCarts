@@ -171,7 +171,7 @@ public class CartCommands {
                     for (int i = 0; i < count; i++) {
                         Material mat = ParseUtil.parseMaterial(args[i], null);
                         if (mat != null) {
-                            if (p.hasPermission("train.command.break.admin") || TrainCarts.canBreak(mat)) {
+                            if (Permission.COMMAND_BREAKBLOCK_ADMIN.has(p) || TrainCarts.canBreak(mat)) {
                                 mats.add(mat);
                             } else {
                                 p.sendMessage(ChatColor.RED + "You are not allowed to make this cart break '" + mat.toString() + "'!");

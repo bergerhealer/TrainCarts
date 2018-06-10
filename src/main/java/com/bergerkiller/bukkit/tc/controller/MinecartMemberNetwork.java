@@ -183,7 +183,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     private boolean isSoundEnabled() {
         MinecartMember<?> member = this.getMember();
-        return !(member == null || member.isUnloaded()) && member.getGroup().getProperties().isSoundEnabled();
+        if (member == null || member.isUnloaded()) {
+            return false;
+        }
+        MinecartGroup group = member.getGroup();
+        if (group == null) {
+            return false;
+        }
+        return group.getProperties().isSoundEnabled();
     }
 
     private void updateVelocity(Player player) {
