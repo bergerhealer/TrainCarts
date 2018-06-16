@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CollisionConfig;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -475,11 +476,15 @@ public class TrainCommands {
                 if (group != null) {
                     String name = args[0];
                     boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
-                    TrainCarts.plugin.getSavedTrains().save(group, name);
-                    if (wasContained) {
-                        p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
-                    } else {
-                        p.sendMessage(ChatColor.GREEN + "The train was saved as " + name);
+                    try {
+                        TrainCarts.plugin.getSavedTrains().save(group, name);
+                        if (wasContained) {
+                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
+                        } else {
+                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name);
+                        }
+                    } catch (IllegalNameException ex) {
+                        p.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());
                     }
                 } else {
                     p.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");

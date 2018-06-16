@@ -2,19 +2,21 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.logging.Level;
 
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.NBTUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 
 /**
  * Stores the train and cart properties for trains that have been saved using /train save.
@@ -29,6 +31,31 @@ public class SavedTrainPropertiesStore {
         this.savedTrainsConfig = new FileConfiguration(filename);
         this.savedTrainsConfig.load();
         this.names.addAll(this.savedTrainsConfig.getKeys());
+
+        // Rename trains starting with a number, as this breaks things
+        ListIterator<String> iter = this.names.listIterator();
+        while (iter.hasNext()) {
+            String name = iter.next();
+            if (!this.savedTrainsConfig.isNode(name)) {
+                iter.remove();
+                continue;
+            }
+            if (!name.isEmpty() && !Character.isDigit(name.charAt(0))) {
+                continue;
+            }
+
+            String new_name = "t" + name;
+            for (int i = 1; names.contains(new_name); i++) {
+                new_name = "t" + name + i;
+            }
+
+            TrainCarts.plugin.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
+            iter.set(new_name);
+            this.savedTrainsConfig.set(new_name, this.savedTrainsConfig.getNode(name));
+            this.savedTrainsConfig.remove(name);
+            this.changed = true;
+        }
+
     }
 
     public void save(boolean autosave) {
@@ -45,7 +72,14 @@ public class SavedTrainPropertiesStore {
      * @param group to save
      * @param name to save as
      */
-    public void save(MinecartGroup group, String name) {
+    public void save(MinecartGroup group, String name) throws IllegalNameException {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalNameException("Name is empty");
+        }
+        if (Character.isDigit(name.charAt(0))) {
+            throw new IllegalNameException("Name starts with a digit");
+        }
+
         this.changed = true;
         ConfigurationNode config = this.savedTrainsConfig.getNode(name);
         config.clear();
@@ -211,4 +245,5 @@ public class SavedTrainPropertiesStore {
         transform.rotateYawPitchRoll(new Vector(rotX, rotY, rotZ));
         return transform;
     }
+
 }
