@@ -51,7 +51,7 @@ public class SavedTrainPropertiesStore {
 
             TrainCarts.plugin.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
             iter.set(new_name);
-            this.savedTrainsConfig.set(new_name, this.savedTrainsConfig.getNode(name));
+            this.savedTrainsConfig.set(new_name, this.savedTrainsConfig.getNode(name).clone());
             this.savedTrainsConfig.remove(name);
             this.changed = true;
         }
