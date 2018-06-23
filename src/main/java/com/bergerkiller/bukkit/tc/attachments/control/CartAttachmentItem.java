@@ -8,6 +8,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -47,9 +48,6 @@ public class CartAttachmentItem extends CartAttachment {
         }
 
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-        this.local_transform = new Matrix4x4();
-        this.local_transform.translate(this.position);
-        this.local_transform.rotateYawPitchRoll(this.rotation);
     }
 
     @Override
@@ -86,6 +84,14 @@ public class CartAttachmentItem extends CartAttachment {
 
     @Override
     public void onPositionUpdate() {
+        // Switch to old logic for debugging the pivot point changes in 1.12.2-v3
+        /*
+        if (this.getController().getMember().getProperties().getTags().contains("old")) {
+            this.onPositionUpdate_legacy();
+            return;
+        }
+        */
+
         super.onPositionUpdate();
 
         final boolean DEBUG_POSE = false;
@@ -160,6 +166,61 @@ public class CartAttachmentItem extends CartAttachment {
             rotation.setX(rotation.getX() - 90.0);
             meta.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
         } else if (this.transformType.isLeg()) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
+            meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
+        }
+    }
+
+    public final void onPositionUpdate_legacy() {
+        this.entity.setRelativeOffset(0.0, -1.2, 0.0);
+
+        // Perform additional translation for certain attached pose positions
+        // This correct model offsets
+        if (this.transformType == ItemTransformType.LEFT_HAND) {
+            Matrix4x4 tmp = this.transform.clone();
+            tmp.translate(-0.4, 0.3, 0.9375);
+            tmp.multiply(this.local_transform);
+            Vector ypr = tmp.getYawPitchRoll();
+            ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
+            this.entity.updatePosition(tmp, ypr);
+            super.onPositionUpdate();
+        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+            Matrix4x4 tmp = this.transform.clone();
+            tmp.translate(-0.4, 0.3, -0.9375);
+            tmp.multiply(this.local_transform);
+            Vector ypr = tmp.getYawPitchRoll();
+            ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
+            this.entity.updatePosition(tmp, ypr);
+            super.onPositionUpdate();
+        } else {
+            super.onPositionUpdate();
+            Vector ypr = this.transform.getYawPitchRoll();
+            ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
+            this.entity.updatePosition(this.transform, ypr);
+        }
+
+        // Convert the pitch/roll into an appropriate pose
+        Vector in_ypr = this.entity.getYawPitchRoll();
+
+        Vector rotation;
+        if (this.transformType == ItemTransformType.LEFT_HAND) {
+            rotation = new Vector(180.0, -90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
+        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+            rotation = new Vector(0.0, 90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
+        } else {
+            rotation = new Vector(90.0, 90.0 + in_ypr.getZ(), 90.0 - in_ypr.getX());
+        }
+
+        DataWatcher meta = this.entity.getMetaData();
+        if (this.transformType == ItemTransformType.HEAD) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);
+        } else if (this.transformType == ItemTransformType.CHEST) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_BODY, rotation);
+        } else if (this.transformType == ItemTransformType.LEFT_HAND) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_ARM_LEFT, rotation);
+        } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
+            meta.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
+        } else if (this.transformType == ItemTransformType.LEGS || this.transformType == ItemTransformType.FEET) {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }

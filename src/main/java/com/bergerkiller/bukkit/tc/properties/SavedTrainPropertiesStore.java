@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
@@ -148,88 +149,132 @@ public class SavedTrainPropertiesStore {
             List<ConfigurationNode> carts = node.getNodeList("carts");
             for (ConfigurationNode cart : carts) {
                 if (cart.isNode("model")) {
-                    upgradeSavedTrains(cart.getNode("model"), undo);
+                    upgradeSavedTrains(new Matrix4x4(), new Matrix4x4(), cart.getNode("model"), undo);
                 }
             }
         }
     }
 
-    /*
-     * The following transformation is performed v2 -> v3
-     * HEAD:
-     * Y += 0.24
-     *
-     * LEFT_ARM:
-     * YAW += 180.0
-     * X += -0.4
-     * Y += 0.48
-     * Z += 0.625
-     *
-     * RIGHT_ARM:
-     * X += -0.4
-     * Y += 0.48
-     * Z += -0.4
-     */
-    private static void upgradeSavedTrains(ConfigurationNode node, boolean undo) {
-        // Perform modifications to the position node
-        if (node.get("type", CartAttachmentType.EMPTY) == CartAttachmentType.ITEM) {
-            // Init defaults if needed
-            if (!node.isNode("position")) {
-                ConfigurationNode position = node.getNode("position");
-                position.set("transform", ItemTransformType.HEAD);
-                position.set("posX", 0.0);
-                position.set("posY", 0.0);
-                position.set("posZ", 0.0);
-                position.set("rotX", 0.0);
-                position.set("rotY", 0.0);
-                position.set("rotZ", 0.0);
-            }
+    private static void upgradeSavedTrains(Matrix4x4 old_transform, Matrix4x4 new_transform, ConfigurationNode node, boolean undo) {
+        // If node is a seat without position information, proxy the call since no changes occur
+        if (node.get("type", CartAttachmentType.EMPTY) == CartAttachmentType.SEAT && !node.isNode("position")) {
 
-            ConfigurationNode position = node.getNode("position");
-            ItemTransformType transform = position.get("transform", ItemTransformType.HEAD);
-
-            Matrix4x4 oldTransform = getAttTransform(position);
-            double f = undo ? -1.0 : 1.0;
-            if (transform == ItemTransformType.HEAD) {
-                position.set("posY", position.get("posY", 0.0) + f*0.24);
-            } else if (transform == ItemTransformType.LEFT_HAND) {
-                position.set("rotY", position.get("rotY", 0.0) + f*180.0);
-                position.set("posX", position.get("posX", 0.0) + f*-0.4);
-                position.set("posY", position.get("posY", 0.0) + f*0.48);
-                position.set("posZ", position.get("posZ", 0.0) + f*0.625);
-            } else if (transform == ItemTransformType.RIGHT_HAND) {
-                position.set("posX", position.get("posX", 0.0) + f*-0.4);
-                position.set("posY", position.get("posY", 0.0) + f*0.48);
-                position.set("posZ", position.get("posZ", 0.0) + f*-0.4);
-            }
-            Matrix4x4 newTransform = getAttTransform(position);
-
-            // Compute correction transformation matrix
-            Matrix4x4 correction = newTransform;
-            correction.invert();
-            correction.multiply(oldTransform);
-
-            // Apply correction to children. Ignore seat attachments without position (default to parent pos.)
+            // Recursively operate on child attachments
             for (ConfigurationNode attNode : node.getNodeList("attachments")) {
-                if (attNode.isNode("position") || attNode.get("type", CartAttachmentType.EMPTY) != CartAttachmentType.SEAT) {
-                    ConfigurationNode attPosition = attNode.getNode("position");
-                    Matrix4x4 attTransform = getAttTransform(attPosition);
-                    attTransform.multiply(correction);
-                    Vector pos = attTransform.toVector();
-                    Vector rot = attTransform.getYawPitchRoll();
-                    attPosition.set("posX", pos.getX());
-                    attPosition.set("posY", pos.getY());
-                    attPosition.set("posZ", pos.getZ());
-                    attPosition.set("rotX", rot.getX());
-                    attPosition.set("rotY", rot.getY());
-                    attPosition.set("rotZ", rot.getZ());
-                }
+                upgradeSavedTrains(old_transform, new_transform, attNode, undo);
             }
+
+            return;
+        }
+
+        // Restore old position if it exists
+        if (node.isNode("position_legacy")) {
+            node.set("position", node.getNode("position_legacy").clone());
+        }
+
+        // Init position defaults if needed
+        if (!node.isNode("position")) {
+            ConfigurationNode position = node.getNode("position");
+            position.set("transform", ItemTransformType.HEAD);
+            position.set("posX", 0.0);
+            position.set("posY", 0.0);
+            position.set("posZ", 0.0);
+            position.set("rotX", 0.0);
+            position.set("rotY", 0.0);
+            position.set("rotZ", 0.0);
+        }
+
+        // Store old position
+        node.set("position_legacy", node.getNode("position").clone());
+
+        Matrix4x4 abs_old_transform;
+        if (undo || node.get("type",  CartAttachmentType.EMPTY) != CartAttachmentType.ITEM) {
+            // Other type of attachment - default update
+            abs_old_transform = old_transform.clone();
+            abs_old_transform.multiply(getAttTransform(node.getNode("position_legacy")));
+
+        } else {
+            // Compute absolute old position of the item, based on legacy item attachment position maths
+            ItemTransformType transformType = node.getNode("position").get("transform", ItemTransformType.HEAD);
+            Matrix4x4 old_local_transform = getAttTransform(node.getNode("position_legacy"));
+            {
+                Vector v_pos, v_rot;
+                if (transformType == ItemTransformType.LEFT_HAND) {
+                    // Left hand
+                    Matrix4x4 tmp = old_transform.clone();
+                    tmp.translate(-0.4, 0.3, 0.9375);
+                    tmp.multiply(old_local_transform);
+
+                    v_pos = tmp.toVector();
+                    v_rot = tmp.getYawPitchRoll();
+                    v_rot.setY(v_rot.getY() + 180.0);
+
+                    // Arm offset
+                    double dx = -0.3125 * Math.sin(Math.toRadians(v_rot.getY()));
+                    double dz = 0.3125 * Math.cos(Math.toRadians(v_rot.getY()));
+                    v_pos.setX(v_pos.getX() + dx);
+                    v_pos.setZ(v_pos.getZ() + dz);
+
+                } else if (transformType == ItemTransformType.RIGHT_HAND) {
+                    // Right hand
+                    Matrix4x4 tmp = old_transform.clone();
+                    tmp.translate(-0.4, 0.3, -0.9375);
+                    tmp.multiply(old_local_transform);
+
+                    v_pos = tmp.toVector();
+                    v_rot = tmp.getYawPitchRoll();
+
+                    // Arm offset
+                    double dx = -0.3125 * Math.sin(Math.toRadians(v_rot.getY()));
+                    double dz = 0.3125 * Math.cos(Math.toRadians(v_rot.getY()));
+                    v_pos.setX(v_pos.getX() + dx);
+                    v_pos.setZ(v_pos.getZ() + dz);
+
+                } else {
+                    // Head
+                    Matrix4x4 tmp = old_transform.clone();
+                    tmp.multiply(old_local_transform);
+
+                    v_pos = tmp.toVector();
+                    v_rot = tmp.getYawPitchRoll();
+                    v_rot.setY(v_rot.getY() + 180.0);
+                }
+
+                v_pos.setY(v_pos.getY() + 0.24);
+
+                abs_old_transform = new Matrix4x4();
+                abs_old_transform.translate(v_pos);
+                abs_old_transform.rotateYawPitchRoll(v_rot);
+            }
+        }
+
+        // Turn the original old absolute position into a transformation relative to the parent transform
+        Matrix4x4 new_local_transform = new_transform.clone();
+        new_local_transform.invert();
+        new_local_transform.multiply(abs_old_transform);
+
+        // Store new position
+        setAttTransform(node.getNode("position"), new_local_transform);
+
+        // Update transform of node
+        old_transform = old_transform.clone();
+        new_transform = new_transform.clone();
+        if (node.isNode("position_legacy")) {
+            old_transform.multiply(getAttTransform(node.getNode("position_legacy")));
+            new_transform.multiply(getAttTransform(node.getNode("position")));
+        } else {
+            old_transform.multiply(getAttTransform(node.getNode("position")));
+            new_transform.multiply(getAttTransform(node.getNode("position")));
+        }
+
+        // Remove position_legacy when undoing
+        if (undo) {
+            node.remove("position_legacy");
         }
 
         // Recursively operate on child attachments
         for (ConfigurationNode attNode : node.getNodeList("attachments")) {
-            upgradeSavedTrains(attNode, undo);
+            upgradeSavedTrains(old_transform, new_transform, attNode, undo);
         }
     }
 
@@ -246,4 +291,14 @@ public class SavedTrainPropertiesStore {
         return transform;
     }
 
+    private static void setAttTransform(ConfigurationNode positionNode, Matrix4x4 transform) {
+        Vector pos = transform.toVector();
+        Vector rot = transform.getYawPitchRoll();
+        positionNode.set("posX", MathUtil.round(pos.getX(), 6));
+        positionNode.set("posY", MathUtil.round(pos.getY(), 6));
+        positionNode.set("posZ", MathUtil.round(pos.getZ(), 6));
+        positionNode.set("rotX", MathUtil.round(rot.getX(), 6));
+        positionNode.set("rotY", MathUtil.round(rot.getY(), 6));
+        positionNode.set("rotZ", MathUtil.round(rot.getZ(), 6));
+    }
 }
