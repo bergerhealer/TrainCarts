@@ -40,8 +40,46 @@ public class RailLogicAir extends RailLogic {
         }
     }
 
-    @Override
     public void onUpdateOrientation(MinecartMember<?> member, Quaternion orientation) {
+        CommonMinecart<?> entity = member.getEntity();
+        Vector forward = new Vector(entity.getMovedX(), entity.getMovedY(), entity.getMovedZ());
+        if (member.getGroup().size() > 1) {
+            boolean has_delta = false;
+            double dx = 0.0, dy = 0.0, dz = 0.0;
+            if (member != member.getGroup().head()) {
+                // Add difference between this cart and the cart before
+                MinecartMember<?> m = member.getNeighbour(-1);
+                if (m.isDerailed()) {
+                    dx += m.getEntity().loc.getX() - member.getEntity().loc.getX();
+                    dy += m.getEntity().loc.getY() - member.getEntity().loc.getY();
+                    dz += m.getEntity().loc.getZ() - member.getEntity().loc.getZ();
+                    has_delta = true;
+                }
+            }
+            if (member != member.getGroup().tail()) {
+                // Add difference between this cart and the cart after
+                MinecartMember<?> m = member.getNeighbour(1);
+                if (m.isDerailed()) {
+                    dx += member.getEntity().loc.getX() - m.getEntity().loc.getX();
+                    dy += member.getEntity().loc.getY() - m.getEntity().loc.getY();
+                    dz += member.getEntity().loc.getZ() - m.getEntity().loc.getZ();
+                    has_delta = true;
+                }
+            }
+            if (has_delta) {
+                forward.setX(dx);
+                forward.setY(dy);
+                forward.setZ(dz);
+                if (forward.dot(orientation.forwardVector()) < 0.0) {
+                    forward.multiply(-1.0);
+                }
+            }
+        }
+        member.setOrientation(Quaternion.fromLookDirection(forward, orientation.upVector()));
+    }
+
+    // Old updateOrientation logic - breaks vertical - air rails
+    public void onUpdateOrientation_old(MinecartMember<?> member, Quaternion orientation) {
         CommonMinecart<?> entity = member.getEntity();
         boolean upsideDown = MathUtil.getAngleDifference(entity.loc.getPitch(), 180.0f) < 89.0f;
         float newYaw = member.getEntity().loc.getYaw();

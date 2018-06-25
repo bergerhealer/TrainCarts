@@ -19,13 +19,13 @@ public class SignActionBlocker extends SignAction {
     @Override
     public void execute(SignActionEvent info) {
         if (info.getMode() != SignActionMode.NONE && info.hasRailedMember()) {
-            if (info.isAction(SignActionType.GROUP_LEAVE) || (info.isAction(SignActionType.REDSTONE_CHANGE) && !info.isPowered())) {
+            if (info.isAction(SignActionType.GROUP_LEAVE) || info.isAction(SignActionType.REDSTONE_OFF)) {
                 // Remove the wait state when the train leaves or the sign lost power to block
                 GroupActionWaitState action = CommonUtil.tryCast(info.getGroup().getActions().getCurrentAction(), GroupActionWaitState.class);
                 if (action != null) {
                     action.stop();
                 }
-            } else if (info.isPowered() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_MOVE)) {
+            } else if (info.isPowered() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON, SignActionType.MEMBER_MOVE)) {
                 // Set the next direction based on the sign
                 // Don't do this in the move event as that one fires too often (performance issue)
                 if (!info.isAction(SignActionType.MEMBER_MOVE)) {

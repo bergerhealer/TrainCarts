@@ -1,13 +1,14 @@
 package com.bergerkiller.bukkit.tc.utils;
 
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
-import java.util.HashSet;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 /**
  * Represents a Minecart moving from Block to Block.
@@ -19,27 +20,55 @@ public class TrackMovingPoint {
     public BlockFace currentDirection, nextDirection;
     public RailType currentRail, nextRail;
     private boolean hasNext;
-    private Set<Block> loopFilter = null;
+    private final TrackWalkingPoint walkingPoint;
+
+    /**
+     * Constructs a new Track Moving Point using the initial Minecart position
+     * and initial motion vector direction specified
+     * 
+     * @param startPos of the Minecart
+     * @param motionVector to start moving into
+     */
+    public TrackMovingPoint(Location startPos, Vector motionVector) {
+        this(new TrackWalkingPoint(startPos, motionVector));
+    }
+
+    /**
+     * Constructs a new Track Moving Point using the initial rail state to start
+     * iterating from
+     * 
+     * @param state
+     */
+    public TrackMovingPoint(RailState state) {
+        this(new TrackWalkingPoint(state));
+    }
 
     /**
      * Constructs a new Track Moving Point using the track position
      * and initial direction specified
      *
      * @param startBlock     of the rail to start moving from
-     * @param startDirection to start moving into (CAN NOT BE SUB-CARDINAL!)
+     * @param startDirection to start moving into
      */
+    @Deprecated
     public TrackMovingPoint(Block startBlock, BlockFace startDirection) {
-        this.currentTrack = this.nextTrack = startBlock;
-        this.currentDirection = this.nextDirection = startDirection;
-        this.hasNext = false;
-        if (this.nextTrack == null || this.nextDirection == null) {
-            return;
-        }
-        RailType type = RailType.getType(this.nextTrack);
-        if (type != null) {
-            this.current = this.next = type.findMinecartPos(this.nextTrack);
-            this.currentRail = this.nextRail = type;
+        this(new TrackWalkingPoint(startBlock, startDirection));
+    }
+
+    private TrackMovingPoint(TrackWalkingPoint walkingPoint) {
+        this.walkingPoint = walkingPoint;
+        if (this.walkingPoint.state.railType() != RailType.NONE) {
+            this.currentTrack = this.nextTrack = this.walkingPoint.state.railBlock();
+            this.currentDirection = this.nextDirection = this.walkingPoint.state.enterFace();
+            this.current = this.next = this.walkingPoint.state.positionBlock();
+            this.currentRail = this.nextRail = this.walkingPoint.state.railType();
             this.hasNext = true;
+        } else {
+            this.currentTrack = this.nextTrack = null;
+            this.currentDirection = this.nextDirection = BlockFace.SELF;
+            this.current = this.next = null;
+            this.currentRail = this.nextRail = RailType.NONE;
+            this.hasNext = false;
         }
     }
 
@@ -50,7 +79,7 @@ public class TrackMovingPoint {
      * @param enabled
      */
     public void setLoopFilter(boolean enabled) {
-        this.loopFilter = enabled ? new HashSet<Block>() : null;
+        this.walkingPoint.setLoopFilter(enabled);
     }
 
     /**
@@ -105,37 +134,19 @@ public class TrackMovingPoint {
         }
 
         // Use the current rail to obtain the next Block to go to
-        this.next = this.currentRail.getNextPos(this.currentTrack, this.currentDirection);
-        if (this.next != null && this.loopFilter != null && !this.loopFilter.add(this.next)) {
-            this.next = null; // Loop Detected
-        }
-        if (this.next == null) {
+        if (!this.walkingPoint.moveFull()) {
             // No next position available
             return;
         }
 
-        // Re-calculate the direction we are moving
-        if (this.current.getX() == this.next.getX() && this.current.getZ() == this.next.getZ()) {
-            if (this.next.getY() == this.current.getY()) {
-                // No change. Keep old.
-                this.nextDirection = this.currentDirection;
-            } else {
-                // Moving vertically
-                this.nextDirection = FaceUtil.getVertical(this.next.getY() > this.current.getY());
-            }
-        } else {
-            // Moving horizontally
-            this.nextDirection = FaceUtil.getDirection(this.current, this.next, false);
-        }
+        this.next = this.walkingPoint.state.positionBlock();
+        this.nextTrack = this.walkingPoint.state.railBlock();
+        this.nextRail = this.walkingPoint.state.railType();
+        this.nextDirection = this.walkingPoint.state.enterFace();
+        this.hasNext = true;
+    }
 
-        // Figure out what kind of rail is stored at the next Block
-        RailInfo info = RailType.findRailInfo(this.next);
-        if (info != null) {
-            // Found a next track!
-            this.nextTrack = info.railBlock;
-            this.next = info.railType.findMinecartPos(this.nextTrack);
-            this.nextRail = info.railType;
-            this.hasNext = true;
-        }
+    public RailState getState() {
+        return this.walkingPoint.state;
     }
 }

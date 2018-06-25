@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
@@ -174,5 +175,22 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         super.onItemSet(index, item);
         // Mark the Entity as changed
         onPropertiesChanged();
+    }
+
+    @Override
+    public void onTrainSaved(ConfigurationNode data) {
+        if (this.getEntity().getFuelTicks() > 0) {
+            data.set("fuel", this.entity.getFuelTicks());
+        }
+    }
+
+    @Override
+    public void onTrainSpawned(ConfigurationNode data) {
+        if (data.contains("fuel")) {
+            this.entity.setFuelTicks(data.get("fuel", 0));
+        } else {
+            this.entity.setFuelTicks(0);
+        }
+        this.entity.setSmoking(this.entity.getFuelTicks() > 0);
     }
 }

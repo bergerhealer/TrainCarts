@@ -1,10 +1,11 @@
 package com.bergerkiller.bukkit.tc.storage;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -59,30 +60,56 @@ public class OfflineMember {
         this.motZ = vel.getZ();
     }
 
-    public MinecartMember<?> create(World world) {
-        MinecartMember<?> mm = null;
-        // first try to find it in the chunk
-        Chunk c = world.getChunkAt(cx, cz);
-        for (Entity e : WorldUtil.getEntities(c)) {
+    public Minecart findEntity(Chunk chunk, boolean markChunkDirty) {
+        for (Entity e : WorldUtil.getEntities(chunk)) {
             if (e instanceof Minecart && e.getUniqueId().equals(this.entityUID)) {
-                mm = MinecartMemberStore.convert((Minecart) e);
-                break;
+                if (markChunkDirty) {
+                    Util.markChunkDirty(chunk);
+                }
+                return (Minecart) e;
             }
         }
-        // Try to find it in the world
+        return null;
+    }
+
+    public Minecart findEntity(World world, boolean markChunkDirty) {
+        // first try to find it in the chunk
+        Minecart e = findEntity(world.getChunkAt(this.cx, this.cz), markChunkDirty);
+        if (e != null) {
+            return e;
+        }
+
+        // Try neighbouring chunks
+        final int radius = 2;
+        for (int cx = this.cx - radius; cx <= this.cx + radius; cx++) {
+            for (int cz = this.cz - radius; cz <= this.cz + radius; cz++) {
+                if (cx == this.cx && cz == this.cz) {
+                    continue; // Already checked.
+                }
+
+                e = findEntity(world.getChunkAt(cx, cz), markChunkDirty);
+                if (e != null) {
+                    return e;
+                }
+            }
+        }
+
+        // Not found
+        return null;
+    }
+
+    public MinecartMember<?> create(World world) {
+        Minecart entity = findEntity(world, false);
+        if (entity == null) {
+            return null;
+        }
+        MinecartMember<?> mm = MinecartMemberStore.convert(entity);
         if (mm == null) {
-            // Load a 5x5 chunk area around this Minecart so it can properly be found
-            WorldUtil.loadChunks(world, this.cx, this.cz, 2);
-            // Try to find it
-            Entity e = EntityUtil.getEntity(world, this.entityUID);
-            if (e instanceof Minecart) {
-                mm = MinecartMemberStore.convert((Minecart) e);
-            }
+            return null;
         }
+
         // Restore velocity
-        if (mm != null) {
-            mm.getEntity().vel.xz.set(this.motX, this.motZ);
-        }
+        mm.getEntity().vel.xz.set(this.motX, this.motZ);
         return mm;
     }
 

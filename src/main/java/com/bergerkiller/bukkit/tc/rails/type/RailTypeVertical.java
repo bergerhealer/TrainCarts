@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
@@ -110,59 +111,19 @@ public class RailTypeVertical extends RailType {
     }
 
     @Override
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        // Check for a possible sloped rail leading up from next
-        // This logic applies when going UP or into the direction of the vertical rails
-        if (currentDirection == BlockFace.UP || currentDirection == getSignColumnDirection(currentTrack)) {
-            Block next = currentTrack.getRelative(BlockFace.UP);
-            if (!Util.ISTCRAIL.get(next)) {
-                // Check for a possible sloped rail leading up from next
-                Block afterSlope = getAfterSlope(currentTrack);
-                if (afterSlope != null) {
-                    return afterSlope;
-                }
-            }
-            if (currentDirection == BlockFace.UP) {
-                return next;
-            }
-        }
-
-        // Check if an upside-down sloped rail below us
-        if (isVerticalSlopeUpsideDownB(currentTrack)) {
-            // When moving into the same direction, we go up the vertical rail
-            BlockFace dir = Util.getVerticalRailDirection(currentTrack);
-            if (dir == currentDirection.getOppositeFace()) {
-                return currentTrack.getRelative(BlockFace.UP);
+    public RailLogic getLogic(RailState state) {
+        BlockFace dir = Util.getVerticalRailDirection(state.railBlock());
+        if (isVerticalSlopeUpsideDown(state.railBlock())) {
+            // Check if there is also one upside-down rail below leading to a slope
+            // If so, when y-position is below a threshold, pick UpsideDownB instead.
+            if (state.railPosition().getY() < 0.0 && isVerticalSlopeUpsideDownB(state.railBlock())) {
+                return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
             }
 
-            // Otherwise, we move down onto the sloped rail below
-            return currentTrack.getRelative(dir.getModX(), -1, dir.getModZ());
-        }
-
-        // Check if an upside-down sloped rail is above us that connects with this sloped rail
-        // and goes towards the current direction. Only applies when not moving down (away).
-        if (currentDirection != BlockFace.DOWN) {
-            Block above = currentTrack.getRelative(BlockFace.UP);
-            RailType railType = RailType.getType(above);
-            if (railType instanceof RailTypeRegular) {
-                if (((RailTypeRegular) railType).isSlopeUpwardsTo(above, currentDirection)) {
-                    return above;
-                }
-            }
-        }
-
-        // Go down straight
-        return currentTrack.getRelative(BlockFace.DOWN);
-    }
-
-    @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
-        BlockFace dir = Util.getVerticalRailDirection(railsBlock);
-        if (isVerticalSlopeUpsideDown(railsBlock)) {
             return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
-        } else if (isVerticalSlopeUpsideDownB(railsBlock)) {
+        } else if (isVerticalSlopeUpsideDownB(state.railBlock())) {
             return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
-        } else if (getAfterSlope(railsBlock) != null) {
+        } else if (getAfterSlope(state.railBlock()) != null) {
             return RailLogicVerticalSlopeNormalB.get(dir);
         } else {
             return RailLogicVertical.get(dir);
@@ -172,10 +133,12 @@ public class RailTypeVertical extends RailType {
     @Override
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         BlockFace dir = Util.getVerticalRailDirection(railsBlock);
+        double dx = 0.5 + RailLogicVertical.XZ_POS_OFFSET * dir.getModX();
+        double dz = 0.5 + RailLogicVertical.XZ_POS_OFFSET * dir.getModZ();
         return new Location(railsBlock.getWorld(),
-                railsBlock.getX() + 0.5,
+                railsBlock.getX() + dx,
                 railsBlock.getY() + 0.5,
-                railsBlock.getZ() + 0.5,
+                railsBlock.getZ() + dz,
                 FaceUtil.faceToYaw(dir),
                 -90.0f);
     }

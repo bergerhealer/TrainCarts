@@ -50,6 +50,7 @@ public abstract class SignAction {
         register(new SignActionTicket());
         register(new SignActionAnnounce());
         register(new SignActionEffect());
+        register(new SignActionSound());
         register(new SignActionSkip());
         register(new SignActionMutex());
         register(new SignActionFlip());

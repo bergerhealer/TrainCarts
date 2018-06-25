@@ -199,6 +199,9 @@ public class SignActionDetector extends SignAction {
         SignActionEvent info;
         while (map.hasNext()) {
             for (Block signblock : Util.getSignsFromRails(map.next())) {
+                if (signblock.equals(startsign)) {
+                    continue;
+                }
                 info = new SignActionEvent(signblock);
                 if (matchLabel(info, label)) {
                     endsign = signblock;

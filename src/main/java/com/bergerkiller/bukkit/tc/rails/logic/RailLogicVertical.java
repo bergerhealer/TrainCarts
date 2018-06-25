@@ -9,6 +9,7 @@ import org.bukkit.util.Vector;
 
 public class RailLogicVertical extends RailLogic {
     private static final RailLogicVertical[] values = new RailLogicVertical[4];
+    public static final double XZ_POS_OFFSET = (0.5 - RailLogicHorizontal.Y_POS_OFFSET);
 
     static {
         for (int i = 0; i < 4; i++) {
@@ -53,8 +54,10 @@ public class RailLogicVertical extends RailLogic {
     @Override
     protected RailPath createPath() {
         // Initialize the rail path, making use of getFixedPosition for each node
-        Vector p1 = new Vector(0.5, 0.0, 0.5);
-        Vector p2 = new Vector(0.5, 1.0, 0.5);
+        double dx = 0.5 + XZ_POS_OFFSET * this.getDirection().getModX();
+        double dz = 0.5 + XZ_POS_OFFSET * this.getDirection().getModZ();
+        Vector p1 = new Vector(dx, 0.0, dz);
+        Vector p2 = new Vector(dx, 1.0, dz);
         return new RailPath.Builder()
                 .up(this.getDirection().getOppositeFace())
                 .add(p1).add(p2).build();

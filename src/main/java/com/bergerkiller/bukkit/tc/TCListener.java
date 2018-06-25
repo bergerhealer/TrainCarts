@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -56,6 +57,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -81,6 +83,7 @@ public class TCListener implements Listener {
     private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
     private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
     public static boolean cancelNextDrops = false;
+    public static MinecartMember<?> killedByMember = null;
     public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
@@ -183,6 +186,18 @@ public class TCListener implements Listener {
         for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
             if (group.getWorld() == event.getWorld()) {
                 group.unload();
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        if (killedByMember != null) {
+            String deathMessage = killedByMember.getGroup().getProperties().getKillMessage();
+            if (!deathMessage.isEmpty()) {
+                deathMessage = deathMessage.replaceAll("%0%", event.getEntity().getDisplayName());
+                deathMessage = deathMessage.replaceAll("%1%", killedByMember.getGroup().getProperties().getDisplayName());
+                event.setDeathMessage(deathMessage);
             }
         }
     }
@@ -409,10 +424,6 @@ public class TCListener implements Listener {
             if (clickedBlock == null) {
                 // Use ray tracing to obtain the correct block
                 clickedBlock = CommonEntity.get(event.getPlayer()).getTargetBlock();
-                if (clickedBlock == null) {
-                    // No interaction occurred
-                    return;
-                }
             }
 
             // Debug tools
@@ -424,6 +435,11 @@ public class TCListener implements Listener {
                         DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), debugType);
                     }
                 }
+            }
+
+            // No interaction occurred
+            if (clickedBlock == null) {
+                return;
             }
 
             //System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
@@ -511,6 +527,11 @@ public class TCListener implements Listener {
      */
     private void handleRailPlacement(PlayerInteractEvent event, ItemStack heldItem) {
         if (event.getClickedBlock() == null || heldItem == null) {
+            return;
+        }
+
+        // When clicked block is interactable, do not place
+        if (MaterialUtil.ISINTERACTABLE.get(event.getClickedBlock()) && !event.getPlayer().isSneaking()) {
             return;
         }
 
@@ -778,6 +799,10 @@ public class TCListener implements Listener {
         if (event.isCancelled() || TrainCarts.isWorldDisabled(event)) {
             return;
         }
+
+        // Reset cache to make sure all signs are recomputed later, after the sign was made
+        // Doing it here, in the most generic case, so that custom addon signs are also refreshed
+        RailSignCache.reset();
 
         SignAction.handleBuild(event);
         if (event.isCancelled()) {

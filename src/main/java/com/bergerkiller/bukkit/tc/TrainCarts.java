@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -13,6 +12,9 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
+import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -23,7 +25,6 @@ import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.rails.util.RailTypeCache;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -270,7 +271,8 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
-        MapResourcePack.SERVER.load();
+        // Do this first
+        Conversion.registerConverters(MinecartMemberStore.class);
 
         //Load configuration
         loadConfig();
@@ -367,7 +369,11 @@ public class TrainCarts extends PluginBase {
         this.register(TCListener.class);
         this.register(RedstoneTracker.class);
         this.register("train", "cart");
-        Conversion.registerConverters(MinecartMemberStore.class);
+
+        // Destroy all trains after initializing if specified
+        if (TCConfig.destroyAllOnShutdown) {
+            getLogger().info("[DestroyOnShutdown] Destroyed " + OfflineGroupManager.destroyAll() + " trains or minecarts");
+        }
     }
 
     /**
@@ -416,6 +422,11 @@ public class TrainCarts extends PluginBase {
     }
 
     public void disable() {
+        //Destroy all trains after initializing if specified
+        if (TCConfig.destroyAllOnShutdown) {
+            getLogger().info("[DestroyOnShutdown] Destroyed " + OfflineGroupManager.destroyAll() + " trains or minecarts");
+        }
+
         //Unregister listeners
         this.unregister(packetListener);
         packetListener = null;
@@ -468,6 +479,9 @@ public class TrainCarts extends PluginBase {
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
         PathProvider.deinit();
+        RailTypeCache.reset();
+        RailSignCache.reset();
+        RailMemberCache.reset();
     }
 
     public boolean command(CommandSender sender, String cmd, String[] args) {
@@ -493,6 +507,7 @@ public class TrainCarts extends PluginBase {
         @Override
         public void run() {
             RailTypeCache.cleanup();
+            RailSignCache.cleanup();
         }
     }
     

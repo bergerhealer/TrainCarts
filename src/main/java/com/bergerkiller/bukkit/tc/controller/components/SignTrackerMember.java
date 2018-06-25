@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -51,7 +52,7 @@ public class SignTrackerMember extends SignTracker {
 
     @Override
     protected void onSignChange(TrackedSign sign, boolean active) {
-        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railsBlock, owner);
+        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock, owner);
         event.setAction(active ? SignActionType.MEMBER_ENTER : SignActionType.MEMBER_LEAVE);
         SignAction.executeAll(event);
     }

@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -33,7 +34,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import com.bergerkiller.bukkit.tc.utils.TrackWalkIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.Chunk;
@@ -293,11 +293,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         MinecartMember<?> member = super.get(index);
         MemberRemoveEvent.call(member);
         super.remove(index);
-        this.getProperties().remove(member);
         this.getActions().removeActions(member);
         this.getSignTracker().updatePosition();
+        onMemberRemoved(member);
         member.group = null;
         return member;
+    }
+
+    private void onMemberRemoved(MinecartMember<?> member) {
+        this.getProperties().remove(member);
+        this.getRailTracker().removeMemberRails(member);
+        try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
+            RailMemberCache.remove(member);
+        }
     }
 
     public MinecartMember<?> remove(int index) {
@@ -505,7 +513,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 canMove = walker.move(get(i - 1).getPreferredDistance(get(i)));
             }
             if (canMove) {
-                locations[i] = walker.position.clone();
+                locations[i] = walker.state.positionLocation();
             } else if (i > 0) {
                 locations[i] = locations[i - 1].clone();
             } else {
@@ -568,10 +576,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void reverse() {
+        // Reverse velocity of all carts and then perform a full refresh
         for (MinecartMember<?> mm : this) {
-            mm.reverse();
+            mm.getEntity().vel.multiply(-1.0);
         }
-        Collections.reverse(this);
+        this.updateDirection();
     }
 
     public void setForwardForce(double force) {
@@ -583,7 +592,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 mm.getEntity().vel.multiply(force / currvel);
             }
         }
-        
+
         /*
         final double currvel = this.head().getForce();
         if (currvel <= 0.01 || Math.abs(force) < 0.01) {
@@ -647,7 +656,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     }
                     double fforce = 0;
                     for (MinecartMember<?> m : this) {
-                        fforce += m.getForwardForce();
+                        // Use rail tracker instead of recalculating for improved performance
+                        // fforce += m.getForwardForce();
+                        fforce += m.getRailTracker().getState().position().motDot(m.getEntity().getVelocity());
                     }
                     if (fforce >= 0) {
                         break;
@@ -844,6 +855,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     @Override
     public void onPropertiesChanged() {
         this.getSignTracker().update();
+        for (MinecartMember<?> member : this.toArray()) {
+            member.onPropertiesChanged();
+        }
     }
 
     /**
@@ -1031,6 +1045,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             return Double.MAX_VALUE;
         }
 
+        // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
+        if (this.getProperties().getWaitDistance() <= 0.0) {
+            UUID world = this.head().getEntity().getWorld().getUID();
+            IntVector3 block = this.head().getBlockPos();
+            if (!MutexZoneCache.isMutexZoneNearby(world, block)) {
+                return Double.MAX_VALUE;
+            }
+        }
+
         boolean checkTrains = false;
         double waitDistance = this.getProperties().getWaitDistance();
         if (waitDistance > 0.0) {
@@ -1052,23 +1075,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
             if (iter.getDistance() == 2) {
                 MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(rail));
-                if (zone != null) {
-                    // Check if already occupied (and not by self)
-                    boolean zoneOccupied = false;
-                    for (MinecartGroup group : MinecartGroupStore.groups) {
-                        if (group == this || group.getWorld() != this.getWorld()) {
-                            continue;
-                        }
-                        for (MinecartMember<?> member : group) {
-                            if (zone.containsBlock(worldUUID, member.getBlockPos())) {
-                                zoneOccupied = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (zoneOccupied) {
-                        return 0.0;
-                    }
+                if (zone != null && !zone.tryEnter(this)) {
+                    return 0.0;
                 }
 
                 if (!checkTrains) {
@@ -1129,14 +1137,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 if (member.getEntity() == null) {
                     // Controller is detached. It's completely invalid!
                     // We handle unloading ourselves, so the minecart should be considered gone :(
-                    this.getProperties().remove(member);
                     CartPropertiesStore.remove(member.getProperties().getUUID());
+                    onMemberRemoved(member);
                     super.remove(i--);
                     continue;
                 }
                 if (member.group != this) {
                     // Assigned to a different group. Quietly remove it. You saw nothing!
-                    this.getProperties().remove(member);
+                    onMemberRemoved(member);
                     super.remove(i--);
                     continue;
                 }

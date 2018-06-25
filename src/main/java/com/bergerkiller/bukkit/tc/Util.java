@@ -1,24 +1,31 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -31,6 +38,8 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Stairs;
 import org.bukkit.util.Vector;
@@ -122,42 +131,35 @@ public class Util {
         }
     }
 
+    /**
+     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     */
+    @Deprecated
     public static List<Block> getSignsFromRails(Block railsblock) {
         return getSignsFromRails(blockbuff, railsblock);
     }
 
+    /**
+     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     */
+    @Deprecated
     public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
         rval.clear();
         addSignsFromRails(rval, railsblock);
         return rval;
     }
 
+    /**
+     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     */
+    @Deprecated
     public static void addSignsFromRails(List<Block> rval, Block railsBlock) {
-        BlockFace dir = RailType.getType(railsBlock).getSignColumnDirection(railsBlock);
-        // Has sign support at all?
-        if (dir == null || dir == BlockFace.SELF) {
+        RailType railType = RailType.getType(railsBlock);
+        if (railType == RailType.NONE) {
             return;
         }
-        addSignsFromRails(rval, railsBlock, dir);
-    }
-
-    public static void addSignsFromRails(List<Block> rval, Block startBlock, BlockFace signDirection) {
-        final boolean hasSignPost = FaceUtil.isVertical(signDirection);
-        Block currentBlock = startBlock;
-        int offsetCtr = 0;
-        while (true) {
-            if (hasSignPost && MaterialUtil.isType(currentBlock, Material.SIGN_POST)) {
-                // Found a sign post - add it and continue
-                rval.add(currentBlock);
-            } else if (addAttachedSigns(currentBlock, rval)) {
-                // Found one or more signs attached to the current block - continue
-            } else if (offsetCtr > 1) {
-                // No signs found here. If this is too far down, stop.
-                break;
-            }
-
-            currentBlock = currentBlock.getRelative(signDirection);
-            offsetCtr++;
+        for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(railType, railsBlock)) {
+            rval.add(trackedSign.signBlock);
         }
     }
 
@@ -628,9 +630,6 @@ public class Util {
         } else {
             return def;
         }
-        if (offset.length() > TCConfig.maxEjectDistance) {
-            offset.normalize().multiply(TCConfig.maxEjectDistance);
-        }
         return offset;
     }
 
@@ -665,6 +664,22 @@ public class Util {
      * @return straight length
      */
     public static double calculateStraightLength(Block railsBlock, BlockFace direction) {
+        TrackWalkingPoint p = new TrackWalkingPoint(railsBlock, direction);
+        Vector start_dir = null;
+        while (p.movedTotal < 20.0 && p.move(0.1)) {
+            if (start_dir == null) {
+                start_dir = p.state.motionVector();
+            } else {
+                // Verify that the start and current motion vector are still somewhat the same
+                // Somewhat is subjective, so use the dot product and hope for the best
+                if (p.state.position().motDot(start_dir) < 0.75) {
+                    break;
+                }
+            }
+        }
+        return p.movedTotal;
+        
+        /*
         // Read track information and parameters
         RailType type = RailType.getType(railsBlock);
         boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock));
@@ -731,6 +746,7 @@ public class Util {
             }
         }
         return length;
+        */
     }
 
     /**
@@ -915,6 +931,32 @@ public class Util {
     }
 
     /**
+     * Spawns a colored dust particle, the color can be specified
+     * 
+     * @param loc to spawn at
+     * @param red color value [0.0 ... 1.0]
+     * @param green color value [0.0 ... 1.0]
+     * @param blue color value [0.0 ... 1.0]
+     */
+    public static void spawnDustParticle(Location loc, double red, double green, double blue) {
+        red = MathUtil.clamp(red, 0.0, 1.0);
+        green = MathUtil.clamp(green, 0.0, 1.0);
+        blue = MathUtil.clamp(blue, 0.0, 1.0);
+        if (red > 0.5) {
+            red -= 1.0;
+            if (red > -0.01) {
+                red = -0.01;
+            }
+        } else {
+            red *= 1.7;
+            if (red < 0.00001) {
+                red = 0.00001;
+            }
+        }
+        loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 0, red, green, blue, 1.0);
+    }
+
+    /**
      * Rotates the yaw/pitch of a Location to invert the direction it is pointing into
      * 
      * @param loc to rotate
@@ -942,5 +984,197 @@ public class Util {
     public static BlockFace calculateEnterFace(Vector position, Vector direction) {
         //TODO: No longer needed!
         return RailAABB.BLOCK.calculateEnterFace(position, direction);
+    }
+
+    // some magic to turn a vector into the most appropriate block face
+    public static BlockFace vecToFace(Vector vector, boolean useSubCardinalDirections) {
+        return vecToFace(vector.getX(), vector.getY(), vector.getZ(), useSubCardinalDirections);
+    }
+
+    // some magic to turn a vector into the most appropriate block face
+    public static BlockFace vecToFace(double dx, double dy, double dz, boolean useSubCardinalDirections) {
+        double sqlenxz = dx*dx + dz*dz;
+        double sqleny = dy*dy;
+        if (sqleny > (sqlenxz + 1e-6)) {
+            return FaceUtil.getVertical(dy);
+        } else {
+            return FaceUtil.getDirection(dx, dz, useSubCardinalDirections);
+        }
+    }
+
+    /**
+     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
+     * rotation between the two.
+     * 
+     * @param up0
+     * @param up1
+     * @param theta
+     * @return orientation up-vector at theta
+     */
+    public static Vector lerpOrientation(Vector up0, Vector up1, double theta) {
+        Quaternion qa = Quaternion.fromLookDirection(up0);
+        Quaternion qb = Quaternion.fromLookDirection(up1);
+        Quaternion q = Quaternion.slerp(qa, qb, theta);
+        return q.forwardVector();
+    }
+
+    /**
+     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
+     * rotation between the two.
+     * 
+     * @param result to store the lerp result into
+     * @param p0
+     * @param p1
+     * @param theta
+     */
+    public static void lerpOrientation(RailPath.Position result, RailPath.Point p0, RailPath.Point p1, double theta) {
+        Vector vup0 = p0.up();
+        Vector vup1 = p1.up();
+        Vector vup = lerpOrientation(vup0, vup1, theta);
+        result.upX = vup.getX();
+        result.upY = vup.getY();
+        result.upZ = vup.getZ();
+    }
+
+    /**
+     * Calculates the 3 rotation angles for an armor stand pose from a Quaternion rotation
+     * 
+     * @param rotation
+     * @return armor stand x/y/z rotation angles
+     */
+    public static Vector getArmorStandPose(Quaternion rotation) {
+        double qx = rotation.getX();
+        double qy = rotation.getY();
+        double qz = rotation.getZ();
+        double qw = rotation.getW();
+
+        double rx = 1.0 + 2.0 * (-qy*qy-qz*qz);
+        double ry = 2.0 * (qx*qy+qz*qw);
+        double rz = 2.0 * (qx*qz-qy*qw);
+        double uz = 2.0 * (qy*qz+qx*qw);
+        double fz = 1.0 + 2.0 * (-qx*qx-qy*qy);
+
+        if (Math.abs(rz) < (1.0 - 1E-15)) {
+            // Standard calculation
+            return new Vector(Math.toDegrees(Math.atan2(uz, fz)),
+                              Math.toDegrees(Math.asin(rz)),
+                              Math.toDegrees(Math.atan2(-ry, rx)));
+        } else {
+            // At the -90 or 90 degree angle singularity
+            final double sign = (rz < 0) ? -1.0 : 1.0;
+            return new Vector(0.0, sign * 90.0,
+                    Math.toDegrees(-sign * 2.0 * Math.atan2(qx, qw)));
+        }
+    }
+
+    /**
+     * Calculates the enter face from the current position and motion vector, and stores
+     * it inside the rail state.
+     * 
+     * @param state to calculate the enter face
+     */
+    public static void calculateEnterFace(RailState state) {
+        //return this.railType().getBoundingBox(this.railBlock()).calculateEnterFace(railPosition(), this._position.getMotion());
+        RailPath.Position p = state.position();
+        Vector pos = new Vector(p.posX - MathUtil.floor(p.posX),
+                                p.posY - MathUtil.floor(p.posY),
+                                p.posZ - MathUtil.floor(p.posZ));
+        Vector dir = p.getMotion();
+        state.setEnterFace(calculateEnterFace(pos, dir));
+    }
+
+    /**
+     * Calculates the next Minecart block position when going on a rail block in a particular direction.
+     * This logic is largely deprecated and is only used in places where there is no alternative possible yet.
+     * 
+     * @param railBlock
+     * @param direction
+     * @return next minecart Block position, null if no such rail exists
+     */
+    public static Block getNextPos(Block railBlock, BlockFace direction) {
+        TrackMovingPoint p = new TrackMovingPoint(railBlock, direction);
+        if (!p.hasNext()) {
+            return null;
+        }
+        p.next();
+        if (!p.hasNext()) {
+            return null;
+        }
+        p.next(false);
+        return p.current;
+    }
+
+    /**
+     * Marks a chunk as dirty, so that it is saved again when it unloads
+     * 
+     * @param chunk
+     */
+    public static final void markChunkDirty(Chunk chunk) {
+        ChunkHandle.fromBukkit(chunk).markDirty();
+    }
+
+    /**
+     * Attempts to find the most appropriate junction for a BlockFace wind direction.
+     * This is used when switcher signs have to switch rails based on wind directions, but
+     * no wind direction names are used for the junction names. This is also used for sign-relative
+     * left/right/forward/backward logic, which is first turned into a BlockFace.
+     * 
+     * @param junctions to select from
+     * @param face to find
+     * @return the best matching junction, null if not found
+     */
+    public static RailJunction faceToJunction(List<RailJunction> junctions, BlockFace face) {
+        for (RailJunction junc : junctions) {
+            if (junc.position().getMotionFace() == face) {
+                return junc;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks for a 'contents' field in the configuration, and if it exists, loads
+     * all items contained within. The inventory is wiped beforehand.
+     * 
+     * @param inventory
+     * @param config
+     */
+    public static void loadInventoryFromConfig(Inventory inventory, ConfigurationNode config) {
+        inventory.clear();
+        if (config.isNode("contents")) {
+            ConfigurationNode contents = config.getNode("contents");
+            for (String indexStr : contents.getKeys()) {
+                int index;
+                try {
+                    index = Integer.parseInt(indexStr);
+                } catch (NumberFormatException ex) {
+                    continue;
+                }
+                ItemStack item = contents.get(indexStr, ItemStack.class);
+                if (!ItemUtil.isEmpty(item)) {
+                    inventory.setItem(index, item.clone());
+                }
+            }
+        }
+    }
+
+    /**
+     * Saves all items in the inventory to the configuration under a 'contents' field. If
+     * the inventory is empty, nothing is saved.
+     * 
+     * @param inventory
+     * @param config
+     */
+    public static void saveInventoryToConfig(Inventory inventory, ConfigurationNode config) {
+        ConfigurationNode contents = null;
+        for (int i = 0; i < inventory.getSize(); i++) {
+            ItemStack item = inventory.getItem(i);
+            if (!ItemUtil.isEmpty(item)) {
+                if (contents == null) {
+                    contents = config.getNode("contents");
+                }
+                contents.set(Integer.toString(i), item.clone());
+            }
+        }
     }
 }

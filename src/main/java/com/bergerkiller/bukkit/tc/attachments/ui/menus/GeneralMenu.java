@@ -4,10 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
@@ -37,14 +34,14 @@ public class GeneralMenu extends MapWidgetWindow {
                 attachment.addAttachment(config);
                 GeneralMenu.this.deactivate();
             }
-        }).setText("Add Attachment").setBounds(10, 10, 90, 18);
+        }).setText("Add Attachment").setBounds(10, 10, 98, 18);
 
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
                 GeneralMenu.this.deactivate();
             }
-        }).setText("Change order").setBounds(10, 40, 90, 18);
+        }).setText("Change order").setBounds(10, 30, 98, 18);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -52,7 +49,15 @@ public class GeneralMenu extends MapWidgetWindow {
                 attachment.remove();
                 GeneralMenu.this.deactivate();
             }
-        }).setText("Delete").setBounds(10, 70, 90, 18).setEnabled(attachment.getParentAttachment() != null);
+        }).setText("Delete").setBounds(10, 50, 98, 18).setEnabled(attachment.getParentAttachment() != null);
+
+        this.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+                attachment.getParentAttachment().addAttachment(attachment.getFullConfig());
+                GeneralMenu.this.deactivate();
+            }
+        }).setText("Duplicate").setBounds(10, 70, 98, 18).setEnabled(attachment.getParentAttachment() != null);
     }
 
     @Override

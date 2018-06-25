@@ -9,6 +9,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_DESTROY = new Permission("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands");
     public static final Permission COMMAND_DESTROYALL = new Permission("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server");
     public static final Permission COMMAND_FIXBUGGED = new Permission("train.command.fixbugged", PermissionDefault.OP, "The player can destroy all bugged minecarts on the server");
+    public static final Permission COMMAND_UPGRADESAVED = new Permission("train.command.upgradesavedtrains", PermissionDefault.OP, "The player can upgrade all saved trains model positions to the new TC version");
     public static final Permission COMMAND_REROUTE = new Permission("train.command.reroute", PermissionDefault.OP, "The player can force path finding to re-calculate");
     public static final Permission COMMAND_RELOAD = new Permission("train.command.reload", PermissionDefault.OP, "The player can reload the configuration");
     public static final Permission COMMAND_BREAKBLOCK = new Permission("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list");
@@ -43,7 +44,9 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_CHANGETICK = new Permission("train.command.changetick", PermissionDefault.OP, "Whether the player can alter the global update tick rate of TrainCarts (debug!)");
     public static final Permission COMMAND_ISSUE = new Permission("train.command.issue", PermissionDefault.TRUE, "Whether the player can report problems with TrainCarts");
     public static final Permission COMMAND_GIVE_EDITOR = new Permission("train.command.editor", PermissionDefault.OP, "Whether the player can use commands to give himself editors for trains (models) and signs");
-    public static final Permission COMMAND_SAVE_TRAIN = new Permission("tran.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name");
+    public static final Permission COMMAND_SAVE_TRAIN = new Permission("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name");
+    public static final Permission COMMAND_ENTER = new Permission("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited");
+    public static final Permission COMMAND_LAUNCH = new Permission("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited");
     public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
     public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
     public static final Permission SPAWNER_AUTOMATIC = new Permission("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts");
@@ -60,6 +63,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BUILD_DESTRUCTOR = new Permission("train.build.destructor", PermissionDefault.OP, "The player can build train destructors");
     public static final Permission BUILD_DETECTOR = new Permission("train.build.detector", PermissionDefault.OP, "The player can build train detectors");
     public static final Permission BUILD_EJECTOR = new Permission("train.build.ejector", PermissionDefault.OP, "The player can build train ejectors");
+    public static final Permission BUILD_EJECTOR_ABSOLUTE = new Permission("train.build.ejector.absolute", PermissionDefault.OP, "The player can build train ejectors that teleport to absolute world coordinates");
     public static final Permission BUILD_PROPERTY = new Permission("train.build.property", PermissionDefault.OP, "The player can build train property setters");
     public static final Permission BUILD_COLLECTOR = new Permission("train.build.collector", PermissionDefault.OP, "The player can build systems to let trains collect from storage blocks");
     public static final Permission BUILD_DEPOSITOR = new Permission("train.build.depositor", PermissionDefault.OP, "The player can build systems to fill storage blocks with items from trains");
@@ -71,6 +75,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BUILD_TICKET = new Permission("train.build.ticket", PermissionDefault.OP, "The player can build a sign that will charge money or ejects a player if he can't pay");
     public static final Permission BUILD_ANNOUNCER = new Permission("train.build.announcer", PermissionDefault.OP, "The player can build a sign that sends a message to all the players in a train");
     public static final Permission BUILD_EFFECT = new Permission("train.build.effect", PermissionDefault.OP, "The player can build a sign that can play an effect");
+    public static final Permission BUILD_SOUND = new Permission("train.build.sound", PermissionDefault.OP, "The player can build a sign that can play a sound");
     public static final Permission BUILD_BLOCKCHANGER = new Permission("train.build.blockchanger", PermissionDefault.OP, "The player can build a sign that alters the block displayed in minecarts");
     public static final Permission BUILD_JUMPER = new Permission("train.build.jumper", PermissionDefault.OP, "The player can build a sign that can cause a train to jump in a certain direction");
     public static final Permission BUILD_LAUNCHER = new Permission("train.build.launcher", PermissionDefault.OP, "The player can build a sign that can launch trains");

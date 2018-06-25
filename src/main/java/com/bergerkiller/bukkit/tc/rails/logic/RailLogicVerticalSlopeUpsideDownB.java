@@ -35,16 +35,17 @@ public class RailLogicVerticalSlopeUpsideDownB extends RailLogicVerticalSlopeBas
     }
 
     @Override
-    protected RailPath createPath() {
+    public RailPath getPath() {
         // Initialize the rail path, making use of getFixedPosition for each node
         // This type of logic has a path consisting of two line segments
         // One segment is vertical, and leads to somewhere in the middle
         // The other segment is sloped from the middle to the other end
         // The x/z coordinates are asserted from the y-coordinate
-        final double half_offset = -0.5 + Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE;
-        Vector p1 = new Vector(0.5, 1.0, 0.5);
-        Vector p2 = new Vector(0.5, Y_POS_OFFSET + half_offset, 0.5);
-        Vector p3 = new Vector(0.5, Y_POS_OFFSET + half_offset - 0.5, 0.5);
+        double dx = 0.5 - RailLogicVertical.XZ_POS_OFFSET * this.getDirection().getModX();
+        double dz = 0.5 - RailLogicVertical.XZ_POS_OFFSET * this.getDirection().getModZ();
+        Vector p1 = new Vector(dx, 1.0, dz);
+        Vector p2 = new Vector(dx, Y_POS_OFFSET_UPSIDEDOWN_SLOPE, dz);
+        Vector p3 = new Vector(dx, Y_POS_OFFSET_UPSIDEDOWN + Y_POS_OFFSET_UPSIDEDOWN_SLOPE, dz);
 
         if (this.alongZ) {
             p3.setZ(0.5 - 0.5 * (double) this.getDirection().getModZ());

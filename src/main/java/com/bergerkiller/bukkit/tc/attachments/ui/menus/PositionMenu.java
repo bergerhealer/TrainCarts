@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.config.PositionAnchorType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
@@ -19,7 +20,7 @@ public class PositionMenu extends MapWidgetWindow {
 
     public PositionMenu(MapWidgetAttachmentNode attachment) {
         this.attachment = attachment;
-        this.setBounds(5, 15, 118, 104);
+        this.setBounds(5, 15, 118, 108);
         this.setDepthOffset(4);
         this.setFocusable(true);
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
@@ -29,17 +30,36 @@ public class PositionMenu extends MapWidgetWindow {
     public void onAttached() {
         this.activate();
 
+        int slider_width = 86;
         int y_offset = 5;
         int y_step = 12;
-        
+
+        this.addWidget(new MapWidgetSelectionBox() { // anchor
+            @Override
+            public void onAttached() {
+                super.onAttached();
+
+                for (PositionAnchorType type : PositionAnchorType.values()) {
+                    this.addItem(type.toString());
+                }
+                this.setSelectedItem(getConfig().get("anchor", PositionAnchorType.DEFAULT).toString());
+            }
+
+            @Override
+            public void onSelectedItemChanged() {
+                getConfig().set("anchor", PositionAnchorType.get(getSelectedItem()).name());
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+            }
+        }).setBounds(30, y_offset, slider_width, 11);
+        addLabel(5, y_offset + 3, "Anchor");
+        y_offset += y_step;
+
         if (this.attachment.getType() == CartAttachmentType.ITEM) {
-            y_offset += 20;
-            
             this.addWidget(new MapWidgetSelectionBox() {
                 @Override
                 public void onAttached() {
                     super.onAttached();
-                    
+
                     for (ItemTransformType type : ItemTransformType.values()) {
                         this.addItem(type.toString());
                     }
@@ -48,12 +68,16 @@ public class PositionMenu extends MapWidgetWindow {
 
                 @Override
                 public void onSelectedItemChanged() {
-                    getConfig().set("transform", getSelectedItem());
+                    getConfig().set("transform", ItemTransformType.get(getSelectedItem()).name());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 }
-            }).setBounds(30, 5, 80, 11);
-            addLabel(5, 8, "Mode");
+            }).setBounds(30, y_offset, slider_width, 11);
+            addLabel(5, y_offset + 3, "Mode");
+            y_offset += y_step;
         }
+
+        // Spacing
+        y_offset += 3;
 
         //this.transformType
         this.addWidget(new MapWidgetNumberBox() { // Position X
@@ -68,7 +92,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.X");
         y_offset += y_step;
 
@@ -84,7 +108,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Y");
         y_offset += y_step;
 
@@ -100,7 +124,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("posZ", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Z");
         y_offset += y_step;
 
@@ -117,7 +141,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pitch");
         y_offset += y_step;
 
@@ -134,7 +158,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Yaw");
         y_offset += y_step;
 
@@ -151,7 +175,7 @@ public class PositionMenu extends MapWidgetWindow {
                 getConfig().set("rotZ", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
             }
-        }).setBounds(30, y_offset, 80, 11);
+        }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Roll");
         y_offset += y_step;
     }

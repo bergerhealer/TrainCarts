@@ -32,7 +32,7 @@ public class MutexZoneCache {
     }
 
     public static void removeMutexSign(SignActionEvent info) {
-        zones.remove(info.getBlock());
+        zones.remove(info.getWorld(), MutexZone.getPosition(info));
     }
 
     /**
@@ -49,5 +49,23 @@ public class MutexZoneCache {
             }
         }
         return null;
+    }
+
+    /**
+     * Checks whether there is a mutex zone nearby a particular block. This checks for a small
+     * radius around the mutex zones. Minecarts with their position inside this zone need to watch out
+     * and perform speed-ahead checks in order to stop.
+     * 
+     * @param world
+     * @param block
+     * @return True if a mutex zone is nearby
+     */
+    public static boolean isMutexZoneNearby(UUID world, IntVector3 block) {
+        for (MutexZone zone : zones.values()) {
+            if (zone.isNearby(world, block)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

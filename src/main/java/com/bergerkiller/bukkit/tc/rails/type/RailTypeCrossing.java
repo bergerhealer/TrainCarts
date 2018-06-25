@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
 
@@ -30,22 +31,17 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     }
 
     @Override
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        return currentTrack.getRelative(currentDirection);
-    }
-
-    @Override
     public BlockFace getDirection(Block railsBlock) {
         return Util.getPlateDirection(railsBlock);
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
+    public RailLogic getLogic(RailState state) {
         // Get the direction of the rails to find out the logic to use
-        BlockFace dir = Util.getPlateDirection(railsBlock);
+        BlockFace dir = Util.getPlateDirection(state.railBlock());
         if (dir == BlockFace.SELF) {
             //set track direction based on direction of this cart
-            dir = FaceUtil.toRailsDirection(direction);
+            dir = FaceUtil.toRailsDirection(state.enterFace());
         }
         return RailLogicHorizontal.get(dir);
     }
@@ -53,7 +49,6 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     @Override
     public void onPostMove(MinecartMember<?> member) {
         super.onPostMove(member);
-        member.getEntity().loc.y.add(0.1);
     }
 
     @Override

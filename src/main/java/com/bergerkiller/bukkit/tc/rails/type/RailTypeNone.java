@@ -1,12 +1,13 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
-import org.bukkit.World;
+
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -46,11 +47,6 @@ public class RailTypeNone extends RailType {
     }
 
     @Override
-    public IntVector3 findRail(MinecartMember<?> member, World world, IntVector3 pos) {
-        return pos;
-    }
-
-    @Override
     public Block findMinecartPos(Block trackBlock) {
         return trackBlock;
     }
@@ -66,11 +62,6 @@ public class RailTypeNone extends RailType {
     }
 
     @Override
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        return null;
-    }
-
-    @Override
     public BlockFace getDirection(Block railsBlock) {
         return BlockFace.SELF;
     }
@@ -81,8 +72,16 @@ public class RailTypeNone extends RailType {
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
+    public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
+        Location loc = super.getSpawnLocation(railsBlock, orientation);
+        loc.setY(0.5);
+        return loc;
+    }
+
+    @Override
+    public RailLogic getLogic(RailState state) {
         // Two no-rail logic types
+        MinecartMember<?> member = state.member();
         if (member == null || member.isFlying()) {
             return RailLogicAir.INSTANCE;
         } else {

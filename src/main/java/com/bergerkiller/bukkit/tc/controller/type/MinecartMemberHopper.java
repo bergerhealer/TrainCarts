@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.controller.type;
 
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
@@ -43,5 +45,15 @@ public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
         super.onItemSet(index, item);
         // Mark the Entity as changed
         onPropertiesChanged();
+    }
+
+    @Override
+    public void onTrainSaved(ConfigurationNode data) {
+        Util.saveInventoryToConfig(entity.getInventory(), data);
+    }
+
+    @Override
+    public void onTrainSpawned(ConfigurationNode data) {
+        Util.loadInventoryFromConfig(entity.getInventory(), data);
     }
 }

@@ -6,11 +6,11 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.util.Model;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Vector3;
+import com.bergerkiller.bukkit.tc.TCConfig;
 
 /**
  * Shows a large preview of an item's 3D model
@@ -54,7 +54,7 @@ public class MapWidgetItemPreview extends MapWidget {
         transform.rotateX(pitch);
         transform.rotateY(yaw);
         transform.translate(-8.0 / scale, -8.0 / scale, -8.0 / scale);
-        Model itemModel = MapResourcePack.SERVER.getItemModel(this.item);
+        Model itemModel = TCConfig.resourcePack.getItemModel(this.item);
         this.view.setLightOptions(0.0f, 1.0f, new Vector3(-1, 1, -1));
         this.view.drawModel(itemModel, transform);
     }

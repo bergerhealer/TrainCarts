@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -280,12 +281,8 @@ public class SignActionSpawn extends SignAction {
                     spawnLoc = Util.invertRotation(spawnLoc);
                 }
 
-                // Spawn the minecart. When initializing the config, act as unloaded to avoid creation of group
-                MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLoc, types.get(i).getEntityType());
-                mm.setUnloaded(true);
-                mm.getProperties().load(types.get(i).getConfig());
-                mm.setUnloaded(false);
-                group.add(mm);
+                // Spawn the minecart
+                group.add(types.get(i).spawn(spawnLoc));
             }
             group.updateDirection();
             group.getProperties().load(spawnSign.getSpawnableGroup().getConfig());
@@ -304,29 +301,30 @@ public class SignActionSpawn extends SignAction {
      * The first location is always the middle on top of the current rail of the sign.
      * 
      * @param info sign event information
-     * @param direction of spawning
+     * @param directionFace of spawning
      * @param nLimit limit amount of minecarts to spawn where we can stop looking for more spaces
      * @return SpawnPositions with locs limited to the amount that could be spawned
      */
-    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace direction, List<SpawnableMember> types) {
+    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace directionFace, List<SpawnableMember> types) {
+        Vector motionVector = FaceUtil.faceToVector(directionFace);
+
         SpawnPositions result = new SpawnPositions();
-        result.direction = direction;
-        result.powered = info.isPowered(direction);
+        result.direction = directionFace;
+        result.powered = info.isPowered(directionFace);
         Location centerLoc = info.getCenterLocation();
         if (types.size() == 1) {
             // Single-minecart spawning logic
+            // Require there to be one extra free rail in the direction we are spawning
             if (MinecartMemberStore.getAt(centerLoc) == null) {
-                TrackIterator iter = new TrackIterator(info.getRails(), direction);
-                // Ignore the starting block
-                iter.next();
-                // Next block available?
-                if (iter.hasNext()) {
+                TrackWalkingPoint walker = new TrackWalkingPoint(info.getCenterLocation(), motionVector);
+                walker.skipFirst();
+                if (walker.moveFull()) {
                     result.locs.add(centerLoc);
                 }
             }
         } else {
             // Multiple-minecart spawning logic
-            TrackWalkingPoint walker = new TrackWalkingPoint(info.getRails(), direction, info.getCenterLocation());
+            TrackWalkingPoint walker = new TrackWalkingPoint(info.getCenterLocation(), motionVector);
             walker.skipFirst();
             for (int i = 0; i < types.size(); i++) {
                 SpawnableMember type = types.get(i);
@@ -339,7 +337,7 @@ public class SignActionSpawn extends SignAction {
                         break;
                     }
                 }
-                result.locs.add(walker.position.clone());
+                result.locs.add(walker.state.positionLocation());
                 if ((i == types.size() - 1) || !walker.move(0.5 * type.getLength() + TCConfig.cartDistanceGap)) {
                     break;
                 }

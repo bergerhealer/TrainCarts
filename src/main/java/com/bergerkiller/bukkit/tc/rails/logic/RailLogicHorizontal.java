@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -31,8 +32,8 @@ public class RailLogicHorizontal extends RailLogic {
     private final BlockFace[] faces;
     private final BlockFace[] ends;
     public static final double Y_POS_OFFSET = 0.0625;
-    public static final double Y_POS_OFFSET_UPSIDEDOWN = 0.25;
-    public static final double Y_POS_OFFSET_UPSIDEDOWN_SLOPE = -0.4;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN = -Y_POS_OFFSET;
+    public static final double Y_POS_OFFSET_UPSIDEDOWN_SLOPE = -0.2;
 
     protected RailLogicHorizontal(BlockFace direction) {
         this(direction, false);
@@ -108,7 +109,7 @@ public class RailLogicHorizontal extends RailLogic {
 
     @Override
     protected RailPath createPath() {
-        double base_y = isUpsideDown() ? (Y_POS_OFFSET_UPSIDEDOWN - 1.0) : Y_POS_OFFSET;
+        double base_y = isUpsideDown() ? Y_POS_OFFSET_UPSIDEDOWN : Y_POS_OFFSET;
         Vector p1 = new Vector(this.startX + 0.5, base_y, this.startZ + 0.5);
         Vector p2 = p1.clone();
         if (this.alongZ) {
@@ -149,6 +150,19 @@ public class RailLogicHorizontal extends RailLogic {
     @Deprecated
     public void getFixedPosition(Vector position, IntVector3 railPos) {
         //nop
+    }
+
+    @Override
+    public void onPathAdjust(RailState state) {
+        // When coming in from the side, set motion to move down the slope
+        if (this.isSloped()) {
+            BlockFace enterFaceRot = state.enterFace();
+            if (enterFaceRot == FaceUtil.rotate(this.horizontalCartDir, 2) ||
+                enterFaceRot == FaceUtil.rotate(this.horizontalCartDir, -2))
+            {
+                state.position().setMotion(this.horizontalCartDir.getOppositeFace());
+            }
+        }
     }
 
     @Override

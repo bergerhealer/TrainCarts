@@ -116,9 +116,9 @@ public class SpawnableGroup {
             }
 
             // Attempt to parse a saved train name
-            String name = TrainCarts.plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
             int countAdded = 0;
-            if (name != null) {
+            String name = TrainCarts.plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
+            if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
                 typeTextIdx += name.length() - 1;
                 ConfigurationNode savedTrainConfig = TrainCarts.plugin.getSavedTrains().getConfig(name);
                 for (String key : savedTrainConfig.getKeys()) {
@@ -130,30 +130,16 @@ public class SpawnableGroup {
                     result.addMember(cartConfigList.get(i));
                     countAdded++;
                 }
-            } else if (c == 'm' || c == 'M') {
-                result.addStandardMember(EntityType.MINECART);
-                countAdded++;
-            } else if (c == 's' || c == 'S') {
-                result.addStandardMember(EntityType.MINECART_CHEST);
-                countAdded++;
-            } else if (c == 'p' || c == 'P') {
-                result.addStandardMember(EntityType.MINECART_FURNACE);
-                countAdded++;
-            } else if (c == 'h' || c == 'H') {
-                result.addStandardMember(EntityType.MINECART_HOPPER);
-                countAdded++;
-            } else if (c == 't' || c == 'T') {
-                result.addStandardMember(EntityType.MINECART_TNT);
-                countAdded++;
-            } else if (c == 'e' || c == 'E') {
-                result.addStandardMember(EntityType.MINECART_MOB_SPAWNER);
-                countAdded++;
-            } else if (c == 'c' || c == 'C') {
-                result.addStandardMember(EntityType.MINECART_COMMAND);
-                countAdded++;
-            } else if (Character.isDigit(c)) {
-                amountBuilder.append(c);
+            } else {
+                EntityType type = findVanillaCartType(c);
+                if (type != null) {
+                    result.addStandardMember(type);
+                    countAdded++;
+                } else if (Character.isDigit(c)) {
+                    amountBuilder.append(c);
+                }
             }
+
             if (countAdded > 0 && amountBuilder.length() > 0) {
                 // Multiply the amount added with the amount put in front
                 int amount = ParseUtil.parseInt(amountBuilder.toString(), 1);
@@ -175,6 +161,26 @@ public class SpawnableGroup {
             }
         }
         return result;
+    }
+
+    private static EntityType findVanillaCartType(char c) {
+        if (c == 'm' || c == 'M') {
+            return EntityType.MINECART;
+        } else if (c == 's' || c == 'S') {
+            return EntityType.MINECART_CHEST;
+        } else if (c == 'p' || c == 'P') {
+            return EntityType.MINECART_FURNACE;
+        } else if (c == 'h' || c == 'H') {
+            return EntityType.MINECART_HOPPER;
+        } else if (c == 't' || c == 'T') {
+            return EntityType.MINECART_TNT;
+        } else if (c == 'e' || c == 'E') {
+            return EntityType.MINECART_MOB_SPAWNER;
+        } else if (c == 'c' || c == 'C') {
+            return EntityType.MINECART_COMMAND;
+        } else {
+            return null;
+        }
     }
 
     /**

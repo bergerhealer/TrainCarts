@@ -83,6 +83,15 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         //this.attachments.add(new TestAttachment(this));
     }
 
+    private CartAttachment prepareRootAttachment() {
+        // Set attachment to a fallback if for whatever reason it is null
+        if (this.rootAttachment == null) {
+            this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
+        }
+        // Return
+        return this.rootAttachment;
+    }
+
     @Override
     protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
         // Clear passengers that have ejected
@@ -149,7 +158,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void onDetached() {
         super.onDetached();
 
-        CartAttachment.deinitialize(this.rootAttachment);
+        if (this.rootAttachment != null) {
+            CartAttachment.deinitialize(this.rootAttachment);
+        }
         if (this.member != null) {
             this.member.getProperties().getModel().removeOwner(this);
         }
@@ -172,7 +183,14 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     private boolean isSoundEnabled() {
         MinecartMember<?> member = this.getMember();
-        return !(member == null || member.isUnloaded()) && member.getGroup().getProperties().isSoundEnabled();
+        if (member == null || member.isUnloaded()) {
+            return false;
+        }
+        MinecartGroup group = member.getGroup();
+        if (group == null) {
+            return false;
+        }
+        return group.getProperties().isSoundEnabled();
     }
 
     private void updateVelocity(Player player) {
@@ -199,7 +217,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void makeVisible(Player viewer) {
         //super.makeVisible(viewer);
 
-        makeVisible(this.rootAttachment, viewer);
+        makeVisible(this.prepareRootAttachment(), viewer);
 
         this.velocityUpdateReceivers.add(viewer);
         this.updateVelocity(viewer);
@@ -330,10 +348,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     public void tickSelf() {
-        // Set attachment to a fallback if for whatever reason it is null
-        if (this.rootAttachment == null) {
-            this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
-        }
+        this.prepareRootAttachment();
 
         try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
             CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());

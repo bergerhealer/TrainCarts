@@ -56,7 +56,7 @@ public class SignActionStation extends SignAction {
             //Brake
             //TODO: ADD CHECK?!
             group.getActions().launchReset();
-            BlockFace trainDirection = station.getNextDirection().getDirection(info.getFacing(), info.getMember().getDirection());
+            BlockFace trainDirection = station.getNextDirectionFace();
             if (station.getNextDirection() != Direction.NONE) {
                 // Actual launching here
                 if (station.hasDelay()) {

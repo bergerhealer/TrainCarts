@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -14,7 +13,6 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
 import java.util.ArrayList;
@@ -41,6 +39,7 @@ public class SignActionSwitcher extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
+        boolean toggleRails = info.isAction(SignActionType.GROUP_ENTER, SignActionType.MEMBER_ENTER);
         boolean doCart = false;
         boolean doTrain = false;
         if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
@@ -61,17 +60,16 @@ public class SignActionSwitcher extends SignAction {
         }
         final boolean facing = info.isFacing();
         if (facing) {
-            final BlockFace cartDirection = info.getCartDirection();
             //find out what statements to parse
             List<DirectionStatement> statements = new ArrayList<>();
-            statements.add(new DirectionStatement(info.getLine(2), cartDirection, Direction.LEFT));
-            statements.add(new DirectionStatement(info.getLine(3), cartDirection, Direction.RIGHT));
+            statements.add(new DirectionStatement(info.getLine(2), "left"));
+            statements.add(new DirectionStatement(info.getLine(3), "right"));
             //other signs below this sign we could parse?
             for (Sign sign : info.findSignsBelow()) {
                 boolean valid = true;
                 for (String line : sign.getLines()) {
-                    DirectionStatement stat = new DirectionStatement(line, cartDirection);
-                    if (stat.direction == Direction.NONE) {
+                    DirectionStatement stat = new DirectionStatement(line, "");
+                    if (stat.direction.isEmpty()) {
                         valid = false;
                         break;
                     } else {
@@ -108,7 +106,7 @@ public class SignActionSwitcher extends SignAction {
             }
 
             int counter = 0;
-            Direction dir = Direction.NONE;
+            String dir = "";
             boolean foundDirection = false;
             for (DirectionStatement stat : statements) {
                 if ((stat.hasNumber() && (counter += stat.number) > currentcount)
@@ -131,10 +129,12 @@ public class SignActionSwitcher extends SignAction {
                 }
             }
 
-            info.setLevers(dir != Direction.NONE);
-            if (dir != Direction.NONE && info.isPowered()) {
+            info.setLevers(!dir.isEmpty());
+            if (!dir.isEmpty() && info.isPowered()) {
                 //handle this direction
-                info.setRailsTo(dir);
+                if (toggleRails) {
+                    info.setRailsTo(dir);
+                }
                 return; //don't do destination stuff
             }
         }
@@ -167,7 +167,9 @@ public class SignActionSwitcher extends SignAction {
                         // Switch the rails to the right direction
                         PathConnection conn = node.findConnection(destination);
                         if (conn != null) {
-                            info.setRailsTo(conn.direction);
+                            if (toggleRails) {
+                                info.setRailsTo(conn.junctionName);
+                            }
                         } else {
                             Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
                         }

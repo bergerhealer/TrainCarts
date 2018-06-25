@@ -9,23 +9,28 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CollisionConfig;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -247,9 +252,12 @@ public class TrainCommands {
                     } else if (typeName.contains("train")) {
                         prop.trainCollision = mode;
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.trainCollision.getOperationName() + " other trains");
+                    } else if (typeName.contains("block")) {
+                        prop.blockCollision = mode;
+                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.blockCollision.getOperationName() + " blocks");
                     } else {
                         p.sendMessage(ChatColor.RED + "Unknown collidable type: " + args[0]);
-                        p.sendMessage(ChatColor.YELLOW + "Allowed types: mob, player, misc or train");
+                        p.sendMessage(ChatColor.YELLOW + "Allowed types: block, mob, player, misc or train");
                     }
                     if (!prop.getColliding()) {
                         p.sendMessage(ChatColor.YELLOW + "Note that collision is disabled for this train entirely!");
@@ -269,6 +277,7 @@ public class TrainCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "Can collide with other entities: " + ChatColor.WHITE + prop.getColliding());
             }
+            prop.tryUpdate();
         } else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
             Permission.COMMAND_SETSPEEDLIMIT.handle(p);
             if (args.length == 1) {
@@ -467,17 +476,112 @@ public class TrainCommands {
                 if (group != null) {
                     String name = args[0];
                     boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
-                    TrainCarts.plugin.getSavedTrains().save(group, name);
-                    if (wasContained) {
-                        p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
-                    } else {
-                        p.sendMessage(ChatColor.GREEN + "The train was saved as " + name);
+                    try {
+                        TrainCarts.plugin.getSavedTrains().save(group, name);
+                        if (wasContained) {
+                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
+                        } else {
+                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name);
+                        }
+                    } catch (IllegalNameException ex) {
+                        p.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());
                     }
                 } else {
                     p.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");
                 }
             } else {
                 p.sendMessage(ChatColor.YELLOW + "You need to specify the name to save the train as");
+            }
+        } else if (LogicUtil.contains(cmd, "enter")) {
+            Permission.COMMAND_ENTER.handle(p);
+            if (prop.isLoaded()) {
+                CartProperties cprop = CartProperties.getEditing(p);
+                MinecartMember<?> member = (cprop == null) ? null : cprop.getHolder();
+                if (member != null && member.getAvailableSeatCount() == 0) {
+                    member = null;
+                }
+                if (member == null) {
+                    for (MinecartMember<?> groupMember : prop.getHolder()) {
+                        if (groupMember.getAvailableSeatCount() > 0) {
+                            member = groupMember;
+                            break;
+                        }
+                    }
+                }
+                if (member != null) {
+                    if (p.teleport(member.getEntity().getLocation())) {
+                        member.getEntity().addPassenger(p);
+                        p.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + prop.getTrainName() + "'!");
+                    } else {
+                        p.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
+                    }
+                } else {
+                    p.sendMessage(ChatColor.RED + "Failed to enter train: no free seat available");
+                }
+            } else {
+                p.sendMessage(ChatColor.RED + "Can not enter the train: it is not loaded");
+            }
+        } else if (LogicUtil.contains(cmd, "launch")) {
+            Permission.COMMAND_LAUNCH.handle(p);
+            if (prop.isLoaded()) {
+                // Parse all the arguments specified into launch direction, distance and speed
+                double velocity = TCConfig.launchForce;
+                LauncherConfig launchConfig = LauncherConfig.createDefault();
+                Direction direction = Direction.FORWARD;
+
+                // Go by all arguments and try to parse them as a direction
+                // All arguments that fail to parse are considered either velocity or launch config
+                List<String> argsList = new ArrayList<String>(Arrays.asList(args));
+                for (int i = 0; i < argsList.size(); i++) {
+                    Direction d = Direction.parse(argsList.get(i));
+                    if (d != Direction.NONE) {
+                        direction = d;
+                        argsList.remove(i);
+                        break;
+                    }
+                }
+
+                // More than one argument specified, attempt to parse the last argument as a Double
+                // This would be the velocity (if it succeeds)
+                if (argsList.size() >= 1) {
+                    String valueStr = argsList.get(argsList.size() - 1);
+                    double value = ParseUtil.parseDouble(valueStr, Double.NaN);
+                    if (!Double.isNaN(value)) {
+                        argsList.remove(argsList.size() - 1);
+                        velocity = value;
+
+                        // If +/- put in front, it's relative to the speed of the cart
+                        if (valueStr.startsWith("+") || valueStr.startsWith("-")) {
+                            velocity += prop.getHolder().getAverageForce();
+                        }
+                    }
+                }
+
+                // Parse any numbers remaining as the launch config
+                if (argsList.size() >= 1) {
+                    launchConfig = LauncherConfig.parse(argsList.get(0));
+                }
+
+                // Resolve the launch direction into a BlockFace (TODO: Vector?) using the player's orientation
+                BlockFace facing = Util.vecToFace(p.getEyeLocation().getDirection(), false).getOppositeFace();
+                BlockFace directionFace = direction.getDirection(facing);
+
+                // Now we have all the pieces put together, actually launch the train
+                prop.getHolder().getActions().clear();
+                prop.getHolder().head().getActions().addActionLaunch(directionFace, launchConfig, velocity);
+
+                // Display a message. Yay!
+                MessageBuilder msg = new MessageBuilder();
+                msg.green("Launching the train ").yellow(direction.name().toLowerCase(Locale.ENGLISH));
+                msg.green(" to a speed of ").yellow(velocity);
+                if (launchConfig.hasDistance()) {
+                    msg.green(" over the course of ").yellow(launchConfig.getDistance()).green(" blocks");
+                } else if (launchConfig.hasDuration()) {
+                    msg.green(" over a period of ").yellow(launchConfig.getDuration()).green(" ticks");
+                }
+                msg.send(p);
+            } else {
+                p.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
             }
         } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
@@ -546,6 +650,7 @@ public class TrainCommands {
                 message.red(prop.getCollisionMode(collisionConfigObject).getOperationName()).yellow(" " + collisionConfigObject.getFriendlyMobName() + ", ");
             }
         }
+        message.red(prop.blockCollision.getOperationName()).yellow(" blocks, ");
         message.red(prop.playerCollision.getOperationName()).yellow(" players, ");
         message.red(prop.miscCollision.getOperationName()).yellow(" misc entities and ");
         message.red(prop.trainCollision.getOperationName()).yellow(" other trains");

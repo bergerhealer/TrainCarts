@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -53,6 +54,39 @@ public class WheelTrackerMember {
      */
     public Wheel back() {
         return this._back;
+    }
+
+    /**
+     * Gets the other wheel compared to a wheel.
+     * Passing back() returns front() and vice versa.
+     * 
+     * @param wheel
+     * @return other wheel
+     */
+    public Wheel other(Wheel wheel) {
+        return (this._front == wheel) ? this._back : this._front;
+    }
+
+    /**
+     * Gets the wheel thats moving forwards at the front of the cart
+     * 
+     * @return forwards moving wheel
+     */
+    public Wheel movingForwards() {
+        Vector vel = this._owner.calculateOrientation();
+        Quaternion q = this.getLastOrientation().clone();
+        q.invert();
+        q.transformPoint(vel);
+        return (vel.getZ() > 0.0) ? this._front : this._back;
+    }
+
+    /**
+     * Gets the wheel thats moving backwards at the back of the cart
+     * 
+     * @return backwards moving wheel
+     */
+    public Wheel movingBackwards() {
+        return this.other(this.movingForwards());
     }
 
     /**
@@ -200,6 +234,7 @@ public class WheelTrackerMember {
         private double _distance = 0.0; // Distance from the center this wheel is at
                                         // This will eventually be modified based on the model that is applied
         private Vector _position = null; // Position is relative to the minecart position
+        private Vector _displayPosition = null; // Position of the wheel when displayed (visual)
         private Vector _forward = null;  // The forward direction vector of this wheel
         private Vector _up = null;       // Up vector, used for angling the Minecart around the wheels
         private boolean _oriented;       // Last-known state whether we are moving in the same direction as orientation or not
@@ -231,6 +266,17 @@ public class WheelTrackerMember {
         }
 
         /**
+         * Gets the distance between this wheel and the nearest edge of the Minecart
+         * 
+         * @return edge distance
+         */
+        public double getEdgeDistance() {
+            double edgeDistance = 0.5 * this.member.getEntity().getWidth();
+            edgeDistance -= this._distance;
+            return edgeDistance;
+        }
+
+        /**
          * Gets the center-relative position of this wheel.
          * The center is the exact coordinates of the Minecart itself.
          * 
@@ -241,6 +287,54 @@ public class WheelTrackerMember {
                 this.update(); // Required
             }
             return this._position;
+        }
+
+        /**
+         * Gets the position of this wheel in world coordinates.
+         * 
+         * @return absolute position
+         */
+        public Vector getAbsolutePosition() {
+            return this.getPosition().clone().add(this.member.getEntity().loc.vector());
+        }
+
+        /**
+         * Gets the world coordinates of where the wheel is displayed
+         * 
+         * @return display position
+         */
+        public Vector getDisplayPosition() {
+            if (this._displayPosition == null) {
+                // Below code 'correct' the distance between the wheels
+                // The problem with this correction is that wheels derail slightly in curves
+                // Its fixing one problem, causing another. Going with accurate rail tracking for now.
+                // The true fix would be in the calculation of the position itself. Sometimes you need
+                // to walk more distance of track for the same (rotated) orientations...
+                /*
+                Vector fwd = this.member.getOrientationForward();
+                if (this._front) {
+                    fwd.multiply(this._distance);
+                } else {
+                    fwd.multiply(-this._distance);
+                }
+                this._displayPosition = this.member.getWheels().getPosition().clone().add(fwd);
+                */
+                this._displayPosition = this.member.getEntity().loc.vector().add(this.getPosition());
+            }
+            return this._displayPosition;
+        }
+
+        /**
+         * Gets the absolute transformation of this wheel, containing
+         * the position translation and the orientation calculations.
+         * 
+         * @return absolute transformation
+         */
+        public Matrix4x4 getAbsoluteTransform() {
+            Matrix4x4 result = new Matrix4x4();
+            result.translate(this.getDisplayPosition());
+            result.rotate(Quaternion.fromLookDirection(this._forward.clone(), this._up.clone()));
+            return result;
         }
 
         /**
@@ -275,6 +369,9 @@ public class WheelTrackerMember {
          * Recalculates the position of this wheel
          */
         public void update() {
+            // Reset this cached vector
+            this._displayPosition = null;
+
             // Find the index of the rails for this member
             List<TrackedRail> rails;
             if (this.member.isUnloaded()) {
@@ -310,9 +407,7 @@ public class WheelTrackerMember {
             // This initializes the running Position object correctly
             TrackedRail rail = rails.get(railIndex);
             RailPath.Position position = new RailPath.Position();
-            position.posX = this.member.getEntity().loc.getX();
-            position.posY = this.member.getEntity().loc.getY();
-            position.posZ = this.member.getEntity().loc.getZ();
+            position.setLocation(this.member.getEntity().loc);
             position.setMotion(member.getDirection());
             rail.getPath().move(position, rail.block, 0.0);
 

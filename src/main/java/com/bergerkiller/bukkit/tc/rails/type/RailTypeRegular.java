@@ -10,10 +10,14 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 import com.bergerkiller.bukkit.tc.utils.MinecartTrackLogic;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -262,15 +266,6 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
-    public Block getNextPos(Block currentTrack, BlockFace currentDirection) {
-        Rails rail = BlockUtil.getRails(currentTrack);
-        if (rail == null) {
-            return null;
-        }
-        return getNextPos(currentTrack, currentDirection, rail.getDirection(), rail.isOnSlope(), this.isUpsideDown(currentTrack));
-    }
-
-    @Override
     public BlockFace[] getPossibleDirections(Block trackBlock) {
         Rails rails = BlockUtil.getRails(trackBlock);
         if (rails == null) {
@@ -282,7 +277,42 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
     }
 
-    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails, BlockFace minecartDirection) {
+    @Override
+    public List<RailJunction> getJunctions(Block railBlock) {
+        Rails rails = BlockUtil.getRails(railBlock);
+        if (rails == null || rails.isOnSlope()) {
+            return super.getJunctions(railBlock);
+        }
+
+        return Arrays.asList(
+                new RailJunction("n", RailLogicHorizontal.get(BlockFace.NORTH).getPath().getStartPosition()),
+                new RailJunction("e", RailLogicHorizontal.get(BlockFace.EAST).getPath().getEndPosition()),
+                new RailJunction("s", RailLogicHorizontal.get(BlockFace.SOUTH).getPath().getEndPosition()),
+                new RailJunction("w", RailLogicHorizontal.get(BlockFace.WEST).getPath().getStartPosition())
+                );
+    }
+
+    @Override
+    public void switchJunction(Block railBlock, RailJunction from, RailJunction to) {
+        BlockUtil.setRails(railBlock, juncToFace(from), juncToFace(to));
+    }
+
+    private static final BlockFace juncToFace(RailJunction junction) {
+        switch (junction.name()) {
+        case "n":
+            return BlockFace.NORTH;
+        case "e":
+            return BlockFace.EAST;
+        case "s":
+            return BlockFace.SOUTH;
+        case "w":
+            return BlockFace.WEST;
+        default:
+            return BlockFace.NORTH;
+        }
+    }
+
+    public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails, BlockFace enterFace) {
         BlockFace direction = rails.getDirection();
         boolean upsideDown = isUpsideDown(railsBlock);
 
@@ -305,15 +335,15 @@ public class RailTypeRegular extends RailTypeHorizontal {
         if (rails.isCurve()) {
             // Curved rails: is straight when entered a certain way
             BlockFace[] faces = FaceUtil.getFaces(direction);
-            if (minecartDirection == faces[0].getOppositeFace() || minecartDirection == faces[1].getOppositeFace()) {
-                return RailLogicHorizontal.get(minecartDirection);
+            if (enterFace == faces[0].getOppositeFace() || enterFace == faces[1].getOppositeFace()) {
+                return RailLogicHorizontal.get(enterFace);
             }
         } else {
             // Straight rails: is curve when entered from the side
             // It is here that the south-east rule is applied
             BlockFace sideFace = FaceUtil.rotate(direction, 2);
-            if (minecartDirection == sideFace || minecartDirection == sideFace.getOppositeFace()) {
-                BlockFace curvedDir = FaceUtil.combine(minecartDirection, direction.getOppositeFace());
+            if (enterFace == sideFace || enterFace == sideFace.getOppositeFace()) {
+                BlockFace curvedDir = FaceUtil.combine(enterFace, direction.getOppositeFace());
                 return RailLogicHorizontal.get(curvedDir);
             }
         }
@@ -323,12 +353,12 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
-    public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {
-        Rails rails = BlockUtil.getRails(railsBlock);
+    public RailLogic getLogic(RailState state) {
+        Rails rails = BlockUtil.getRails(state.railBlock());
         if (rails == null) {
             return RailLogicGround.INSTANCE;
         }
-        return getLogicForRails(railsBlock, rails, direction);
+        return getLogicForRails(state.railBlock(), rails, state.enterFace());
     }
 
     @Override

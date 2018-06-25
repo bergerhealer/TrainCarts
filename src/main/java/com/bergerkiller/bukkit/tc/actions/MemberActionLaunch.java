@@ -52,6 +52,15 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             this.targettime = 0;
         }
 
+        // There seems to be a bug when distance/time is too short
+        // It's unable to initiate the right launch direction then
+        if (this.targetdistance >= 0.0 && this.targetdistance < 0.001) {
+            this.targetdistance = 0.001;
+        }
+        if (this.targettime >= 0 && this.targettime < 1) {
+            this.targettime = 1;
+        }
+
         this.distance = 0;
         this.lastVelocity = 0.0;
     }

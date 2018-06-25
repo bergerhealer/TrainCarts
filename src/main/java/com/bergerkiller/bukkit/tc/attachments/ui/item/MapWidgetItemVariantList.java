@@ -5,17 +5,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
@@ -56,13 +58,37 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
             // Uses durability
             this.variants = new ArrayList<ItemStack>(maxDurability);
             for (int i = 0; i <= maxDurability; i++) {
-                ItemStack tmp = item.clone();
+                ItemStack tmp = ItemUtil.createItem(item.clone());
                 tmp.setDurability((short) i);
                 this.variants.add(tmp);
             }
         } else {
             // Find variants using internal lookup (creative menu)
             this.variants = ItemUtil.getItemVariants(item.getType());
+
+            // Guarantee CraftItemStack
+            for (int i = 0; i < this.variants.size(); i++) {
+                this.variants.set(i, ItemUtil.createItem(this.variants.get(i)));
+            }
+
+            // Preserve some of the extra properties of the input item
+            for (ItemStack variant : this.variants) {
+                for (Map.Entry<Enchantment, Integer> enchantment : item.getEnchantments().entrySet()) {
+                    variant.addEnchantment(enchantment.getKey(), enchantment.getValue().intValue());
+                }
+            }
+            if (item.getItemMeta().hasDisplayName()) {
+                String name = item.getItemMeta().getDisplayName();
+                for (ItemStack variant : this.variants) {
+                    ItemUtil.setDisplayName(variant, name);
+                }
+            }
+            CommonTagCompound tag = ItemUtil.getMetaTag(item);
+            if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
+                for (ItemStack variant : this.variants) {
+                    ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
+                }
+            }
         }
 
         // Find the item in the variants to deduce the currently selected index
@@ -78,12 +104,6 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
             }
         }
 
-        // Make unbreakable
-        for (int i = 0; i < this.variants.size(); i++) {
-            ItemStack variant = ItemUtil.createItem(this.variants.get(i));
-            ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
-            this.variants.set(i, variant);
-        }
         this.invalidate();
         this.onItemChanged();
     }
@@ -103,7 +123,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
                 MapTexture icon = this.iconCache.get(item);
                 if (icon == null) {
                     icon = MapTexture.createEmpty(16, 16);
-                    icon.fillItem(MapResourcePack.SERVER, item);
+                    icon.fillItem(TCConfig.resourcePack, item);
                     this.iconCache.put(item, icon);
                 }
                 view.draw(icon, x, y);

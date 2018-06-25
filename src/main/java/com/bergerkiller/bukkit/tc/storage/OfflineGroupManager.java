@@ -2,12 +2,14 @@ package com.bergerkiller.bukkit.tc.storage;
 
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
@@ -25,6 +27,7 @@ import java.util.logging.Level;
 
 public class OfflineGroupManager {
     public static Long lastUnloadChunk = null;
+    private static World destroyAllCurrentWorld = null;
     private static boolean chunkLoadReq = false;
     private static boolean isRefreshingGroups = false;
     private static Map<String, OfflineGroup> containedTrains = new HashMap<>();
@@ -165,12 +168,26 @@ public class OfflineGroupManager {
      * Train removal
      */
     public static int destroyAll(World world) {
+        try {
+            destroyAllCurrentWorld = world;
+            return destroyAll_impl(world);
+        } finally {
+            destroyAllCurrentWorld = null;
+        }
+    }
+
+    public static boolean isDestroyingAllInWorld(World world) {
+        return destroyAllCurrentWorld == world;
+    }
+
+    private static int destroyAll_impl(World world) {
         // Ignore worlds that are disabled
         if (TrainCarts.isWorldDisabled(world)) {
             return 0;
         }
         int count = 0;
-        // Remove groups
+
+        // Remove loaded groups
         for (MinecartGroup g : MinecartGroup.getGroups().cloneAsIterable()) {
             if (g.getWorld() == world) {
                 if (!g.isEmpty()) {
@@ -179,7 +196,8 @@ public class OfflineGroupManager {
                 g.destroy();
             }
         }
-        // Remove remaining offline groups
+
+        // Remove remaining offline groups and their minecart entities
         synchronized (managers) {
             OfflineGroupManager man = managers.remove(world.getUID());
             if (man != null) {
@@ -189,18 +207,17 @@ public class OfflineGroupManager {
                     TrainProperties.remove(wg.name);
                     for (OfflineMember wm : wg.members) {
                         containedMinecarts.remove(wm.entityUID);
-                        // Load the chunk this minecart is in and remove it
-                        // We already de-linked the group map, so no worry for replacements
-                        Chunk chunk = world.getChunkAt(wm.cx, wm.cz);
-                        for (Entity next : WorldUtil.getEntities(chunk)) {
-                            if (next.getUniqueId().equals(wm.entityUID)) {
-                                next.remove();
-                            }
+
+                        // Find the Minecart, mark chunk dirty if found (removing)
+                        Minecart entity = wm.findEntity(world, true);
+                        if (entity != null) {
+                            entity.remove();
                         }
                     }
                 }
             }
         }
+
         // Remove (bugged) Minecarts
         destroyMinecarts(world);
         removeBuggedMinecarts(world);
@@ -210,13 +227,14 @@ public class OfflineGroupManager {
     public static int destroyAll() {
         // The below three storage points can be safely cleared
         // Disabled worlds don't store anything in them anyway
-        TrainProperties.clearAll();
-        containedTrains.clear();
-        containedMinecarts.clear();
         int count = 0;
         for (World world : WorldUtil.getWorlds()) {
             count += destroyAll(world);
         }
+
+        TrainProperties.clearAll();
+        containedTrains.clear();
+        containedMinecarts.clear();
         synchronized (managers) {
             managers.clear();
         }
@@ -224,15 +242,21 @@ public class OfflineGroupManager {
     }
 
     private static void destroyMinecarts(World world) {
-        for (Entity e : world.getEntities()) {
-            if (e instanceof Minecart) {
-                e.remove();
-            }
-        }
         for (Chunk chunk : WorldUtil.getChunks(world)) {
             for (Entity e : chunk.getEntities()) {
-                if (e instanceof Minecart) {
+                if (e instanceof Minecart && !e.isDead()) {
                     e.remove();
+                    Util.markChunkDirty(chunk);
+                }
+            }
+        }
+        for (Entity e : world.getEntities()) {
+            if (e instanceof Minecart && !e.isDead()) {
+                e.remove();
+
+                Chunk chunk = WorldUtil.getChunk(world, EntityUtil.getChunkX(e), EntityUtil.getChunkZ(e));
+                if (chunk != null) {
+                    Util.markChunkDirty(chunk);
                 }
             }
         }

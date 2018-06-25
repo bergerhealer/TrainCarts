@@ -4,11 +4,19 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+
+import java.util.Locale;
+
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -36,29 +44,70 @@ public class SignActionEject extends SignAction {
         float yaw = 0F;
         float pitch = 0F;
         if (hasSettings) {
+            // Check if absolute (second line has 'at')
+            boolean isAbsolute = info.getLine(1).toLowerCase(Locale.ENGLISH).contains(" at");
+
             // Read the offset
-            offset = Util.parseVector(info.getLine(2), offset);
+            offset = Util.parseVector(info.getLine(2), null);
+            if (offset == null) {
+                isAbsolute = false;
+                offset = new Vector();
+            } else if (!isAbsolute) {
+                if (offset.length() > TCConfig.maxEjectDistance) {
+                    offset.normalize().multiply(TCConfig.maxEjectDistance);
+                }
+            }
 
             // Read the rotation
-            String[] angletext = Util.splitBySeparator(info.getLine(3));
-            if (angletext.length == 2) {
-                yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
-                pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
-            } else if (angletext.length == 1) {
-                yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+            boolean usePlayerRotation = false;
+            if (!info.getLine(3).isEmpty()) {
+                String[] angletext = Util.splitBySeparator(info.getLine(3));
+                if (angletext.length == 2) {
+                    yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                    pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
+                } else if (angletext.length == 1) {
+                    yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                }
+            } else if (isAbsolute) {
+                usePlayerRotation = true;
             }
 
             // Convert to sign-relative-space
-            float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
-            offset = MathUtil.rotate(signyawoffset, 0F, offset);
-            yaw += signyawoffset + 90F;
-        }
+            if (!isAbsolute) {
+                float signyawoffset = (float) FaceUtil.faceToYaw(info.getFacing().getOppositeFace());
+                offset = MathUtil.rotate(signyawoffset, 0F, offset);
+                yaw += signyawoffset + 90F;
+            }
 
-        // Actually eject
-        for (MinecartMember<?> mm : info.getMembers()) {
-            if (hasSettings) {
-                mm.eject(offset, yaw, pitch);
+            // Actually eject
+            if (isAbsolute) {
+                System.out.println("WAA: " + offset);
+                Location at = new Location(info.getWorld(), offset.getX(), offset.getY(), offset.getZ());
+                System.out.println("=" + at);
+                for (MinecartMember<?> mm : info.getMembers()) {
+                    if (usePlayerRotation) {
+                        at.setYaw(0.0f);
+                        at.setPitch(0.0f);
+                        for (Entity e : mm.getEntity().getPassengers()) {
+                            if (e instanceof LivingEntity) {
+                                Location eyeLoc = ((LivingEntity) e).getEyeLocation();
+                                at.setYaw(eyeLoc.getYaw());
+                                at.setPitch(eyeLoc.getPitch());
+                                break;
+                            }
+                        }
+                    }
+                    System.out.println("EJECT TO " + at);
+                    mm.eject(at);
+                }
             } else {
+                for (MinecartMember<?> mm : info.getMembers()) {
+                    mm.eject(offset, yaw, pitch);
+                }
+            }
+        } else {
+            // Actually eject
+            for (MinecartMember<?> mm : info.getMembers()) {
                 mm.ejectWithOffset();
             }
         }
@@ -83,6 +132,13 @@ public class SignActionEject extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
+        // Extra permissions apply for absolute world coordinates teleportation, as it could be abused
+        if (event.getLine(1).toLowerCase(Locale.ENGLISH).contains(" at")) {
+            if (!Permission.BUILD_EJECTOR_ABSOLUTE.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to build eject signs that teleport to world coordinates")) {
+                return false;
+            }
+        }
+
         if (event.isRCSign()) {
             return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
         } else {

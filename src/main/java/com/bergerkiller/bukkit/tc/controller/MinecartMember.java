@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -16,9 +17,10 @@ import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
-import com.bergerkiller.bukkit.tc.controller.components.SignTracker.TrackedSign;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
@@ -37,10 +39,11 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 
 import org.bukkit.Chunk;
@@ -75,6 +78,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
+    private static boolean HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = true;
+    private static boolean HAS_COLLISION_TOGGLE_FUNCTIONS = true;
+    private static boolean HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = true;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -128,6 +134,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.updateDirection();
         this.wheelTracker.update();
         this.hasLinkedFarMinecarts = false;
+
+        // Allows players to place blocks nearby a minecart despite having a custom model
+        if (HAS_ENTITY_PREVENTBLOCKPLACE_FIELD) {
+            try {
+                entity.setPreventBlockPlace(false);
+            } catch (NoSuchMethodError e) {
+                HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = false;
+            }
+        }
+
+        // Forces a standard bounding box for block collisions
+        if (HAS_COLLISION_BLOCK_BOUNDS_FUNCTION) {
+            try {
+                this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
+            } catch (NoSuchMethodError e) {
+                HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = false;
+            }
+        }
     }
 
     @Override
@@ -199,6 +223,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Called when a train is being saved, allowing this Minecart Member to include additional data
+     * specific to the entity itself.
+     * 
+     * @param data
+     */
+    public void onTrainSaved(ConfigurationNode data) {
+    }
+
+    /**
+     * Called when a train is being spawned, allowing this Minecart Member to load additional data
+     * specific to the entity itself.
+     * 
+     * @param data
+     */
+    public void onTrainSpawned(ConfigurationNode data) {
+    }
+
+    /**
      * Gets the orientation of the Minecart. This is the direction
      * of the 'front' of the Minecart model. The orientation is automatically
      * synchronized from/to the yaw/pitch rotation angles of the Entity.
@@ -260,7 +302,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Refresh
         this.cachedOrientation_quat = orientation.clone();
         Vector ypr = this.cachedOrientation_quat.getYawPitchRoll();
-        entity.setRotation((float) ypr.getY() - 90.0f, (float) ypr.getX());
+        this.cachedOrientation_yaw = (float) ypr.getY() - 90.0f;
+        this.cachedOrientation_pitch = (float) ypr.getX();
+        entity.setRotation(this.cachedOrientation_yaw, this.cachedOrientation_pitch);
     }
 
     /**
@@ -636,16 +680,37 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return getRailTracker().getBlock();
     }
 
-    /**
-     * Looks at the current position information and attempts to discover any rails
-     * at these positions. The movement of the minecart is taken into account.
-     * 
-     * @return rail info, null if not found
-     */
-    public RailInfo discoverRail() {
+    private final Vector calcMotionVector(boolean ignoreVelocity) {
+        // When derailed, we must rely on relative positioning to figure out the direction
+        // This only works when the minecart has a direct neighbor
+        // If no direct neighbor is available, it will default to using its own velocity
+        Vector motionVector = this.entity.getVelocity();
+        if (ignoreVelocity || motionVector.lengthSquared() <= 1e-5) {
+            if (!this.isSingle()) {
+                MinecartMember<?> next = this.getNeighbour(-1);
+                if (next != null) {
+                    motionVector = this.getEntity().last.offsetTo(next.getEntity().last);
+                } else {
+                    MinecartMember<?> prev = this.getNeighbour(1);
+                    if (prev != null) {
+                        motionVector = prev.getEntity().last.offsetTo(this.getEntity().last);
+                    }
+                }
+            }
+        }
+        return motionVector;
+    }
+
+    private final boolean fillRailInformation(RailState state) {
+        // Need an initial Rail Block set
+        state.setRailBlock(entity.loc.toBlock());
+        state.setMember(this);
+        state.position().setMotion(this.calcMotionVector(false));
+
         // No pre-move position? Simply return block at current position.
         if (this.preMovePosition == null) {
-            return RailType.findRailInfo(entity.loc.toBlock());
+            state.position().setLocation(entity.getLocation());
+            return RailType.loadRailInformation(state);
         }
 
         // Detect the movement vector
@@ -657,32 +722,69 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // When distance is too small or too large (teleport), simply use the current position only
         final double smallStep = 1e-7;
         if (moved <= smallStep || moved > 0.45) {
-            return RailType.findRailInfo(entity.loc.toBlock());
+            state.position().setLocation(entity.getLocation());
+            return RailType.loadRailInformation(state);
         }
 
         // Normalize direction vector
         direction.multiply(1.0 / moved);
+        //TODO: Do we use this direction vector for motion or not?
+        // Using this causes reverse() to not work anymore
 
         // Iterate the blocks from the preMovePosition to the current position and discover rails here
         // Because we move such a short distance (<=0.45) it is very rare for more than two blocks to ever be iterated
         // So we take a shortcut and only check the pre-move and current positions for blocks in that order
         // The pre-move position might contain an outdated block though, so add a very small amount to it in the direction
         // There is a TODO here to use a proper block iterator.
-        Block preBlock = entity.loc.getWorld().getBlockAt(
-                MathUtil.floor(this.preMovePosition.getX() + smallStep * direction.getX()),
-                MathUtil.floor(this.preMovePosition.getY() + smallStep * direction.getY()),
-                MathUtil.floor(this.preMovePosition.getZ() + smallStep * direction.getZ()));
-        RailInfo preInfo = RailType.findRailInfo(preBlock);
-        if (preInfo != null) {
-            return preInfo;
+        Location prePos = new Location(this.entity.getWorld(),
+                this.preMovePosition.getX() + smallStep * direction.getX(),
+                this.preMovePosition.getY() + smallStep * direction.getY(),
+                this.preMovePosition.getZ() + smallStep * direction.getZ());
+        state.position().setLocation(prePos);
+        if (RailType.loadRailInformation(state)) {
+            return true;
         }
 
-        // Current block
-        Block curBlock = entity.loc.toBlock();
-        if (curBlock.getX() == preBlock.getX() && curBlock.getY() == preBlock.getY() && curBlock.getZ() == preBlock.getZ()) {
-            return null; // Same block as pre-move block, skip
+        // Current position
+        state.position().setLocation(entity.getLocation());
+        return RailType.loadRailInformation(state);
+    }
+
+    /**
+     * Looks at the current position information and attempts to discover any rails
+     * at these positions. The movement of the minecart is taken into account.
+     * If derailed, the rail type of the state is set to NONE.
+     * 
+     * @return rail state
+     */
+    public RailState discoverRail() {
+        try (Timings t = Timings.start(getClass(), "discoverRail")) {
+        // Store motion vector in state
+        RailState state = new RailState();
+        state.setMember(this);
+        boolean result = this.fillRailInformation(state);
+        if (!result) {
+            state.setMotionVector(this.calcMotionVector(true));
+            Util.calculateEnterFace(state);
         }
-        return RailType.findRailInfo(curBlock);
+
+        // Normalize motion vector
+        state.position().normalizeMotion();
+
+        // When railed, compute the direction by snapping the motion vector onto the rail
+        // This creates a motion vector perfectly aligned with the rail path.
+        // This is important for later when looking for more rails, because we can
+        // invert the motion vector to go 'the other way'.
+        if (state.railType() != RailType.NONE) {
+            RailLogic logic = state.loadRailLogic();
+            RailPath path = logic.getPath();
+            if (!path.isEmpty()) {
+                path.snap(state.position(), state.railBlock());
+            }
+        }
+
+        return state;
+        }
     }
 
     /**
@@ -889,43 +991,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public void updateDirection() {
         RailTrackerMember tracker = this.getRailTracker();
-        BlockFace blockMovement = tracker.getRailDirection();
 
-        // Take care of invalid directions before continuing
-        if (this.direction == null) {
-            this.direction = BlockFace.DOWN;
-        }
-        if (this.directionTo == null) {
-            BlockFace[] dirs = this.getRailType().getPossibleDirections(this.getBlock());
-            if (dirs != null && dirs.length > 0) {
-                this.directionTo = dirs[0];
-            } else {
-                this.directionTo = this.direction;
-            }
-        }
+        // Direction is simply the motion vector on the rail, turned into a BlockFace
+        this.direction = Util.vecToFace(tracker.getMotionVector(), true);
 
-        // Obtain logic and the associated direction
-        RailLogic logic = this.getRailLogic();
-        this.direction = logic.getMovementDirection(blockMovement);
-
-        // Calculate the to direction
-        if (FaceUtil.isSubCardinal(this.direction)) {
-            // Compare with the rail direction for curved rails
-            // TODO: Turn this into an understandable transformation
-            final BlockFace raildirection = logic.getDirection();
-            if (this.direction == BlockFace.NORTH_EAST) {
-                this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.EAST : BlockFace.NORTH;
-            } else if (this.direction == BlockFace.SOUTH_EAST) {
-                this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.SOUTH : BlockFace.EAST;
-            } else if (this.direction == BlockFace.SOUTH_WEST) {
-                this.directionTo = raildirection == BlockFace.NORTH_WEST ? BlockFace.SOUTH : BlockFace.WEST;
-            } else if (this.direction == BlockFace.NORTH_WEST) {
-                this.directionTo = raildirection == BlockFace.NORTH_EAST ? BlockFace.WEST : BlockFace.NORTH;
-            }
-        } else {
-            // Simply set it for other types of rails
-            this.directionTo = this.direction;
-        }
+        // TO direction is simply the enter face in the opposite direction
+        RailState state = tracker.getRail().state.clone();
+        state.position().invertMotion();
+        Util.calculateEnterFace(state);
+        this.directionTo = state.enterFace().getOppositeFace();
     }
 
     @Override
@@ -1043,6 +1117,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!this.isInteractable()) {
             return false;
         }
+
+        // Verify that the entity is actually inside the bounding box of this entity
+        // This involves a complicated rotated box intersection test
+        if (!this.isModelIntersectingWith(e)) {
+            return false;
+        }
+
         CollisionMode mode = this.getGroup().getProperties().getCollisionMode(e);
         if (!mode.execute(this, e)) {
             return false;
@@ -1060,6 +1141,23 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public boolean onBlockCollision(org.bukkit.block.Block hitBlock, BlockFace hitFace) {
         try (Timings t = TCTimings.MEMBER_PHYSICS_BLOCK_COLLISION.start()) {
+            // When the minecart is vertical, minecraft likes to make it collide with blocks on the opposite facing
+            // Detect this and cancel this collision. This allows smooth air<>vertical logic.
+            Vector upVector = this.getOrientation().upVector();
+            if (upVector.getY() >= -0.1 && upVector.getY() <= 0.1) {
+                if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
+                    double closest_dz = hitBlock.getZ() - this.entity.loc.getZ();
+                    if (closest_dz < -0.5) closest_dz += 1.0;
+                    if ((upVector.getZ() > 0.0 && closest_dz < -0.01)) return false;
+                    if ((upVector.getZ() < 0.0 && closest_dz > 0.01)) return false;
+                } else if (upVector.getZ() >= -0.1 && upVector.getZ() <= 0.1) {
+                    double closest_dx = hitBlock.getX() - this.entity.loc.getX();
+                    if (closest_dx < -0.5) closest_dx += 1.0;
+                    if ((upVector.getX() > 0.0 && closest_dx < -0.01)) return false;
+                    if ((upVector.getX() < 0.0 && closest_dx > 0.01)) return false;
+                }
+            }
+
             if (!RailType.getType(hitBlock).onCollide(this, hitBlock, hitFace)) {
                 return false;
             }
@@ -1073,6 +1171,78 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
         }
         return true;
+    }
+
+    /**
+     * Checks whether the bounding box of another Entity is intersecting with this
+     * minecart's 3d model bounding box
+     * 
+     * @param entity
+     * @return True if intersecting
+     */
+    public boolean isModelIntersectingWith(Entity entity) {
+        MinecartMember<?> other = MinecartMemberStore.getFromEntity(entity);
+        if (other != null) {
+            // Have to do both ways around!
+            return this.isModelIntersectingWith_impl(entity) &&
+                   other.isModelIntersectingWith_impl(this.entity.getEntity());
+        } else {
+            return this.isModelIntersectingWith_impl(entity);
+        }
+    }
+
+    private final boolean isModelIntersectingWith_impl(Entity entity) {
+        // We lack a proper bounding box collision test
+        // Instead we do a poor man's method of probing various points on the entity
+        AxisAlignedBBHandle aabb = EntityHandle.fromBukkit(entity).getBoundingBox();
+        double[] xval = {aabb.getMinX(), 0.5 * (aabb.getMinX() + aabb.getMaxX()), aabb.getMaxX()};
+        double[] yval = {aabb.getMinY(), 0.5 * (aabb.getMinY() + aabb.getMaxY()), aabb.getMaxY()};
+        double[] zval = {aabb.getMinZ(), 0.5 * (aabb.getMinZ() + aabb.getMaxZ()), aabb.getMaxZ()};
+        for (double x : xval) {
+            for (double y : yval) {
+                for (double z : zval) {
+                    if (isModelIntersectingWith_pointTest(x, y, z)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private final boolean isModelIntersectingWith_pointTest(double x, double y, double z) {
+        return calculateModelDistance(new Vector(x, y, z)) <= 0.1;
+    }
+
+    /**
+     * Calculates the distance between a point and this minecart's 3d model shape.
+     * The position as controlled by the wheels is used for this.
+     * 
+     * @param point
+     * @return distance
+     */
+    public double calculateModelDistance(Vector point) {
+        // Factor in the offset of the minecart in world coordinates versus the point
+        point = point.clone().subtract(this.getWheels().getPosition());
+
+        // Undo the effects of the orientation of the Minecart
+        Quaternion invOri = this.getOrientation().clone();
+        invOri.invert();
+        invOri.transformPoint(point);
+
+        // Compute the 3d box coordinates of this Minecart
+        double x_min = -0.5;
+        double x_max = 0.5;
+        double y_min = 0.0;
+        double y_max = 1.0;
+        double z_min = -0.5 * this.entity.getWidth();
+        double z_max = 0.5 * this.entity.getWidth();
+
+        // Perform box to point distance test using max and length
+        double dx = Math.max(0.0, Math.max(x_min - point.getX(), point.getX() - x_max));
+        double dy = Math.max(0.0, Math.max(y_min - point.getY(), point.getY() - y_max));
+        double dz = Math.max(0.0, Math.max(z_min - point.getZ(), point.getZ() - z_max));
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
     }
 
     /**
@@ -1147,6 +1317,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onPropertiesChanged() {
         this.getSignTracker().update();
+
+        // Enable/disable collision handling to improve performance
+        // This only works on BKC beyond a certain version - add check!
+        if (this.group != null && HAS_COLLISION_TOGGLE_FUNCTIONS) {
+            try {
+                this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
+                this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
+            } catch (NoSuchMethodError e) {
+                HAS_COLLISION_TOGGLE_FUNCTIONS = false;
+            }
+        }
     }
 
     @Override
@@ -1200,22 +1381,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (cancelLocationChange) {
             entity.loc.set(entity.last);
         }
-    }
-
-    public void reverse() {
-        reverse(true);
-    }
-
-    public void reverse(boolean reverseVelocity) {
-        if (reverseVelocity) {
-            entity.vel.multiply(-1.0);
-        }
-        if (this.direction != null) {
-            this.direction = this.direction.getOppositeFace();
-        }
-        this.directionFrom = null;
-        this.directionTo = null;
-        this.updateDirection();
     }
 
     protected void updateUnloaded() {
@@ -1399,17 +1564,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (this != group.head()) {
                 // Add difference between this cart and the cart before
                 MinecartMember<?> m = this.getNeighbour(-1);
-                dx += m.getEntity().loc.getX() - entity.loc.getX();
-                dy += m.getEntity().loc.getY() - entity.loc.getY();
-                dz += m.getEntity().loc.getZ() - entity.loc.getZ();
+                Vector m_pos = m.calcSpeedFactorPos();
+                Vector s_pos = this.calcSpeedFactorPos();
+                dx += m_pos.getX() - s_pos.getX();
+                dy += m_pos.getY() - s_pos.getY();
+                dz += m_pos.getZ() - s_pos.getZ();
                 n++;
             }
             if (this != group.tail()) {
                 // Add difference between this cart and the cart after
                 MinecartMember<?> m = this.getNeighbour(1);
-                dx += entity.loc.getX() - m.getEntity().loc.getX();
-                dy += entity.loc.getY() - m.getEntity().loc.getY();
-                dz += entity.loc.getZ() - m.getEntity().loc.getZ();
+                Vector m_pos = m.calcSpeedFactorPos();
+                Vector s_pos = this.calcSpeedFactorPos();
+                dx += s_pos.getX() - m_pos.getX();
+                dy += s_pos.getY() - m_pos.getY();
+                dz += s_pos.getZ() - m_pos.getZ();
                 n++;
             }
             dx /= n;
@@ -1426,66 +1595,65 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
+    private Vector calcSpeedFactorPos() {
+        return getWheels().getPosition();
+    }
+
     public void calculateSpeedFactor() {
         this.speedFactor.setX(0.0).setY(0.0).setZ(0.0);
         MinecartGroup group = this.getGroup();
         if (group.size() != 1) {
-            boolean isHead = (this == group.head());
-            boolean isTail = (this == group.tail());
-            if (!isHead && !isTail) {
-                // If this is in between two carts, ideally we'd center right in the middle
-                // The head and tail should spread out to correct any wrong cart distances
-                // In between the two carts there is a rail along which the true middle is achieved
-                // The middle to use depends on the velocities (directions) of the carts in-between
-                MinecartMember<?> m1 = this.getNeighbour(-1);
-                MinecartMember<?> m2 = this.getNeighbour(1);
-                
- 
-                Vector m1d = m1.calculateOrientation();
-                Vector m2d = m2.calculateOrientation();
-                
-                double dist = 0.5 * m1.getEntity().loc.distance(m2.getEntity().loc);
-                
-                double px = 0.5 * ( (m1.getEntity().loc.getX() + dist * m1d.getX()) +
-                            (m2.getEntity().loc.getX() - dist * m2d.getX()) );
-                double py = 0.5 * ( (m1.getEntity().loc.getY() + dist * m1d.getY()) +
-                            (m2.getEntity().loc.getY() - dist * m2d.getY()) );
-                double pz = 0.5 * ( (m1.getEntity().loc.getZ() + dist * m1d.getZ()) +
-                            (m2.getEntity().loc.getZ() - dist * m2d.getZ()) );
-
-                //double mx = 0.5 * (m1.getEntity().loc.getX() + m2.getEntity().loc.getX());
-                //double my = 0.5 * (m1.getEntity().loc.getY() + m2.getEntity().loc.getY());
-                //double mz = 0.5 * (m1.getEntity().loc.getZ() + m2.getEntity().loc.getZ());
-                this.speedFactor.setX(px - this.getEntity().loc.getX());
-                this.speedFactor.setY(py - this.getEntity().loc.getY());
-                this.speedFactor.setZ(pz - this.getEntity().loc.getZ());
-            } else {
-                // For head/tail we can adjust our own position to stretch or shrink the train in size
-                MinecartMember<?> m = isHead ? this.getNeighbour(1) : this.getNeighbour(-1);
-                Vector direction = m.getEntity().loc.offsetTo(this.getEntity().loc);
-                double preferredDistance = this.getPreferredDistance(m);
-
-                // If distance can not be reliably calculated, use BlockFace direction
-                // Otherwise normalize the direction vector
-                double distance = direction.length();
-                if (distance < 0.01) {
-                    direction.setX(this.getDirection().getModX());
-                    direction.setY(this.getDirection().getModY());
-                    direction.setZ(this.getDirection().getModZ());
-                    direction.normalize();
-                } else {
-                    direction.setX(direction.getX() / distance);
-                    direction.setY(direction.getY() / distance);
-                    direction.setZ(direction.getZ() / distance);
-                }
-
-                // Set the factor to the offset we must make to correct the distance
-                double distanceDiff = (preferredDistance - distance);
-                this.speedFactor.setX(direction.getX() * distanceDiff);
-                this.speedFactor.setY(direction.getY() * distanceDiff);
-                this.speedFactor.setZ(direction.getZ() * distanceDiff);
+            MinecartMember<?> n1 = this.getNeighbour(-1);
+            MinecartMember<?> n2 = this.getNeighbour(1);
+            if (n1 != null) {
+                this.speedFactor.add(calculateSpeedFactor(n1, this));
+            }
+            if (n2 != null) {
+                this.speedFactor.add(calculateSpeedFactor(this, n2));
+            }
+            if (n1 != null && n2 != null) {
+                this.speedFactor.multiply(0.5);
             }
         }
+    }
+
+    private final Vector calculateSpeedFactor(MinecartMember<?> m1, MinecartMember<?> m2) {
+        // Retrieve the positions of the backwards moving part of the cart,
+        // and the forwards moving part of the cart behind. The gap
+        // between these two positions must be kept.
+        WheelTrackerMember.Wheel m1wheel = m1.getWheels().movingBackwards();
+        WheelTrackerMember.Wheel m2wheel = m2.getWheels().movingForwards();
+        Vector m1pos = m1wheel.getAbsolutePosition();
+        Vector m2pos = m2wheel.getAbsolutePosition();
+        Vector direction;
+        if (m1 == this) {
+            direction = m1pos.subtract(m2pos);
+        } else {
+            direction = m2pos.subtract(m1pos);
+        }
+
+        // If distance can not be reliably calculated, use BlockFace direction
+        // Otherwise normalize the direction vector
+        double distance = direction.length();
+        if (distance < 0.01) {
+            direction.setX(this.getDirection().getModX());
+            direction.setY(this.getDirection().getModY());
+            direction.setZ(this.getDirection().getModZ());
+            direction.normalize();
+        } else {
+            direction.setX(direction.getX() / distance);
+            direction.setY(direction.getY() / distance);
+            direction.setZ(direction.getZ() / distance);
+        }
+
+        // Calculate the preferred distance between these two wheels
+        // Keep the edge between wheel and edge of cart in mind
+        double preferredDistance = m1wheel.getEdgeDistance() + m2wheel.getEdgeDistance() + TCConfig.cartDistanceGap;
+
+        // Set the factor to the offset we must make to correct the distance
+        double distanceDiff = (preferredDistance - distance);
+        direction.multiply(distanceDiff);
+        return direction;
     }
 
     /**
@@ -1592,7 +1760,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
             if (!trackedSigns.isEmpty()) {
                 for (TrackedSign sign : trackedSigns) {
-                    SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railsBlock), SignActionType.MEMBER_MOVE);
+                    SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railBlock), SignActionType.MEMBER_MOVE);
                 }
             }
         }

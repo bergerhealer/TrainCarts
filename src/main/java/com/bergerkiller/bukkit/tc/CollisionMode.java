@@ -185,7 +185,15 @@ public enum CollisionMode {
                     if (this == KILLNODROPS) {
                         TCListener.cancelNextDrops = true;
                     }
-                    damage(member, entity, (double) Short.MAX_VALUE);
+
+                    MinecartMember<?> oldKilledByMember = TCListener.killedByMember;
+                    try {
+                        TCListener.killedByMember = member;
+                        damage(member, entity, (double) Short.MAX_VALUE);
+                    } finally {
+                        TCListener.killedByMember = oldKilledByMember;
+                    }
+
                     if (this == KILLNODROPS) {
                         TCListener.cancelNextDrops = false;
                     }
@@ -240,7 +248,7 @@ public enum CollisionMode {
     /*
      * Impart damage to an entity that a minecart hits
      */
-    private void damage(MinecartMember<?> member, Entity entity, Double damageAmount) {
+    private void damage(MinecartMember<?> member, Entity entity, double damageAmount) {
         if (entity instanceof LivingEntity) {
             boolean old = EntityUtil.isInvulnerable(entity);
             EntityUtil.setInvulnerable(entity, false);

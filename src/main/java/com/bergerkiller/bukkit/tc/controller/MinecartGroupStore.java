@@ -84,6 +84,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         g.getAverageForce();
         groups.add(g);
         GroupCreateEvent.call(g);
+        g.onPropertiesChanged();
         return g;
     }
 
@@ -95,6 +96,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         }
         groups.add(g);
         GroupCreateEvent.call(g);
+        g.onPropertiesChanged();
         return g;
     }
 

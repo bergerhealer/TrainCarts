@@ -344,6 +344,9 @@ public class SignActionHeader {
      * @return True if execution should be cancelled, False if not and execution can continue
      */
     public boolean isActionFiltered(SignActionType type) {
+        if (type == SignActionType.NONE) {
+            return false;
+        }
         if ((this.power_always_on || this.power_always_off) && type.isRedstone()) {
             return true;
         }
