@@ -74,10 +74,15 @@ public class SignActionEffect extends SignAction {
                     eff.pitch = 1;
                     for (MinecartMember<?> member : info.getGroup()) {
                         eff.volume = 100;
+                        String customSound = member.getProperties().getDriveSound();
+                        if(customSound != null && !customSound.isEmpty()) {
+                            eff.effects.clear();
+                            eff.effects.add(customSound);
+                        }
                         for(Player p : member.getEntity().getPlayerPassengers()) {
                             eff.play(p);
                         }
-                        eff.volume = 2;
+                        eff.volume = 10;
                         eff.play(member.getEntity().getLocation());
                     }
                 }

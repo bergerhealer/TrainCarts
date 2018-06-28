@@ -1026,6 +1026,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (key.equals("clrticket")) {
             this.clearTickets();
+        } else if(key.equals("drivesound")) {
+            for (CartProperties cprop : this) {
+                cprop.setDriveSound(arg);
+            }
         } else {
             return false;
         }

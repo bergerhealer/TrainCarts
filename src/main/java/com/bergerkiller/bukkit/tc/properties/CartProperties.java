@@ -51,6 +51,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
     private SignSkipOptions skipOptions = new SignSkipOptions();
     private AttachmentModel model = null;
+    private String driveSound = "";
 
     protected CartProperties(UUID uuid, TrainProperties group) {
         this.uuid = uuid;
@@ -533,6 +534,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             resetModel();
         } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
+        } else if(key.equals("drivesound")) {
+            this.setDriveSound(arg);
         } else {
             return false;
         }
@@ -560,6 +563,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.exitYaw = from.exitYaw;
         this.exitPitch = from.exitPitch;
         this.spawnItemDrops = from.spawnItemDrops;
+        this.driveSound = from.driveSound;
     }
 
     @Override
@@ -582,6 +586,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.exitOffset = node.get("exitOffset", this.exitOffset);
         this.exitYaw = node.get("exitYaw", this.exitYaw);
         this.exitPitch = node.get("exitPitch", this.exitPitch);
+        this.driveSound = node.get("driveSound", this.driveSound);
         for (String blocktype : node.getList("blockBreakTypes", String.class)) {
             Material mat = ParseUtil.parseMaterial(blocktype, null);
             if (mat != null) {
@@ -617,6 +622,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("exitOffset", this.exitOffset);
         node.set("exitYaw", this.exitYaw);
         node.set("exitPitch", this.exitPitch);
+        node.set("driveSound", this.driveSound);
         List<String> items = node.getList("blockBreakTypes", String.class);
         for (Material mat : this.blockBreakTypes) {
             items.add(mat.toString());
@@ -645,6 +651,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("exitOffset", this.exitOffset.lengthSquared() == 0.0 ? null : this.exitOffset);
         node.set("exitYaw", this.exitYaw == 0.0f ? null : this.exitYaw);
         node.set("exitPitch", this.exitPitch == 0.0f ? null : this.exitPitch);
+        node.set("driveSound", this.driveSound == "" ? null : this.driveSound);
         if (this.blockBreakTypes.isEmpty()) {
             node.remove("blockBreakTypes");
         } else {
@@ -719,4 +726,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.skipOptions.skipCtr = options.skipCtr;
     }
 
+    public String getDriveSound() {
+        return driveSound;
+    }
+
+    public void setDriveSound(String driveSound) {
+        this.driveSound = driveSound;
+    }
 }
