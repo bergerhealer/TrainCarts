@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -384,6 +385,9 @@ public class GlobalCommands {
                 ItemUtil.setDisplayName(item, "TrainCarts Rails Debugger");
                 player.getInventory().addItem(item);
                 player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Slap some rails and escape the matrix!");
+            } else if (cmd.equalsIgnoreCase("mutex")) {
+                DebugTool.showMutexZones(player);
+                player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
             } else {
                 player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
                 player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
