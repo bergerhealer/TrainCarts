@@ -207,7 +207,7 @@ public abstract class RailTypeHorizontal extends RailType {
 
         Block minecartPos = findMinecartPos(railsBlock);
         IntVector3 delta = new IntVector3(hitBlock).subtract(new IntVector3(minecartPos));
-        BlockFace direction = member.getDirectionTo();
+        BlockFace direction = FaceUtil.getDirection(member.getEntity().getVelocity(), false);
 
         // Hitting a block head-on, straight or on a slope down
         if (delta.x == direction.getModX() && delta.z == direction.getModZ()) {
