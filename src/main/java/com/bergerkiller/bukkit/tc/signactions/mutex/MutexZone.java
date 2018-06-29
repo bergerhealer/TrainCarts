@@ -62,8 +62,8 @@ public class MutexZone {
                 String[] parts = coords.split("/");
                 if (parts.length >= 3) {
                     dx = ParseUtil.parseInt(parts[0], dx);
-                    dz = ParseUtil.parseInt(parts[1], dx);
-                    dy = ParseUtil.parseInt(parts[2], dy);
+                    dy = ParseUtil.parseInt(parts[1], dy);
+                    dz = ParseUtil.parseInt(parts[2], dz);
                 } else if (parts.length >= 2) {
                     dx = dz = ParseUtil.parseInt(parts[0], dx);
                     dy = ParseUtil.parseInt(parts[1], dy);
