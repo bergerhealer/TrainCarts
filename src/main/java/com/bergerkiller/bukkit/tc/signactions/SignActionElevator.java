@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
@@ -119,7 +120,7 @@ public class SignActionElevator extends SignAction {
         }
 
         // Facing towards a rail direction?
-        BlockFace[] startDirs = FaceUtil.getFaces(BlockUtil.getRails(dest).getDirection().getOppositeFace());
+        BlockFace[] startDirs = RailType.getType(dest).getPossibleDirections(dest);
         BlockFace launchDir = null;
         if (destsign != null) {
             BlockFace signdir = ((Directional) destsign.getData()).getFacing();

@@ -235,15 +235,17 @@ public class Util {
         World world = from.getWorld();
         if (mode == BlockFace.DOWN) {
             for (int y = sy - 1; y > 0; --y) {
-                if (ISTCRAIL.get(world, x, y, z)) {
-                    return world.getBlockAt(x, y, z);
+                Block block = world.getBlockAt(x, y, z);
+                if (RailType.getType(block) != RailType.NONE) {
+                    return block;
                 }
             }
         } else if (mode == BlockFace.UP) {
             int height = world.getMaxHeight();
             for (int y = sy + 1; y < height; y++) {
-                if (ISTCRAIL.get(world, x, y, z)) {
-                    return world.getBlockAt(x, y, z);
+                Block block = world.getBlockAt(x, y, z);
+                if (RailType.getType(block) != RailType.NONE) {
+                    return block;
                 }
             }
         }
