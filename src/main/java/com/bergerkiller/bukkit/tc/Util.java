@@ -195,6 +195,13 @@ public class Util {
         } else {
             return null;
         }
+
+        // Check main block IS rails itself
+        if (RailType.getType(mainBlock) != RailType.NONE) {
+            return mainBlock;
+        }
+
+        // Look further in all 6 possible directions
         boolean hasSigns;
         for (BlockFace dir : possibleFaces) {
             Block block = mainBlock;
