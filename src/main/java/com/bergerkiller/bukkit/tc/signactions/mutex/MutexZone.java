@@ -40,12 +40,11 @@ public class MutexZone {
                 block.getX() <= end.x && block.getY() <= end.y && block.getZ() <= end.z;
     }
 
-    public boolean isNearby(UUID world, IntVector3 block) {
+    public boolean isNearby(UUID world, IntVector3 block, int radius) {
         if (!world.equals(this.world)) return false;
 
-        final int R = 8;
-        return block.x>=(start.x-R) && block.y>=(start.y-R) && block.z>=(start.z-R) &&
-               block.x<=(end.x + R) && block.y<=(end.y + R) && block.z<=(end.z + R);
+        return block.x>=(start.x-radius) && block.y>=(start.y-radius) && block.z>=(start.z-radius) &&
+               block.x<=(end.x + radius) && block.y<=(end.y + radius) && block.z<=(end.z + radius);
     }
 
     public static MutexZone fromSign(SignActionEvent info) {
@@ -63,8 +62,8 @@ public class MutexZone {
                 String[] parts = coords.split("/");
                 if (parts.length >= 3) {
                     dx = ParseUtil.parseInt(parts[0], dx);
-                    dz = ParseUtil.parseInt(parts[1], dx);
-                    dy = ParseUtil.parseInt(parts[2], dy);
+                    dy = ParseUtil.parseInt(parts[1], dy);
+                    dz = ParseUtil.parseInt(parts[2], dz);
                 } else if (parts.length >= 2) {
                     dx = dz = ParseUtil.parseInt(parts[0], dx);
                     dy = ParseUtil.parseInt(parts[1], dy);

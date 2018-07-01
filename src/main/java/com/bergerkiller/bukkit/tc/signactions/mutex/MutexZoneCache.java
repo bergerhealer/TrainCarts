@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
@@ -58,14 +60,33 @@ public class MutexZoneCache {
      * 
      * @param world
      * @param block
+     * @param radius
      * @return True if a mutex zone is nearby
      */
-    public static boolean isMutexZoneNearby(UUID world, IntVector3 block) {
+    public static boolean isMutexZoneNearby(UUID world, IntVector3 block, int radius) {
         for (MutexZone zone : zones.values()) {
-            if (zone.isNearby(world, block)) {
+            if (zone.isNearby(world, block, radius)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Adds all mutex zones nearby a position. See {@link #isMutexZoneNearby(UUID, IntVector3, int)}
+     * 
+     * @param world
+     * @param block
+     * @param radius
+     * @return
+     */
+    public static List<MutexZone> findNearbyZones(UUID world, IntVector3 block, int radius) {
+        List<MutexZone> result = new ArrayList<MutexZone>();
+        for (MutexZone zone : zones.values()) {
+            if (zone.isNearby(world, block, radius)) {
+                result.add(zone);
+            }
+        }
+        return result;
     }
 }

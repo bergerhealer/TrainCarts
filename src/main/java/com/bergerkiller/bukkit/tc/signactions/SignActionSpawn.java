@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup.CenterMode;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
@@ -95,7 +94,6 @@ public class SignActionSpawn extends SignAction {
     public static List<Location> spawn(SpawnSign spawnSign, SignActionEvent info) {
         if ((info.isTrainSign() || info.isCartSign()) && info.hasRails()) {
             final double spawnForce = spawnSign.getSpawnForce();
-
             if (spawnSign.getSpawnableGroup().getMembers().isEmpty()) {
                 return null;
             }

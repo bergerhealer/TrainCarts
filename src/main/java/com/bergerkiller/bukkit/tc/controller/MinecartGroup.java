@@ -1049,7 +1049,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         if (this.getProperties().getWaitDistance() <= 0.0) {
             UUID world = this.head().getEntity().getWorld().getUID();
             IntVector3 block = this.head().getBlockPos();
-            if (!MutexZoneCache.isMutexZoneNearby(world, block)) {
+            if (!MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
                 return Double.MAX_VALUE;
             }
         }

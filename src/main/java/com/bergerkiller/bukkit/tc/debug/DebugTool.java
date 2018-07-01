@@ -1,5 +1,9 @@
 package com.bergerkiller.bukkit.tc.debug;
 
+import java.awt.Color;
+import java.util.List;
+import java.util.Random;
+
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -7,12 +11,17 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import net.md_5.bungee.api.ChatColor;
@@ -21,6 +30,100 @@ import net.md_5.bungee.api.ChatColor;
  * Manages the different functionalities provided by /train debug [type]
  */
 public class DebugTool {
+
+    /**
+     * Shows a box-shaped particle display for all mutex zones for a few seconds
+     * 
+     * @param player
+     */
+    public static void showMutexZones(final Player player) {
+        Location loc = player.getEyeLocation();
+        final List<MutexZone> zones = MutexZoneCache.findNearbyZones(
+                loc.getWorld().getUID(),
+                new IntVector3(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()),
+                32);
+
+        if (zones.isEmpty()) {
+            return;
+        }
+
+        final int PARTICLE_DURATION = 100;
+        final int PARTICLE_INTERVAL = 4;
+        final double PARTICLE_SPACING = 0.2;
+        new Task(TrainCarts.plugin) {
+            int life = PARTICLE_DURATION / PARTICLE_INTERVAL;
+
+            @Override
+            public void run() {
+                Random r = new Random();
+                for (MutexZone zone : zones) {
+                    r.setSeed(MathUtil.longHashToLong(zone.start.hashCode(), zone.end.hashCode()));
+                    Color color = Color.getHSBColor(r.nextFloat(), 1.0f, 1.0f);
+                    double x1 = zone.start.x;
+                    double y1 = zone.start.y;
+                    double z1 = zone.start.z;
+                    double x2 = zone.end.x + 1.0;
+                    double y2 = zone.end.y + 1.0;
+                    double z2 = zone.end.z + 1.0;
+                    cube(color, x1, y1, z1, x2, y2, z2);
+                }
+
+                if (--life == 0) {
+                    this.stop();
+                }
+            }
+
+            void cube(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+                face(color, x1, y1, z1, x2, y1, z2);
+                face(color, x1, y2, z1, x2, y2, z2);
+                line(color, x1, y1, z1, x1, y2, z1);
+                line(color, x2, y1, z1, x2, y2, z1);
+                line(color, x1, y1, z2, x1, y2, z2);
+                line(color, x2, y1, z2, x2, y2, z2);
+            }
+
+            void face(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+                line(color, x1, y1, z1, x2, y1, z1);
+                line(color, x1, y1, z1, x1, y2, z1);
+                line(color, x1, y1, z1, x1, y1, z2);
+                line(color, x1, y2, z2, x2, y2, z2);
+                line(color, x2, y1, z2, x2, y2, z2);
+                line(color, x2, y2, z1, x2, y2, z2);
+            }
+
+            void line(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+                double dist = MathUtil.distance(x1, y1, z1, x2, y2, z2);
+                if (dist < 1e-8) {
+                    return;
+                }
+                int n = MathUtil.ceil(dist / PARTICLE_SPACING);
+                double r = (double) color.getRed() / 255.0;
+                double g = (double) color.getGreen() / 255.0;
+                double b = (double) color.getBlue() / 255.0;
+                double dx = x2 - x1;
+                double dy = y2 - y1;
+                double dz = z2 - z1;
+                Location loc = player.getLocation();
+                for (int i = 0; i < n; i++) {
+                    double t = (double) i / (double) (n-1);
+                    loc.setX(x1 + dx * t);
+                    loc.setY(y1 + dy * t);
+                    loc.setZ(z1 + dz * t);
+                    Util.spawnDustParticle(loc, r, g, b);
+                }
+            }
+
+            // turns a sequential integer into an unique hash number
+            int hash(int x) {
+                final int prime = 2147483647;
+                int hash = x ^ 0x5bf03635;
+                if (hash >= prime)
+                    return hash;
+                int residue = (int) (((long) hash * hash) % prime);
+                return ((hash <= prime / 2) ? residue : prime - residue);
+            }
+        }.start(1, PARTICLE_INTERVAL);
+    }
 
     /**
      * Called when a player interacts with a block using a (stick) debug item
