@@ -1,24 +1,32 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
+import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.UseAction;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
 
-import org.bukkit.entity.Entity;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 /**
  * Temporary (???) packet listener to handle and cancel player SHIFT presses to cancel vehicle exit
  */
 public class TCPacketListener implements PacketListener {
+    private static boolean HAS_ATTACK_METHOD = true; // Added in later version of BKC
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
@@ -42,20 +50,78 @@ public class TCPacketListener implements PacketListener {
             }
 
             // Find all Minecart entities that are nearby the player
-            for (Entity nearby : WorldUtil.getNearbyEntities(event.getPlayer(), 10.0, 10.0, 10.0)) {
-                MinecartMember<?> member = MinecartMemberStore.getFromEntity(nearby);
-                if (member != null) {
+            Location eyeLoc = event.getPlayer().getEyeLocation();
+            for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+                if (group.getWorld() != eyeLoc.getWorld()) {
+                    continue;
+                }
+
+                for (MinecartMember<?> member : group) {
+                    double max = 5.0 + 2.0 * ((double) member.getEntity().getWidth());
+                    double dist_sq = member.getEntity().loc.distanceSquared(eyeLoc);
+                    if (dist_sq > (max * max)) {
+                        continue;
+                    }
+
                     EntityNetworkController<?> enc = member.getEntity().getNetworkController();
                     if (enc instanceof MinecartMemberNetwork && ((MinecartMemberNetwork) enc).handleInteraction(entityId)) {
-                        // Found our entity! Set entity Id field of the packet to the real entity.
-                        packet.write(PacketType.IN_USE_ENTITY.clickedEntityId, nearby.getEntityId());
-                        if (packet.read(PacketType.IN_USE_ENTITY.useAction) == UseAction.INTERACT_AT) {
-                            packet.write(PacketType.IN_USE_ENTITY.useAction, UseAction.INTERACT);
+                        // Rewrite the packet
+                        UseAction useAction = packet.read(PacketType.IN_USE_ENTITY.useAction);
+                        packet.write(PacketType.IN_USE_ENTITY.clickedEntityId, member.getEntity().getEntityId());
+                        if (useAction == UseAction.INTERACT_AT) {
+                            useAction = UseAction.INTERACT;
+                            packet.write(PacketType.IN_USE_ENTITY.useAction, useAction);
                         }
-                        break;
+
+                        // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
+                        // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
+                        if (event.getPlayer().getGameMode().name().equals("SPECTATOR")) {
+                            return; // Don't know how to deal with this one
+                        }
+                        if (dist_sq < (3.0 * 3.0)) {
+                            return; // Allow
+                        }
+
+                        // Cancel the interaction and handle this ourselves.
+                        if (useAction == UseAction.INTERACT) {
+                            // Get hand used for interaction
+                            HumanHand hand = PacketType.IN_USE_ENTITY.getHand(packet, event.getPlayer());
+                            HumanHand mainHand = HumanHand.getMainHand(event.getPlayer());
+
+                            // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler
+                            EquipmentSlot slot = EquipmentSlot.HAND;
+                            if (hand != mainHand) {
+                                // Needed in case it errors out for no reason on MC 1.8 or somesuch
+                                try {
+                                    slot = EquipmentSlot.OFF_HAND;
+                                } catch (Throwable t) {}
+                            }
+                            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(event.getPlayer(), member.getEntity().getEntity(), slot);
+                            if (CommonUtil.callEvent(interactEvent).isCancelled()) {
+                                event.setCancelled(true);
+                                return;
+                            }
+
+                            // Interact
+                            member.onInteractBy(event.getPlayer(), hand);
+                            event.setCancelled(true);
+                        } else if (useAction == UseAction.ATTACK) {
+                            // Attack
+                            if (HAS_ATTACK_METHOD) {
+                                try {
+                                    Object playerHandleRaw = HandleConversion.toEntityHandle(event.getPlayer());
+                                    EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
+                                    event.setCancelled(true);
+                                } catch (NoSuchMethodError e) {
+                                    HAS_ATTACK_METHOD = false;
+                                }
+                            }
+                        }
+                        return;
                     }
                 }
             }
         }
     }
+
 }
