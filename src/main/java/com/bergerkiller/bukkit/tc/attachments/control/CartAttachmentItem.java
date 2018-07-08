@@ -124,15 +124,23 @@ public class CartAttachmentItem extends CartAttachment {
         }
         last_rot = q_rotation;
 
-        // Apply when the yaw change isn't too extreme (does not cause a flip)
+        // Apply when the yaw change isn't too extreme (does not cause a flip) and has a significant change
         Vector new_entity_ypr = this.entity.getYawPitchRoll().clone();
+        int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation((float) new_entity_ypr.getY());
+        int prot_yaw_rot_new;
         if (yaw_change >= -90.0 && yaw_change <= 90.0) {
-            new_entity_ypr.setY(new_entity_ypr.getY() + yaw_change);
+            prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) (new_entity_ypr.getY() + yaw_change));
+            if (prot_yaw_rot_new != prot_yaw_rot_old) {
+                // Has a change in protocol yaw value, accept the changes
+                new_entity_ypr.setY(new_entity_ypr.getY() + yaw_change);
+            }
+        } else {
+            // Too large of a change, do not change entity yaw
+            prot_yaw_rot_new = prot_yaw_rot_old;
         }
 
         // Subtract rotation of Entity (keep protocol error into account)
-        int prot_yaw_rot = EntityTrackerEntryHandle.getProtocolRotation((float) new_entity_ypr.getY());
-        double entity_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot);
+        double entity_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
         Quaternion q = new Quaternion();
         q.rotateY(entity_yaw);
         q_rotation = Quaternion.multiply(q, q_rotation);
