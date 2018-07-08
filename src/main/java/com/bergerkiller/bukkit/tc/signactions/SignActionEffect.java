@@ -82,7 +82,7 @@ public class SignActionEffect extends SignAction {
                         for(Player p : member.getEntity().getPlayerPassengers()) {
                             eff.play(p);
                         }
-                        eff.volume = 10;
+                        eff.volume = 2;
                         eff.play(member.getEntity().getLocation());
                     }
                 }
