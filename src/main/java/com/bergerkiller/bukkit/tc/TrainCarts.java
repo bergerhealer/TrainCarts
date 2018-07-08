@@ -55,6 +55,7 @@ public class TrainCarts extends PluginBase {
     private Task autosaveTask;
     private Task cacheCleanupTask;
     private TCPacketListener packetListener;
+    private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
     private AttachmentModelStore attachmentModels;
     private SpawnSignManager spawnSignManager;
@@ -366,6 +367,7 @@ public class TrainCarts extends PluginBase {
 
         // Register listeners and commands
         this.register(packetListener = new TCPacketListener(), PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY);
+        this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
         this.register(TCListener.class);
         this.register(RedstoneTracker.class);
         this.register("train", "cart");
@@ -429,7 +431,9 @@ public class TrainCarts extends PluginBase {
 
         //Unregister listeners
         this.unregister(packetListener);
+        this.unregister(interactionPacketListener);
         packetListener = null;
+        interactionPacketListener = null;
 
         //Stop tasks
         Task.stop(signtask);

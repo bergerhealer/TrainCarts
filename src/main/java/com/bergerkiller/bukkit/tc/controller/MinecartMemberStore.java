@@ -393,4 +393,36 @@ public abstract class MinecartMemberStore {
         }
         return result;
     }
+
+    /**
+     * Finds a Minecart by performing a hit test with all nearby minecart's collision hit boxes
+     * 
+     * @param eyeLocation
+     * @return member hit, null if none found
+     */
+    public static MinecartMember<?> getFromHitTest(Location eyeLocation) {
+        MinecartMember<?> best = null;
+        double best_dist = 4.5;
+        for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+            if (group.getWorld() != eyeLocation.getWorld()) {
+                continue;
+            }
+            for (MinecartMember<?> member : group) {
+                double max_rad = 2.0 * ((double) member.getEntity().getWidth());
+                double dist_sq = member.getEntity().loc.distanceSquared(eyeLocation);
+                if (dist_sq > (max_rad * max_rad)) {
+                    continue;
+                }
+
+                double dist_hit = member.getHitBox().hittest(eyeLocation);
+                if (dist_hit >= best_dist) {
+                    continue;
+                }
+
+                best_dist = dist_hit;
+                best = member;
+            }
+        }
+        return best;
+    }
 }

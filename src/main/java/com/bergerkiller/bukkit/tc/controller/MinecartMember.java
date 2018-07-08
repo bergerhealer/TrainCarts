@@ -39,6 +39,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
+import com.bergerkiller.bukkit.tc.utils.CollisionBox;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -1969,4 +1970,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return MathUtil.ceil(2.0 * getMaximumDistance(member));
     }
 
+    /**
+     * Gets a rotated 3D hitbox, which can be used to test whether a player's click is on this entity
+     * 
+     * @return click hitbox
+     */
+    public CollisionBox getHitBox() {
+        CollisionBox box = new CollisionBox();
+        box.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
+        box.setRadius(1.0, 1.0, this.entity.getWidth());
+        box.setOrientation(this.getOrientation());
+        return box;
+    }
 }

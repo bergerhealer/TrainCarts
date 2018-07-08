@@ -15,7 +15,10 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
+import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
+
+import java.lang.reflect.Method;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -86,36 +89,12 @@ public class TCPacketListener implements PacketListener {
                         if (useAction == UseAction.INTERACT) {
                             // Get hand used for interaction
                             HumanHand hand = PacketType.IN_USE_ENTITY.getHand(packet, event.getPlayer());
-                            HumanHand mainHand = HumanHand.getMainHand(event.getPlayer());
-
-                            // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler
-                            EquipmentSlot slot = EquipmentSlot.HAND;
-                            if (hand != mainHand) {
-                                // Needed in case it errors out for no reason on MC 1.8 or somesuch
-                                try {
-                                    slot = EquipmentSlot.OFF_HAND;
-                                } catch (Throwable t) {}
-                            }
-                            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(event.getPlayer(), member.getEntity().getEntity(), slot);
-                            if (CommonUtil.callEvent(interactEvent).isCancelled()) {
-                                event.setCancelled(true);
-                                return;
-                            }
-
-                            // Interact
-                            member.onInteractBy(event.getPlayer(), hand);
+                            fakeInteraction(member, event.getPlayer(), hand);
                             event.setCancelled(true);
                         } else if (useAction == UseAction.ATTACK) {
                             // Attack
-                            if (HAS_ATTACK_METHOD) {
-                                try {
-                                    Object playerHandleRaw = HandleConversion.toEntityHandle(event.getPlayer());
-                                    EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
-                                    event.setCancelled(true);
-                                } catch (NoSuchMethodError e) {
-                                    HAS_ATTACK_METHOD = false;
-                                }
-                            }
+                            fakeAttack(member, event.getPlayer());
+                            event.setCancelled(true);
                         }
                         return;
                     }
@@ -124,4 +103,44 @@ public class TCPacketListener implements PacketListener {
         }
     }
 
+    public static void fakeAttack(MinecartMember<?> member, Player player) {
+        if (HAS_ATTACK_METHOD) {
+            try {
+                Object playerHandleRaw = HandleConversion.toEntityHandle(player);
+                EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
+            } catch (NoSuchMethodError e) {
+                HAS_ATTACK_METHOD = false;
+            }
+        }
+        if (!HAS_ATTACK_METHOD) {
+            // Some slow crappy workaround for older versions of BKCommonLib
+            try {
+                Object playerHandleRaw = HandleConversion.toEntityHandle(player);
+                Method m = EntityHumanHandle.T.getType().getDeclaredMethod("attack", EntityHandle.T.getType());
+                m.invoke(playerHandleRaw, member.getEntity().getHandle());
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
+    }
+
+    public static void fakeInteraction(MinecartMember<?> member, Player player, HumanHand hand) {
+        HumanHand mainHand = HumanHand.getMainHand(player);
+
+        // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler
+        EquipmentSlot slot = EquipmentSlot.HAND;
+        if (hand != mainHand) {
+            // Needed in case it errors out for no reason on MC 1.8 or somesuch
+            try {
+                slot = EquipmentSlot.OFF_HAND;
+            } catch (Throwable t) {}
+        }
+        PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity(), slot);
+        if (CommonUtil.callEvent(interactEvent).isCancelled()) {
+            return;
+        }
+
+        // Interact
+        member.onInteractBy(player, hand);
+    }
 }

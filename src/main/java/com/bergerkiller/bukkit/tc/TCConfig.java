@@ -55,6 +55,7 @@ public class TCConfig {
     public static int maxMinecartStackSize;
     public static int defaultTransferRadius;
     public static int maxTransferRadius;
+    public static boolean optimizeInteraction;
     public static boolean showTransferAnimations;
     public static boolean craftingRequireWorkbench;
     public static boolean slowDownEmptyCarts;
@@ -215,6 +216,10 @@ public class TCConfig {
 
         config.setHeader("refillAtStations", "\nWhether storage minecarts get fuel when launching from stations");
         refillAtStations = config.get("refillAtStations", true);
+
+        config.setHeader("optimizeInteraction", "\nWhether destroying or entering minecarts is made easier to do");
+        config.addHeader("optimizeInteraction", "When optimized, block / air clicks are intercepted and handled as clicks with minecarts instead");
+        optimizeInteraction = config.get("optimizeInteraction", true);
 
         config.setHeader("instantCreativeDestroy", "\nWhen set to true, players will be able to break minecarts with a single slap\n" +
                 "\nNo item drops are spawned for minecarts destroyed this way. Minecart contents ARE dropped." +
