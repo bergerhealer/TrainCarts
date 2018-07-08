@@ -21,6 +21,12 @@ public class CollisionBox {
     public double radZ;
     private Quaternion orientation_inv = new Quaternion();
 
+    public void setPosition(Vector pos) {
+        this.posX = pos.getX();
+        this.posY = pos.getY();
+        this.posZ = pos.getZ();
+    }
+
     public void setPosition(double x, double y, double z) {
         this.posX = x;
         this.posY = y;

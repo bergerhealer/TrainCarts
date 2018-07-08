@@ -1977,7 +1977,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public CollisionBox getHitBox() {
         CollisionBox box = new CollisionBox();
-        box.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
+        box.setPosition(this.getWheels().getPosition());
         box.setRadius(1.0, 1.0, this.entity.getWidth());
         box.setOrientation(this.getOrientation());
         return box;
