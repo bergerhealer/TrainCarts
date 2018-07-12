@@ -77,6 +77,7 @@ public class TCConfig {
     public static boolean SignLinkEnabled = false;
     public static boolean MinecartManiaEnabled = false;
     public static boolean activatorEjectEnabled = true;
+    public static boolean wheelDebugEnabled = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;

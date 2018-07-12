@@ -13,6 +13,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
@@ -115,15 +116,13 @@ public class RailTrackerGroup extends RailTracker {
      * Refreshes rail information, recalculating rail positions, directions and disconnect states
      */
     public void refresh() {
-        final boolean DEBUG_RAILS = false;
-
         try (Timings t = TCTimings.RAILTRACKER_REFRESH.start()) {
             this.prevRails.clear();
             this.prevRails.addAll(this.rails);
             this.rails.clear();
             refreshFrom(this.owner.size() - 1, false);
 
-            if (DEBUG_RAILS) {
+            if (TCConfig.wheelDebugEnabled) {
                 List<TrackedRail> behindRails = new ArrayList<TrackedRail>();
                 List<TrackedRail> midRails = new ArrayList<TrackedRail>(this.rails);
                 List<TrackedRail> aheadRails = new ArrayList<TrackedRail>();
@@ -143,21 +142,21 @@ public class RailTrackerGroup extends RailTracker {
 
                 // Red: Behind tracks
                 for (int i = 0; i < behindRails.size(); i++) {
-                    Location loc = behindRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = behindRails.get(i).state.positionLocation();
                     double theta =  (double) i / (double) (behindRails.size() - 1);
 
                     Util.spawnDustParticle(loc, 0.5 * theta + 0.5, 0.0, 0.0);
                 }
                 // Red-Green with blueish: Middle tracks
                 for (int i = 0; i < midRails.size(); i++) {
-                    Location loc = midRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = midRails.get(i).state.positionLocation();
                     double theta = (double) i / (double) (midRails.size() - 1);
 
                     Util.spawnDustParticle(loc, 0.5 * (1.0 - theta), 0.5 * theta, 1.0);
                 }
                 // Green: Ahead tracks
                 for (int i = 0; i < aheadRails.size(); i++) {
-                    Location loc = aheadRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = aheadRails.get(i).state.positionLocation();
                     double theta = (double) i / (double) (aheadRails.size() - 1);
 
                     Util.spawnDustParticle(loc, 0.0, 0.5 * (1.0 - theta) + 0.5, 0.0);

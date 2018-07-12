@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -388,6 +389,12 @@ public class GlobalCommands {
             } else if (cmd.equalsIgnoreCase("mutex")) {
                 DebugTool.showMutexZones(player);
                 player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
+            } else if (cmd.equals("wheels")) {
+                if (args.length >= 3) {
+                    TCConfig.wheelDebugEnabled = ParseUtil.parseBool(args[2]);
+                }
+                player.sendMessage(ChatColor.GREEN + "Displaying wheel positions: " +
+                        (TCConfig.wheelDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
             } else {
                 player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
                 player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
