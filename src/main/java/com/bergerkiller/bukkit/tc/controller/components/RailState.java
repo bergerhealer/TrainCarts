@@ -43,6 +43,15 @@ public class RailState {
     }
 
     /**
+     * Sets the rail path position information. See {@link #position()}.
+     * 
+     * @param position
+     */
+    public void setPosition(RailPath.Position position) {
+        position.copyTo(this._position);
+    }
+
+    /**
      * Gets the Block at the current {@link #position()}.
      * 
      * @return position block
@@ -235,7 +244,7 @@ public class RailState {
         this.position().copyTo(state.position());
         state.setRailBlock(this.railBlock());
         state.setRailType(this.railType());
-        state.setEnterFace(this.enterFace());
+        state._enterFace = this._enterFace;
         state.setMember(this.member());
         return state;
     }
