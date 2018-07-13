@@ -446,6 +446,28 @@ public class RailPath {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof RailPath) {
+            RailPath other = (RailPath) o;
+            if (other.points.length != this.points.length) {
+                return false;
+            }
+            for (int i = 0; i < this.points.length; i++) {
+                Point p1 = this.points[i];
+                Point p2 = other.points[i];
+                if (p1.x != p2.x || p1.y != p2.y || p1.z != p2.z) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public static RailPath create(Vector... pointVectors) {
         Point[] points = new Point[pointVectors.length];
         for (int i = 0; i < pointVectors.length; i++) {
