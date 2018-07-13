@@ -389,12 +389,18 @@ public class GlobalCommands {
             } else if (cmd.equalsIgnoreCase("mutex")) {
                 DebugTool.showMutexZones(player);
                 player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
-            } else if (cmd.equals("wheels")) {
+            } else if (cmd.equals("railtracker")) {
                 if (args.length >= 3) {
-                    TCConfig.wheelDebugEnabled = ParseUtil.parseBool(args[2]);
+                    TCConfig.railTrackerDebugEnabled = ParseUtil.parseBool(args[2]);
                 }
-                player.sendMessage(ChatColor.GREEN + "Displaying wheel positions: " +
-                        (TCConfig.wheelDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+                player.sendMessage(ChatColor.GREEN + "Displaying tracked rail positions: " +
+                        (TCConfig.railTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+            } else if (cmd.equals("wheeltracker")) {
+                if (args.length >= 3) {
+                    TCConfig.wheelTrackerDebugEnabled = ParseUtil.parseBool(args[2]);
+                }
+                player.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
+                        (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
             } else {
                 player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
                 player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");

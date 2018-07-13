@@ -22,7 +22,7 @@ public class RailTrackerMember extends RailTracker {
 
     public RailTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
-        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, false, new Vector(0,-1,0), BlockFace.SELF);
+        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, true, false, new Vector(0,-1,0), BlockFace.SELF);
         this.lastRailLogic = this.railLogic = RailLogicGround.INSTANCE;
     }
 
@@ -157,7 +157,7 @@ public class RailTrackerMember extends RailTracker {
                 RailState state = this.rail.state.clone();
                 state.setRailType(RailType.NONE);
                 state.setRailBlock(state.positionBlock());
-                this.rail = new TrackedRail(this.rail.member, state, this.rail.disconnected);
+                this.rail = new TrackedRail(this.rail.member, state, true, this.rail.disconnected);
                 return RailLogicAir.INSTANCE;
             }
         }

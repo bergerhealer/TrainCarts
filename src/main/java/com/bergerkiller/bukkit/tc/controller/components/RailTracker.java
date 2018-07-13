@@ -32,6 +32,8 @@ public abstract class RailTracker {
     public static class TrackedRail {
         /** The minecart that uses this rail */
         public final MinecartMember<?> member;
+        /** Whether this tracked rail is the base track (where middle of the Minecart is on) */
+        public final boolean isBasePoint;
         /** Block position of the minecart on the rails */
         public final Block minecartBlock;
         /** Position of the rails (same as {@link #block}) */
@@ -50,17 +52,18 @@ public abstract class RailTracker {
         public final RailState state;
 
         @Deprecated
-        public TrackedRail(MinecartMember<?> member, Location location, TrackMovingPoint point, boolean disconnected) {
-            this(member, location, point.current, point.currentTrack, point.currentRail, disconnected, FaceUtil.faceToVector(point.currentDirection), point.currentDirection);
+        public TrackedRail(MinecartMember<?> member, Location location, TrackMovingPoint point, boolean isBasePoint, boolean disconnected) {
+            this(member, location, point.current, point.currentTrack, point.currentRail, isBasePoint, disconnected, FaceUtil.faceToVector(point.currentDirection), point.currentDirection);
         }
 
-        public TrackedRail(MinecartMember<?> member, TrackWalkingPoint point, boolean disconnected) {
-            this(member, point.state, disconnected);
+        public TrackedRail(MinecartMember<?> member, TrackWalkingPoint point, boolean isBasePoint, boolean disconnected) {
+            this(member, point.state, isBasePoint, disconnected);
         }
 
-        public TrackedRail(MinecartMember<?> member, RailState state, boolean disconnected) {
+        public TrackedRail(MinecartMember<?> member, RailState state, boolean isBasePoint, boolean disconnected) {
             state.position().assertAbsolute();
             this.member = member;
+            this.isBasePoint = isBasePoint;
             this.state = state.clone();
             this.state.setMember(member);
             this.minecartBlock = state.positionBlock();
@@ -76,8 +79,9 @@ public abstract class RailTracker {
             }
         }
 
-        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected, Vector motionVector, BlockFace direction) {
+        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean isBasePoint, boolean disconnected, Vector motionVector, BlockFace direction) {
             this.member = member;
+            this.isBasePoint = isBasePoint;
             this.state = new RailState();
             this.state.setMember(member);
             this.minecartBlock = minecartBlock;
@@ -121,7 +125,7 @@ public abstract class RailTracker {
             p.motY = -p.motY;
             p.motZ = -p.motZ;
             Util.calculateEnterFace(state);
-            return new TrackedRail(member, state, this.disconnected);
+            return new TrackedRail(member, state, this.isBasePoint, this.disconnected);
         }
 
         /**
@@ -131,7 +135,20 @@ public abstract class RailTracker {
          * @return rail information with changed member
          */
         public TrackedRail changeMember(MinecartMember<?> member) {
-            return new TrackedRail(member, this.state, this.disconnected);
+            return new TrackedRail(member, this.state, this.isBasePoint, this.disconnected);
+        }
+
+        /**
+         * Creates new rail information with a changed isBasePoint
+         * 
+         * @param isBasePoint to set to
+         * @return rail information with changed isBasePoint
+         */
+        public TrackedRail setBasePoint(boolean isBasePoint) {
+            if (this.isBasePoint == isBasePoint) {
+                return this;
+            }
+            return new TrackedRail(this.member, this.state, isBasePoint, this.disconnected);
         }
 
         public RailLogic getLogic() {
@@ -143,6 +160,11 @@ public abstract class RailTracker {
                 this.cachedPath = getLogic().getPath();
             }
             return this.cachedPath;
+        }
+
+        public boolean isSameTrack(TrackedRail other) {
+            return this.state.isSameRails(other.state) &&
+                   this.getPath().equals(other.getPath());
         }
 
         /**
@@ -159,7 +181,7 @@ public abstract class RailTracker {
             state.setRailBlock(loc.getBlock());
             state.setRailType(RailType.NONE);
             Util.calculateEnterFace(state);
-            return new TrackedRail(member, state, false);
+            return new TrackedRail(member, state, true, false);
         }
 
         /**
@@ -170,7 +192,7 @@ public abstract class RailTracker {
          * @return tracked rail information for the member
          */
         public static TrackedRail create(MinecartMember<?> member, boolean disconnected) {
-            return new TrackedRail(member, member.discoverRail(), disconnected);
+            return new TrackedRail(member, member.discoverRail(), true, disconnected);
         }
 
     }
