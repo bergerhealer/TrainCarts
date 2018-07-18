@@ -142,7 +142,7 @@ public class DebugTool {
             RailState state = new RailState();
             state.setRailBlock(loc.getBlock());
             state.position().setMotion(dir);
-            Util.calculateEnterFace(state);
+            state.initEnterDirection();
 
             double minDist = Double.MAX_VALUE;
             for (double d = 0.0; d <= 200.0; d += 0.01) {

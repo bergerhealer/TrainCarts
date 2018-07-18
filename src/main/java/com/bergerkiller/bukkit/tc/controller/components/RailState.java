@@ -18,14 +18,14 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 public class RailState {
     private Block _railBlock;
     private RailType _railType;
-    private BlockFace _enterFace;
+    private final Vector _enterDirection;
     private MinecartMember<?> _member;
     private final RailPath.Position _position;
 
     public RailState() {
         this._railBlock = null;
         this._railType = RailType.NONE;
-        this._enterFace = null;
+        this._enterDirection = new Vector(Double.NaN, Double.NaN, Double.NaN);
         this._member = null;
         this._position = new RailPath.Position();
         this._position.relative = false;
@@ -177,24 +177,59 @@ public class RailState {
     }
 
     /**
-     * Sets the Block Face that was entered of the Block at the current position.
+     * Gets whether the enter direction has been initialized.
+     * 
+     * @return True if enter direction is initialized
+     */
+    public boolean hasEnterDirection() {
+        return !Double.isNaN(this._enterDirection.getX());
+    }
+
+    /**
+     * The movement direction of the Cart upon entering the section of rails
+     * 
+     * @return enter direction
+     */
+    public Vector enterDirection() {
+        if (!hasEnterDirection()) {
+            throw new IllegalStateException("Enter direction has not been initialized");
+        }
+        return this._enterDirection;
+    }
+
+    /**
+     * Sets the enter direction of the cart. See {@link #enterDirection()}.
+     * 
+     * @param enterDirection
+     */
+    public void setEnterDirection(Vector enterDirection) {
+        this._enterDirection.setX(enterDirection.getX());
+        this._enterDirection.setY(enterDirection.getY());
+        this._enterDirection.setZ(enterDirection.getZ());
+    }
+
+    /**
+     * Initializes the enter direction, setting it to the current motion vector direction.
+     */
+    public void initEnterDirection() {
+        this._enterDirection.setX(this._position.motX);
+        this._enterDirection.setY(this._position.motY);
+        this._enterDirection.setZ(this._position.motZ);
+    }
+
+    /**
+     * Gets the Block Face that was entered of the Block at the current position.
+     * This helper function is only useful for rails blocks that cover an exact block,
+     * like standard Vanilla rails.
      * 
      * @return entered Block Face
      */
     public BlockFace enterFace() {
-        if (this._enterFace == null) {
-            throw new IllegalStateException("Enter face has not been initialized");
-        }
-        return this._enterFace;
-    }
-
-    /**
-     * Sets the Block Face that was entered of the rails Block at the current position.
-     * 
-     * @param enterFace to set to
-     */
-    public void setEnterFace(BlockFace enterFace) {
-        this._enterFace = enterFace;
+        RailPath.Position p = this.position();
+        Vector pos = new Vector(p.posX - MathUtil.floor(p.posX),
+                                p.posY - MathUtil.floor(p.posY),
+                                p.posZ - MathUtil.floor(p.posZ));
+        return RailAABB.BLOCK.calculateEnterFace(pos, this.enterDirection());
     }
 
     /**
@@ -244,8 +279,10 @@ public class RailState {
         this.position().copyTo(state.position());
         state.setRailBlock(this.railBlock());
         state.setRailType(this.railType());
-        state._enterFace = this._enterFace;
         state.setMember(this.member());
+        if (this.hasEnterDirection()) {
+            state.setEnterDirection(this.enterDirection());
+        }
         return state;
     }
 

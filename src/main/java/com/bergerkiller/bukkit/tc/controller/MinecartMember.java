@@ -129,7 +129,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onAttached() {
         super.onAttached();
-        this.unloaded = true;
+        this.setUnloaded(true);
         this.railTrackerMember.onAttached();
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.updateDirection();
@@ -203,7 +203,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (this.group != null && this.group != group) {
             this.group.removeSilent(this);
         }
-        this.unloaded = false;
+        this.setUnloaded(false);
         this.group = group;
     }
 
@@ -361,7 +361,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param unloaded to set to
      */
     public void setUnloaded(boolean unloaded) {
-        this.unloaded = unloaded;
+        if (this.unloaded != unloaded) {
+            this.unloaded = unloaded;
+        }
     }
 
     /**
@@ -766,7 +768,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         boolean result = this.fillRailInformation(state);
         if (!result) {
             state.setMotionVector(this.calcMotionVector(true));
-            Util.calculateEnterFace(state);
+            state.initEnterDirection();
         }
 
         // Normalize motion vector
@@ -999,7 +1001,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // TO direction is simply the enter face in the opposite direction
         RailState state = tracker.getRail().state.clone();
         state.position().invertMotion();
-        Util.calculateEnterFace(state);
+        state.initEnterDirection();
         this.directionTo = state.enterFace().getOppositeFace();
     }
 
@@ -1385,7 +1387,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     protected void updateUnloaded() {
-        unloaded = (entity == null) || OfflineGroupManager.containsMinecart(entity.getUniqueId());
+        setUnloaded((entity == null) || OfflineGroupManager.containsMinecart(entity.getUniqueId()));
         if (!unloaded && (this.group == null || this.group.canUnload())) {
             // Check a 5x5 chunk area around this Minecart to see if it is loaded
             World world = entity.getWorld();
@@ -1395,7 +1397,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             for (cx = -ChunkArea.CHUNK_RANGE; cx <= ChunkArea.CHUNK_RANGE; cx++) {
                 for (cz = -ChunkArea.CHUNK_RANGE; cz <= ChunkArea.CHUNK_RANGE; cz++) {
                     if (!WorldUtil.isLoaded(world, cx + midX, cz + midZ)) {
-                        unloaded = true;
+                        setUnloaded(true);
                         return;
                     }
                 }

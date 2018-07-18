@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
@@ -26,6 +25,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -156,6 +156,7 @@ public abstract class RailType {
      * @return True if rails were found (railtype != NONE), False otherwise
      */
     public static boolean loadRailInformation(RailState state) {
+        state.initEnterDirection();
         state.position().assertAbsolute();
         Block positionBlock = state.positionBlock();
         RailInfo[] cachedInfo = RailTypeCache.getInfo(positionBlock);
@@ -197,7 +198,6 @@ public abstract class RailType {
             for (RailInfo info : cachedInfo) {
                 state.setRailBlock(info.railBlock);
                 state.setRailType(info.railType);
-                Util.calculateEnterFace(state);
                 RailLogic logic = state.loadRailLogic();
                 RailPath path = logic.getPath();
                 double distSq = path.distanceSquared(state.railPosition());
@@ -212,7 +212,6 @@ public abstract class RailType {
 
         state.setRailBlock(result.railBlock);
         state.setRailType(result.railType);
-        Util.calculateEnterFace(state);
         return true;
     }
 
@@ -308,12 +307,13 @@ public abstract class RailType {
     /**
      * Gets the bounding box of a rails block. This bounding box is used
      * to calculate the face direction when a minecart enters the rails.
-     * It should surround the entire rails block for optimal results.
+     * It should surround the entire rails section for optimal results.
+     * By default returns a standard 1x1x1 bounding box.
      * 
-     * @param railsBlock
+     * @param state of the rails
      * @return bounding box
      */
-    public RailAABB getBoundingBox(Block railsBlock) {
+    public RailAABB getBoundingBox(RailState state) {
         return RailAABB.BLOCK;
     }
 
@@ -397,7 +397,7 @@ public abstract class RailType {
         state.setRailType(this);
         state.position().setLocation(this.getSpawnLocation(railBlock, BlockFace.DOWN));
         state.position().setMotion(BlockFace.DOWN);
-        state.setEnterFace(BlockFace.DOWN);
+        state.setEnterDirection(new Vector(0, -1, 0));
 
         RailPath path = this.getLogic(state).getPath();
         if (path.isEmpty()) {

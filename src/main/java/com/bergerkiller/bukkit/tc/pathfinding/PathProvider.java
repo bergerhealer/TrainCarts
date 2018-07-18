@@ -151,7 +151,7 @@ public class PathProvider extends Task {
                     // Create opposite direction state
                     RailState state2 = state1.clone();
                     state2.position().invertMotion();
-                    Util.calculateEnterFace(state2);
+                    state2.initEnterDirection();
 
                     // Walk both states to the end of the path
                     state1.loadRailLogic().getPath().move(state1, Double.MAX_VALUE);
@@ -184,7 +184,7 @@ public class PathProvider extends Task {
             this.startNode = startNode;
 
             // Include distance from spawn position of rails, to the junction start
-            Location spawnPos = state.railType().getSpawnLocation(state.railBlock(), state.enterFace());
+            Location spawnPos = state.railType().getSpawnLocation(state.railBlock(), state.position().getMotionFace());
             this.p.movedTotal += state.positionLocation().distance(spawnPos);
         }
 
@@ -214,7 +214,7 @@ public class PathProvider extends Task {
                     } else if (event.isType("destination")) {
                         newNodeLocation = new BlockLocation(nextRail);
                         newNodeName = event.getLine(2);
-                    } else if (event.isType("blocker") && event.isWatchedDirection(p.state.enterFace()) && event.isPowerAlwaysOn()) {
+                    } else if (event.isType("blocker") && event.isWatchedDirection(p.state.enterDirection()) && event.isPowerAlwaysOn()) {
                         hasFinished = true;
                         break;
                     } else {
@@ -222,7 +222,7 @@ public class PathProvider extends Task {
                     }
                     if (!newNodeName.isEmpty() && !startNode.containsName(newNodeName)) {
                         // include distance between spawn position on rail, and the current position with the walker
-                        Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.enterFace());
+                        Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
                         double totalDistance = p.movedTotal + spawnPos.distanceSquared(p.state.positionLocation());
 
                         // finished, we found our first target - create connection

@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -165,8 +166,8 @@ public class TrackIterator implements Iterator<Block> {
     private void genNextBlock() {
         // If specified, be sure to stay within loaded chunks
         if (this.onlyInLoadedChunks) {
-            int x = this.movingPoint.current.getX() + this.movingPoint.currentDirection.getModX();
-            int z = this.movingPoint.current.getZ() + this.movingPoint.currentDirection.getModZ();
+            int x = this.movingPoint.current.getX() + (int) this.movingPoint.currentDirection.getX();
+            int z = this.movingPoint.current.getZ() + (int) this.movingPoint.currentDirection.getZ();
             if (!this.movingPoint.current.getWorld().isChunkLoaded(x >> 4, z >> 4)) {
                 this.movingPoint.next(false);
                 return;
@@ -186,7 +187,7 @@ public class TrackIterator implements Iterator<Block> {
         this.movingPoint.clearNext();
     }
 
-    public BlockFace currentDirection() {
+    public Vector currentDirection() {
         return this.movingPoint.currentDirection;
     }
 
@@ -206,7 +207,7 @@ public class TrackIterator implements Iterator<Block> {
         return BlockUtil.getRails(this.current());
     }
 
-    public BlockFace peekNextDirection() {
+    public Vector peekNextDirection() {
         return this.movingPoint.nextDirection;
     }
 
@@ -219,11 +220,11 @@ public class TrackIterator implements Iterator<Block> {
         if (!this.hasNext()) {
             throw new NoSuchElementException("No next track is available");
         }
-        BlockFace oldDirection = this.currentDirection();
+        Vector oldDirection = this.currentDirection();
         this.genNextBlock();
-        BlockFace newDirection = this.currentDirection();
+        Vector newDirection = this.currentDirection();
         this.distance++;
-        if (oldDirection == newDirection || oldDirection == newDirection.getOppositeFace()) {
+        if (Math.abs(oldDirection.dot(newDirection)) >= 0.999999) {
             // Took a straight piece
             this.cartDistance += 1.0;
         } else {

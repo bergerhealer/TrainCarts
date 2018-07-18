@@ -17,7 +17,7 @@ import java.util.NoSuchElementException;
 public class TrackMovingPoint {
     public Block current, next;
     public Block currentTrack, nextTrack;
-    public BlockFace currentDirection, nextDirection;
+    public Vector currentDirection, nextDirection;
     public RailType currentRail, nextRail;
     private boolean hasNext;
     private final TrackWalkingPoint walkingPoint;
@@ -59,13 +59,13 @@ public class TrackMovingPoint {
         this.walkingPoint = walkingPoint;
         if (this.walkingPoint.state.railType() != RailType.NONE) {
             this.currentTrack = this.nextTrack = this.walkingPoint.state.railBlock();
-            this.currentDirection = this.nextDirection = this.walkingPoint.state.enterFace();
+            this.currentDirection = this.nextDirection = this.walkingPoint.state.enterDirection();
             this.current = this.next = this.walkingPoint.state.positionBlock();
             this.currentRail = this.nextRail = this.walkingPoint.state.railType();
             this.hasNext = true;
         } else {
             this.currentTrack = this.nextTrack = null;
-            this.currentDirection = this.nextDirection = BlockFace.SELF;
+            this.currentDirection = this.nextDirection = new Vector();
             this.current = this.next = null;
             this.currentRail = this.nextRail = RailType.NONE;
             this.hasNext = false;
@@ -142,7 +142,7 @@ public class TrackMovingPoint {
         this.next = this.walkingPoint.state.positionBlock();
         this.nextTrack = this.walkingPoint.state.railBlock();
         this.nextRail = this.walkingPoint.state.railType();
-        this.nextDirection = this.walkingPoint.state.enterFace();
+        this.nextDirection = this.walkingPoint.state.enterDirection();
         this.hasNext = true;
     }
 

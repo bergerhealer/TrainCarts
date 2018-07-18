@@ -39,8 +39,6 @@ public class RailAABB {
         double result_end_y = 0.0;
         double result_end_z = 0.0;
         final double CONST_BOX_ERROR = 1e-10;
-        final double CONST_BOX_MIN = (0.0 - CONST_BOX_ERROR);
-        final double CONST_BOX_MAX = (1.0 + CONST_BOX_ERROR);
         BlockFace result = null;
         for (BlockFace dir : FaceUtil.BLOCK_SIDES) {
             double a, b, c;
@@ -68,8 +66,8 @@ public class RailAABB {
             double end_x = position.getX() - f * direction.getX();
             double end_y = position.getY() - f * direction.getY();
             double end_z = position.getZ() - f * direction.getZ();
-            if (end_x >= CONST_BOX_MIN && end_y >= CONST_BOX_MIN && end_z >= CONST_BOX_MIN &&
-                end_x <= CONST_BOX_MAX && end_y <= CONST_BOX_MAX && end_z <= CONST_BOX_MAX) {
+            if ((this.x_min-end_x) <= CONST_BOX_ERROR && (this.y_min-end_y) <= CONST_BOX_ERROR && (this.z_min-end_z) <= CONST_BOX_ERROR &&
+                (end_x-this.x_max) <= CONST_BOX_ERROR && (end_y-this.y_max) <= CONST_BOX_ERROR && (end_z-this.z_max) <= CONST_BOX_ERROR) {
                 if (result != null) {
                     double dot = ((end_x - result_end_x) * direction.getX() +
                                   (end_y - result_end_y) * direction.getY() +

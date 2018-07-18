@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 
@@ -67,7 +68,7 @@ public class TrackMap extends ArrayList<Block> {
         return this.iterator.currentRailType();
     }
 
-    public BlockFace getDirection() {
+    public Vector getDirection() {
         return this.iterator.currentDirection();
     }
 

@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -81,7 +80,7 @@ public class TrackWalkingPoint {
             this.state.setRailType(RailType.getType(startRail));
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
-            Util.calculateEnterFace(this.state);
+            this.state.initEnterDirection();
             this.currentRailLogic = this.state.loadRailLogic();
             this.currentRailPath = this.currentRailLogic.getPath();
         }
@@ -113,7 +112,7 @@ public class TrackWalkingPoint {
         // Move the full length of the path, to the end of the path
         this.moved = this.currentRailPath.move(this.state, limit);
         this.movedTotal += this.moved;
-        Util.calculateEnterFace(this.state);
+        this.state.initEnterDirection();
 
         // When moved closely equals the limit, we've reached the end of track.
         double diff = (this.moved - limit);
@@ -152,7 +151,7 @@ public class TrackWalkingPoint {
         // Move the full length of the path, to the end of the path
         this.moved = this.currentRailPath.move(this.state, Double.MAX_VALUE);
         this.movedTotal += this.moved;
-        Util.calculateEnterFace(this.state);
+        this.state.initEnterDirection();
 
         // Attempt moving to next rails block
         if (!loadNextRail()) {
@@ -196,7 +195,7 @@ public class TrackWalkingPoint {
                     // Moved the full distance
                     this.moved = distance;
                     this.movedTotal += this.moved;
-                    Util.calculateEnterFace(this.state);
+                    this.state.initEnterDirection();
                     return true;
                 }
             } else if (++infCycleCtr > 100) {
@@ -206,7 +205,7 @@ public class TrackWalkingPoint {
                 System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
-                Util.calculateEnterFace(this.state);
+                this.state.initEnterDirection();
                 return false;
             }
 
@@ -214,7 +213,7 @@ public class TrackWalkingPoint {
             if (!loadNextRail()) {
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
-                Util.calculateEnterFace(this.state);
+                this.state.initEnterDirection();
                 return false;
             }
         }

@@ -1091,7 +1091,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             MinecartMember<?> other = MinecartMemberStore.getAt(rail);
             if (other != null && other.getGroup() != this) {
                 // Train is heading for me! Stop!
-                if (MathUtil.isHeadingTo(iter.currentDirection().getOppositeFace(), other.getEntity().getVelocity())) {
+                if (MathUtil.isHeadingTo(iter.currentDirection().clone().multiply(-1.0), other.getEntity().getVelocity())) {
                     return 0.0;
                 }
 

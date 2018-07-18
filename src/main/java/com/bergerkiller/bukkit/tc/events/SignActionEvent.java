@@ -37,6 +37,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
@@ -135,7 +136,7 @@ public class SignActionEvent extends Event implements Cancellable {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
                     if (rail.member == this.member && rail.block.equals(rails)) {
-                        return rail.enterFace;
+                        return rail.state.enterFace();
                     }
                 }
             }
@@ -818,13 +819,25 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Checks if a given direction is watched by this sign
+     * Checks if a given BlockFace direction is watched by this sign
      *
      * @param direction to check
      * @return True if watched, False otherwise
      */
+    @Deprecated
     public boolean isWatchedDirection(BlockFace direction) {
         return LogicUtil.contains(direction, this.getWatchedDirections());
+    }
+
+    /**
+     * Checks if a given movement direction is watched by this sign.
+     * When this returns true, the sign should be activated.
+     * 
+     * @param direction to check
+     * @return True if watched, False otherwise
+     */
+    public boolean isWatchedDirection(Vector direction) {
+        return isWatchedDirection(Util.vecToFace(direction, false));
     }
 
     /**

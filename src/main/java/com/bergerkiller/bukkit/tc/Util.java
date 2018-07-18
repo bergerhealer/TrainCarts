@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -981,20 +980,6 @@ public class Util {
         return loc;
     }
 
-    /**
-     * Calculates the face of a block that is first entered when moving in a direction from a position.
-     * The movement is that of an infinite line. The face first hit is returned. The position is
-     * relative to the block.
-     * 
-     * @param position x/y/z of the position relative to the block
-     * @param direction x/y/z of the direction in which is moved
-     * @return face of the block first entered
-     */
-    public static BlockFace calculateEnterFace(Vector position, Vector direction) {
-        //TODO: No longer needed!
-        return RailAABB.BLOCK.calculateEnterFace(position, direction);
-    }
-
     // some magic to turn a vector into the most appropriate block face
     public static BlockFace vecToFace(Vector vector, boolean useSubCardinalDirections) {
         return vecToFace(vector.getX(), vector.getY(), vector.getZ(), useSubCardinalDirections);
@@ -1074,22 +1059,6 @@ public class Util {
             return new Vector(0.0, sign * 90.0,
                     Math.toDegrees(-sign * 2.0 * Math.atan2(qx, qw)));
         }
-    }
-
-    /**
-     * Calculates the enter face from the current position and motion vector, and stores
-     * it inside the rail state.
-     * 
-     * @param state to calculate the enter face
-     */
-    public static void calculateEnterFace(RailState state) {
-        //return this.railType().getBoundingBox(this.railBlock()).calculateEnterFace(railPosition(), this._position.getMotion());
-        RailPath.Position p = state.position();
-        Vector pos = new Vector(p.posX - MathUtil.floor(p.posX),
-                                p.posY - MathUtil.floor(p.posY),
-                                p.posZ - MathUtil.floor(p.posZ));
-        Vector dir = p.getMotion();
-        state.setEnterFace(calculateEnterFace(pos, dir));
     }
 
     /**
