@@ -20,9 +20,7 @@ import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 /**
@@ -32,7 +30,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
  * detect splitting of trains
  */
 public class RailTrackerGroup extends RailTracker {
-    private static final int LOOP_LIMIT = 10; // This amount of tracks iterated w/o movement = ABORT
     private final MinecartGroup owner;
     private final ArrayList<TrackedRail> railsBuffer = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> prevRails = new ArrayList<TrackedRail>();
@@ -288,7 +285,7 @@ public class RailTrackerGroup extends RailTracker {
             TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
             while (p.moveStep(wheelDistance - p.movedTotal)) {
-                this.rails.add(++railIndex, new TrackedRail(tail, p.state, false, false));
+                this.rails.add(++railIndex, new TrackedRail(tail, p.state, false));
             }
 
             //Location loc = position.toLocation(owner.getWorld());
@@ -412,7 +409,6 @@ public class RailTrackerGroup extends RailTracker {
                             rail = rail.invertMotionVector();
                         }
 
-                        rail = rail.setBasePoint(false);
                         rail.cachedPath = path;
                         this.rails.add(railIndex, rail);
                         startInfo = rail;
@@ -435,7 +431,7 @@ public class RailTrackerGroup extends RailTracker {
                 }
 
                 while (p.moveStep(wheelDistance - p.movedTotal)) {
-                    TrackedRail rail = new TrackedRail(tail, p.state, false, false);
+                    TrackedRail rail = new TrackedRail(tail, p.state, false);
                     rail = rail.invertMotionVector();
                     rail.cachedPath = p.currentRailPath;
                     this.rails.add(railIndex, rail);
@@ -594,7 +590,7 @@ public class RailTrackerGroup extends RailTracker {
 
                         // Refresh the next minecart with the information currently iterating at
                         nrCachedRails = 0;
-                        TrackedRail currInfo = new TrackedRail(nextMember, nextPos, false, false);
+                        TrackedRail currInfo = new TrackedRail(nextMember, nextPos, false);
                         result.rails.add(currInfo);
 
                         // Continue looking for more minecarts
@@ -618,7 +614,7 @@ public class RailTrackerGroup extends RailTracker {
                         } else {
                             // Keep track of the Minecart we are trying to find for the in-between blocks
                             // This is important for the block space
-                            result.rails.add(new TrackedRail(nextMember, p, false, false));
+                            result.rails.add(new TrackedRail(nextMember, p, false));
                             nrCachedRails++;
                         }
                         if (++moveLimitCtr > maximumDistanceBlocks || !p.moveFull()) {

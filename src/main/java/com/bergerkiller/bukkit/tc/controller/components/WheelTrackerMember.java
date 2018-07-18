@@ -386,7 +386,7 @@ public class WheelTrackerMember {
             if (!this.member.isDerailed()) {
                 for (int i = 0; i < rails.size(); i++) {
                     TrackedRail rail = rails.get(i);
-                    if (rail.member == this.member && rail.isBasePoint) {
+                    if (rail == this.member.getRailTracker().getRail()) {
                         railIndex = i;
                         break;
                     }
