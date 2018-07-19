@@ -1888,10 +1888,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         entity.setRotation(newyaw, newpitch);
     }
-    
+
     @Override
     public String getLocalizedName() {
-        return isSingle() ? "Minecart" : "Train";
+        String name = super.getLocalizedName();
+        if (name == null || name.equals("unknown")) {
+            name = "Minecart"; // Bug with older BKCommonLib!
+        }
+        if (!isSingle()) {
+            name += " (Train)";
+        }
+        return name;
     }
 
     @Override
