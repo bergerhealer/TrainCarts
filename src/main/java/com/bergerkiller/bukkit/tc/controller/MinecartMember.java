@@ -768,6 +768,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         boolean result = this.fillRailInformation(state);
         if (!result) {
             state.setMotionVector(this.calcMotionVector(true));
+        }
+        if (!state.hasEnterDirection()) {
             state.initEnterDirection();
         }
 

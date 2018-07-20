@@ -397,7 +397,7 @@ public abstract class RailType {
         state.setRailType(this);
         state.position().setLocation(this.getSpawnLocation(railBlock, BlockFace.DOWN));
         state.position().setMotion(BlockFace.DOWN);
-        state.setEnterDirection(new Vector(0, -1, 0));
+        state.initEnterDirection();
 
         RailPath path = this.getLogic(state).getPath();
         if (path.isEmpty()) {
