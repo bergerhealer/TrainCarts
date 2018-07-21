@@ -19,6 +19,7 @@ public class RailState {
     private Block _railBlock;
     private RailType _railType;
     private final Vector _enterDirection;
+    private final Vector _enterPosition;
     private MinecartMember<?> _member;
     private final RailPath.Position _position;
 
@@ -26,6 +27,7 @@ public class RailState {
         this._railBlock = null;
         this._railType = RailType.NONE;
         this._enterDirection = new Vector(Double.NaN, Double.NaN, Double.NaN);
+        this._enterPosition = new Vector(Double.NaN, Double.NaN, Double.NaN);
         this._member = null;
         this._position = new RailPath.Position();
         this._position.relative = false;
@@ -198,23 +200,15 @@ public class RailState {
     }
 
     /**
-     * Sets the enter direction of the cart. See {@link #enterDirection()}.
-     * 
-     * @param enterDirection
-     */
-    public void setEnterDirection(Vector enterDirection) {
-        this._enterDirection.setX(enterDirection.getX());
-        this._enterDirection.setY(enterDirection.getY());
-        this._enterDirection.setZ(enterDirection.getZ());
-    }
-
-    /**
      * Initializes the enter direction, setting it to the current motion vector direction.
      */
     public void initEnterDirection() {
         this._enterDirection.setX(this._position.motX);
         this._enterDirection.setY(this._position.motY);
         this._enterDirection.setZ(this._position.motZ);
+        this._enterPosition.setX(this._position.posX);
+        this._enterPosition.setY(this._position.posY);
+        this._enterPosition.setZ(this._position.posZ);
     }
 
     /**
@@ -225,11 +219,12 @@ public class RailState {
      * @return entered Block Face
      */
     public BlockFace enterFace() {
-        RailPath.Position p = this.position();
-        Vector pos = new Vector(p.posX - MathUtil.floor(p.posX),
-                                p.posY - MathUtil.floor(p.posY),
-                                p.posZ - MathUtil.floor(p.posZ));
-        return RailAABB.BLOCK.calculateEnterFace(pos, this.enterDirection());
+        Vector d = this.enterDirection();
+        Vector p = this._enterPosition;
+        Vector pos = new Vector(p.getX() - p.getBlockX(),
+                                p.getY() - p.getBlockY(),
+                                p.getZ() - p.getBlockZ());
+        return RailAABB.BLOCK.calculateEnterFace(pos, d);
     }
 
     /**
@@ -280,9 +275,12 @@ public class RailState {
         state.setRailBlock(this.railBlock());
         state.setRailType(this.railType());
         state.setMember(this.member());
-        if (this.hasEnterDirection()) {
-            state.setEnterDirection(this.enterDirection());
-        }
+        state._enterDirection.setX(this._enterDirection.getX());
+        state._enterDirection.setY(this._enterDirection.getY());
+        state._enterDirection.setZ(this._enterDirection.getZ());
+        state._enterPosition.setX(this._enterPosition.getX());
+        state._enterPosition.setY(this._enterPosition.getY());
+        state._enterPosition.setZ(this._enterPosition.getZ());
         return state;
     }
 

@@ -21,7 +21,7 @@ public class RailTrackerMember extends RailTracker {
 
     public RailTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
-        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, false, new Vector(0,-1,0), new Vector(0,-1,0));
+        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, false);
         this.lastRailLogic = this.railLogic = RailLogicGround.INSTANCE;
     }
 

@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 public abstract class RailTracker {
@@ -44,12 +43,6 @@ public abstract class RailTracker {
         /** State on the rail when this TrackedRail was created */
         public final RailState state;
 
-        @Deprecated
-        public TrackedRail(MinecartMember<?> member, Location location, TrackMovingPoint point, boolean disconnected) {
-            this(member, location, point.current, point.currentTrack, point.currentRail,
-                    disconnected, point.currentDirection, point.currentDirection);
-        }
-
         public TrackedRail(MinecartMember<?> member, TrackWalkingPoint point, boolean disconnected) {
             this(member, point.state, disconnected);
         }
@@ -70,7 +63,7 @@ public abstract class RailTracker {
             }
         }
 
-        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected, Vector motionVector, Vector enterDirection) {
+        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected) {
             this.member = member;
             this.state = new RailState();
             this.state.setMember(member);
@@ -90,8 +83,8 @@ public abstract class RailTracker {
             } else if (railsBlock != null) {
                 this.state.position().setLocationMidOf(railsBlock);
             }
-            this.state.position().setMotion(motionVector);
-            this.state.setEnterDirection(enterDirection);
+            this.state.position().setMotion(new Vector(0, -1, 0));
+            this.state.initEnterDirection();
         }
 
         /**
