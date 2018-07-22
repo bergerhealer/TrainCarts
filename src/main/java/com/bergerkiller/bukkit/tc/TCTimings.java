@@ -15,6 +15,7 @@ public class TCTimings {
     public static final Timings MEMBER_PHYSICS_POST_RAIL_LOGIC = timings.create("onPostMove  (Train Physics, Post-Move, RailLogic)");
     public static final Timings MEMBER_PHYSICS_BLOCK_COLLISION = timings.create("onBlockCollision  (Train Physics, Post-Move)");
     public static final Timings MEMBER_PHYSICS_UPDATE_WHEELS = timings.create("updateWheels  (Train Physics, Wheel Tracker)");
+    public static final Timings MEMBER_PHYSICS_DISCOVER_RAIL = timings.create("discoverRail (Train Physics, RailLogic)");
     public static final Timings SIGNTRACKER_REFRESH = timings.create("refreshSigns  (Train Physics, Sign Tracker)");
     public static final Timings RAILTRACKER_REFRESH = timings.create("refreshRails  (Train Physics, Rail Tracker)");
     public static final Timings RAILMEMBERCACHE = timings.create("cacheRailMembers  (Train Physics, Rail Tracker, Cache)");

@@ -203,6 +203,9 @@ public class RailState {
      * Initializes the enter direction, setting it to the current motion vector direction.
      */
     public void initEnterDirection() {
+        if (Double.isNaN(this._position.motX)) {
+            throw new IllegalStateException("Position motion vector is NaN");
+        }
         this._enterDirection.setX(this._position.motX);
         this._enterDirection.setY(this._position.motY);
         this._enterDirection.setZ(this._position.motZ);

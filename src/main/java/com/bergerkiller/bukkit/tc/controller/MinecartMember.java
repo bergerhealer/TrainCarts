@@ -701,6 +701,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 }
             }
         }
+        if (Double.isNaN(motionVector.getX())) {
+            throw new IllegalStateException("Motion vector is NaN");
+        }
         return motionVector;
     }
 
@@ -761,34 +764,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return rail state
      */
     public RailState discoverRail() {
-        try (Timings t = Timings.start(getClass(), "discoverRail")) {
-        // Store motion vector in state
-        RailState state = new RailState();
-        state.setMember(this);
-        boolean result = this.fillRailInformation(state);
-        if (!result) {
-            state.setMotionVector(this.calcMotionVector(true));
-        }
-        if (!state.hasEnterDirection()) {
-            state.initEnterDirection();
-        }
-
-        // Normalize motion vector
-        state.position().normalizeMotion();
-
-        // When railed, compute the direction by snapping the motion vector onto the rail
-        // This creates a motion vector perfectly aligned with the rail path.
-        // This is important for later when looking for more rails, because we can
-        // invert the motion vector to go 'the other way'.
-        if (state.railType() != RailType.NONE) {
-            RailLogic logic = state.loadRailLogic();
-            RailPath path = logic.getPath();
-            if (!path.isEmpty()) {
-                path.snap(state.position(), state.railBlock());
+        try (Timings t = TCTimings.MEMBER_PHYSICS_DISCOVER_RAIL.start()) {
+            // Store motion vector in state
+            RailState state = new RailState();
+            state.setMember(this);
+            boolean result = this.fillRailInformation(state);
+            if (!result) {
+                state.setRailType(RailType.NONE);
+                state.position().setLocation(entity.getLocation());
+                state.setMotionVector(this.calcMotionVector(true));
+                state.initEnterDirection();
             }
-        }
 
-        return state;
+            // Normalize motion vector
+            state.position().normalizeMotion();
+
+            // When railed, compute the direction by snapping the motion vector onto the rail
+            // This creates a motion vector perfectly aligned with the rail path.
+            // This is important for later when looking for more rails, because we can
+            // invert the motion vector to go 'the other way'.
+            if (state.railType() != RailType.NONE) {
+                RailLogic logic = state.loadRailLogic();
+                RailPath path = logic.getPath();
+                if (!path.isEmpty()) {
+                    path.snap(state.position(), state.railBlock());
+                }
+            }
+
+            return state;
         }
     }
 

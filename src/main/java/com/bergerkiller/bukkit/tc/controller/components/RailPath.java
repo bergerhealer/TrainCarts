@@ -682,6 +682,9 @@ public class RailPath {
         }
 
         public void setMotion(Vector movement) {
+            if (Double.isNaN(movement.getX())) {
+                throw new IllegalArgumentException("Motion vector is NaN");
+            }
             this.motX = movement.getX();
             this.motY = movement.getY();
             this.motZ = movement.getZ();
