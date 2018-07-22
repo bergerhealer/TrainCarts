@@ -671,11 +671,6 @@ public class SignActionEvent extends Event implements Cancellable {
             return false;
         }
 
-        // If minecart is coming from the same direction, then there obviously is rails there
-        if (this.hasMember() && this.getMember().getDirectionTo() == direction.getOppositeFace()) {
-            return true;
-        }
-
         // Move from the current rail minecart position one block into the direction
         // Check if a rail exists there. If there is, check if it points at this rail
         // If so, then there is a rails there!
