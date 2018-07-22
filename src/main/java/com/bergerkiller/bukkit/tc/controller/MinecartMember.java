@@ -688,16 +688,23 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // This only works when the minecart has a direct neighbor
         // If no direct neighbor is available, it will default to using its own velocity
         Vector motionVector = this.entity.getVelocity();
+        if (Double.isNaN(motionVector.lengthSquared())) {
+            motionVector = new Vector();
+        }
         if (ignoreVelocity || motionVector.lengthSquared() <= 1e-5) {
             if (!this.isSingle()) {
+                Vector alterMotionVector = motionVector;
                 MinecartMember<?> next = this.getNeighbour(-1);
                 if (next != null) {
-                    motionVector = this.getEntity().last.offsetTo(next.getEntity().last);
+                    alterMotionVector = this.getEntity().last.offsetTo(next.getEntity().last);
                 } else {
                     MinecartMember<?> prev = this.getNeighbour(1);
                     if (prev != null) {
-                        motionVector = prev.getEntity().last.offsetTo(this.getEntity().last);
+                        alterMotionVector = prev.getEntity().last.offsetTo(this.getEntity().last);
                     }
+                }
+                if (!Double.isNaN(alterMotionVector.lengthSquared())) {
+                    motionVector = alterMotionVector;
                 }
             }
         }
