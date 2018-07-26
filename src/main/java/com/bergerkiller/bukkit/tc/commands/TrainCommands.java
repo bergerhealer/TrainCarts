@@ -477,7 +477,7 @@ public class TrainCommands {
                     String name = args[0];
                     boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
                     try {
-                        TrainCarts.plugin.getSavedTrains().save(group, name);
+                        TrainCarts.plugin.getSavedTrains().save(group, name, args[1]);
                         if (wasContained) {
                             p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
                         } else {
