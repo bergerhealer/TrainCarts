@@ -1,7 +1,11 @@
 package com.bergerkiller.bukkit.tc.properties;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ListIterator;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
