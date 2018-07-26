@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc.properties;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -300,5 +302,13 @@ public class SavedTrainPropertiesStore {
         positionNode.set("rotX", MathUtil.round(rot.getX(), 6));
         positionNode.set("rotY", MathUtil.round(rot.getY(), 6));
         positionNode.set("rotZ", MathUtil.round(rot.getZ(), 6));
+    }
+
+    public static List<SavedTrainPropertiesStore> loadSavedTrainsModules(String directory) {
+        List<SavedTrainPropertiesStore> modules = new ArrayList<>();
+        for (File file : StreamUtil.listFiles(new File(directory))) {
+            modules.add(new SavedTrainPropertiesStore(directory + File.separator + file.getName()));
+        }
+        return modules;
     }
 }
