@@ -60,7 +60,6 @@ public class TrainCarts extends PluginBase {
     private AttachmentModelStore attachmentModels;
     private SpawnSignManager spawnSignManager;
     private SavedTrainPropertiesStore savedTrainsStore;
-    private List<SavedTrainPropertiesStore> savedTrainsModules;
     private TCMountPacketHandler mountHandler;
     private SeatAttachmentMap seatAttachmentMap;
 
@@ -314,7 +313,8 @@ public class TrainCarts extends PluginBase {
 
         //Load saved trains
         this.savedTrainsStore = new SavedTrainPropertiesStore(getDataFolder() + File.separator + "SavedTrainProperties.yml");
-        this.savedTrainsModules = SavedTrainPropertiesStore.loadSavedTrainsModules(getDataFolder() + File.separator + "savedTrainModules");
+        this.savedTrainsStore.loadModules(getDataFolder() + File.separator + "savedTrainModules");
+
         //Load groups
         OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
