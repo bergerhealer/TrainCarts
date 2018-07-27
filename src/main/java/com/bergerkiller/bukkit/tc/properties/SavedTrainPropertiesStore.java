@@ -50,7 +50,11 @@ public class SavedTrainPropertiesStore {
 
     public void loadModules(String directory) {
         if (this.allowModules) {
-            for (File file : StreamUtil.listFiles(new File(directory))) {
+            File dir = new File(directory);
+            if (!dir.exists()) {
+                dir.mkdir();
+            }
+            for (File file : StreamUtil.listFiles(dir)) {
                 String name = file.getName();
                 modules.put(name, new SavedTrainPropertiesStore(directory + File.separator + name, false));
             }
