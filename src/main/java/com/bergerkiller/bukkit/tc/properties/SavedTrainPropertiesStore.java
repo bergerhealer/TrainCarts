@@ -9,6 +9,7 @@ import java.util.ListIterator;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import org.bukkit.util.FileUtil;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -65,8 +66,17 @@ public class SavedTrainPropertiesStore {
         }
     }
 
-    private void createModule(String name) {
-        modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + name, false));
+    /**
+     * Create a module from a filename. If it does not exist, it will be created.
+     * @param fileName The filename of the desired module, in format `moduleName.yml`
+     */
+    private void createModule(String fileName) {
+        String name = fileName;
+        if (fileName.indexOf(".") > 0) {
+            name = fileName.substring(0, fileName.lastIndexOf("."));
+        }
+
+        modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + fileName, false));
     }
 
     public void save(boolean autosave) {
@@ -97,7 +107,7 @@ public class SavedTrainPropertiesStore {
         }
         if (module != null && this.allowModules) {
             if (!this.modules.containsKey(module)) {
-                createModule(module);
+                createModule(module + ".yml");
             }
             this.modules.get(module).save(group, name, module);
             return;
