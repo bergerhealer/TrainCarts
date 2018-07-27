@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
  */
 public class SavedTrainPropertiesStore {
     private final FileConfiguration savedTrainsConfig;
+    private String modulesDirectory = "";
     private final List<String> names = new ArrayList<String>();
     private Map<String, SavedTrainPropertiesStore> modules = new HashMap<String, SavedTrainPropertiesStore>();;
     private boolean changed = false;
@@ -50,17 +51,22 @@ public class SavedTrainPropertiesStore {
 
     public void loadModules(String directory) {
         if (this.allowModules) {
+            this.modulesDirectory = directory;
             File dir = new File(directory);
             if (!dir.exists()) {
                 dir.mkdir();
             }
             for (File file : StreamUtil.listFiles(dir)) {
                 String name = file.getName();
-                modules.put(name, new SavedTrainPropertiesStore(directory + File.separator + name, false));
+                createModule(name);
             }
         } else {
             throw new UnsupportedOperationException("This store is not authorized to load modules");
         }
+    }
+
+    private void createModule(String name) {
+        modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + name, false));
     }
 
     public void save(boolean autosave) {
@@ -89,9 +95,9 @@ public class SavedTrainPropertiesStore {
         if (Character.isDigit(name.charAt(0))) {
             throw new IllegalNameException("Name starts with a digit");
         }
-        if (module != null) {
+        if (module != null && this.allowModules) {
             if (!this.modules.containsKey(module)) {
-                throw new IllegalNameException("There is no loaded module by that name");
+                createModule(module);
             }
             this.modules.get(module).save(group, name, module);
             return;
