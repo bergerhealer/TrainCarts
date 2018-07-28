@@ -118,6 +118,12 @@ public class GlobalCommands {
             TrainCarts.plugin.loadConfig();
             sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
             return true;
+        } else if (args[0].equals("reloadsavedtrains")) {
+            Permission.COMMAND_RELOAD.handle(sender);
+            TrainCarts.plugin.save(false);
+            TrainCarts.plugin.loadSavedTrains();
+            sender.sendMessage(ChatColor.YELLOW + "Reloaded saved trains and modules");
+            return true;
         } else if (args[0].equals("saveall")) {
             Permission.COMMAND_SAVEALL.handle(sender);
             TrainCarts.plugin.save(false);

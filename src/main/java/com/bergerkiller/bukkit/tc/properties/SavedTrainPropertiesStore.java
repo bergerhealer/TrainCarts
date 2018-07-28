@@ -1,10 +1,15 @@
 package com.bergerkiller.bukkit.tc.properties;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ListIterator;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import org.bukkit.util.FileUtil;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -25,41 +30,60 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
  */
 public class SavedTrainPropertiesStore {
     private final FileConfiguration savedTrainsConfig;
+    private String modulesDirectory = "";
     private final List<String> names = new ArrayList<String>();
+    private Map<String, SavedTrainPropertiesStore> modules = new HashMap<String, SavedTrainPropertiesStore>();;
     private boolean changed = false;
+    private boolean allowModules = true;
 
     public SavedTrainPropertiesStore(String filename) {
         this.savedTrainsConfig = new FileConfiguration(filename);
         this.savedTrainsConfig.load();
         this.names.addAll(this.savedTrainsConfig.getKeys());
 
-        // Rename trains starting with a number, as this breaks things
-        ListIterator<String> iter = this.names.listIterator();
-        while (iter.hasNext()) {
-            String name = iter.next();
-            if (!this.savedTrainsConfig.isNode(name)) {
-                iter.remove();
-                continue;
-            }
-            if (!name.isEmpty() && !Character.isDigit(name.charAt(0))) {
-                continue;
-            }
-
-            String new_name = "t" + name;
-            for (int i = 1; names.contains(new_name); i++) {
-                new_name = "t" + name + i;
-            }
-
-            TrainCarts.plugin.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
-            iter.set(new_name);
-            this.savedTrainsConfig.set(new_name, this.savedTrainsConfig.getNode(name).clone());
-            this.savedTrainsConfig.remove(name);
-            this.changed = true;
-        }
+        renameTrainsBeginningWithDigits();
 
     }
 
+    public SavedTrainPropertiesStore(String filename, boolean allowModules) {
+        this(filename);
+        this.allowModules = allowModules;
+    }
+
+    public void loadModules(String directory) {
+        if (this.allowModules) {
+            this.modulesDirectory = directory;
+            File dir = new File(directory);
+            if (!dir.exists()) {
+                dir.mkdir();
+            }
+            for (File file : StreamUtil.listFiles(dir)) {
+                String name = file.getName();
+                createModule(name);
+            }
+        } else {
+            throw new UnsupportedOperationException("This store is not authorized to load modules");
+        }
+    }
+
+    /**
+     * Create a module from a filename. If it does not exist, it will be created.
+     * @param fileName The filename of the desired module, in format `moduleName.yml`
+     */
+    private void createModule(String fileName) {
+        String name = fileName;
+        if (fileName.indexOf(".") > 0) {
+            name = fileName.substring(0, fileName.lastIndexOf("."));
+        }
+
+        modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + fileName, false));
+    }
+
     public void save(boolean autosave) {
+        for (SavedTrainPropertiesStore module : this.modules.values()) {
+            module.save(autosave);
+        }
+
         if (autosave && !this.changed) {
             return;
         }
@@ -72,13 +96,21 @@ public class SavedTrainPropertiesStore {
      * 
      * @param group to save
      * @param name to save as
+     * @param module to save in. null for the default store.
      */
-    public void save(MinecartGroup group, String name) throws IllegalNameException {
+    public void save(MinecartGroup group, String name, String module) throws IllegalNameException {
         if (name == null || name.isEmpty()) {
             throw new IllegalNameException("Name is empty");
         }
         if (Character.isDigit(name.charAt(0))) {
             throw new IllegalNameException("Name starts with a digit");
+        }
+        if (module != null && this.allowModules) {
+            if (!this.modules.containsKey(module)) {
+                createModule(module + ".yml");
+            }
+            this.modules.get(module).save(group, name, module);
+            return;
         }
 
         this.changed = true;
@@ -118,25 +150,50 @@ public class SavedTrainPropertiesStore {
      */
     public ConfigurationNode getConfig(String name) {
         if (!this.savedTrainsConfig.isNode(name)) {
+            for (SavedTrainPropertiesStore module : this.modules.values()) {
+                ConfigurationNode config = module.getConfig(name);
+                if (config != null) {
+                    return config;
+                }
+            }
             return null;
         }
         return this.savedTrainsConfig.getNode(name);
     }
 
     /**
-     * Attempts to find a String token that starts with the name of a saved train
+     * Attempts to find a String token that starts with the name of a saved train. First searches
+     * modules, then searches the default store.
      * 
      * @param text to find a name in
      * @return name found, null if none found
      */
     public String findName(String text) {
         String foundName = null;
+
+        for (SavedTrainPropertiesStore module : this.modules.values()) {
+            String name = module.findName(text);
+            if (name != null) {
+                foundName = name;
+            }
+        }
+
+
         for (String name : this.names) {
             if (text.startsWith(name) && (foundName == null || name.length() > foundName.length())) {
                 foundName = name;
             }
         }
+
         return foundName;
+    }
+
+    /**
+     * Get a list of all saved trains in this store (not including modules)
+     * @return A List of the names of all saved trains' in this store
+     */
+    public List<String> getNames() {
+        return this.names;
     }
 
     /**
@@ -152,6 +209,32 @@ public class SavedTrainPropertiesStore {
                     upgradeSavedTrains(new Matrix4x4(), new Matrix4x4(), cart.getNode("model"), undo);
                 }
             }
+        }
+    }
+
+    private void renameTrainsBeginningWithDigits() {
+        // Rename trains starting with a number, as this breaks things
+        ListIterator<String> iter = this.names.listIterator();
+        while (iter.hasNext()) {
+            String name = iter.next();
+            if (!this.savedTrainsConfig.isNode(name)) {
+                iter.remove();
+                continue;
+            }
+            if (!name.isEmpty() && !Character.isDigit(name.charAt(0))) {
+                continue;
+            }
+
+            String new_name = "t" + name;
+            for (int i = 1; names.contains(new_name); i++) {
+                new_name = "t" + name + i;
+            }
+
+            TrainCarts.plugin.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
+            iter.set(new_name);
+            this.savedTrainsConfig.set(new_name, this.savedTrainsConfig.getNode(name).clone());
+            this.savedTrainsConfig.remove(name);
+            this.changed = true;
         }
     }
 
@@ -291,6 +374,8 @@ public class SavedTrainPropertiesStore {
         return transform;
     }
 
+
+
     private static void setAttTransform(ConfigurationNode positionNode, Matrix4x4 transform) {
         Vector pos = transform.toVector();
         Vector rot = transform.getYawPitchRoll();
@@ -300,5 +385,13 @@ public class SavedTrainPropertiesStore {
         positionNode.set("rotX", MathUtil.round(rot.getX(), 6));
         positionNode.set("rotY", MathUtil.round(rot.getY(), 6));
         positionNode.set("rotZ", MathUtil.round(rot.getZ(), 6));
+    }
+
+    private static List<SavedTrainPropertiesStore> loadSavedTrainsModules(String directory) {
+        List<SavedTrainPropertiesStore> modules = new ArrayList<>();
+        for (File file : StreamUtil.listFiles(new File(directory))) {
+            modules.add(new SavedTrainPropertiesStore(directory + File.separator + file.getName()));
+        }
+        return modules;
     }
 }
