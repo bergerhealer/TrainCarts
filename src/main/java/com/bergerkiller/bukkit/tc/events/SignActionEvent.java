@@ -139,7 +139,7 @@ public class SignActionEvent extends Event implements Cancellable {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
                     if (rail.member == this.member && rail.block.equals(rails)) {
-                        return rail.state.position().getMotion();
+                        return rail.state.enterDirection();
                     }
                 }
             }
