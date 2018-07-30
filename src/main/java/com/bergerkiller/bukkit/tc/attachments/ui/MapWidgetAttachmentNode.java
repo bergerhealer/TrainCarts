@@ -3,13 +3,9 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
-
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
@@ -25,6 +21,7 @@ public class MapWidgetAttachmentNode extends MapWidget {
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
     private MapTexture icon = null;
+    private boolean changingOrder = false;
 
     public MapWidgetAttachmentNode() {
         this(new ConfigurationNode());
@@ -57,6 +54,10 @@ public class MapWidgetAttachmentNode extends MapWidget {
     
     public MapWidgetAttachmentNode getParentAttachment() {
         return this.parentAttachment;
+    }
+
+    public void setParentAttachment(MapWidgetAttachmentNode newParent) {
+        this.parentAttachment = newParent;
     }
 
     public void openMenu(MenuItem item) {
@@ -198,6 +199,13 @@ public class MapWidgetAttachmentNode extends MapWidget {
             }
         }.setIcon("attachments/general_menu.png").setPosition(px, 1));
         px += 17;
+
+        // Enabled/disabled
+        if (this.isChangingOrder()) {
+            for (MapWidget child : this.getWidgets()) {
+                child.setEnabled(false);
+            }
+        }
     }
 
     @Override
@@ -278,7 +286,9 @@ public class MapWidgetAttachmentNode extends MapWidget {
             view.draw(getIcon(), px + 1, 1);
         }
 
-        if (this.isFocused()) {
+        if (this.isChangingOrder()) {
+            view.drawRectangle(px, 0, getWidth() - px, getHeight(), MapColorPalette.COLOR_RED);
+        } else if (this.isFocused()) {
             view.drawRectangle(px, 0, getWidth() - px, getHeight(), MapColorPalette.COLOR_BLACK);
         } else if (this.isActivated()) {
             view.drawRectangle(px, 0, getWidth() - px, getHeight(), MapColorPalette.COLOR_GREEN);
@@ -287,6 +297,20 @@ public class MapWidgetAttachmentNode extends MapWidget {
 
     public void resetIcon() {
         this.icon = null;
+    }
+
+    public void setChangingOrder(boolean changing) {
+        if (this.changingOrder != changing) {
+            this.changingOrder = changing;
+            this.invalidate();
+            for (MapWidget child : this.getWidgets()) {
+                child.setEnabled(!changing);
+            }
+        }
+    }
+
+    public boolean isChangingOrder() {
+        return this.changingOrder;
     }
 
     private MapTexture getIcon() {

@@ -39,6 +39,7 @@ public class GeneralMenu extends MapWidgetWindow {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
+                attachment.setChangingOrder(true);
                 GeneralMenu.this.deactivate();
             }
         }).setText("Change order").setBounds(10, 30, 98, 18);
