@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
@@ -52,10 +51,11 @@ public class SignActionWait extends SignAction {
             else if (distanceData.startsWith("wait"))
                 distanceData = distanceData.replaceFirst("wait", "");
 
-            int distance = 0;
+            double distance = 0;
 
             // Check if the distance is not a number
             if (distanceData.matches("[a-zA-Z]+")) {
+                // Find the next wait distance sign. This stuff uses old code, and is likely broken.
                 TrackIterator iterator = new TrackIterator(info.getRails(),
                         launchDirection != null ? launchDirection : info.getCartDirection());
 
@@ -81,16 +81,13 @@ public class SignActionWait extends SignAction {
                 // Store distance
                 info.setLine(1, "waiter" + String.valueOf(distance));
             } else {
-                distance = ParseUtil.parseInt(info.getLine(1), 100);
+                distance = ParseUtil.parseDouble(info.getLine(1), 100.0);
             }
 
             long delay = ParseUtil.parseTime(info.getLine(2));
 
-            //allowed?
-            BlockFace dir = info.getMember().getDirectionTo();
-
             //distance
-            if (MemberActionWaitOccupied.handleOccupied(info.getRails(), dir, info.getMember(), distance)) {
+            if (info.getGroup().getSpeedAhead(distance) != Double.MAX_VALUE) {
                 info.getGroup().getActions().clear();
                 info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity);
             }

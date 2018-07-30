@@ -1039,14 +1039,22 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         System.out.println(msg);
     }
 
-    private double getSpeedAhead() {
+    /**
+     * Gets the speed the train should be moving at to avoid collision with any trains in front.
+     * A return value of 0 or less indicates the train should be halted entirely. A return value
+     * of Double.MAX_VALUE indicates there are no obstacles ahead and the train can move on uninterrupted.
+     * 
+     * @param distance to look for trains ahead
+     * @return speed to match
+     */
+    public double getSpeedAhead(double distance) {
         // Not sure if fixed, but if this train is empty, return MAX_VALUE
         if (this.isEmpty()) {
             return Double.MAX_VALUE;
         }
 
         // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
-        if (this.getProperties().getWaitDistance() <= 0.0) {
+        if (distance <= 0.0) {
             UUID world = this.head().getEntity().getWorld().getUID();
             IntVector3 block = this.head().getBlockPos();
             if (!MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
@@ -1055,7 +1063,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
 
         boolean checkTrains = false;
-        double waitDistance = this.getProperties().getWaitDistance();
+        double waitDistance = distance;
         if (waitDistance > 0.0) {
             checkTrains = true;
         }
@@ -1297,7 +1305,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // If a wait distance is set, check for trains ahead of the track and wait for those
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
             try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
-                double speedAhead = this.getSpeedAhead();
+                double speedAhead = this.getSpeedAhead(this.getProperties().getWaitDistance());
                 double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
                 if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
                     speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);
