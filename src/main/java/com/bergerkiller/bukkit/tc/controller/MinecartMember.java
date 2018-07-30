@@ -692,11 +692,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             motionVector = new Vector();
         }
         if (ignoreVelocity || motionVector.lengthSquared() <= 1e-5) {
-            if (this.isSingle()) {
-                if (this.direction != null) {
-                    motionVector = FaceUtil.faceToVector(this.direction);
-                }
-            } else {
+            if (this.direction != null) {
+                motionVector = FaceUtil.faceToVector(this.direction);
+            } else if (!this.isSingle()) {
                 Vector alterMotionVector = motionVector;
                 MinecartMember<?> next = this.getNeighbour(-1);
                 if (next != null) {
