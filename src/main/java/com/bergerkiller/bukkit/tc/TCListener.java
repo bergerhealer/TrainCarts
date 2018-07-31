@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
@@ -30,6 +31,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityMinecartRideableHandle;
@@ -417,6 +419,27 @@ public class TCListener implements Listener {
             return;
         }
 
+        // Train spawning chest item
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && StoredTrainItemUtil.isItem(heldItem)) {
+            if (!Permission.COMMAND_USE_STORAGE_CHEST.has(event.getPlayer())) {
+                Localization.CHEST_NOPERM.message(event.getPlayer());
+                return;
+            }
+
+            event.setUseInteractedBlock(Result.DENY);
+            event.setUseItemInHand(Result.DENY);
+            event.setCancelled(true);
+
+            StoredTrainItemUtil.SpawnResult result;
+            result = StoredTrainItemUtil.spawn(heldItem, event.getPlayer(), event.getClickedBlock());
+            result.getLocale().message(event.getPlayer());
+            if (result == StoredTrainItemUtil.SpawnResult.SUCCESS) {
+                StoredTrainItemUtil.playSoundSpawn(event.getPlayer());
+            }
+
+            return;
+        }
+
         try {
             // Obtain the clicked block
             Block clickedBlock = event.getClickedBlock();
@@ -716,7 +739,7 @@ public class TCListener implements Listener {
         if (!(event.getRightClicked() instanceof Minecart)) {
             return;
         }
-
+        
         // Check that we are not spam-clicking (for block placement, that is!)
         Long lastHitTime = lastHitTimes.get(event.getPlayer());
         if (lastHitTime != null) {
@@ -726,6 +749,37 @@ public class TCListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
+        }
+
+        // Handle clicking groups while holding a train storage chest
+        ItemStack heldItem = HumanHand.getItemInMainHand(event.getPlayer());
+        if (StoredTrainItemUtil.isItem(heldItem)) {
+            event.setCancelled(true);
+            if (!Permission.COMMAND_USE_STORAGE_CHEST.has(event.getPlayer())) {
+                Localization.CHEST_NOPERM.message(event.getPlayer());
+                return;
+            }
+            if (StoredTrainItemUtil.isLocked(heldItem)) {
+                Localization.CHEST_LOCKED.message(event.getPlayer());
+                return;
+            }
+
+            MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getRightClicked());
+            if (member == null || member.isUnloaded() || member.getGroup() == null) {
+                return;
+            }
+
+            heldItem = heldItem.clone();
+            StoredTrainItemUtil.store(heldItem, member.getGroup());
+            HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+            Localization.CHEST_PICKUP.message(event.getPlayer());
+            StoredTrainItemUtil.playSoundStore(event.getPlayer());
+
+            if (!event.getPlayer().isSneaking()) {
+                member.getGroup().destroy();
+            }
+
+            return;
         }
 
         // Handle the vehicle change

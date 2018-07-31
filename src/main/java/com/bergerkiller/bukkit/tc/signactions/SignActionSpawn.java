@@ -7,10 +7,10 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup.CenterMode;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
-import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
@@ -272,22 +272,10 @@ public class SignActionSpawn extends SignAction {
             }
 
             //Spawn
-            MinecartGroup group = MinecartGroup.create();
-            for (int i = spawnLocations.size() - 1; i >= 0; i--) {
-                Location spawnLoc = spawnLocations.get(i);
-                if (types.get(i).isFlipped()) {
-                    spawnLoc = Util.invertRotation(spawnLoc);
-                }
-
-                // Spawn the minecart
-                group.add(types.get(i).spawn(spawnLoc));
-            }
-            group.updateDirection();
-            group.getProperties().load(spawnSign.getSpawnableGroup().getConfig());
-            if (spawnForce != 0 && launchDirection != BlockFace.SELF) {
+            MinecartGroup group = MinecartGroupStore.spawn(spawnSign.getSpawnableGroup(), spawnLocations);
+            if (group != null && spawnForce != 0 && launchDirection != BlockFace.SELF) {
                 group.head().getActions().addActionLaunch(launchDirection, 2, spawnForce);
             }
-            GroupCreateEvent.call(group);
 
             return spawnLocations;
         }
@@ -295,38 +283,35 @@ public class SignActionSpawn extends SignAction {
     }
 
     /**
-     * Gets the Minecart spawn positions into a certain drection.
-     * The first location is always the middle on top of the current rail of the sign.
+     * Gets the Minecart spawn positions into a certain direction.
+     * The first location is always the startLoc Location.
      * 
-     * @param info sign event information
+     * @param startLoc position to start spawning from
+     * @param atCenter whether the first spawn position is the startLoc (true), or an offset away (false)
      * @param directionFace of spawning
-     * @param nLimit limit amount of minecarts to spawn where we can stop looking for more spaces
-     * @return SpawnPositions with locs limited to the amount that could be spawned
+     * @param types of spawnable members to spawn
+     * @return spawn locations list. Number of locations may be less than the number of types.
      */
-    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace directionFace, List<SpawnableMember> types) {
+    public static List<Location> getSpawnPositions(Location startLoc, boolean atCenter, BlockFace directionFace, List<SpawnableMember> types) {
         Vector motionVector = FaceUtil.faceToVector(directionFace);
-
-        SpawnPositions result = new SpawnPositions();
-        result.direction = directionFace;
-        result.powered = info.isPowered(directionFace);
-        Location centerLoc = info.getCenterLocation();
-        if (types.size() == 1) {
+        List<Location> result = new ArrayList<Location>(types.size());
+        if (atCenter && types.size() == 1) {
             // Single-minecart spawning logic
             // Require there to be one extra free rail in the direction we are spawning
-            if (MinecartMemberStore.getAt(centerLoc) == null) {
-                TrackWalkingPoint walker = new TrackWalkingPoint(info.getCenterLocation(), motionVector);
+            if (MinecartMemberStore.getAt(startLoc) == null) {
+                TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, motionVector);
                 walker.skipFirst();
                 if (walker.moveFull()) {
-                    result.locs.add(centerLoc);
+                    result.add(startLoc);
                 }
             }
         } else {
             // Multiple-minecart spawning logic
-            TrackWalkingPoint walker = new TrackWalkingPoint(info.getCenterLocation(), motionVector);
+            TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, motionVector);
             walker.skipFirst();
             for (int i = 0; i < types.size(); i++) {
                 SpawnableMember type = types.get(i);
-                if (i == 0) {
+                if (atCenter && i == 0) {
                     if (!walker.move(0.0)) {
                         break;
                     }
@@ -335,7 +320,7 @@ public class SignActionSpawn extends SignAction {
                         break;
                     }
                 }
-                result.locs.add(walker.state.positionLocation());
+                result.add(walker.state.positionLocation());
                 if ((i == types.size() - 1) || !walker.move(0.5 * type.getLength() + TCConfig.cartDistanceGap)) {
                     break;
                 }
@@ -344,9 +329,26 @@ public class SignActionSpawn extends SignAction {
         return result;
     }
 
+    /**
+     * Gets the Minecart spawn positions into a certain direction.
+     * The first location is always the middle on top of the current rail of the sign.
+     * 
+     * @param info sign event information
+     * @param directionFace of spawning
+     * @param types of spawnable members to spawn
+     * @return SpawnPositions with locs limited to the amount that could be spawned
+     */
+    private static SpawnPositions getSpawnPositions(SignActionEvent info, BlockFace directionFace, List<SpawnableMember> types) {
+        SpawnPositions result = new SpawnPositions();
+        result.direction = directionFace;
+        result.locs = getSpawnPositions(info.getCenterLocation(), true, directionFace, types);
+        result.powered = info.isPowered(directionFace);
+        return result;
+    }
+
     private static class SpawnPositions implements Comparable<SpawnPositions> {
         public BlockFace direction;
-        public List<Location> locs = new ArrayList<Location>();
+        public List<Location> locs;
         public boolean powered;
 
         @Override

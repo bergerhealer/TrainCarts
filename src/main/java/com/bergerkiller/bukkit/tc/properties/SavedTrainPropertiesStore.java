@@ -9,19 +9,16 @@ import java.util.ListIterator;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
-import org.bukkit.util.FileUtil;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 
 /**
@@ -114,30 +111,7 @@ public class SavedTrainPropertiesStore {
         }
 
         this.changed = true;
-        ConfigurationNode config = this.savedTrainsConfig.getNode(name);
-        config.clear();
-
-        group.getProperties().save(config);
-        config.remove("carts");
-
-        List<ConfigurationNode> cartConfigList = new ArrayList<ConfigurationNode>();
-        for (MinecartMember<?> member : group) {
-            ConfigurationNode cartConfig = new ConfigurationNode();
-            member.getProperties().save(cartConfig);
-            cartConfig.set("entityType", member.getEntity().getType());
-            cartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
-            cartConfig.remove("owners");
-
-            ConfigurationNode data = new ConfigurationNode();
-            member.onTrainSaved(data);
-            if (!data.isEmpty()) {
-                cartConfig.set("data", data);
-            }
-
-            cartConfigList.add(cartConfig);
-        }
-        config.setNodeList("carts", cartConfigList);
-
+        this.savedTrainsConfig.set(name, group.saveConfig());
         this.names.remove(name);
         this.names.add(name);
     }

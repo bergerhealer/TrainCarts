@@ -3,10 +3,12 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
@@ -104,6 +106,39 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             TrainPropertiesStore.remove(this.prop.getTrainName());
         }
         this.prop = properties;
+    }
+
+    /**
+     * Saves the properties of this train, preserving information such the order of the carts
+     * and the orientation of each cart. Owner information is stripped.
+     * 
+     * @return configuration useful for saving as a train
+     */
+    public ConfigurationNode saveConfig() {
+        ConfigurationNode config = new ConfigurationNode();
+
+        this.getProperties().save(config);
+        config.remove("carts");
+
+        List<ConfigurationNode> cartConfigList = new ArrayList<ConfigurationNode>();
+        for (MinecartMember<?> member : this) {
+            ConfigurationNode cartConfig = new ConfigurationNode();
+            member.getProperties().save(cartConfig);
+            cartConfig.set("entityType", member.getEntity().getType());
+            cartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
+            cartConfig.remove("owners");
+
+            ConfigurationNode data = new ConfigurationNode();
+            member.onTrainSaved(data);
+            if (!data.isEmpty()) {
+                cartConfig.set("data", data);
+            }
+
+            cartConfigList.add(cartConfig);
+        }
+        config.setNodeList("carts", cartConfigList);
+
+        return config;
     }
 
     public SignTrackerGroup getSignTracker() {

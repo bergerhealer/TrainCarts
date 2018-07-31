@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -30,6 +31,7 @@ import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -46,6 +48,8 @@ import org.bukkit.util.Vector;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Locale;
 
 public class GlobalCommands {
 
@@ -375,8 +379,63 @@ public class GlobalCommands {
         } else if (args[0].equals("attachments")) {
             Permission.COMMAND_GIVE_EDITOR.handle(sender);
             ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
-            ItemUtil.setDisplayName(item, "TrainCarts Attachments Editor");
+            ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
             ((Player) sender).getInventory().addItem(item);
+            sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+            return true;
+        } else if (args[0].equals("chest")) {
+            Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
+
+            Player player = (Player) sender;
+
+            ItemStack item = null;
+
+            String instruction = (args.length > 1) ? args[1].toLowerCase(Locale.ENGLISH) : "";
+            String parameters = "";
+            if (args.length > 2) {
+                parameters = StringUtil.join(" ", Arrays.asList(args).subList(2, args.length));
+            }
+            if (!instruction.isEmpty()) {
+                item = HumanHand.getItemInMainHand(player);
+                if (StoredTrainItemUtil.isItem(item)) {
+                    item = ItemUtil.cloneItem(item);
+                } else {
+                    item = null;
+                    instruction = "";
+                }
+            }
+
+            if (instruction.equals("set")) {
+                StoredTrainItemUtil.store(item, parameters);
+            } else if (instruction.equals("clear")) {
+                StoredTrainItemUtil.clear(item);
+            } else if (instruction.equals("lock")) {
+                StoredTrainItemUtil.setLocked(item, true);
+            } else if (instruction.equals("unlock")) {
+                StoredTrainItemUtil.setLocked(item, false);
+            } else if (instruction.equals("name")) {
+                StoredTrainItemUtil.setName(item, parameters);
+            } else {
+                // Invalid
+                instruction = "";
+                item = null;
+            }
+
+            if (item == null) {
+                // No item, create a new one and give it to the player
+                item = StoredTrainItemUtil.createItem();
+                if (args.length > 1) {
+                    String typesStr = StringUtil.join(" ", Arrays.asList(args).subList(1, args.length));
+                    StoredTrainItemUtil.store(item, typesStr);
+                }
+                player.getInventory().addItem(item);
+                Localization.CHEST_GIVE.message(sender);
+            } else {
+                // Existing item. Update it in the player's currently selected slot
+                HumanHand.setItemInMainHand(player, item);
+                Localization.CHEST_UPDATE.message(sender);
+            }
+
             return true;
         } else if (args[0].equals("debug")) {
             Permission.DEBUG_COMMAND_DEBUG.handle(sender);
