@@ -41,7 +41,8 @@ public class SignActionLauncher extends SignAction {
             Direction direction = Direction.parse(info.getLine(3));
             // Launch all groups
             for (MinecartGroup group : info.getRCTrainGroups()) {
-                BlockFace directionFace = direction.getDirection(group.head().getDirection());
+                BlockFace cartDirection = group.head().getDirection();
+                BlockFace directionFace = direction.getDirection(cartDirection, cartDirection);
                 group.getActions().clear();
                 group.head().getActions().addActionLaunch(directionFace, launchConfig, velocity);
             }
