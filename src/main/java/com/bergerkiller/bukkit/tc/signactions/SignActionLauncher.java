@@ -37,15 +37,13 @@ public class SignActionLauncher extends SignAction {
         LauncherConfig launchConfig = LauncherConfig.parse(launchConfigStr);
 
         if (info.isRCSign()) {
-            boolean reverse = Direction.parse(info.getLine(3)) == Direction.BACKWARD;
 
+            Direction direction = Direction.parse(info.getLine(3));
             // Launch all groups
             for (MinecartGroup group : info.getRCTrainGroups()) {
-                if (reverse) {
-                    group.reverse();
-                }
+                BlockFace directionFace = direction.getDirection(group.head().getDirection());
                 group.getActions().clear();
-                group.head().getActions().addActionLaunch(launchConfig, velocity);
+                group.head().getActions().addActionLaunch(directionFace, launchConfig, velocity);
             }
         } else if (info.hasRailedMember()) {
             // Parse the direction to launch into
