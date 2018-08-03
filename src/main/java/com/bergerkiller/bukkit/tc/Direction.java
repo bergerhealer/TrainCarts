@@ -136,7 +136,7 @@ public enum Direction {
         Direction[] dirs = parseAll(text);
         BlockFace[] faces = new BlockFace[dirs.length];
         for (int i = 0; i < faces.length; i++) {
-            faces[i] = dirs[i].getDirection(absoluteDirection, absoluteDirection);
+            faces[i] = dirs[i].getDirection(absoluteDirection);
         }
         return faces;
     }
