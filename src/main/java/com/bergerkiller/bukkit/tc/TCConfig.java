@@ -199,7 +199,7 @@ public class TCConfig {
 
         config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
         config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");
-        enableSeatThirdPersonView = config.get("enableSeatThirdPersonView", true);
+        enableSeatThirdPersonView = config.get("enableSeatThirdPersonView", false);
 
         config.setHeader("maxDetectorLength", "\nThe maximum length a detector region (between two detectors) can be");
         maxDetectorLength = config.get("maxDetectorLength", 2000);
