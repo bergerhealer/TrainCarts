@@ -1162,16 +1162,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             // Detect this and cancel this collision. This allows smooth air<>vertical logic.
             Vector upVector = this.getOrientation().upVector();
             if (upVector.getY() >= -0.1 && upVector.getY() <= 0.1) {
-                if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
-                    double closest_dz = hitBlock.getZ() - this.entity.loc.getZ();
-                    if (closest_dz < -0.5) closest_dz += 1.0;
-                    if ((upVector.getZ() > 0.0 && closest_dz < -0.01)) return false;
-                    if ((upVector.getZ() < 0.0 && closest_dz > 0.01)) return false;
+                // If HitBlock x/z space contains the x/z position of the Minecart, allow the collision
+                double closest_dx = this.entity.loc.getX() - hitBlock.getX();
+                double closest_dz = this.entity.loc.getZ() - hitBlock.getZ();
+                final double MIN_COORD = 1e-10;
+                final double MAX_COORD = 1.0 - MIN_COORD;
+                if (closest_dx >= MIN_COORD && closest_dx <= MAX_COORD && closest_dz >= MIN_COORD && closest_dz <= MAX_COORD) {
+                    // Block is directly above or below; allow the collision
+                } else if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
+                    if ((-closest_dz) < -0.5) closest_dz -= 1.0;
+                    if ((upVector.getZ() > 0.0 && (-closest_dz) < -0.01)) return false;
+                    if ((upVector.getZ() < 0.0 && (-closest_dz) > 0.01)) return false;
                 } else if (upVector.getZ() >= -0.1 && upVector.getZ() <= 0.1) {
-                    double closest_dx = hitBlock.getX() - this.entity.loc.getX();
-                    if (closest_dx < -0.5) closest_dx += 1.0;
-                    if ((upVector.getX() > 0.0 && closest_dx < -0.01)) return false;
-                    if ((upVector.getX() < 0.0 && closest_dx > 0.01)) return false;
+                    if ((-closest_dx) < -0.5) closest_dx -= 1.0;
+                    if ((upVector.getX() > 0.0 && (-closest_dx) < -0.01)) return false;
+                    if ((upVector.getX() < 0.0 && (-closest_dx) > 0.01)) return false;
                 }
             }
 
