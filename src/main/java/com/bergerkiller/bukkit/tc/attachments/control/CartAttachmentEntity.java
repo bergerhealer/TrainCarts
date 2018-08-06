@@ -46,7 +46,7 @@ public class CartAttachmentEntity extends CartAttachment {
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
-        if (entityType == EntityType.SHULKER) {
+        if (entityType.name().equals("SHULKER")) {
             this.actual = this.entity;
             this.entity = new VirtualEntity(this.controller);
             this.entity.setEntityType(EntityType.CHICKEN);
