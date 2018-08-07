@@ -162,6 +162,20 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
             // Refresh selected index after the modifications
             this.lastSelIdx += findIndexOf(selected) - globSelIdxBefore;
+
+            // Index too high, scroll
+            int a = this.lastSelIdx - this.getWidgetCount() + 1;
+            if (a > 0) {
+                this.offset += a;
+                this.lastSelIdx -= a;
+            }
+
+            // Index too low, scroll
+            if (this.lastSelIdx < 0) {
+                this.offset += this.lastSelIdx;
+                this.lastSelIdx = 0;
+            }
+
         } else if (event.getKey() == MapPlayerInput.Key.UP) {
             if (this.lastSelIdx > 0) {
                 // Focus previous widget
