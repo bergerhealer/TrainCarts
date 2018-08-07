@@ -90,9 +90,13 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public MapWidgetAttachmentNode addAttachment(ConfigurationNode config) {
+        return addAttachment(this.attachments.size(), config);
+    }
+
+    public MapWidgetAttachmentNode addAttachment(int index, ConfigurationNode config) {
         MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(config);
         attachment.parentAttachment = this;
-        this.attachments.add(attachment);
+        this.attachments.add(index, attachment);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
         return attachment;
     }

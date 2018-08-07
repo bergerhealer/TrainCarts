@@ -87,7 +87,6 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         this.lastSelIdx = widgets.indexOf(this.getNextInputWidget());
         if (this.lastSelIdx >= 0 && this.lastSelIdx < widgets.size() && widgets.get(this.lastSelIdx).isChangingOrder()) {
             MapWidgetAttachmentNode selected = widgets.get(this.lastSelIdx);
-            int globSelIdxBefore = findIndexOf(selected);
 
             // Complete changing order of widget
             if (event.getKey() == MapPlayerInput.Key.ENTER || event.getKey() == MapPlayerInput.Key.BACK) {
@@ -160,22 +159,8 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 }
             }
 
-            // Refresh selected index after the modifications
-            this.lastSelIdx += findIndexOf(selected) - globSelIdxBefore;
-
-            // Index too high, scroll
-            int a = this.lastSelIdx - this.getWidgetCount() + 1;
-            if (a > 0) {
-                this.offset += a;
-                this.lastSelIdx -= a;
-            }
-
-            // Index too low, scroll
-            if (this.lastSelIdx < 0) {
-                this.offset += this.lastSelIdx;
-                this.lastSelIdx = 0;
-            }
-
+            // Refresh selected node
+            setSelectedNode(selected);
         } else if (event.getKey() == MapPlayerInput.Key.UP) {
             if (this.lastSelIdx > 0) {
                 // Focus previous widget
@@ -230,6 +215,27 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         // Faster redraw
         if (this.resetNeeded) {
             this.updateView(this.offset);
+        }
+    }
+
+    public void setSelectedNode(MapWidgetAttachmentNode node) {
+        int new_index = findIndexOf(node) - this.offset;
+        if (new_index != this.lastSelIdx) {
+            this.lastSelIdx = new_index;
+            this.resetNeeded = true;
+        }
+
+        // Index too high, scroll
+        int a = this.lastSelIdx - this.getWidgetCount() + 1;
+        if (a > 0) {
+            this.offset += a;
+            this.lastSelIdx -= a;
+        }
+
+        // Index too low, scroll
+        if (this.lastSelIdx < 0) {
+            this.offset += this.lastSelIdx;
+            this.lastSelIdx = 0;
         }
     }
 
