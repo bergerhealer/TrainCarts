@@ -262,7 +262,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public boolean isRail(BlockData blockData) {
-        return blockData.getType() == Material.RAILS;
+        return blockData.isType(Material.RAILS);
     }
 
     @Override

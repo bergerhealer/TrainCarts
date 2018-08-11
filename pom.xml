@@ -4,7 +4,7 @@
 
     <groupId>com.bergerkiller.bukkit</groupId>
     <artifactId>TrainCarts</artifactId>
-    <version>1.12.2-v3</version>
+    <version>1.13-v1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>TrainCarts</name>
@@ -12,8 +12,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.serverversion>1.12-R0.1</project.serverversion>
-        <project.bkcversion>1.12.2-v5-SNAPSHOT</project.bkcversion>
+        <project.mcversion>1.12.2</project.mcversion>
+        <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
+        <project.bkcversion>1.13-v1-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.cibuild/>
@@ -60,12 +61,22 @@
     </repositories>
 
     <dependencies>
+        <!-- Spigot API includes the Bukkit API and is what plugins generally use -->
         <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>bukkit</artifactId>
-            <version>${project.serverversion}-SNAPSHOT</version>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>${project.cbversion}</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- The full server jar is only used during test; it should not be exposed as a dependency -->
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot</artifactId>
+            <version>${project.cbversion}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!--
         <dependency>
             <groupId>com.earth2me</groupId>
