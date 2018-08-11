@@ -28,6 +28,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
 
 /**
  * Represents a single Virtual entity, that only exists for clients using packet protocol.
@@ -238,20 +239,20 @@ public class VirtualEntity {
         if (isLivingEntity()) {
             // Spawn living entity
             //Vector us_vector = (this.syncMode == SyncMode.SEAT) ? getUnstuckVector() : new Vector();
-            CommonPacket spawnPacket = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, this.entityUUID);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, entitySpawnId);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motion.getX());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motion.getY());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motion.getZ());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motion.getX());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motion.getY());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motion.getZ());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.yaw, this.syncYaw);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.pitch, this.syncPitch);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.headYaw, (this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
+            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            spawnPacket.setEntityId(this.entityId);
+            spawnPacket.setEntityUUID(this.entityUUID);
+            spawnPacket.setEntityType(this.entityType);
+            spawnPacket.setPosX(this.syncAbsX - motion.getX());
+            spawnPacket.setPosY(this.syncAbsY - motion.getY());
+            spawnPacket.setPosZ(this.syncAbsZ - motion.getZ());
+            spawnPacket.setMotX(motion.getX());
+            spawnPacket.setMotY(motion.getY());
+            spawnPacket.setMotZ(motion.getZ());
+            spawnPacket.setDataWatcher(this.metaData);
+            spawnPacket.setYaw(this.syncYaw);
+            spawnPacket.setPitch(this.syncPitch);
+            spawnPacket.setHeadYaw((this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
             PacketUtil.sendPacket(viewer, spawnPacket);
         } else {
             // Spawn entity (generic)
