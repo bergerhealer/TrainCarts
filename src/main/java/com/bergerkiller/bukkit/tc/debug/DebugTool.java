@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.tc.debug;
 
-import java.awt.Color;
 import java.util.List;
 import java.util.Random;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -15,8 +15,8 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -58,7 +58,8 @@ public class DebugTool {
                 Random r = new Random();
                 for (MutexZone zone : zones) {
                     r.setSeed(MathUtil.longHashToLong(zone.start.hashCode(), zone.end.hashCode()));
-                    Color color = Color.getHSBColor(r.nextFloat(), 1.0f, 1.0f);
+                    java.awt.Color awt_color = java.awt.Color.getHSBColor(r.nextFloat(), 1.0f, 1.0f);
+                    Color color = Color.fromRGB(awt_color.getRed(), awt_color.getGreen(), awt_color.getBlue());
                     double x1 = zone.start.x;
                     double y1 = zone.start.y;
                     double z1 = zone.start.z;
@@ -97,30 +98,17 @@ public class DebugTool {
                     return;
                 }
                 int n = MathUtil.ceil(dist / PARTICLE_SPACING);
-                double r = (double) color.getRed() / 255.0;
-                double g = (double) color.getGreen() / 255.0;
-                double b = (double) color.getBlue() / 255.0;
                 double dx = x2 - x1;
                 double dy = y2 - y1;
                 double dz = z2 - z1;
-                Location loc = player.getLocation();
+                Vector position = new Vector();
                 for (int i = 0; i < n; i++) {
                     double t = (double) i / (double) (n-1);
-                    loc.setX(x1 + dx * t);
-                    loc.setY(y1 + dy * t);
-                    loc.setZ(z1 + dz * t);
-                    Util.spawnDustParticle(loc, r, g, b);
+                    position.setX(x1 + dx * t);
+                    position.setY(y1 + dy * t);
+                    position.setZ(z1 + dz * t);
+                    PlayerUtil.spawnDustParticles(player, position, color);
                 }
-            }
-
-            // turns a sequential integer into an unique hash number
-            int hash(int x) {
-                final int prime = 2147483647;
-                int hash = x ^ 0x5bf03635;
-                if (hash >= prime)
-                    return hash;
-                int residue = (int) (((long) hash * hash) % prime);
-                return ((hash <= prime / 2) ? residue : prime - residue);
             }
         }.start(1, PARTICLE_INTERVAL);
     }

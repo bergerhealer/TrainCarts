@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
-import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -947,21 +946,17 @@ public class Util {
      * @param blue color value [0.0 ... 1.0]
      */
     public static void spawnDustParticle(Location loc, double red, double green, double blue) {
-        red = MathUtil.clamp(red, 0.0, 1.0);
-        green = MathUtil.clamp(green, 0.0, 1.0);
-        blue = MathUtil.clamp(blue, 0.0, 1.0);
-        if (red > 0.5) {
-            red -= 1.0;
-            if (red > -0.01) {
-                red = -0.01;
+        int c_red = (int) MathUtil.clamp(255.0 * red, 0.0, 255.0);
+        int c_green = (int) MathUtil.clamp(255.0 * green, 0.0, 255.0);
+        int c_blue = (int) MathUtil.clamp(255.0 * blue, 0.0, 255.0);
+        org.bukkit.Color color = org.bukkit.Color.fromRGB(c_red, c_green, c_blue);
+        Vector position = loc.toVector();
+        for (Player player : loc.getWorld().getPlayers()) {
+            if (player.getLocation().distanceSquared(loc) > (256.0*256.0)) {
+                continue;
             }
-        } else {
-            red *= 1.7;
-            if (red < 0.00001) {
-                red = 0.00001;
-            }
+            PlayerUtil.spawnDustParticles(player, position, color);
         }
-        loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 0, red, green, blue, 1.0);
     }
 
     /**
