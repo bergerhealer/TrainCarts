@@ -79,9 +79,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
-    private static boolean HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = true;
-    private static boolean HAS_COLLISION_TOGGLE_FUNCTIONS = true;
-    private static boolean HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = true;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -137,22 +134,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.hasLinkedFarMinecarts = false;
 
         // Allows players to place blocks nearby a minecart despite having a custom model
-        if (HAS_ENTITY_PREVENTBLOCKPLACE_FIELD) {
-            try {
-                entity.setPreventBlockPlace(false);
-            } catch (NoSuchMethodError e) {
-                HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = false;
-            }
-        }
+        entity.setPreventBlockPlace(false);
 
         // Forces a standard bounding box for block collisions
-        if (HAS_COLLISION_BLOCK_BOUNDS_FUNCTION) {
-            try {
-                this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
-            } catch (NoSuchMethodError e) {
-                HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = false;
-            }
-        }
+        this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
     }
 
     @Override
@@ -1341,14 +1326,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getSignTracker().update();
 
         // Enable/disable collision handling to improve performance
-        // This only works on BKC beyond a certain version - add check!
-        if (this.group != null && HAS_COLLISION_TOGGLE_FUNCTIONS) {
-            try {
-                this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
-                this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
-            } catch (NoSuchMethodError e) {
-                HAS_COLLISION_TOGGLE_FUNCTIONS = false;
-            }
+        if (this.group != null) {
+            this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
+            this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
         }
     }
 
