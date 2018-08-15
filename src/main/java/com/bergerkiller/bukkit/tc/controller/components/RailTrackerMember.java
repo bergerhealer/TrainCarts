@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 /**
@@ -22,7 +21,7 @@ public class RailTrackerMember extends RailTracker {
 
     public RailTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
-        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, false, new Vector(0,-1,0), BlockFace.SELF);
+        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, false);
         this.lastRailLogic = this.railLogic = RailLogicGround.INSTANCE;
     }
 
@@ -74,10 +73,6 @@ public class RailTrackerMember extends RailTracker {
 
     public Vector getMotionVector() {
         return this.rail.state.motionVector();
-    }
-
-    public BlockFace getRailDirection() {
-        return this.rail.enterFace;
     }
 
     /**
@@ -157,6 +152,7 @@ public class RailTrackerMember extends RailTracker {
                 RailState state = this.rail.state.clone();
                 state.setRailType(RailType.NONE);
                 state.setRailBlock(state.positionBlock());
+                state.initEnterDirection();
                 this.rail = new TrackedRail(this.rail.member, state, this.rail.disconnected);
                 return RailLogicAir.INSTANCE;
             }

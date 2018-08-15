@@ -74,6 +74,20 @@ public class SpawnableGroup {
         this.addMember(cartConfig);
     }
 
+    private int applyConfig(ConfigurationNode savedConfig) {
+        for (String key : savedConfig.getKeys()) {
+            if (key.equals("carts")) continue;
+            this.config.set(key, savedConfig.get(key));
+        }
+        List<ConfigurationNode> cartConfigList = savedConfig.getNodeList("carts");
+        int countAdded = 0;
+        for (int i = cartConfigList.size() - 1; i >= 0; i--) {
+            this.addMember(cartConfigList.get(i));
+            countAdded++;
+        }
+        return countAdded;
+    }
+
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
@@ -90,6 +104,19 @@ public class SpawnableGroup {
         }
         str.append("]}");
         return str.toString();
+    }
+
+    /**
+     * Creates a SpawnableGroup from the full contents of saved train properties, 
+     * either from a real train or from the saved properties store.
+     * 
+     * @param savedConfig
+     * @return spawnable group
+     */
+    public static SpawnableGroup fromConfig(ConfigurationNode savedConfig) {
+        SpawnableGroup result = new SpawnableGroup();
+        result.applyConfig(savedConfig);
+        return result;
     }
 
     /**
@@ -121,15 +148,7 @@ public class SpawnableGroup {
             if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
                 typeTextIdx += name.length() - 1;
                 ConfigurationNode savedTrainConfig = TrainCarts.plugin.getSavedTrains().getConfig(name);
-                for (String key : savedTrainConfig.getKeys()) {
-                    if (key.equals("carts")) continue;
-                    result.config.set(key, savedTrainConfig.get(key));
-                }
-                List<ConfigurationNode> cartConfigList = savedTrainConfig.getNodeList("carts");
-                for (int i = cartConfigList.size() - 1; i >= 0; i--) {
-                    result.addMember(cartConfigList.get(i));
-                    countAdded++;
-                }
+                countAdded += result.applyConfig(savedTrainConfig);
             } else {
                 EntityType type = findVanillaCartType(c);
                 if (type != null) {

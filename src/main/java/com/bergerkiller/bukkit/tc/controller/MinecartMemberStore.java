@@ -403,7 +403,7 @@ public abstract class MinecartMemberStore {
     public static MinecartMember<?> getFromHitTest(Location eyeLocation) {
         MinecartMember<?> best = null;
         double best_dist = 4.5;
-        for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+        for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
             if (group.getWorld() != eyeLocation.getWorld()) {
                 continue;
             }

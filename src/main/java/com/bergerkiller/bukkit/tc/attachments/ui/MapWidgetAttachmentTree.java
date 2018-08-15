@@ -3,8 +3,11 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import java.util.List;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 
 /**
@@ -76,13 +79,89 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
-        List<MapWidget> widgets = this.getWidgets();
+        List<MapWidgetAttachmentNode> widgets = CommonUtil.unsafeCast(this.getWidgets());
         if (widgets.isEmpty()) {
             return;
         }
 
         this.lastSelIdx = widgets.indexOf(this.getNextInputWidget());
-        if (event.getKey() == MapPlayerInput.Key.UP) {
+        if (this.lastSelIdx >= 0 && this.lastSelIdx < widgets.size() && widgets.get(this.lastSelIdx).isChangingOrder()) {
+            MapWidgetAttachmentNode selected = widgets.get(this.lastSelIdx);
+
+            // Complete changing order of widget
+            if (event.getKey() == MapPlayerInput.Key.ENTER || event.getKey() == MapPlayerInput.Key.BACK) {
+                selected.setChangingOrder(false);
+                display.playSound(CommonSounds.CLICK);
+                return;
+            }
+
+            MapPlayerInput.Key action = event.getKey();
+
+            // Move up or down in the order of attachments of the current parent node
+            // [/]            [/]
+            //    [*]  <===>     [/]
+            //    [/]            [*]
+            if (action == MapPlayerInput.Key.UP || action == MapPlayerInput.Key.DOWN) {
+                MapWidgetAttachmentNode parent = selected.getParentAttachment();
+                if (parent != null) {
+                    List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
+                    int old_index = attachments.indexOf(selected);
+                    int new_index = old_index + ((action == MapPlayerInput.Key.UP) ? -1 : 1);
+                    if (new_index >= 0 && new_index < attachments.size()) {
+                        attachments.remove(old_index);
+                        attachments.add(new_index, selected);
+
+                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                        this.resetNeeded = true;
+                    }
+                }
+            }
+
+            // Make the node a child on the same level as its current parent
+            // [/]            [/]
+            //    [*]   ===>  [*]
+            // [/]            [/]
+            if (action == MapPlayerInput.Key.LEFT) {
+                MapWidgetAttachmentNode parent = selected.getParentAttachment();
+                if (parent != null && parent.getParentAttachment() != null) {
+                    List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
+                    int from_index = attachments.indexOf(selected);
+                    attachments.remove(from_index);
+
+                    List<MapWidgetAttachmentNode> parentAttachments = parent.getParentAttachment().getAttachments();
+                    parentAttachments.add(parentAttachments.indexOf(parent) + 1, selected);
+                    selected.setParentAttachment(parent.getParentAttachment());
+
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    this.resetNeeded = true;
+                }
+            }
+
+            // Make the selected node a child of the node preceding it
+            // [/]            [/]
+            // [*]     ===>      [*]
+            // [/]            [/]
+            if (action == MapPlayerInput.Key.RIGHT) {
+                MapWidgetAttachmentNode parent = selected.getParentAttachment();
+                if (parent != null) {
+                    List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
+                    int from_index = attachments.indexOf(selected);
+                    int to_index = from_index - 1;
+                    if (to_index >= 0 && to_index < attachments.size()) {
+                        MapWidgetAttachmentNode new_parent = attachments.get(to_index);
+                        attachments.remove(from_index);
+                        new_parent.getAttachments().add(selected);
+                        selected.setParentAttachment(new_parent);
+
+                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                        this.resetNeeded = true;
+                    }
+                }
+            }
+
+            // Refresh selected node
+            setSelectedNode(selected);
+        } else if (event.getKey() == MapPlayerInput.Key.UP) {
             if (this.lastSelIdx > 0) {
                 // Focus previous widget
                 this.lastSelIdx--;
@@ -102,7 +181,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             } else {
                 // Shift view one down, if possible
                 // Check if the last widget displayed is the very last widget in the tree
-                MapWidgetAttachmentNode tmp = (MapWidgetAttachmentNode) widgets.get(widgets.size() - 1);
+                MapWidgetAttachmentNode tmp = widgets.get(widgets.size() - 1);
                 boolean isLast = true;
                 if (tmp.getAttachments().isEmpty()) {
                     while (tmp != null) {
@@ -131,6 +210,32 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         } else {
             // Let normal navigation handle it
             super.onKeyPressed(event);
+        }
+
+        // Faster redraw
+        if (this.resetNeeded) {
+            this.updateView(this.offset);
+        }
+    }
+
+    public void setSelectedNode(MapWidgetAttachmentNode node) {
+        int new_index = findIndexOf(node) - this.offset;
+        if (new_index != this.lastSelIdx) {
+            this.lastSelIdx = new_index;
+            this.resetNeeded = true;
+        }
+
+        // Index too high, scroll
+        int a = this.lastSelIdx - this.getWidgetCount() + 1;
+        if (a > 0) {
+            this.offset += a;
+            this.lastSelIdx -= a;
+        }
+
+        // Index too low, scroll
+        if (this.lastSelIdx < 0) {
+            this.offset += this.lastSelIdx;
+            this.lastSelIdx = 0;
         }
     }
 
@@ -174,6 +279,31 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             updateView(childAttachment, op);
         }
         op.col--;
+    }
+
+    private int findIndexOf(MapWidgetAttachmentNode node) {
+        FindIndexOp op = new FindIndexOp();
+        op.index = 0;
+        op.node = node;
+        return searchForNode(this.root, op) ? op.index : -1;
+    }
+
+    private static boolean searchForNode(MapWidgetAttachmentNode parent, FindIndexOp op) {
+        if (parent == op.node) {
+            return true;
+        }
+        op.index++;
+        for (MapWidgetAttachmentNode child : parent.getAttachments()) {
+            if (searchForNode(child, op)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static class FindIndexOp {
+        public int index;
+        MapWidgetAttachmentNode node;
     }
 
     private static class UpdateViewOp {

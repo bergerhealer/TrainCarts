@@ -79,9 +79,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
-    private static boolean HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = true;
-    private static boolean HAS_COLLISION_TOGGLE_FUNCTIONS = true;
-    private static boolean HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = true;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -129,7 +126,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onAttached() {
         super.onAttached();
-        this.unloaded = true;
+        this.setUnloaded(true);
         this.railTrackerMember.onAttached();
         this.soundLoop = new SoundLoop<MinecartMember<?>>(this);
         this.updateDirection();
@@ -137,22 +134,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.hasLinkedFarMinecarts = false;
 
         // Allows players to place blocks nearby a minecart despite having a custom model
-        if (HAS_ENTITY_PREVENTBLOCKPLACE_FIELD) {
-            try {
-                entity.setPreventBlockPlace(false);
-            } catch (NoSuchMethodError e) {
-                HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = false;
-            }
-        }
+        entity.setPreventBlockPlace(false);
 
         // Forces a standard bounding box for block collisions
-        if (HAS_COLLISION_BLOCK_BOUNDS_FUNCTION) {
-            try {
-                this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
-            } catch (NoSuchMethodError e) {
-                HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = false;
-            }
-        }
+        this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
     }
 
     @Override
@@ -203,7 +188,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (this.group != null && this.group != group) {
             this.group.removeSilent(this);
         }
-        this.unloaded = false;
+        this.setUnloaded(false);
         this.group = group;
     }
 
@@ -361,7 +346,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param unloaded to set to
      */
     public void setUnloaded(boolean unloaded) {
-        this.unloaded = unloaded;
+        if (this.unloaded != unloaded) {
+            this.unloaded = unloaded;
+        }
     }
 
     /**
@@ -686,18 +673,30 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // This only works when the minecart has a direct neighbor
         // If no direct neighbor is available, it will default to using its own velocity
         Vector motionVector = this.entity.getVelocity();
+        if (Double.isNaN(motionVector.lengthSquared())) {
+            motionVector = new Vector();
+        }
         if (ignoreVelocity || motionVector.lengthSquared() <= 1e-5) {
-            if (!this.isSingle()) {
+            if (!this.isDerailed() && this.direction != null) {
+                motionVector = FaceUtil.faceToVector(this.direction);
+            } else if (!this.isSingle()) {
+                Vector alterMotionVector = motionVector;
                 MinecartMember<?> next = this.getNeighbour(-1);
                 if (next != null) {
-                    motionVector = this.getEntity().last.offsetTo(next.getEntity().last);
+                    alterMotionVector = this.getEntity().last.offsetTo(next.getEntity().last);
                 } else {
                     MinecartMember<?> prev = this.getNeighbour(1);
                     if (prev != null) {
-                        motionVector = prev.getEntity().last.offsetTo(this.getEntity().last);
+                        alterMotionVector = prev.getEntity().last.offsetTo(this.getEntity().last);
                     }
                 }
+                if (!Double.isNaN(alterMotionVector.lengthSquared())) {
+                    motionVector = alterMotionVector;
+                }
             }
+        }
+        if (Double.isNaN(motionVector.getX())) {
+            throw new IllegalStateException("Motion vector is NaN");
         }
         return motionVector;
     }
@@ -759,32 +758,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return rail state
      */
     public RailState discoverRail() {
-        try (Timings t = Timings.start(getClass(), "discoverRail")) {
-        // Store motion vector in state
-        RailState state = new RailState();
-        state.setMember(this);
-        boolean result = this.fillRailInformation(state);
-        if (!result) {
-            state.setMotionVector(this.calcMotionVector(true));
-            Util.calculateEnterFace(state);
-        }
-
-        // Normalize motion vector
-        state.position().normalizeMotion();
-
-        // When railed, compute the direction by snapping the motion vector onto the rail
-        // This creates a motion vector perfectly aligned with the rail path.
-        // This is important for later when looking for more rails, because we can
-        // invert the motion vector to go 'the other way'.
-        if (state.railType() != RailType.NONE) {
-            RailLogic logic = state.loadRailLogic();
-            RailPath path = logic.getPath();
-            if (!path.isEmpty()) {
-                path.snap(state.position(), state.railBlock());
+        try (Timings t = TCTimings.MEMBER_PHYSICS_DISCOVER_RAIL.start()) {
+            // Store motion vector in state
+            RailState state = new RailState();
+            state.setMember(this);
+            boolean result = this.fillRailInformation(state);
+            if (!result) {
+                state.setRailType(RailType.NONE);
+                state.position().setLocation(entity.getLocation());
+                state.setMotionVector(this.calcMotionVector(true));
+                state.initEnterDirection();
             }
-        }
 
-        return state;
+            // Normalize motion vector
+            state.position().normalizeMotion();
+
+            // When railed, compute the direction by snapping the motion vector onto the rail
+            // This creates a motion vector perfectly aligned with the rail path.
+            // This is important for later when looking for more rails, because we can
+            // invert the motion vector to go 'the other way'.
+            if (state.railType() != RailType.NONE) {
+                RailLogic logic = state.loadRailLogic();
+                RailPath path = logic.getPath();
+                if (!path.isEmpty()) {
+                    path.snap(state.position(), state.railBlock());
+                }
+            }
+
+            return state;
         }
     }
 
@@ -999,7 +1000,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // TO direction is simply the enter face in the opposite direction
         RailState state = tracker.getRail().state.clone();
         state.position().invertMotion();
-        Util.calculateEnterFace(state);
+        state.initEnterDirection();
         this.directionTo = state.enterFace().getOppositeFace();
     }
 
@@ -1146,16 +1147,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             // Detect this and cancel this collision. This allows smooth air<>vertical logic.
             Vector upVector = this.getOrientation().upVector();
             if (upVector.getY() >= -0.1 && upVector.getY() <= 0.1) {
-                if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
-                    double closest_dz = hitBlock.getZ() - this.entity.loc.getZ();
-                    if (closest_dz < -0.5) closest_dz += 1.0;
-                    if ((upVector.getZ() > 0.0 && closest_dz < -0.01)) return false;
-                    if ((upVector.getZ() < 0.0 && closest_dz > 0.01)) return false;
+                // If HitBlock x/z space contains the x/z position of the Minecart, allow the collision
+                double closest_dx = this.entity.loc.getX() - hitBlock.getX();
+                double closest_dz = this.entity.loc.getZ() - hitBlock.getZ();
+                final double MIN_COORD = 1e-10;
+                final double MAX_COORD = 1.0 - MIN_COORD;
+                if (closest_dx >= MIN_COORD && closest_dx <= MAX_COORD && closest_dz >= MIN_COORD && closest_dz <= MAX_COORD) {
+                    // Block is directly above or below; allow the collision
+                } else if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
+                    if ((-closest_dz) < -0.5) closest_dz -= 1.0;
+                    if ((upVector.getZ() > 0.0 && (-closest_dz) < -0.01)) return false;
+                    if ((upVector.getZ() < 0.0 && (-closest_dz) > 0.01)) return false;
                 } else if (upVector.getZ() >= -0.1 && upVector.getZ() <= 0.1) {
-                    double closest_dx = hitBlock.getX() - this.entity.loc.getX();
-                    if (closest_dx < -0.5) closest_dx += 1.0;
-                    if ((upVector.getX() > 0.0 && closest_dx < -0.01)) return false;
-                    if ((upVector.getX() < 0.0 && closest_dx > 0.01)) return false;
+                    if ((-closest_dx) < -0.5) closest_dx -= 1.0;
+                    if ((upVector.getX() > 0.0 && (-closest_dx) < -0.01)) return false;
+                    if ((upVector.getX() < 0.0 && (-closest_dx) > 0.01)) return false;
                 }
             }
 
@@ -1320,14 +1326,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getSignTracker().update();
 
         // Enable/disable collision handling to improve performance
-        // This only works on BKC beyond a certain version - add check!
-        if (this.group != null && HAS_COLLISION_TOGGLE_FUNCTIONS) {
-            try {
-                this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
-                this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
-            } catch (NoSuchMethodError e) {
-                HAS_COLLISION_TOGGLE_FUNCTIONS = false;
-            }
+        if (this.group != null) {
+            this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
+            this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
         }
     }
 
@@ -1385,7 +1386,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     protected void updateUnloaded() {
-        unloaded = (entity == null) || OfflineGroupManager.containsMinecart(entity.getUniqueId());
+        setUnloaded((entity == null) || OfflineGroupManager.containsMinecart(entity.getUniqueId()));
         if (!unloaded && (this.group == null || this.group.canUnload())) {
             // Check a 5x5 chunk area around this Minecart to see if it is loaded
             World world = entity.getWorld();
@@ -1395,7 +1396,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             for (cx = -ChunkArea.CHUNK_RANGE; cx <= ChunkArea.CHUNK_RANGE; cx++) {
                 for (cz = -ChunkArea.CHUNK_RANGE; cz <= ChunkArea.CHUNK_RANGE; cz++) {
                     if (!WorldUtil.isLoaded(world, cx + midX, cz + midZ)) {
-                        unloaded = true;
+                        setUnloaded(true);
                         return;
                     }
                 }
@@ -1886,10 +1887,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         entity.setRotation(newyaw, newpitch);
     }
-    
+
     @Override
     public String getLocalizedName() {
-        return isSingle() ? "Minecart" : "Train";
+        String name = super.getLocalizedName();
+        if (name == null || name.equals("unknown")) {
+            name = "Minecart"; // Bug with older BKCommonLib!
+        }
+        if (!isSingle()) {
+            name += " (Train)";
+        }
+        return name;
     }
 
     @Override
@@ -1977,7 +1985,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public CollisionBox getHitBox() {
         CollisionBox box = new CollisionBox();
-        box.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
+        box.setPosition(this.getWheels().getPosition());
         box.setRadius(1.0, 1.0, this.entity.getWidth());
         box.setOrientation(this.getOrientation());
         return box;

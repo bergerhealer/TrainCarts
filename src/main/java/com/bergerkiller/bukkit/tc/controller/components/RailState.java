@@ -18,14 +18,16 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 public class RailState {
     private Block _railBlock;
     private RailType _railType;
-    private BlockFace _enterFace;
+    private final Vector _enterDirection;
+    private final Vector _enterPosition;
     private MinecartMember<?> _member;
     private final RailPath.Position _position;
 
     public RailState() {
         this._railBlock = null;
         this._railType = RailType.NONE;
-        this._enterFace = null;
+        this._enterDirection = new Vector(Double.NaN, Double.NaN, Double.NaN);
+        this._enterPosition = new Vector(Double.NaN, Double.NaN, Double.NaN);
         this._member = null;
         this._position = new RailPath.Position();
         this._position.relative = false;
@@ -40,6 +42,15 @@ public class RailState {
      */
     public RailPath.Position position() {
         return this._position;
+    }
+
+    /**
+     * Sets the rail path position information. See {@link #position()}.
+     * 
+     * @param position
+     */
+    public void setPosition(RailPath.Position position) {
+        position.copyTo(this._position);
     }
 
     /**
@@ -168,24 +179,55 @@ public class RailState {
     }
 
     /**
-     * Sets the Block Face that was entered of the Block at the current position.
+     * Gets whether the enter direction has been initialized.
+     * 
+     * @return True if enter direction is initialized
+     */
+    public boolean hasEnterDirection() {
+        return !Double.isNaN(this._enterDirection.getX());
+    }
+
+    /**
+     * The movement direction of the Cart upon entering the section of rails
+     * 
+     * @return enter direction
+     */
+    public Vector enterDirection() {
+        if (!hasEnterDirection()) {
+            throw new IllegalStateException("Enter direction has not been initialized");
+        }
+        return this._enterDirection;
+    }
+
+    /**
+     * Initializes the enter direction, setting it to the current motion vector direction.
+     */
+    public void initEnterDirection() {
+        if (Double.isNaN(this._position.motX)) {
+            throw new IllegalStateException("Position motion vector is NaN");
+        }
+        this._enterDirection.setX(this._position.motX);
+        this._enterDirection.setY(this._position.motY);
+        this._enterDirection.setZ(this._position.motZ);
+        this._enterPosition.setX(this._position.posX);
+        this._enterPosition.setY(this._position.posY);
+        this._enterPosition.setZ(this._position.posZ);
+    }
+
+    /**
+     * Gets the Block Face that was entered of the Block at the current position.
+     * This helper function is only useful for rails blocks that cover an exact block,
+     * like standard Vanilla rails.
      * 
      * @return entered Block Face
      */
     public BlockFace enterFace() {
-        if (this._enterFace == null) {
-            throw new IllegalStateException("Enter face has not been initialized");
-        }
-        return this._enterFace;
-    }
-
-    /**
-     * Sets the Block Face that was entered of the rails Block at the current position.
-     * 
-     * @param enterFace to set to
-     */
-    public void setEnterFace(BlockFace enterFace) {
-        this._enterFace = enterFace;
+        Vector d = this.enterDirection();
+        Vector p = this._enterPosition;
+        Vector pos = new Vector(p.getX() - p.getBlockX(),
+                                p.getY() - p.getBlockY(),
+                                p.getZ() - p.getBlockZ());
+        return RailAABB.BLOCK.calculateEnterFace(pos, d);
     }
 
     /**
@@ -235,8 +277,13 @@ public class RailState {
         this.position().copyTo(state.position());
         state.setRailBlock(this.railBlock());
         state.setRailType(this.railType());
-        state.setEnterFace(this.enterFace());
         state.setMember(this.member());
+        state._enterDirection.setX(this._enterDirection.getX());
+        state._enterDirection.setY(this._enterDirection.getY());
+        state._enterDirection.setZ(this._enterDirection.getZ());
+        state._enterPosition.setX(this._enterPosition.getX());
+        state._enterPosition.setY(this._enterPosition.getY());
+        state._enterPosition.setZ(this._enterPosition.getZ());
         return state;
     }
 

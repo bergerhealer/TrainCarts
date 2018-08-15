@@ -7,10 +7,8 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
-import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -948,21 +946,17 @@ public class Util {
      * @param blue color value [0.0 ... 1.0]
      */
     public static void spawnDustParticle(Location loc, double red, double green, double blue) {
-        red = MathUtil.clamp(red, 0.0, 1.0);
-        green = MathUtil.clamp(green, 0.0, 1.0);
-        blue = MathUtil.clamp(blue, 0.0, 1.0);
-        if (red > 0.5) {
-            red -= 1.0;
-            if (red > -0.01) {
-                red = -0.01;
+        int c_red = (int) MathUtil.clamp(255.0 * red, 0.0, 255.0);
+        int c_green = (int) MathUtil.clamp(255.0 * green, 0.0, 255.0);
+        int c_blue = (int) MathUtil.clamp(255.0 * blue, 0.0, 255.0);
+        org.bukkit.Color color = org.bukkit.Color.fromRGB(c_red, c_green, c_blue);
+        Vector position = loc.toVector();
+        for (Player player : loc.getWorld().getPlayers()) {
+            if (player.getLocation().distanceSquared(loc) > (256.0*256.0)) {
+                continue;
             }
-        } else {
-            red *= 1.7;
-            if (red < 0.00001) {
-                red = 0.00001;
-            }
+            PlayerUtil.spawnDustParticles(player, position, color);
         }
-        loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 0, red, green, blue, 1.0);
     }
 
     /**
@@ -979,20 +973,6 @@ public class Util {
         loc.setYaw((float) ypr_new.getY());
         loc.setPitch((float) ypr_new.getX());
         return loc;
-    }
-
-    /**
-     * Calculates the face of a block that is first entered when moving in a direction from a position.
-     * The movement is that of an infinite line. The face first hit is returned. The position is
-     * relative to the block.
-     * 
-     * @param position x/y/z of the position relative to the block
-     * @param direction x/y/z of the direction in which is moved
-     * @return face of the block first entered
-     */
-    public static BlockFace calculateEnterFace(Vector position, Vector direction) {
-        //TODO: No longer needed!
-        return RailAABB.BLOCK.calculateEnterFace(position, direction);
     }
 
     // some magic to turn a vector into the most appropriate block face
@@ -1074,22 +1054,6 @@ public class Util {
             return new Vector(0.0, sign * 90.0,
                     Math.toDegrees(-sign * 2.0 * Math.atan2(qx, qw)));
         }
-    }
-
-    /**
-     * Calculates the enter face from the current position and motion vector, and stores
-     * it inside the rail state.
-     * 
-     * @param state to calculate the enter face
-     */
-    public static void calculateEnterFace(RailState state) {
-        //return this.railType().getBoundingBox(this.railBlock()).calculateEnterFace(railPosition(), this._position.getMotion());
-        RailPath.Position p = state.position();
-        Vector pos = new Vector(p.posX - MathUtil.floor(p.posX),
-                                p.posY - MathUtil.floor(p.posY),
-                                p.posZ - MathUtil.floor(p.posZ));
-        Vector dir = p.getMotion();
-        state.setEnterFace(calculateEnterFace(pos, dir));
     }
 
     /**

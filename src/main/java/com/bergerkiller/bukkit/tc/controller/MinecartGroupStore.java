@@ -2,6 +2,9 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -86,6 +89,28 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         GroupCreateEvent.call(g);
         g.onPropertiesChanged();
         return g;
+    }
+
+    public static MinecartGroup spawn(SpawnableGroup spawnableGroup, List<Location> spawnLocations) {
+        List<SpawnableMember> types = spawnableGroup.getMembers();
+        if (types.size() > spawnLocations.size()) {
+            return null;
+        }
+
+        MinecartGroup group = MinecartGroup.create();
+        for (int i = spawnLocations.size() - 1; i >= 0; i--) {
+            Location spawnLoc = spawnLocations.get(i);
+            if (types.get(i).isFlipped()) {
+                spawnLoc = Util.invertRotation(spawnLoc);
+            }
+
+            // Spawn the minecart
+            group.add(types.get(i).spawn(spawnLoc));
+        }
+        group.updateDirection();
+        group.getProperties().load(spawnableGroup.getConfig());
+        GroupCreateEvent.call(group);
+        return group;
     }
 
     public static MinecartGroup spawn(Location[] at, EntityType... types) {

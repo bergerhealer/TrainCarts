@@ -2,16 +2,12 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 public abstract class RailTracker {
@@ -40,19 +36,12 @@ public abstract class RailTracker {
         public final Block block;
         /** Type of rails */
         public final RailType type;
-        /** The direction at which the rail was entered by the minecart */
-        public final BlockFace enterFace;
         /** Whether this rail is disconnected from the previous rails */
         public final boolean disconnected;
         /** Cached rail path taken on this rail */
         public RailPath cachedPath = null;
         /** State on the rail when this TrackedRail was created */
         public final RailState state;
-
-        @Deprecated
-        public TrackedRail(MinecartMember<?> member, Location location, TrackMovingPoint point, boolean disconnected) {
-            this(member, location, point.current, point.currentTrack, point.currentRail, disconnected, FaceUtil.faceToVector(point.currentDirection), point.currentDirection);
-        }
 
         public TrackedRail(MinecartMember<?> member, TrackWalkingPoint point, boolean disconnected) {
             this(member, point.state, disconnected);
@@ -68,22 +57,19 @@ public abstract class RailTracker {
             this.block = state.railBlock();
             this.disconnected = disconnected;
             if (this.block == null) {
-                this.enterFace = Util.vecToFace(this.state.motionVector(), false);
                 this.position = new IntVector3(0, 0, 0);
             } else {
-                this.enterFace = state.enterFace();
                 this.position = new IntVector3(this.block.getX(), this.block.getY(), this.block.getZ());
             }
         }
 
-        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected, Vector motionVector, BlockFace direction) {
+        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected) {
             this.member = member;
             this.state = new RailState();
             this.state.setMember(member);
             this.minecartBlock = minecartBlock;
             this.block = railsBlock;
             this.type = railsType;
-            this.enterFace = direction;
             this.disconnected = disconnected;
             if (railsBlock == null) {
                 this.position = new IntVector3(0, 0, 0);
@@ -97,7 +83,8 @@ public abstract class RailTracker {
             } else if (railsBlock != null) {
                 this.state.position().setLocationMidOf(railsBlock);
             }
-            this.state.position().setMotion(motionVector);
+            this.state.position().setMotion(new Vector(0, -1, 0));
+            this.state.initEnterDirection();
         }
 
         /**
@@ -120,7 +107,7 @@ public abstract class RailTracker {
             p.motX = -p.motX;
             p.motY = -p.motY;
             p.motZ = -p.motZ;
-            Util.calculateEnterFace(state);
+            state.initEnterDirection();
             return new TrackedRail(member, state, this.disconnected);
         }
 
@@ -145,6 +132,11 @@ public abstract class RailTracker {
             return this.cachedPath;
         }
 
+        public boolean isSameTrack(TrackedRail other) {
+            return this.state.isSameRails(other.state) &&
+                   this.getPath().equals(other.getPath());
+        }
+
         /**
          * Computes Tracked Rail information for a Minecart that is off the rails
          * 
@@ -158,7 +150,7 @@ public abstract class RailTracker {
             state.position().setMotion(member.getEntity().getVelocity());
             state.setRailBlock(loc.getBlock());
             state.setRailType(RailType.NONE);
-            Util.calculateEnterFace(state);
+            state.initEnterDirection();
             return new TrackedRail(member, state, false);
         }
 

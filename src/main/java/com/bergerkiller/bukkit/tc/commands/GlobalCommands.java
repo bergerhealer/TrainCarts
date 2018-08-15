@@ -8,8 +8,10 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -29,6 +31,7 @@ import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -45,6 +48,8 @@ import org.bukkit.util.Vector;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Locale;
 
 public class GlobalCommands {
 
@@ -116,6 +121,12 @@ public class GlobalCommands {
             TrainProperties.loadDefaults();
             TrainCarts.plugin.loadConfig();
             sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
+            return true;
+        } else if (args[0].equals("reloadsavedtrains")) {
+            Permission.COMMAND_RELOAD.handle(sender);
+            TrainCarts.plugin.save(false);
+            TrainCarts.plugin.loadSavedTrains();
+            sender.sendMessage(ChatColor.YELLOW + "Reloaded saved trains and modules");
             return true;
         } else if (args[0].equals("saveall")) {
             Permission.COMMAND_SAVEALL.handle(sender);
@@ -368,8 +379,63 @@ public class GlobalCommands {
         } else if (args[0].equals("attachments")) {
             Permission.COMMAND_GIVE_EDITOR.handle(sender);
             ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
-            ItemUtil.setDisplayName(item, "TrainCarts Attachments Editor");
+            ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
             ((Player) sender).getInventory().addItem(item);
+            sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+            return true;
+        } else if (args[0].equals("chest")) {
+            Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
+
+            Player player = (Player) sender;
+
+            ItemStack item = null;
+
+            String instruction = (args.length > 1) ? args[1].toLowerCase(Locale.ENGLISH) : "";
+            String parameters = "";
+            if (args.length > 2) {
+                parameters = StringUtil.join(" ", Arrays.asList(args).subList(2, args.length));
+            }
+            if (!instruction.isEmpty()) {
+                item = HumanHand.getItemInMainHand(player);
+                if (StoredTrainItemUtil.isItem(item)) {
+                    item = ItemUtil.cloneItem(item);
+                } else {
+                    item = null;
+                    instruction = "";
+                }
+            }
+
+            if (instruction.equals("set")) {
+                StoredTrainItemUtil.store(item, parameters);
+            } else if (instruction.equals("clear")) {
+                StoredTrainItemUtil.clear(item);
+            } else if (instruction.equals("lock")) {
+                StoredTrainItemUtil.setLocked(item, true);
+            } else if (instruction.equals("unlock")) {
+                StoredTrainItemUtil.setLocked(item, false);
+            } else if (instruction.equals("name")) {
+                StoredTrainItemUtil.setName(item, parameters);
+            } else {
+                // Invalid
+                instruction = "";
+                item = null;
+            }
+
+            if (item == null) {
+                // No item, create a new one and give it to the player
+                item = StoredTrainItemUtil.createItem();
+                if (args.length > 1) {
+                    String typesStr = StringUtil.join(" ", Arrays.asList(args).subList(1, args.length));
+                    StoredTrainItemUtil.store(item, typesStr);
+                }
+                player.getInventory().addItem(item);
+                Localization.CHEST_GIVE.message(sender);
+            } else {
+                // Existing item. Update it in the player's currently selected slot
+                HumanHand.setItemInMainHand(player, item);
+                Localization.CHEST_UPDATE.message(sender);
+            }
+
             return true;
         } else if (args[0].equals("debug")) {
             Permission.DEBUG_COMMAND_DEBUG.handle(sender);
@@ -388,6 +454,18 @@ public class GlobalCommands {
             } else if (cmd.equalsIgnoreCase("mutex")) {
                 DebugTool.showMutexZones(player);
                 player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
+            } else if (cmd.equals("railtracker")) {
+                if (args.length >= 3) {
+                    TCConfig.railTrackerDebugEnabled = ParseUtil.parseBool(args[2]);
+                }
+                player.sendMessage(ChatColor.GREEN + "Displaying tracked rail positions: " +
+                        (TCConfig.railTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+            } else if (cmd.equals("wheeltracker")) {
+                if (args.length >= 3) {
+                    TCConfig.wheelTrackerDebugEnabled = ParseUtil.parseBool(args[2]);
+                }
+                player.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
+                        (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
             } else {
                 player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
                 player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");

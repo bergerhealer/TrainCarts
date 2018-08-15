@@ -3,10 +3,12 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
@@ -104,6 +106,39 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             TrainPropertiesStore.remove(this.prop.getTrainName());
         }
         this.prop = properties;
+    }
+
+    /**
+     * Saves the properties of this train, preserving information such the order of the carts
+     * and the orientation of each cart. Owner information is stripped.
+     * 
+     * @return configuration useful for saving as a train
+     */
+    public ConfigurationNode saveConfig() {
+        ConfigurationNode config = new ConfigurationNode();
+
+        this.getProperties().save(config);
+        config.remove("carts");
+
+        List<ConfigurationNode> cartConfigList = new ArrayList<ConfigurationNode>();
+        for (MinecartMember<?> member : this) {
+            ConfigurationNode cartConfig = new ConfigurationNode();
+            member.getProperties().save(cartConfig);
+            cartConfig.set("entityType", member.getEntity().getType());
+            cartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
+            cartConfig.remove("owners");
+
+            ConfigurationNode data = new ConfigurationNode();
+            member.onTrainSaved(data);
+            if (!data.isEmpty()) {
+                cartConfig.set("data", data);
+            }
+
+            cartConfigList.add(cartConfig);
+        }
+        config.setNodeList("carts", cartConfigList);
+
+        return config;
     }
 
     public SignTrackerGroup getSignTracker() {
@@ -1039,14 +1074,22 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         System.out.println(msg);
     }
 
-    private double getSpeedAhead() {
+    /**
+     * Gets the speed the train should be moving at to avoid collision with any trains in front.
+     * A return value of 0 or less indicates the train should be halted entirely. A return value
+     * of Double.MAX_VALUE indicates there are no obstacles ahead and the train can move on uninterrupted.
+     * 
+     * @param distance to look for trains ahead
+     * @return speed to match
+     */
+    public double getSpeedAhead(double distance) {
         // Not sure if fixed, but if this train is empty, return MAX_VALUE
         if (this.isEmpty()) {
             return Double.MAX_VALUE;
         }
 
         // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
-        if (this.getProperties().getWaitDistance() <= 0.0) {
+        if (distance <= 0.0) {
             UUID world = this.head().getEntity().getWorld().getUID();
             IntVector3 block = this.head().getBlockPos();
             if (!MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
@@ -1055,7 +1098,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
 
         boolean checkTrains = false;
-        double waitDistance = this.getProperties().getWaitDistance();
+        double waitDistance = distance;
         if (waitDistance > 0.0) {
             checkTrains = true;
         }
@@ -1091,7 +1134,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             MinecartMember<?> other = MinecartMemberStore.getAt(rail);
             if (other != null && other.getGroup() != this) {
                 // Train is heading for me! Stop!
-                if (MathUtil.isHeadingTo(iter.currentDirection().getOppositeFace(), other.getEntity().getVelocity())) {
+                if (MathUtil.isHeadingTo(iter.currentDirection().clone().multiply(-1.0), other.getEntity().getVelocity())) {
                     return 0.0;
                 }
 
@@ -1297,7 +1340,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // If a wait distance is set, check for trains ahead of the track and wait for those
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
             try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
-                double speedAhead = this.getSpeedAhead();
+                double speedAhead = this.getSpeedAhead(this.getProperties().getWaitDistance());
                 double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
                 if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
                     speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);

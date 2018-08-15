@@ -62,7 +62,7 @@ public class TrainCommands {
         } else if (cmd.equals("linking") || cmd.equals("link")) {
             if (args.length == 1) {
                 Permission.COMMAND_SETLINKING.handle(p);
-                prop.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(args[0]));
+                prop.setLinking(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + (prop.trainCollision == CollisionMode.LINK));
         } else if (cmd.equals("playertake") || cmd.equals("allowplayertake")) {
@@ -477,11 +477,17 @@ public class TrainCommands {
                     String name = args[0];
                     boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
                     try {
-                        TrainCarts.plugin.getSavedTrains().save(group, name);
+                        String module = null;
+                        String moduleString = "";
+                        if (args.length > 1) {
+                            module = args[1];
+                            moduleString = " in module " + module;
+                        }
+                        TrainCarts.plugin.getSavedTrains().save(group, name, module);
                         if (wasContained) {
-                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + ", a previous train was overwritten");
+                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString + ", a previous train was overwritten");
                         } else {
-                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name);
+                            p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
                         }
                     } catch (IllegalNameException ex) {
                         p.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());

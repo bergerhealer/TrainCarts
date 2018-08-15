@@ -13,15 +13,14 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 /**
@@ -31,7 +30,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
  * detect splitting of trains
  */
 public class RailTrackerGroup extends RailTracker {
-    private static final int LOOP_LIMIT = 10; // This amount of tracks iterated w/o movement = ABORT
     private final MinecartGroup owner;
     private final ArrayList<TrackedRail> railsBuffer = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> prevRails = new ArrayList<TrackedRail>();
@@ -115,15 +113,13 @@ public class RailTrackerGroup extends RailTracker {
      * Refreshes rail information, recalculating rail positions, directions and disconnect states
      */
     public void refresh() {
-        final boolean DEBUG_RAILS = false;
-
         try (Timings t = TCTimings.RAILTRACKER_REFRESH.start()) {
             this.prevRails.clear();
             this.prevRails.addAll(this.rails);
             this.rails.clear();
             refreshFrom(this.owner.size() - 1, false);
 
-            if (DEBUG_RAILS) {
+            if (TCConfig.railTrackerDebugEnabled) {
                 List<TrackedRail> behindRails = new ArrayList<TrackedRail>();
                 List<TrackedRail> midRails = new ArrayList<TrackedRail>(this.rails);
                 List<TrackedRail> aheadRails = new ArrayList<TrackedRail>();
@@ -143,21 +139,21 @@ public class RailTrackerGroup extends RailTracker {
 
                 // Red: Behind tracks
                 for (int i = 0; i < behindRails.size(); i++) {
-                    Location loc = behindRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = behindRails.get(i).state.positionLocation();
                     double theta =  (double) i / (double) (behindRails.size() - 1);
 
                     Util.spawnDustParticle(loc, 0.5 * theta + 0.5, 0.0, 0.0);
                 }
                 // Red-Green with blueish: Middle tracks
                 for (int i = 0; i < midRails.size(); i++) {
-                    Location loc = midRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = midRails.get(i).state.positionLocation();
                     double theta = (double) i / (double) (midRails.size() - 1);
 
                     Util.spawnDustParticle(loc, 0.5 * (1.0 - theta), 0.5 * theta, 1.0);
                 }
                 // Green: Ahead tracks
                 for (int i = 0; i < aheadRails.size(); i++) {
-                    Location loc = aheadRails.get(i).block.getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = aheadRails.get(i).state.positionLocation();
                     double theta = (double) i / (double) (aheadRails.size() - 1);
 
                     Util.spawnDustParticle(loc, 0.0, 0.5 * (1.0 - theta) + 0.5, 0.0);
@@ -288,24 +284,7 @@ public class RailTrackerGroup extends RailTracker {
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
             TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
-            int loopCtr = 0; // This is to prevent infinite loops
-            while (true) {
-                RailPath path = p.currentRailLogic.getPath();
-                double moved = path.move(position, p.state.railBlock(), wheelDistance);
-
-                if (moved > 0.0) {
-                    wheelDistance -= moved;
-                    loopCtr = 0;
-                } else if (++loopCtr > LOOP_LIMIT) {
-                    System.err.println("Loop detected [1] logic=" + p.currentRailLogic + " rail=" + startInfo.block);
-                    break;
-                }
-
-                if (wheelDistance <= WheelTrackerMember.MIN_WHEEL_DISTANCE || !p.moveFull()) {
-                    break;
-                }
-
-                // More rails. Add the rail.
+            while (p.moveStep(wheelDistance - p.movedTotal)) {
                 this.rails.add(++railIndex, new TrackedRail(tail, p.state, false));
             }
 
@@ -353,10 +332,15 @@ public class RailTrackerGroup extends RailTracker {
         // Any distance remaining will have to be settled by walking the rails backwards, which might fail
         // First, find the index of the rails in prevRails from which we can start looking
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
-            // Figure out which rail to start looking from
+
+            // Position while discovering and walking along track
+            Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
+            position.reverse = true;
+
+            // Find a previous rail that exactly contains the position we are requesting
             int prevRailStartIndex = -1;
             for (int i = this.prevRails.size() - 1; i >= 0; --i) {
-                if (this.prevRails.get(i).state.isSameRails(startInfo.state)) {
+                if (this.prevRails.get(i).isSameTrack(startInfo)) {
                     prevRailStartIndex = i;
                     break;
                 }
@@ -365,6 +349,7 @@ public class RailTrackerGroup extends RailTracker {
             // If we failed to find a start rail, then we have a problem
             // Try and see if the first entry in this.prevRails leads to startInfo
             // If so, we can simply append startInfo as is after that one
+            // This path is used when the wheel distance is very small, and no history exists
             if (prevRailStartIndex == -1 && !this.prevRails.isEmpty()) {
                 for (int i = 0; i < this.prevRails.size(); i++) {
                     if (this.prevRails.get(i).member == startInfo.member) {
@@ -372,7 +357,7 @@ public class RailTrackerGroup extends RailTracker {
                         TrackWalkingPoint p = new TrackWalkingPoint(prev.state);
                         p.skipFirst();
                         if (p.moveFull()) {
-                            if (p.state.isSameRails(startInfo.state)) {
+                            if (p.state.isSameRails(startInfo.state) && p.currentRailPath.equals(startInfo.getPath())) {
                                 this.prevRails.add(i, startInfo);
                                 prevRailStartIndex = i;
                             }
@@ -382,22 +367,20 @@ public class RailTrackerGroup extends RailTracker {
                 }
             }
 
-            Position position = Position.fromPosDir(tail.getEntity().loc.vector(), movementDirection);
-            position.reverse = true;
-
             // If previous rails are found, walk them first
             if (prevRailStartIndex != -1) {
                 TrackedRail startRail = this.prevRails.get(prevRailStartIndex);
 
                 // Move as much as possible over the current rail
                 // This sets our position to the end-position of the current rail
-                RailLogic startLogic = startRail.getLogic();
-                RailPath startPath = startLogic.getPath();
+                RailPath startPath = startRail.getPath();
                 double startMoved = startPath.move(position, startRail.block, wheelDistance);
                 wheelDistance -= startMoved;
-                if (wheelDistance > 0.0001) {
+
+                if (wheelDistance > 1e-10) {
                     // We need to walk more tracks. To do so, we must figure out whether we go +1 or -1.
                     // To find this out, we first obtain the movement direction over the start rails when forwards
+                    // TODO: If a single path is very curvy this stuff will likely not work!
                     int order;
                     if (startRail.state.position().motDot(position) > 0.0) {
                         order = -1;
@@ -407,8 +390,8 @@ public class RailTrackerGroup extends RailTracker {
 
                     for (int prevRailIndex = prevRailStartIndex + order; prevRailIndex >= 0 && prevRailIndex < this.prevRails.size() && wheelDistance > 0.0001; prevRailIndex += order) {
                         TrackedRail rail = this.prevRails.get(prevRailIndex);
-                        if (rail.state.isSameRails(startInfo.state)) {
-                            continue;
+                        if (rail.isSameTrack(startInfo)) {
+                            continue; //TODO: Still needed?
                         }
 
                         // Walk this rail backwards
@@ -437,34 +420,21 @@ public class RailTrackerGroup extends RailTracker {
             // This can actually be incorrect, for example when taking a junction
             // It will at least resolve correctly for straight rails
             if (wheelDistance > 0.0) {
-                int loopCtr = 0;
-                boolean first = true;
-                TrackMovingPoint p = new TrackMovingPoint(startInfo.block, position.getMotionFace());
-                p.getState().setMember(startInfo.member);
-                while (p.hasNext() && wheelDistance > 0.0) {
-                    p.next();
+                TrackWalkingPoint p;// = new TrackWalkingPoint(position.toLocation(startInfo.member.));
+                {
+                    RailState state = new RailState();
+                    state.setPosition(position);
+                    state.setMember(tail);
+                    state.setRailBlock(startInfo.block);
+                    RailType.loadRailInformation(state);
+                    p = new TrackWalkingPoint(state);
+                }
 
-                    RailLogic logic = p.getState().loadRailLogic();
-                    RailPath path = logic.getPath();
-                    double moved = path.move(position, p.currentTrack, wheelDistance);
-
-                    if (moved > 0.0) {
-                        wheelDistance -= moved;
-                        loopCtr = 0;
-                    } else if (++loopCtr > LOOP_LIMIT) {
-                        System.err.println("Loop detected [2] logic=" + logic + " rail=" + p.currentTrack);
-                        break;
-                    }
-
-                    if (first) {
-                        first = false;
-                    } else {
-                        // Add rail information
-                        TrackedRail rail = new TrackedRail(tail, p.getState(), false);
-                        rail = rail.invertMotionVector();
-                        rail.cachedPath = path;
-                        this.rails.add(railIndex, rail);
-                    }
+                while (p.moveStep(wheelDistance - p.movedTotal)) {
+                    TrackedRail rail = new TrackedRail(tail, p.state, false);
+                    rail = rail.invertMotionVector();
+                    rail.cachedPath = p.currentRailPath;
+                    this.rails.add(railIndex, rail);
                 }
             }
 

@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
@@ -37,6 +38,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
@@ -123,6 +125,52 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
+     * Gets the direction vector of the cart upon entering the rails
+     * that triggered this sign. If no cart exists, it defaults to the activating direction
+     * of the sign (facing or watched directions).
+     * 
+     * @return enter direction vector
+     */
+    public Vector getCartEnterDirection() {
+        if (this.hasMember()) {
+            // Find the rails block matching the one that triggered this event
+            // Return the enter ('from') direction for that rails block if found
+            if (this.hasRails()) {
+                Block rails = this.getRails();
+                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
+                    if (rail.member == this.member && rail.block.equals(rails)) {
+                        return rail.state.enterDirection();
+                    }
+                }
+            }
+
+            // Ask the minecart itself alternatively
+            return this.member.getEntity().getVelocity();
+        }
+
+        // Find the facing direction from watched directions, or sign orientation
+        BlockFace signDirection;
+        if (this.getWatchedDirections().length > 0) {
+            signDirection = this.getWatchedDirections()[0];
+        } else {
+            signDirection = this.getFacing().getOppositeFace();
+        }
+
+        // Snap sign direction to the rails, if a rails exists
+        if (this.hasRails()) {
+            RailState state = new RailState();
+            state.setRailBlock(this.getRails());
+            state.setRailType(RailType.getType(state.railBlock()));
+            state.position().setLocation(state.railType().getSpawnLocation(state.railBlock(), signDirection));
+            state.position().setMotion(signDirection);
+            state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
+            return state.position().getMotion();
+        }
+
+        return FaceUtil.faceToVector(signDirection);
+    }
+
+    /**
      * Gets the direction a minecart has above the rails of this Sign
      *
      * @return cart direction
@@ -135,7 +183,7 @@ public class SignActionEvent extends Event implements Cancellable {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
                     if (rail.member == this.member && rail.block.equals(rails)) {
-                        return rail.enterFace;
+                        return rail.state.enterFace();
                     }
                 }
             }
@@ -581,7 +629,7 @@ public class SignActionEvent extends Event implements Cancellable {
         if (!member.isMoving()) {
             return true;
         }
-        return this.isWatchedDirection(this.getCartDirection());
+        return this.isWatchedDirection(this.getCartEnterDirection());
     }
 
     /**
@@ -621,11 +669,6 @@ public class SignActionEvent extends Event implements Cancellable {
     public boolean isConnectedRails(BlockFace direction) {
         if (!this.hasRails()) {
             return false;
-        }
-
-        // If minecart is coming from the same direction, then there obviously is rails there
-        if (this.hasMember() && this.getMember().getDirectionTo() == direction.getOppositeFace()) {
-            return true;
         }
 
         // Move from the current rail minecart position one block into the direction
@@ -818,13 +861,30 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Checks if a given direction is watched by this sign
+     * Checks if a given BlockFace direction is watched by this sign
      *
      * @param direction to check
      * @return True if watched, False otherwise
      */
+    @Deprecated
     public boolean isWatchedDirection(BlockFace direction) {
         return LogicUtil.contains(direction, this.getWatchedDirections());
+    }
+
+    /**
+     * Checks if a given movement direction is watched by this sign.
+     * When this returns true, the sign should be activated.
+     * 
+     * @param direction to check
+     * @return True if watched, False otherwise
+     */
+    public boolean isWatchedDirection(Vector direction) {
+        for (BlockFace watched : this.getWatchedDirections()) {
+            if (MathUtil.isHeadingTo(watched, direction)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

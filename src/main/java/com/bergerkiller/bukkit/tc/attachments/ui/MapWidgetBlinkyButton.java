@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
  */
 public abstract class MapWidgetBlinkyButton extends MapWidget {
     private MapTexture icon = MapTexture.createEmpty(16, 16);
+    private MapTexture icon_disabled = MapTexture.createEmpty(16, 16);
     private MapTexture icon_blink_a = MapTexture.createEmpty(16, 16);
     private MapTexture icon_blink_b = MapTexture.createEmpty(16, 16);
     private int blinkCtr = 0;
@@ -38,6 +39,18 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         this.icon_blink_b.draw(this.icon, 0, 0);
         this.icon_blink_b.setBlendMode(MapBlendMode.ADD);
         this.icon_blink_b.fill(MapColorPalette.getColor(80, 80, 0));
+        for (int x = 0; x < this.icon_disabled.getWidth(); x++) {
+            for (int y = 0; y < this.icon_disabled.getHeight(); y++) {
+                byte code = this.icon.readPixel(x, y);
+                if (MapColorPalette.isTransparent(code)) {
+                    this.icon_disabled.writePixel(x, y, code);
+                } else {
+                    java.awt.Color c = MapColorPalette.getRealColor(this.icon.readPixel(x, y));
+                    int avg = (c.getRed() + c.getGreen() + c.getBlue()) / 3;
+                    this.icon_disabled.writePixel(x, y, MapColorPalette.getColor(avg, avg, avg));
+                }
+            }
+        }
         this.setSize(icon.getWidth(), icon.getHeight());
         this.invalidate();
         return this;
@@ -75,7 +88,9 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
 
     @Override
     public void onDraw() {
-        if (!this.isFocused()) {
+        if (!this.isEnabled()) {
+            this.view.draw(this.icon_disabled, 0, 0);
+        } else if (!this.isFocused()) {
             this.view.draw(this.icon, 0, 0);
         } else if (this.blinkMode) {
             this.view.draw(this.icon_blink_a, 0, 0);

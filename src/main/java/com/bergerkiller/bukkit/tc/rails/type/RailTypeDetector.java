@@ -8,6 +8,6 @@ public class RailTypeDetector extends RailTypeRegular {
 
     @Override
     public boolean isRail(BlockData blockData) {
-        return blockData.getType() == Material.DETECTOR_RAIL;
+        return blockData.isType(Material.DETECTOR_RAIL);
     }
 }

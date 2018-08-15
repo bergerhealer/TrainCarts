@@ -39,6 +39,7 @@ public class GeneralMenu extends MapWidgetWindow {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
+                attachment.setChangingOrder(true);
                 GeneralMenu.this.deactivate();
             }
         }).setText("Change order").setBounds(10, 30, 98, 18);
@@ -54,7 +55,10 @@ public class GeneralMenu extends MapWidgetWindow {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
-                attachment.getParentAttachment().addAttachment(attachment.getFullConfig());
+                int index = attachment.getParentAttachment().getAttachments().indexOf(attachment);
+                MapWidgetAttachmentNode addedNode;
+                addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getFullConfig());
+                attachment.getTree().setSelectedNode(addedNode);
                 GeneralMenu.this.deactivate();
             }
         }).setText("Duplicate").setBounds(10, 70, 98, 18).setEnabled(attachment.getParentAttachment() != null);

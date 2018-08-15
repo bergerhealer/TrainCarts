@@ -1,31 +1,29 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
-    private final int maxsize;
+    private final double maxDistance;
     private final long delay;
     private final double launchDistance;
     private final BlockFace launchDirection;
     private final Double launchVelocity;
     private BlockFace direction;
-    private Block start;
     private double launchforce;
     private int counter = 20;
     private boolean breakCode = false;
 
-    public MemberActionWaitOccupied(final int maxsize, final long delay, final double launchDistance, BlockFace launchDirection, Double launchVelocity) {
-        this.maxsize = maxsize;
+    public MemberActionWaitOccupied(final double maxDistance, final long delay, final double launchDistance, BlockFace launchDirection, Double launchVelocity) {
+        this.maxDistance = maxDistance;
         this.delay = delay;
         this.launchDistance = launchDistance;
         this.launchDirection = launchDirection;
         this.launchVelocity = launchVelocity;
     }
 
+    // Old code. Stop using it, and use getSpeedAhead instead.
+    /*
     public static boolean handleOccupied(Block start, BlockFace direction, MinecartMember<?> ignore, int maxdistance) {
         TrackIterator iter = new TrackIterator(start, direction);
         while (iter.hasNext() && --maxdistance >= 0) {
@@ -38,11 +36,11 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
         ignore.setIgnoreCollisions(false);
         return false;
     }
+    */
 
     @Override
     public void bind() {
-        this.direction = getMember().getDirectionTo();
-        this.start = getMember().getBlock();
+        this.direction = getMember().getDirection();
         this.launchforce = this.getGroup().getAverageForce();
     }
 
@@ -56,7 +54,8 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     }
 
     public boolean handleOccupied() {
-        return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
+        // return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
+        return this.getGroup().getSpeedAhead(this.maxDistance) != Double.MAX_VALUE;
     }
 
     @Override

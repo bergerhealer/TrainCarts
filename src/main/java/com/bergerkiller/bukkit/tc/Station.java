@@ -328,7 +328,7 @@ public class Station {
         RailState centercart_state = centerMember.getRailTracker().getState();
         RailState centercart_state_inv = centercart_state.clone();
         centercart_state_inv.position().invertMotion();
-        Util.calculateEnterFace(centercart_state_inv);
+        centercart_state_inv.initEnterDirection();
 
         // Try both directions of movement from the center cart perspective and find the rails block
         info.distance = centercart_state.position().distance(centerPos);

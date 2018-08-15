@@ -65,6 +65,12 @@ public class AttachmentEditor extends MapDisplay {
     public boolean updateSneakWalking(MapKeyEvent event) {
         if (event.getKey() == Key.BACK) {
             MapWidget activated = this.getActivatedWidget();
+
+            // Ignore this action while changing order of an item
+            if (activated instanceof MapWidgetAttachmentNode && ((MapWidgetAttachmentNode) activated).isChangingOrder()) {
+                return false;
+            }
+
             if ((activated == this.getRootWidget()) ||
                 (activated == this.tree) ||
                 (activated instanceof MapWidgetAttachmentNode))

@@ -9,6 +9,8 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -384,7 +386,7 @@ public class WheelTrackerMember {
             if (!this.member.isDerailed()) {
                 for (int i = 0; i < rails.size(); i++) {
                     TrackedRail rail = rails.get(i);
-                    if (rail.member == this.member && rail.block.equals(this.member.getBlock())) {
+                    if (rail == this.member.getRailTracker().getRail()) {
                         railIndex = i;
                         break;
                     }
@@ -453,6 +455,11 @@ public class WheelTrackerMember {
             this._forward = new Vector(position.motX, position.motY, position.motZ);
             if (!this._front) {
                 this._forward.multiply(-1.0);
+            }
+
+            // Debug
+            if (TCConfig.wheelTrackerDebugEnabled) {
+                Util.spawnBubble(position.toLocation(this.member.getEntity().getWorld()));
             }
         }
 

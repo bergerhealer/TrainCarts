@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -26,9 +25,13 @@ public class TrackWalkingPoint {
      */
     public final RailState state;
     /**
-     * Rail logic of {@link #currentTrack}
+     * Rail logic of {@link #state}
      */
     public RailLogic currentRailLogic;
+    /**
+     * Rail path of {@link #currentRailLogic}
+     */
+    public RailPath currentRailPath;
     /**
      * The actual distance moved during the last {@link #move(double)} call
      */
@@ -56,6 +59,7 @@ public class TrackWalkingPoint {
         state.position().assertAbsolute();
         this.state = state.clone();
         this.currentRailLogic = this.state.loadRailLogic();
+        this.currentRailPath = this.currentRailLogic.getPath();
     }
 
     public TrackWalkingPoint(Location startPos, Vector motionVector) {
@@ -65,6 +69,7 @@ public class TrackWalkingPoint {
         this.state.position().setLocation(startPos);
         RailType.loadRailInformation(this.state);
         this.currentRailLogic = this.state.loadRailLogic();
+        this.currentRailPath = this.currentRailLogic.getPath();
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace motionFace) {
@@ -75,8 +80,9 @@ public class TrackWalkingPoint {
             this.state.setRailType(RailType.getType(startRail));
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
-            Util.calculateEnterFace(this.state);
+            this.state.initEnterDirection();
             this.currentRailLogic = this.state.loadRailLogic();
+            this.currentRailPath = this.currentRailLogic.getPath();
         }
     }
 
@@ -87,6 +93,40 @@ public class TrackWalkingPoint {
      */
     public void skipFirst() {
         this.first = false;
+    }
+
+    /**
+     * Moves a full step towards the next rails block, limiting the steps taken by the limit parameter.
+     * This can be used to discover the rails blocks that covers a particular stretch of track.
+     * The {@link #moved} and {@link #movedTotal} parameters are updated with this call.
+     * 
+     * @param limit distance to move
+     * @return True if the step was successful
+     */
+    public boolean moveStep(double limit) {
+        // No rails
+        if (this.state.railType() == RailType.NONE) {
+            return false;
+        }
+
+        // Move the full length of the path, to the end of the path
+        this.moved = this.currentRailPath.move(this.state, limit);
+        this.movedTotal += this.moved;
+        this.state.initEnterDirection();
+
+        // When moved closely equals the limit, we've reached the end of track.
+        double diff = (this.moved - limit);
+        if (diff > -1e-10 && diff < 1e-10) {
+            return false;
+        }
+
+        // Attempt loading the next rail information. Return false if no more rails exist.
+        if (!this.loadNextRail()) {
+            return false;
+        }
+
+        // All good, found the next rail!
+        return true;
     }
 
     /**
@@ -109,10 +149,9 @@ public class TrackWalkingPoint {
         }
 
         // Move the full length of the path, to the end of the path
-        RailPath path = this.currentRailLogic.getPath();
-        this.moved = path.move(this.state, Double.MAX_VALUE);
+        this.moved = this.currentRailPath.move(this.state, Double.MAX_VALUE);
         this.movedTotal += this.moved;
-        Util.calculateEnterFace(this.state);
+        this.state.initEnterDirection();
 
         // Attempt moving to next rails block
         if (!loadNextRail()) {
@@ -120,7 +159,7 @@ public class TrackWalkingPoint {
         }
 
         // Snap onto the path before returning
-        this.currentRailLogic.getPath().snap(this.state.position(), this.state.railBlock());
+        this.currentRailPath.snap(this.state.position(), this.state.railBlock());
         return true;
     }
 
@@ -147,18 +186,16 @@ public class TrackWalkingPoint {
         double remainingDistance = distance;
         int infCycleCtr = 0;
         while (true) {
-            RailPath path = this.currentRailLogic.getPath();
-
             // Move along the path
             double moved;
-            if (((moved = path.move(this.state, remainingDistance)) != 0.0) || (remainingDistance <= 0.0001)) {
+            if (((moved = this.currentRailPath.move(this.state, remainingDistance)) != 0.0) || (remainingDistance <= 0.0001)) {
                 infCycleCtr = 0;
                 remainingDistance -= moved;
                 if (remainingDistance <= 0.00001) {
                     // Moved the full distance
                     this.moved = distance;
                     this.movedTotal += this.moved;
-                    Util.calculateEnterFace(this.state);
+                    this.state.initEnterDirection();
                     return true;
                 }
             } else if (++infCycleCtr > 100) {
@@ -168,7 +205,7 @@ public class TrackWalkingPoint {
                 System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
-                Util.calculateEnterFace(this.state);
+                this.state.initEnterDirection();
                 return false;
             }
 
@@ -176,7 +213,7 @@ public class TrackWalkingPoint {
             if (!loadNextRail()) {
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
-                Util.calculateEnterFace(this.state);
+                this.state.initEnterDirection();
                 return false;
             }
         }
@@ -228,6 +265,7 @@ public class TrackWalkingPoint {
 
         // Refresh rail logic for the new position and state
         this.currentRailLogic = this.state.loadRailLogic();
+        this.currentRailPath = this.currentRailLogic.getPath();
         return true;
     }
 
@@ -265,13 +303,12 @@ public class TrackWalkingPoint {
         // Found our rails Block! Move a tiny step further onto it.
         // Query the desired spawn location that we should move towards.
         Location spawnLocation = this.state.railType().getSpawnLocation(railsBlock, this.state.enterFace());
-        RailPath path = this.currentRailLogic.getPath();
         for (int i = 0; i < 10; i++) {
             double distance = this.state.position().distance(spawnLocation);
             if (distance < 1e-4) {
                 break; // 
             }
-            double moved = path.move(this.state, distance);
+            double moved = this.currentRailPath.move(this.state, distance);
             this.movedTotal += moved;
             if (moved < 1e-4) {
                 break; // End of path

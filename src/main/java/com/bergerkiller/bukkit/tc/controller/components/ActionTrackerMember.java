@@ -111,11 +111,11 @@ public class ActionTrackerMember extends ActionTracker {
         return addActionLaunch(owner.getEntity().getLocation().add(offset), targetvelocity);
     }
 
-    public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance) {
-        return addActionWaitOccupied(maxsize, launchDelay, launchDistance, null, null);
+    public MemberActionWaitOccupied addActionWaitOccupied(double maxDistance, long launchDelay, double launchDistance) {
+        return addActionWaitOccupied(maxDistance, launchDelay, launchDistance, null, null);
     }
 
-    public MemberActionWaitOccupied addActionWaitOccupied(int maxsize, long launchDelay, double launchDistance, BlockFace launchDirection, Double launchVelocity) { // Use Double to allow null
-        return addGroupAction(new MemberActionWaitOccupied(maxsize, launchDelay, launchDistance, launchDirection, launchVelocity));
+    public MemberActionWaitOccupied addActionWaitOccupied(double maxDistance, long launchDelay, double launchDistance, BlockFace launchDirection, Double launchVelocity) { // Use Double to allow null
+        return addGroupAction(new MemberActionWaitOccupied(maxDistance, launchDelay, launchDistance, launchDirection, launchVelocity));
     }
 }
