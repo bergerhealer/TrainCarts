@@ -37,7 +37,7 @@ public class RailSignCache {
             // Verify all the signs mentioned are still there
             boolean valid = true;
             for (TrackedSign sign : cached.signs) {
-                if (!BlockUtil.ISSIGN.get(sign.signBlock.getType())) {
+                if (!BlockUtil.ISSIGN.get(sign.signBlock)) {
                     valid = false;
                     break;
                 }

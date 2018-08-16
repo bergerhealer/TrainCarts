@@ -100,7 +100,7 @@ public class PortalDestination {
     }
 
     private static void discoverPortals(HashSet<IntVector3> blocks, World world, IntVector3 pos) {
-        if (WorldUtil.getBlockData(world, pos).getType() == Material.PORTAL && blocks.add(pos)) {
+        if (WorldUtil.getBlockData(world, pos).isType(Material.PORTAL) && blocks.add(pos)) {
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
                 discoverPortals(blocks, world, pos.add(face));
             }

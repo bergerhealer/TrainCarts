@@ -99,7 +99,7 @@ public class PoweredTrackLogic {
     public boolean checkStep(World world, IntVector3 blockposition, boolean directionMode, int iterCtr, BlockFace walkDirection) {
         BlockData iblockdata = WorldUtil.getBlockData(world, blockposition);
 
-        if (iblockdata.getType() != this.railType) {
+        if (!iblockdata.isType(this.railType)) {
             return false;
         } else {
             MaterialData blockData = iblockdata.getMaterialData();

@@ -28,20 +28,21 @@ public enum PowerState {
 
     private static boolean isDistractingColumn(Block main, BlockFace face) {
         Block side = main.getRelative(face);
-        Material type = side.getType();
-        if (MaterialUtil.ISPOWERSOURCE.get(type)) {
+        BlockData side_data = WorldUtil.getBlockData(side);
+        if (MaterialUtil.ISPOWERSOURCE.get(side_data)) {
             return true;
-        } else if (type == Material.AIR) {
+        } else if (side_data.isType(Material.AIR)) {
             //check level below
             if (MaterialUtil.ISPOWERSOURCE.get(side.getRelative(BlockFace.DOWN))) {
                 return true;
             }
-        } else if (MaterialUtil.ISDIODE.get(type)) {
+        } else if (MaterialUtil.ISDIODE.get(side_data)) {
             //powered by repeater?
             BlockFace facing = BlockUtil.getFacing(side);
             return facing == face;
         }
-        if (main.getRelative(BlockFace.UP).getType() == Material.AIR) {
+        BlockData up_data = WorldUtil.getBlockData(main.getRelative(BlockFace.UP));
+        if (up_data.isType(Material.AIR)) {
             //check level on top
             return MaterialUtil.ISPOWERSOURCE.get(side.getRelative(BlockFace.UP));
         } else {
@@ -80,7 +81,7 @@ public enum PowerState {
             if (diode.getFacing() != from) {
                 // Note: not supported on 1.8.8
                 //return diode.isPowered() ? ON : OFF;
-                return (fromBlockInfo.getType() == Material.DIODE_BLOCK_ON) ? ON : OFF;
+                return fromBlockInfo.isType(Material.DIODE_BLOCK_ON) ? ON : OFF;
             } else {
                 return NONE;
             }

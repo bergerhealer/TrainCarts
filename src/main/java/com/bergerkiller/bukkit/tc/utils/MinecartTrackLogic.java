@@ -34,7 +34,7 @@ public class MinecartTrackLogic {
         this.world = world;
         this.pos = blockposition;
         this.data = iblockdata;
-        this.hasNoCurves = (iblockdata.getType() != Material.RAILS);
+        this.hasNoCurves = !iblockdata.isType(Material.RAILS);
         this.getNeighbours((Rails) iblockdata.newMaterialData());
     }
 
@@ -141,7 +141,7 @@ public class MinecartTrackLogic {
         boolean rails_at_east = this.isNeighbourAt(pos_east);
 
         boolean railsSet = false;
-        Rails newRails = new Rails(this.data.getType());
+        Rails newRails = new Rails(this.data.getLegacyType());
 
         if (rails_at_north || rails_at_south) {
             railsSet = true;
@@ -230,7 +230,7 @@ public class MinecartTrackLogic {
         boolean rails_at_east = this.isSpecialNeighbour(pos_east);
 
         boolean railsSet = false;
-        Rails newRails = new Rails(this.data.getType());
+        Rails newRails = new Rails(this.data.getLegacyType());
 
         if ((rails_at_north || rails_at_south) && !rails_at_west && !rails_at_east) {
             railsSet = true;
