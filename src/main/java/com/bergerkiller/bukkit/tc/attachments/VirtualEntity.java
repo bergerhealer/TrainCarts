@@ -10,6 +10,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -113,7 +114,57 @@ public class VirtualEntity {
      * @param yawPitchRoll rotation
      */
     public void updatePosition(Matrix4x4 transform) {
-        updatePosition(transform, transform.getYawPitchRoll());
+        Quaternion rotation = transform.getRotation();
+        Vector f = rotation.forwardVector();
+        double yaw, pitch;
+
+        if (this.hasPitch()) {
+            Vector u = rotation.upVector();
+
+            // Compute yawmode factor - whether to use the forward or up-vector for computing yaw
+            // A value below 0.0 indicates the forward vector should be used (mostly horizontal)
+            // A value above 1.0 indicates the up vector should be used (mostly vertical)
+            // A value between 0.0 and 1.0 selects a smooth combination of both
+            final double yawmode_factor_start = 0.9;
+            final double yawmode_factor_end = 0.99;
+            double yawmode_factor = (Math.abs(f.getY()) - yawmode_factor_start) / (1.0 - yawmode_factor_end);
+
+            // Invert up-vector when upside-down
+            // Up-vector is only used when the entity is vertical - so this is fine.
+            boolean isFrontSideDown = (f.getY() < 0.0);
+
+            if (u.getY() < 0.0) {
+                // Upside-down
+                pitch = 180.0 + MathUtil.getLookAtPitch(f.getX(), -f.getY(), f.getZ());
+                f.multiply(-1.0);
+            } else {
+                // Upright
+                pitch = MathUtil.getLookAtPitch(f.getX(), f.getY(), f.getZ());
+            }
+
+            if (isFrontSideDown) {
+                u.multiply(-1.0);
+            }
+
+            if (yawmode_factor <= 0.0) {
+                // Horizontal, use forward vector for yaw
+                yaw = MathUtil.getLookAtYaw(-f.getZ(), f.getX());
+            } else if (yawmode_factor >= 1.0) {
+                // Vertical, use up-vector for yaw
+                yaw = MathUtil.getLookAtYaw(u.getZ(), -u.getX());
+            } else {
+                // Mix of the above
+                double ax = yawmode_factor *  u.getZ() + (1.0 - yawmode_factor) * -f.getZ();
+                double az = yawmode_factor * -u.getX() + (1.0 - yawmode_factor) * f.getX();
+                yaw = MathUtil.getLookAtYaw(ax, az);
+            }
+        } else {
+            // If this entity has no pitch - return yaw instantly
+            yaw = MathUtil.getLookAtYaw(-f.getZ(), f.getX());
+            pitch = 0.0;
+        }
+
+        updatePosition(transform, new Vector(pitch, yaw, 0.0));
     }
 
     /**
