@@ -54,7 +54,6 @@ public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
-    private static BlockFace[] possibleFaces = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
     private static List<Block> blockbuff = new ArrayList<Block>();
 
     public static void setItemMaxSize(Material material, int maxstacksize) {
@@ -182,50 +181,7 @@ public class Util {
     }
 
     public static Block getRailsFromSign(Block signblock) {
-        if (signblock == null) {
-            return null;
-        }
-
-        BlockData signblock_data = WorldUtil.getBlockData(signblock);
-        final Block mainBlock;
-        if (signblock_data.isType(Material.WALL_SIGN)) {
-            mainBlock = BlockUtil.getAttachedBlock(signblock);
-        } else if (signblock_data.isType(Material.SIGN_POST)) {
-            mainBlock = signblock;
-        } else {
-            return null;
-        }
-
-        // Check main block IS rails itself
-        if (RailType.getType(mainBlock) != RailType.NONE) {
-            return mainBlock;
-        }
-
-        // Look further in all 6 possible directions
-        boolean hasSigns;
-        for (BlockFace dir : possibleFaces) {
-            Block block = mainBlock;
-            hasSigns = true;
-            while (true) {
-                // Go to the next block
-                block = block.getRelative(dir);
-
-                // Check for rails
-                BlockFace columnDir = RailType.getType(block).getSignColumnDirection(block);
-                if (dir == columnDir.getOppositeFace()) {
-                    return block;
-                }
-
-                // End of the loop?
-                if (!hasSigns) {
-                    break;
-                }
-
-                // Go to the next block
-                hasSigns = hasAttachedSigns(block);
-            }
-        }
-        return null;
+        return RailSignCache.getRailsFromSign(signblock);
     }
 
     public static Block findRailsVertical(Block from, BlockFace mode) {

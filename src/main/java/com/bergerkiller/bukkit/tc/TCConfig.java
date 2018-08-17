@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.bukkit.Material;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
@@ -269,8 +271,8 @@ public class TCConfig {
                 if (type != null) allowedBlockBreakTypes.add(type);
             }
         } else {
-            allowedBlockBreakTypes.add(Material.CROPS);
-            allowedBlockBreakTypes.add(Material.LOG);
+            allowedBlockBreakTypes.add(getMaterial("LEGACY_CROPS"));
+            allowedBlockBreakTypes.add(getMaterial("LEGACY_LOG"));
         }
 
         config.setHeader("activatorEjectEnabled", "Whether powered activator rails eject players inside Minecarts (Vanilla)");

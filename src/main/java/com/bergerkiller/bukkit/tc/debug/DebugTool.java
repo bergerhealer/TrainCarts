@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -208,7 +209,7 @@ public class DebugTool {
     }
 
     private static void showParticle(Location loc) {
-        showParticle(loc, Particle.FOOTSTEP);
+        Util.spawnDustParticle(loc, 1.0, 0.1, 0.1);
     }
 
     private static void showParticle(Location loc, Particle particle) {

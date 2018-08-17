@@ -42,12 +42,12 @@ public enum ProfileNameModifier {
     private static final Map<UUID, Map<UUID, String>> _lastSetNames = new HashMap<UUID, Map<UUID, String>>();
 
     private final String _playerName;
-    private final String _teamName;
+    private final ChatText _teamName;
     private final Set<UUID> _teamSentPlayers = new HashSet<UUID>();
 
     private ProfileNameModifier(String playerName, String teamName) {
         this._playerName = playerName;
-        this._teamName = teamName;
+        this._teamName = ChatText.fromMessage(teamName);
     }
 
     /**
@@ -161,10 +161,10 @@ public enum ProfileNameModifier {
         // Only do this once to prevent a client disconnect (duplicate team)
         if (this._teamName != null && this._teamSentPlayers.add(viewer.getUniqueId())) {
             PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
-            teamPacket.setName(this._teamName);
+            teamPacket.setName(this._teamName.getMessage());
             teamPacket.setDisplayName(this._teamName);
-            teamPacket.setPrefix("");
-            teamPacket.setSuffix("");
+            teamPacket.setPrefix(ChatText.fromMessage(""));
+            teamPacket.setSuffix(ChatText.fromMessage(""));
             teamPacket.setVisibility("never");
             teamPacket.setCollisionRule("never");
             teamPacket.setMode(0x0);

@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -81,7 +83,7 @@ public enum PowerState {
             if (diode.getFacing() != from) {
                 // Note: not supported on 1.8.8
                 //return diode.isPowered() ? ON : OFF;
-                return fromBlockInfo.isType(Material.DIODE_BLOCK_ON) ? ON : OFF;
+                return fromBlockInfo.isType(getMaterial("LEGACY_DIODE_BLOCK_ON")) ? ON : OFF;
             } else {
                 return NONE;
             }

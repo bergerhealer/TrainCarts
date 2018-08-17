@@ -50,10 +50,10 @@ public class FakePlayer {
             return;
         }
 
-        String oldName = (oldMode == DisplayMode.NONE) ? player.getName() : oldMode.getPlayerName();
-        String newName = (newMode == DisplayMode.NONE) ? player.getName() : newMode.getPlayerName();
+        ChatText oldName = (oldMode == DisplayMode.NONE) ? ChatText.fromMessage(player.getName()) : oldMode.getPlayerName();
+        ChatText newName = (newMode == DisplayMode.NONE) ? ChatText.fromMessage(player.getName()) : newMode.getPlayerName();
 
-        GameProfileHandle oldFakeGameProfile = GameProfileHandle.createNew(player.getUniqueId(), oldName);
+        GameProfileHandle oldFakeGameProfile = GameProfileHandle.createNew(player.getUniqueId(), oldName.getMessage());
         PacketPlayOutPlayerInfoHandle oldInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
         oldInfoPacket.setAction(EnumPlayerInfoActionHandle.REMOVE_PLAYER);
         PlayerInfoDataHandle oldPlayerInfo = PlayerInfoDataHandle.createNew(
@@ -66,7 +66,7 @@ public class FakePlayer {
         oldInfoPacket.getPlayers().add(oldPlayerInfo);
         PacketUtil.sendPacket(viewer, oldInfoPacket);
 
-        GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(player.getUniqueId(), newName);
+        GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(player.getUniqueId(), newName.getMessage());
         newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
         PacketPlayOutPlayerInfoHandle newInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
         newInfoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
@@ -166,15 +166,15 @@ public class FakePlayer {
     public static enum DisplayMode {
         NONE("", ""), NORMAL("DinnerBone", "BoredTCRiders"), UPSIDEDOWN("Dinnerbone", "DizzyTCRiders");
 
-        private final String playerName;
+        private final ChatText playerName;
         private final FakeTeam team;
 
         private DisplayMode(String playerName, String teamName) {
-            this.playerName = playerName;
+            this.playerName = ChatText.fromMessage(playerName);
             this.team = new FakeTeam(teamName, playerName);
         }
 
-        public String getPlayerName() {
+        public ChatText getPlayerName() {
             return this.playerName;
         }
 

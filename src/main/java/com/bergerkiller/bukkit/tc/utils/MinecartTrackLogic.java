@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.List;
 
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -13,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.google.common.collect.Lists;
 
 /**
@@ -34,7 +34,7 @@ public class MinecartTrackLogic {
         this.world = world;
         this.pos = blockposition;
         this.data = iblockdata;
-        this.hasNoCurves = !iblockdata.isType(Material.RAILS);
+        this.hasNoCurves = !RailType.REGULAR.isRail(iblockdata);
         this.getNeighbours((Rails) iblockdata.newMaterialData());
     }
 
