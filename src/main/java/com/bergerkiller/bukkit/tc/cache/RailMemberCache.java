@@ -52,6 +52,27 @@ public class RailMemberCache {
     }
 
     /**
+     * Finds all minecarts traveling on a particular rail block
+     * 
+     * @param railBlock
+     * @return members on this rail
+     */
+    public static Collection<MinecartMember<?>> findAll(Block railBlock) {
+        Collection<MinecartMember<?>> members = cache.get(railBlock);
+        Iterator<MinecartMember<?>> iter = members.iterator();
+        while (iter.hasNext()) {
+            MinecartMember<?> member = iter.next();
+            if (member.isUnloaded()) {
+                TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + new IntVector3(railBlock));
+                iter.remove();
+                remove(member);
+                return findAll(railBlock);
+            }
+        }
+        return members;
+    }
+
+    /**
      * Removes all existant entries to a particular minecart
      * 
      * @param member value to remove
