@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -18,11 +19,14 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 public abstract class SignAction {
+    private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
     private static List<SignAction> actions;
 
     public static void init() {
@@ -158,7 +162,7 @@ public abstract class SignAction {
                 return;
             }
         }
-        if (info.getMode() != SignActionMode.NONE && event.getBlock().getType() == Material.SIGN_POST) {
+        if (info.getMode() != SignActionMode.NONE && WorldUtil.getBlockData(event.getBlock()).isType(SIGN_POST_TYPE)) {
             //snap to fixed 45-degree angle
             BlockFace facing = BlockUtil.getFacing(event.getBlock());
             BlockUtil.setFacing(event.getBlock(), Util.snapFace(facing));

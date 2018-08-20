@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
@@ -39,6 +38,8 @@ import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
 import com.bergerkiller.mountiplex.reflection.ClassTemplate;
 import com.bergerkiller.mountiplex.reflection.SafeMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
+
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -493,9 +494,10 @@ public class TCListener implements Listener {
                 while (map.hasNext()) {
                     map.next();
                 }
+                Material wool_type = getMaterial("LEGACY_WOOL");
                 byte data = 0;
                 for (Block block : map) {
-                    BlockUtil.setTypeAndRawData(block, Material.WOOL, data, false);
+                    BlockUtil.setTypeAndRawData(block, wool_type, data, false);
                     data++;
                     if (data == 16) {
                         data = 0;
@@ -627,14 +629,14 @@ public class TCListener implements Listener {
     public boolean onRightClick(Block clickedBlock, Player player, ItemStack heldItem, long clickInterval) {
         // Handle interaction with minecart or rails onto another Block
         if (MaterialUtil.ISMINECART.get(heldItem) || Util.ISTCRAIL.get(heldItem)) {
-            Material type = clickedBlock == null ? Material.AIR : clickedBlock.getType();
+            BlockData type = clickedBlock == null ? BlockData.AIR : WorldUtil.getBlockData(clickedBlock);
             RailType railType = RailType.getType(clickedBlock);
             if (railType != RailType.NONE) {
                 if (MaterialUtil.ISMINECART.get(heldItem)) {
                     // Handle the interaction with rails while holding a minecart
                     // Place a TrainCart/Minecart on top of the rails, and handles permissions
-                    return handleMinecartPlacement(player, clickedBlock, type);
-                } else if (type == heldItem.getType() && MaterialUtil.ISRAILS.get(type) && TCConfig.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
+                    return handleMinecartPlacement(player, clickedBlock);
+                } else if (type.isType(heldItem.getType()) && MaterialUtil.ISRAILS.get(type) && TCConfig.allowRailEditing && clickInterval >= MAX_INTERACT_INTERVAL) {
                     if (BlockUtil.canBuildBlock(clickedBlock, type)) {
                         // Edit the rails to make a connection/face the direction the player clicked
                         BlockFace direction = FaceUtil.getDirection(player.getLocation().getDirection(), false);
@@ -655,7 +657,7 @@ public class TCListener implements Listener {
                                 // Set to slope
                                 rails.setDirection(direction, true);
                             }
-                        } else if (type == Material.RAILS) {
+                        } else if (RailType.REGULAR.isRail(type)) {
                             // This needs advanced logic for curves and everything!
                             BlockFace[] faces = FaceUtil.getFaces(rails.getDirection());
                             if (!LogicUtil.contains(direction.getOppositeFace(), faces)) {
@@ -686,7 +688,7 @@ public class TCListener implements Listener {
      * @param railType     that was clicked
      * @return True to allow default logic to continue, False to suppress it
      */
-    private boolean handleMinecartPlacement(Player player, Block clickedBlock, Material railType) {
+    private boolean handleMinecartPlacement(Player player, Block clickedBlock) {
         // handle permission
         if (!Permission.GENERAL_PLACE_MINECART.has(player)) {
             return false;

@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -40,6 +41,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Stairs;
+import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -52,7 +54,6 @@ public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
-    private static BlockFace[] possibleFaces = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
     private static List<Block> blockbuff = new ArrayList<Block>();
 
     public static void setItemMaxSize(Material material, int maxstacksize) {
@@ -180,50 +181,7 @@ public class Util {
     }
 
     public static Block getRailsFromSign(Block signblock) {
-        if (signblock == null) {
-            return null;
-        }
-
-        final Material type = signblock.getType();
-        final Block mainBlock;
-        if (type == Material.WALL_SIGN) {
-            mainBlock = BlockUtil.getAttachedBlock(signblock);
-        } else if (type == Material.SIGN_POST) {
-            mainBlock = signblock;
-        } else {
-            return null;
-        }
-
-        // Check main block IS rails itself
-        if (RailType.getType(mainBlock) != RailType.NONE) {
-            return mainBlock;
-        }
-
-        // Look further in all 6 possible directions
-        boolean hasSigns;
-        for (BlockFace dir : possibleFaces) {
-            Block block = mainBlock;
-            hasSigns = true;
-            while (true) {
-                // Go to the next block
-                block = block.getRelative(dir);
-
-                // Check for rails
-                BlockFace columnDir = RailType.getType(block).getSignColumnDirection(block);
-                if (dir == columnDir.getOppositeFace()) {
-                    return block;
-                }
-
-                // End of the loop?
-                if (!hasSigns) {
-                    break;
-                }
-
-                // Go to the next block
-                hasSigns = hasAttachedSigns(block);
-            }
-        }
-        return null;
+        return RailSignCache.getRailsFromSign(signblock);
     }
 
     public static Block findRailsVertical(Block from, BlockFace mode) {
@@ -560,17 +518,17 @@ public class Util {
      * @return True if supported, False if not
      */
     public static boolean isSupportedFace(Block block, BlockFace face) {
-        Material type = block.getType();
-        if (MaterialUtil.ISSOLID.get(type)) {
+        BlockData block_data = WorldUtil.getBlockData(block);
+        if (MaterialUtil.ISSOLID.get(block_data)) {
             return true;
         }
+
         // Special block types that only support one face at a time
-        int rawData = MaterialUtil.getRawData(block);
-        MaterialData data = BlockUtil.getData(type, rawData);
+        MaterialData data = block_data.getMaterialData();
 
         // Steps only support TOP or BOTTOM
-        if (MaterialUtil.isType(type, Material.WOOD_STEP, Material.STEP)) {
-            return face == FaceUtil.getVertical((rawData & 0x8) == 0x8);
+        if (data instanceof Step) {
+            return face == FaceUtil.getVertical(((Step) data).isInverted());
         }
 
         // Stairs only support the non-exit side + the up/down

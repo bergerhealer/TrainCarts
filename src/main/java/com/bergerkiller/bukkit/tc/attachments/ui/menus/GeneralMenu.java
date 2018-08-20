@@ -1,7 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
@@ -30,7 +31,7 @@ public class GeneralMenu extends MapWidgetWindow {
             public void onActivate() {
                 ConfigurationNode config = new ConfigurationNode();
                 config.set("type", CartAttachmentType.ITEM);
-                config.set("item", new ItemStack(Material.WOOD));
+                config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
                 attachment.addAttachment(config);
                 GeneralMenu.this.deactivate();
             }

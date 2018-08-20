@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.RecipeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
@@ -18,7 +19,10 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.Inventory;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
+
 public class SignActionCraft extends SignAction {
+    private static final Material WORKBENCH_TYPE = getFirst("CRAFTING_TABLE", "LEGACY_WORKBENCH");
 
     @Override
     public boolean match(SignActionEvent info) {
@@ -44,13 +48,12 @@ public class SignActionCraft extends SignAction {
         }
         World world = info.getWorld();
         Block m = info.getRails();
-        Material type;
         Block w = null;
         for (int x = -radX; x <= radX && w == null; x++) {
             for (int y = -radY; y <= radY && w == null; y++) {
                 for (int z = -radZ; z <= radZ && w == null; z++) {
-                    type = WorldUtil.getBlockType(world, m.getX() + x, m.getY() + y, m.getZ() + z);
-                    if (type == Material.WORKBENCH) {
+                    BlockData data = WorldUtil.getBlockData(world, m.getX() + x, m.getY() + y, m.getZ() + z);
+                    if (data.isType(WORKBENCH_TYPE)) {
                         w = m.getRelative(x, y, z);
                     }
                 }

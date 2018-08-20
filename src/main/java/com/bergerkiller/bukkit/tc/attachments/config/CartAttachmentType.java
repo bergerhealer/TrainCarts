@@ -4,6 +4,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -41,19 +43,19 @@ public enum CartAttachmentType {
         case ENTITY:
             EntityType type = config.get("entityType", EntityType.MINECART);
             if (type == EntityType.MINECART) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.MINECART), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_MINECART")), 16, 16);
             } else if (type == EntityType.MINECART_CHEST) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.STORAGE_MINECART), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_STORAGE_MINECART")), 16, 16);
             } else if (type == EntityType.MINECART_COMMAND) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.COMMAND_MINECART), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_COMMAND_MINECART")), 16, 16);
             } else if (type == EntityType.MINECART_FURNACE) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.POWERED_MINECART), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_POWERED_MINECART")), 16, 16);
             } else if (type == EntityType.MINECART_HOPPER) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.HOPPER_MINECART), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_HOPPER_MINECART")), 16, 16);
             } else if (type == EntityType.MINECART_MOB_SPAWNER) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.MOB_SPAWNER), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_MOB_SPAWNER")), 16, 16);
             } else if (type == EntityType.MINECART_TNT) {
-                return TCConfig.resourcePack.getItemTexture(new ItemStack(Material.EXPLOSIVE_MINECART), 16, 16);
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_EXPLOSIVE_MINECART")), 16, 16);
             } else {
                 return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/mob.png");
             }

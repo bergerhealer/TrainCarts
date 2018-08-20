@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.List;
 
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -13,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.google.common.collect.Lists;
 
 /**
@@ -34,7 +34,7 @@ public class MinecartTrackLogic {
         this.world = world;
         this.pos = blockposition;
         this.data = iblockdata;
-        this.hasNoCurves = (iblockdata.getType() != Material.RAILS);
+        this.hasNoCurves = !RailType.REGULAR.isRail(iblockdata);
         this.getNeighbours((Rails) iblockdata.newMaterialData());
     }
 
@@ -141,7 +141,7 @@ public class MinecartTrackLogic {
         boolean rails_at_east = this.isNeighbourAt(pos_east);
 
         boolean railsSet = false;
-        Rails newRails = new Rails(this.data.getType());
+        Rails newRails = new Rails(this.data.getLegacyType());
 
         if (rails_at_north || rails_at_south) {
             railsSet = true;
@@ -230,7 +230,7 @@ public class MinecartTrackLogic {
         boolean rails_at_east = this.isSpecialNeighbour(pos_east);
 
         boolean railsSet = false;
-        Rails newRails = new Rails(this.data.getType());
+        Rails newRails = new Rails(this.data.getLegacyType());
 
         if ((rails_at_north || rails_at_south) && !rails_at_west && !rails_at_east) {
             railsSet = true;

@@ -7,6 +7,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
+
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -14,6 +16,7 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 public class PortalDestination {
+    private static final Material PORTAL_TYPE = getFirst("NETHER_PORTAL", "LEGACY_PORTAL");
     private final Block railsBlock;
     private final BlockFace[] directions;
 
@@ -100,7 +103,7 @@ public class PortalDestination {
     }
 
     private static void discoverPortals(HashSet<IntVector3> blocks, World world, IntVector3 pos) {
-        if (WorldUtil.getBlockData(world, pos).getType() == Material.PORTAL && blocks.add(pos)) {
+        if (WorldUtil.getBlockData(world, pos).isType(PORTAL_TYPE) && blocks.add(pos)) {
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
                 discoverPortals(blocks, world, pos.add(face));
             }

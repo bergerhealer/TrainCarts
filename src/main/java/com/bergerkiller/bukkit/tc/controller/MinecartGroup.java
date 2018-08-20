@@ -35,7 +35,6 @@ import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.Chunk;
@@ -46,6 +45,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1097,27 +1097,36 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
 
+        // Take into account that the head minecart has a length also, so we count distance from the edge (half length)
+        double selfCartOffset = (0.5 * this.head().getEntity().getWidth());
+
+        // Speed of this train, limited by the maximum speed property
+        double selfSpeed = this.head().getEntity().vel.length();
+        selfSpeed = Math.min(selfSpeed, this.getProperties().getSpeedLimit());
+
+        // The actual minimum distance allowed from the walking point position to any minecarts discovered
+        // This takes into account that the start position is halfway the length of the Minecart
+        // When distance is not greater than 0, we don't check for other trains at all.
         boolean checkTrains = false;
         double waitDistance = distance;
         if (waitDistance > 0.0) {
             checkTrains = true;
+            waitDistance += selfCartOffset;
         }
 
         // Two blocks are used to slow down the train, to make it match up to speed with the train up ahead
         // Check for any mutex zones ~2 blocks ahead, and stop before we enter them
         // If a wait distance is set, also check for trains there
-        final double CHECK_MARGIN = 1.5;
-        double checkDistance = waitDistance + (0.5 * this.head().getEntity().getWidth()) + CHECK_MARGIN - this.head().calcSubBlockDistance();
+        double mutexDistance = 2.0 + selfCartOffset;
+        double checkDistance = Math.max(mutexDistance, waitDistance);
 
         UUID worldUUID = this.getWorld().getUID();
-        double cartDistance;
-        TrackIterator iter = new TrackIterator(this.head().getBlock(), this.head().getDirectionTo());
-        while ((cartDistance = iter.getCartDistance()) <= checkDistance && iter.hasNext()) {
-            Block rail = iter.next();
+        TrackWalkingPoint iter = new TrackWalkingPoint(this.head().discoverRail());
+        while (iter.movedTotal <= checkDistance && iter.moveFull()) {
 
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
-            if (iter.getDistance() == 2) {
-                MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(rail));
+            if (iter.movedTotal <= mutexDistance) {
+                MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(iter.state.railBlock()));
                 if (zone != null && !zone.tryEnter(this)) {
                     return 0.0;
                 }
@@ -1131,29 +1140,83 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (!checkTrains) {
                 continue;
             }
-            MinecartMember<?> other = MinecartMemberStore.getAt(rail);
-            if (other != null && other.getGroup() != this) {
-                // Train is heading for me! Stop!
-                if (MathUtil.isHeadingTo(iter.currentDirection().clone().multiply(-1.0), other.getEntity().getVelocity())) {
-                    return 0.0;
+
+            // Check all other minecarts on the same rails to see if they are too close
+            Location state_position = null;
+            Location member_position = null;
+            double minSpeedAhead = Double.MAX_VALUE;
+            for (MinecartMember<?> member : RailMemberCache.findAll(iter.state.railBlock())) {
+                if (member.getGroup() == this) {
+                    continue;
                 }
 
-                // The distance we have presently is to the middle of the current block of the minecart
-                // However, what we want is the distance to the minecart itself, not the block
-                // To avoid jumpy behavior, factor in the position of the minecart in the distance calculation
-                cartDistance += other.calcSubBlockDistance();
+                // Retrieve & re-use (readonly)
+                if (state_position == null) {
+                    state_position = iter.state.positionLocation();
+                }
+
+                // Member center position & re-use (readonly)
+                if (member_position == null) {
+                    member_position = member.getEntity().getLocation();
+                } else {
+                    member.getEntity().getLocation(member_position);
+                }
+
+                // Is the minecart 'in front' of the current position on the rails, or behind us?
+                // This is important when iterating over the first track only, because then this is not guaranteed
+                if (iter.movedTotal == 0.0) {
+                    Vector delta = new Vector(member_position.getX() - state_position.getX(),
+                                              member_position.getY() - state_position.getY(),
+                                              member_position.getZ() - state_position.getZ());
+                    if (delta.dot(iter.state.motionVector()) < 0.0) {
+                        continue;
+                    }
+                }
+
+                // Compute distance from the current rail position to the 'edge' of the minecart.
+                // This is basically the distance to center, with half the length of the minecart subtracted.
+                double distanceToMember = member_position.distance(state_position) -
+                                          (double) member.getEntity().getWidth() * 0.5;
 
                 // Find the distance we can still move from our current position
-                double remaining = (cartDistance - waitDistance);
+                double remaining = ((iter.movedTotal + distanceToMember) - waitDistance);
 
-                // If remaining is negative, stop! We can't possibly move any further without violating our rule
-                if (remaining <= 0.0) {
+                // Allow for 2-block distance until slowing down
+                final double MIN_DISTANCE = 2.0;
+                if (remaining > MIN_DISTANCE) {
+                    continue;
+                }
+
+                // Movement speed of the minecart, taking maximum speed into account
+                Vector member_velocity = member.getEntity().getVelocity();
+                double otherSpeed = MathUtil.clamp(member_velocity.length(), member.getEntity().getMaxSpeed());
+
+                // If moving towards me, stop right away! When barely moving, ignore this check.
+                if (otherSpeed > 1e-6 && iter.state.position().motDot(member_velocity) < 0.0) {
                     return 0.0;
                 }
 
-                // Maintain distance. Use remaining to switch between force and absolute 0 for a smooth slowdown
-                double otherSpeed = MathUtil.clamp(other.getForce(), other.getEntity().getMaxSpeed());
-                return Math.min(otherSpeed, remaining);
+                double speedAhead;
+                if (remaining <= 0.0) {
+                    // Too close, match the speed of the Minecart ahead. For the overshoot, slow ourselves down.
+                    speedAhead = otherSpeed + remaining;
+                    if (speedAhead < 0.0) {
+                        speedAhead = 0.0;
+                    }
+                } else {
+                    // Maintain distance. Use remaining to switch between force and absolute 0 for a smooth slowdown
+                    // This function is asymptotic, so nearing 0.0, simply set it to 0.0 to complete it sooner.
+                    double theta = (remaining / MIN_DISTANCE); // 0.0 ... 1.0
+                    if (theta <= 1e-5) theta = 0.0;
+                    speedAhead = theta * selfSpeed + (1.0 - theta) * otherSpeed;
+                }
+
+                if (speedAhead < minSpeedAhead) {
+                    minSpeedAhead = speedAhead;
+                }
+            }
+            if (minSpeedAhead != Double.MAX_VALUE) {
+                return minSpeedAhead;
             }
         }
 
