@@ -1,15 +1,16 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import org.bukkit.block.BlockFace;
+
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.tc.Direction;
-import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.*;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 public class SignActionWait extends SignAction {
 
@@ -39,47 +40,51 @@ public class SignActionWait extends SignAction {
             }
 
 
-
             // Second line without the name of the sign
             String distanceData = info.getLine(1);
-            if (distanceData.startsWith("waiter "))
+            if (distanceData.startsWith("waiter ")) {
                 distanceData = distanceData.replaceFirst("waiter ", "");
-            else if (distanceData.startsWith("waiter"))
+            } else if (distanceData.startsWith("waiter")) {
                 distanceData = distanceData.replaceFirst("waiter", "");
-            else if (distanceData.startsWith("wait "))
+            } else if (distanceData.startsWith("wait ")) {
                 distanceData = distanceData.replaceFirst("wait ", "");
-            else if (distanceData.startsWith("wait"))
+            } else if (distanceData.startsWith("wait")) {
                 distanceData = distanceData.replaceFirst("wait", "");
+            }
 
-            double distance = 0;
+            double distance = Double.NaN;
 
             // Check if the distance is not a number
             if (distanceData.matches("[a-zA-Z]+")) {
-                // Find the next wait distance sign. This stuff uses old code, and is likely broken.
-                TrackIterator iterator = new TrackIterator(info.getRails(),
-                        launchDirection != null ? launchDirection : info.getCartDirection());
+                RailState state = info.getGroup().head().discoverRail();
+                if (launchDirection != null) {
+                    state.setMotionVector(FaceUtil.faceToVector(launchDirection));
+                }
 
-                findTrack:
-                while (iterator.hasNext()) {
-                    distance++;
-                    if (distance > TCConfig.maxDetectorLength) {
-                        break;
-                    }
+                TrackWalkingPoint walkingPoint = new TrackWalkingPoint(state);
 
-                    for (Block block : Util.getSignsFromRails(iterator.next())) {
-                        if (block.equals(info.getBlock()))
-                            break;
+                walk:
+                while (walkingPoint.movedTotal < TCConfig.maxDetectorLength && walkingPoint.moveFull()) {
+                    for (RailSignCache.TrackedSign sign :
+                            RailSignCache.getSigns(walkingPoint.state.railType(), walkingPoint.state.railBlock())) {
+                        if (sign.railBlock.equals(info.getRails())) {
+                            continue;
+                        }
 
-                        SignActionEvent sign = new SignActionEvent(block);
-                        if (sign.isType(distanceData)) {
-                            // Found sign
-                            break findTrack;
+                        SignActionEvent found = new SignActionEvent(sign.signBlock, sign.railBlock, info.getGroup());
+                        if (found.isType(distanceData)) {
+                            distance = walkingPoint.movedTotal;
+                            break walk;
                         }
                     }
                 }
 
-                // Store distance
-                info.setLine(1, "waiter" + String.valueOf(distance));
+                if (Double.isNaN(distance)) {
+                    Localization.WAITER_TARGET_NOT_FOUND.broadcast(info.getGroup(), distanceData);
+                } else {
+                    // Store distance
+                    info.setLine(1, "waiter" + String.valueOf(MathUtil.round(distance, 3)));
+                }
             } else {
                 distance = ParseUtil.parseDouble(info.getLine(1), 100.0);
             }
