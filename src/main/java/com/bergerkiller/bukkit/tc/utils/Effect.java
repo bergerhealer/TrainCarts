@@ -2,8 +2,10 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
+import com.bergerkiller.bukkit.common.wrappers.ResourceKey;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -70,6 +72,12 @@ public class Effect {
         }
     }
 
+    private void play(Location location, String name, float volume, float pitch) {
+        try {
+            location.getWorld().playSound(location, name, volume, pitch);
+        } catch(Throwable ignored) {}
+    }
+
     public void play(Location location) {
         for (String name : effects) {
             if (name.startsWith("SMOKE")) {
@@ -124,13 +132,13 @@ public class Effect {
                 location.getWorld().playSound(location, sound, volume, pitch);
                 continue;
             }
-            location.getWorld().playSound(location, name, volume, pitch);
+            play(location, name, volume, pitch);
         }
     }
 
     public void play(Player player) {
         for (String name : effects) {
-            player.playSound(player.getLocation(), name, volume, pitch);
+            PlayerUtil.playSound(player, ResourceKey.fromPath(name), volume, pitch);
         }
     }
 }
