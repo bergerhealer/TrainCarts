@@ -31,14 +31,13 @@ public class SignActionEffect extends SignAction {
 
     @Override
     public boolean match(SignActionEvent info) {
-        return info.isType("effect", "meffect", "peffect", "deffect");
+        return info.isType("effect", "meffect", "peffect");
     }
 
     @Override
     public void execute(SignActionEvent info) {
         boolean move = info.isType("meffect");
         boolean player = info.isType("peffect");
-        boolean drive = info.isType("deffect");
         if (!info.isPowered()) return;
         Effect eff = parse(info);
         if (info.isAction(SignActionType.MEMBER_MOVE)) {
@@ -63,28 +62,6 @@ public class SignActionEffect extends SignAction {
             } else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
                 for(Player p : info.getMember().getEntity().getPlayerPassengers()) {
                     eff.play(p);
-                }
-            }
-            return;
-        }
-        if(drive) {
-            if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
-                int len = (int) eff.pitch;
-                if(info.getGroup().size() == len) {
-                    eff.pitch = 1;
-                    for (MinecartMember<?> member : info.getGroup()) {
-                        eff.volume = 100;
-                        String customSound = member.getProperties().getDriveSound();
-                        if(customSound != null && !customSound.isEmpty()) {
-                            eff.effects.clear();
-                            eff.effects.add(customSound);
-                        }
-                        for(Player p : member.getEntity().getPlayerPassengers()) {
-                            eff.play(p);
-                        }
-                        eff.volume = 2;
-                        eff.play(member.getEntity().getLocation());
-                    }
                 }
             }
             return;
