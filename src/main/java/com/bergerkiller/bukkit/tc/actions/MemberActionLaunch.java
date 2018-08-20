@@ -119,16 +119,18 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             this.function.setStartVelocity(minLaunchVelocity);
         }
 
-        if(this.lastVelocity == 0) {
-            Effect effect = new Effect();
-            effect.parseEffect(getMember().getProperties().getDriveSound());
-            effect.volume = 100;
-            for(Player p : getMember().getEntity().getPlayerPassengers()) {
-                effect.play(p);
-            }
-            effect.volume = 2;
-            effect.play(getMember().getEntity().getLocation());
+        for(MinecartMember<?> member : getGroup()) {
+            if(this.lastVelocity == 0) {
+                Effect effect = new Effect();
+                effect.parseEffect(member.getProperties().getDriveSound());
+                effect.volume = 100;
+                for(Player p : member.getEntity().getPlayerPassengers()) {
+                    effect.play(p);
+                }
+                effect.volume = 2;
+                effect.play(member.getEntity().getLocation());
 
+            }
         }
 
         if (this.targettime >= 0) {
