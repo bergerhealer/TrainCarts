@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
+import org.bukkit.entity.Player;
 
 public class MemberActionLaunch extends MemberAction implements MovementAction {
     private static final double minVelocity = 0.001;
@@ -115,6 +117,20 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
         if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
             this.function.setStartVelocity(minLaunchVelocity);
+        }
+
+        for(MinecartMember<?> member : getGroup()) {
+            if(this.lastVelocity == 0) {
+                Effect effect = new Effect();
+                effect.parseEffect(member.getProperties().getDriveSound());
+                effect.volume = 100;
+                for(Player p : member.getEntity().getPlayerPassengers()) {
+                    effect.play(p);
+                }
+                effect.volume = 2;
+                effect.play(member.getEntity().getLocation());
+
+            }
         }
 
         if (this.targettime >= 0) {
