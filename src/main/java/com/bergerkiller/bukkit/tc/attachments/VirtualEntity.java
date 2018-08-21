@@ -10,6 +10,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -28,6 +29,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
 
 /**
  * Represents a single Virtual entity, that only exists for clients using packet protocol.
@@ -112,7 +114,57 @@ public class VirtualEntity {
      * @param yawPitchRoll rotation
      */
     public void updatePosition(Matrix4x4 transform) {
-        updatePosition(transform, transform.getYawPitchRoll());
+        Quaternion rotation = transform.getRotation();
+        Vector f = rotation.forwardVector();
+        double yaw, pitch;
+
+        if (this.hasPitch()) {
+            Vector u = rotation.upVector();
+
+            // Compute yawmode factor - whether to use the forward or up-vector for computing yaw
+            // A value below 0.0 indicates the forward vector should be used (mostly horizontal)
+            // A value above 1.0 indicates the up vector should be used (mostly vertical)
+            // A value between 0.0 and 1.0 selects a smooth combination of both
+            final double yawmode_factor_start = 0.9;
+            final double yawmode_factor_end = 0.99;
+            double yawmode_factor = (Math.abs(f.getY()) - yawmode_factor_start) / (1.0 - yawmode_factor_end);
+
+            // Invert up-vector when upside-down
+            // Up-vector is only used when the entity is vertical - so this is fine.
+            boolean isFrontSideDown = (f.getY() < 0.0);
+
+            if (u.getY() < 0.0) {
+                // Upside-down
+                pitch = 180.0 + MathUtil.getLookAtPitch(f.getX(), -f.getY(), f.getZ());
+                f.multiply(-1.0);
+            } else {
+                // Upright
+                pitch = MathUtil.getLookAtPitch(f.getX(), f.getY(), f.getZ());
+            }
+
+            if (isFrontSideDown) {
+                u.multiply(-1.0);
+            }
+
+            if (yawmode_factor <= 0.0) {
+                // Horizontal, use forward vector for yaw
+                yaw = MathUtil.getLookAtYaw(-f.getZ(), f.getX());
+            } else if (yawmode_factor >= 1.0) {
+                // Vertical, use up-vector for yaw
+                yaw = MathUtil.getLookAtYaw(u.getZ(), -u.getX());
+            } else {
+                // Mix of the above
+                double ax = yawmode_factor *  u.getZ() + (1.0 - yawmode_factor) * -f.getZ();
+                double az = yawmode_factor * -u.getX() + (1.0 - yawmode_factor) * f.getX();
+                yaw = MathUtil.getLookAtYaw(ax, az);
+            }
+        } else {
+            // If this entity has no pitch - return yaw instantly
+            yaw = MathUtil.getLookAtYaw(-f.getZ(), f.getX());
+            pitch = 0.0;
+        }
+
+        updatePosition(transform, new Vector(pitch, yaw, 0.0));
     }
 
     /**
@@ -238,20 +290,20 @@ public class VirtualEntity {
         if (isLivingEntity()) {
             // Spawn living entity
             //Vector us_vector = (this.syncMode == SyncMode.SEAT) ? getUnstuckVector() : new Vector();
-            CommonPacket spawnPacket = PacketType.OUT_ENTITY_SPAWN_LIVING.newInstance();
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId, this.entityId);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityUUID, this.entityUUID);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.entityType, entitySpawnId);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posX, this.syncAbsX - motion.getX());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posY, this.syncAbsY - motion.getY());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.posZ, this.syncAbsZ - motion.getZ());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motX, motion.getX());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motY, motion.getY());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.motZ, motion.getZ());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.dataWatcher, this.metaData);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.yaw, this.syncYaw);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.pitch, this.syncPitch);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN_LIVING.headYaw, (this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
+            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            spawnPacket.setEntityId(this.entityId);
+            spawnPacket.setEntityUUID(this.entityUUID);
+            spawnPacket.setEntityType(this.entityType);
+            spawnPacket.setPosX(this.syncAbsX - motion.getX());
+            spawnPacket.setPosY(this.syncAbsY - motion.getY());
+            spawnPacket.setPosZ(this.syncAbsZ - motion.getZ());
+            spawnPacket.setMotX(motion.getX());
+            spawnPacket.setMotY(motion.getY());
+            spawnPacket.setMotZ(motion.getZ());
+            spawnPacket.setDataWatcher(this.metaData);
+            spawnPacket.setYaw(this.syncYaw);
+            spawnPacket.setPitch(this.syncPitch);
+            spawnPacket.setHeadYaw((this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
             PacketUtil.sendPacket(viewer, spawnPacket);
         } else {
             // Spawn entity (generic)

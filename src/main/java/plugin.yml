@@ -1,5 +1,6 @@
 name: Train_Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
+api-version: 1.13
 version: ${project.version}
 build: ${project.cibuild}
 authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]

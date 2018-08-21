@@ -300,9 +300,10 @@ public class SignActionSpawn extends SignAction {
             // Require there to be one extra free rail in the direction we are spawning
             if (MinecartMemberStore.getAt(startLoc) == null) {
                 TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, motionVector);
+                Location firstPos = walker.state.positionLocation();
                 walker.skipFirst();
                 if (walker.moveFull()) {
-                    result.add(startLoc);
+                    result.add(firstPos);
                 }
             }
         } else {

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.CollectionBasics;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -49,15 +50,15 @@ public class RedstoneTracker implements Listener {
             ListIterator<Block> iter = this.pending.listIterator();
             while (iter.hasNext()) {
                 Block block = iter.next();
-                Material type = block.getType();
-                if (MaterialUtil.ISREDSTONETORCH.get(type)) {
+                BlockData block_data = WorldUtil.getBlockData(block);
+                if (MaterialUtil.ISREDSTONETORCH.get(block_data)) {
                     for (BlockFace face : FaceUtil.RADIAL) {
                         final Block rel = block.getRelative(face);
                         if (MaterialUtil.ISSIGN.get(rel) && nextTickPhysicsBlocks.add(rel)) {
                             iter.add(rel);
                         }
                     }
-                } else if (!MaterialUtil.ISSIGN.get(type)) {
+                } else if (!MaterialUtil.ISSIGN.get(block_data)) {
                     iter.remove(); // Not a sign, ignore it
                 }
             }
@@ -82,8 +83,8 @@ public class RedstoneTracker implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
-        Material type = event.getBlock().getType();
-        if (MaterialUtil.ISSIGN.get(type) || MaterialUtil.ISREDSTONETORCH.get(type)) {
+        BlockData event_block_type = WorldUtil.getBlockData(event.getBlock());
+        if (MaterialUtil.ISSIGN.get(event_block_type) || MaterialUtil.ISREDSTONETORCH.get(event_block_type)) {
             if (nextTickPhysicsBlocks.isEmpty()) {
                 CommonUtil.nextTick(nextTickPhysicsHandler);
             }
@@ -160,8 +161,8 @@ public class RedstoneTracker implements Listener {
         if (TrainCarts.isWorldDisabled(event)) {
             return;
         }
-        Material type = event.getBlock().getType();
-        if (BlockUtil.isType(type, Material.LEVER)) {
+        BlockData event_block_data = WorldUtil.getBlockData(event.getBlock());
+        if (event_block_data.isType(Material.LEVER)) {
             Block up = event.getBlock().getRelative(BlockFace.UP);
             Block down = event.getBlock().getRelative(BlockFace.DOWN);
             if (MaterialUtil.ISSIGN.get(up)) {
@@ -171,7 +172,7 @@ public class RedstoneTracker implements Listener {
                 updateRedstonePowerVerify(down, event.getNewCurrent() > 0);
             }
             ignoreOutputLever(event.getBlock());
-        } else if (MaterialUtil.ISSIGN.get(type)) {
+        } else if (MaterialUtil.ISSIGN.get(event_block_data)) {
             updateRedstonePowerVerify(event.getBlock(), event.getNewCurrent() > 0);
         }
     }

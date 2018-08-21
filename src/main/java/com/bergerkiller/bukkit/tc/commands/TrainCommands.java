@@ -62,7 +62,7 @@ public class TrainCommands {
         } else if (cmd.equals("linking") || cmd.equals("link")) {
             if (args.length == 1) {
                 Permission.COMMAND_SETLINKING.handle(p);
-                prop.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(args[0]));
+                prop.setLinking(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + (prop.trainCollision == CollisionMode.LINK));
         } else if (cmd.equals("playertake") || cmd.equals("allowplayertake")) {

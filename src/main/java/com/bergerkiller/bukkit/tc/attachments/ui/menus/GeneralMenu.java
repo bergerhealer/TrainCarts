@@ -1,7 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
@@ -30,7 +31,7 @@ public class GeneralMenu extends MapWidgetWindow {
             public void onActivate() {
                 ConfigurationNode config = new ConfigurationNode();
                 config.set("type", CartAttachmentType.ITEM);
-                config.set("item", new ItemStack(Material.WOOD));
+                config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
                 attachment.addAttachment(config);
                 GeneralMenu.this.deactivate();
             }
@@ -55,7 +56,10 @@ public class GeneralMenu extends MapWidgetWindow {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
-                attachment.getParentAttachment().addAttachment(attachment.getFullConfig());
+                int index = attachment.getParentAttachment().getAttachments().indexOf(attachment);
+                MapWidgetAttachmentNode addedNode;
+                addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getFullConfig());
+                attachment.getTree().setSelectedNode(addedNode);
                 GeneralMenu.this.deactivate();
             }
         }).setText("Duplicate").setBounds(10, 70, 98, 18).setEnabled(attachment.getParentAttachment() != null);

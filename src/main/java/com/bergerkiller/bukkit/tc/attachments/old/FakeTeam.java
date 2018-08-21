@@ -5,9 +5,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.UUID;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutScoreboardTeamHandle;
 
 /**
@@ -36,15 +38,15 @@ public class FakeTeam {
 
         PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
         teamPacket.setName(this.name);
-        teamPacket.setDisplayName(this.name);
-        teamPacket.setPrefix("");
-        teamPacket.setSuffix("");
+        teamPacket.setDisplayName(ChatText.fromMessage(this.name));
+        teamPacket.setPrefix(ChatText.fromMessage(""));
+        teamPacket.setSuffix(ChatText.fromMessage(""));
         teamPacket.setVisibility("never");
         teamPacket.setCollisionRule("never");
         teamPacket.setMode(0x0);
         teamPacket.setFriendlyFire(0x3);
         teamPacket.setPlayers(new ArrayList<String>(Collections.singleton(this.player)));
-        teamPacket.setChatFormat(0);
+        teamPacket.setColor(ChatColor.RESET);
         PacketUtil.sendPacket(viewer, teamPacket);
     }
 }

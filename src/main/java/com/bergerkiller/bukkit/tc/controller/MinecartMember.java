@@ -79,9 +79,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
-    private static boolean HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = true;
-    private static boolean HAS_COLLISION_TOGGLE_FUNCTIONS = true;
-    private static boolean HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = true;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -137,22 +134,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.hasLinkedFarMinecarts = false;
 
         // Allows players to place blocks nearby a minecart despite having a custom model
-        if (HAS_ENTITY_PREVENTBLOCKPLACE_FIELD) {
-            try {
-                entity.setPreventBlockPlace(false);
-            } catch (NoSuchMethodError e) {
-                HAS_ENTITY_PREVENTBLOCKPLACE_FIELD = false;
-            }
-        }
+        entity.setPreventBlockPlace(false);
 
         // Forces a standard bounding box for block collisions
-        if (HAS_COLLISION_BLOCK_BOUNDS_FUNCTION) {
-            try {
-                this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
-            } catch (NoSuchMethodError e) {
-                HAS_COLLISION_BLOCK_BOUNDS_FUNCTION = false;
-            }
-        }
+        this.setBlockCollisionBounds(new Vector(0.98, 0.7, 0.98));
     }
 
     @Override
@@ -522,6 +507,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public double getForce() {
         return entity.vel.length();
+    }
+
+    /**
+     * Gets the real speed of the minecart, keeping the {@link MinecartGroup#getUpdateSpeedFactor()}
+     * into account. The speed is the length of the velocity vector.
+     * 
+     * @return real speed
+     */
+    public double getRealSpeed() {
+        if (this.group != null) {
+            return this.entity.vel.length() / this.group.getUpdateSpeedFactor();
+        } else {
+            return this.entity.vel.length();
+        }
+    }
+
+    /**
+     * Gets the real speed of the minecart, like {@link #getRealSpeed()}, but limits it
+     * to the maximum speed set for the train.
+     * 
+     * @return real speed, limited by max speed
+     */
+    public double getRealSpeedLimited() {
+        if (this.group != null) {
+            return Math.min(this.entity.vel.length(), this.entity.getMaxSpeed()) / this.group.getUpdateSpeedFactor();
+        } else {
+            return Math.min(this.entity.vel.length(), this.entity.getMaxSpeed());
+        }
     }
 
     public double getForwardForce() {
@@ -1162,16 +1175,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             // Detect this and cancel this collision. This allows smooth air<>vertical logic.
             Vector upVector = this.getOrientation().upVector();
             if (upVector.getY() >= -0.1 && upVector.getY() <= 0.1) {
-                if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
-                    double closest_dz = hitBlock.getZ() - this.entity.loc.getZ();
-                    if (closest_dz < -0.5) closest_dz += 1.0;
-                    if ((upVector.getZ() > 0.0 && closest_dz < -0.01)) return false;
-                    if ((upVector.getZ() < 0.0 && closest_dz > 0.01)) return false;
+                // If HitBlock x/z space contains the x/z position of the Minecart, allow the collision
+                double closest_dx = this.entity.loc.getX() - hitBlock.getX();
+                double closest_dz = this.entity.loc.getZ() - hitBlock.getZ();
+                final double MIN_COORD = 1e-10;
+                final double MAX_COORD = 1.0 - MIN_COORD;
+                if (closest_dx >= MIN_COORD && closest_dx <= MAX_COORD && closest_dz >= MIN_COORD && closest_dz <= MAX_COORD) {
+                    // Block is directly above or below; allow the collision
+                } else if (upVector.getX() >= -0.1 && upVector.getX() <= 0.1) {
+                    if ((-closest_dz) < -0.5) closest_dz -= 1.0;
+                    if ((upVector.getZ() > 0.0 && (-closest_dz) < -0.01)) return false;
+                    if ((upVector.getZ() < 0.0 && (-closest_dz) > 0.01)) return false;
                 } else if (upVector.getZ() >= -0.1 && upVector.getZ() <= 0.1) {
-                    double closest_dx = hitBlock.getX() - this.entity.loc.getX();
-                    if (closest_dx < -0.5) closest_dx += 1.0;
-                    if ((upVector.getX() > 0.0 && closest_dx < -0.01)) return false;
-                    if ((upVector.getX() < 0.0 && closest_dx > 0.01)) return false;
+                    if ((-closest_dx) < -0.5) closest_dx -= 1.0;
+                    if ((upVector.getX() > 0.0 && (-closest_dx) < -0.01)) return false;
+                    if ((upVector.getX() < 0.0 && (-closest_dx) > 0.01)) return false;
                 }
             }
 
@@ -1336,14 +1354,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.getSignTracker().update();
 
         // Enable/disable collision handling to improve performance
-        // This only works on BKC beyond a certain version - add check!
-        if (this.group != null && HAS_COLLISION_TOGGLE_FUNCTIONS) {
-            try {
-                this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
-                this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
-            } catch (NoSuchMethodError e) {
-                HAS_COLLISION_TOGGLE_FUNCTIONS = false;
-            }
+        if (this.group != null) {
+            this.setEntityCollisionEnabled(this.group.getProperties().getColliding());
+            this.setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
         }
     }
 

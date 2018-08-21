@@ -43,6 +43,6 @@ public class RailTypeActivator extends RailTypeRegular {
 
     @Override
     public boolean isRail(BlockData blockData) {
-        return blockData.getType() == Material.ACTIVATOR_RAIL && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
+        return blockData.isType(Material.ACTIVATOR_RAIL) && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
     }
 }

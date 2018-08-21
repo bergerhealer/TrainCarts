@@ -78,17 +78,17 @@ public abstract class Statement {
         String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
         String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
         for (Statement statement : statements) {
-            if (statement.match(lowerText)) {
-                if (member != null) {
-                    return statement.handle(member, text, event) != inv;
-                } else if (group != null) {
-                    return statement.handle(group, text, event) != inv;
-                }
-            } else if (arrayText != null && statement.matchArray(arrayText)) {
+            if (arrayText != null && statement.matchArray(arrayText)) {
                 if (member != null) {
                     return statement.handleArray(member, array, event) != inv;
                 } else if (group != null) {
                     return statement.handleArray(group, array, event) != inv;
+                }
+            } else if (statement.match(lowerText)) {
+                if (member != null) {
+                    return statement.handle(member, text, event) != inv;
+                } else if (group != null) {
+                    return statement.handle(group, text, event) != inv;
                 }
             }
         }

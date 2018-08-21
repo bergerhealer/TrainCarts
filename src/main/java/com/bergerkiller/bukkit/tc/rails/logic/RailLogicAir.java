@@ -70,10 +70,10 @@ public class RailLogicAir extends RailLogic {
                 forward.setX(dx);
                 forward.setY(dy);
                 forward.setZ(dz);
-                if (forward.dot(orientation.forwardVector()) < 0.0) {
-                    forward.multiply(-1.0);
-                }
             }
+        }
+        if (forward.dot(orientation.forwardVector()) < 0.0) {
+            forward.multiply(-1.0);
         }
         member.setOrientation(Quaternion.fromLookDirection(forward, orientation.upVector()));
     }

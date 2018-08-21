@@ -926,7 +926,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "collision", "collide")) {
             this.setColliding(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "linking", "link")) {
-            this.trainCollision = CollisionMode.fromLinking(ParseUtil.parseBool(arg));
+            this.setLinking(ParseUtil.parseBool(arg));
         } else if (key.toLowerCase(Locale.ENGLISH).startsWith("slow")) {
             SlowdownMode slowMode = null;
             for (SlowdownMode mode : SlowdownMode.values()) {
@@ -1026,6 +1026,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (key.equals("clrticket")) {
             this.clearTickets();
+        } else if(key.equals("drivesound")) {
+            for (CartProperties cprop : this) {
+                cprop.setDriveSound(arg);
+            }
         } else {
             return false;
         }
@@ -1057,6 +1061,20 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             return updateCollisionProperties(mobType, mode);
         }
         return false;
+    }
+
+    /**
+     * Sets train collision mode to link when true. When false is specified and the
+     * collision mode is linking, it is set to default. This is legacy behavior.
+     * 
+     * @param linking
+     */
+    public void setLinking(boolean linking) {
+        if (linking) {
+            this.trainCollision = CollisionMode.LINK;
+        } else if (this.trainCollision == CollisionMode.LINK) {
+            this.trainCollision = CollisionMode.DEFAULT;
+        }
     }
 
     public boolean updateCollisionProperties(String mobType, CollisionMode mode) {

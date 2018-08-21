@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.bukkit.Material;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
@@ -199,7 +201,7 @@ public class TCConfig {
 
         config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
         config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");
-        enableSeatThirdPersonView = config.get("enableSeatThirdPersonView", true);
+        enableSeatThirdPersonView = config.get("enableSeatThirdPersonView", false);
 
         config.setHeader("maxDetectorLength", "\nThe maximum length a detector region (between two detectors) can be");
         maxDetectorLength = config.get("maxDetectorLength", 2000);
@@ -269,8 +271,8 @@ public class TCConfig {
                 if (type != null) allowedBlockBreakTypes.add(type);
             }
         } else {
-            allowedBlockBreakTypes.add(Material.CROPS);
-            allowedBlockBreakTypes.add(Material.LOG);
+            allowedBlockBreakTypes.add(getMaterial("LEGACY_CROPS"));
+            allowedBlockBreakTypes.add(getMaterial("LEGACY_LOG"));
         }
 
         config.setHeader("activatorEjectEnabled", "Whether powered activator rails eject players inside Minecarts (Vanilla)");

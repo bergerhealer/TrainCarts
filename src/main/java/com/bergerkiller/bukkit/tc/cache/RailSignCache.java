@@ -10,15 +10,23 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 /**
  * Caches and searches for signs below rails blocks in the order in which they should be executed.
  */
 public class RailSignCache {
+    private static final Material WALL_SIGN_TYPE = getMaterial("LEGACY_WALL_SIGN");
+    private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
+    private static BlockFace[] SIGN_FACES_ORDERED = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
     private static final TrackedSign[] EMPTY_SIGNS = new TrackedSign[0];
     private static final HashMap<CachedRailKey, CachedRailSignList> cachedRailSigns = new HashMap<CachedRailKey, CachedRailSignList>();
     private static final List<Block> signListCache = new ArrayList<Block>();
@@ -37,7 +45,7 @@ public class RailSignCache {
             // Verify all the signs mentioned are still there
             boolean valid = true;
             for (TrackedSign sign : cached.signs) {
-                if (!BlockUtil.ISSIGN.get(sign.signBlock.getType())) {
+                if (!BlockUtil.ISSIGN.get(sign.signBlock)) {
                     valid = false;
                     break;
                 }
@@ -80,6 +88,53 @@ public class RailSignCache {
         return cached.signs;
     }
 
+    public static Block getRailsFromSign(Block signblock) {
+        if (signblock == null) {
+            return null;
+        }
+
+        BlockData signblock_data = WorldUtil.getBlockData(signblock);
+        final Block mainBlock;
+        if (signblock_data.isType(WALL_SIGN_TYPE)) {
+            mainBlock = BlockUtil.getAttachedBlock(signblock);
+        } else if (signblock_data.isType(SIGN_POST_TYPE)) {
+            mainBlock = signblock;
+        } else {
+            return null;
+        }
+
+        // Check main block IS rails itself
+        if (RailType.getType(mainBlock) != RailType.NONE) {
+            return mainBlock;
+        }
+
+        // Look further in all 6 possible directions
+        boolean hasSigns;
+        for (BlockFace dir : SIGN_FACES_ORDERED) {
+            Block block = mainBlock;
+            hasSigns = true;
+            while (true) {
+                // Go to the next block
+                block = block.getRelative(dir);
+
+                // Check for rails
+                BlockFace columnDir = RailType.getType(block).getSignColumnDirection(block);
+                if (dir == columnDir.getOppositeFace()) {
+                    return block;
+                }
+
+                // End of the loop?
+                if (!hasSigns) {
+                    break;
+                }
+
+                // Go to the next block
+                hasSigns = Util.hasAttachedSigns(block);
+            }
+        }
+        return null;
+    }
+
     // removes all cached signs, forcing a global recalculation
     public static void reset() {
         cachedRailSigns.clear();
@@ -100,7 +155,7 @@ public class RailSignCache {
         Block currentBlock = startBlock;
         int offsetCtr = 0;
         while (true) {
-            if (hasSignPost && MaterialUtil.isType(currentBlock, Material.SIGN_POST)) {
+            if (hasSignPost && MaterialUtil.isType(currentBlock, SIGN_POST_TYPE)) {
                 // Found a sign post - add it and continue
                 rval.add(currentBlock);
             } else if (addAttachedSigns(currentBlock, rval)) {

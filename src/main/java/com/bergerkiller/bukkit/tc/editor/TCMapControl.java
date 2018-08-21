@@ -8,11 +8,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
+
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 public class TCMapControl {
+    private static final Material FILLED_MAP_TYPE = getFirst("FILLED_MAP", "LEGACY_MAP");
+    private static final Material EMPTY_MAP_TYPE = getFirst("MAP", "LEGACY_EMPTY_MAP");
 
     /**
      * Updates a TC Map Sign Editor map item in the inventory of a player.
@@ -49,9 +53,9 @@ public class TCMapControl {
             if (isTCMapItem(playerItem) && ItemUtil.getMetaTag(playerItem).getUUID("editor").equals(uuid)) {
                 ItemStack newItem = playerItem.clone();
                 if (opened) {
-                    newItem.setType(Material.MAP);
+                    newItem.setType(FILLED_MAP_TYPE);
                 } else {
-                    newItem.setType(Material.EMPTY_MAP);
+                    newItem.setType(EMPTY_MAP_TYPE);
                 }
                 inv.setItem(i, newItem);
                 return;
@@ -60,7 +64,7 @@ public class TCMapControl {
     }
 
     public static boolean isTCMapItem(ItemStack item) {
-        if (item == null || (item.getType() != Material.MAP && item.getType() != Material.EMPTY_MAP)) {
+        if (item == null || (item.getType() != FILLED_MAP_TYPE && item.getType() != EMPTY_MAP_TYPE)) {
             return false;
         }
 
@@ -75,7 +79,7 @@ public class TCMapControl {
 
     public static ItemStack createTCMapItem() {
         ItemStack item = MapDisplay.createMapItem(TCMapEditor.class);
-        item.setType(Material.EMPTY_MAP);
+        item.setType(EMPTY_MAP_TYPE);
         ItemUtil.setDisplayName(item, "TrainCarts Editor");
         ItemUtil.getMetaTag(item).putValue("plugin", "TrainCarts");
         ItemUtil.getMetaTag(item).putUUID("editor", UUID.randomUUID());

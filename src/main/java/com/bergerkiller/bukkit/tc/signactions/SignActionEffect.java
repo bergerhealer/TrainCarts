@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.Effect;
+import org.bukkit.entity.Player;
 
 public class SignActionEffect extends SignAction {
 
@@ -30,12 +31,13 @@ public class SignActionEffect extends SignAction {
 
     @Override
     public boolean match(SignActionEvent info) {
-        return info.isType("effect", "meffect");
+        return info.isType("effect", "meffect", "peffect");
     }
 
     @Override
     public void execute(SignActionEvent info) {
         boolean move = info.isType("meffect");
+        boolean player = info.isType("peffect");
         if (!info.isPowered()) return;
         Effect eff = parse(info);
         if (info.isAction(SignActionType.MEMBER_MOVE)) {
@@ -46,6 +48,20 @@ public class SignActionEffect extends SignAction {
                     }
                 } else if (info.isCartSign()) {
                     eff.play(info.getMember().getEntity().getLocation());
+                }
+            }
+            return;
+        }
+        if(player) {
+            if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
+                for (MinecartMember<?> member : info.getGroup()) {
+                    for(Player p : member.getEntity().getPlayerPassengers()) {
+                        eff.play(p);
+                    }
+                }
+            } else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
+                for(Player p : info.getMember().getEntity().getPlayerPassengers()) {
+                    eff.play(p);
                 }
             }
             return;

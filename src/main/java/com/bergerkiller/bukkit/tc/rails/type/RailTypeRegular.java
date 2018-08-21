@@ -16,6 +16,8 @@ import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.*;
 import com.bergerkiller.bukkit.tc.utils.MinecartTrackLogic;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -35,6 +37,7 @@ import org.bukkit.material.Rails;
  * Do not write an isType check that results in non-Rails material types.
  */
 public class RailTypeRegular extends RailTypeHorizontal {
+    private static final Material REGULAR_RAIL_TYPE = getFirst("RAIL", "LEGACY_RAILS");
 
     /**
      * Gets all possible directions a Minecart can go when on regular rails.
@@ -137,7 +140,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
 
         // Check block directly below - should be able to pass through
-        if (railsBlock.getRelative(BlockFace.DOWN).getType().isSolid()) {
+        if (MaterialUtil.ISSOLID.get(railsBlock.getRelative(BlockFace.DOWN))) {
             return false;
         }
 
@@ -262,7 +265,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public boolean isRail(BlockData blockData) {
-        return blockData.getType() == Material.RAILS;
+        return blockData.isType(REGULAR_RAIL_TYPE);
     }
 
     @Override

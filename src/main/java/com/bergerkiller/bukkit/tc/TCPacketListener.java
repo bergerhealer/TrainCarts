@@ -16,10 +16,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
-
-import java.lang.reflect.Method;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -30,7 +27,6 @@ import org.bukkit.inventory.EquipmentSlot;
  * Temporary (???) packet listener to handle and cancel player SHIFT presses to cancel vehicle exit
  */
 public class TCPacketListener implements PacketListener {
-    private static boolean HAS_ATTACK_METHOD = true; // Added in later version of BKC
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
@@ -118,24 +114,8 @@ public class TCPacketListener implements PacketListener {
             return;
         }
 
-        if (HAS_ATTACK_METHOD) {
-            try {
-                Object playerHandleRaw = HandleConversion.toEntityHandle(player);
-                EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
-            } catch (NoSuchMethodError e) {
-                HAS_ATTACK_METHOD = false;
-            }
-        }
-        if (!HAS_ATTACK_METHOD) {
-            // Some slow crappy workaround for older versions of BKCommonLib
-            try {
-                Object playerHandleRaw = HandleConversion.toEntityHandle(player);
-                Method m = EntityHumanHandle.T.getType().getDeclaredMethod("attack", EntityHandle.T.getType());
-                m.invoke(playerHandleRaw, member.getEntity().getHandle());
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        }
+        Object playerHandleRaw = HandleConversion.toEntityHandle(player);
+        EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
     }
 
     public static void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
