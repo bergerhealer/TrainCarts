@@ -992,7 +992,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 if (gnew != null) {
                     //what time do we want to prevent them from colliding too soon?
                     //needs to travel 2 blocks in the meantime
-                    int time = (int) MathUtil.clamp(2 / gnew.head().getForce(), 20, 40);
+                    int time = (int) MathUtil.clamp(2 / gnew.head().getRealSpeed(), 20, 40);
                     for (MinecartMember<?> mm1 : gnew) {
                         for (MinecartMember<?> mm2 : this) {
                             mm1.ignoreCollision(mm2.getEntity().getEntity(), time);

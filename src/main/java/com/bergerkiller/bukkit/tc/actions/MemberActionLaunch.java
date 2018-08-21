@@ -110,11 +110,11 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
     @Override
     public void start() {
-        this.lastVelocity = this.getMember().getForce();
+        this.lastVelocity = this.getMember().getRealSpeed();
         this.lastspeedlimit = this.getGroup().getProperties().getSpeedLimit();
         this.function.setMinimumVelocity(minVelocity);
         this.function.setMaximumVelocity(this.lastspeedlimit);
-        this.function.setVelocityRange(this.getMember().getForce(), this.targetvelocity);
+        this.function.setVelocityRange(this.lastVelocity, this.targetvelocity);
         if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
             this.function.setStartVelocity(minLaunchVelocity);
         }
@@ -195,7 +195,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         // Did any of the carts in the group stop?
         if (this.distance != 0) {
             for (MinecartMember<?> mm : this.getGroup()) {
-                if (mm.getForce() < minVelocity && this.lastVelocity > (10.0 * minVelocity)) {
+                if (mm.getRealSpeed() < minVelocity && this.lastVelocity > (10.0 * minVelocity)) {
                     return true;
                 }
             }
@@ -219,4 +219,5 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         }
         return false;
     }
+
 }

@@ -195,7 +195,7 @@ public class WheelTrackerMember {
             }
 
             // Higher speed = more centripetal force
-            centripetalForceStep *= Math.min(_owner.getForce(), _owner.getEntity().getMaxSpeed()) / _owner.getGroup().getUpdateSpeedFactor();
+            centripetalForceStep *= _owner.getRealSpeedLimited();
 
             // Track an aggregate of the centripetal force thus far encountered
             // Based on smoothness, slowly reduce this force again

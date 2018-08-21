@@ -49,7 +49,7 @@ public class ArrivalSigns {
                 Variables.get(name + 'D').set("Unknown");
             }
 
-            double speed = MathUtil.round(mm.getForce() / mm.getGroup().getUpdateSpeedFactor(), 2);
+            double speed = MathUtil.round(mm.getRealSpeed(), 2);
             speed = Math.min(speed, mm.getGroup().getProperties().getSpeedLimit());
             Variables.get(name + 'V').set(Double.toString(speed));
         }

@@ -509,6 +509,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return entity.vel.length();
     }
 
+    /**
+     * Gets the real speed of the minecart, keeping the {@link MinecartGroup#getUpdateSpeedFactor()}
+     * into account. The speed is the length of the velocity vector.
+     * 
+     * @return real speed
+     */
+    public double getRealSpeed() {
+        if (this.group != null) {
+            return this.entity.vel.length() / this.group.getUpdateSpeedFactor();
+        } else {
+            return this.entity.vel.length();
+        }
+    }
+
+    /**
+     * Gets the real speed of the minecart, like {@link #getRealSpeed()}, but limits it
+     * to the maximum speed set for the train.
+     * 
+     * @return real speed, limited by max speed
+     */
+    public double getRealSpeedLimited() {
+        if (this.group != null) {
+            return Math.min(this.entity.vel.length(), this.entity.getMaxSpeed()) / this.group.getUpdateSpeedFactor();
+        } else {
+            return Math.min(this.entity.vel.length(), this.entity.getMaxSpeed());
+        }
+    }
+
     public double getForwardForce() {
         return this.getRailLogic().getForwardVelocity(this);
     }

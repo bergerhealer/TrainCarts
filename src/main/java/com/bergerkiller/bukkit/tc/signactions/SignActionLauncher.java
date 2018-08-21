@@ -28,7 +28,7 @@ public class SignActionLauncher extends SignAction {
         double velocity = ParseUtil.parseDouble(info.getLine(2), TCConfig.launchForce);
 
         if (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-")) {
-            velocity += info.getMember().getForce();
+            velocity += info.getMember().getRealSpeed();
         }
 
         // Parse the launch distance
