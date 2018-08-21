@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.UUID;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -45,7 +46,7 @@ public class FakeTeam {
         teamPacket.setMode(0x0);
         teamPacket.setFriendlyFire(0x3);
         teamPacket.setPlayers(new ArrayList<String>(Collections.singleton(this.player)));
-        teamPacket.setChatFormat(0);
+        teamPacket.setColor(ChatColor.RESET);
         PacketUtil.sendPacket(viewer, teamPacket);
     }
 }

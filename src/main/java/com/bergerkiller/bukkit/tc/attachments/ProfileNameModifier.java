@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 
@@ -170,7 +171,7 @@ public enum ProfileNameModifier {
             teamPacket.setMode(0x0);
             teamPacket.setFriendlyFire(0x3);
             teamPacket.setPlayers(new ArrayList<String>(Collections.singleton(this._playerName)));
-            teamPacket.setChatFormat(0);
+            teamPacket.setColor(ChatColor.RESET);
             PacketUtil.sendPacket(viewer, teamPacket);
         }
     }
