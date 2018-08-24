@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import org.bukkit.block.BlockFace;
@@ -45,6 +46,11 @@ public class SignActionBlocker extends SignAction {
                 info.getGroup().stop(info.isAction(SignActionType.MEMBER_MOVE));
             }
         }
+    }
+
+    @Override
+    public boolean isPathFindingBlocked(SignActionEvent info, RailState state) {
+        return info.isPowerAlwaysOn() && info.isWatchedDirection(state.enterDirection());
     }
 
     @Override

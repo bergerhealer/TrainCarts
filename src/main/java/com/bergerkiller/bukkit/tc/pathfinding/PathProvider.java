@@ -4,11 +4,15 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
+import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
@@ -28,6 +32,7 @@ public class PathProvider extends Task {
     private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
     private static PathProvider task;
+    private Queue<BlockLocation> pendingDiscovery = new LinkedList<BlockLocation>();
     private Set<PathNode> pendingNodes = new LinkedHashSet<>();
     private Queue<PathFindOperation> pendingOperations = new LinkedList<>();
 
@@ -60,6 +65,19 @@ public class PathProvider extends Task {
     }
 
     /**
+     * Tells this Path Provider to schedule new destination and switcher sign discovery, starting at a particular
+     * rails block. This rail location must have signs that switch or declare a destination, otherwise
+     * nothing will happen.
+     * 
+     * @param railLocation to discover destinations and switchers at
+     */
+    public static void discover(BlockLocation railLocation) {
+        if (task != null) {
+            task.pendingDiscovery.add(railLocation);
+        }
+    }
+
+    /**
      * Checks whether this Path Provider is currently busy processing path finding
      *
      * @return True if processing is being performed, False if not
@@ -83,6 +101,9 @@ public class PathProvider extends Task {
 
     @Override
     public void run() {
+        if (this.pendingOperations.isEmpty() && !this.pendingDiscovery.isEmpty()) {
+            addNewlyDiscovered();
+        }
         if (this.pendingOperations.isEmpty()) {
             addPendingNodes();
         }
@@ -112,6 +133,64 @@ public class PathProvider extends Task {
                 break; // Ran out of time
             }
         }
+
+        // Important: wipe any rail and sign caches we have polluted with temporary block data
+        // This will momentarily cause the plugin to run slower, but we must do this or risk out of memory!
+        RailSignCache.reset();
+        RailTypeCache.reset();
+    }
+
+    // Discovers new switchers and destination signs. Stops upon the first new node found.
+    private void addNewlyDiscovered() {
+        BlockLocation railLocation;
+        while ((railLocation = this.pendingDiscovery.poll()) != null) {
+            // Check this rail location was not already visited by path finding before
+            if (PathNode.get(railLocation) != null) {
+                continue;
+            }
+
+            // Discover rail block
+            Block railBlock = railLocation.getBlock();
+            if (railBlock == null) {
+                continue;
+            }
+
+            // Discover rails
+            RailType railType = RailType.getType(railBlock);
+            if (railType == RailType.NONE) {
+                continue;
+            }
+
+            // Discover signs, and process each
+            for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(railType, railBlock)) {
+                SignActionEvent event = new SignActionEvent(trackedSign.signBlock, trackedSign.railBlock);
+                SignAction action = SignAction.getSignAction(event);
+                if (action == null) {
+                    continue;
+                }
+
+                // Check for switchers and potential (new) destinations
+                boolean switchable = action.isRailSwitcher(event);
+                String destinationName = action.getRailDestinationName(event);
+                if (!switchable && destinationName == null) {
+                    continue; // Not path finding related
+                }
+
+                // Get location of the rails, and define a name to use
+                String locationStr = railLocation.toString();
+                if (switchable && destinationName == null) {
+                    destinationName = locationStr;
+                }
+
+                // Add new path node
+                PathNode to = PathNode.getOrCreate(destinationName, railLocation);
+
+                // when switchable and name does not equal the location String, add an extra tag name as fallback
+                if (switchable && !to.containsName(locationStr)) {
+                    to.addName(PathNode.SWITCHER_NAME_FALLBACK);
+                }
+            }
+        }
     }
 
     private void addPendingNodes() {
@@ -127,6 +206,7 @@ public class PathProvider extends Task {
                     if (DEBUG_MODE) {
                         System.out.println("NODE " + node.getDisplayName() + " CONTAINS A SWITCHER");
                     }
+
                     // Check north-east-south-west for possible routes
                     // Skip PAST the switcher sign rails, to avoid problems
                     for (RailJunction junc : startType.getJunctions(startRail)) {
@@ -202,40 +282,61 @@ public class PathProvider extends Task {
                 return true;
             }
             Block nextRail = p.state.railBlock();
-            BlockLocation newNodeLocation;
-            String newNodeName;
             boolean hasFinished = false;
-            for (Block signblock : Util.getSignsFromRails(nextRail)) {
-                SignActionEvent event = new SignActionEvent(signblock);
-                if (event.getMode() != SignActionMode.NONE) {
-                    if (event.isType("tag", "switcher")) {
-                        newNodeLocation = new BlockLocation(nextRail);
-                        newNodeName = newNodeLocation.toString();
-                    } else if (event.isType("destination")) {
-                        newNodeLocation = new BlockLocation(nextRail);
-                        newNodeName = event.getLine(2);
-                    } else if (event.isType("blocker") && event.isWatchedDirection(p.state.enterDirection()) && event.isPowerAlwaysOn()) {
-                        hasFinished = true;
-                        break;
-                    } else {
-                        continue;
+            for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(p.state.railType(), p.state.railBlock())) {
+                // Discover a SignAction at this sign
+                SignActionEvent event = new SignActionEvent(trackedSign.signBlock, trackedSign.railBlock);
+                event.setAction(SignActionType.GROUP_ENTER);
+                SignAction action = SignAction.getSignAction(event);
+                if (action == null) {
+                    continue;
+                }
+
+                // Check for switchers and potential (new) destinations
+                boolean switchable = action.isRailSwitcher(event);
+                String destinationName = action.getRailDestinationName(event);
+                if (switchable || destinationName != null) {
+                    // Get location of the rails, and define a name to use
+                    BlockLocation railLocation = new BlockLocation(nextRail);
+                    String locationStr = railLocation.toString();
+                    if (switchable && destinationName == null) {
+                        destinationName = locationStr;
                     }
-                    if (!newNodeName.isEmpty() && !startNode.containsName(newNodeName)) {
+
+                    // Quick check that the start node not already contains this name we are trying to define
+                    // This is extra protection against loops
+                    if (!startNode.containsName(destinationName)) {
+
                         // include distance between spawn position on rail, and the current position with the walker
-                        Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
-                        double totalDistance = p.movedTotal + spawnPos.distanceSquared(p.state.positionLocation());
+                        double totalDistance = p.movedTotal;
+                        {
+                            Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
+                            totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
+                        }
 
                         // finished, we found our first target - create connection
-                        PathNode to = PathNode.getOrCreate(newNodeName, newNodeLocation);
+                        PathNode to = PathNode.getOrCreate(destinationName, railLocation);
+
+                        // when switchable and name does not equal the location String, add an extra tag name as fallback
+                        if (switchable && !to.containsName(locationStr)) {
+                            to.addName(PathNode.SWITCHER_NAME_FALLBACK);
+                        }
+
                         this.startNode.addNeighbour(to, totalDistance, this.getJunctionName());
                         hasFinished = true;
                         if (DEBUG_MODE) {
-                            System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + newNodeName);
+                            System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + destinationName);
                         }
                     }
+
+                } else if (action.isPathFindingBlocked(event, p.state)) {
+                    // If blocked, abort
+                    hasFinished = true;
+                    break;
                 }
             }
             return hasFinished;
         }
     }
+
 }

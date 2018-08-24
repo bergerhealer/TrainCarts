@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -9,8 +10,11 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -141,11 +145,37 @@ public abstract class SignAction {
         SignAction action = getSignAction(info);
         if (action != null) {
             if (action.build(info)) {
+                // Inform about use of RC when not supported
                 if (!action.canSupportRC() && info.isRCSign()) {
                     event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
                     info.getHeader().setMode(SignActionMode.TRAIN);
                     event.setLine(0, info.getHeader().toString());
                 }
+
+                // For signs that define path finding destinations, report about duplicate names
+                String destinationName = action.getRailDestinationName(info);
+                if (destinationName != null) {
+                    PathNode node = PathNode.get(destinationName);
+                    if (node != null) {
+                        Player p = event.getPlayer();
+                        p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
+                        p.sendMessage(ChatColor.RED + "Please remove either sign and use /train reroute to fix");
+
+                        // Send location message
+                        BlockLocation loc = node.location;
+                        StringBuilder locMsg = new StringBuilder(100);
+                        locMsg.append(ChatColor.RED).append("Other destination '" + destinationName + "' is ");
+                        if (loc.getWorld() != event.getPlayer().getWorld()) {
+                            locMsg.append("on world ").append(ChatColor.WHITE).append(node.location.world);
+                            locMsg.append(' ').append(ChatColor.RED);
+                        }
+                        locMsg.append("at ").append(ChatColor.WHITE);
+                        locMsg.append('[').append(loc.x).append('/').append(loc.y);
+                        locMsg.append('/').append(loc.z).append(']');
+                        p.sendMessage(locMsg.toString());
+                    }
+                }
+
                 // Tell train above to update signs, if available
                 if (info.hasRails()) {
                     final MinecartMember<?> member = MinecartMemberStore.getAt(info.getRails());
@@ -153,6 +183,7 @@ public abstract class SignAction {
                         member.getGroup().getSignTracker().updatePosition();
                     }
                 }
+
                 // Call loaded
                 action.loadedChanged(info, true);
             } else {
@@ -179,8 +210,31 @@ public abstract class SignAction {
             for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
                 group.getSignTracker().removeSign(info.getBlock());
             }
+
             // Handle sign destroy logic
+            // Check for things that are path finding - related first
+            boolean switchable = action.isRailSwitcher(info);
+            String destinationName = action.getRailDestinationName(info);
             action.destroy(info);
+
+            // Remove (invalidate) the rails block, if part of path finding logic
+            if (destinationName != null) {
+                PathNode node = PathNode.get(destinationName);
+                if (node != null) {
+                    node.removeName(destinationName);
+                }
+            }
+            if (switchable) {
+                Block rails = info.getRails();
+                if (rails != null) {
+                    PathNode node = PathNode.get(rails);
+                    if (node != null) {
+                        node.remove();
+                    }
+                }
+            }
+
+            // Unloaded
             action.loadedChanged(info, false);
         }
     }
@@ -290,6 +344,43 @@ public abstract class SignAction {
      * Whether this sign overrides the internal facing check
      */
     public boolean overrideFacing() {
+        return false;
+    }
+
+    /**
+     * Whether this sign switches the rails below it based on path finding information.
+     * The path discovery logic will look at all possible switchable junctions of the
+     * piece of track for new paths.
+     * 
+     * @param info of the sign
+     * @return True if this rail can be switched, and path finding should take that into account
+     */
+    public boolean isRailSwitcher(SignActionEvent info) {
+        return false;
+    }
+
+    /**
+     * Gets the destination name used when routing using path finding.
+     * When non-null is returned, this name becomes available as a potential destination
+     * for trains to reach.
+     * 
+     * @param info of the sign
+     * @return destination name, null if no destination exists for this sign (default)
+     */
+    public String getRailDestinationName(SignActionEvent info) {
+        return null;
+    }
+
+    /**
+     * Gets whether the path finding is halted by this sign, not allowing
+     * any further discovery from this point onwards. This can be useful to forcibly
+     * prevent certain paths from being taken.
+     * 
+     * @param info of the sign
+     * @param state while driving on the rails, which stores the movement direction among things
+     * @return True if blocked, False if not (default)
+     */
+    public boolean isPathFindingBlocked(SignActionEvent info, RailState state) {
         return false;
     }
 
