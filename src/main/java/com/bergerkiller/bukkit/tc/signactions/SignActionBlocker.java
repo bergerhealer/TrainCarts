@@ -49,6 +49,11 @@ public class SignActionBlocker extends SignAction {
     }
 
     @Override
+    public boolean isMemberMoveHandled(SignActionEvent info) {
+        return true;
+    }
+
+    @Override
     public boolean isPathFindingBlocked(SignActionEvent info, RailState state) {
         return info.isPowerAlwaysOn() && info.isWatchedDirection(state.enterDirection());
     }

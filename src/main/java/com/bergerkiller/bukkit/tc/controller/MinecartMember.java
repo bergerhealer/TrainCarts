@@ -1790,7 +1790,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
             if (!trackedSigns.isEmpty()) {
                 for (TrackedSign sign : trackedSigns) {
-                    SignAction.executeAll(new SignActionEvent(sign.signBlock, sign.railBlock), SignActionType.MEMBER_MOVE);
+                    SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock);
+                    event.setMember(this);
+                    SignAction.executeAll(event, SignActionType.MEMBER_MOVE);
                 }
             }
         }

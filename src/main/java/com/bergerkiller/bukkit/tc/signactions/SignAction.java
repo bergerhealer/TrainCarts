@@ -255,17 +255,28 @@ public abstract class SignAction {
             return; // ignore further processing
         }
 
-        //facing?
-        boolean facing = info.getAction().isMovement() ? info.isFacing() : true;
-
+        // Find matching SignAction for this sign
         SignAction action = getSignAction(info);
-        if (action != null && (facing || action.overrideFacing())) {
-            try {
-                action.execute(info);
-            } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
-                        " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
-            }
+        if (action == null) {
+            return;
+        }
+
+        // Ignore MEMBER_MOVE if not handled
+        if (info.isAction(SignActionType.MEMBER_MOVE) && !action.isMemberMoveHandled(info)) {
+            return;
+        }
+
+        // When not facing the sign (unless overrided), do not process it
+        if (!action.overrideFacing() && info.getAction().isMovement() && !info.isFacing()) {
+            return;
+        }
+
+        // Actually execute it
+        try {
+            action.execute(info);
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
+                    " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
         }
     }
 
@@ -344,6 +355,18 @@ public abstract class SignAction {
      * Whether this sign overrides the internal facing check
      */
     public boolean overrideFacing() {
+        return false;
+    }
+
+    /**
+     * Whether this Sign Action handles {@link SignActionType#MEMBER_MOVE} for an event.
+     * By default this is False, allowing for minor performance optimizations.
+     * If <i>MEMBER_MOVE</i> must be handled, override this method and return True when appropriate.
+     * 
+     * @param info of the sign
+     * @return True if member move is handled for the sign
+     */
+    public boolean isMemberMoveHandled(SignActionEvent info) {
         return false;
     }
 
