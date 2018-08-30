@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -676,7 +677,26 @@ public class SignActionEvent extends Event implements Cancellable {
         // If so, then there is a rails there!
         RailType currentType = RailType.getType(getRails());
         RailJunction junction = Util.faceToJunction(currentType.getJunctions(getRails()), direction);
-        return junction != null && currentType.takeJunction(getRails(), junction) != null;
+        if (junction == null) {
+            return false;
+        }
+        RailState state = currentType.takeJunction(getRails(), junction);
+        if (state == null) {
+            return false;
+        }
+
+        // Move backwards again from the rails found
+        state.setMotionVector(state.motionVector().multiply(-1.0));
+        state.initEnterDirection();
+        TrackWalkingPoint wp = new TrackWalkingPoint(state);
+        wp.skipFirst();
+        if (!wp.moveFull()) {
+            return false;
+        }
+
+        // Verify this is the Block we came from
+        return wp.state.railType() == currentType &&
+               wp.state.railBlock().equals(getRails());
     }
 
     /**
