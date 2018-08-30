@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 public class Action {
     private final ToggledState started = new ToggledState();
     private int _timeTicks = 0;
+    private int _subTicks = 1;
     private long _startTimeMillis = 0;
     private final HashSet<String> tags = new HashSet<String>();
 
@@ -17,9 +18,11 @@ public class Action {
             this.start();
         }
         boolean result = this.update();
-        MinecartGroup group = this.getGroup();
-        if (group == null || group.isLastUpdateStep()) {
+        if (this.isFullTick()) {
+            this._subTicks = 1;
             this._timeTicks++;
+        } else {
+            this._subTicks++;
         }
         return result;
     }
@@ -41,6 +44,17 @@ public class Action {
      */
     public final int elapsedTicks() {
         return this._timeTicks;
+    }
+
+    /**
+     * Returns True when the current update() is the end of a new full tick.
+     * When this is True, {@link #elapsedTicks()} will be incremented this update.
+     * 
+     * @return True if this is the full end of a tick
+     */
+    public final boolean isFullTick() {
+        MinecartGroup group = this.getGroup();
+        return group == null || this._subTicks >= group.getUpdateStepCount();
     }
 
     /**

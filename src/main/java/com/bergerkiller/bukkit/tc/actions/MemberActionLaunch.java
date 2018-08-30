@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
+
 import org.bukkit.entity.Player;
 
 public class MemberActionLaunch extends MemberAction implements MovementAction {
@@ -213,10 +214,12 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         this.lastVelocity = (this.function.getDistance(time) - this.distance + this.distanceoffset);
         this.getGroup().setForwardForce(this.lastVelocity * this.getGroup().getUpdateSpeedFactor());
 
-        if (this.getGroup().isLastUpdateStep()) {
+        // Refresh distance every full tick
+        if (this.isFullTick()) {
             this.distance += this.lastVelocity;
             // this.distance += this.getEntity().getMovedDistance();
         }
+
         return false;
     }
 
