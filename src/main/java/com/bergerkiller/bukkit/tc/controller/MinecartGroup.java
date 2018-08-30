@@ -70,7 +70,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private boolean breakPhysics = false;
     private int teleportImmunityTick = 0;
     private double updateSpeedFactor = 1.0;
-    private boolean lastUpdateStep = true;
+    private int updateStepCount = 1;
+    private int updateStepNr = 1;
     private boolean unloaded = false;
 
     protected MinecartGroup() {
@@ -225,6 +226,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private void addMember(MinecartMember<?> member) {
+        notifyPhysicsChange();
         member.setGroup(this);
         this.getSignTracker().updatePosition();
         this.getProperties().add(member);
@@ -325,6 +327,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private MinecartMember<?> removeMember(int index) {
+        notifyPhysicsChange();
         MinecartMember<?> member = super.get(index);
         MemberRemoveEvent.call(member);
         super.remove(index);
@@ -671,16 +674,36 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return connectedEnd.loc.distanceSquared(mm.getEntity()) < otherEnd.loc.distanceSquared(mm.getEntity());
     }
 
+    /**
+     * Refreshes rail information when physics occurred since the last time {@link #refreshRailTrackerIfChanged()}
+     * was called. Physics can be notified using {@link #notifyPhysicsChange()}. In addition,
+     * this method checks whether the physics position of the train was changed since the last time
+     * this method was called.
+     */
+    private void refreshRailTrackerIfChanged() {
+        // Go by all the Minecarts and check whether the position since last time has changed
+        for (MinecartMember<?> member : this) {
+            hasPhysicsChanges |= member.railDetectPositionChange();
+        }
+
+        // If changed, reset and refresh rails
+        if (hasPhysicsChanges) {
+            hasPhysicsChanges = false;
+            this.getRailTracker().refresh();
+        }
+    }
+
     public void updateDirection() {
         try (Timings t = TCTimings.GROUP_UPDATE_DIRECTION.start()) {
             if (this.size() == 1) {
-                this.getRailTracker().refresh();
+                this.refreshRailTrackerIfChanged();
                 this.head().updateDirection();
             } else if (this.size() > 1) {
                 int reverseCtr = 0;
                 while (true) {
+                    this.refreshRailTrackerIfChanged();
+
                     // Update direction of individual carts
-                    this.getRailTracker().refresh();
                     for (MinecartMember<?> member : this) {
                         member.updateDirection();
                     }
@@ -699,39 +722,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         break;
                     } else {
                         Collections.reverse(this);
+                        notifyPhysicsChange();
                     }
                 }
             }
         }
-
-        /*
-        if (this.size() == 1) {
-            this.get(0).updateDirectionSelf();
-        } else if (this.size() > 1) {
-            int reverseCtr = 0;
-            while (true) {
-                // Update direction of individual carts
-                head().updateDirectionFromBehind(head(1));
-                for (int i = 1; i < size(); i++) {
-                    head(i).updateDirectionFollow(head(i-1));
-                }
-
-                // Handle train reversing (with maximum 2 attempts)
-                if (reverseCtr++ == 2) {
-                    break;
-                }
-                double fforce = 0;
-                for (MinecartMember<?> m : this) {
-                    fforce += m.getForwardForce();
-                }
-                if (fforce >= 0) {
-                    break;
-                } else {
-                    Collections.reverse(this);
-                }
-            }
-        }
-        */
     }
 
     /**
@@ -937,13 +932,23 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Gets the total number of physics updates performed per tick. See also the information
+     * of {@link #getUpdateSpeedFactor()}.
+     * 
+     * @return update step count (normally 1)
+     */
+    public int getUpdateStepCount() {
+        return this.updateStepCount;
+    }
+
+    /**
      * Gets whether the currently executing updates are the final update step.
      * See {@link #getUpdateSpeedFactor()} for an explanation of what this means.
      * 
      * @return True if this is the last update step
      */
     public boolean isLastUpdateStep() {
-        return this.lastUpdateStep;
+        return this.updateStepNr == this.updateStepCount;
     }
 
     /**
@@ -1285,16 +1290,19 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             this.updateSpeedFactor = 1.0 / (double) update_steps;
 
             try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {
+                // Perform the physics changes
                 if (update_steps > 1) {
+                    this.updateStepCount = update_steps;
                     for (MinecartMember<?> mm : this) {
                         mm.getEntity().vel.multiply(this.updateSpeedFactor);
                     }
                     for (int i = 0; i < update_steps; i++) {
-                        this.lastUpdateStep = (i == (update_steps - 1));
+                        this.updateStepNr = (i+1);
                         while (!this.doPhysics_step()) ;
                     }
                 } else {
-                    this.lastUpdateStep = true;
+                    this.updateStepCount = 1;
+                    this.updateStepNr = 1;
                     this.doPhysics_step();
                 }
             }
@@ -1472,6 +1480,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     member.onPhysicsPostMove();
                     if (this.breakPhysics) return true;
                 }
+            }
+
+            // Always refresh at least once per tick
+            // This moment is strategically chosen, because after movement is the most likely
+            // that a physics change will be required
+            if (this.isLastUpdateStep()) {
+                notifyPhysicsChange();
             }
 
             // Update directions and perform connection checks after the position changes

@@ -105,6 +105,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private float cachedOrientation_pitch = 0.0f;
     private boolean hasLinkedFarMinecarts = false;
     private Location preMovePosition = null;
+    private Vector lastRailRefreshPosition = null;
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -2019,5 +2020,27 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         box.setRadius(1.0, 1.0, this.entity.getWidth());
         box.setOrientation(this.getOrientation());
         return box;
+    }
+
+    /**
+     * Detect changes in Minecart position since the last time rail information was refreshed.
+     * 
+     * @return True if position changed
+     */
+    boolean railDetectPositionChange() {
+        if (this.lastRailRefreshPosition == null) {
+            this.lastRailRefreshPosition = entity.loc.vector();
+            return true;
+        } else if (this.lastRailRefreshPosition.getX() != entity.loc.getX() ||
+                   this.lastRailRefreshPosition.getY() != entity.loc.getY() ||
+                   this.lastRailRefreshPosition.getZ() != entity.loc.getZ())
+        {
+            this.lastRailRefreshPosition.setX(entity.loc.getX());
+            this.lastRailRefreshPosition.setY(entity.loc.getY());
+            this.lastRailRefreshPosition.setZ(entity.loc.getZ());
+            return true;
+        } else {
+            return false;
+        }
     }
 }

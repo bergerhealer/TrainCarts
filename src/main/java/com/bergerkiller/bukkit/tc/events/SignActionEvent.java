@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
@@ -378,6 +379,8 @@ public class SignActionEvent extends Event implements Cancellable {
         if (!this.hasRails() || fromJunction == null || toJunction == null) {
             return;
         }
+
+        MinecartGroupStore.notifyPhysicsChange();
 
         Block railBlock = this.getRails();
         RailType railType = RailType.getType(railBlock);

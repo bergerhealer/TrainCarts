@@ -17,6 +17,7 @@ import java.util.*;
 public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     private static final long serialVersionUID = 1;
     protected static ImplicitlySharedSet<MinecartGroup> groups = new ImplicitlySharedSet<MinecartGroup>();
+    protected static boolean hasPhysicsChanges = false;
 
     /**
      * Called onPhysics for all Minecart Groups who didn't get ticked in the previous run
@@ -241,5 +242,14 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Tells the underlying system that physics have changed. This can mean a block changed
+     * type or some other logic that can alter the behavior of a train. Changes that occur
+     * during physics will force a train to recalculate rail information.
+     */
+    public static void notifyPhysicsChange() {
+        hasPhysicsChanges = true;
     }
 }
