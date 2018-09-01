@@ -265,8 +265,8 @@ public class SignTrackerGroup extends SignTracker {
 
             // Perform routine update events
             if (needsUpdate.clear()) {
-                for (Block signBlock : getActiveSigns()) {
-                    SignAction.executeAll(new SignActionEvent(signBlock, owner), SignActionType.GROUP_UPDATE);
+                for (TrackedSign sign : getActiveTrackedSigns()) {
+                    SignAction.executeAll(new SignActionEvent(sign, owner), SignActionType.GROUP_UPDATE);
                 }
                 for (DetectorRegion region : getActiveDetectorRegions()) {
                     region.update(owner);

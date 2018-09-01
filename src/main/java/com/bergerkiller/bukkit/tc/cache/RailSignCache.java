@@ -9,6 +9,7 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
@@ -186,11 +187,13 @@ public class RailSignCache {
      * A single sign that is tracked
      */
     public static class TrackedSign {
+        public final Sign sign;
         public final Block signBlock;
         public final RailType railType;
         public final Block railBlock;
 
         public TrackedSign(Block signBlock, RailType railType, Block railBlock) {
+            this.sign = BlockUtil.getSign(signBlock);
             this.signBlock = signBlock;
             this.railType = railType;
             this.railBlock = railBlock;

@@ -11,8 +11,11 @@ public class TCTimings {
     public static final Timings GROUP_TICK_ACTIONS = timings.create("tickActions  (Train Physics)");
     public static final Timings MEMBER_PHYSICS_PRE = timings.create("onPhysicsPreMove  (Train Physics)");
     public static final Timings MEMBER_PHYSICS_POST = timings.create("onPhysicsPostMove  (Train Physics)");
-    public static final Timings MEMBER_PHYSICS_POST_MOVE = timings.create("onMove  (Train Physics, Post-Move)");
-    public static final Timings MEMBER_PHYSICS_POST_RAIL_LOGIC = timings.create("onPostMove  (Train Physics, Post-Move, RailLogic)");
+    public static final Timings MEMBER_PHYSICS_POST_MOVE = timings.create("onPhysicsPostMove:onMove  (Train Physics, Post-Move)");
+    public static final Timings MEMBER_PHYSICS_POST_RAIL_LOGIC = timings.create("onPhysicsPostMove:onPostMove  (Train Physics, Post-Move, RailLogic)");
+    public static final Timings MEMBER_PHYSICS_POST_BUKKIT_UPDATE = timings.create("onPhysicsPostMove:VehicleUpdateEvent  (Train Physics, Post-Move, Bukkit)");
+    public static final Timings MEMBER_PHYSICS_POST_BUKKIT_MOVE = timings.create("onPhysicsPostMove:VehicleMoveEvent  (Train Physics, Post-Move, Bukkit)");
+    public static final Timings MEMBER_PHYSICS_POST_SIGN_MEMBER_MOVE = timings.create("onPhysicsPostMove:SignMemberMove  (Train Physics, Post-Move, Sign Tracker)");
     public static final Timings MEMBER_PHYSICS_BLOCK_COLLISION = timings.create("onBlockCollision  (Train Physics, Post-Move)");
     public static final Timings MEMBER_PHYSICS_UPDATE_WHEELS = timings.create("updateWheels  (Train Physics, Wheel Tracker)");
     public static final Timings MEMBER_PHYSICS_DISCOVER_RAIL = timings.create("discoverRail (Train Physics, RailLogic)");

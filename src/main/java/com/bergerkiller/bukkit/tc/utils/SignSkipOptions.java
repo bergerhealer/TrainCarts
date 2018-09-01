@@ -7,11 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.bukkit.block.Sign;
-
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 
@@ -113,11 +110,10 @@ public class SignSkipOptions {
                 historyState = Boolean.FALSE;
                 boolean passFilter = true;
                 if (this.filter.length() > 0) {
-                    Sign signStat = BlockUtil.getSign(sign.signBlock);
-                    if (signStat == null) {
+                    if (sign.sign == null) {
                         passFilter = false; // should never happen, but just in case
                     } else {
-                        passFilter = Util.getCleanLine(signStat, 1).toLowerCase(Locale.ENGLISH).startsWith(this.filter);
+                        passFilter = Util.getCleanLine(sign.sign, 1).toLowerCase(Locale.ENGLISH).startsWith(this.filter);
                     }
                 }
                 if (passFilter) {

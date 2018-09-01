@@ -39,6 +39,7 @@ import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -520,7 +521,7 @@ public class GlobalCommands {
 
             if (prop.hasHolder() && statement.length() > 0) {
                 MinecartGroup group = prop.getHolder();
-                SignActionEvent event = new SignActionEvent(null, group);
+                SignActionEvent event = new SignActionEvent((Block) null, group);
                 if (!Statement.has(group, statement, event)) {
                     continue;
                 }

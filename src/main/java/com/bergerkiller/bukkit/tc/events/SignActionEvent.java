@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -45,7 +46,7 @@ import org.bukkit.util.Vector;
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private final Block signblock;
-    private final BlockFace facing;
+    private BlockFace facing;
     private final SignActionHeader header;
     private final Sign sign;
     private BlockFace[] watchedDirections;
@@ -76,6 +77,18 @@ public class SignActionEvent extends Event implements Cancellable {
         this.memberchecked = true;
     }
 
+    public SignActionEvent(RailSignCache.TrackedSign trackedSign, MinecartMember<?> member) {
+        this(trackedSign);
+        this.member = member;
+        this.memberchecked = true;
+    }
+
+    public SignActionEvent(RailSignCache.TrackedSign trackedSign, MinecartGroup group) {
+        this(trackedSign);
+        this.group = group;
+        this.memberchecked = true;
+    }
+
     public SignActionEvent(Block signblock, Block railsBlock, MinecartGroup group) {
         this(signblock, railsBlock);
         this.group = group;
@@ -90,27 +103,29 @@ public class SignActionEvent extends Event implements Cancellable {
         this(signblock, signblock == null ? null : BlockUtil.getSign(signblock), railsblock);
     }
 
+    public SignActionEvent(RailSignCache.TrackedSign trackedSign) {
+        this(trackedSign.signBlock, trackedSign.sign, trackedSign.railBlock);
+    }
+
     public SignActionEvent(final Block signblock, final Sign sign, Block railsblock) {
         this.signblock = signblock;
         this.sign = sign;
         this.railsblock = railsblock;
         this.railschecked = this.railsblock != null;
+        this.actionType = SignActionType.NONE;
+        this.facing = null;
         if (this.sign == null) {
             // No sign available - set default values and abort
             this.header = SignActionHeader.parse(null);
-            this.facing = null;
             this.watchedDirections = FaceUtil.AXIS;
-            return;
         } else {
             // Sign available - initialize the sign
             this.header = SignActionHeader.parseFromEvent(this);
-            this.facing = BlockUtil.getFacing(this.signblock);
             if (this.header.isLegacyConverted() && this.header.isValid()) {
                 this.setLine(0, this.header.toString());
             }
             this.watchedDirections = null;
         }
-        this.actionType = SignActionType.NONE;
     }
 
     public static HandlerList getHandlerList() {
@@ -617,6 +632,9 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public BlockFace getFacing() {
+        if (this.facing == null) {
+            this.facing = BlockUtil.getFacing(this.signblock);
+        }
         return this.facing;
     }
 
@@ -847,6 +865,7 @@ public class SignActionEvent extends Event implements Cancellable {
                             }
 
                             // Simple facing checks - NESW
+                            BlockFace facing = this.getFacing();
                             if (this.isConnectedRails(facing)) {
                                 watchedFaces.add(facing.getOppositeFace());
                             } else if (this.isConnectedRails(facing.getOppositeFace())) {

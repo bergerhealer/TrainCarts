@@ -1784,17 +1784,26 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         Location from = entity.getLastLocation();
         Location to = entity.getLocation();
         Vehicle vehicle = entity.getEntity();
-        CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
-        if (!from.equals(to)) {
-            // Execute move events
-            CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
 
-            Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
-            if (!trackedSigns.isEmpty()) {
-                for (TrackedSign sign : trackedSigns) {
-                    SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock);
-                    event.setMember(this);
-                    SignAction.executeAll(event, SignActionType.MEMBER_MOVE);
+        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_BUKKIT_UPDATE.start()) {
+            CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
+        }
+
+        if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
+            // Execute move events
+            try (Timings t = TCTimings.MEMBER_PHYSICS_POST_BUKKIT_MOVE.start()) {
+                CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
+            }
+
+            // Execute signs MEMBER_MOVE
+            try (Timings t = TCTimings.MEMBER_PHYSICS_POST_SIGN_MEMBER_MOVE.start()) {
+                Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
+                if (!trackedSigns.isEmpty()) {
+                    for (TrackedSign sign : trackedSigns) {
+                        SignActionEvent event = new SignActionEvent(sign);
+                        event.setMember(this);
+                        SignAction.executeAll(event, SignActionType.MEMBER_MOVE);
+                    }
                 }
             }
         }

@@ -52,7 +52,7 @@ public class SignTrackerMember extends SignTracker {
 
     @Override
     protected void onSignChange(TrackedSign sign, boolean active) {
-        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock, owner);
+        SignActionEvent event = new SignActionEvent(sign, this.owner);
         event.setAction(active ? SignActionType.MEMBER_ENTER : SignActionType.MEMBER_LEAVE);
         SignAction.executeAll(event);
     }

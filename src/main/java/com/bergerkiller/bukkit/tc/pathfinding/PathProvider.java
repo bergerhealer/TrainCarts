@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.pathfinding;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
@@ -11,7 +10,6 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
-import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -163,7 +161,7 @@ public class PathProvider extends Task {
 
             // Discover signs, and process each
             for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(railType, railBlock)) {
-                SignActionEvent event = new SignActionEvent(trackedSign.signBlock, trackedSign.railBlock);
+                SignActionEvent event = new SignActionEvent(trackedSign);
                 SignAction action = SignAction.getSignAction(event);
                 if (action == null) {
                     continue;
@@ -285,7 +283,7 @@ public class PathProvider extends Task {
             boolean hasFinished = false;
             for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(p.state.railType(), p.state.railBlock())) {
                 // Discover a SignAction at this sign
-                SignActionEvent event = new SignActionEvent(trackedSign.signBlock, trackedSign.railBlock);
+                SignActionEvent event = new SignActionEvent(trackedSign);
                 event.setAction(SignActionType.GROUP_ENTER);
                 SignAction action = SignAction.getSignAction(event);
                 if (action == null) {
