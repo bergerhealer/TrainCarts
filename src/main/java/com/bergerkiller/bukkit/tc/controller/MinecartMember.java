@@ -106,6 +106,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private boolean hasLinkedFarMinecarts = false;
     private Location preMovePosition = null;
     private Vector lastRailRefreshPosition = null;
+    private Vector lastRailRefreshDirection = null;
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         //Can the minecart reach the other?
@@ -2028,16 +2029,28 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if position changed
      */
     boolean railDetectPositionChange() {
-        if (this.lastRailRefreshPosition == null) {
+        Vector nvel = entity.vel.vector();
+        double fact = MathUtil.getNormalizationFactor(nvel);
+        if (fact != Double.POSITIVE_INFINITY && !Double.isNaN(fact)) {
+            nvel.multiply(fact);
+        }
+        if (this.lastRailRefreshPosition == null || this.lastRailRefreshDirection == null) {
             this.lastRailRefreshPosition = entity.loc.vector();
+            this.lastRailRefreshDirection = entity.vel.vector().normalize();
             return true;
         } else if (this.lastRailRefreshPosition.getX() != entity.loc.getX() ||
                    this.lastRailRefreshPosition.getY() != entity.loc.getY() ||
-                   this.lastRailRefreshPosition.getZ() != entity.loc.getZ())
+                   this.lastRailRefreshPosition.getZ() != entity.loc.getZ() ||
+                   this.lastRailRefreshDirection.getX() != nvel.getX() ||
+                   this.lastRailRefreshDirection.getY() != nvel.getY() ||
+                   this.lastRailRefreshDirection.getZ() != nvel.getZ())
         {
             this.lastRailRefreshPosition.setX(entity.loc.getX());
             this.lastRailRefreshPosition.setY(entity.loc.getY());
             this.lastRailRefreshPosition.setZ(entity.loc.getZ());
+            this.lastRailRefreshDirection.setX(nvel.getX());
+            this.lastRailRefreshDirection.setY(nvel.getY());
+            this.lastRailRefreshDirection.setZ(nvel.getZ());
             return true;
         } else {
             return false;
