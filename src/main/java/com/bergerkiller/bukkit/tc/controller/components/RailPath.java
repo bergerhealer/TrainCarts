@@ -650,6 +650,10 @@ public class RailPath {
             return Util.vecToFace(motX, motY, motZ, false);
         }
 
+        public BlockFace getMotionFaceWithSubCardinal() {
+            return Util.vecToFace(motX, motY, motZ, true);
+        }
+
         public double motDot(Position pos) {
             return (motX * pos.motX) + (motY * pos.motY) + (motZ * pos.motZ);
         }

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
@@ -37,7 +38,6 @@ import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
-import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -716,7 +716,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     for (MinecartMember<?> m : this) {
                         // Use rail tracker instead of recalculating for improved performance
                         // fforce += m.getForwardForce();
-                        fforce += m.getRailTracker().getState().position().motDot(m.getEntity().getVelocity());
+
+                        VectorAbstract vel = m.getEntity().vel;
+                        fforce += m.getRailTracker().getState().position().motDot(vel.getX(), vel.getY(), vel.getZ());
                     }
                     if (fforce >= 0) {
                         break;
@@ -866,15 +868,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         for (MinecartMember<?> mm : this) mm.loadChunks();
     }
 
-    public boolean isInChunk(Chunk chunk) {
-        return this.isInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ());
-    }
-
-    public boolean isInChunk(World world, int cx, int cz) {
-        for (MinecartMember<?> mm : this) {
-            if (mm.isInChunk(world, cx, cz)) return true;
-        }
-        return false;
+    public boolean isInChunk(World world, long chunkLongCoord) {
+        return this.getWorld() == world && this.chunkArea.containsChunk(chunkLongCoord);
     }
 
     @Override

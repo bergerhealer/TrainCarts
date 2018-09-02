@@ -153,6 +153,17 @@ public class ChunkArea {
     }
 
     /**
+     * Gets whether a particular chunk coordinate, encoded as a Long, is contained
+     * in this chunk area.
+     * 
+     * @param chunkLongCoord
+     * @return True if contained.
+     */
+    public boolean containsChunk(long chunkLongCoord) {
+        return this.chunks.contains(chunkLongCoord);
+    }
+
+    /**
      * A single chunk that has one or more chunks neighbouring it with a minecart in it
      */
     public static final class OwnedChunk {

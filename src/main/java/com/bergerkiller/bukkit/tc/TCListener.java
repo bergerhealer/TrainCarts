@@ -45,6 +45,7 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -127,8 +128,11 @@ public class TCListener implements Listener {
         // Check no trains are keeping the chunk loaded
         synchronized (this.expectUnload) {
             this.expectUnload.clear();
+
+            long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
+            World chunkWorld = event.getWorld();
             for (MinecartGroup mg : MinecartGroup.getGroups()) {
-                if (mg.isInChunk(event.getChunk())) {
+                if (mg.isInChunk(chunkWorld, chunkCoordLong)) {
                     if (mg.canUnload()) {
                         this.expectUnload.add(mg);
                     } else {
@@ -137,6 +141,7 @@ public class TCListener implements Listener {
                     }
                 }
             }
+
             // Double-check
             for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
                 if (entity instanceof Minecart) {
@@ -163,8 +168,10 @@ public class TCListener implements Listener {
         OfflineGroupManager.lastUnloadChunk = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
         // Unload groups
         synchronized (this.expectUnload) {
+            long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
+            World chunkWorld = event.getWorld();
             for (MinecartGroup mg : this.expectUnload) {
-                if (mg.isInChunk(event.getChunk())) {
+                if (mg.isInChunk(chunkWorld, chunkCoordLong)) {
                     mg.unload();
                 }
             }

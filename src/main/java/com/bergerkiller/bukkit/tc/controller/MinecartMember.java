@@ -1025,13 +1025,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         RailTrackerMember tracker = this.getRailTracker();
 
         // Direction is simply the motion vector on the rail, turned into a BlockFace
-        this.direction = Util.vecToFace(tracker.getMotionVector(), true);
+        RailState state = tracker.getState();
+        this.direction = state.position().getMotionFaceWithSubCardinal();
 
         // TO direction is simply the enter face in the opposite direction
-        RailState state = tracker.getRail().state.clone();
-        state.position().invertMotion();
-        state.initEnterDirection();
-        this.directionTo = state.enterFace().getOppositeFace();
+        RailState state_inv = state.clone();
+        state_inv.position().invertMotion();
+        state_inv.initEnterDirection();
+        this.directionTo = state_inv.enterFace().getOppositeFace();
     }
 
     @Override
