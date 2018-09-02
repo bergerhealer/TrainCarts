@@ -1108,4 +1108,16 @@ public class Util {
             }
         }
     }
+
+    /**
+     * Sets the value of a vector to that of another
+     * 
+     * @param v to set
+     * @param v2 to set the x/y/z values to
+     */
+    public static void setVector(Vector v, Vector v2) {
+        v.setX(v2.getX());
+        v.setY(v2.getY());
+        v.setZ(v2.getZ());
+    }
 }

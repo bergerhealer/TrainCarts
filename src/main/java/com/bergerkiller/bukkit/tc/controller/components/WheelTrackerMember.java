@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -137,8 +138,8 @@ public class WheelTrackerMember {
     }
 
     public void startTeleport() {
-        this._front._position = new Vector();
-        this._back._position = new Vector();
+        this._front._invalid = true;
+        this._back._invalid = true;
         this._position = null;
     }
 
@@ -235,11 +236,14 @@ public class WheelTrackerMember {
         private final boolean _front;
         private double _distance = 0.0; // Distance from the center this wheel is at
                                         // This will eventually be modified based on the model that is applied
-        private Vector _position = null; // Position is relative to the minecart position
-        private Vector _displayPosition = null; // Position of the wheel when displayed (visual)
-        private Vector _forward = null;  // The forward direction vector of this wheel
-        private Vector _up = null;       // Up vector, used for angling the Minecart around the wheels
+        private final Vector _displayPosition = new Vector(); // Position of the wheel when displayed (visual)
+        private final Vector _position = new Vector(); // Position is relative to the minecart position
+        private final Vector _forward = new Vector();  // The forward direction vector of this wheel
+        private final Vector _up = new Vector();       // Up vector, used for angling the Minecart around the wheels
+        private boolean _invalid = true;   // Position/forward/up vectors are invalid, an update() is required.
+        private boolean _displayInvalid = true; // displayPosition is invalid and must be recalculated
         private boolean _oriented;       // Last-known state whether we are moving in the same direction as orientation or not
+        private final RailPath.Position _railPosition = new RailPath.Position(); // Buffered and re-used
 
         public Wheel(MinecartMember<?> member, boolean front) {
             this.member = member;
@@ -254,7 +258,7 @@ public class WheelTrackerMember {
         public void setDistance(double distance) {
             if (this._distance != distance) {
                 this._distance = distance;
-                this._position = null;
+                this._invalid = true;
             }
         }
 
@@ -285,7 +289,7 @@ public class WheelTrackerMember {
          * @return center-relative position
          */
         public Vector getPosition() {
-            if (this._position == null) {
+            if (this._invalid) {
                 this.update(); // Required
             }
             return this._position;
@@ -306,7 +310,11 @@ public class WheelTrackerMember {
          * @return display position
          */
         public Vector getDisplayPosition() {
-            if (this._displayPosition == null) {
+            if (this._displayInvalid) {
+                if (this._invalid) {
+                    this.update(); // Required
+                }
+
                 // Below code 'correct' the distance between the wheels
                 // The problem with this correction is that wheels derail slightly in curves
                 // Its fixing one problem, causing another. Going with accurate rail tracking for now.
@@ -319,9 +327,15 @@ public class WheelTrackerMember {
                 } else {
                     fwd.multiply(-this._distance);
                 }
-                this._displayPosition = this.member.getWheels().getPosition().clone().add(fwd);
+                Util.setVector(this._displayPosition, this.member.getWheels().getPosition().clone().add(fwd));
+                this._displayInvalid = false;
                 */
-                this._displayPosition = this.member.getEntity().loc.vector().add(this.getPosition());
+
+                LocationAbstract loc = this.member.getEntity().loc;
+                this._displayPosition.setX(loc.getX() + this._position.getX());
+                this._displayPosition.setY(loc.getY() + this._position.getY());
+                this._displayPosition.setZ(loc.getZ() + this._position.getZ());
+                this._displayInvalid = false;
             }
             return this._displayPosition;
         }
@@ -347,7 +361,7 @@ public class WheelTrackerMember {
          * @return up vector
          */
         public Vector getUp() {
-            if (this._up == null) {
+            if (this._invalid) {
                 this.update(); // Required
             }
             return this._up;
@@ -361,7 +375,7 @@ public class WheelTrackerMember {
          * @return forward vector
          */
         public Vector getForward() {
-            if (this._forward == null) {
+            if (this._invalid) {
                 this.update(); // Required
             }
             return this._forward;
@@ -371,8 +385,11 @@ public class WheelTrackerMember {
          * Recalculates the position of this wheel
          */
         public void update() {
-            // Reset this cached vector
-            this._displayPosition = null;
+            // Reset invalid
+            this._invalid = false;
+
+            // Reset display vector
+            this._displayInvalid = true;
 
             // Find the index of the rails for this member
             List<TrackedRail> rails;
@@ -396,9 +413,10 @@ public class WheelTrackerMember {
             // If this Minecart is derailed, set the wheels to point into the direction of the orientation
             if (railIndex == -1) {
                 Quaternion orientation = member.getOrientation();
-                this._up = orientation.upVector();
-                this._forward = orientation.forwardVector();
-                this._position = this._forward.clone().multiply(-this._distance);
+                Util.setVector(this._up, orientation.upVector());
+                Util.setVector(this._forward, orientation.forwardVector());
+                Util.setVector(this._position, this._forward);
+                this._position.multiply(-this._distance);
                 if (!this._front) {
                     this._position.multiply(-1.0);
                 }
@@ -408,7 +426,7 @@ public class WheelTrackerMember {
             // Start by doing a movement of 0 distance to correctly calculate the movement direction
             // This initializes the running Position object correctly
             TrackedRail rail = rails.get(railIndex);
-            RailPath.Position position = new RailPath.Position();
+            RailPath.Position position = this._railPosition;
             position.setLocation(this.member.getEntity().loc);
             position.setMotion(member.getDirection());
             rail.getPath().move(position, rail.block, 0.0);
@@ -447,12 +465,15 @@ public class WheelTrackerMember {
             }
 
             // Refresh vectors
-            this._position = new Vector(
-                    position.posX - this.member.getEntity().loc.getX(),
-                    position.posY - this.member.getEntity().loc.getY(),
-                    position.posZ - this.member.getEntity().loc.getZ());
-            this._up = new Vector(position.upX, position.upY, position.upZ);
-            this._forward = new Vector(position.motX, position.motY, position.motZ);
+            this._position.setX(position.posX - this.member.getEntity().loc.getX());
+            this._position.setY(position.posY - this.member.getEntity().loc.getY());
+            this._position.setZ(position.posZ - this.member.getEntity().loc.getZ());
+            this._up.setX(position.upX);
+            this._up.setY(position.upY);
+            this._up.setZ(position.upZ);
+            this._forward.setX(position.motX);
+            this._forward.setY(position.motY);
+            this._forward.setZ(position.motZ);
             if (!this._front) {
                 this._forward.multiply(-1.0);
             }
