@@ -86,6 +86,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
     private final WheelTrackerMember wheelTracker = new WheelTrackerMember(this);
     private final ToggledState railActivated = new ToggledState(false);
+    protected final ToggledState ticked = new ToggledState();
     public boolean vertToSlope = false;
     protected MinecartGroup group;
     protected boolean died = false;
@@ -1857,20 +1858,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public void onTick() {
+        this.ticked.set();
         if (this.isUnloaded()) {
             return;
         }
         MinecartGroup g = this.getGroup();
-        if (g == null) {
-            return;
-        }
-        if (entity.isDead()) {
-            // remove self
-            g.remove(this);
-        } else if (g.isEmpty()) {
-            g.remove();
-            super.onTick();
-        } else if (g.ticked.set()) {
+        if (g != null && g.ticked.set()) {
             g.doPhysics();
         }
     }

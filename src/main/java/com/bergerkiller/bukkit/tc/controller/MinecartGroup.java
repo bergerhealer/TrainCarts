@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
@@ -37,6 +38,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -416,6 +418,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         if (!groups.remove(this)) {
             return; // Already removed
         }
+
         GroupRemoveEvent.call(this);
         this.clear();
         this.updateChunkInformation();
@@ -1257,6 +1260,22 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
 
+        // Remove minecarts from this group that are dead
+        // This operation can completely alter the structure of the group iterated over
+        // For this reason, this logic is inside a loop
+        boolean finishedRemoving;
+        do {
+            finishedRemoving = true;
+            for (int i = 0; i < this.size(); i++) {
+                MinecartMember<?> member = super.get(i);
+                if (member.getEntity().isDead()) {
+                    this.remove(i);
+                    finishedRemoving = false;
+                    break;
+                }
+            }
+        } while (!finishedRemoving);
+
         // Remove empty trains entirely before doing any physics at all
         if (super.isEmpty()) {
             this.remove();
@@ -1275,6 +1294,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 m.setUnloaded(false);
             }
         }
+
+        // If physics disabled this tick, cut off here.
+        if (!TCConfig.tickUpdateEnabled) {
+            return;
+        }
+
         try {
             double totalforce = this.getAverageForce();
             double speedlimit = this.getProperties().getSpeedLimit();
@@ -1314,6 +1339,20 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             this.updateSpeedFactor = 1.0;
+
+            // Server bugfix: prevents an old Minecart duplicate staying behind inside a chunk when saved
+            // This issue has been resolved on Paper, see https://github.com/PaperMC/Paper/issues/1223
+            for (MinecartMember<?> mm : this) {
+                CommonEntity<?> entity = mm.getEntity();
+                if (entity.isInLoadedChunk()) {
+                    int cx = entity.getChunkX();
+                    int cz = entity.getChunkZ();
+                    if (cx != entity.loc.x.chunk() || cz != entity.loc.z.chunk()) {
+                        ChunkHandle.fromBukkit(entity.getWorld().getChunkAt(cx, cz)).markDirty();
+                    }
+                }
+            }
+
         } catch (GroupUnloadedException ex) {
             //this group is gone
         } catch (Throwable t) {

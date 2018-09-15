@@ -86,6 +86,7 @@ public class TCConfig {
     public static boolean allowParenthesesFormat = true;
     public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
     public static int tickUpdateNow = 0; // forces update ticks
+    public static boolean tickUpdateEnabled = true; // whether train tick updates are enabled
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();

@@ -20,20 +20,21 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     protected static boolean hasPhysicsChanges = false;
 
     /**
-     * Called onPhysics for all Minecart Groups who didn't get ticked in the previous run
-     * This is a sort of hack against the bugged issues on some server implementations
-     * 
-     * @param disableMinecartTick whether to disable tick updates done by minecarts themselves
+     * Called onPhysics for all Minecart entities who didn't get ticked in the previous run.
+     * This is a sort of hack against the bugged issues on some server implementations.
      */
-    public static void doFixedTick(boolean disableMinecartTick) {
+    public static void doFixedTick() {
         try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
             try {
                 for (MinecartGroup group : groups_copy) {
-                    if (disableMinecartTick || !group.ticked.clear()) {
-                        // Ticked was False, tick it now
+                    // Tick the train if required
+                    if (!group.ticked.clear()) {
                         group.doPhysics();
-                        // Update the positions of the entities in the world(s)
-                        for (MinecartMember<?> member : group) {
+                    }
+
+                    // Perform post-tick physics for all Minecarts in the train, if not previously ticked
+                    for (MinecartMember<?> member : group) {
+                        if (!member.ticked.clear()) {
                             member.getEntity().doPostTick();
                         }
                     }

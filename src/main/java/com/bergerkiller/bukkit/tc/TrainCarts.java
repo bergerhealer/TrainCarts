@@ -540,14 +540,20 @@ public class TrainCarts extends PluginBase {
         }
 
         public void run() {
+            // Refresh whether or not trains are allowed to tick
             if (++ctr >= TCConfig.tickUpdateDivider) {
                 ctr = 0;
                 TCConfig.tickUpdateNow++;
             }
             if (TCConfig.tickUpdateNow > 0) {
                 TCConfig.tickUpdateNow--;
-                MinecartGroupStore.doFixedTick(TCConfig.tickUpdateDivider != 1);
+                TCConfig.tickUpdateEnabled = true;
+            } else {
+                TCConfig.tickUpdateEnabled = false;
             }
+
+            // For all Minecart that were not ticked, tick them ourselves
+            MinecartGroupStore.doFixedTick();
         }
     }
 }
