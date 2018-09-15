@@ -72,10 +72,16 @@ public class RailLogicAir extends RailLogic {
                 forward.setZ(dz);
             }
         }
-        if (forward.dot(orientation.forwardVector()) < 0.0) {
-            forward.multiply(-1.0);
+        if (forward.lengthSquared() <= 1e-8) {
+            // Forward vector is useless, just use the old quaternion
+            member.setOrientation(orientation);
+        } else {
+            // Forward vector is useful
+            if (forward.dot(orientation.forwardVector()) < 0.0) {
+                forward.multiply(-1.0);
+            }
+            member.setOrientation(Quaternion.fromLookDirection(forward, orientation.upVector()));
         }
-        member.setOrientation(Quaternion.fromLookDirection(forward, orientation.upVector()));
     }
 
     // Old updateOrientation logic - breaks vertical - air rails
