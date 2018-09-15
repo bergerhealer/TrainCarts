@@ -6,9 +6,12 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
@@ -19,6 +22,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -171,7 +175,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     public MinecartMember<?> getMember() {
-        if (this.member == null) {
+        if (this.entity == null) {
+            this.member = null;
+        } else if (this.member == null) {
             this.member = this.entity.getController(MinecartMember.class);
         }
         return this.member;
@@ -217,6 +223,27 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void makeVisible(Player viewer) {
         //super.makeVisible(viewer);
 
+        // If the entity backing this controller does not exist,
+        // remove this tracker entry from the server.
+        // It is not clear why this happens sometimes.
+        // Do this in another tick to avoid concurrent modification exceptions.
+        if (this.getMember() == null) {
+            World world = (this.entity == null) ? null : this.entity.getWorld();
+            if (world != null) {
+                CommonUtil.nextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        EntityTracker tracker = WorldUtil.getTracker(world);
+                        EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
+                        if (entry != null && getHandle() == entry.getRaw()) {
+                            tracker.stopTracking(entity.getEntity());
+                        }
+                    }
+                });
+            }
+            return;
+        }
+
         makeVisible(this.prepareRootAttachment(), viewer);
 
         this.velocityUpdateReceivers.add(viewer);
@@ -234,7 +261,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void makeHidden(Player viewer, boolean instant) {
         //super.makeHidden(viewer, instant);
 
-        makeHidden(this.rootAttachment, viewer);
+        if (this.rootAttachment != null) {
+            makeHidden(this.rootAttachment, viewer);
+        }
 
         this.velocityUpdateReceivers.remove(viewer);
         this.passengerControllers.remove(viewer);
