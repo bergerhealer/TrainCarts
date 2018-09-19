@@ -40,6 +40,7 @@ public class RailLogicAir extends RailLogic {
         }
     }
 
+    @Override
     public void onUpdateOrientation(MinecartMember<?> member, Quaternion orientation) {
         CommonMinecart<?> entity = member.getEntity();
         Vector forward = new Vector(entity.getMovedX(), entity.getMovedY(), entity.getMovedZ());
@@ -71,7 +72,13 @@ public class RailLogicAir extends RailLogic {
                 forward.setY(dy);
                 forward.setZ(dz);
             }
+        } else if (!member.getGroup().getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
+            // When gravity is disabled, keep the original orientation of the Minecart.
+            // This allows other plugins to freely control the 3d position and orientation
+            // of the Minecart without movement changes causing disruptions.
+            forward.multiply(0.0);
         }
+
         if (forward.lengthSquared() <= 1e-8) {
             // Forward vector is useless, just use the old quaternion
             member.setOrientation(orientation);
