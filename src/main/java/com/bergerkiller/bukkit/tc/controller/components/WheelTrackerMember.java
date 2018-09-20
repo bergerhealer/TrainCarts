@@ -415,11 +415,11 @@ public class WheelTrackerMember {
                 Quaternion orientation = member.getOrientation();
                 Util.setVector(this._up, orientation.upVector());
                 Util.setVector(this._forward, orientation.forwardVector());
-                Util.setVector(this._position, this._forward);
-                this._position.multiply(-this._distance);
                 if (!this._front) {
-                    this._position.multiply(-1.0);
+                    this._forward.multiply(-1.0);
                 }
+                Util.setVector(this._position, this._forward);
+                this._position.multiply(this._distance);
                 return;
             }
 
