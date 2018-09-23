@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -19,6 +20,7 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
@@ -370,6 +372,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * - A new group of 3 carts is created
      */
     public MinecartGroup split(int at) {
+        Util.checkMainThread("MinecartGroup::split()");
         if (at <= 0) return this;
         if (at >= this.size()) return null;
         //transfer the new removed carts
@@ -415,6 +418,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void remove() {
+        Util.checkMainThread("MinecartGroup::remove()");
         if (!groups.remove(this)) {
             return; // Already removed
         }
@@ -456,6 +460,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
 
         // Protect.
+        Util.checkMainThread("MinecartGroup::unload()");
         this.unloaded = true;
 
         // Undo partial-unloading before calling the event

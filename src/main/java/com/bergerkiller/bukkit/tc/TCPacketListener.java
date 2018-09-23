@@ -104,7 +104,7 @@ public class TCPacketListener implements PacketListener {
 
     public static void fakeAttack(final MinecartMember<?> member, final Player player) {
         // Fix cross-thread access
-        if (!isMainThread()) {
+        if (!CommonUtil.isMainThread()) {
             CommonUtil.nextTick(new Runnable() {
                 @Override
                 public void run() {
@@ -120,7 +120,7 @@ public class TCPacketListener implements PacketListener {
 
     public static void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
         // Fix cross-thread access
-        if (!isMainThread()) {
+        if (!CommonUtil.isMainThread()) {
             CommonUtil.nextTick(new Runnable() {
                 @Override
                 public void run() {
@@ -149,16 +149,4 @@ public class TCPacketListener implements PacketListener {
         member.onInteractBy(player, hand);
     }
 
-    // Added in BKC since 1.12.2-v5
-    private static boolean ISMAINTHREAD_AVAILABLE = true;
-    private static boolean isMainThread() {
-        if (ISMAINTHREAD_AVAILABLE) {
-            try {
-                return CommonUtil.isMainThread();
-            } catch (NoSuchMethodError err) {
-                ISMAINTHREAD_AVAILABLE = false;
-            }
-        }
-        return Thread.currentThread() == CommonUtil.MAIN_THREAD;
-    }
 }

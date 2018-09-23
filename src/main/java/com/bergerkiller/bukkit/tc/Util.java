@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.logging.Level;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
@@ -1119,5 +1120,17 @@ public class Util {
         v.setX(v2.getX());
         v.setY(v2.getY());
         v.setZ(v2.getZ());
+    }
+
+    /**
+     * Checks whether a method is called from a thread other than the main thread.
+     * 
+     * @param what descriptor what was called
+     */
+    public static void checkMainThread(String what) {
+        if (!CommonUtil.isMainThread()) {
+            TrainCarts.plugin.log(Level.WARNING, what + " called from a thread other than the main thread!");
+            Thread.dumpStack();
+        }
     }
 }

@@ -64,6 +64,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup create() {
+        Util.checkMainThread("MinecartGroupStore::create()");
         MinecartGroup g = new MinecartGroup();
         groups.add(g);
         return g;
@@ -74,6 +75,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup create(String name, MinecartMember<?>... members) {
+        Util.checkMainThread("MinecartGroupStore::create(name, members)");
+
         // There is not a group with this name already?
         MinecartGroup g = new MinecartGroup();
         if (name != null) {
@@ -116,6 +119,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup spawn(Location[] at, EntityType... types) {
+        Util.checkMainThread("MinecartGroupStore::spawn(at, types)");
         if (at.length != types.length || at.length == 0) return null;
         MinecartGroup g = new MinecartGroup();
         for (int i = 0; i < types.length; i++) {
