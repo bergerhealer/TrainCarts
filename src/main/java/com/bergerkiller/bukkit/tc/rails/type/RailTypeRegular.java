@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -139,8 +140,8 @@ public class RailTypeRegular extends RailTypeHorizontal {
             return false;
         }
 
-        // Check block directly below - should be able to pass through
-        if (MaterialUtil.ISSOLID.get(railsBlock.getRelative(BlockFace.DOWN))) {
+        // Check block directly below supports the rails, or not
+        if (Util.canSupportTop(WorldUtil.getBlockData(railsBlock.getRelative(BlockFace.DOWN)))) {
             return false;
         }
 
