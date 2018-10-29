@@ -230,6 +230,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Gets whether the orientation of the Minecart is inverted compared to the movement
+     * direction.
+     * 
+     * @return True if orientation is inverted
+     */
+    public boolean isOrientationInverted() {
+        return getWheels().movingForwards() == getWheels().back();
+    }
+
+    /**
      * Gets the orientation of the Minecart. This is the direction
      * of the 'front' of the Minecart model. The orientation is automatically
      * synchronized from/to the yaw/pitch rotation angles of the Entity.
@@ -467,13 +477,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Gets whether the entity yaw is inverted 180 degrees with the actual direction
+     * Gets whether the entity yaw is inverted 180 degrees with the actual direction.<br>
+     * <b>Deprecated: use {@link #isOrientationInverted()} instead</b>
      * 
      * @return True if inverted, False if not
      */
+    @Deprecated
     public boolean isYawInverted() {
-        float yaw_dir = FaceUtil.faceToYaw(this.getDirection());
-        return MathUtil.getAngleDifference(yaw_dir, entity.loc.getYaw()) >= 90.0f;
+        return this.isOrientationInverted();
     }
 
     /*

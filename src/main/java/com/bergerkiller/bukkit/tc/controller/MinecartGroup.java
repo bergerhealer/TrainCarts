@@ -596,9 +596,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     private void teleportMember(MinecartMember<?> member, Location location) {
         member.ignoreDie.set();
-        if (member.isYawInverted()) {
-            location = location.clone();
-            location.setYaw(location.getYaw() + 180.0f);
+        if (member.isOrientationInverted()) {
+            location = Util.invertRotation(location.clone());
         }
         member.getWheels().startTeleport();
         member.getEntity().teleport(location);
