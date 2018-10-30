@@ -76,11 +76,7 @@ public class WheelTrackerMember {
      * @return forwards moving wheel
      */
     public Wheel movingForwards() {
-        Vector vel = this._owner.calculateOrientation();
-        Quaternion q = this.getLastOrientation().clone();
-        q.invert();
-        q.transformPoint(vel);
-        return (vel.getZ() > 0.0) ? this._front : this._back;
+        return this._owner.isOrientationInverted() ? this._back : this._front;
     }
 
     /**
@@ -89,7 +85,7 @@ public class WheelTrackerMember {
      * @return backwards moving wheel
      */
     public Wheel movingBackwards() {
-        return this.other(this.movingForwards());
+        return this._owner.isOrientationInverted() ? this._front : this._back;
     }
 
     /**

@@ -236,7 +236,85 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if orientation is inverted
      */
     public boolean isOrientationInverted() {
-        return getWheels().movingForwards() == getWheels().back();
+        Vector vel = this.calculateOrientation();
+        Quaternion q = this.getWheels().getLastOrientation().clone();
+        q.invert();
+        q.transformPoint(vel);
+        return (vel.getZ() <= 0.0);
+    }
+
+    /**
+     * Gets a normalized vector of the desired orientation of the Minecart.
+     * This is the orientation the Minecart would have, if not flipped around, always
+     * pointing into the movement direction.
+     * 
+     * @return orientation
+     */
+    public Vector calculateOrientation() {
+        double dx = 0.0, dy = 0.0, dz = 0.0;
+        if (this.group == null || this.group.size() <= 1) {
+            dx = entity.getMovedX();
+            dy = entity.getMovedY();
+            dz = entity.getMovedZ();
+        } else {
+            // Find our displayed angle based on the relative position of this Minecart to the neighbours
+            int n = 0;
+            if (this != this.group.head()) {
+                // Add difference between this cart and the cart before
+                MinecartMember<?> m = this.getNeighbour(-1);
+                Vector m_pos = m.calcSpeedFactorPos();
+                Vector s_pos = this.calcSpeedFactorPos();
+                dx += m_pos.getX() - s_pos.getX();
+                dy += m_pos.getY() - s_pos.getY();
+                dz += m_pos.getZ() - s_pos.getZ();
+                n++;
+            }
+            if (this != this.group.tail()) {
+                // Add difference between this cart and the cart after
+                MinecartMember<?> m = this.getNeighbour(1);
+                Vector m_pos = m.calcSpeedFactorPos();
+                Vector s_pos = this.calcSpeedFactorPos();
+                dx += s_pos.getX() - m_pos.getX();
+                dy += s_pos.getY() - m_pos.getY();
+                dz += s_pos.getZ() - m_pos.getZ();
+                n++;
+            }
+            dx /= n;
+            dy /= n;
+            dz /= n;
+        }
+
+        double n = MathUtil.getNormalizationFactor(dx, dy, dz);
+
+        // First, fall back to entity velocity
+        if (Double.isInfinite(n) || n >= 1e10) {
+            dx = this.entity.vel.getX();
+            dy = this.entity.vel.getY();
+            dz = this.entity.vel.getZ();
+            n = MathUtil.getNormalizationFactor(dx, dy, dz);
+        }
+
+        // If still invalid, use forward vector instead. Flip if opposite of direction.
+        // This logic only applies when vehicles aren't moving
+        if (Double.isInfinite(n)) {
+            Vector forward = this.getOrientationForward();
+            if (this.direction != null) {
+                double dot = forward.getX() * this.direction.getModX() +
+                             forward.getY() * this.direction.getModY() +
+                             forward.getZ() * this.direction.getModZ();
+                if (dot < 0.0) {
+                    forward.multiply(-1.0);
+                }
+            }
+            return forward;
+        } else {
+            return new Vector(dx * n, dy * n, dz * n);
+        }
+    }
+
+    // used by calculateOrientation()
+    private Vector calcSpeedFactorPos() {
+        return getWheels().getPosition();
     }
 
     /**
@@ -715,10 +793,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // This only works when the minecart has a direct neighbor
         // If no direct neighbor is available, it will default to using its own velocity
         Vector motionVector = this.entity.getVelocity();
-        if (Double.isNaN(motionVector.lengthSquared())) {
+        double motionLengthSq = motionVector.lengthSquared();
+        if (Double.isNaN(motionLengthSq)) {
             motionVector = new Vector();
+            motionLengthSq = 0.0;
         }
-        if (ignoreVelocity || motionVector.lengthSquared() <= 1e-5) {
+        if (ignoreVelocity || motionLengthSq <= 1e-5) {
             if (!this.isDerailed() && this.direction != null) {
                 motionVector = FaceUtil.faceToVector(this.direction);
             } else if (!this.isSingle()) {
@@ -1589,59 +1669,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * Called when activated goes from FALSE to TRUE
      */
     public void onActivate() {
-    }
-
-    /**
-     * Gets a normalized vector of the desired orientation of the Minecart
-     * 
-     * @return orientation
-     */
-    public Vector calculateOrientation() {
-        MinecartGroup group = this.getGroup();
-        double dx = 0.0, dy = 0.0, dz = 0.0;
-        if (group.size() <= 1) {
-            dx = entity.getMovedX();
-            dy = entity.getMovedY();
-            dz = entity.getMovedZ();
-        } else {
-            // Find our displayed angle based on the relative position of this Minecart to the neighbours
-            int n = 0;
-            if (this != group.head()) {
-                // Add difference between this cart and the cart before
-                MinecartMember<?> m = this.getNeighbour(-1);
-                Vector m_pos = m.calcSpeedFactorPos();
-                Vector s_pos = this.calcSpeedFactorPos();
-                dx += m_pos.getX() - s_pos.getX();
-                dy += m_pos.getY() - s_pos.getY();
-                dz += m_pos.getZ() - s_pos.getZ();
-                n++;
-            }
-            if (this != group.tail()) {
-                // Add difference between this cart and the cart after
-                MinecartMember<?> m = this.getNeighbour(1);
-                Vector m_pos = m.calcSpeedFactorPos();
-                Vector s_pos = this.calcSpeedFactorPos();
-                dx += s_pos.getX() - m_pos.getX();
-                dy += s_pos.getY() - m_pos.getY();
-                dz += s_pos.getZ() - m_pos.getZ();
-                n++;
-            }
-            dx /= n;
-            dy /= n;
-            dz /= n;
-        }
-
-        // Normalize the vector. Take extra care to avoid a NaN when the vector length approaches zero
-        double length = MathUtil.length(dx, dy, dz);
-        if (length < 0.0001) {
-            return this.getOrientationForward();
-        } else {
-            return new Vector(dx / length, dy / length, dz / length);
-        }
-    }
-
-    private Vector calcSpeedFactorPos() {
-        return getWheels().getPosition();
     }
 
     public void calculateSpeedFactor() {
