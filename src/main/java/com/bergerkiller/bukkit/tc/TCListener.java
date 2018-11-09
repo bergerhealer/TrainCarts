@@ -79,6 +79,7 @@ import org.bukkit.material.Rails;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class TCListener implements Listener {
@@ -214,25 +215,26 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityAdd(EntityAddEvent event) {
-        if (!MinecartMemberStore.canConvert(event.getEntity())) {
-            return;
+        if (MinecartMemberStore.canConvertAutomatically(event.getEntity())) {
+            MinecartMemberStore.convert((Minecart) event.getEntity());
         }
-
-        // If placed by a player, only allow conversion for players that have the permissions
-        if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId())
-                && !TCConfig.allMinecartsAreTrainCarts) {
-            // No conversion allowed
-            return;
-        }
-
-        MinecartMemberStore.convert((Minecart) event.getEntity());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityRemoveFromServer(EntityRemoveFromServerEvent event) {
         if (event.getEntity() instanceof Minecart) {
+            // Verify this entity UUID does not exist on the world as a new entity instance
+            // This can happen when entities are unloaded and reloaded rapidly in the same tick
+            // The entity Bukkit instance is removed, but the actual entity itself simply re-spawned
+            UUID entityUUID = event.getEntity().getUniqueId();
+            for (Entity otherEntity : WorldUtil.getEntities(event.getEntity().getWorld())) {
+                if (otherEntity.getUniqueId().equals(entityUUID)) {
+                    return;
+                }
+            }
+
             if (event.getEntity().isDead()) {
-                OfflineGroupManager.removeMember(event.getEntity().getUniqueId());
+                OfflineGroupManager.removeMember(entityUUID);
             } else {
                 MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());
                 if (member == null) {

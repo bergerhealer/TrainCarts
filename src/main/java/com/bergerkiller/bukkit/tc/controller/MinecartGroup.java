@@ -10,11 +10,11 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -66,6 +66,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
+    private boolean chunkAreaValid = false;
     private final SignTrackerGroup signTracker = new SignTrackerGroup(this);
     private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
@@ -230,6 +231,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private void addMember(MinecartMember<?> member) {
+        this.chunkAreaValid = false;
         notifyPhysicsChange();
         member.setGroup(this);
         this.getSignTracker().updatePosition();
@@ -331,6 +333,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private MinecartMember<?> removeMember(int index) {
+        this.chunkAreaValid = false;
         notifyPhysicsChange();
         MinecartMember<?> member = super.get(index);
         MemberRemoveEvent.call(member);
@@ -425,7 +428,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         GroupRemoveEvent.call(this);
         this.clear();
-        this.updateChunkInformation();
+        this.updateChunkInformation(true);
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
             this.prop = null;
@@ -876,7 +879,27 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public boolean isInChunk(World world, long chunkLongCoord) {
-        return this.getWorld() == world && this.chunkArea.containsChunk(chunkLongCoord);
+        if (this.getWorld() != world) {
+            return false;
+        }
+
+        if (this.chunkAreaValid) {
+            return this.chunkArea.containsChunk(chunkLongCoord);
+        } else {
+            // Slow calculation as a fallback when the chunkArea is outdated
+            int center_chunkX = MathUtil.longHashMsw(chunkLongCoord);
+            int center_chunkZ = MathUtil.longHashLsw(chunkLongCoord);
+            LongIterator chunkIter = this.loadChunksBuffer().longIterator();
+            while (chunkIter.hasNext()) {
+                long chunk = chunkIter.next();
+                if (Math.abs(MathUtil.longHashMsw(chunk) - center_chunkX) <= 2 &&
+                    Math.abs(MathUtil.longHashLsw(chunk) - center_chunkZ) <= 2)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     @Override
@@ -1025,19 +1048,23 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return true;
     }
 
-    private void updateChunkInformation() {
-        try (Timings t = TCTimings.GROUP_UPDATE_CHUNKS.start()) {
-            // Create a set of all chunks directly occupied by the minecarts in this group
-            chunksBuffer.clear();
-            for (MinecartMember<?> mm : this) {
-                chunksBuffer.add(mm.getEntity().loc.x.chunk(), mm.getEntity().loc.z.chunk());
-            }
+    // loads the static chunksBuffer with the chunk coordinates of the minecarts of this group
+    private LongHashSet loadChunksBuffer() {
+        chunksBuffer.clear();
+        for (MinecartMember<?> mm : this) {
+            chunksBuffer.add(mm.getEntity().loc.x.chunk(), mm.getEntity().loc.z.chunk());
+        }
+        return chunksBuffer;
+    }
 
+    private void updateChunkInformation(boolean canUnload) {
+        try (Timings t = TCTimings.GROUP_UPDATE_CHUNKS.start()) {
             // Refresh the chunk area tracker using this information
-            this.chunkArea.refresh(this.getWorld(), chunksBuffer);
+            this.chunkArea.refresh(this.getWorld(), this.loadChunksBuffer());
+            this.chunkAreaValid = true;
 
             // Keep-chunks-loaded or automatic unloading when moving into unloaded chunks
-            if (this.canUnload()) {
+            if (canUnload) {
                 // Check all newly added chunks whether the chunk is unloaded
                 // When such a chunk is found, unload this train
                 for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
@@ -1534,7 +1561,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Refresh chunks
-            this.updateChunkInformation();
+            this.updateChunkInformation(this.canUnload());
 
             // Refresh wheel position information, important to do it AFTER updateDirection()
             for (MinecartMember<?> member : this) {

@@ -4,13 +4,11 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.ClassMap;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
-import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.CommonEntityType;
 import com.bergerkiller.bukkit.common.entity.type.*;
-import com.bergerkiller.bukkit.common.internal.hooks.EntityHook;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -39,7 +37,6 @@ import java.util.UUID;
 
 public abstract class MinecartMemberStore {
     private static ClassMap<Class<?>> controllers = new ClassMap<>();
-    private static boolean has_get_controller_typed = true; // compatibility with earlier ~1.12-v2 BKCommonLib
 
     static {
         controllers.put(CommonMinecartRideable.class, MinecartMemberRideable.class);
@@ -54,14 +51,14 @@ public abstract class MinecartMemberStore {
     /**
      * Converts all Minecarts on all enabled worlds into Minecart Members
      */
-    public static void convertAll() {
+    public static void convertAllAutomatically() {
         List<Minecart> minecarts = new ArrayList<>();
         for (org.bukkit.World world : WorldUtil.getWorlds()) {
             if (TrainCarts.isWorldDisabled(world)) {
                 continue;
             }
             for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
-                if (canConvert(entity)) {
+                if (canConvertAutomatically(entity)) {
                     minecarts.add((Minecart) entity);
                 }
             }
@@ -71,6 +68,27 @@ public abstract class MinecartMemberStore {
             convert(minecart);
         }
         minecarts.clear();
+    }
+
+    /**
+     * Checks if a given minecart can be converted to a minecart member automatically. That is,
+     * this method checks whether a minecart found in a newly loaded chunk, world or at startup is eligible
+     * to be upgraded to a Traincarts Minecart.<br>
+     * <br>
+     * All the same checks of {@link #canConvert(Entity)} apply, in addition this method returns false
+     * if not all minecarts can be traincarts, and the minecart is not known in offline storage.
+     * 
+     * @param minecart
+     * @return True if the minecart can be turned into a Traincarts Minecart automatically
+     */
+    public static boolean canConvertAutomatically(org.bukkit.entity.Entity minecart) {
+        if (!canConvert(minecart)) {
+            return false; // Base logic
+        }
+        if (!TCConfig.allMinecartsAreTrainCarts && !OfflineGroupManager.containsMinecart(minecart.getUniqueId())) {
+            return false; // Not a known Traincarts Minecart, and the option to auto-convert all is disabled
+        }
+        return true;
     }
 
     /**
@@ -86,12 +104,17 @@ public abstract class MinecartMemberStore {
      * @return True if the minecart can be converted, False if not
      */
     public static boolean canConvert(org.bukkit.entity.Entity minecart) {
-        if (!(minecart instanceof Minecart) || TrainCarts.isWorldDisabled(minecart.getWorld())) {
-            return false;
+        if (!(minecart instanceof Minecart)) {
+            return false; // Not a minecart
+        }
+        if (TrainCarts.isWorldDisabled(minecart.getWorld())) {
+            return false; // World is disabled
         }
         if (OfflineGroupManager.isDestroyingAllInWorld(minecart.getWorld())) {
-            return false;
+            return false; // Presently destroying all minecarts, do not convert new ones during
         }
+
+        // Verify no controller attached yet
         CommonEntity<Entity> common = CommonEntity.get(minecart);
         return common.hasControllerSupport() && common.getController() instanceof DefaultEntityController;
     }
@@ -277,29 +300,7 @@ public abstract class MinecartMemberStore {
     public static MinecartMember<?> getFromEntity(org.bukkit.entity.Entity entity) {
         if (entity instanceof Minecart) {
             CommonEntity<?> commonEntity = CommonEntity.get((Minecart) entity);
-            MinecartMember<?> result = null;
-
-            // Preferred method for >= BKCommonLib 1.12-v4
-            if (has_get_controller_typed) {
-                try {
-                    result = commonEntity.getController(MinecartMember.class);
-                } catch (NoSuchMethodError ex) {
-                    has_get_controller_typed = false;
-                }
-            }
-
-            // This one is a fallback for <= BKCommonLib 1.12-v3
-            if (!has_get_controller_typed) {
-                // Performance workaround, it's a bit of a hack for older builds of BKCommonLib
-                // We really should not be using BKCommonlib classes in the internal subpackage!
-                EntityHook hook = EntityHook.get(commonEntity.getHandle(), EntityHook.class);
-                if (hook != null && hook.hasController()) {
-                    EntityController<?> controller = hook.getController();
-                    if (controller instanceof MinecartMember) {
-                        result = (MinecartMember<?>) controller;
-                    }
-                }
-            }
+            MinecartMember<?> result = commonEntity.getController(MinecartMember.class);
 
             // Do not return unloaded controllers
             if (result != null && !result.isUnloaded()) {
