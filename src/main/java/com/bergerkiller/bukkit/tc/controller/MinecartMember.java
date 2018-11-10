@@ -79,6 +79,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
     public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
+    private static final double MAX_MOVEMENT_STEP = 0.7; // ~ sqrt(3 * 0.4^2) with legacy speed limiting
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -843,7 +844,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // When distance is too small or too large (teleport), simply use the current position only
         final double smallStep = 1e-7;
-        if (moved <= smallStep || moved > 0.45) {
+        if (moved <= smallStep || moved > MAX_MOVEMENT_STEP) {
             state.position().setLocation(entity.getLocation());
             return RailType.loadRailInformation(state);
         }
@@ -854,7 +855,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Using this causes reverse() to not work anymore
 
         // Iterate the blocks from the preMovePosition to the current position and discover rails here
-        // Because we move such a short distance (<=0.45) it is very rare for more than two blocks to ever be iterated
+        // Because we move such a short distance (<=MAX_MOVEMENT_STEP) it is very rare for more than two blocks to ever be iterated
         // So we take a shortcut and only check the pre-move and current positions for blocks in that order
         // The pre-move position might contain an outdated block though, so add a very small amount to it in the direction
         // There is a TODO here to use a proper block iterator.
@@ -929,7 +930,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // When movement is large, teleport is almost certain
         // Because the only movement allowed in onMove is limited to 0.4
-        if (toMove > 0.45) {
+        if (toMove > MAX_MOVEMENT_STEP) {
             this.entity.getLocation(this.preMovePosition);
             pos = RailPath.Position.fromTo(this.preMovePosition, this.preMovePosition);
             toMove = 0.0;
