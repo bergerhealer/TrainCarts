@@ -589,6 +589,14 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
             }
+        } else if (LogicUtil.contains(cmd, "animate", "playanimation")) {
+            Permission.COMMAND_ANIMATE.handle(p);
+            if (prop.isLoaded()) {
+                // TODO: More options!
+                prop.getHolder().playNamedAnimation(args[0]);
+            } else {
+                p.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
+            }
         } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
             return true;

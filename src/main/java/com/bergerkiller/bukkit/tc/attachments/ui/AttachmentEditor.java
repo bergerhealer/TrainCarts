@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
@@ -42,6 +43,8 @@ public class AttachmentEditor extends MapDisplay {
                 AttachmentEditor.this.addWidget(new AppearanceMenu(node));
             } else if (menu == MenuItem.POSITION) {
                 AttachmentEditor.this.addWidget(new PositionMenu(node));
+            } else if (menu == MenuItem.ANIMATION) {
+                AttachmentEditor.this.addWidget(new AnimationMenu(node));
             } else if (menu == MenuItem.GENERAL) {
                 AttachmentEditor.this.addWidget(new GeneralMenu(node));
             } else if (menu == MenuItem.PHYSICAL) {

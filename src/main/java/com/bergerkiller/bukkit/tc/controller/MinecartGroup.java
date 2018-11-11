@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
@@ -655,6 +656,26 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
         */
 
+    }
+
+    /**
+     * Plays an animation by name for this train
+     * 
+     * @param name of the animation
+     */
+    public void playNamedAnimation(String name) {
+        this.playNamedAnimation(new AnimationOptions(name));
+    }
+
+    /**
+     * Plays an animation using the animation options specified for this train
+     * 
+     * @param options for the animation
+     */
+    public void playNamedAnimation(AnimationOptions options) {
+        for (MinecartMember<?> member : this) {
+            member.playNamedAnimation(options);
+        }
     }
 
     public boolean canConnect(MinecartMember<?> mm, int at) {

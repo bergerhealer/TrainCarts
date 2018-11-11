@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
@@ -2096,6 +2097,27 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             return true;
         } else {
             return false;
+        }
+    }
+
+    /**
+     * Plays an animation by name for this minecart
+     * 
+     * @param name of the animation
+     */
+    public void playNamedAnimation(String name) {
+        this.playNamedAnimation(new AnimationOptions(name));
+    }
+
+    /**
+     * Plays an animation using the animation options specified for this minecart
+     * 
+     * @param options for the animation
+     */
+    public void playNamedAnimation(AnimationOptions options) {
+        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+        if (network != null) {
+            network.getRootAttachment().playNamedAnimation(options);
         }
     }
 }

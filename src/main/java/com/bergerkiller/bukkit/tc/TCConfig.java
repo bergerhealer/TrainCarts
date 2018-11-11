@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 
 /**
  * Stores all the settings specified in the TrainCarts config.yml.
@@ -93,6 +94,7 @@ public class TCConfig {
     public static Set<String> disabledWorlds = new HashSet<>();
     public static Map<String, ItemParser[]> parsers = new HashMap<>();
     public static MapResourcePack resourcePack = MapResourcePack.SERVER;
+    public static Map<String, Animation> defaultAnimations = new HashMap<>();
 
     public static void load(FileConfiguration config) {
         config.setHeader("This is the configuration file of TrainCarts");
@@ -365,6 +367,41 @@ public class TCConfig {
             itemshort.set("helmet", MaterialUtil.ISHELMET.toString());
         }
         // ===========================================
+
+        // Default animations that can be applied to the root node
+        defaultAnimations.clear();
+        config.setHeader("defaultAnimations", "\nDefault attachment animations that can be applied to the base of all trains");
+        if (!config.isNode("defaultAnimations")) {
+            Animation[] defaults = {
+                    new Animation("rotate",
+                            "t=0.25 yaw=0.0",
+                            "t=0.25 yaw=90.0",
+                            "t=0.25 yaw=180.0",
+                            "t=0.25 yaw=270.0",
+                            "t=0.0 yaw=360.0"),
+                    new Animation("roll",
+                            "t=0.25 roll=0.0",
+                            "t=0.25 roll=90.0",
+                            "t=0.25 roll=180.0",
+                            "t=0.25 roll=270.0",
+                            "t=0.0 roll=360.0"),
+                    new Animation("pitch",
+                            "t=0.25 pitch=0.0",
+                            "t=0.25 pitch=90.0",
+                            "t=0.25 pitch=180.0",
+                            "t=0.25 pitch=270.0",
+                            "t=0.0 pitch=360.0")
+            };
+
+            ConfigurationNode defaultAnimationsNode = config.getNode("defaultAnimations");
+            for (Animation anim : defaults) {
+                anim.saveToParentConfig(defaultAnimationsNode);
+            }
+        }
+        for (ConfigurationNode animationNode : config.getNode("defaultAnimations").getNodes()) {
+            Animation defaultAnimation = Animation.loadFromConfig(animationNode);
+            defaultAnimations.put(defaultAnimation.getName(), defaultAnimation);
+        }
 
         for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
             putParsers(entry.getKey(), Util.getParsers(entry.getValue()));

@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -9,6 +11,10 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Vector3;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.PositionAnchorType;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
@@ -16,6 +22,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 public abstract class CartAttachment {
     public List<CartAttachment> children = new ArrayList<CartAttachment>(0);
     private PositionAnchorType anchor = PositionAnchorType.DEFAULT;
+    private Map<String, Animation> animations = new HashMap<String, Animation>();
+    private Animation currentAnimation = null;
     protected MinecartMemberNetwork controller = null;
     protected CartAttachment parent = null;
     protected ConfigurationNode config = null;
@@ -42,11 +50,21 @@ public abstract class CartAttachment {
         this.local_transform = new Matrix4x4();
         this.local_transform.translate(this.position);
         this.local_transform.rotateYawPitchRoll(this.rotation);
+
+        this.animations.clear();
+        if (this.config.isNode("animations")) {
+            ConfigurationNode animations = this.config.getNode("animations");
+            for (ConfigurationNode animationConfig : animations.getNodes()) {
+                Animation animation = Animation.loadFromConfig(animationConfig);
+                this.animations.put(animation.getOptions().getName(), animation);
+            }
+        }
     }
 
     public void onDetached() {
         this.last_transform = null;
         this.transform = null;
+        this.animations.clear();
     }
 
     /**
@@ -78,7 +96,86 @@ public abstract class CartAttachment {
     public int getMountEntityId() {
         return -1;
     }
-    
+
+    /**
+     * Adds a new animation to this attachment
+     * 
+     * @param animation to add
+     */
+    public void addAnimation(Animation animation) {
+        this.animations.put(animation.getOptions().getName(), animation);
+    }
+
+    /**
+     * Starts a named animation for this attachment and all child attachments
+     * 
+     * @param name of the animation
+     */
+    public void playNamedAnimation(String name) {
+        playNamedAnimation(new AnimationOptions(name));
+    }
+
+    /**
+     * Starts an animation for this attachment and all child attachments
+     * 
+     * @param options that specify the animation and animation configuration
+     */
+    public void playNamedAnimation(AnimationOptions options) {
+        if (!this.playNamedAnimationRecursive(options)) {
+            // Attempt playing a default animation
+            Animation defaultAnimation = TCConfig.defaultAnimations.get(options.getName());
+            if (defaultAnimation != null) {
+                this.startAnimation(defaultAnimation.clone().applyOptions(options));
+            }
+        }
+    }
+
+    private final boolean playNamedAnimationRecursive(AnimationOptions options) {
+        boolean result = false;
+        Animation animation = this.animations.get(options.getName());
+        if (animation != null) {
+            result = true;
+            this.startAnimation(animation.clone().applyOptions(options));
+        }
+        for (CartAttachment child : this.children) {
+            result |= child.playNamedAnimationRecursive(options);
+        }
+        return result;
+    }
+
+    /**
+     * Stops any currently playing animation
+     */
+    public void stopAnimation() {
+        this.currentAnimation = null;
+    }
+
+    /**
+     * Starts playing an animation for this attachment. The child attachments are not affected.
+     * If the animation is already playing, this function does nothing. To force a reset,
+     * call {@link #stopAnimation()} prior.
+     * 
+     * @param animation
+     */
+    public void startAnimation(Animation animation) {
+        if (this.currentAnimation == null || !this.currentAnimation.isSame(animation)) {
+            this.currentAnimation = animation;
+            this.currentAnimation.start();
+        } else {
+            this.currentAnimation.setOptions(animation.getOptions().clone());
+        }
+    }
+
+    /**
+     * Gets the animation that is currently playing.
+     * Null if no animation is playing.
+     * 
+     * @return current animation
+     */
+    public Animation getCurrentAnimation() {
+        return this.currentAnimation;
+    }
+
     public abstract void makeVisible(Player viewer);
 
     public abstract void makeHidden(Player viewer);
@@ -137,6 +234,15 @@ public abstract class CartAttachment {
         default:
             attachment.transform = transform.clone();
             break;
+        }
+
+        // Animations!
+        if (attachment.currentAnimation != null) {
+            double dt = attachment.getController().getAnimationDeltaTime();
+            AnimationNode animNode = attachment.currentAnimation.update(dt);
+            if (animNode != null) {
+                animNode.apply(attachment.transform);
+            }
         }
 
         attachment.onPositionUpdate();

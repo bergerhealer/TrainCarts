@@ -50,6 +50,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private CartAttachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
 
+    private long animationCurrentTime = 0;
+    private double animationDeltaTime = 0.0;
+
     public MinecartMemberNetwork() {        
         final VectorAbstract velLiveBase = this.velLive;
         this.velLive = new VectorAbstract() {
@@ -87,13 +90,27 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         //this.attachments.add(new TestAttachment(this));
     }
 
-    private CartAttachment prepareRootAttachment() {
+    /**
+     * Gets the root attachment, representing the (attachments) based model
+     * 
+     * @return root attachment
+     */
+    public CartAttachment getRootAttachment() {
         // Set attachment to a fallback if for whatever reason it is null
         if (this.rootAttachment == null) {
             this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
         }
         // Return
         return this.rootAttachment;
+    }
+
+    /**
+     * Gets the time point in milliseconds of the last animation update
+     * 
+     * @return animation time
+     */
+    public double getAnimationDeltaTime() {
+        return this.animationDeltaTime;
     }
 
     @Override
@@ -155,6 +172,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void onAttached() {
         super.onAttached();
 
+        this.animationCurrentTime = System.currentTimeMillis();
+        this.animationDeltaTime = 0.0;
         this.getMember().getProperties().getModel().addOwner(this);
     }
 
@@ -244,7 +263,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             return;
         }
 
-        makeVisible(this.prepareRootAttachment(), viewer);
+        makeVisible(this.getRootAttachment(), viewer);
 
         this.velocityUpdateReceivers.add(viewer);
         this.updateVelocity(viewer);
@@ -377,7 +396,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     public void tickSelf() {
-        this.prepareRootAttachment();
+        this.getRootAttachment();
+
+        long time_now = System.currentTimeMillis();
+        this.animationDeltaTime = 0.001 * (double) (time_now - this.animationCurrentTime);
+        this.animationCurrentTime = time_now;
 
         try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
             CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());

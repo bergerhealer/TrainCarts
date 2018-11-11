@@ -195,6 +195,15 @@ public class MapWidgetAttachmentNode extends MapWidget {
         }.setIcon("attachments/move.png").setPosition(px, 1));
         px += 17;
 
+        // Animation frames for an attachment
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onClick() {
+                openMenu(MenuItem.ANIMATION);
+            }
+        }).setIcon("attachments/animation.png").setPosition(px, 1);
+        px += 17;
+
         // Drops down a menu to add/remove/move the attachment entry
         this.addWidget(new MapWidgetBlinkyButton() {
             @Override
@@ -325,6 +334,6 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public static enum MenuItem {
-        APPEARANCE, POSITION, GENERAL, PHYSICAL
+        APPEARANCE, POSITION, ANIMATION, GENERAL, PHYSICAL
     }
 }
