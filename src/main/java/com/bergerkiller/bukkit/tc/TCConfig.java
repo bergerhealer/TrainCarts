@@ -400,7 +400,7 @@ public class TCConfig {
         }
         for (ConfigurationNode animationNode : config.getNode("defaultAnimations").getNodes()) {
             Animation defaultAnimation = Animation.loadFromConfig(animationNode);
-            defaultAnimations.put(defaultAnimation.getName(), defaultAnimation);
+            defaultAnimations.put(defaultAnimation.getOptions().getName(), defaultAnimation);
         }
 
         for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {

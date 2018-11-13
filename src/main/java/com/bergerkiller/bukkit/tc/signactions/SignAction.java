@@ -62,6 +62,7 @@ public abstract class SignAction {
         register(new SignActionSkip());
         register(new SignActionMutex());
         register(new SignActionFlip());
+        register(new SignActionAnimate());
     }
 
     public static void deinit() {

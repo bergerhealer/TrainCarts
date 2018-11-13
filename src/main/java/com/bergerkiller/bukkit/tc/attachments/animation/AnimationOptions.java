@@ -1,6 +1,11 @@
 package com.bergerkiller.bukkit.tc.attachments.animation;
 
+import java.util.Locale;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 /**
  * Options for playing an animation to one or more attachments
@@ -189,6 +194,89 @@ public class AnimationOptions implements Cloneable {
         } else {
             config.remove("looped");
         }
+    }
+
+    /**
+     * Loads the contents of these options from sign syntax
+     * 
+     * @param info to load from
+     */
+    public void loadFromSign(SignActionEvent info) {
+        // Looped
+        String mode_line = info.getLine(1).toLowerCase(Locale.ENGLISH).trim();
+        if (mode_line.endsWith("noloop") || mode_line.endsWith("unlooped")) {
+            this.setLooped(false);
+        } else if (mode_line.endsWith("loop") || mode_line.endsWith("looped")) {
+            this.setLooped(true);
+        }
+
+        // Name
+        this.setName(info.getLine(2));
+
+        // Speed/delay
+        if (!info.getLine(3).isEmpty()) {
+            String[] parts = info.getLine(3).split(" ");
+            if (parts.length >= 1) {
+                this.setSpeed(ParseUtil.parseDouble(parts[0], 1.0));
+            }
+            if (parts.length >= 2) {
+                this.setDelay(ParseUtil.parseDouble(parts[1], 0.0));
+            }
+        }
+    }
+
+    /**
+     * Loads the contents of these options from commandline arguments
+     * 
+     * @param args
+     */
+    public void loadCommandArgs(String[] args) {
+        boolean found_name = false;
+        boolean found_speed = false;
+        for (String arg : args) {
+            String lower_arg = arg.toLowerCase(Locale.ENGLISH);
+            if (lower_arg.equals("noloop") || lower_arg.equals("unlooped")) {
+                this.setLooped(false);
+            } else if (lower_arg.equals("loop") || lower_arg.equals("looped")) {
+                this.setLooped(true);
+            } else if (!found_name && !ParseUtil.isNumeric(arg)) {
+                this.setName(arg);
+                found_name = true;
+            } else if (!found_speed) {
+                this.setSpeed(ParseUtil.parseDouble(arg, 1.0));
+                found_speed = true;
+            } else {
+                this.setDelay(ParseUtil.parseDouble(arg, 0.0));
+            }
+        }
+    }
+
+    /**
+     * Gets the message displayed to the user when executing the animation command successfully
+     * 
+     * @return success message
+     */
+    public String getCommandSuccessMessage() {
+        String name = this.getName();
+        if (this.hasLoopOption()) {
+            if (this.isLooped()) {
+                name += " (looped)";
+            } else {
+                name += " (not looped)";
+            }
+        }
+        return Localization.COMMAND_ANIMATE_SUCCESS.get(name, 
+                Double.toString(this.getSpeed()),
+                Double.toString(this.getDelay()));
+    }
+
+    /**
+     * Gets the message displayed to the user when executing the animation command and it fails
+     * 
+     * @return failure message
+     */
+    public String getCommandFailureMessage() {
+        return Localization.COMMAND_ANIMATE_FAILURE.get(this.getName());
     }
 
     @Override

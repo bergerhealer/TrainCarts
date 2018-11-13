@@ -2104,20 +2104,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * Plays an animation by name for this minecart
      * 
      * @param name of the animation
+     * @return True if an animation was found and started
      */
-    public void playNamedAnimation(String name) {
-        this.playNamedAnimation(new AnimationOptions(name));
+    public boolean playNamedAnimation(String name) {
+        return this.playNamedAnimation(new AnimationOptions(name));
     }
 
     /**
      * Plays an animation using the animation options specified for this minecart
      * 
      * @param options for the animation
+     * @return True if an animation was found and started
      */
-    public void playNamedAnimation(AnimationOptions options) {
+    public boolean playNamedAnimation(AnimationOptions options) {
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
         if (network != null) {
-            network.getRootAttachment().playNamedAnimation(options);
+            return network.getRootAttachment().playNamedAnimation(options);
+        } else {
+            return false;
         }
     }
 }

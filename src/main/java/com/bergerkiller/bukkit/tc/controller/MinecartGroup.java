@@ -662,20 +662,24 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * Plays an animation by name for this train
      * 
      * @param name of the animation
+     * @return True if an animation was started for one or more minecarts in this train
      */
-    public void playNamedAnimation(String name) {
-        this.playNamedAnimation(new AnimationOptions(name));
+    public boolean playNamedAnimation(String name) {
+        return this.playNamedAnimation(new AnimationOptions(name));
     }
 
     /**
      * Plays an animation using the animation options specified for this train
      * 
      * @param options for the animation
+     * @return True if an animation was started for one or more minecarts in this train
      */
-    public void playNamedAnimation(AnimationOptions options) {
+    public boolean playNamedAnimation(AnimationOptions options) {
+        boolean success = false;
         for (MinecartMember<?> member : this) {
-            member.playNamedAnimation(options);
+            success |= member.playNamedAnimation(options);
         }
+        return success;
     }
 
     public boolean canConnect(MinecartMember<?> mm, int at) {

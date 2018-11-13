@@ -110,24 +110,32 @@ public abstract class CartAttachment {
      * Starts a named animation for this attachment and all child attachments
      * 
      * @param name of the animation
+     * @return True if an animation was found and started
      */
-    public void playNamedAnimation(String name) {
-        playNamedAnimation(new AnimationOptions(name));
+    public boolean playNamedAnimation(String name) {
+        return this.playNamedAnimation(new AnimationOptions(name));
     }
 
     /**
      * Starts an animation for this attachment and all child attachments
      * 
      * @param options that specify the animation and animation configuration
+     * @return True if an animation was found and started
      */
-    public void playNamedAnimation(AnimationOptions options) {
-        if (!this.playNamedAnimationRecursive(options)) {
-            // Attempt playing a default animation
-            Animation defaultAnimation = TCConfig.defaultAnimations.get(options.getName());
-            if (defaultAnimation != null) {
-                this.startAnimation(defaultAnimation.clone().applyOptions(options));
-            }
+    public boolean playNamedAnimation(AnimationOptions options) {
+        // Play animation defined in the attachment configuration
+        if (this.playNamedAnimationRecursive(options)) {
+            return true;
         }
+
+        // Attempt playing a default animation
+        Animation defaultAnimation = TCConfig.defaultAnimations.get(options.getName());
+        if (defaultAnimation != null) {
+            this.startAnimation(defaultAnimation.clone().applyOptions(options));
+            return true;
+        }
+
+        return false;
     }
 
     private final boolean playNamedAnimationRecursive(AnimationOptions options) {
