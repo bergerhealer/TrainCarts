@@ -374,15 +374,19 @@ public class GlobalCommands {
                 Player p = (Player) sender;
                 p.getInventory().addItem(TCMapControl.createTCMapItem());
             } else {
-                sender.sendMessage("This command is only for players");
+                throw new NoPermissionException();
             }
             return true;
         } else if (args[0].equals("attachments")) {
-            Permission.COMMAND_GIVE_EDITOR.handle(sender);
-            ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
-            ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
-            ((Player) sender).getInventory().addItem(item);
-            sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+            if (sender instanceof Player) {
+                Permission.COMMAND_GIVE_EDITOR.handle(sender);
+                ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
+                ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
+                ((Player) sender).getInventory().addItem(item);
+                sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+            } else {
+                throw new NoPermissionException();
+            }
             return true;
         } else if (args[0].equals("chest")) {
             Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
