@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.tickets;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,6 +25,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class TicketStore {
+    private static final Material FILLED_MAP_TYPE = getFirst("FILLED_MAP", "LEGACY_MAP");
     public static final Ticket DEFAULT = new Ticket("");
     private static final String saveFileName = "tickets.yml";
     private static boolean hasChanges = false;
@@ -165,7 +168,7 @@ public class TicketStore {
      * @return True if the item is a ticket item
      */
     public static boolean isTicketItem(ItemStack item) {
-        if (item == null || item.getType() != Material.MAP) {
+        if (item == null || item.getType() != FILLED_MAP_TYPE) {
             return false;
         }
         CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
