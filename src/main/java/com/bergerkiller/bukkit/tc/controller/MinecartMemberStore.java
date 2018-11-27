@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.PaperRedstonePhysicsChecker;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.mountiplex.conversion.annotations.ConverterMethod;
 
@@ -159,6 +160,9 @@ public abstract class MinecartMemberStore {
         // Unloaded?
         newController.updateUnloaded();
 
+        // Check this
+        PaperRedstonePhysicsChecker.check(source.getWorld());
+
         return newController;
     }
 
@@ -267,6 +271,10 @@ public abstract class MinecartMemberStore {
         controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();
         result.setUnloaded(false);
+
+        // Check
+        PaperRedstonePhysicsChecker.check(at.getWorld());
+
         return result;
     }
 
