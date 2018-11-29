@@ -135,11 +135,6 @@ public class RailTypeRegular extends RailTypeHorizontal {
             return false;
         }
 
-        Rails rails = BlockUtil.getRails(railsBlock);
-        if (rails == null) {
-            return false;
-        }
-
         // Check block directly below supports the rails, or not
         if (Util.canSupportTop(WorldUtil.getBlockData(railsBlock.getRelative(BlockFace.DOWN)))) {
             return false;
@@ -147,6 +142,11 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
         // Check block directly above - should be a valid solid
         if (!MaterialUtil.SUFFOCATES.get(railsBlock.getRelative(BlockFace.UP))) {
+            return false;
+        }
+
+        Rails rails = BlockUtil.getRails(railsBlock);
+        if (rails == null) {
             return false;
         }
 
