@@ -424,7 +424,7 @@ public class WheelTrackerMember {
             TrackedRail rail = rails.get(railIndex);
             RailPath.Position position = this._railPosition;
             position.setLocation(this.member.getEntity().loc);
-            position.setMotion(member.getDirection());
+            position.setMotion(member.getRailTracker().getMotionVector());
             rail.getPath().move(position, rail.block, 0.0);
 
             // Flip the direction when the orientation vs front differs
