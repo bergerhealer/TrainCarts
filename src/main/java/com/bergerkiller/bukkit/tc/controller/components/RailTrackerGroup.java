@@ -600,17 +600,18 @@ public class RailTrackerGroup extends RailTracker {
                         } else {
                             // Move the walking point small steps until no more significant movement occurs
                             // to close the distance between p.state.position() and nextPos.
+                            int cycle_limit = 10000;
                             double curr_distance = p.state.position().distance(nextPos.position());
-                            while (true) {
+                            do {
                                 if (curr_distance <= 1e-8 || !p.move(curr_distance) || p.moved <= 1e-8) {
                                     break;
                                 }
                                 double new_distance = p.state.position().distance(nextPos.position());
-                                if (new_distance > curr_distance) {
+                                if (new_distance >= curr_distance) {
                                     break;
                                 }
                                 curr_distance = new_distance;
-                            }
+                            } while (--cycle_limit > 0);
 
                             currInfo = new TrackedRail(nextMember, p.state, false);
                         }
