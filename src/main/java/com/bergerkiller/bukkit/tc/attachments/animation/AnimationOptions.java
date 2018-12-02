@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.animation;
 import java.util.Locale;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -16,6 +17,7 @@ public class AnimationOptions implements Cloneable {
     private double _delay;
     private boolean _looped;
     private boolean _hasLoopOption;
+    private boolean _reset;
 
     protected AnimationOptions(AnimationOptions source) {
         this._name = source._name;
@@ -23,6 +25,7 @@ public class AnimationOptions implements Cloneable {
         this._delay = source._delay;
         this._looped = source._looped;
         this._hasLoopOption = source._hasLoopOption;
+        this._reset = source._reset;
     }
 
     public AnimationOptions() {
@@ -35,6 +38,7 @@ public class AnimationOptions implements Cloneable {
         this._delay = 0.0;
         this._looped = false;
         this._hasLoopOption = false;
+        this._reset = false;
     }
 
     /**
@@ -142,6 +146,26 @@ public class AnimationOptions implements Cloneable {
     }
 
     /**
+     * Sets whether the animation should be reset to the beginning before playing the animation.
+     * When playing in reverse, it resets to the end of the animation.
+     * 
+     * @param reset option
+     */
+    public void setReset(boolean reset) {
+        this._reset = reset;
+    }
+
+    /**
+     * Gets whether the animation should be reset to the beginning before playing the animation.
+     * When playing in reverse, it resets to the end of the animation.
+     * 
+     * @return True if reset
+     */
+    public boolean getReset() {
+        return this._reset;
+    }
+
+    /**
      * Applies additional animation options to this one.
      * The speed, delay and looping options are updated.
      * 
@@ -153,6 +177,7 @@ public class AnimationOptions implements Cloneable {
         if (options.hasLoopOption()) {
             this.setLooped(options.isLooped());
         }
+        this.setReset(options.getReset());
     }
 
     /**
@@ -204,10 +229,14 @@ public class AnimationOptions implements Cloneable {
     public void loadFromSign(SignActionEvent info) {
         // Looped
         String mode_line = info.getLine(1).toLowerCase(Locale.ENGLISH).trim();
-        if (mode_line.endsWith("noloop") || mode_line.endsWith("unlooped")) {
-            this.setLooped(false);
-        } else if (mode_line.endsWith("loop") || mode_line.endsWith("looped")) {
-            this.setLooped(true);
+        for (String part : mode_line.split(" ")) {
+            if (LogicUtil.contains(part, "noloop", "unlooped", "ul", "nl")) {
+                this.setLooped(false);
+            } else if (LogicUtil.contains(part, "loop", "looped", "l")) {
+                this.setLooped(true);
+            } else if (LogicUtil.contains(part, "reset", "rst", "r")) {
+                this.setReset(true);
+            }
         }
 
         // Name
@@ -239,6 +268,8 @@ public class AnimationOptions implements Cloneable {
                 this.setLooped(false);
             } else if (lower_arg.equals("loop") || lower_arg.equals("looped")) {
                 this.setLooped(true);
+            } else if (lower_arg.equals("reset")) {
+                this.setReset(true);
             } else if (!found_name && !ParseUtil.isNumeric(arg)) {
                 this.setName(arg);
                 found_name = true;

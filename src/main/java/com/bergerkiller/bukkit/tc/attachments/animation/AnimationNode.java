@@ -13,17 +13,49 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
  */
 public class AnimationNode {
     private final Vector _position;
-    private final Quaternion _rotation;
+    private Vector _rotationVec; // rotation as yaw/pitch/roll angles
+    private Quaternion _rotationQuat; // rotation as Quaternion
+    private final boolean _active;
     private final double _duration;
 
-    public AnimationNode(Vector position, Quaternion rotation, double duration) {
+    /**
+     * Initializes a new Animation Node with a position, rotation and duration to the next node.
+     * The rotation is initialized using a Quaternion, with the yaw/pitch/roll rotation vector
+     * initialized on first use.
+     * 
+     * @param position, null to deactivate the attachment
+     * @param rotationQuaternion
+     * @param active whether the attachment is active (and visible) when this node is reached
+     * @param duration
+     */
+    public AnimationNode(Vector position, Quaternion rotationQuaternion, boolean active, double duration) {
         this._position = position;
-        this._rotation = rotation;
+        this._rotationVec = null;
+        this._rotationQuat = rotationQuaternion;
+        this._active = active;
         this._duration = duration;
     }
 
     /**
-     * Gets the relative position of this animation node
+     * Initializes a new Animation Node with a position, rotation and duration to the next node.
+     * The rotation is initialized using a yaw/pitch/roll vector, with the quaternion rotation
+     * initialized on first use.
+     * 
+     * @param position, null to deactivate the attachment
+     * @param rotationVector
+     * @param active whether the attachment is active (and visible) when this node is reached
+     * @param duration
+     */
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration) {
+        this._position = position;
+        this._rotationVec = rotationVector;
+        this._rotationQuat = null;
+        this._active = active;
+        this._duration = duration;
+    }
+
+    /**
+     * Gets the relative position of this animation node.
      * 
      * @return relative position
      */
@@ -32,12 +64,31 @@ public class AnimationNode {
     }
 
     /**
-     * Gets the relative rotation of this animation node
+     * Gets the relative rotation of this animation node as a Vector.
+     * This value is used when displayed to a human, and not
+     * for actual calculations during the animation.
      * 
-     * @return relative rotation
+     * @return relative rotation vector (x=pitch, y=yaw, z=roll)
      */
-    public Quaternion getRotation() {
-        return this._rotation;
+    public Vector getRotationVector() {
+        if (this._rotationVec == null) {
+            this._rotationVec = this._rotationQuat.getYawPitchRoll();
+        }
+        return this._rotationVec;
+    }
+
+    /**
+     * Gets the relative rotation of this animation node as a Quaternion.
+     * This value is used when performing the actual calculations during
+     * the animation, and is not suitable to display to a human.
+     * 
+     * @return relative rotation quaternion
+     */
+    public Quaternion getRotationQuaternion() {
+        if (this._rotationQuat == null) {
+            this._rotationQuat = Quaternion.fromYawPitchRoll(this._rotationVec);
+        }
+        return this._rotationQuat;
     }
 
     /**
@@ -51,13 +102,23 @@ public class AnimationNode {
     }
 
     /**
+     * Gets whether the attachment is active during the time this animation
+     * node is actively playing. An inactive attachment is generally invisible.
+     * 
+     * @return active
+     */
+    public boolean isActive() {
+        return this._active;
+    }
+
+    /**
      * Applies the position and rotation transformation of this animation node to a 4x4 transformation matrix
      * 
      * @param transform
      */
     public void apply(Matrix4x4 transform) {
-        transform.rotate(this.getRotation());
         transform.translate(this.getPosition());
+        transform.rotate(this.getRotationQuaternion());
     }
 
     /**
@@ -67,15 +128,23 @@ public class AnimationNode {
      * @return serialized String
      */
     public String serializeToString() {
-        Vector ypr = this._rotation.getYawPitchRoll();
+        Vector pos = this.getPosition();
+        Vector ypr = this.getRotationVector().clone();
+        ypr.setX(MathUtil.round(ypr.getX(), 6));
+        ypr.setY(MathUtil.round(ypr.getY(), 6));
+        ypr.setZ(MathUtil.round(ypr.getZ(), 6));
+
         StringBuilder builder = new StringBuilder(90);
         builder.append("t=").append(this._duration);
-        builder.append(" x=").append(this._position.getX());
-        builder.append(" y=").append(this._position.getY());
-        builder.append(" z=").append(this._position.getZ());
-        builder.append(" yaw=").append(MathUtil.round(ypr.getY(), 6));
-        builder.append(" pitch=").append(MathUtil.round(ypr.getX(), 6));
-        builder.append(" roll=").append(MathUtil.round(ypr.getZ(), 6));
+
+        if (!this.isActive())  builder.append(" active=0");
+        if (pos.getX() != 0.0) builder.append(" x=").append(pos.getX());
+        if (pos.getY() != 0.0) builder.append(" y=").append(pos.getY());
+        if (pos.getZ() != 0.0) builder.append(" z=").append(pos.getZ());
+        if (ypr.getX() != 0.0) builder.append(" pitch=").append(ypr.getX());
+        if (ypr.getY() != 0.0) builder.append(" yaw=").append(ypr.getY());
+        if (ypr.getZ() != 0.0) builder.append(" roll=").append(ypr.getZ());
+
         return builder.toString();
     }
 
@@ -92,9 +161,8 @@ public class AnimationNode {
         // Parsing is very robust, handling lack (or over-abundance) of spaces or =
         // Out of order works too.
         Vector position = new Vector();
-        double rotation_yaw = 0.0;
-        double rotation_pitch = 0.0;
-        double rotation_roll = 0.0;
+        Vector rotation = new Vector();
+        boolean active = true;
         double time = 1.0;
         int index = 0;
         int name_start, name_len, value_start, value_end;
@@ -146,15 +214,17 @@ public class AnimationNode {
                 position.setY(value);
             } else if ("z".regionMatches(0, config, name_start, name_len)) {
                 position.setZ(value);
-            } else if ("yaw".regionMatches(0, config, name_start, name_len)) {
-                rotation_yaw = value;
             } else if ("pitch".regionMatches(0, config, name_start, name_len)) {
-                rotation_pitch = value;
+                rotation.setX(value);
+            } else if ("yaw".regionMatches(0, config, name_start, name_len)) {
+                rotation.setY(value);
             } else if ("roll".regionMatches(0, config, name_start, name_len)) {
-                rotation_roll = value;
+                rotation.setZ(value);
+            } else if ("active".regionMatches(0, config, name_start, name_len)) {
+                active = (value != 0.0);
             }
         }
-        return new AnimationNode(position, Quaternion.fromYawPitchRoll(rotation_pitch, rotation_yaw, rotation_roll), time);
+        return new AnimationNode(position, rotation, active, time);
     }
 
     /**
@@ -186,8 +256,8 @@ public class AnimationNode {
             return nodeB;
         } else {
             Vector lerp_position = MathUtil.lerp(nodeA.getPosition(), nodeB.getPosition(), theta);
-            Quaternion lerp_rotation = Quaternion.slerp(nodeA.getRotation(), nodeB.getRotation(), theta);
-            return new AnimationNode(lerp_position, lerp_rotation, 1.0);
+            Quaternion lerp_rotation = Quaternion.slerp(nodeA.getRotationQuaternion(), nodeB.getRotationQuaternion(), theta);
+            return new AnimationNode(lerp_position, lerp_rotation, nodeA.isActive(), 1.0);
         }
     }
 
@@ -197,7 +267,7 @@ public class AnimationNode {
      * @return identity
      */
     public static AnimationNode identity() {
-        return new AnimationNode(new Vector(), new Quaternion(), 1.0);
+        return new AnimationNode(new Vector(), new Quaternion(), true, 1.0);
     }
 
     private static boolean isNumericChar(char ch) {

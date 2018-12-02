@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 
 /**
  * An animation consisting of key frame nodes with time-domain transformations.
- * Class can be inherited overriding {@link #getNode(time)} returning a custom position for animations
+ * Class can be inherited overriding {@link #update(dt)} returning a custom position for animations
  * controlled by external input.
  */
 public class Animation implements Cloneable {
@@ -124,6 +124,25 @@ public class Animation implements Cloneable {
         return this._nodes;
     }
 
+    /**
+     * Gets the animation node at an index
+     * 
+     * @param index
+     * @return node at this index
+     */
+    public AnimationNode getNode(int index) {
+        return this._nodes[index];
+    }
+
+    /**
+     * Gets the number of nodes in this animation
+     * 
+     * @return node count
+     */
+    public int getNodeCount() {
+        return this._nodes.length;
+    }
+
     @Override
     public Animation clone() {
         return new Animation(this);
@@ -189,6 +208,11 @@ public class Animation implements Cloneable {
             if (this._time < 0.0) {
                 this._time += this._loopDuration; // nega
             }
+        }
+
+        // Only 1 node? Return that, no weird interpolation please.
+        if (this._nodes.length == 1) {
+            return this._nodes[0];
         }
 
         // Interpolate to find the correct animation node

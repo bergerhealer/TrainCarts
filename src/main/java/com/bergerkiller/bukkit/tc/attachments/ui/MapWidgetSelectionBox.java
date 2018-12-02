@@ -27,6 +27,10 @@ public class MapWidgetSelectionBox extends MapWidget {
         this.setFocusable(true);
     }
 
+    public List<String> getItems() {
+        return this.items;
+    }
+
     public void clearItems() {
         this.items.clear();
     }
@@ -42,6 +46,29 @@ public class MapWidgetSelectionBox extends MapWidget {
         return this;
     }
 
+    /**
+     * Removes a selectable option. If the option was selected
+     * previously, the selection closest next element is selected
+     * instead.
+     * 
+     * @param item
+     * @return this selection box widget
+     */
+    public MapWidgetSelectionBox removeItem(String item) {
+        int index = this.items.indexOf(item);
+        if (index != -1) {
+            this.items.remove(index);
+            if (index == this.selectedIndex) {
+                if (this.selectedIndex >= this.items.size()) {
+                    this.selectedIndex--;
+                }
+                this.invalidate();
+                this.onSelectedItemChanged();
+            }
+        }
+        return this;
+    }
+
     public String getSelectedItem() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.items.size()) {
             return this.items.get(this.selectedIndex);
@@ -51,8 +78,12 @@ public class MapWidgetSelectionBox extends MapWidget {
     }
 
     public void setSelectedItem(String item) {
-        this.selectedIndex = this.items.indexOf(item);
-        this.invalidate();
+        int new_index = this.items.indexOf(item);
+        if (new_index != this.selectedIndex) {
+            this.selectedIndex = new_index;
+            this.invalidate();
+            this.onSelectedItemChanged();
+        }
     }
 
     @Override

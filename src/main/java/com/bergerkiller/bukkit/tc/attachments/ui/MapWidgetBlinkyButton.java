@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
+import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapBlendMode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
@@ -16,6 +18,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     private MapTexture icon_blink_a = MapTexture.createEmpty(16, 16);
     private MapTexture icon_blink_b = MapTexture.createEmpty(16, 16);
     private int blinkCtr = 0;
+    private boolean isRepeatClicking = false;
     boolean blinkMode = false;
 
     public MapWidgetBlinkyButton() {
@@ -100,10 +103,60 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     }
 
     @Override
+    public void onKeyPressed(MapKeyEvent event) {
+        if (event.getKey() == MapPlayerInput.Key.ENTER) {
+            if (event.getRepeat() <= 1) {
+                this.isRepeatClicking = false;
+                this.activate();
+            } else {
+                if (!this.isRepeatClicking) {
+                    this.isRepeatClicking = true;
+                    display.playSound(CommonSounds.CLICK);
+                    this.onClickHold();
+                }
+                this.onRepeatClick();
+            }
+        } else {
+            super.onKeyPressed(event);
+        }
+    }
+
+    @Override
+    public void onKeyReleased(MapKeyEvent event) {
+        super.onKeyReleased(event);
+        if (event.getKey() == MapPlayerInput.Key.ENTER && this.isRepeatClicking) {
+            this.isRepeatClicking = false;
+            display.playSound(CommonSounds.CLICK_WOOD);
+            this.onClickHoldRelease();
+        }
+    }
+
+    @Override
     public void onActivate() {
         display.playSound(CommonSounds.EXTINGUISH);
         this.onClick();
     }
 
+    /**
+     * Called once when the player activates the button
+     */
     public abstract void onClick();
+
+    /**
+     * Called once when the player held down the button for a longer time
+     */
+    public void onClickHold() {
+    }
+
+    /**
+     * Called once when the player releases the button after click-and-holding
+     */
+    public void onClickHoldRelease() {
+    }
+
+    /**
+     * Called repeatedly while the player is holding down the button
+     */
+    public void onRepeatClick() {
+    }
 }

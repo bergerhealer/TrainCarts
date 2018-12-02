@@ -133,7 +133,7 @@ public class MapWidgetAttachmentNode extends MapWidget {
 
     /**
      * Sets the column and row this node is displayed at.
-     * This control the indent level when drawing.
+     * This controls the indent level when drawing.
      * 
      * @param col
      * @param row
@@ -149,6 +149,31 @@ public class MapWidgetAttachmentNode extends MapWidget {
 
     public void setType(CartAttachmentType type) {
         this.config.set("type", type);
+    }
+
+    /**
+     * Computes the iteration of attachment indices required to get to this attachment.
+     * This path is suitable for {@link MinecartMember#playAnimationFor}.
+     * 
+     * @return target path
+     */
+    public int[] getTargetPath() {
+        // Count the total number of elements in the path
+        int num_count = 0;
+        MapWidgetAttachmentNode tmp = this;
+        while (tmp.parentAttachment != null) {
+            tmp = tmp.parentAttachment;
+            num_count++;
+        }
+
+        // Generate path
+        tmp = this;
+        int[] targetPath = new int[num_count];
+        for (int i = targetPath.length-1; i >= 0; i--) {
+            targetPath[i] = tmp.parentAttachment.attachments.indexOf(tmp);
+            tmp = tmp.parentAttachment;
+        }
+        return targetPath;
     }
 
     @Override

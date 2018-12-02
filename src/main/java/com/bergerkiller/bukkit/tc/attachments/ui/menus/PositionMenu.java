@@ -1,34 +1,30 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.config.PositionAnchorType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 
-public class PositionMenu extends MapWidgetWindow {
+public class PositionMenu extends MapWidgetMenu {
     private final MapWidgetAttachmentNode attachment;
 
     public PositionMenu(MapWidgetAttachmentNode attachment) {
         this.attachment = attachment;
         this.setBounds(5, 15, 118, 108);
-        this.setDepthOffset(4);
-        this.setFocusable(true);
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
     }
 
     @Override
     public void onAttached() {
-        this.activate();
+        super.onAttached();
 
         int slider_width = 86;
         int y_offset = 5;
@@ -187,15 +183,6 @@ public class PositionMenu extends MapWidgetWindow {
         label.setPosition(x, y);
         label.setColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_GREEN, 0.5f));
         this.addWidget(label);
-    }
-
-    @Override
-    public void onKeyPressed(MapKeyEvent event) {
-        if (event.getKey() == Key.BACK && this.isActivated()) {
-            this.removeWidget();
-            return;
-        }
-        super.onKeyPressed(event);
     }
 
     public ConfigurationNode getConfig() {

@@ -15,9 +15,11 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
+import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -2101,6 +2103,35 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Plays an animation for a single attachment node for this minecart.
+     * 
+     * @param targetPath
+     * @param options defining the animation to play
+     * @return True if the attachment node and animation could be found
+     */
+    public boolean playNamedAnimationFor(int[] targetPath, AnimationOptions options) {
+        CartAttachment attachment = findAttachment(targetPath);
+        return attachment != null && attachment.startAnimation(options);
+    }
+
+    /**
+     * Plays an animation for a single attachment node for this minecart.
+     * 
+     * @param targetPath indices for the attachment node
+     * @param animation to play
+     * @return True if the attachment node could be found
+     */
+    public boolean playAnimationFor(int[] targetPath, Animation animation) {
+        CartAttachment attachment = findAttachment(targetPath);
+        if (attachment == null) {
+            return false;
+        } else {
+            attachment.startAnimation(animation);
+            return true;
+        }
+    }
+
+    /**
      * Plays an animation by name for this minecart
      * 
      * @param name of the animation
@@ -2123,5 +2154,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             return false;
         }
+    }
+
+    private CartAttachment findAttachment(int[] targetPath) {
+        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+        return (network == null) ? null : network.getRootAttachment().findChild(targetPath);
     }
 }

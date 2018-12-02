@@ -390,6 +390,11 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     @Override
+    public boolean isHiddenWhenInactive() {
+        return false;
+    }
+
+    @Override
     public void onTick() {
         float selfPitch = (float) this.transform.getYawPitchRoll().getX();
 

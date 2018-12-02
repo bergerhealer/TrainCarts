@@ -12,18 +12,29 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 /**
- * Allows modifying a double number using left/right buttons
+ * Allows modifying a double number using left/right OR up/down (vertical) buttons
  */
 public class MapWidgetNumberBox extends MapWidget {
     private double _value = 0.0;
     private double _min = Double.NEGATIVE_INFINITY;
     private double _max = Double.POSITIVE_INFINITY;
     private double _incr = 0.01;
-    private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
-    private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
+    private boolean _vertical = false;
+    private final MapWidgetArrow nav_decr = new MapWidgetArrow(BlockFace.WEST);
+    private final MapWidgetArrow nav_incr = new MapWidgetArrow(BlockFace.EAST);
 
     public MapWidgetNumberBox() {
         this.setFocusable(true);
+    }
+
+    public MapWidgetNumberBox setVertical(boolean vertical) {
+        if (this._vertical != vertical) {
+            this._vertical = vertical;
+            this.nav_decr.setDirection(vertical ? BlockFace.NORTH : BlockFace.WEST);
+            this.nav_incr.setDirection(vertical ? BlockFace.SOUTH : BlockFace.EAST);
+            this.onBoundsChanged();
+        }
+        return this;
     }
 
     public void setIncrement(double increment) {
@@ -55,28 +66,49 @@ public class MapWidgetNumberBox extends MapWidget {
     @Override
     public void onAttached() {
         super.onAttached();
-        nav_left.setVisible(false);
-        nav_right.setVisible(false);
-        this.addWidget(nav_left);
-        this.addWidget(nav_right);
+        nav_decr.setVisible(false);
+        nav_incr.setVisible(false);
+        this.addWidget(nav_decr);
+        this.addWidget(nav_incr);
     }
 
     @Override
     public void onBoundsChanged() {
-        nav_left.setPosition(0, 0);
-        nav_right.setPosition(this.getWidth() - nav_right.getWidth(), 0);
+        if (this._vertical) {
+            int x_offset = (this.getWidth()-nav_decr.getWidth())>>1;
+            nav_decr.setPosition(x_offset, this.getHeight() - nav_incr.getHeight());
+            nav_incr.setPosition(x_offset, 0);
+        } else {
+            int y_offset = (this.getHeight()-nav_decr.getHeight())>>1;
+            nav_decr.setPosition(0, y_offset);
+            nav_incr.setPosition(this.getWidth() - nav_incr.getWidth(), y_offset);
+        }
     }
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
-        if (event.getKey() == MapPlayerInput.Key.LEFT) {
-            nav_left.sendFocus();
-            this.addValue(-this._incr, event.getRepeat());
-        } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
-            nav_right.sendFocus();
-            this.addValue(this._incr, event.getRepeat());
+        if (this._vertical) {
+            // Up / Down
+            if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                nav_decr.sendFocus();
+                this.addValue(-this._incr, event.getRepeat());
+            } else if (event.getKey() == MapPlayerInput.Key.UP) {
+                nav_incr.sendFocus();
+                this.addValue(this._incr, event.getRepeat());
+            } else {
+                super.onKeyPressed(event);
+            }
         } else {
-            super.onKeyPressed(event);
+            // Left / Right
+            if (event.getKey() == MapPlayerInput.Key.LEFT) {
+                nav_decr.sendFocus();
+                this.addValue(-this._incr, event.getRepeat());
+            } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
+                nav_incr.sendFocus();
+                this.addValue(this._incr, event.getRepeat());
+            } else {
+                super.onKeyPressed(event);
+            }
         }
     }
 
@@ -102,35 +134,56 @@ public class MapWidgetNumberBox extends MapWidget {
     @Override
     public void onKeyReleased(MapKeyEvent event) {
         super.onKeyReleased(event);
-        if (event.getKey() == MapPlayerInput.Key.LEFT) {
-            nav_left.stopFocus();
-        } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
-            nav_right.stopFocus();
+        if (this._vertical) {
+            // Up / Down
+            if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                nav_decr.stopFocus();
+            } else if (event.getKey() == MapPlayerInput.Key.UP) {
+                nav_incr.stopFocus();
+            }
+        } else {
+            // Left / Right
+            if (event.getKey() == MapPlayerInput.Key.LEFT) {
+                nav_decr.stopFocus();
+            } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
+                nav_incr.stopFocus();
+            }
         }
     }
 
     @Override
     public void onFocus() {
-        nav_left.setVisible(true);
-        nav_right.setVisible(true);
+        nav_decr.setVisible(true);
+        nav_incr.setVisible(true);
     }
 
     @Override
     public void onBlur() {
-        nav_left.setVisible(false);
-        nav_right.setVisible(false);
+        nav_decr.setVisible(false);
+        nav_incr.setVisible(false);
     }
 
     @Override
     public void onDraw() {
-        int offset = nav_left.getWidth() + 1;
+        if (this._vertical) {
+            int offset = nav_decr.getHeight() + 1;
 
-        MapWidgetButton.fillBackground(this.view.getView(offset + 1, 1, getWidth() - 2 * offset - 2, getHeight() - 2), this.isEnabled(), this.isFocused());
-        this.view.drawRectangle(offset, 0, getWidth() - 2 * offset, getHeight(), this.isFocused() ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
+            MapWidgetButton.fillBackground(this.view.getView(1, offset + 1, getWidth() - 2, getHeight() - 2 * offset - 2), this.isEnabled(), this.isFocused());
+            this.view.drawRectangle(0, offset, getWidth(), getHeight() - 2 * offset, this.isFocused() ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
 
-        String text = Double.toString(MathUtil.round(getValue(), 4));
-        this.view.setAlignment(Alignment.MIDDLE);
-        this.view.draw(MapFont.MINECRAFT, getWidth() / 2, 2, MapColorPalette.COLOR_WHITE, text);
+            String text = Double.toString(MathUtil.round(getValue(), 4));
+            this.view.setAlignment(Alignment.MIDDLE);
+            this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
+        } else {
+            int offset = nav_decr.getWidth() + 1;
+
+            MapWidgetButton.fillBackground(this.view.getView(offset + 1, 1, getWidth() - 2 * offset - 2, getHeight() - 2), this.isEnabled(), this.isFocused());
+            this.view.drawRectangle(offset, 0, getWidth() - 2 * offset, getHeight(), this.isFocused() ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
+
+            String text = Double.toString(MathUtil.round(getValue(), 4));
+            this.view.setAlignment(Alignment.MIDDLE);
+            this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
+        }
     }
 
     @Override

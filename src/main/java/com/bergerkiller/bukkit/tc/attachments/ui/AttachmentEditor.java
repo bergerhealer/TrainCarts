@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
+    public CartProperties editedCart;
     public AttachmentModel model;
     private boolean sneakWalking = false;
     private boolean _hasPermission;
@@ -131,6 +132,7 @@ public class AttachmentEditor extends MapDisplay {
         this._hasPermission = Permission.COMMAND_GIVE_EDITOR.has(getOwners().get(0));
         if (!this._hasPermission) {
             this.setReceiveInputWhenHolding(false);
+            this.editedCart = null;
             this.model = AttachmentModel.getDefaultModel(EntityType.MINECART);
             this.window.addWidget(new MapWidgetText())
                 .setText("You do not have\npermission!")
@@ -138,11 +140,11 @@ public class AttachmentEditor extends MapDisplay {
                 .setShadowColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_RED, 0.5f))
                 .setPosition(20, 60);
         } else {
-            CartProperties prop = CartProperties.getEditing(this.getOwners().get(0));
-            if (prop != null) {
+            this.editedCart = CartProperties.getEditing(this.getOwners().get(0));
+            if (this.editedCart != null) {
                 this.sneakWalking = this.getOwners().get(0).isSneaking();
                 this.setReceiveInputWhenHolding(!this.sneakWalking);
-                this.model = prop.getModel();
+                this.model = this.editedCart.getModel();
                 this.tree.setModel(this.model);
                 this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
                 this.window.addWidget(this.tree);

@@ -24,6 +24,7 @@ public abstract class CartAttachment {
     private PositionAnchorType anchor = PositionAnchorType.DEFAULT;
     private Map<String, Animation> animations = new HashMap<String, Animation>();
     private Animation currentAnimation = null;
+    private boolean active = true;
     protected MinecartMemberNetwork controller = null;
     protected CartAttachment parent = null;
     protected ConfigurationNode config = null;
@@ -65,6 +66,26 @@ public abstract class CartAttachment {
         this.last_transform = null;
         this.transform = null;
         this.animations.clear();
+    }
+
+    /**
+     * Traverses down this tree of cart attachments based on the target
+     * path indices specified. If the attachment at this path exists,
+     * it is returned, otherwise this method returns <i>null</i>.
+     * 
+     * @param targetPath
+     * @return attachment at targetPath, <i>null</i> if not found.
+     */
+    public CartAttachment findChild(int[] targetPath) {
+        CartAttachment target = this;
+        for (int index : targetPath) {
+            if (index >= 0 && index < target.children.size()) {
+                target = target.children.get(index);
+            } else {
+                return null;
+            }
+        }
+        return target;
     }
 
     /**
@@ -139,12 +160,7 @@ public abstract class CartAttachment {
     }
 
     private final boolean playNamedAnimationRecursive(AnimationOptions options) {
-        boolean result = false;
-        Animation animation = this.animations.get(options.getName());
-        if (animation != null) {
-            result = true;
-            this.startAnimation(animation.clone().applyOptions(options));
-        }
+        boolean result = this.startAnimation(options);
         for (CartAttachment child : this.children) {
             result |= child.playNamedAnimationRecursive(options);
         }
@@ -161,12 +177,38 @@ public abstract class CartAttachment {
     /**
      * Starts playing an animation for this attachment. The child attachments are not affected.
      * If the animation is already playing, this function does nothing. To force a reset,
+     * call {@link #stopAnimation()} prior. If the animation name in the options specified
+     * can not be found, this method returns false.
+     * 
+     * @param options
+     * @return True if the animation in the options was found and is now playing
+     */
+    public boolean startAnimation(AnimationOptions options) {
+        Animation animation = this.animations.get(options.getName());
+        if (animation != null) {
+            this.startAnimation(animation.clone().applyOptions(options));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Starts playing an animation for this attachment. The child attachments are not affected.
+     * If the animation is already playing, this function does nothing. To force a reset,
      * call {@link #stopAnimation()} prior.
      * 
      * @param animation
      */
     public void startAnimation(Animation animation) {
-        if (this.currentAnimation == null || !this.currentAnimation.isSame(animation)) {
+        if (animation == null) {
+            this.currentAnimation = null;
+            return;
+        }
+        if (this.currentAnimation == null ||
+            animation.getOptions().getReset() ||
+            !this.currentAnimation.isSame(animation))
+        {
             this.currentAnimation = animation;
             this.currentAnimation.start();
         } else {
@@ -245,14 +287,17 @@ public abstract class CartAttachment {
         }
 
         // Animations!
+        boolean active = attachment.isActive();
         if (attachment.currentAnimation != null) {
             double dt = attachment.getController().getAnimationDeltaTime();
             AnimationNode animNode = attachment.currentAnimation.update(dt);
             if (animNode != null) {
+                active = animNode.isActive();
                 animNode.apply(attachment.transform);
             }
         }
 
+        // Update positions
         attachment.onPositionUpdate();
         if (attachment.last_transform == null) {
             attachment.last_transform = attachment.transform.clone();
@@ -260,6 +305,10 @@ public abstract class CartAttachment {
         for (CartAttachment child : attachment.children) {
             updatePositions(child, attachment.transform);
         }
+
+        // Note: must set active after the position updates
+        // Otherwise the attachment 'spawns' in the wrong positions later.
+        attachment.setActive(active);
     }
 
     /**
@@ -323,11 +372,108 @@ public abstract class CartAttachment {
     }
 
     /**
+     * Gets whether this attachment is hidden ( {@link #makeHidden(Player)} ) when the
+     * attachment or a parent attachment is inactive.
+     * Override to alter this behavior for implementations of {@link CartAttachment}.
+     * 
+     * @return True if hidden when inactive, False if not
+     */
+    public boolean isHiddenWhenInactive() {
+        return true;
+    }
+
+    /**
+     * Gets whether or not this attachment is active.
+     * See {@link #setActive(boolean)}.
+     * 
+     * @return True if active, False if not.
+     */
+    public boolean isActive() {
+        return this.active;
+    }
+
+    /**
+     * Sets whether this attachment is active. If active, it is displayed and updated
+     * to the players. If it is inactive, the attachment and all child attachments are hidden.
+     * 
+     * @param active state
+     */
+    public void setActive(boolean active) {
+        if (this.active != active) {
+            this.active = active;
+            for (Player viewer : this.controller.getViewers()) {
+                updateActiveRecursive(this, active, viewer);
+            }
+            resetLastTransformRecursive(this);
+        }
+    }
+
+    /**
      * Gets the position of this attachment based on the last-applied transformation information.
      * 
      * @return position
      */
     public Vector getPosition() {
         return this.transform.toVector();
+    }
+
+    /**
+     * Hides an attachment and all child attachments recursively.
+     * This helper function calls {@link #makeHidden(Player)}.
+     * 
+     * @param attachment to hide
+     * @param active whether the attachment and parent attachments are active
+     * @param viewer to hide it from
+     */
+    public static void makeHiddenRecursive(CartAttachment attachment, boolean active, Player viewer) {
+        active &= attachment.isActive();
+        for (CartAttachment child : attachment.children) {
+            makeHiddenRecursive(child, active, viewer);
+        }
+        if (active || !attachment.isHiddenWhenInactive()) {
+            attachment.makeHidden(viewer);
+        }
+    }
+
+    /**
+     * Makes an attachment and all child attachments visible recursively.
+     * This helper function calls {@link #makeVisible(Player)}.
+     * 
+     * @param attachment to make visible
+     * @param active whether the attachment and parent attachments are active
+     * @param viewer to make it disible to
+     */
+    public static void makeVisibleRecursive(CartAttachment attachment, boolean active, Player viewer) {
+        active &= attachment.isActive();
+        if (active || !attachment.isHiddenWhenInactive()) {
+            attachment.makeVisible(viewer);
+        }
+        for (CartAttachment child : attachment.children) {
+            makeVisibleRecursive(child, active, viewer);
+        }
+    }
+
+    private static void updateActiveRecursive(CartAttachment attachment, boolean active, Player viewer) {
+        if (attachment.isHiddenWhenInactive()) {
+            if (active) {
+                attachment.makeVisible(viewer);
+            } else {
+                attachment.makeHidden(viewer);
+            }
+        }
+        for (CartAttachment child : attachment.children) {
+            if (child.isActive()) {
+                updateActiveRecursive(child, active, viewer);
+            }
+        }
+    }
+
+    private static void resetLastTransformRecursive(CartAttachment attachment) {
+        if (attachment.isHiddenWhenInactive()) {
+            attachment.last_transform = null;
+        }
+        for (CartAttachment child : attachment.children) {
+            resetLastTransformRecursive(child);
+        }
     }
 }
