@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
@@ -192,50 +193,25 @@ public class MapWidgetAttachmentNode extends MapWidget {
         // Each button will open its own context menu to edit things
         // The buttons shown here depend on the type of the node, somewhat
         int px = this.col * 17 + 1;
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.APPEARANCE);
-            }
-        }.setIcon(getIcon()).setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.APPEARANCE).setTooltip("Appearance").setIcon(getIcon()).setPosition(px, 1));
         px += 17;
 
         // Only for root nodes: modify Physical properties of the cart
         if (this.parentAttachment == null) {
-            this.addWidget(new MapWidgetBlinkyButton() {
-                @Override
-                public void onClick() {
-                    openMenu(MenuItem.PHYSICAL);
-                }
-            }.setIcon("attachments/physical.png").setPosition(px, 1));
+            this.addWidget(new MapWidgetMenuButton(MenuItem.PHYSICAL).setIcon("attachments/physical.png").setPosition(px, 1));
             px += 17;
         }
 
         // Change 3D position of the attachment
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.POSITION);
-            }
-        }.setIcon("attachments/move.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.POSITION).setIcon("attachments/move.png").setPosition(px, 1));
         px += 17;
 
         // Animation frames for an attachment
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.ANIMATION);
-            }
-        }).setIcon("attachments/animation.png").setPosition(px, 1);
+        this.addWidget(new MapWidgetMenuButton(MenuItem.ANIMATION).setIcon("attachments/animation.png").setPosition(px, 1));
         px += 17;
 
         // Drops down a menu to add/remove/move the attachment entry
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.GENERAL);
-            }
-        }.setIcon("attachments/general_menu.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.GENERAL).setIcon("attachments/general_menu.png").setPosition(px, 1));
         px += 17;
 
         // Enabled/disabled
@@ -356,6 +332,20 @@ public class MapWidgetAttachmentNode extends MapWidget {
             this.icon = this.getType().getIcon(this.getConfig());
         }
         return this.icon;
+    }
+
+    private class MapWidgetMenuButton extends MapWidgetBlinkyButton {
+        private final MenuItem _menu;
+
+        public MapWidgetMenuButton(MenuItem menu) {
+            this._menu = menu;
+            this.setTooltip(Character.toUpperCase(menu.name().charAt(0)) + menu.name().substring(1).toLowerCase(Locale.ENGLISH));
+        }
+
+        @Override
+        public void onClick() {
+            openMenu(this._menu);
+        }
     }
 
     public static enum MenuItem {

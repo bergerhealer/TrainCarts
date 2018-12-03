@@ -135,6 +135,7 @@ public class AnimationMenu extends MapWidgetMenu {
 
         private void updateIcon() {
             setIcon(playForAll ? "attachments/anim_many.png" : "attachments/anim_single.png");
+            setTooltip(playForAll ? "Play all" : "Play self");
         }
     };
     private final MapWidgetBlinkyButton animPlayRev = new MapWidgetBlinkyButton() {
@@ -194,15 +195,15 @@ public class AnimationMenu extends MapWidgetMenu {
             public void onClick() {
                 animNameBox.activate();
             }
-        }.setIcon("attachments/anim_new.png").setPosition(top_menu_x, top_menu_y));
+        }.setTooltip("New animation").setIcon("attachments/anim_new.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
 
         // Button to delete the currently selected animation (with confirmation)
-        this.addWidget(this.animDelete.setIcon("attachments/anim_delete.png").setPosition(top_menu_x, top_menu_y));
+        this.addWidget(this.animDelete.setTooltip("Delete animation").setIcon("attachments/anim_delete.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
 
         // Button to configure the currently selected node (speed, delay, looping)
-        this.addWidget(this.animConfig.setIcon("attachments/anim_config.png").setPosition(top_menu_x, top_menu_y));
+        this.addWidget(this.animConfig.setTooltip("Configure").setIcon("attachments/anim_config.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
 
         // Button to switch between playing just this node, or all nodes of the (cart) model
@@ -210,11 +211,11 @@ public class AnimationMenu extends MapWidgetMenu {
         top_menu_x += 17;
 
         // Button to play the current animation (in reverse)
-        this.addWidget(this.animPlayRev.setIcon("attachments/anim_play_rev.png").setPosition(top_menu_x, top_menu_y));
+        this.addWidget(this.animPlayRev.setTooltip("Play in reverse").setIcon("attachments/anim_play_rev.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
 
         // Button to play the current animation (forwards)
-        this.addWidget(this.animPlayFwd.setIcon("attachments/anim_play_fwd.png").setPosition(top_menu_x, top_menu_y));
+        this.addWidget(this.animPlayFwd.setTooltip("Play forwards").setIcon("attachments/anim_play_fwd.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
 
         top_menu_x = 3;

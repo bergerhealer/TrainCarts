@@ -19,11 +19,17 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     private MapTexture icon_blink_b = MapTexture.createEmpty(16, 16);
     private int blinkCtr = 0;
     private boolean isRepeatClicking = false;
-    boolean blinkMode = false;
+    private boolean blinkMode = false;
+    public final MapWidgetTooltip tooltip = new MapWidgetTooltip();
 
     public MapWidgetBlinkyButton() {
         this.setSize(16, 16);
         this.setFocusable(true);
+    }
+
+    public MapWidgetBlinkyButton setTooltip(String text) {
+        this.tooltip.setText(text);
+        return this;
     }
 
     public MapWidgetBlinkyButton setIcon(String filename) {
@@ -68,12 +74,6 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
             this.blinkMode = mode;
             this.invalidate();
         }
-    }
-
-    @Override
-    public void onFocus() {
-        // Click navigation sounds
-        display.playSound(CommonSounds.CLICK_WOOD);
     }
 
     @Override
@@ -135,6 +135,22 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     public void onActivate() {
         display.playSound(CommonSounds.EXTINGUISH);
         this.onClick();
+    }
+
+    @Override
+    public void onFocus() {
+        super.onFocus();
+
+        this.addWidget(this.tooltip);
+
+        // Click navigation sounds
+        display.playSound(CommonSounds.CLICK_WOOD);
+    }
+
+    @Override
+    public void onBlur() {
+        super.onBlur();
+        this.removeWidget(this.tooltip);
     }
 
     /**

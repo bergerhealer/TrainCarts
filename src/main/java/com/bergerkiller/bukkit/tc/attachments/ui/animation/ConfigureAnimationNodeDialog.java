@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
@@ -47,12 +48,53 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         // Note: relative to view widget
         // Adjust own bounds to be relative to where parent is at
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
-
+        
         int slider_width = 70;
         int x_offset = 32;
         int y_offset = 4;
         int y_step = 10;
 
+        // Activate/de-activate the node - checkbox or slider?
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onAttached() {
+                super.onAttached();
+                this.updateView();
+            }
+
+            @Override
+            public void onClick() {
+                updateNode(ChangeMode.ACTIVE, getNode().isActive() ? 0.0 : 1.0);
+                updateView();
+            }
+
+            private void updateView() {
+                setIcon(getNode().isActive() ?
+                        "attachments/anim_node_active.png" : "attachments/anim_node_inactive.png");
+                setTooltip(getNode().isActive() ? "Active" : "Inactive");
+            }
+        }.setPosition(x_offset + 7, y_offset));
+
+        // Duplicate node below this one node
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onClick() {
+                onDuplicate();
+                ConfigureAnimationNodeDialog.this.close();
+            }
+        }.setTooltip("Duplicate").setIcon("attachments/anim_node_duplicate.png").setPosition(x_offset + 30, y_offset));
+
+        // Delete the node
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onClick() {
+                onDelete();
+                ConfigureAnimationNodeDialog.this.close();
+            }
+        }.setTooltip("Delete").setIcon("attachments/anim_node_delete.png").setPosition(x_offset + slider_width - 17, y_offset));
+
+        y_offset += 12;
+        
         this.addWidget(new MapWidgetNumberBox() { // Delta Time
             @Override
             public void onAttached() {
@@ -73,6 +115,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setValue(getNode().getPosition().getX());
+                this.focus();
             }
 
             @Override
@@ -160,43 +203,6 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Roll");
         y_offset += y_step;
-
-        // Activate/de-activate the node - checkbox or slider?
-        this.addWidget(new MapWidgetButton() {
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.updateView();
-            }
-
-            @Override
-            public void onActivate() {
-                updateNode(ChangeMode.ACTIVE, getNode().isActive() ? 0.0 : 1.0);
-                updateView();
-            }
-
-            private void updateView() {
-                setText(getNode().isActive() ? "ACT" : "INA");
-            }
-        }.setBounds(4, y_offset, 20, 11));
-
-        // Duplicate node below this one node
-        this.addWidget(new MapWidgetButton() {
-            @Override
-            public void onActivate() {
-                onDuplicate();
-                ConfigureAnimationNodeDialog.this.close();
-            }
-        }.setText("DUP").setBounds(25, y_offset, 20, 11));
-
-        // Delete the node
-        this.addWidget(new MapWidgetButton() {
-            @Override
-            public void onActivate() {
-                onDelete();
-                ConfigureAnimationNodeDialog.this.close();
-            }
-        }.setText("DEL").setBounds(46, y_offset, 20, 11));
     }
 
     private void updateNode(ChangeMode mode, double new_value) {
