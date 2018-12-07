@@ -240,11 +240,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if orientation is inverted
      */
     public boolean isOrientationInverted() {
-        Vector vel = this.calculateOrientation();
-        Quaternion q = this.getWheels().getLastOrientation().clone();
-        q.invert();
-        q.transformPoint(vel);
-        return (vel.getZ() <= 0.0);
+        return Util.isOrientationInverted(this.calculateOrientation(), this.getWheels().getLastOrientation());
     }
 
     /**

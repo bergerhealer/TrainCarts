@@ -1126,6 +1126,24 @@ public class Util {
     }
 
     /**
+     * Checks whether the orientation quaternion q is inverted compared to forward velocity vel
+     * 
+     * @param vel
+     * @param q
+     * @return True if orientation q is inverted from vel
+     */
+    public static boolean isOrientationInverted(Vector vel, Quaternion q) {
+        double x = q.getX();
+        double y = q.getY();
+        double z = q.getZ();
+        double w = q.getW();
+        double px = vel.getX();
+        double py = vel.getY();
+        double pz = vel.getZ();
+        return (((px*(x*z+y*w) + py*(y*z-x*w) - pz*(x*x+y*y-0.5))) <= 0.0);
+    }
+
+    /**
      * Checks whether a method is called from a thread other than the main thread.
      * 
      * @param what descriptor what was called
