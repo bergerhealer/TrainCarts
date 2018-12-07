@@ -205,7 +205,7 @@ public class WheelTrackerMember {
 
             // Turn the centripetal force into a banking angle
             // Also apply smoothening to the angle, to make it smoother
-            double angle = Math.toDegrees(Math.atan2(this._centripetalForce, 1.0 / props.getBankingStrength()));
+            double angle = (double) MathUtil.atan2(this._centripetalForce, 1.0 / props.getBankingStrength());
             if (props.getBankingSmoothness() == 0.0) {
                 this._bankingRoll = angle;
             } else {
