@@ -56,19 +56,6 @@ public class RailAABB {
         // Imagine taking steps back at the current velocity until the minecart hits an edge of the current block
         // The first edge encountered is the edge the minecart came from
 
-        // Optimize the cases when the direction vector is perfectly along an axis
-        // This situation occurs very frequently on straight rails
-        double ls = direction.lengthSquared();
-        if (ls == (direction.getX()*direction.getX())) {
-            return (direction.getX() >= 0.0) ? BlockFace.EAST : BlockFace.WEST;
-        }
-        if (ls == (direction.getZ()*direction.getZ())) {
-            return (direction.getZ() >= 0.0) ? BlockFace.SOUTH : BlockFace.NORTH;
-        }
-        if (ls == (direction.getY()*direction.getY())) {
-            return (direction.getY() >= 0.0) ? BlockFace.UP : BlockFace.DOWN;
-        }
-
         double result_end_x = 0.0;
         double result_end_y = 0.0;
         double result_end_z = 0.0;

@@ -223,6 +223,21 @@ public class RailState {
      */
     public BlockFace enterFace() {
         Vector d = this.enterDirection();
+
+        // Optimize the cases when the direction vector is perfectly along an axis
+        // This situation occurs very frequently on straight rails
+        double ls = d.lengthSquared();
+        if (ls == (d.getX()*d.getX())) {
+            return (d.getX() >= 0.0) ? BlockFace.EAST : BlockFace.WEST;
+        }
+        if (ls == (d.getZ()*d.getZ())) {
+            return (d.getZ() >= 0.0) ? BlockFace.SOUTH : BlockFace.NORTH;
+        }
+        if (ls == (d.getY()*d.getY())) {
+            return (d.getY() >= 0.0) ? BlockFace.UP : BlockFace.DOWN;
+        }
+
+        // Create position relative to block coordinates and ask AABB about it
         Vector p = this._enterPosition;
         Vector pos = new Vector(p.getX() - p.getBlockX(),
                                 p.getY() - p.getBlockY(),
