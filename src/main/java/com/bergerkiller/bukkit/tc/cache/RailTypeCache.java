@@ -2,21 +2,38 @@ package com.bergerkiller.bukkit.tc.cache;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
-/**
- * Caches rail types found at Minecart positions to improve performance when walking tracks
- */
 public class RailTypeCache {
+    private static final LookupKey LOOKUP_KEY = new LookupKey();
     private static final RailInfo[] EMPTY_INFO = new RailInfo[0];
-    private static final HashMap<Block, CachedRailType> cachedRailTypes = new HashMap<Block, CachedRailType>();
+    private static final Map<Key, Value> cache = new HashMap<Key, Value>();
 
     public static void removeInfo(Block posBlock) {
-        cachedRailTypes.remove(posBlock);
+        try (LookupKey key = LOOKUP_KEY.lock(posBlock)) {
+            cache.remove(key);
+        }
+    }
+
+    /**
+     * Gets all the cached rail informations available at the position in a rail state
+     * 
+     * @param state
+     * @return list of valid rails at a block position
+     */
+    public static RailInfo[] getInfo(RailState state) {
+        try (LookupKey posBlockKey = LOOKUP_KEY.lock(state.railBlock(), state.position())) {
+            return lookupInfo(posBlockKey);
+        }
     }
 
     /**
@@ -26,7 +43,13 @@ public class RailTypeCache {
      * @return list of valid rails at a block position
      */
     public static RailInfo[] getInfo(Block posBlock) {
-        CachedRailType cached = cachedRailTypes.get(posBlock);
+        try (LookupKey posBlockKey = LOOKUP_KEY.lock(posBlock)) {
+            return lookupInfo(posBlockKey);
+        }
+    }
+
+    private static RailInfo[] lookupInfo(LookupKey key) {
+        Value cached = cache.get(key);
         if (cached == null) {
             return EMPTY_INFO; // No rails
         }
@@ -40,12 +63,16 @@ public class RailTypeCache {
             for (int i = 0; i < cached.info.length; i++) {
                 RailInfo info = cached.info[i];
                 try {
+                    // Verify rail exists
                     if (!info.railType.isRail(info.railBlock)) {
-                        removeInfo(posBlock);
+                        cache.remove(key);
                         return EMPTY_INFO; // Invalid
                     }
+
+                    // Verify signs exist
+                    info.verifySigns();
                 } catch (Throwable t) {
-                    removeInfo(posBlock);
+                    cache.remove(key);
                     RailType.handleCriticalError(info.railType, t);
                     return EMPTY_INFO; // Error
                 }
@@ -65,17 +92,29 @@ public class RailTypeCache {
     }
 
     public static void storeInfo(Block block, RailInfo[] info) {
-        cachedRailTypes.put(block, new CachedRailType(info));
+        cache.put(new Key(block), new Value(info));
     }
 
     // removes all cached rails, forcing a global recalculation
     public static void reset() {
-        cachedRailTypes.clear();
+        cache.clear();
+    }
+
+    /**
+     * Erases cached sign information for all cached rails.
+     * Called from {@link RailSignCache#reset()}
+     */
+    protected static void resetSigns() {
+        for (Value value : cache.values()) {
+            for (RailInfo info : value.info) {
+                info.resetSigns();
+            }
+        }
     }
 
     // cleans up cached rail types that haven't been accessed in quite a while
     public static void cleanup() {
-        Iterator<CachedRailType> iter = cachedRailTypes.values().iterator();
+        Iterator<Value> iter = cache.values().iterator();
         while (iter.hasNext()) {
             if (++iter.next().life > 20) {
                 iter.remove();
@@ -83,13 +122,136 @@ public class RailTypeCache {
         }
     }
 
-    private static final class CachedRailType {
+    // Value object used in the hashmap, mapped by block, storing all rail information
+    private static final class Value {
         public final RailInfo[] info;
         public int life; // for automatic purging
 
-        public CachedRailType(RailInfo[] info) {
+        public Value(RailInfo[] info) {
             this.info = info;
             this.life = 0;
+        }
+    }
+
+    // Used for get/remove operations, to avoid creating a new key
+    private static final class LookupKey extends Key implements AutoCloseable {
+        private boolean locked;
+
+        public LookupKey() {
+            super(null, 0, 0, 0);
+            this.locked = false;
+        }
+
+        /**
+         * Locks the lookup key with a new lookup value.
+         * The returned key can be used for lookup.
+         * If this key was already locked, another key is used instead.
+         * 
+         * @param railBlock
+         * @param railPosition
+         * @return key
+         */
+        public LookupKey lock(Block railBlock, RailPath.Position railPosition) {
+            if (railPosition.relative) {
+                return lock(railBlock.getWorld(),
+                        railBlock.getX() + MathUtil.floor(railPosition.posX),
+                        railBlock.getY() + MathUtil.floor(railPosition.posY),
+                        railBlock.getZ() + MathUtil.floor(railPosition.posZ));
+            } else {
+                return lock(railBlock.getWorld(),
+                        MathUtil.floor(railPosition.posX),
+                        MathUtil.floor(railPosition.posY),
+                        MathUtil.floor(railPosition.posZ));
+            }
+        }
+
+        /**
+         * Locks the lookup key with a new lookup value.
+         * The returned key can be used for lookup.
+         * If this key was already locked, another key is used instead.
+         * 
+         * @param block
+         * @return key
+         */
+        public LookupKey lock(Block block) {
+            return lock(block.getWorld(), block.getX(), block.getY(), block.getZ());
+        }
+
+        /**
+         * Locks the lookup key with a new lookup value.
+         * The returned key can be used for lookup.
+         * If this key was already locked, another key is used instead.
+         * 
+         * @param world of the block
+         * @param x - coordinate of the block
+         * @param y - coordinate of the block
+         * @param z - coordinate of the block
+         * @return key
+         */
+        public LookupKey lock(World world, int x, int y, int z) {
+            if (this.locked) {
+                LookupKey key = new LookupKey();
+                key.locked = true;
+                key.load(world, x, y, z);
+                return key;
+            } else {
+                this.locked = true;
+                this.load(world, x, y, z);
+                return this;
+            }
+        }
+
+        @Override
+        public void close() {
+            this.locked = false;
+        }
+    }
+
+    // Key object used in the hashmap for mapping by Block
+    private static class Key implements Cloneable {
+        public World world;
+        public int x, y, z;
+
+        public Key(Block block) {
+            this(block.getWorld(), block.getX(), block.getY(), block.getZ());
+        }
+
+        public Key(World world, int x, int y, int z) {
+            this.world = world;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public final void load(World world, int x, int y, int z) {
+            this.world = world;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        @Override
+        public final int hashCode() {
+            int hash = 17;
+            hash = hash * 31 + System.identityHashCode(world);
+            hash = hash * 31 + x;
+            hash = hash * 31 + y;
+            hash = hash * 31 + z;
+            return hash;
+        }
+
+        @Override
+        public final boolean equals(Object o) {
+            Key other = (Key) o;
+            return this.x == other.x &&
+                   this.y == other.y &&
+                   this.z == other.z &&
+                   this.world == other.world;
+        }
+
+        @Override
+        public final Key clone() {
+            return new Key(this.world, this.x, this.y, this.z);
         }
     }
 }

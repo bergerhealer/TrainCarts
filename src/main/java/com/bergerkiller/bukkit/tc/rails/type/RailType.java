@@ -25,7 +25,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,10 +157,10 @@ public abstract class RailType {
     public static boolean loadRailInformation(RailState state) {
         state.initEnterDirection();
         state.position().assertAbsolute();
-        Block positionBlock = state.positionBlock();
-        RailInfo[] cachedInfo = RailTypeCache.getInfo(positionBlock);
+        RailInfo[] cachedInfo = RailTypeCache.getInfo(state);
         if (cachedInfo.length == 0) {
             // Standard lookup. Cache the result if we succeed.
+            Block positionBlock = state.positionBlock();
             try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
                 for (RailType type : values()) {
                     try {
