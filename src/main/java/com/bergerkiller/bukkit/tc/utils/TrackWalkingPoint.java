@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -64,7 +65,7 @@ public class TrackWalkingPoint {
 
     public TrackWalkingPoint(Location startPos, Vector motionVector) {
         this.state = new RailState();
-        this.state.setRailBlock(startPos.getBlock());
+        this.state.setRailPiece(RailPiece.createWorldPlaceholder(startPos.getWorld()));
         this.state.position().setMotion(motionVector);
         this.state.position().setLocation(startPos);
         RailType.loadRailInformation(this.state);
@@ -76,8 +77,7 @@ public class TrackWalkingPoint {
         this.state = new RailState();
         this.state.position().relative = false;
         if (startRail != null) {
-            this.state.setRailBlock(startRail);
-            this.state.setRailType(RailType.getType(startRail));
+            this.state.setRailPiece(RailPiece.create(RailType.getType(startRail), startRail));
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
             this.state.initEnterDirection();

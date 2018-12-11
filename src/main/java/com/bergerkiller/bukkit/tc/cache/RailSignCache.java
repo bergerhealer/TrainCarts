@@ -152,7 +152,7 @@ public class RailSignCache {
     // removes all cached signs, forcing a global recalculation
     public static void reset() {
         cachedRailSigns.clear();
-        RailTypeCache.resetSigns();
+        RailPieceCache.resetSigns();
     }
 
     // cleans up cached rail sign lists that haven't been accessed in quite a while

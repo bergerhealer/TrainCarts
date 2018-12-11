@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
@@ -129,7 +130,7 @@ public class DebugTool {
             Vector dir = loc.getDirection();
             RailState result = null;
             RailState state = new RailState();
-            state.setRailBlock(loc.getBlock());
+            state.setRailPiece(RailPiece.createWorldPlaceholder(loc.getWorld()));
             state.position().setMotion(dir);
             state.initEnterDirection();
 

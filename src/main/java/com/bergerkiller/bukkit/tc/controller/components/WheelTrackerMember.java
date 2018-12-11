@@ -425,7 +425,7 @@ public class WheelTrackerMember {
             RailPath.Position position = this._railPosition;
             position.setLocation(this.member.getEntity().loc);
             position.setMotion(member.getRailTracker().getMotionVector());
-            rail.getPath().move(position, rail.block, 0.0);
+            rail.getPath().move(position, rail.state.railBlock(), 0.0);
 
             // Flip the direction when the orientation vs front differs
             // When dot is 0.0, we hit an odd 90-degree incline
@@ -451,7 +451,7 @@ public class WheelTrackerMember {
                 for (int index = railIndex; index >= 0 && index < rails.size() && remainingDistance >= 0.0001; index += order) {
                     rail = rails.get(index);
                     RailPath path = rail.getPath();
-                    remainingDistance -= path.move(position, rail.block, remainingDistance);
+                    remainingDistance -= path.move(position, rail.state.railBlock(), remainingDistance);
                 }
 
                 // Any remaining distance, simply 'assume' from the last-known direction information

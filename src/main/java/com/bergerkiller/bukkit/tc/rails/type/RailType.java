@@ -7,9 +7,10 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
+import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -17,7 +18,6 @@ import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -91,7 +91,7 @@ public abstract class RailType {
      */
     public static void unregister(RailType type) {
         if (values.remove(type)) {
-            RailTypeCache.reset();
+            RailPieceCache.reset();
         }
     }
 
@@ -107,7 +107,7 @@ public abstract class RailType {
         } else {
             values.add(type);
         }
-        RailTypeCache.reset();
+        RailPieceCache.reset();
     }
 
     /**
@@ -157,8 +157,8 @@ public abstract class RailType {
     public static boolean loadRailInformation(RailState state) {
         state.initEnterDirection();
         state.position().assertAbsolute();
-        RailInfo[] cachedInfo = RailTypeCache.getInfo(state);
-        if (cachedInfo.length == 0) {
+        RailPiece[] cachedPieces = RailPieceCache.find(state);
+        if (cachedPieces.length == 0) {
             // Standard lookup. Cache the result if we succeed.
             Block positionBlock = state.positionBlock();
             try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
@@ -167,8 +167,8 @@ public abstract class RailType {
                         List<Block> rails = type.findRails(positionBlock);
                         if (!rails.isEmpty()) {
                             for (Block railsBlock : rails) {
-                                cachedInfo = Arrays.copyOf(cachedInfo, cachedInfo.length + 1);
-                                cachedInfo[cachedInfo.length - 1] = new RailInfo(positionBlock, railsBlock, type);
+                                cachedPieces = Arrays.copyOf(cachedPieces, cachedPieces.length + 1);
+                                cachedPieces[cachedPieces.length - 1] = RailPiece.create(type, railsBlock);
                             }
                             break;
                         }
@@ -179,71 +179,72 @@ public abstract class RailType {
             }
 
             // Store in cache if we have results
-            if (cachedInfo.length > 0) {
-                RailTypeCache.storeInfo(positionBlock, cachedInfo);
+            if (cachedPieces.length > 0) {
+                RailPieceCache.storeInfo(positionBlock, cachedPieces);
             } else {
-                state.setRailBlock(positionBlock);
-                state.setRailType(RailType.NONE);
+                state.setRailPiece(RailPiece.create(RailType.NONE, positionBlock));
                 return false;
             }
         }
 
-        // If more than one rails exists here, pick the most appropriate one for this position
+        // If more than one rail piece exists here, pick the most appropriate one for this position
         // This is a little bit slower, but required for rare instances of multiple rails per block
-        RailInfo result;
-        if (cachedInfo.length >= 2) {
-            result = cachedInfo[0];
+        RailPiece resultPiece;
+        if (cachedPieces.length >= 2) {
+            resultPiece = cachedPieces[0];
             double minDistSq = Double.MAX_VALUE;
-            for (RailInfo info : cachedInfo) {
-                state.setRailBlock(info.railBlock);
-                state.setRailType(info.railType);
+            for (RailPiece piece : cachedPieces) {
+                state.setRailPiece(piece);
                 RailLogic logic = state.loadRailLogic();
                 RailPath path = logic.getPath();
                 double distSq = path.distanceSquared(state.railPosition());
                 if (distSq < minDistSq) {
                     minDistSq = distSq;
-                    result = info;
+                    resultPiece = piece;
                 }
             }
         } else {
-            result = cachedInfo[0];
+            resultPiece = cachedPieces[0];
         }
 
-        state.setRailBlock(result.railBlock);
-        state.setRailType(result.railType);
+        state.setRailPiece(resultPiece);
         return true;
     }
 
     /**
-     * <b>Deprecated: use {@link #findRailInfo(Location)} instead</b>
+     * <b>Deprecated: use {@link #findRailPiece(Location)} instead</b>
      * 
-     * @param posBlock block position where the Minecart is at
-     * @return rail info at this block, null if no rails are found
+     * @param blockPosition block position where the Minecart is at
+     * @return rail piece at this block, null if no rails are found
      */
     @Deprecated
-    public static RailInfo findRailInfo(Block posBlock) {
-        return findRailInfo(new Location(posBlock.getWorld(), posBlock.getX() + 0.5, posBlock.getY() + 0.5, posBlock.getZ() + 0.5));
+    public static RailPiece findRailPiece(Block blockPosition) {
+        RailState state = new RailState();
+        state.position().setLocationMidOf(blockPosition);
+        state.setRailPiece(RailPiece.createWorldPlaceholder(blockPosition.getWorld()));
+        if (loadRailInformation(state)) {
+            return state.railPiece();
+        } else {
+            return null;
+        }
     }
 
     /**
-     * Checks all registered rail types and attempts to find it for the Minecart position specified.
+     * Checks all registered rail types and attempts to find the rail piece used for the Minecart position specified.
      * Some performance enhancements are used to make this lookup faster for repeated calls for positions inside
      * the same block. Note that the position does not have to be the same position as the rails block
      * itself. For example, rails that have trains hover above or below it will have entirely different
      * rails blocks.
      * 
      * @param position in world coordinates where to look for rails
-     * @return rail info at this block, null if no rails are found
+     * @return rail piece at this position, null if no rails are found
      */
-    public static RailInfo findRailInfo(Location position) {
-        Block positionBlock = position.getBlock();
+    public static RailPiece findRailPiece(Location position) {
         RailState state = new RailState();
         state.position().setLocation(position);
-        state.setRailBlock(positionBlock);
-        state.setRailType(RailType.NONE);
+        state.setRailPiece(RailPiece.createWorldPlaceholder(position.getWorld()));
         if (loadRailInformation(state)) {
-            //public RailInfo(Block posBlock, Block railBlock, RailType railType) {
-            return new RailInfo(positionBlock, state.railBlock(), state.railType());
+            return state.railPiece();
         } else {
             return null;
         }
@@ -392,8 +393,7 @@ public abstract class RailType {
      */
     public List<RailJunction> getJunctions(Block railBlock) {
         RailState state = new RailState();
-        state.setRailBlock(railBlock);
-        state.setRailType(this);
+        state.setRailPiece(RailPiece.create(this, railBlock));
         state.position().setLocation(this.getSpawnLocation(railBlock, BlockFace.DOWN));
         state.position().setMotion(BlockFace.DOWN);
         state.initEnterDirection();
@@ -417,8 +417,7 @@ public abstract class RailType {
      */
     public RailState takeJunction(Block railBlock, RailJunction junction) {
         RailState state = new RailState();
-        state.setRailBlock(railBlock);
-        state.setRailType(this);
+        state.setRailPiece(RailPiece.create(this, railBlock));
         junction.position().copyTo(state.position());
         state.position().makeAbsolute(railBlock);
         state.position().smallAdvance();

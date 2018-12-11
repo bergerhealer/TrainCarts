@@ -8,47 +8,56 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
-public class RailTypeCache {
+/**
+ * Caches {@link com.bergerkiller.bukkit.tc.controller.components.RailPiece RailPiece} information for
+ * positions in the world.
+ */
+public class RailPieceCache {
     private static final LookupKey LOOKUP_KEY = new LookupKey();
-    private static final RailInfo[] EMPTY_INFO = new RailInfo[0];
+    private static final RailPiece[] EMPTY_INFO = new RailPiece[0];
     private static final Map<Key, Value> cache = new HashMap<Key, Value>();
 
-    public static void removeInfo(Block posBlock) {
-        try (LookupKey key = LOOKUP_KEY.lock(posBlock)) {
+    /**
+     * Removes rail pieces cached at a block position in the world
+     * 
+     * @param blockPosition
+     */
+    public static void removeAtPosition(Block blockPosition) {
+        try (LookupKey key = LOOKUP_KEY.lock(blockPosition)) {
             cache.remove(key);
         }
     }
 
     /**
-     * Gets all the cached rail informations available at the position in a rail state
+     * Gets all the cached rail pieces available at the position in a rail state
      * 
      * @param state
-     * @return list of valid rails at a block position
+     * @return list of valid rails at the state's block position
      */
-    public static RailInfo[] getInfo(RailState state) {
-        try (LookupKey posBlockKey = LOOKUP_KEY.lock(state.railBlock(), state.position())) {
+    public static RailPiece[] find(RailState state) {
+        try (LookupKey posBlockKey = LOOKUP_KEY.lock(state)) {
             return lookupInfo(posBlockKey);
         }
     }
 
     /**
-     * Gets all the cached rail informations available at a particular block position
+     * Gets all the cached rail pieces available at a particular block position
      * 
      * @param posBlock
      * @return list of valid rails at a block position
      */
-    public static RailInfo[] getInfo(Block posBlock) {
-        try (LookupKey posBlockKey = LOOKUP_KEY.lock(posBlock)) {
+    public static RailPiece[] find(Block blockPosition) {
+        try (LookupKey posBlockKey = LOOKUP_KEY.lock(blockPosition)) {
             return lookupInfo(posBlockKey);
         }
     }
 
-    private static RailInfo[] lookupInfo(LookupKey key) {
+    private static RailPiece[] lookupInfo(LookupKey key) {
         Value cached = cache.get(key);
         if (cached == null) {
             return EMPTY_INFO; // No rails
@@ -61,10 +70,10 @@ public class RailTypeCache {
             // Hence we use an array instead of a list because why not?
             // If we detect a single rail being missing, invalidate the entire cache for that block
             for (int i = 0; i < cached.info.length; i++) {
-                RailInfo info = cached.info[i];
+                RailPiece info = cached.info[i];
                 try {
                     // Verify rail exists
-                    if (!info.railType.isRail(info.railBlock)) {
+                    if (!info.type().isRail(info.block())) {
                         cache.remove(key);
                         return EMPTY_INFO; // Invalid
                     }
@@ -73,7 +82,7 @@ public class RailTypeCache {
                     info.verifySigns();
                 } catch (Throwable t) {
                     cache.remove(key);
-                    RailType.handleCriticalError(info.railType, t);
+                    RailType.handleCriticalError(info.type(), t);
                     return EMPTY_INFO; // Error
                 }
             }
@@ -85,13 +94,7 @@ public class RailTypeCache {
         return cached.info;
     }
 
-    @Deprecated
-    public static RailInfo getInfoOld(Block posBlock) {
-        RailInfo[] info = getInfo(posBlock);
-        return (info.length > 0) ? info[0] : null;
-    }
-
-    public static void storeInfo(Block block, RailInfo[] info) {
+    public static void storeInfo(Block block, RailPiece[] info) {
         cache.put(new Key(block), new Value(info));
     }
 
@@ -106,8 +109,8 @@ public class RailTypeCache {
      */
     protected static void resetSigns() {
         for (Value value : cache.values()) {
-            for (RailInfo info : value.info) {
-                info.resetSigns();
+            for (RailPiece info : value.info) {
+                info.refreshSigns();
             }
         }
     }
@@ -124,10 +127,10 @@ public class RailTypeCache {
 
     // Value object used in the hashmap, mapped by block, storing all rail information
     private static final class Value {
-        public final RailInfo[] info;
+        public final RailPiece[] info;
         public int life; // for automatic purging
 
-        public Value(RailInfo[] info) {
+        public Value(RailPiece[] info) {
             this.info = info;
             this.life = 0;
         }
@@ -147,18 +150,19 @@ public class RailTypeCache {
          * The returned key can be used for lookup.
          * If this key was already locked, another key is used instead.
          * 
-         * @param railBlock
-         * @param railPosition
+         * @param state
          * @return key
          */
-        public LookupKey lock(Block railBlock, RailPath.Position railPosition) {
+        public LookupKey lock(RailState state) {
+            RailPath.Position railPosition = state.position();
             if (railPosition.relative) {
+                Block railBlock = state.railBlock();
                 return lock(railBlock.getWorld(),
                         railBlock.getX() + MathUtil.floor(railPosition.posX),
                         railBlock.getY() + MathUtil.floor(railPosition.posY),
                         railBlock.getZ() + MathUtil.floor(railPosition.posZ));
             } else {
-                return lock(railBlock.getWorld(),
+                return lock(state.railWorld(),
                         MathUtil.floor(railPosition.posX),
                         MathUtil.floor(railPosition.posY),
                         MathUtil.floor(railPosition.posZ));

@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
@@ -825,7 +826,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     private final boolean fillRailInformation(RailState state) {
         // Need an initial Rail Block set
-        state.setRailBlock(entity.loc.toBlock());
+        state.setRailPiece(RailPiece.createWorldPlaceholder(entity.getWorld()));
         state.setMember(this);
         state.position().setMotion(this.calcMotionVector(false));
 

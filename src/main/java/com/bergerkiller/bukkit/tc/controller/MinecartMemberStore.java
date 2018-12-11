@@ -14,13 +14,13 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.PaperRedstonePhysicsChecker;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 import com.bergerkiller.mountiplex.conversion.annotations.ConverterMethod;
 
 import org.bukkit.GameMode;
@@ -367,10 +367,8 @@ public abstract class MinecartMemberStore {
     }
 
     public static MinecartMember<?> getAt(Location at) {
-        RailInfo info = RailType.findRailInfo(at);
-        return (info == null) ? null : getAt(info.railBlock);
-        
-        //return getAt(at, null);
+        RailPiece piece = RailType.findRailPiece(at);
+        return (piece == null) ? null : getAt(piece.block());
     }
 
     public static MinecartMember<?> getAt(Location at, MinecartGroup in) {
