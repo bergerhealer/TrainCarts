@@ -343,12 +343,32 @@ public class TCListener implements Listener {
         mloc.setPitch(0.0f);
         final Location loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
         final Entity e = event.getExited();
-        //teleport
+        final Location old_location = e.getLocation();
+
+        // Teleport to the exit position a tick later
         CommonUtil.nextTick(new Runnable() {
             public void run() {
                 if (e.isDead() || e.getVehicle() != null) {
                     return;
                 }
+
+                // Do not teleport if the player changed position dramatically after exiting
+                // This is the case when teleporting (/tp)
+                // The default vanilla exit position is going to be at most 1 block away in all axis
+                Location new_location = e.getLocation();
+                if (old_location.getWorld() != new_location.getWorld()) {
+                    return;
+                }
+                if (Math.abs(old_location.getBlockX() - new_location.getBlockX()) > 1) {
+                    return;
+                }
+                if (Math.abs(old_location.getBlockY() - new_location.getBlockY()) > 1) {
+                    return;
+                }
+                if (Math.abs(old_location.getBlockZ() - new_location.getBlockZ()) > 1) {
+                    return;
+                }
+
                 loc.setYaw(e.getLocation().getYaw());
                 loc.setPitch(e.getLocation().getPitch());
                 e.teleport(loc);
