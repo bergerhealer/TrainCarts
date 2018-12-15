@@ -281,7 +281,7 @@ public class PathProvider extends Task {
             }
             Block nextRail = p.state.railBlock();
             boolean hasFinished = false;
-            for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(p.state.railType(), p.state.railBlock())) {
+            for (RailSignCache.TrackedSign trackedSign : p.state.railSigns()) {
                 // Discover a SignAction at this sign
                 SignActionEvent event = new SignActionEvent(trackedSign);
                 event.setAction(SignActionType.GROUP_ENTER);

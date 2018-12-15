@@ -8,6 +8,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -159,7 +160,7 @@ public class RailState {
      * Gets the rails block which is currently used to control the movement of the path.
      * This is equivalent to {@link #railPiece()}.{@link RailPiece#block() block()}
      * 
-     * @return rails block
+     * @return rail block
      */
     public final Block railBlock() {
         return this._railPiece.block();
@@ -169,10 +170,20 @@ public class RailState {
      * Gets the rails type which is currently used to control the movement of the path.
      * This is equivalent to {@link #railPiece()}.{@link RailPiece#type() type()}
      * 
-     * @return rails type
+     * @return rail type
      */
     public final RailType railType() {
         return this._railPiece.type();
+    }
+
+    /**
+     * Gets the signs which are activated for the current rail being moved over.
+     * This is equivalent to {@link #railPiece()}.{@link RailPiece#signs() signs()}
+     * 
+     * @return rail signs
+     */
+    public final TrackedSign[] railSigns() {
+        return this._railPiece.signs();
     }
 
     /**

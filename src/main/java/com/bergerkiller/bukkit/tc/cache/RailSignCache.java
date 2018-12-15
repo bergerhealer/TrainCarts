@@ -72,22 +72,27 @@ public class RailSignCache {
      */
     public static TrackedSign[] discoverSigns(RailType railType, Block railBlock) {
         Block columnStart = railType.getSignColumnStart(railBlock);
+        if (columnStart == null) {
+            return EMPTY_SIGNS;
+        }
+
         BlockFace direction = railType.getSignColumnDirection(railBlock);
+        if (direction == null || direction == BlockFace.SELF) {
+            return EMPTY_SIGNS;
+        }
 
         // Compute signs. Do check that the sign search input params are correct.
         TrackedSign[] signs = EMPTY_SIGNS;
-        if (columnStart != null && direction != BlockFace.SELF && direction != null) {
-            try {
-                addSignsFromRails(signListCache, columnStart, direction);
-                if (!signListCache.isEmpty()) {
-                    signs = new TrackedSign[signListCache.size()];
-                    for (int i = 0; i < signs.length; i++) {
-                        signs[i] = new TrackedSign(signListCache.get(i), railType, railBlock);
-                    }
+        try {
+            addSignsFromRails(signListCache, columnStart, direction);
+            if (!signListCache.isEmpty()) {
+                signs = new TrackedSign[signListCache.size()];
+                for (int i = 0; i < signs.length; i++) {
+                    signs[i] = new TrackedSign(signListCache.get(i), railType, railBlock);
                 }
-            } finally {
-                signListCache.clear();
             }
+        } finally {
+            signListCache.clear();
         }
 
         return signs;

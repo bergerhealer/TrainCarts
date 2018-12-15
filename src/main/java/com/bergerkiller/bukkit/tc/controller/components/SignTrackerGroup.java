@@ -165,8 +165,13 @@ public class SignTrackerGroup extends SignTracker {
                         continue;
                     }
 
-                    List<TrackedSign> signs = info.member.getSignTracker().liveActiveSigns;
-                    signs.addAll(Arrays.asList(info.state.railPiece().signs()));
+                    TrackedSign[] signs = info.state.railSigns();
+                    if (signs.length > 0) {
+                        List<TrackedSign> memberSigns = info.member.getSignTracker().liveActiveSigns;
+                        for (TrackedSign sign : signs) {
+                            memberSigns.add(sign);
+                        }
+                    }
                 }
 
                 // Filter based on cart skip options
