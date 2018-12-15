@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfigureAnimationDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfigureAnimationNodeDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfirmAnimationDeleteDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.MapWidgetAnimationView;
@@ -40,7 +41,7 @@ public class AnimationMenu extends MapWidgetMenu {
         @Override
         public void onSelectedItemChanged() {
             boolean menuEnabled = !this.getItems().isEmpty();
-            animView.setAnimation(getAnimation());
+            animView.setAnimation(loadAnimation());
             animDelete.setEnabled(menuEnabled);
             animConfig.setEnabled(menuEnabled);
             animManyMode.setEnabled(menuEnabled);
@@ -117,7 +118,9 @@ public class AnimationMenu extends MapWidgetMenu {
     private final MapWidgetBlinkyButton animConfig = new MapWidgetBlinkyButton() {
         @Override
         public void onClick() {
-            
+            ConfigureAnimationDialog dialog = new ConfigureAnimationDialog(AnimationMenu.this);
+            dialog.setAttachment(attachment);
+            AnimationMenu.this.addWidget(dialog);
         }
     };
     private final MapWidgetBlinkyButton animManyMode = new MapWidgetBlinkyButton() {
@@ -391,6 +394,10 @@ public class AnimationMenu extends MapWidgetMenu {
     }
 
     public Animation getAnimation() {
+        return this.animView.getAnimation();
+    }
+
+    public Animation loadAnimation() {
         String item = this.animSelectionBox.getSelectedItem();
         return (item == null) ? null : Animation.loadFromConfig(getAnimRootConfig().getNode(item));
     }
