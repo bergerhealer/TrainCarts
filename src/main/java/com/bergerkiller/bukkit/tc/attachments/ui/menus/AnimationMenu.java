@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class AnimationMenu extends MapWidgetMenu {
     private boolean playForAll = false;
-    private final MapWidgetAttachmentNode attachment;
     private final MapWidgetSelectionBox animSelectionBox = new MapWidgetSelectionBox() { // anchor
         @Override
         public void onAttached() {
@@ -172,8 +171,7 @@ public class AnimationMenu extends MapWidgetMenu {
     };
     /* ============================================================== */
 
-    public AnimationMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public AnimationMenu() {
         this.setBounds(5, 15, 118, 108);
         this.setBackgroundColor(MapColorPalette.COLOR_CYAN);
     }

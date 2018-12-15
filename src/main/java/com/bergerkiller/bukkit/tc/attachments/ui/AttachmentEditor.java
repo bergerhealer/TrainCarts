@@ -16,11 +16,6 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
@@ -40,17 +35,7 @@ public class AttachmentEditor extends MapDisplay {
 
         @Override
         public void onMenuOpen(MapWidgetAttachmentNode node, MenuItem menu) {
-            if (menu == MenuItem.APPEARANCE) {
-                AttachmentEditor.this.addWidget(new AppearanceMenu(node));
-            } else if (menu == MenuItem.POSITION) {
-                AttachmentEditor.this.addWidget(new PositionMenu(node));
-            } else if (menu == MenuItem.ANIMATION) {
-                AttachmentEditor.this.addWidget(new AnimationMenu(node));
-            } else if (menu == MenuItem.GENERAL) {
-                AttachmentEditor.this.addWidget(new GeneralMenu(node));
-            } else if (menu == MenuItem.PHYSICAL) {
-                AttachmentEditor.this.addWidget(new PhysicalMenu(node));
-            }
+            AttachmentEditor.this.addWidget(menu.createMenu(node));
         }
     };
 

@@ -21,11 +21,9 @@ import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 
 public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
-    private final MapWidgetAttachmentNode attachment;
     private final MapWidgetTabView tabView = new MapWidgetTabView();
 
-    public AppearanceMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public AppearanceMenu() {
         this.setBounds(5, 15, 118, 104);
         this.setBackgroundColor(MapColorPalette.COLOR_BLUE);
     }

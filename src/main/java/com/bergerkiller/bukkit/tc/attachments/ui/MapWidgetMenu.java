@@ -8,10 +8,15 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
  * Abstract base class for a menu window that is closed when deactivated
  */
 public class MapWidgetMenu extends MapWidgetWindow {
+    protected MapWidgetAttachmentNode attachment;
 
     public MapWidgetMenu() {
         this.setDepthOffset(4);
         this.setFocusable(true);
+    }
+
+    public void setAttachment(MapWidgetAttachmentNode attachment) {
+        this.attachment = attachment;
     }
 
     @Override

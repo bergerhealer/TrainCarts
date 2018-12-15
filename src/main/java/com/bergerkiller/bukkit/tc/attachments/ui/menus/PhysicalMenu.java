@@ -22,11 +22,9 @@ public class PhysicalMenu extends MapWidgetMenu {
     private static final int NUMBERBOX_OFFSET = 35;
     private static final int NUMBERBOX_STEP = 24;
     private static final int NUMBERBOX_HEIGHT = 11;
-    private final MapWidgetAttachmentNode attachment;
     private final MapTexture wheelTexture;
 
-    public PhysicalMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public PhysicalMenu() {
         this.setBounds(5, 15, 118, 104);
         this.setBackgroundColor(MapColorPalette.COLOR_ORANGE);
         this.wheelTexture = MapTexture.loadPluginResource(TrainCarts.plugin,

@@ -11,6 +11,12 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
+import com.bergerkiller.mountiplex.MountiplexUtil;
 
 /**
  * A single attachment node in the attachment node tree, containing
@@ -349,6 +355,27 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public static enum MenuItem {
-        APPEARANCE, POSITION, ANIMATION, GENERAL, PHYSICAL
+        APPEARANCE(AppearanceMenu.class),
+        POSITION(PositionMenu.class),
+        ANIMATION(AnimationMenu.class),
+        GENERAL(GeneralMenu.class),
+        PHYSICAL(PhysicalMenu.class);
+
+        private final Class<? extends MapWidgetMenu> _menuClass;
+
+        private MenuItem(Class<? extends MapWidgetMenu> menuClass) {
+            this._menuClass = menuClass;
+        }
+
+        public MapWidgetMenu createMenu(MapWidgetAttachmentNode attachmentNode) {
+            MapWidgetMenu menu;
+            try {
+                menu = this._menuClass.newInstance();
+                menu.setAttachment(attachmentNode);
+                return menu;
+            } catch (Throwable t) {
+                throw MountiplexUtil.uncheckedRethrow(t);
+            }
+        }
     }
 }

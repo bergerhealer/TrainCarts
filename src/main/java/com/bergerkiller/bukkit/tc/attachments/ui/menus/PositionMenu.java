@@ -14,10 +14,8 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 
 public class PositionMenu extends MapWidgetMenu {
-    private final MapWidgetAttachmentNode attachment;
 
-    public PositionMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public PositionMenu() {
         this.setBounds(5, 15, 118, 108);
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
     }

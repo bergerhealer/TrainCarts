@@ -12,10 +12,8 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 
 public class GeneralMenu extends MapWidgetMenu {
-    private final MapWidgetAttachmentNode attachment;
 
-    public GeneralMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public GeneralMenu() {
         this.setBounds(5, 15, 118, 104);
         this.setBackgroundColor(MapColorPalette.COLOR_YELLOW);
     }
