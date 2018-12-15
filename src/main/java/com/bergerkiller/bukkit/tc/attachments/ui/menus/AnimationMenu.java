@@ -139,6 +139,12 @@ public class AnimationMenu extends MapWidgetMenu {
     };
     private final MapWidgetBlinkyButton animPlayRev = new MapWidgetBlinkyButton() {
         @Override
+        public void onAttached() {
+            super.onAttached();
+            this.setRepeatClickEnabled(true);
+        }
+
+        @Override
         public void onClick() {
             playAnimation(true, false);
         }
@@ -154,6 +160,12 @@ public class AnimationMenu extends MapWidgetMenu {
         }
     };
     private final MapWidgetBlinkyButton animPlayFwd = new MapWidgetBlinkyButton() {
+        @Override
+        public void onAttached() {
+            super.onAttached();
+            this.setRepeatClickEnabled(true);
+        }
+
         @Override
         public void onClick() {
             playAnimation(false, false);

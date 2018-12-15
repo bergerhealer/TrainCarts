@@ -20,6 +20,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     private int blinkCtr = 0;
     private boolean isRepeatClicking = false;
     private boolean blinkMode = false;
+    private boolean enableRepeatClicking = false;
     public final MapWidgetTooltip tooltip = new MapWidgetTooltip();
 
     public MapWidgetBlinkyButton() {
@@ -29,6 +30,11 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
 
     public MapWidgetBlinkyButton setTooltip(String text) {
         this.tooltip.setText(text);
+        return this;
+    }
+
+    public MapWidgetBlinkyButton setRepeatClickEnabled(boolean enabled) {
+        this.enableRepeatClicking = enabled;
         return this;
     }
 
@@ -105,7 +111,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     @Override
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == MapPlayerInput.Key.ENTER) {
-            if (event.getRepeat() <= 1) {
+            if (!this.enableRepeatClicking || event.getRepeat() <= 1) {
                 this.isRepeatClicking = false;
                 this.activate();
             } else {

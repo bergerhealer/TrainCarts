@@ -192,6 +192,11 @@ public class MapWidgetAttachmentNode extends MapWidget {
     public void onActivate() {
         super.onActivate();
 
+        // Sometimes activates withot being attached? Weird.
+        if (this.display == null) {
+            return;
+        }
+
         // Play a neat sliding sound
         display.playSound(CommonSounds.PISTON_EXTEND);
 
