@@ -119,6 +119,16 @@ public abstract class CartAttachment {
     }
 
     /**
+     * Gets the position offset of a passenger of an attachment, when the seat attachment
+     * has no position defined.
+     * 
+     * @return mount entity offset
+     */
+    public Vector getMountEntityOffset() {
+        return new Vector();
+    }
+
+    /**
      * Adds a new animation to this attachment
      * 
      * @param animation to add

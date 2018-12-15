@@ -79,6 +79,27 @@ public class VirtualEntity {
         return this.entityId;
     }
 
+    public boolean isMountable() {
+        switch (this.entityType) {
+        case HORSE:
+        case BOAT:
+            return false;
+        default:
+            return true;
+        }
+    }
+
+    public Vector getMountOffset() {
+        switch (this.entityType) {
+        case HORSE:
+            return new Vector(0.0, 1.4, 0.0);
+        case BOAT:
+            return new Vector(0.0, 0.2, 0.0);
+        default:
+            return new Vector(0.0, 1.0, 0.0);
+        }
+    }
+
     /**
      * Sets the relative position of this Entity
      * 

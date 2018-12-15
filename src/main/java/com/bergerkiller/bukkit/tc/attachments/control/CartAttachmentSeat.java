@@ -5,6 +5,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -98,6 +99,10 @@ public class CartAttachmentSeat extends CartAttachment {
         super.onAttached();
         this._hasPosition = this.config.isNode("position");
         this._rotationLocked = this.config.get("lockRotation", false);
+        if (!this._hasPosition && this.parent != null) {
+            this.local_transform = new Matrix4x4();
+            this.local_transform.translate(this.parent.getMountEntityOffset());
+        }
     }
 
     @Override

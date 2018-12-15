@@ -63,7 +63,16 @@ public class CartAttachmentEntity extends CartAttachment {
 
     @Override
     public int getMountEntityId() {
-        return this.entity.getEntityId();
+        if (this.entity.isMountable()) {
+            return this.entity.getEntityId();
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public Vector getMountEntityOffset() {
+        return this.entity.getMountOffset();
     }
 
     @Override
