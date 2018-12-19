@@ -160,7 +160,7 @@ public class Ticket {
      * @param config to load from
      */
     public void load(ConfigurationNode config) {
-        this._realm = config.get("realm", "");
+        this._realm = config.get("ticketRealm", "");
         this._playerBound = config.get("playerBound", false);
         this._maxNumberOfUses = config.get("maxNumberOfUses", 1);
         this._expirationTime = config.get("expirationTimeMillis", -1L);
