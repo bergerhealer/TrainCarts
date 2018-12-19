@@ -27,9 +27,8 @@ public class SignActionLauncher extends SignAction {
         // Parse the launch speed
         double velocity = ParseUtil.parseDouble(info.getLine(2), TCConfig.launchForce);
 
-        if (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-")) {
-            velocity += info.getMember().getRealSpeed();
-        }
+        // When prefixed with + or - the speed should be added on top of the current speed of the train
+        boolean addToRealSpeed = (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-"));
 
         // Parse the launch distance
         int launchEndIdx = info.getLine(1).indexOf(' ');
@@ -41,10 +40,15 @@ public class SignActionLauncher extends SignAction {
             Direction direction = Direction.parse(info.getLine(3));
             // Launch all groups
             for (MinecartGroup group : info.getRCTrainGroups()) {
+                double launchVelocity = velocity;
+                if (addToRealSpeed) {
+                    launchVelocity += group.head().getRealSpeed();
+                }
+
                 BlockFace cartDirection = group.head().getDirection();
                 BlockFace directionFace = direction.getDirection(cartDirection, cartDirection);
                 group.getActions().clear();
-                group.head().getActions().addActionLaunch(directionFace, launchConfig, velocity);
+                group.head().getActions().addActionLaunch(directionFace, launchConfig, launchVelocity);
             }
         } else if (info.hasRailedMember()) {
             // Parse the direction to launch into
@@ -55,9 +59,14 @@ public class SignActionLauncher extends SignAction {
                 launchConfig.setDistance(Util.calculateStraightLength(info.getRails(), direction));
             }
 
+            double launchVelocity = velocity;
+            if (addToRealSpeed) {
+                launchVelocity += info.getMember().getRealSpeed();
+            }
+
             // Launch
             info.getGroup().getActions().clear();
-            info.getMember().getActions().addActionLaunch(direction, launchConfig, velocity);
+            info.getMember().getActions().addActionLaunch(direction, launchConfig, launchVelocity);
         }
     }
 
