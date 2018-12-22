@@ -245,7 +245,6 @@ public abstract class CartAttachment {
      * Relative positioning of the attachment should happen here.
      */
     public void onPositionUpdate() {
-        this.transform.multiply(this.local_transform);
     }
 
     public abstract void onTick();
@@ -296,7 +295,10 @@ public abstract class CartAttachment {
             break;
         }
 
-        // Animations!
+        // Apply local transformation
+        attachment.transform.multiply(attachment.local_transform);
+
+        // Animation is performed on the attachment itself (not the relative position)
         boolean active = attachment.isActive();
         if (attachment.currentAnimation != null) {
             double dt = attachment.getController().getAnimationDeltaTime();
@@ -309,6 +311,7 @@ public abstract class CartAttachment {
 
         // Update positions
         attachment.onPositionUpdate();
+
         if (attachment.last_transform == null) {
             attachment.last_transform = attachment.transform.clone();
         }

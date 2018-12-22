@@ -92,8 +92,6 @@ public class CartAttachmentItem extends CartAttachment {
         }
         */
 
-        super.onPositionUpdate();
-
         final boolean DEBUG_POSE = false;
 
         // Debug mode makes models look at the viewer to test orientation

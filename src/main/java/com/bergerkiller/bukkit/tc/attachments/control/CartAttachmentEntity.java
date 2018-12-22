@@ -99,7 +99,6 @@ public class CartAttachmentEntity extends CartAttachment {
 
     @Override
     public void onPositionUpdate() {
-        super.onPositionUpdate();
         this.entity.updatePosition(this.transform);
         if (this.actual != null) {
             this.actual.updatePosition(this.transform);
