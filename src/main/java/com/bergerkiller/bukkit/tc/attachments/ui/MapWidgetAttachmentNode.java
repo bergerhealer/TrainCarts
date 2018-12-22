@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
@@ -80,7 +81,15 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public ConfigurationNode getFullConfig() {
-        ConfigurationNode result = this.config.clone();
+        // Clone our configuration, skip the 'attachments' node to avoid recursive overhead
+        ConfigurationNode result = new ConfigurationNode();
+        for (Map.Entry<String, Object> entry : this.config.getValues().entrySet()) {
+            if (!entry.getKey().equals("attachments")) {
+                result.set(entry.getKey(), entry.getValue());
+            }
+        }
+
+        // Add attachments
         List<ConfigurationNode> children = new ArrayList<ConfigurationNode>(this.attachments.size());
         for (MapWidgetAttachmentNode attachment : this.attachments) {
             children.add(attachment.getFullConfig());
