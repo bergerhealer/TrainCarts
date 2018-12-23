@@ -68,7 +68,7 @@ public class Animation implements Cloneable {
     public Animation setOptions(AnimationOptions options) {
         double old_delay = this._options.getDelay();
         this._options = options;
-        this._time += (this._options.getDelay() - old_delay);
+        this._time -= (this._options.getDelay() - old_delay);
         return this;
     }
 
@@ -82,7 +82,7 @@ public class Animation implements Cloneable {
     public Animation applyOptions(AnimationOptions options) {
         double old_delay = this._options.getDelay();
         this._options.apply(options);
-        this._time += (this._options.getDelay() - old_delay);
+        this._time -= (this._options.getDelay() - old_delay);
         return this;
     }
 
@@ -100,7 +100,7 @@ public class Animation implements Cloneable {
         } else {
             this._time = 0.0;
         }
-        this._time += this._options.getDelay();
+        this._time -= this._options.getDelay();
     }
 
     /**
