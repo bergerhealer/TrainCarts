@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.inventory.ItemStack;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
@@ -23,13 +25,14 @@ import com.bergerkiller.mountiplex.MountiplexUtil;
  * A single attachment node in the attachment node tree, containing
  * the configuration for the node.
  */
-public class MapWidgetAttachmentNode extends MapWidget {
+public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget {
     private ConfigurationNode config;
     private List<MapWidgetAttachmentNode> attachments = new ArrayList<MapWidgetAttachmentNode>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
     private MapTexture icon = null;
     private boolean changingOrder = false;
+    private MapWidgetMenuButton appearanceMenuButton;
 
     public MapWidgetAttachmentNode() {
         this(new ConfigurationNode());
@@ -213,7 +216,8 @@ public class MapWidgetAttachmentNode extends MapWidget {
         // Each button will open its own context menu to edit things
         // The buttons shown here depend on the type of the node, somewhat
         int px = this.col * 17 + 1;
-        this.addWidget(new MapWidgetMenuButton(MenuItem.APPEARANCE).setTooltip("Appearance").setIcon(getIcon()).setPosition(px, 1));
+        this.appearanceMenuButton = this.addWidget(new MapWidgetMenuButton(MenuItem.APPEARANCE));
+        this.appearanceMenuButton.setTooltip("Appearance").setIcon(getIcon()).setPosition(px, 1);
         px += 17;
 
         // Only for root nodes: modify Physical properties of the cart
@@ -255,6 +259,21 @@ public class MapWidgetAttachmentNode extends MapWidget {
         // Click navigation sounds
         //display.playSound(CommonSounds.CLICK_WOOD);
         this.activate();
+    }
+
+    @Override
+    public boolean acceptItem(ItemStack item) {
+        // If this is an item attachment, set the item
+        if (this.getType() == CartAttachmentType.ITEM) {
+            this.config.set("item", item.clone());
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+
+            // Redraw the appearance icon
+            this.resetIcon();
+            ((MapWidgetMenuButton) this.getWidget(0)).setIcon(getIcon());
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -392,4 +411,5 @@ public class MapWidgetAttachmentNode extends MapWidget {
             }
         }
     }
+
 }
