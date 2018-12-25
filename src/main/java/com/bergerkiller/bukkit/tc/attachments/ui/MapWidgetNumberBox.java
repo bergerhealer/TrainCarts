@@ -10,11 +10,12 @@ import com.bergerkiller.bukkit.common.map.MapFont.Alignment;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
 /**
  * Allows modifying a double number using left/right OR up/down (vertical) buttons
  */
-public class MapWidgetNumberBox extends MapWidget {
+public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     private double _value = 0.0;
     private double _min = Double.NEGATIVE_INFINITY;
     private double _max = Double.POSITIVE_INFINITY;
@@ -44,6 +45,12 @@ public class MapWidgetNumberBox extends MapWidget {
     public void setRange(double min, double max) {
         this._min = min;
         this._max = max;
+    }
+
+    @Override
+    public boolean acceptTextValue(String value) {
+        this.setValue(ParseUtil.parseDouble(value, this.getValue()));
+        return true;
     }
 
     public void setValue(double value) {
@@ -193,4 +200,5 @@ public class MapWidgetNumberBox extends MapWidget {
 
     public void onValueChanged() {
     }
+
 }
