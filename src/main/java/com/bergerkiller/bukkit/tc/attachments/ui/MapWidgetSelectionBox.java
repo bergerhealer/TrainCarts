@@ -64,6 +64,8 @@ public class MapWidgetSelectionBox extends MapWidget {
                 }
                 this.invalidate();
                 this.onSelectedItemChanged();
+            } else if (index < this.selectedIndex) {
+                this.selectedIndex--;
             }
         }
         return this;

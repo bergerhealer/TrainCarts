@@ -48,6 +48,14 @@ public class AnimationMenu extends MapWidgetMenu {
             animPlayFwd.setEnabled(menuEnabled);
             animPlayRev.setEnabled(menuEnabled);
         }
+
+        @Override
+        public void onActivate() {
+            // Rename current animation
+            if (!this.getItems().isEmpty()) {
+                animRenameBox.activate();
+            }
+        }
     };
     private final MapWidgetAnimationView animView = new MapWidgetAnimationView() {
         @Override
@@ -100,6 +108,18 @@ public class AnimationMenu extends MapWidgetMenu {
         @Override
         public void onAccept(String text) {
             createAnimation(text);
+        }
+    };
+    private final MapWidgetSubmitText animRenameBox = new MapWidgetSubmitText() {
+        @Override
+        public void onAttached() {
+            super.onAttached();
+            setDescription("Enter the new animation name");
+        }
+
+        @Override
+        public void onAccept(String text) {
+            renameAnimation(text);
         }
     };
 
@@ -235,6 +255,7 @@ public class AnimationMenu extends MapWidgetMenu {
         top_menu_y += 18;
 
         this.addWidget(this.animNameBox);
+        this.addWidget(this.animRenameBox);
         this.addWidget(this.animView.setBounds(top_menu_x, top_menu_y, getWidth()-2*top_menu_x, 11*6+1));
     }
 
@@ -272,6 +293,24 @@ public class AnimationMenu extends MapWidgetMenu {
         String item = this.animSelectionBox.getSelectedItem();
         this.animSelectionBox.removeItem(item);
         this.getAnimRootConfig().remove(item);
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+    }
+
+    /**
+     * Changes the name of the currently selected animation
+     * 
+     * @param newName
+     */
+    public void renameAnimation(String newName) {
+        // Ignore if taken
+        if (this.animSelectionBox.getItems().contains(newName)) {
+            return;
+        }
+
+        // Change name
+        Animation anim = this.getAnimation().clone();
+        anim.getOptions().setName(newName);
+        this.setAnimation(anim);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
     }
 
@@ -403,16 +442,31 @@ public class AnimationMenu extends MapWidgetMenu {
     }
 
     public void setAnimation(Animation animation) {
+        String old_name = this.animSelectionBox.getSelectedItem();
+        String new_name = animation.getOptions().getName();
+        boolean is_name_change = (old_name != null && !old_name.equals(new_name));
+
+        // If name was changed, delete the original animation
+        if (is_name_change) {
+            getAnimRootConfig().remove(old_name);
+        }
+
         // Save to configuration
         animation.saveToParentConfig(getAnimRootConfig());
 
-        // Add item to selection box if not exists, otherwise refresh view
-        String name = animation.getOptions().getName();
-        if (this.animSelectionBox.getItems().contains(name)) {
+        if (is_name_change) {
+            // If name change, add the new name and select it, then delete the old item
+            // This prevents too many unneeded reloading
+            this.animSelectionBox.addItem(new_name);
+            this.animSelectionBox.setSelectedItem(new_name);
+            this.animSelectionBox.removeItem(old_name);
+        } else if (this.animSelectionBox.getItems().contains(new_name)) {
+            // Refresh animation view only
             this.animView.setAnimation(animation);
         } else {
-            this.animSelectionBox.addItem(name);
-            this.animSelectionBox.setSelectedItem(name);
+            // Add the new animation and select it
+            this.animSelectionBox.addItem(new_name);
+            this.animSelectionBox.setSelectedItem(new_name);
         }
     }
 
