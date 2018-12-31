@@ -116,7 +116,7 @@ public class CartAttachmentItem extends CartAttachment {
             Quaternion changes = last_rot.clone();
             changes.invert();
             changes.multiply(q_rotation);
-            yaw_change = changes.getYawPitchRoll().getY();
+            yaw_change = Util.fastGetRotationYaw(changes);
         } else {
             yaw_change = 0.0;
         }
