@@ -100,7 +100,8 @@ public class TCListener implements Listener {
         if (vehicle != null && !vehicle.isPlayerTakable()) {
             vehicle.ignoreNextDie();
             // Eject the player before proceeding to the saving
-            vehicle.eject();
+            // This prevents the player 'taking' the minecart with him
+            vehicle.getEntity().removePassenger(event.getPlayer());
         }
 
         // Clean up the fake teams we've sent
