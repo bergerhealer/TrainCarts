@@ -153,7 +153,11 @@ public class MapWidgetAnimationView extends MapWidget {
     public void onActivate() {
         super.onActivate();
 
-        this._nodes[this._selectedNodeIndex].setSelected(true);
+        int selIndex = this._selectedNodeIndex - this._scrollOffset;
+        for (int i = 0; i < this._nodes.length; i++) {
+            this._nodes[i].setSelected(i == selIndex);
+        }
+
         this.onSelectionChanged();
     }
 
