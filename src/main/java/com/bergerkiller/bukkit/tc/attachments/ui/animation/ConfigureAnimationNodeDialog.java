@@ -2,8 +2,11 @@ package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
@@ -75,7 +78,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }.setPosition(x_offset + 7, y_offset));
 
         // Duplicate node below this one node
-        this.addWidget(new MapWidgetBlinkyButton() {
+        MapWidget duplicateButton = this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onDuplicate();
@@ -104,6 +107,16 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 updateNode(ChangeMode.DURATION, this.getValue());
+            }
+
+            @Override
+            public void onKeyPressed(MapKeyEvent event) {
+                if (event.getKey() == Key.UP) {
+                    // Force the duplicate button to be focused
+                    duplicateButton.focus();
+                } else {
+                    super.onKeyPressed(event);
+                }
             }
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Delta T");
