@@ -199,7 +199,7 @@ public class CartAttachmentItem extends CartAttachment {
         if (this.transformType == ItemTransformType.LEFT_HAND) {
             Matrix4x4 tmp = this.transform.clone();
             tmp.translate(-0.4, 0.3, 0.9375);
-            tmp.multiply(this.local_transform);
+            tmp.multiply(this.position.transform);
             Vector ypr = tmp.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
             this.entity.updatePosition(tmp, ypr);
@@ -207,7 +207,7 @@ public class CartAttachmentItem extends CartAttachment {
         } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
             Matrix4x4 tmp = this.transform.clone();
             tmp.translate(-0.4, 0.3, -0.9375);
-            tmp.multiply(this.local_transform);
+            tmp.multiply(this.position.transform);
             Vector ypr = tmp.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
             this.entity.updatePosition(tmp, ypr);

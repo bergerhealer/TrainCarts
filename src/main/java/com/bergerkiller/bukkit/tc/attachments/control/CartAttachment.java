@@ -10,48 +10,28 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
-import com.bergerkiller.bukkit.tc.attachments.config.PositionAnchorType;
+import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 public abstract class CartAttachment {
     public List<CartAttachment> children = new ArrayList<CartAttachment>(0);
-    private PositionAnchorType anchor = PositionAnchorType.DEFAULT;
     private Map<String, Animation> animations = new HashMap<String, Animation>();
     private Animation currentAnimation = null;
+    public ObjectPosition position = new ObjectPosition();
     private boolean active = true;
     protected MinecartMemberNetwork controller = null;
     protected CartAttachment parent = null;
     protected ConfigurationNode config = null;
     public Matrix4x4 last_transform;
     public Matrix4x4 transform;
-    public Matrix4x4 local_transform;
-    public Vector3 position;
-    public Vector3 rotation;
 
     public void onAttached() {
-        this.anchor = PositionAnchorType.DEFAULT;
-        this.position = new Vector3(0.0, 0.0, 0.0);
-        this.rotation = new Vector3(0.0, 0.0, 0.0);
-        if (this.config.isNode("position")) {
-            ConfigurationNode positionNode = this.config.getNode("position");
-            this.position.x = positionNode.get("posX", 0.0);
-            this.position.y = positionNode.get("posY", 0.0);
-            this.position.z = positionNode.get("posZ", 0.0);
-            this.rotation.x = positionNode.get("rotX", 0.0);
-            this.rotation.y = positionNode.get("rotY", 0.0);
-            this.rotation.z = positionNode.get("rotZ", 0.0);
-            this.anchor = positionNode.get("anchor", PositionAnchorType.DEFAULT);
-        }
-        this.local_transform = new Matrix4x4();
-        this.local_transform.translate(this.position);
-        this.local_transform.rotateYawPitchRoll(this.rotation);
-
+        this.position.load(this.config.getNode("position"));
         this.animations.clear();
         if (this.config.isNode("animations")) {
             ConfigurationNode animations = this.config.getNode("animations");
@@ -283,7 +263,7 @@ public abstract class CartAttachment {
         attachment.last_transform = attachment.transform;
 
         // Update the transform based on the anchor setting
-        switch (attachment.anchor) {
+        switch (attachment.position.anchor) {
         case FRONT_WHEEL:
             attachment.transform = attachment.getController().getMember().getWheels().front().getAbsoluteTransform();
             break;
@@ -296,7 +276,7 @@ public abstract class CartAttachment {
         }
 
         // Apply local transformation
-        attachment.transform.multiply(attachment.local_transform);
+        attachment.transform.multiply(attachment.position.transform);
 
         // Animation is performed on the attachment itself (not the relative position)
         boolean active = attachment.isActive();

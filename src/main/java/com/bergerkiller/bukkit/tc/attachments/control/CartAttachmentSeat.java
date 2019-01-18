@@ -5,7 +5,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -38,7 +37,6 @@ public class CartAttachmentSeat extends CartAttachment {
     private VirtualEntity _fakeCameraMount = null;
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
     private int _parentMountId = -1;
-    private boolean _hasPosition = false;
     private boolean _rotationLocked = false;
 
     public void updateSeater() {
@@ -55,7 +53,7 @@ public class CartAttachmentSeat extends CartAttachment {
         // Find a parent to mount to
         if (this._parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (this.parent != null && !this._hasPosition) {
+            if (this.parent != null && this.position.isDefault()) {
                 this._parentMountId = this.parent.getMountEntityId();
             }
 
@@ -97,11 +95,10 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onAttached() {
         super.onAttached();
-        this._hasPosition = this.config.isNode("position");
         this._rotationLocked = this.config.get("lockRotation", false);
-        if (!this._hasPosition && this.parent != null) {
-            this.local_transform = new Matrix4x4();
-            this.local_transform.translate(this.parent.getMountEntityOffset());
+        if (this.position.isDefault() && this.parent != null) {
+            this.position.transform.setIdentity();
+            this.position.transform.translate(this.parent.getMountEntityOffset());
         }
     }
 
