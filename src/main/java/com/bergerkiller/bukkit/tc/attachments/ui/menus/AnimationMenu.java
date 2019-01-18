@@ -326,13 +326,19 @@ public class AnimationMenu extends MapWidgetMenu {
             return;
         }
 
-        // Create a default animation configuration at this node, and save it
-        this.setAnimation(new Animation(name,
+        // Save new animation to configuration
+        Animation newAnimation = new Animation(name,
                 "t=0.25 x=0.0 y=0.0 z=0.0 yaw=0.0 pitch=0.0 roll=0.0",
                 "t=0.25 x=0.0 y=0.0 z=0.0 yaw=90.0 pitch=0.0 roll=0.0",
                 "t=0.25 x=0.0 y=0.0 z=0.0 yaw=180.0 pitch=0.0 roll=0.0",
                 "t=0.25 x=0.0 y=0.0 z=0.0 yaw=270.0 pitch=0.0 roll=0.0"
-        ));
+        );
+        newAnimation.saveToParentConfig(getAnimRootConfig());
+
+        // Add item to select box, then select it
+        this.animSelectionBox.addItem(name);
+        this.animSelectionBox.setSelectedItem(name);
+
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
     }
 
