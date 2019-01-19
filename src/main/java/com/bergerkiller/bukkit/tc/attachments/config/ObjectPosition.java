@@ -39,6 +39,7 @@ public class ObjectPosition {
     public void load(ConfigurationNode config) {
         this.reset();
         if (!config.isEmpty()) {
+            this._isDefault = false;
             this.position.x = config.get("posX", 0.0);
             this.position.y = config.get("posY", 0.0);
             this.position.z = config.get("posZ", 0.0);
