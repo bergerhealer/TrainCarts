@@ -16,12 +16,14 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
@@ -35,6 +37,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityMinecartRideableHandle;
 import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
@@ -78,6 +81,7 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -354,7 +358,19 @@ public class TCListener implements Listener {
         Location mloc = mm.getEntity().getLocation();
         mloc.setYaw(FaceUtil.faceToYaw(mm.getDirection()));
         mloc.setPitch(0.0f);
-        final Location loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
+
+        final Location loc;
+        MinecartMemberNetwork network = CommonUtil.tryCast(mm.getEntity().getNetworkController(), MinecartMemberNetwork.class);
+        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(event.getExited());
+
+        if (seat == null) {
+            // Fallback
+            loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
+        } else {
+            // Use seat
+            loc = seat.getEjectPosition();
+        }
+
         final Entity e = event.getExited();
         final Location old_location = e.getLocation();
 
@@ -382,8 +398,7 @@ public class TCListener implements Listener {
                     return;
                 }
 
-                loc.setYaw(e.getLocation().getYaw());
-                loc.setPitch(e.getLocation().getPitch());
+                Util.correctTeleportPosition(loc);
                 e.teleport(loc);
             }
         });

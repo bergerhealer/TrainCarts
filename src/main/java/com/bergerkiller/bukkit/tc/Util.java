@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.mountiplex.reflection.MethodAccessor;
@@ -1234,4 +1235,26 @@ public class Util {
         return _bkc_blockdata_cansupporttop.invoke(data);
     }
     private static MethodAccessor<Boolean> _bkc_blockdata_cansupporttop = null;
+
+    /**
+     * Adjusts the teleport position to avoid an entity getting glitched in a block.
+     * The player is teleported upwards any block they are currently inside of with their feet.
+     * 
+     * @param loc to correct
+     */
+    public static void correctTeleportPosition(Location loc) {
+        Block locBlock = loc.getBlock();
+        Vector rel = loc.toVector();
+        rel.setX(rel.getX() - locBlock.getX());
+        rel.setY(rel.getY() - locBlock.getY());
+        rel.setZ(rel.getZ() - locBlock.getZ());
+        AxisAlignedBBHandle bounds = WorldUtil.getBlockData(locBlock).getBoundingBox(locBlock);
+        if (bounds != null /* AIR */ &&
+            rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX() &&
+            rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY() &&
+            rel.getZ() >= bounds.getMinZ() && rel.getZ() <= bounds.getMaxZ())
+        {
+            loc.setY((double) locBlock.getY() + bounds.getMaxY() + 1e-5);
+        }
+    }
 }

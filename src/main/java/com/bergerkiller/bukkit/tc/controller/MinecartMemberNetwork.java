@@ -168,6 +168,24 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return result;
     }
 
+    /**
+     * Finds the seat occupied by a passenger
+     * 
+     * @param passenger
+     * @return seat, null if not found seated
+     */
+    public CartAttachmentSeat findSeat(Entity passenger) {
+        if (this.seatAttachments.isEmpty()) {
+            return null;
+        }
+        for (CartAttachmentSeat seat : this.seatAttachments) {
+            if (seat.getEntity() == passenger) {
+                return seat;
+            }
+        }
+        return getSeatsClosestTo(passenger.getLocation().toVector()).get(0);
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();

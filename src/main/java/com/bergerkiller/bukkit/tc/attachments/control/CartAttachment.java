@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
+import com.bergerkiller.bukkit.tc.attachments.config.PositionAnchorType;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 public abstract class CartAttachment {
@@ -263,17 +264,9 @@ public abstract class CartAttachment {
         attachment.last_transform = attachment.transform;
 
         // Update the transform based on the anchor setting
-        switch (attachment.position.anchor) {
-        case FRONT_WHEEL:
-            attachment.transform = attachment.getController().getMember().getWheels().front().getAbsoluteTransform();
-            break;
-        case BACK_WHEEL:
-            attachment.transform = attachment.getController().getMember().getWheels().back().getAbsoluteTransform();
-            break;
-        default:
-            attachment.transform = transform.clone();
-            break;
-        }
+        // Assign transform first, calcBaseTransform will clone it for us
+        attachment.transform = transform;
+        attachment.transform = attachment.calcBaseTransform(attachment.position.anchor);
 
         // Apply local transformation
         attachment.transform.multiply(attachment.position.transform);
@@ -362,6 +355,17 @@ public abstract class CartAttachment {
         Vector pos_old = this.last_transform.toVector();
         Vector pos_new = this.transform.toVector();
         return pos_new.subtract(pos_old);
+    }
+
+    protected Matrix4x4 calcBaseTransform(PositionAnchorType anchor) {
+        switch (anchor) {
+        case FRONT_WHEEL:
+            return getController().getMember().getWheels().front().getAbsoluteTransform();
+        case BACK_WHEEL:
+            return getController().getMember().getWheels().back().getAbsoluteTransform();
+        default:
+            return this.transform.clone();
+        }
     }
 
     /**
