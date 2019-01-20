@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 
 public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
@@ -61,29 +62,42 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
                 markChanged();
             }
         });
-        tabView.addTab().addWidget(new MapWidgetButton() { // SEAT
-            private boolean checked = false;
 
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.checked = getAttachment().getConfig().get("lockRotation", false);
-                updateText();
-            }
+        // SEAT
+        {
+            MapWidgetTabView.Tab seatTab = tabView.addTab();
+            seatTab.addWidget(new MapWidgetButton() { // Lock rotation toggle button
+                private boolean checked = false;
 
-            private void updateText() {
-                this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
-            }
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.checked = getAttachment().getConfig().get("lockRotation", false);
+                    updateText();
+                }
 
-            @Override
-            public void onActivate() {
-                this.checked = !this.checked;
-                updateText();
-                getAttachment().getConfig().set("lockRotation", this.checked);
-                markChanged();
-                display.playSound(CommonSounds.CLICK);
-            }
-        }).setBounds(0, 10, 100, 16);
+                private void updateText() {
+                    this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
+                }
+
+                @Override
+                public void onActivate() {
+                    this.checked = !this.checked;
+                    updateText();
+                    getAttachment().getConfig().set("lockRotation", this.checked);
+                    markChanged();
+                    display.playSound(CommonSounds.CLICK);
+                }
+            }).setBounds(0, 10, 100, 16);
+
+            seatTab.addWidget(new MapWidgetButton() { // Change exit position button
+                @Override
+                public void onActivate() {
+                    AppearanceMenu.this.addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
+                }
+            }).setText("Change Exit").setBounds(0, 30, 100, 16);
+        }
+
         tabView.addTab(); // MODEL
 
         tabView.setPosition(7, 16);

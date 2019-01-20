@@ -368,7 +368,7 @@ public class TCListener implements Listener {
             loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
         } else {
             // Use seat
-            loc = seat.getEjectPosition();
+            loc = seat.getEjectPosition(event.getExited());
         }
 
         final Entity e = event.getExited();

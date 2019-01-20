@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapFont.Alignment;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 
@@ -20,7 +21,9 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     private double _min = Double.NEGATIVE_INFINITY;
     private double _max = Double.POSITIVE_INFINITY;
     private double _incr = 0.01;
+    private int _changeRepeat = 0;
     private boolean _vertical = false;
+    private String _textOverride = null;
     private final MapWidgetArrow nav_decr = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_incr = new MapWidgetArrow(BlockFace.EAST);
 
@@ -36,6 +39,13 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
             this.onBoundsChanged();
         }
         return this;
+    }
+
+    public void setTextOverride(String text) {
+        if (!LogicUtil.bothNullOrEqual(this._textOverride, text)) {
+            this._textOverride = text;
+            this.invalidate();
+        }
     }
 
     public void setIncrement(double increment) {
@@ -70,6 +80,10 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         return this._value;
     }
 
+    public int getChangeRepeat() {
+        return this._changeRepeat;
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();
@@ -94,6 +108,7 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
+        this._changeRepeat = event.getRepeat();
         if (this._vertical) {
             // Up / Down
             if (event.getKey() == MapPlayerInput.Key.DOWN) {
@@ -145,15 +160,19 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
             // Up / Down
             if (event.getKey() == MapPlayerInput.Key.DOWN) {
                 nav_decr.stopFocus();
+                onValueChangeEnd();
             } else if (event.getKey() == MapPlayerInput.Key.UP) {
                 nav_incr.stopFocus();
+                onValueChangeEnd();
             }
         } else {
             // Left / Right
             if (event.getKey() == MapPlayerInput.Key.LEFT) {
                 nav_decr.stopFocus();
+                onValueChangeEnd();
             } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
                 nav_incr.stopFocus();
+                onValueChangeEnd();
             }
         }
     }
@@ -172,13 +191,19 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
 
     @Override
     public void onDraw() {
+        String text;
+        if (this._textOverride != null) {
+            text = this._textOverride;
+        } else {
+            text = Double.toString(MathUtil.round(getValue(), 4));
+        }
+
         if (this._vertical) {
             int offset = nav_decr.getHeight() + 1;
 
             MapWidgetButton.fillBackground(this.view.getView(1, offset + 1, getWidth() - 2, getHeight() - 2 * offset - 2), this.isEnabled(), this.isFocused());
             this.view.drawRectangle(0, offset, getWidth(), getHeight() - 2 * offset, this.isFocused() ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
 
-            String text = Double.toString(MathUtil.round(getValue(), 4));
             this.view.setAlignment(Alignment.MIDDLE);
             this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
         } else {
@@ -187,7 +212,6 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
             MapWidgetButton.fillBackground(this.view.getView(offset + 1, 1, getWidth() - 2 * offset - 2, getHeight() - 2), this.isEnabled(), this.isFocused());
             this.view.drawRectangle(offset, 0, getWidth() - 2 * offset, getHeight(), this.isFocused() ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
 
-            String text = Double.toString(MathUtil.round(getValue(), 4));
             this.view.setAlignment(Alignment.MIDDLE);
             this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
         }
@@ -196,9 +220,16 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     @Override
     public void onActivate() {
         this.setValue(0.0);
+        this.onValueChangeEnd();
     }
 
     public void onValueChanged() {
     }
 
+    /**
+     * Fired when the player stops changing the value.
+     * Does not fire when changing value directly, or when loading.
+     */
+    public void onValueChangeEnd() {
+    }
 }

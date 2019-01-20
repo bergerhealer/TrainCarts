@@ -4,10 +4,8 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
@@ -234,15 +232,6 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }
         this._node = new AnimationNode(pos, rot, active, duration);
         this.onChanged();
-    }
-
-    private void addLabel(int x, int y, String text) {
-        MapWidgetText label = new MapWidgetText();
-        label.setFont(MapFont.TINY);
-        label.setText(text);
-        label.setPosition(x, y);
-        label.setColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_GREEN, 0.5f));
-        this.addWidget(label);
     }
 
     private static enum ChangeMode {

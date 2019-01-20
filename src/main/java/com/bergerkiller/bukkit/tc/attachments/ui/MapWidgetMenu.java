@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 
 /**
@@ -9,6 +12,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
  */
 public class MapWidgetMenu extends MapWidgetWindow {
     protected MapWidgetAttachmentNode attachment;
+    protected byte labelColor = MapColorPalette.COLOR_GREEN;
 
     public MapWidgetMenu() {
         this.setDepthOffset(4);
@@ -39,5 +43,21 @@ public class MapWidgetMenu extends MapWidgetWindow {
      */
     public void close() {
         this.removeWidget();
+    }
+
+    /**
+     * Adds a small text label in a place
+     * 
+     * @param x
+     * @param y
+     * @param text
+     */
+    public void addLabel(int x, int y, String text) {
+        MapWidgetText label = new MapWidgetText();
+        label.setFont(MapFont.TINY);
+        label.setText(text);
+        label.setPosition(x, y);
+        label.setColor(MapColorPalette.getSpecular(this.labelColor, 0.5f));
+        this.addWidget(label);
     }
 }

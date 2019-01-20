@@ -408,9 +408,10 @@ public class CartAttachmentSeat extends CartAttachment {
     /**
      * Calculates the eject position of the seat
      * 
+     * @param passenger to check eject position for
      * @return eject position
      */
-    public Location getEjectPosition() {
+    public Location getEjectPosition(Entity passenger) {
         CartProperties cprop = this.getController().getMember().getProperties();
 
         Matrix4x4 tmp = this.calcBaseTransform(this._ejectPosition.anchor);
@@ -431,13 +432,12 @@ public class CartAttachmentSeat extends CartAttachment {
         float pitch = (float) ypr.getX();
 
         // When rotation is not locked, preserve original orientation of passenger
-        if (!this._ejectLockRotation && this.getEntity() != null) {
-            Entity entity = this.getEntity();
+        if (!this._ejectLockRotation && passenger != null) {
             Location curr_loc;
-            if (entity instanceof LivingEntity) {
-                curr_loc = ((LivingEntity) entity).getEyeLocation();
+            if (passenger instanceof LivingEntity) {
+                curr_loc = ((LivingEntity) passenger).getEyeLocation();
             } else {
-                curr_loc = entity.getLocation();
+                curr_loc = passenger.getLocation();
             }
             yaw = curr_loc.getYaw();
             pitch = curr_loc.getPitch();

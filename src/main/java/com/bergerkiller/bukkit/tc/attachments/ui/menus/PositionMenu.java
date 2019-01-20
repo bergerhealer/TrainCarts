@@ -174,15 +174,6 @@ public class PositionMenu extends MapWidgetMenu {
         y_offset += y_step;
     }
 
-    private void addLabel(int x, int y, String text) {
-        MapWidgetText label = new MapWidgetText();
-        label.setFont(MapFont.TINY);
-        label.setText(text);
-        label.setPosition(x, y);
-        label.setColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_GREEN, 0.5f));
-        this.addWidget(label);
-    }
-
     public ConfigurationNode getConfig() {
         return this.attachment.getConfig().getNode("position");
     }
