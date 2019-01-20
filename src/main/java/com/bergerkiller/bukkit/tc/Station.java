@@ -266,8 +266,14 @@ public class Station {
      * @return center position Minecart
      */
     public MinecartMember<?> getCenterPositionCart() {
-        // Calculate total size first
         MinecartGroup group = this.getGroup();
+
+        // Easy mode
+        if (group.size() == 1) {
+            return group.get(0);
+        }
+
+        // Calculate total size first
         double total_size = 0.5 * (double) group.head().getEntity().getWidth();
         for (int i = 1; i < group.size(); i++) {
             total_size += group.get(i).getEntity().loc.distance(group.get(i-1).getEntity().loc);
@@ -420,19 +426,21 @@ public class Station {
         // Use the actual distance between carts for this, instead of 'expected'
         // Also take the half-sizes on either end into account
         MinecartGroup group = this.getGroup();
-        double center_size = 0.5 * (double) group.get(0).getEntity().getWidth();
-        double total_size = center_size;
-        for (int i = 1; i < group.size(); i++) {
-            MinecartMember<?> m = group.get(i);
-            total_size += m.getEntity().loc.distance(group.get(i-1).getEntity().loc);
-            if (m == info.cart) {
-                center_size = total_size;
+        if (group.size() > 1) {
+            double center_size = 0.5 * (double) group.get(0).getEntity().getWidth();
+            double total_size = center_size;
+            for (int i = 1; i < group.size(); i++) {
+                MinecartMember<?> m = group.get(i);
+                total_size += m.getEntity().loc.distance(group.get(i-1).getEntity().loc);
+                if (m == info.cart) {
+                    center_size = total_size;
+                }
             }
-        }
-        total_size += 0.5 * (double) group.tail().getEntity().getWidth();
+            total_size += 0.5 * (double) group.tail().getEntity().getWidth();
 
-        // Adjust distance based on this information
-        info.distance += (0.5*total_size) - center_size;
+            // Adjust distance based on this information
+            info.distance += (0.5*total_size) - center_size;
+        }
 
         return info;
     }

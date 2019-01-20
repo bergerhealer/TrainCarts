@@ -291,13 +291,16 @@ public class TrackWalkingPoint {
      * @return True when the rails was found, False if not.
      */
     public boolean moveFindRail(Block railsBlock, double maxDistance) {
-        // Move full rail distances until the rails block is found
+        // Move full rail distances until the rails block is found. if not starting out on the rail
         this.movedTotal = 0.0;
-        while (!BlockUtil.equals(this.state.railBlock(), railsBlock)) {
-            // Out of tracks or distance exceeded
-            if (!this.moveFull() || this.movedTotal > maxDistance) {
-                return false;
-            }
+        boolean startedOnRail = BlockUtil.equals(this.state.railBlock(), railsBlock);
+        if (!startedOnRail) {
+            do {
+                // Out of tracks or distance exceeded
+                if (!this.moveFull() || this.movedTotal > maxDistance) {
+                    return false;
+                }
+            } while (!BlockUtil.equals(this.state.railBlock(), railsBlock));
         }
 
         // Found our rails Block! Move a tiny step further onto it.
@@ -306,12 +309,21 @@ public class TrackWalkingPoint {
         for (int i = 0; i < 10; i++) {
             double distance = this.state.position().distance(spawnLocation);
             if (distance < 1e-4) {
-                break; // 
+                // Reached spawn location
+                break;
             }
             double moved = this.currentRailPath.move(this.state, distance);
             this.movedTotal += moved;
             if (moved < 1e-4) {
-                break; // End of path
+                // When we start out on the rail, we could be walking into the wrong direction
+                // In that case, fail the walker, as we are really moving <off> the current rail,
+                // never reaching the intended center position.
+                if (startedOnRail) {
+                    return false;
+                }
+
+                // End of path
+                break;
             }
         }
         this.moved = this.movedTotal;
