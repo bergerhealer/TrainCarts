@@ -36,10 +36,18 @@ public class TCInteractionPacketListener implements PacketListener {
     };
 
     private void storeHit(Player player) {
-        if (lastHitTime.isEmpty()) {
-            new HitTimeCleanTask(TrainCarts.plugin).start(1, 1);
+        synchronized (lastHitTime) {
+            if (lastHitTime.isEmpty()) {
+                new HitTimeCleanTask(TrainCarts.plugin).start(1, 1);
+            }
+            lastHitTime.put(player, System.currentTimeMillis());
         }
-        lastHitTime.put(player, System.currentTimeMillis());
+    }
+
+    private boolean isHit(Player player) {
+        synchronized (lastHitTime) {
+            return lastHitTime.containsKey(player);
+        }
     }
 
     private void cancelBlockChanges(Player player, IntVector3 pos) {
@@ -74,7 +82,7 @@ public class TCInteractionPacketListener implements PacketListener {
         }
 
         // The arm swing animation fires multiple times in rapid succession; cancel those
-        if (event.getType() == PacketType.IN_ENTITY_ANIMATION && lastHitTime.containsKey(event.getPlayer())) {
+        if (event.getType() == PacketType.IN_ENTITY_ANIMATION && isHit(event.getPlayer())) {
             event.setCancelled(true);
             return;
         }
@@ -140,15 +148,17 @@ public class TCInteractionPacketListener implements PacketListener {
 
         @Override
         public void run() {
-            long timeout = System.currentTimeMillis() - 150;
-            Iterator<Long> iter = lastHitTime.values().iterator();
-            while (iter.hasNext()) {
-                if (iter.next().longValue() >= timeout) {
-                    iter.remove();
+            synchronized (lastHitTime) {
+                long timeout = System.currentTimeMillis() - 150;
+                Iterator<Long> iter = lastHitTime.values().iterator();
+                while (iter.hasNext()) {
+                    if (iter.next().longValue() >= timeout) {
+                        iter.remove();
+                    }
                 }
-            }
-            if (lastHitTime.isEmpty()) {
-                this.stop();
+                if (lastHitTime.isEmpty()) {
+                    this.stop();
+                }
             }
         }
 

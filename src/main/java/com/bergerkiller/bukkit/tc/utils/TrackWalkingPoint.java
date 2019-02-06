@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -64,7 +65,7 @@ public class TrackWalkingPoint {
 
     public TrackWalkingPoint(Location startPos, Vector motionVector) {
         this.state = new RailState();
-        this.state.setRailBlock(startPos.getBlock());
+        this.state.setRailPiece(RailPiece.createWorldPlaceholder(startPos.getWorld()));
         this.state.position().setMotion(motionVector);
         this.state.position().setLocation(startPos);
         RailType.loadRailInformation(this.state);
@@ -76,8 +77,7 @@ public class TrackWalkingPoint {
         this.state = new RailState();
         this.state.position().relative = false;
         if (startRail != null) {
-            this.state.setRailBlock(startRail);
-            this.state.setRailType(RailType.getType(startRail));
+            this.state.setRailPiece(RailPiece.create(RailType.getType(startRail), startRail));
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
             this.state.initEnterDirection();
@@ -291,13 +291,16 @@ public class TrackWalkingPoint {
      * @return True when the rails was found, False if not.
      */
     public boolean moveFindRail(Block railsBlock, double maxDistance) {
-        // Move full rail distances until the rails block is found
+        // Move full rail distances until the rails block is found. if not starting out on the rail
         this.movedTotal = 0.0;
-        while (!BlockUtil.equals(this.state.railBlock(), railsBlock)) {
-            // Out of tracks or distance exceeded
-            if (!this.moveFull() || this.movedTotal > maxDistance) {
-                return false;
-            }
+        boolean startedOnRail = BlockUtil.equals(this.state.railBlock(), railsBlock);
+        if (!startedOnRail) {
+            do {
+                // Out of tracks or distance exceeded
+                if (!this.moveFull() || this.movedTotal > maxDistance) {
+                    return false;
+                }
+            } while (!BlockUtil.equals(this.state.railBlock(), railsBlock));
         }
 
         // Found our rails Block! Move a tiny step further onto it.
@@ -306,12 +309,21 @@ public class TrackWalkingPoint {
         for (int i = 0; i < 10; i++) {
             double distance = this.state.position().distance(spawnLocation);
             if (distance < 1e-4) {
-                break; // 
+                // Reached spawn location
+                break;
             }
             double moved = this.currentRailPath.move(this.state, distance);
             this.movedTotal += moved;
             if (moved < 1e-4) {
-                break; // End of path
+                // When we start out on the rail, we could be walking into the wrong direction
+                // In that case, fail the walker, as we are really moving <off> the current rail,
+                // never reaching the intended center position.
+                if (startedOnRail) {
+                    return false;
+                }
+
+                // End of path
+                break;
             }
         }
         this.moved = this.movedTotal;

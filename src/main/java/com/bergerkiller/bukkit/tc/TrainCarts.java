@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
+import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -506,7 +506,7 @@ public class TrainCarts extends PluginBase {
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
         PathProvider.deinit();
-        RailTypeCache.reset();
+        RailPieceCache.reset();
         RailSignCache.reset();
         RailMemberCache.reset();
     }
@@ -533,7 +533,7 @@ public class TrainCarts extends PluginBase {
 
         @Override
         public void run() {
-            RailTypeCache.cleanup();
+            RailPieceCache.cleanup();
             RailSignCache.cleanup();
         }
     }

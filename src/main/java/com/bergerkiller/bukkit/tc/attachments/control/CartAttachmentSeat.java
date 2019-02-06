@@ -1,10 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -16,7 +20,9 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
@@ -37,8 +43,9 @@ public class CartAttachmentSeat extends CartAttachment {
     private VirtualEntity _fakeCameraMount = null;
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
     private int _parentMountId = -1;
-    private boolean _hasPosition = false;
     private boolean _rotationLocked = false;
+    private ObjectPosition _ejectPosition = new ObjectPosition();
+    private boolean _ejectLockRotation = false;
 
     public void updateSeater() {
         for (Player viewer : this.controller.getViewers()) {
@@ -54,7 +61,7 @@ public class CartAttachmentSeat extends CartAttachment {
         // Find a parent to mount to
         if (this._parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (this.parent != null && !this._hasPosition) {
+            if (this.parent != null && this.position.isDefault()) {
                 this._parentMountId = this.parent.getMountEntityId();
             }
 
@@ -96,8 +103,17 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onAttached() {
         super.onAttached();
-        this._hasPosition = this.config.isNode("position");
+
+        if (this.position.isDefault() && this.parent != null) {
+            this.position.transform.setIdentity();
+            this.position.transform.translate(this.parent.getMountEntityOffset());
+        }
+
         this._rotationLocked = this.config.get("lockRotation", false);
+
+        ConfigurationNode ejectPosition = this.config.getNode("ejectPosition");
+        this._ejectPosition.load(ejectPosition);
+        this._ejectLockRotation = ejectPosition.get("lockRotation", false);
     }
 
     @Override
@@ -387,6 +403,52 @@ public class CartAttachmentSeat extends CartAttachment {
 
     public int getPassengerHeadYaw() {
         return this._fakeEntityLastHeadYaw;
+    }
+
+    /**
+     * Calculates the eject position of the seat
+     * 
+     * @param passenger to check eject position for
+     * @return eject position
+     */
+    public Location getEjectPosition(Entity passenger) {
+        CartProperties cprop = this.getController().getMember().getProperties();
+
+        Matrix4x4 tmp = this.calcBaseTransform(this._ejectPosition.anchor);
+
+        // Translate eject offset specified in the cart's properties
+        tmp.translate(cprop.exitOffset);
+
+        // Apply transformation of eject position (translation, then rotation)
+        tmp.multiply(this._ejectPosition.transform);
+
+        // Apply eject rotation specified in the cart's properties on top
+        tmp.rotateYawPitchRoll(cprop.exitPitch, cprop.exitYaw, 0.0f);
+
+        org.bukkit.World w = this.getController().getEntity().getWorld();
+        Vector pos = tmp.toVector();
+        Vector ypr = tmp.getYawPitchRoll();
+        float yaw = (float) ypr.getY();
+        float pitch = (float) ypr.getX();
+
+        // When rotation is not locked, preserve original orientation of passenger
+        if (!this._ejectLockRotation && passenger != null) {
+            Location curr_loc;
+            if (passenger instanceof LivingEntity) {
+                curr_loc = ((LivingEntity) passenger).getEyeLocation();
+            } else {
+                curr_loc = passenger.getLocation();
+            }
+            yaw = curr_loc.getYaw();
+            pitch = curr_loc.getPitch();
+        }
+
+        return new Location(w, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
+    }
+
+    @Override
+    public boolean isHiddenWhenInactive() {
+        return false;
     }
 
     @Override

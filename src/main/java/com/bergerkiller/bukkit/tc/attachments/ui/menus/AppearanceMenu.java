@@ -5,38 +5,33 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 
-public class AppearanceMenu extends MapWidgetWindow implements ItemDropTarget {
-    private final MapWidgetAttachmentNode attachment;
+public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
 
-    public AppearanceMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public AppearanceMenu() {
         this.setBounds(5, 15, 118, 104);
-        this.setDepthOffset(4);
-        this.setFocusable(true);
         this.setBackgroundColor(MapColorPalette.COLOR_BLUE);
     }
 
     @Override
     public void onAttached() {
-        //this.activate();
+        super.onAttached();
 
         // Tab view widget to switch between different appearance editing modes
         // The order of these tabs is important, and must match the order in CartAttachmentType!
@@ -67,29 +62,42 @@ public class AppearanceMenu extends MapWidgetWindow implements ItemDropTarget {
                 markChanged();
             }
         });
-        tabView.addTab().addWidget(new MapWidgetButton() { // SEAT
-            private boolean checked = false;
 
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.checked = getAttachment().getConfig().get("lockRotation", false);
-                updateText();
-            }
+        // SEAT
+        {
+            MapWidgetTabView.Tab seatTab = tabView.addTab();
+            seatTab.addWidget(new MapWidgetButton() { // Lock rotation toggle button
+                private boolean checked = false;
 
-            private void updateText() {
-                this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
-            }
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.checked = getAttachment().getConfig().get("lockRotation", false);
+                    updateText();
+                }
 
-            @Override
-            public void onActivate() {
-                this.checked = !this.checked;
-                updateText();
-                getAttachment().getConfig().set("lockRotation", this.checked);
-                markChanged();
-                display.playSound(CommonSounds.CLICK);
-            }
-        }).setBounds(0, 10, 100, 16);
+                private void updateText() {
+                    this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
+                }
+
+                @Override
+                public void onActivate() {
+                    this.checked = !this.checked;
+                    updateText();
+                    getAttachment().getConfig().set("lockRotation", this.checked);
+                    markChanged();
+                    display.playSound(CommonSounds.CLICK);
+                }
+            }).setBounds(0, 10, 100, 16);
+
+            seatTab.addWidget(new MapWidgetButton() { // Change exit position button
+                @Override
+                public void onActivate() {
+                    AppearanceMenu.this.addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
+                }
+            }).setText("Change Exit").setBounds(0, 30, 100, 16);
+        }
+
         tabView.addTab(); // MODEL
 
         tabView.setPosition(7, 16);
@@ -122,15 +130,6 @@ public class AppearanceMenu extends MapWidgetWindow implements ItemDropTarget {
 
         // Switch tab
         this.tabView.setSelectedIndex(type.ordinal());
-    }
-
-    @Override
-    public void onKeyPressed(MapKeyEvent event) {
-        if (event.getKey() == Key.BACK && this.isActivated()) {
-            this.removeWidget();
-            return;
-        }
-        super.onKeyPressed(event);
     }
 
     @Override

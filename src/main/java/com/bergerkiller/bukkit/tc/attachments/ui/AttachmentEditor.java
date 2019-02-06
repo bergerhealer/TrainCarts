@@ -16,14 +16,10 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
+    public CartProperties editedCart;
     public AttachmentModel model;
     private boolean sneakWalking = false;
     private boolean _hasPermission;
@@ -39,17 +35,7 @@ public class AttachmentEditor extends MapDisplay {
 
         @Override
         public void onMenuOpen(MapWidgetAttachmentNode node, MenuItem menu) {
-            if (menu == MenuItem.APPEARANCE) {
-                AttachmentEditor.this.addWidget(new AppearanceMenu(node));
-            } else if (menu == MenuItem.POSITION) {
-                AttachmentEditor.this.addWidget(new PositionMenu(node));
-            } else if (menu == MenuItem.ANIMATION) {
-                AttachmentEditor.this.addWidget(new AnimationMenu(node));
-            } else if (menu == MenuItem.GENERAL) {
-                AttachmentEditor.this.addWidget(new GeneralMenu(node));
-            } else if (menu == MenuItem.PHYSICAL) {
-                AttachmentEditor.this.addWidget(new PhysicalMenu(node));
-            }
+            AttachmentEditor.this.addWidget(menu.createMenu(node));
         }
     };
 
@@ -131,6 +117,7 @@ public class AttachmentEditor extends MapDisplay {
         this._hasPermission = Permission.COMMAND_GIVE_EDITOR.has(getOwners().get(0));
         if (!this._hasPermission) {
             this.setReceiveInputWhenHolding(false);
+            this.editedCart = null;
             this.model = AttachmentModel.getDefaultModel(EntityType.MINECART);
             this.window.addWidget(new MapWidgetText())
                 .setText("You do not have\npermission!")
@@ -138,11 +125,11 @@ public class AttachmentEditor extends MapDisplay {
                 .setShadowColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_RED, 0.5f))
                 .setPosition(20, 60);
         } else {
-            CartProperties prop = CartProperties.getEditing(this.getOwners().get(0));
-            if (prop != null) {
+            this.editedCart = CartProperties.getEditing(this.getOwners().get(0));
+            if (this.editedCart != null) {
                 this.sneakWalking = this.getOwners().get(0).isSneaking();
                 this.setReceiveInputWhenHolding(!this.sneakWalking);
-                this.model = prop.getModel();
+                this.model = this.editedCart.getModel();
                 this.tree.setModel(this.model);
                 this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
                 this.window.addWidget(this.tree);

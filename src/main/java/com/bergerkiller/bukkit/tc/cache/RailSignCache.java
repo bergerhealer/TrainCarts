@@ -44,16 +44,8 @@ public class RailSignCache {
         CachedRailSignList cached = cachedRailSigns.get(key);
         if (cached != null && cached.life > 0) {
             // Verify all the signs mentioned are still there
-            boolean valid = true;
-            for (TrackedSign sign : cached.signs) {
-                if (!BlockUtil.ISSIGN.get(sign.signBlock)) {
-                    valid = false;
-                    break;
-                }
-            }
-
             // If still valid, reset life, otherwise regenerate
-            if (valid) {
+            if (verifySigns(cached.signs)) {
                 cached.life = 0;
             } else {
                 cached = null;
@@ -62,31 +54,57 @@ public class RailSignCache {
 
         // Regenerate if required
         if (cached == null) {
-            Block columnStart = key.railType.getSignColumnStart(key.railBlock);
-            BlockFace direction = key.railType.getSignColumnDirection(key.railBlock);
-
-            // Compute signs. Do check that the sign search input params are correct.
-            TrackedSign[] signs = EMPTY_SIGNS;
-            if (columnStart != null && direction != BlockFace.SELF && direction != null) {
-                try {
-                    addSignsFromRails(signListCache, columnStart, direction);
-                    if (!signListCache.isEmpty()) {
-                        signs = new TrackedSign[signListCache.size()];
-                        for (int i = 0; i < signs.length; i++) {
-                            signs[i] = new TrackedSign(signListCache.get(i), railType, railBlock);
-                        }
-                    }
-                } finally {
-                    signListCache.clear();
-                }
-            }
-
-            // Store in cache
-            cached = new CachedRailSignList(signs);
+            cached = new CachedRailSignList(discoverSigns(key.railType, key.railBlock));
             cachedRailSigns.put(key, cached);
         }
 
         return cached.signs;
+    }
+
+    /**
+     * Discovers the signs belonging to a particular rail.
+     * Unlike {@link #getSigns(railType, railBlock)} this method does not look
+     * the information up from a cache
+     * 
+     * @param railType of the rail
+     * @param railBlock of the rail
+     * @return signs belonging to this rail
+     */
+    public static TrackedSign[] discoverSigns(RailType railType, Block railBlock) {
+        Block columnStart = railType.getSignColumnStart(railBlock);
+        if (columnStart == null) {
+            return EMPTY_SIGNS;
+        }
+
+        BlockFace direction = railType.getSignColumnDirection(railBlock);
+        if (direction == null || direction == BlockFace.SELF) {
+            return EMPTY_SIGNS;
+        }
+
+        // Compute signs. Do check that the sign search input params are correct.
+        TrackedSign[] signs = EMPTY_SIGNS;
+        try {
+            addSignsFromRails(signListCache, columnStart, direction);
+            if (!signListCache.isEmpty()) {
+                signs = new TrackedSign[signListCache.size()];
+                for (int i = 0; i < signs.length; i++) {
+                    signs[i] = new TrackedSign(signListCache.get(i), railType, railBlock);
+                }
+            }
+        } finally {
+            signListCache.clear();
+        }
+
+        return signs;
+    }
+
+    public static boolean verifySigns(TrackedSign[] signs) {
+        for (TrackedSign sign : signs) {
+            if (!BlockUtil.ISSIGN.get(sign.signBlock)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static Block getRailsFromSign(Block signblock) {
@@ -139,6 +157,7 @@ public class RailSignCache {
     // removes all cached signs, forcing a global recalculation
     public static void reset() {
         cachedRailSigns.clear();
+        RailPieceCache.resetSigns();
     }
 
     // cleans up cached rail sign lists that haven't been accessed in quite a while
@@ -221,17 +240,22 @@ public class RailSignCache {
 
         @Override
         public int hashCode() {
-            return this.railBlock.hashCode();
+            int hash = 17;
+            hash = hash * 31 + System.identityHashCode(this.railBlock.getWorld());
+            hash = hash * 31 + this.railBlock.getX();
+            hash = hash * 31 + this.railBlock.getY();
+            hash = hash * 31 + this.railBlock.getZ();
+            return hash;
         }
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof CachedRailKey) {
-                CachedRailKey other = (CachedRailKey) o;
-                return other.railBlock.equals(this.railBlock) && other.railType == this.railType;
-            } else {
-                return false;
-            }
+            CachedRailKey other = (CachedRailKey) o;
+            return this.railBlock.getWorld() == other.railBlock.getWorld() &&
+                   this.railBlock.getX() == other.railBlock.getX() &&
+                   this.railBlock.getY() == other.railBlock.getY() &&
+                   this.railBlock.getZ() == other.railBlock.getZ() &&
+                   this.railType == other.railType;
         }
     }
 

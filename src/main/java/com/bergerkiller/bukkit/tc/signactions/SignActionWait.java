@@ -65,8 +65,7 @@ public class SignActionWait extends SignAction {
 
                 walk:
                 while (walkingPoint.movedTotal < TCConfig.maxDetectorLength && walkingPoint.moveFull()) {
-                    for (RailSignCache.TrackedSign sign :
-                            RailSignCache.getSigns(walkingPoint.state.railType(), walkingPoint.state.railBlock())) {
+                    for (RailSignCache.TrackedSign sign : walkingPoint.state.railSigns()) {
                         if (sign.railBlock.equals(info.getRails())) {
                             continue;
                         }

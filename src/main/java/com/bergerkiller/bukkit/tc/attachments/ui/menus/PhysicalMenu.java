@@ -3,35 +3,29 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 import java.util.Random;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.events.map.MapStatusEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
 /**
  * Menu for setting up the cart length, wheel distance, wheel centering,
  * banking and movement drag parameters.
  */
-public class PhysicalMenu extends MapWidgetWindow {
+public class PhysicalMenu extends MapWidgetMenu {
     private static final int NUMBERBOX_OFFSET = 35;
     private static final int NUMBERBOX_STEP = 24;
     private static final int NUMBERBOX_HEIGHT = 11;
-    private final MapWidgetAttachmentNode attachment;
     private final MapTexture wheelTexture;
 
-    public PhysicalMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public PhysicalMenu() {
         this.setBounds(5, 15, 118, 104);
-        this.setDepthOffset(4);
-        this.setFocusable(true);
         this.setBackgroundColor(MapColorPalette.COLOR_ORANGE);
         this.wheelTexture = MapTexture.loadPluginResource(TrainCarts.plugin,
                 "com/bergerkiller/bukkit/tc/textures/attachments/wheel.png");
@@ -39,7 +33,7 @@ public class PhysicalMenu extends MapWidgetWindow {
 
     @Override
     public void onAttached() {
-        this.activate();
+        super.onAttached();
 
         //this.transformType
         this.addWidget(new MapWidgetNumberBox() { // Position X
@@ -91,15 +85,6 @@ public class PhysicalMenu extends MapWidgetWindow {
         this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Cart Length").setPosition(20, NUMBERBOX_OFFSET+0*NUMBERBOX_STEP - 8);
         this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Distance").setPosition(20, NUMBERBOX_OFFSET+1*NUMBERBOX_STEP - 8);
         this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Offset").setPosition(20, NUMBERBOX_OFFSET+2*NUMBERBOX_STEP - 8);
-    }
-
-    @Override
-    public void onKeyPressed(MapKeyEvent event) {
-        if (event.getKey() == Key.BACK && this.isActivated()) {
-            this.removeWidget();
-            return;
-        }
-        super.onKeyPressed(event);
     }
 
     public ConfigurationNode getConfig() {

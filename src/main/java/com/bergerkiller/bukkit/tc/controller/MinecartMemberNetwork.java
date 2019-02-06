@@ -168,6 +168,24 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return result;
     }
 
+    /**
+     * Finds the seat occupied by a passenger
+     * 
+     * @param passenger
+     * @return seat, null if not found seated
+     */
+    public CartAttachmentSeat findSeat(Entity passenger) {
+        if (this.seatAttachments.isEmpty()) {
+            return null;
+        }
+        for (CartAttachmentSeat seat : this.seatAttachments) {
+            if (seat.getEntity() == passenger) {
+                return seat;
+            }
+        }
+        return getSeatsClosestTo(passenger.getLocation().toVector()).get(0);
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();
@@ -263,17 +281,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             return;
         }
 
-        makeVisible(this.getRootAttachment(), viewer);
+        CartAttachment.makeVisibleRecursive(this.getRootAttachment(), true, viewer);
 
         this.velocityUpdateReceivers.add(viewer);
         this.updateVelocity(viewer);
-    }
-
-    private static void makeVisible(CartAttachment attachment, Player viewer) {
-        attachment.makeVisible(viewer);
-        for (CartAttachment child : attachment.children) {
-            makeVisible(child, viewer);
-        }
     }
 
     @Override
@@ -281,18 +292,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         //super.makeHidden(viewer, instant);
 
         if (this.rootAttachment != null) {
-            makeHidden(this.rootAttachment, viewer);
+            CartAttachment.makeHiddenRecursive(this.rootAttachment, true, viewer);
         }
 
         this.velocityUpdateReceivers.remove(viewer);
         this.passengerControllers.remove(viewer);
-    }
-
-    private static void makeHidden(CartAttachment attachment, Player viewer) {
-        for (CartAttachment child : attachment.children) {
-            makeHidden(child, viewer);
-        }
-        attachment.makeHidden(viewer);
     }
 
     @Override
@@ -486,7 +490,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Detach old attachments - after this viewers see nothing anymore
         if (this.rootAttachment != null) {
             for (Player oldViewer : this.getViewers()) {
-                makeHidden(this.rootAttachment, oldViewer);
+                CartAttachment.makeHiddenRecursive(this.rootAttachment, true, oldViewer);
             }
             CartAttachment.deinitialize(this.rootAttachment);
             this.rootAttachment = null;
@@ -502,7 +506,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.discoverSeats(this.rootAttachment);
 
         for (Player viewer : this.getViewers()) {
-            makeVisible(this.rootAttachment, viewer);
+            CartAttachment.makeVisibleRecursive(this.rootAttachment, true, viewer);
         }
 
         // Let all passengers re-enter us

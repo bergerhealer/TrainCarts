@@ -205,7 +205,7 @@ public class WheelTrackerMember {
 
             // Turn the centripetal force into a banking angle
             // Also apply smoothening to the angle, to make it smoother
-            double angle = Math.toDegrees(Math.atan2(this._centripetalForce, 1.0 / props.getBankingStrength()));
+            double angle = (double) MathUtil.atan2(this._centripetalForce, 1.0 / props.getBankingStrength());
             if (props.getBankingSmoothness() == 0.0) {
                 this._bankingRoll = angle;
             } else {
@@ -424,8 +424,8 @@ public class WheelTrackerMember {
             TrackedRail rail = rails.get(railIndex);
             RailPath.Position position = this._railPosition;
             position.setLocation(this.member.getEntity().loc);
-            position.setMotion(member.getDirection());
-            rail.getPath().move(position, rail.block, 0.0);
+            position.setMotion(member.getRailTracker().getMotionVector());
+            rail.getPath().move(position, rail.state.railBlock(), 0.0);
 
             // Flip the direction when the orientation vs front differs
             // When dot is 0.0, we hit an odd 90-degree incline
@@ -451,7 +451,7 @@ public class WheelTrackerMember {
                 for (int index = railIndex; index >= 0 && index < rails.size() && remainingDistance >= 0.0001; index += order) {
                     rail = rails.get(index);
                     RailPath path = rail.getPath();
-                    remainingDistance -= path.move(position, rail.block, remainingDistance);
+                    remainingDistance -= path.move(position, rail.state.railBlock(), remainingDistance);
                 }
 
                 // Any remaining distance, simply 'assume' from the last-known direction information

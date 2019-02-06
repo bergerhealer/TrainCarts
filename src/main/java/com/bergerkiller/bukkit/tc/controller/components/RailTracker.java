@@ -32,10 +32,6 @@ public abstract class RailTracker {
         public final Block minecartBlock;
         /** Position of the rails (same as {@link #block}) */
         public final IntVector3 position;
-        /** Block the rails is at */
-        public final Block block;
-        /** Type of rails */
-        public final RailType type;
         /** Whether this rail is disconnected from the previous rails */
         public final boolean disconnected;
         /** Cached rail path taken on this rail */
@@ -53,36 +49,25 @@ public abstract class RailTracker {
             this.state = state.clone();
             this.state.setMember(member);
             this.minecartBlock = state.positionBlock();
-            this.type = state.railType();
-            this.block = state.railBlock();
             this.disconnected = disconnected;
-            if (this.block == null) {
+
+            Block railBlock = this.state.railBlock();
+            if (railBlock == null) {
                 this.position = new IntVector3(0, 0, 0);
             } else {
-                this.position = new IntVector3(this.block.getX(), this.block.getY(), this.block.getZ());
+                this.position = new IntVector3(railBlock.getX(), railBlock.getY(), railBlock.getZ());
             }
         }
 
-        public TrackedRail(MinecartMember<?> member, Location location, Block minecartBlock, Block railsBlock, RailType railsType, boolean disconnected) {
+        // This constructor is used by RailTrackerMember for the uninitialized rail
+        public TrackedRail(MinecartMember<?> member) {
             this.member = member;
             this.state = new RailState();
             this.state.setMember(member);
-            this.minecartBlock = minecartBlock;
-            this.block = railsBlock;
-            this.type = railsType;
-            this.disconnected = disconnected;
-            if (railsBlock == null) {
-                this.position = new IntVector3(0, 0, 0);
-            } else {
-                this.position = new IntVector3(railsBlock.getX(), railsBlock.getY(), railsBlock.getZ());
-            }
-            this.state.setRailBlock(railsBlock);
-            this.state.setRailType(railsType);
-            if (location != null) {
-                this.state.position().setLocation(location);
-            } else if (railsBlock != null) {
-                this.state.position().setLocationMidOf(railsBlock);
-            }
+            this.state.setRailPiece(RailPiece.NONE);
+            this.minecartBlock = null;
+            this.disconnected = false;
+            this.position = new IntVector3(0, 0, 0);
             this.state.position().setMotion(new Vector(0, -1, 0));
             this.state.initEnterDirection();
         }
@@ -148,8 +133,7 @@ public abstract class RailTracker {
             RailState state = new RailState();
             state.position().setLocation(loc);
             state.position().setMotion(member.getEntity().getVelocity());
-            state.setRailBlock(loc.getBlock());
-            state.setRailType(RailType.NONE);
+            state.setRailPiece(RailPiece.create(RailType.NONE, loc.getBlock()));
             state.initEnterDirection();
             return new TrackedRail(member, state, false);
         }

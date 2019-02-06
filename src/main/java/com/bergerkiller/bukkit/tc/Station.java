@@ -197,13 +197,24 @@ public class Station {
     }
 
     /**
-     * Gets the minecart that has to be centered above the sign
+     * Gets the Minecart Group initiating this station
+     * 
+     * @return group
+     */
+    public MinecartGroup getGroup() {
+        return this.info.getGroup();
+    }
+
+    /**
+     * Gets the minecart that has to be centered above the sign<br>
+     * <b>Deprecated: unused because it fails with different size carts</b>
      *
      * @param offset forwards into the train
      * @return center minecart
      */
+    @Deprecated
     public MinecartMember<?> getCenterCart(int offset) {
-        MinecartGroup group = this.info.getGroup();
+        MinecartGroup group = this.getGroup();
         int size = group.size();
         if (this.info.isCartSign()) {
             // Always use the member that triggered the sign
@@ -239,12 +250,68 @@ public class Station {
     }
 
     /**
-     * Gets the minecart that has to be centered above the sign
+     * Gets the minecart that has to be centered above the sign<br>
+     * <b>Deprecated: unused because it fails with different size carts</b>
      *
      * @return center minecart
      */
+    @Deprecated
     public MinecartMember<?> getCenterCart() {
         return getCenterCart(0);
+    }
+
+    /**
+     * Gets the minecart that is closest towards the center of the entire train
+     * 
+     * @return center position Minecart
+     */
+    public MinecartMember<?> getCenterPositionCart() {
+        MinecartGroup group = this.getGroup();
+
+        // Easy mode
+        if (group.size() == 1) {
+            return group.get(0);
+        }
+
+        // Calculate total size first
+        double total_size = 0.5 * (double) group.head().getEntity().getWidth();
+        for (int i = 1; i < group.size(); i++) {
+            total_size += group.get(i).getEntity().loc.distance(group.get(i-1).getEntity().loc);
+        }
+        total_size += 0.5 * (double) group.tail().getEntity().getWidth();
+
+        // Goal is half
+        double half_size = total_size * 0.5;
+
+        // Now iterate the minecarts, tracking accumulated size, until we cross the half boundary
+        // Then we decide whether to pick that minecart, or the one that came before
+        double accum_size = 0.5 * (double) group.head().getEntity().getWidth();
+
+        // First cart is really big! Then this is the only option.
+        if (accum_size > half_size) {
+            return group.head();
+        }
+
+        // Go down the train's members accumulating until we cross the half-point
+        // When this occurs, compare old and new accumulated sizes
+        // Based on this, return either [i] or [i-1]
+        for (int i = 1; i < group.size(); i++) {
+            double new_accum_size = accum_size;
+            new_accum_size += group.get(i).getEntity().loc.distance(group.get(i-1).getEntity().loc);
+            if (new_accum_size > half_size) {
+                double d_prev = half_size - accum_size;
+                double d_curr = new_accum_size - half_size;
+                if (d_prev < d_curr) {
+                    return group.get(i-1);
+                } else {
+                    return group.get(i);
+                }
+            }
+            accum_size = new_accum_size;
+        }
+
+        // Weird? Last cart might just be too big. Assume tail.
+        return group.tail();
     }
 
     /**
@@ -287,10 +354,10 @@ public class Station {
             // We have to launch to get the train stopped at the station
             if (stationInfo.cartDir != null) {
                 // Launch the center cart into the direction of the station
-                getCenterCart().getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0).addTag(this.getTag());
+                stationInfo.cart.getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0).addTag(this.getTag());
             } else {
                 // Alternative: get as close as possible (may fail)
-                getCenterCart().getActions().addActionLaunch(info.getCenterLocation(), 0).addTag(this.getTag());
+                stationInfo.cart.getActions().addActionLaunch(info.getCenterLocation(), 0).addTag(this.getTag());
             }
         }
         this.wasCentered = true;
@@ -314,25 +381,25 @@ public class Station {
         }
 
         setLevers(false);
-        MemberActionLaunchDirection action = getCenterCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
+        MemberActionLaunchDirection action = getCenterPositionCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
         action.addTag(this.getTag());
         this.wasCentered = false;
     }
 
     private CartToStationInfo getCartToStationInfo() {
-        MinecartMember<?> centerMember = getCenterCart();
         CartToStationInfo info = new CartToStationInfo();
+        info.cart = this.getCenterPositionCart();
         Location centerPos = this.info.getCenterLocation();
 
         // Get rail state info of the center cart, plus one in the opposite direction
-        RailState centercart_state = centerMember.getRailTracker().getState();
+        RailState centercart_state = info.cart.getRailTracker().getState();
         RailState centercart_state_inv = centercart_state.clone();
         centercart_state_inv.position().invertMotion();
         centercart_state_inv.initEnterDirection();
 
         // Try both directions of movement from the center cart perspective and find the rails block
         info.distance = centercart_state.position().distance(centerPos);
-        info.cartDir = Util.vecToFace(centerMember.getRailTracker().getMotionVector(), false);
+        info.cartDir = Util.vecToFace(info.cart.getRailTracker().getMotionVector(), false);
         double maxDistance = 2.0 * info.distance;
         TrackWalkingPoint p = new TrackWalkingPoint(centercart_state);
         TrackWalkingPoint p_inv = new TrackWalkingPoint(centercart_state_inv);
@@ -348,19 +415,38 @@ public class Station {
         }
 
         // Adjust distance moved since calculating the center cart's position
-        info.distance -= centerMember.getRailTracker().getState().position().distance(centerMember.getEntity().getLocation());
+        info.distance -= info.cart.getRailTracker().getState().position().distance(info.cart.getEntity().getLocation());
 
-        // Adjust distance for even-count trains (center is in between two carts then!)
-        if (this.info.isTrainSign() && (centerMember.getGroup().size() & 1) == 0) {
-            Location m1 = centerMember.getEntity().getLocation();
-            Location m2 = getCenterCart(1).getEntity().getLocation();
-            info.distance -= (m1.distance(m2) / 2.0);
+        // The center of the train is not exactly where this center cart is at
+        // Calculate an additional distance offset to center the train
+        // This also takes care of uneven-cart count trains
+
+        // Calculate total size of the train, at the same time calculate distance
+        // to the center of the center member.
+        // Use the actual distance between carts for this, instead of 'expected'
+        // Also take the half-sizes on either end into account
+        MinecartGroup group = this.getGroup();
+        if (group.size() > 1) {
+            double center_size = 0.5 * (double) group.get(0).getEntity().getWidth();
+            double total_size = center_size;
+            for (int i = 1; i < group.size(); i++) {
+                MinecartMember<?> m = group.get(i);
+                total_size += m.getEntity().loc.distance(group.get(i-1).getEntity().loc);
+                if (m == info.cart) {
+                    center_size = total_size;
+                }
+            }
+            total_size += 0.5 * (double) group.tail().getEntity().getWidth();
+
+            // Adjust distance based on this information
+            info.distance += (0.5*total_size) - center_size;
         }
 
         return info;
     }
 
     private static class CartToStationInfo {
+        public MinecartMember<?> cart;
         public BlockFace cartDir;
         public double distance;
     }

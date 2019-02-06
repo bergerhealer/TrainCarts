@@ -599,6 +599,16 @@ public class RailPath {
             posZ += 1e-10 * motZ;
         }
 
+        public double distance(Position position) {
+            if (this.relative)
+                position.assertRelative();
+            else
+                position.assertAbsolute();
+
+            return MathUtil.distance(posX, posY, posZ,
+                    position.posX, position.posY, position.posZ);
+        }
+
         public double distance(Location location) {
             this.assertAbsolute();
             return MathUtil.distance(posX, posY, posZ,

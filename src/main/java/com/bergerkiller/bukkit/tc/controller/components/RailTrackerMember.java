@@ -21,7 +21,7 @@ public class RailTrackerMember extends RailTracker {
 
     public RailTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
-        this.lastRail = this.rail = new TrackedRail(owner, null, null, null, RailType.NONE, false);
+        this.lastRail = this.rail = new TrackedRail(owner);
         this.lastRailLogic = this.railLogic = RailLogicGround.INSTANCE;
     }
 
@@ -57,7 +57,7 @@ public class RailTrackerMember extends RailTracker {
      * @return forward track iterator
      */
     public TrackIterator getTrackIterator() {
-        return new TrackIterator(this.rail.block, this.owner.getDirectionTo());
+        return new TrackIterator(this.rail.state.railBlock(), this.owner.getDirectionTo());
     }
 
     /**
@@ -81,7 +81,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current rail type
      */
     public RailType getRailType() {
-        return this.rail.type;
+        return this.rail.state.railType();
     }
 
     /**
@@ -90,7 +90,7 @@ public class RailTrackerMember extends RailTracker {
      * @return previous rail type
      */
     public RailType getLastRailType() {
-        return this.lastRail.type;
+        return this.lastRail.state.railType();
     }
 
     /**
@@ -99,7 +99,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current block
      */
     public Block getBlock() {
-        return this.rail.block;
+        return this.rail.state.railBlock();
     }
 
     public Block getMinecartPos() {
@@ -131,7 +131,7 @@ public class RailTrackerMember extends RailTracker {
      * @return previous block
      */
     public Block getLastBlock() {
-        return this.lastRail.block;
+        return this.lastRail.state.railBlock();
     }
 
     /**
@@ -146,12 +146,11 @@ public class RailTrackerMember extends RailTracker {
             try {
                 return this.rail.state.loadRailLogic();
             } catch (Throwable t) {
-                RailType.handleCriticalError(this.rail.type, t);
+                RailType.handleCriticalError(this.rail.state.railType(), t);
 
                 // Change rail type to rail type none, returning AIR logic as a fallback
                 RailState state = this.rail.state.clone();
-                state.setRailType(RailType.NONE);
-                state.setRailBlock(state.positionBlock());
+                state.setRailPiece(RailPiece.create(RailType.NONE, state.positionBlock()));
                 state.initEnterDirection();
                 this.rail = new TrackedRail(this.rail.member, state, this.rail.disconnected);
                 return RailLogicAir.INSTANCE;
@@ -177,8 +176,8 @@ public class RailTrackerMember extends RailTracker {
      * @return True if the block changed, False if not
      */
     public boolean hasBlockChanged() {
-        Block a = lastRail.block;
-        Block b = rail.block;
+        Block a = lastRail.state.railBlock();
+        Block b = rail.state.railBlock();
         return a.getX() != b.getX() || a.getY() != b.getY() || a.getZ() != b.getZ();
     }
 

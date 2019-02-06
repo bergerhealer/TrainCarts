@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -155,7 +156,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.hasRails()) {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.block.equals(rails)) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
                         return rail.state.enterDirection();
                     }
                 }
@@ -176,8 +177,7 @@ public class SignActionEvent extends Event implements Cancellable {
         // Snap sign direction to the rails, if a rails exists
         if (this.hasRails()) {
             RailState state = new RailState();
-            state.setRailBlock(this.getRails());
-            state.setRailType(RailType.getType(state.railBlock()));
+            state.setRailPiece(this.getRailPiece());
             state.position().setLocation(state.railType().getSpawnLocation(state.railBlock(), signDirection));
             state.position().setMotion(signDirection);
             state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
@@ -199,7 +199,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.hasRails()) {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.block.equals(rails)) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
                         return rail.state.enterFace();
                     }
                 }
@@ -339,7 +339,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.hasRails()) {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.block.equals(rails)) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
                         memberRail = rail;
                         break;
                     }
@@ -354,16 +354,16 @@ public class SignActionEvent extends Event implements Cancellable {
             // Compute the position at the start of the rail's path by walking 'back'
             RailPath.Position pos = memberRail.state.position().clone();
             pos.invertMotion();
-            memberRail.getPath().move(pos, memberRail.block, Double.MAX_VALUE);
+            memberRail.getPath().move(pos, memberRail.state.railBlock(), Double.MAX_VALUE);
 
             // Find the junction closest to this start position
             double min_dist = Double.MAX_VALUE;
             RailJunction best_junc = null;
-            for (RailJunction junc : memberRail.type.getJunctions(memberRail.block)) {
+            for (RailJunction junc : memberRail.state.railType().getJunctions(memberRail.state.railBlock())) {
                 if (junc.position().relative) {
-                    pos.makeRelative(memberRail.block);
+                    pos.makeRelative(memberRail.state.railBlock());
                 } else {
-                    pos.makeAbsolute(memberRail.block);
+                    pos.makeAbsolute(memberRail.state.railBlock());
                 }
                 double dist_sq = junc.position().distanceSquared(pos);
                 if (dist_sq < min_dist) {
@@ -588,6 +588,16 @@ public class SignActionEvent extends Event implements Cancellable {
             this.railschecked = true;
         }
         return this.railsblock;
+    }
+
+    public RailPiece getRailPiece() {
+        Block railBlock = this.getRails();
+        if (railBlock == null) {
+            return null;
+        } else {
+            // TODO: RailType should be properly stored inside this class!
+            return RailPiece.create(RailType.getType(railBlock), railBlock);
+        }
     }
 
     public World getWorld() {

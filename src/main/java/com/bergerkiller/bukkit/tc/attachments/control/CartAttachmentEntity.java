@@ -63,7 +63,16 @@ public class CartAttachmentEntity extends CartAttachment {
 
     @Override
     public int getMountEntityId() {
-        return this.entity.getEntityId();
+        if (this.entity.isMountable()) {
+            return this.entity.getEntityId();
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public Vector getMountEntityOffset() {
+        return this.entity.getMountOffset();
     }
 
     @Override
@@ -90,7 +99,6 @@ public class CartAttachmentEntity extends CartAttachment {
 
     @Override
     public void onPositionUpdate() {
-        super.onPositionUpdate();
         this.entity.updatePosition(this.transform);
         if (this.actual != null) {
             this.actual.updatePosition(this.transform);

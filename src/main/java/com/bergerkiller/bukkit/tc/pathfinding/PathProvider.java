@@ -4,8 +4,9 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
+import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -135,7 +136,7 @@ public class PathProvider extends Task {
         // Important: wipe any rail and sign caches we have polluted with temporary block data
         // This will momentarily cause the plugin to run slower, but we must do this or risk out of memory!
         RailSignCache.reset();
-        RailTypeCache.reset();
+        RailPieceCache.reset();
     }
 
     // Discovers new switchers and destination signs. Stops upon the first new node found.
@@ -216,8 +217,7 @@ public class PathProvider extends Task {
                 } else {
                     // Only check available routes
                     RailState state1 = new RailState();
-                    state1.setRailBlock(startRail);
-                    state1.setRailType(startType);
+                    state1.setRailPiece(RailPiece.create(startType, startRail));
                     state1.position().setLocation(startType.getSpawnLocation(startRail, BlockFace.NORTH));
                     if (!RailType.loadRailInformation(state1)) {
                         continue;
@@ -281,7 +281,7 @@ public class PathProvider extends Task {
             }
             Block nextRail = p.state.railBlock();
             boolean hasFinished = false;
-            for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(p.state.railType(), p.state.railBlock())) {
+            for (RailSignCache.TrackedSign trackedSign : p.state.railSigns()) {
                 // Discover a SignAction at this sign
                 SignActionEvent event = new SignActionEvent(trackedSign);
                 event.setAction(SignActionType.GROUP_ENTER);

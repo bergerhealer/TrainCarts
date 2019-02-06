@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.mountiplex.reflection.MethodAccessor;
@@ -1007,15 +1008,25 @@ public class Util {
 
         if (Math.abs(rz) < (1.0 - 1E-15)) {
             // Standard calculation
-            return new Vector(Math.toDegrees(Math.atan2(uz, fz)),
-                              Math.toDegrees(Math.asin(rz)),
-                              Math.toDegrees(Math.atan2(-ry, rx)));
+            return new Vector(MathUtil.atan2(uz, fz),
+                              fastAsin(rz),
+                              MathUtil.atan2(-ry, rx));
         } else {
             // At the -90 or 90 degree angle singularity
             final double sign = (rz < 0) ? -1.0 : 1.0;
             return new Vector(0.0, sign * 90.0,
-                    Math.toDegrees(-sign * 2.0 * Math.atan2(qx, qw)));
+                    -sign * 2.0 * MathUtil.atan2(qx, qw));
         }
+    }
+
+    /**
+     * Lower-accuracy arcsin, returns an angle in degrees
+     * 
+     * @param x
+     * @return angle
+     */
+    public static float fastAsin(double x) {
+        return MathUtil.atan(x / Math.sqrt(1.0 - x * x));
     }
 
     /**
@@ -1126,6 +1137,70 @@ public class Util {
     }
 
     /**
+     * Checks whether the orientation quaternion q is inverted compared to forward velocity vel
+     * 
+     * @param vel
+     * @param q
+     * @return True if orientation q is inverted from vel
+     */
+    public static boolean isOrientationInverted(Vector vel, Quaternion q) {
+        double x = q.getX();
+        double y = q.getY();
+        double z = q.getZ();
+        double w = q.getW();
+        double px = vel.getX();
+        double py = vel.getY();
+        double pz = vel.getZ();
+        return (((px*(x*z+y*w) + py*(y*z-x*w) - pz*(x*x+y*y-0.5))) <= 0.0);
+    }
+
+    /**
+     * Retrieves just the yaw angle from the Quaternion getYawPitchRoll function.
+     * Saves a little on computation.
+     * 
+     * @param rotation
+     * @return yaw angle
+     */
+    public static double fastGetRotationYaw(Quaternion rotation) {
+        double x = rotation.getX();
+        double y = rotation.getY();
+        double z = rotation.getZ();
+        double w = rotation.getW();
+
+        double yaw;
+        final double test = 2.0 * (w * x - y * z);
+        if (Math.abs(test) < (1.0 - 1E-15)) {
+            double x2 = x * x;
+            double y2 = y * y;
+            double z2 = z * z;
+
+            // Standard angle
+            yaw = MathUtil.atan2(2.0 * (w * y + z * x), 1.0 - 2.0 * (x2 + y2));
+
+            // Wrap around yaw when roll exceeds a limit
+            if ((x2 + z2) > 0.5) {
+                yaw += (yaw < 0.0) ? 180.0 : -180.0;
+            }
+        } else {
+            // This is at the pitch=90.0 or pitch=-90.0 singularity
+            // All we can do is yaw (or roll) around the vertical axis
+            yaw = 2.0 * MathUtil.atan2(z, w);
+            if (test >= 0.0) {
+                yaw = -yaw;
+            }
+        }
+
+        // Wrap yaw angle between -180 and 180 degrees
+        if (yaw > 180.0) {
+            yaw -= 360.0;
+        } else if (yaw < -180.0) {
+            yaw += 360.0;
+        }
+
+        return -yaw;
+    }
+
+    /**
      * Checks whether a method is called from a thread other than the main thread.
      * 
      * @param what descriptor what was called
@@ -1160,4 +1235,26 @@ public class Util {
         return _bkc_blockdata_cansupporttop.invoke(data);
     }
     private static MethodAccessor<Boolean> _bkc_blockdata_cansupporttop = null;
+
+    /**
+     * Adjusts the teleport position to avoid an entity getting glitched in a block.
+     * The player is teleported upwards any block they are currently inside of with their feet.
+     * 
+     * @param loc to correct
+     */
+    public static void correctTeleportPosition(Location loc) {
+        Block locBlock = loc.getBlock();
+        Vector rel = loc.toVector();
+        rel.setX(rel.getX() - locBlock.getX());
+        rel.setY(rel.getY() - locBlock.getY());
+        rel.setZ(rel.getZ() - locBlock.getZ());
+        AxisAlignedBBHandle bounds = WorldUtil.getBlockData(locBlock).getBoundingBox(locBlock);
+        if (bounds != null /* AIR */ &&
+            rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX() &&
+            rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY() &&
+            rel.getZ() >= bounds.getMinZ() && rel.getZ() <= bounds.getMaxZ())
+        {
+            loc.setY((double) locBlock.getY() + bounds.getMaxY() + 1e-5);
+        }
+    }
 }
