@@ -429,6 +429,11 @@ public class Station {
         // to the center of the center member.
         // Use the actual distance between carts for this, instead of 'expected'
         // Also take the half-sizes on either end into account
+        
+        if(this.info.isCartSign()) {
+        	return info;
+        }
+        
         MinecartGroup group = this.getGroup();
         if (group.size() > 1) {
             double center_size = 0.5 * (double) group.get(0).getEntity().getWidth();
