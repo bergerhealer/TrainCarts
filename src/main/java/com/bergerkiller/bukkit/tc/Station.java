@@ -420,7 +420,7 @@ public class Station {
 
         // Adjust distance moved since calculating the center cart's position
         info.distance -= info.cart.getRailTracker().getState().position().distance(info.cart.getEntity().getLocation());
-
+        
         // The center of the train is not exactly where this center cart is at
         // Calculate an additional distance offset to center the train
         // This also takes care of uneven-cart count trains
@@ -430,7 +430,7 @@ public class Station {
         // Use the actual distance between carts for this, instead of 'expected'
         // Also take the half-sizes on either end into account
         MinecartGroup group = this.getGroup();
-        if (group.size() > 1) {
+        if (group.size() > 1 && !this.info.isCartSign()) {
             double center_size = 0.5 * (double) group.get(0).getEntity().getWidth();
             double total_size = center_size;
             for (int i = 1; i < group.size(); i++) {
