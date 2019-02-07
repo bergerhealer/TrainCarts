@@ -272,6 +272,10 @@ public class Station {
         if (group.size() == 1) {
             return group.get(0);
         }
+        
+        if(this.info.isCartSign()) {
+            return this.info.getMember();
+        }
 
         // Calculate total size first
         double total_size = 0.5 * (double) group.head().getEntity().getWidth();
