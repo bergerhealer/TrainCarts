@@ -398,6 +398,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             gnew.getProperties().load(this.getProperties());
 
             GroupCreateEvent.call(gnew);
+
+            //Initialize rails and signs
+            //This makes sure MEMBER_ENTER does not execute twice
+            gnew.updateDirection();
+            gnew.getSignTracker().refresh();
+
             return gnew;
         } else {
             gnew.clear();
