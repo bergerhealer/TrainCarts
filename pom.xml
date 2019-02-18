@@ -12,9 +12,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.mcversion>1.13</project.mcversion>
+        <project.mcversion>1.13.2</project.mcversion>
         <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
-        <project.bkcversion>1.13.2-v2-SNAPSHOT</project.bkcversion>
+        <project.bkcversion>1.13.2-v3-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.cibuild/>
@@ -52,11 +52,6 @@
         <repository>
             <id>mvnrepository</id>
             <url>https://mvnrepository.com/artifact/</url>
-        </repository>
-
-        <repository>
-           <id>vault-repo</id>
-            <url>http://nexus.hc.to/content/repositories/pub_releases</url>
         </repository>
     </repositories>
 
