@@ -43,6 +43,7 @@ public class CartAttachmentSeat extends CartAttachment {
     private VirtualEntity _fakeCameraMount = null;
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
     private int _parentMountId = -1;
+    private Vector _parentMountOffset = new Vector();
     private boolean _rotationLocked = false;
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
@@ -104,12 +105,12 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        if (this.position.isDefault() && this.parent != null) {
-            this.position.transform.setIdentity();
-            this.position.transform.translate(this.parent.getMountEntityOffset());
-        }
-
         this._rotationLocked = this.config.get("lockRotation", false);
+
+        // When no parent is used, we must fake an offset ourselves
+        if (this.position.isDefault() && this.parent != null) {
+            this._parentMountOffset = this.parent.getMountEntityOffset();
+        }
 
         ConfigurationNode ejectPosition = this.config.getNode("ejectPosition");
         this._ejectPosition.load(ejectPosition);
@@ -231,6 +232,17 @@ public class CartAttachmentSeat extends CartAttachment {
             if (this._fakeEntityId != -1) {
                 pc.remove(this._fakeEntityId, false);
             }
+        }
+    }
+
+    @Override
+    public void onPositionUpdate() {
+        if (this._fakeMount != null &&
+            (this._parentMountOffset.getX() != 0.0 ||
+             this._parentMountOffset.getY() != 0.0 ||
+             this._parentMountOffset.getZ() != 0.0))
+        {
+            this.transform.translate(this._parentMountOffset);
         }
     }
 
