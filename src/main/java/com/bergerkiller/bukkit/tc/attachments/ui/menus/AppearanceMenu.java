@@ -35,8 +35,12 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
 
         // Tab view widget to switch between different appearance editing modes
         // The order of these tabs is important, and must match the order in CartAttachmentType!
-        tabView.addTab(); // EMPTY
-        tabView.addTab().addWidget(new MapWidgetEntityTypeList() { // ENTITY
+
+        // EMPTY
+        tabView.addTab();
+
+        // ENTITY
+        tabView.addTab().addWidget(new MapWidgetEntityTypeList() {
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -49,7 +53,9 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
                 markChanged();
             }
         }).setBounds(0, 0, 100, 11);
-        tabView.addTab().addWidget(new MapWidgetItemSelector() { // ITEM
+
+        // ITEM
+        tabView.addTab().addWidget(new MapWidgetItemSelector() {
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -62,6 +68,10 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
                 markChanged();
             }
         });
+
+        // PLATFORM
+        // TODO: Specify platform dimensions
+        tabView.addTab();
 
         // SEAT
         {
