@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -368,6 +369,13 @@ public class VirtualEntity {
         }
     }
 
+    public void syncMetadata() {
+        DataWatcher metaData = getUsedMeta();
+        if (metaData.isChanged()) {
+            broadcast(PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metaData, false));
+        }
+    }
+
     public void syncPosition(boolean absolute) {
         if (this.viewers.isEmpty()) {
             // No viewers. Assign live to sync right away.
@@ -387,10 +395,7 @@ public class VirtualEntity {
         }
 
         // Synchronize metadata
-        DataWatcher metaData = getUsedMeta();
-        if (metaData.isChanged()) {
-            broadcast(PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metaData, false));
-        }
+        this.syncMetadata();
 
         // Live motion. Check if the distance change is too large.
         double dx = (this.liveAbsX - this.syncAbsX);

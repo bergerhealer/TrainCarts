@@ -7,6 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -173,6 +174,7 @@ public class CartAttachmentItem extends CartAttachment {
 
         // Apply the transform to the entity position and pose of the model
         this.entity.updatePosition(this.transform, new_entity_ypr);
+
         Vector rotation = Util.getArmorStandPose(q_rotation);
         DataWatcher meta = this.entity.getMetaData();
         if (this.transformType.isHead()) {
@@ -189,6 +191,9 @@ public class CartAttachmentItem extends CartAttachment {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
+
+        // Sync right now! Not only when moving!
+        this.entity.syncMetadata();
     }
 
     public final void onPositionUpdate_legacy() {
@@ -244,6 +249,9 @@ public class CartAttachmentItem extends CartAttachment {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
+
+        // Sync right now! Not only when moving!
+        this.entity.syncMetadata();
     }
 
     @Override
