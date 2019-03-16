@@ -16,12 +16,14 @@ public class Animation implements Cloneable {
     private final AnimationNode[] _nodes;
     private final double _loopDuration;
     private double _time;
+    private boolean _reachedEnd;
 
     protected Animation(Animation source) {
         this._options = source._options.clone();
         this._nodes = source._nodes;
         this._loopDuration = source._loopDuration;
         this._time = source._time;
+        this._reachedEnd = source._reachedEnd;
     }
 
     public Animation(String name, String... nodes_config) {
@@ -36,6 +38,7 @@ public class Animation implements Cloneable {
         this._options = new AnimationOptions(name);
         this._nodes = nodes;
         this._time = 0.0;
+        this._reachedEnd = false;
 
         // Calculate loop duration from the nodes
         {
@@ -69,7 +72,18 @@ public class Animation implements Cloneable {
         double old_delay = this._options.getDelay();
         this._options = options;
         this._time -= (this._options.getDelay() - old_delay);
+        this._reachedEnd = false;
         return this;
+    }
+
+    /**
+     * Gets whether the animation reached the end. When the loop option is set,
+     * this end is never reached.
+     * 
+     * @return True if the end was reached
+     */
+    public boolean hasReachedEnd() {
+        return this._reachedEnd;
     }
 
     /**
@@ -83,6 +97,7 @@ public class Animation implements Cloneable {
         double old_delay = this._options.getDelay();
         this._options.apply(options);
         this._time -= (this._options.getDelay() - old_delay);
+        this._reachedEnd = false;
         return this;
     }
 
@@ -101,6 +116,7 @@ public class Animation implements Cloneable {
             this._time = 0.0;
         }
         this._time -= this._options.getDelay();
+        this._reachedEnd = false;
     }
 
     /**
@@ -156,6 +172,7 @@ public class Animation implements Cloneable {
      */
     public AnimationNode update(double dt) {
         if (this._nodes.length == 0) {
+            this._reachedEnd = true;
             return null; // animation missing
         }
 
@@ -163,6 +180,7 @@ public class Animation implements Cloneable {
         if (this._options.isLooped()) {
             // When animation is too short, always return node 0.
             if (this._nodes.length == 1 || this._loopDuration <= 1e-20) {
+                this._reachedEnd = true;
                 return this._nodes[0];
             }
 
@@ -177,6 +195,7 @@ public class Animation implements Cloneable {
             if (this._options.isReversed()) {
                 if (this._time <= 0.0) {
                     this._time = 0.0;
+                    this._reachedEnd = true;
                     return this._nodes[0];
                 } else if (this._time > animEnd) {
                     animationStarted = false;
@@ -184,6 +203,7 @@ public class Animation implements Cloneable {
             } else {
                 if (this._time >= animEnd) {
                     this._time = animEnd;
+                    this._reachedEnd = true;
                     return endNode;
                 } else if (this._time < 0.0) {
                     animationStarted = false;
@@ -212,6 +232,7 @@ public class Animation implements Cloneable {
 
         // Only 1 node? Return that, no weird interpolation please.
         if (this._nodes.length == 1) {
+            this._reachedEnd = true;
             return this._nodes[0];
         }
 

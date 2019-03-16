@@ -18,6 +18,7 @@ public class AnimationOptions implements Cloneable {
     private boolean _looped;
     private boolean _hasLoopOption;
     private boolean _reset;
+    private boolean _queue;
 
     protected AnimationOptions(AnimationOptions source) {
         this._name = source._name;
@@ -26,6 +27,7 @@ public class AnimationOptions implements Cloneable {
         this._looped = source._looped;
         this._hasLoopOption = source._hasLoopOption;
         this._reset = source._reset;
+        this._queue = source._queue;
     }
 
     public AnimationOptions() {
@@ -39,6 +41,7 @@ public class AnimationOptions implements Cloneable {
         this._looped = false;
         this._hasLoopOption = false;
         this._reset = false;
+        this._queue = false;
     }
 
     /**
@@ -166,6 +169,26 @@ public class AnimationOptions implements Cloneable {
     }
 
     /**
+     * Sets whether the animation should be queued to play after previous animations finished,
+     * instead of resuming from or resetting the current animation.
+     * 
+     * @param queue option
+     */
+    public void setQueue(boolean queue) {
+        this._queue = queue;
+    }
+
+    /**
+     * Gets whether the animation should be queued to play after previous animations finished,
+     * instead of resuming from or resetting the current animation.
+     * 
+     * @return True if queue is set
+     */
+    public boolean getQueue() {
+        return this._queue;
+    }
+
+    /**
      * Applies additional animation options to this one.
      * The speed, delay and looping options are updated.
      * 
@@ -178,6 +201,7 @@ public class AnimationOptions implements Cloneable {
             this.setLooped(options.isLooped());
         }
         this.setReset(options.getReset());
+        this.setQueue(options.getQueue());
     }
 
     /**
@@ -202,6 +226,9 @@ public class AnimationOptions implements Cloneable {
     /**
      * Saves the contents of these options to configuration.
      * The animation name is not saved.
+     * This is only used when saving animations to train properties,
+     * so it should not save things like 'reset' or 'queue' which are
+     * part of starting animations.
      * 
      * @param config to save to
      */
@@ -236,6 +263,8 @@ public class AnimationOptions implements Cloneable {
                 this.setLooped(true);
             } else if (LogicUtil.contains(part, "reset", "rst", "r")) {
                 this.setReset(true);
+            } else if (LogicUtil.contains(part, "queue", "que", "q")) {
+                this.setQueue(true);
             }
         }
 
@@ -270,6 +299,8 @@ public class AnimationOptions implements Cloneable {
                 this.setLooped(true);
             } else if (lower_arg.equals("reset")) {
                 this.setReset(true);
+            } else if (lower_arg.equals("queue")) {
+                this.setQueue(true);
             } else if (!found_name && !ParseUtil.isNumeric(arg)) {
                 this.setName(arg);
                 found_name = true;
@@ -295,6 +326,11 @@ public class AnimationOptions implements Cloneable {
             } else {
                 name += " (not looped)";
             }
+        }
+        if (this._reset) {
+            name += " (reset)";
+        } else if (this._queue) {
+            name += " (queue)";
         }
         return Localization.COMMAND_ANIMATE_SUCCESS.get(name, 
                 Double.toString(this.getSpeed()),

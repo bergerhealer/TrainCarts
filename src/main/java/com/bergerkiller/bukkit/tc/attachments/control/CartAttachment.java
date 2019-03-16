@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ public abstract class CartAttachment {
     public List<CartAttachment> children = new ArrayList<CartAttachment>(0);
     private Map<String, Animation> animations = new HashMap<String, Animation>();
     private Animation currentAnimation = null;
+    private List<Animation> nextAnimationQueue = Collections.emptyList();
     public ObjectPosition position = new ObjectPosition();
     private boolean active = true;
     protected MinecartMemberNetwork controller = null;
@@ -194,16 +196,29 @@ public abstract class CartAttachment {
     public void startAnimation(Animation animation) {
         if (animation == null) {
             this.currentAnimation = null;
+            this.nextAnimationQueue = Collections.emptyList();
             return;
         }
-        if (this.currentAnimation == null ||
-            animation.getOptions().getReset() ||
-            !this.currentAnimation.isSame(animation))
-        {
+        if (this.currentAnimation == null || animation.getOptions().getReset()) {
+            // Replace current animation
             this.currentAnimation = animation;
             this.currentAnimation.start();
-        } else {
+            this.nextAnimationQueue = Collections.emptyList();
+        } else if (animation.getOptions().getQueue()) {
+            // Queue the next animation to be played after the current one
+            if (this.nextAnimationQueue.isEmpty()) {
+                this.nextAnimationQueue = new ArrayList<Animation>(1);
+            }
+            this.nextAnimationQueue.add(animation);
+        } else if (this.currentAnimation.isSame(animation)) {
+            // Play same animation with new options
             this.currentAnimation.setOptions(animation.getOptions().clone());
+            this.nextAnimationQueue = Collections.emptyList();
+        } else {
+            // New animation, we must reset
+            this.currentAnimation = animation;
+            this.currentAnimation.start();
+            this.nextAnimationQueue = Collections.emptyList();
         }
     }
 
@@ -274,6 +289,13 @@ public abstract class CartAttachment {
         // Animation is performed on the attachment itself (not the relative position)
         boolean active = attachment.isActive();
         if (attachment.currentAnimation != null) {
+            // Swap out animation when end is reached and more are queued
+            if (!attachment.nextAnimationQueue.isEmpty() && attachment.currentAnimation.hasReachedEnd()) {
+                attachment.currentAnimation = attachment.nextAnimationQueue.remove(0);
+                attachment.currentAnimation.start();
+            }
+
+            // Update current animation
             double dt = attachment.getController().getAnimationDeltaTime();
             AnimationNode animNode = attachment.currentAnimation.update(dt);
             if (animNode != null) {
