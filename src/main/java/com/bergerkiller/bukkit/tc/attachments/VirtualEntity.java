@@ -129,6 +129,10 @@ public class VirtualEntity {
         return this.yawPitchRoll;
     }
 
+    public Vector getSyncPos() {
+        return new Vector(this.syncAbsX, this.syncAbsY, this.syncAbsZ);
+    }
+
     /**
      * Updates the position of the displayed part
      * 

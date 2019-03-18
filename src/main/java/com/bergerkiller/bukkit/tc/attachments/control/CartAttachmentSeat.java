@@ -156,6 +156,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 this._fakeCameraMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                 this._fakeCameraMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
                 this._fakeCameraMount.spawn(viewer, calcMotion());
+                this._fakeCameraMount.syncPosition(true);
 
                 this.controller.getPassengerController(viewer).mount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
             }
