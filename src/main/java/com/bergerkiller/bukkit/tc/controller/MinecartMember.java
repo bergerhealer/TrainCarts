@@ -17,9 +17,9 @@ import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -2107,8 +2107,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if the attachment node and animation could be found
      */
     public boolean playNamedAnimationFor(int[] targetPath, AnimationOptions options) {
-        CartAttachment attachment = findAttachment(targetPath);
-        return attachment != null && attachment.startAnimation(options);
+        Attachment attachment = findAttachment(targetPath);
+        return attachment != null && attachment.playNamedAnimation(options);
     }
 
     /**
@@ -2119,7 +2119,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if the attachment node could be found
      */
     public boolean playAnimationFor(int[] targetPath, Animation animation) {
-        CartAttachment attachment = findAttachment(targetPath);
+        Attachment attachment = findAttachment(targetPath);
         if (attachment == null) {
             return false;
         } else {
@@ -2153,7 +2153,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    private CartAttachment findAttachment(int[] targetPath) {
+    private Attachment findAttachment(int[] targetPath) {
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
         return (network == null) ? null : network.getRootAttachment().findChild(targetPath);
     }

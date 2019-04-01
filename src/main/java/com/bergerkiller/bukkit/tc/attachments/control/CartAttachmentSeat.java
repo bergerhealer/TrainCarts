@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -43,13 +44,12 @@ public class CartAttachmentSeat extends CartAttachment {
     private VirtualEntity _fakeCameraMount = null;
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
     private int _parentMountId = -1;
-    private Vector _parentMountOffset = new Vector();
     private boolean _rotationLocked = false;
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
 
     public void updateSeater() {
-        for (Player viewer : this.controller.getViewers()) {
+        for (Player viewer : this.getViewers()) {
             updateSeater(viewer);
         }
     }
@@ -62,27 +62,27 @@ public class CartAttachmentSeat extends CartAttachment {
         // Find a parent to mount to
         if (this._parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (this.parent != null && this.position.isDefault()) {
-                this._parentMountId = this.parent.getMountEntityId();
+            if (this.getParent() != null && this.getConfiguredPosition().isDefault()) {
+                this._parentMountId = ((CartAttachment) this.getParent()).getMountEntityId();
             }
 
             // No parent node mount is used, we have to create our own!
             if (this._parentMountId == -1) {
                 if (this._fakeMount == null) {
-                    this._fakeMount = new VirtualEntity(this.controller);
+                    this._fakeMount = new VirtualEntity(this.getController());
                     this._fakeMount.setEntityType(EntityType.CHICKEN);
                     this._fakeMount.setRelativeOffset(0.0, -0.625, 0.0);
                     this._fakeMount.setSyncMode(SyncMode.SEAT);
 
                     // Put the entity on a fake mount that we move around at an offset
-                    this._fakeMount.updatePosition(this.transform);
+                    this._fakeMount.updatePosition(this.getTransform());
                     this._fakeMount.syncPosition(true);
                     this._fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                     this._fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
 
                     // Spawn for ALL viewers
                     Vector motion = calcMotion();
-                    for (Player all_viewers_viewer : this.controller.getViewers()) {
+                    for (Player all_viewers_viewer : this.getViewers()) {
                         this._fakeMount.spawn(all_viewers_viewer, motion);
                     }
                 }
@@ -90,7 +90,7 @@ public class CartAttachmentSeat extends CartAttachment {
             }
         }
 
-        PassengerController pc = this.controller.getPassengerController(viewer);
+        PassengerController pc = this.getController().getPassengerController(viewer);
 
         if ((this._fakeEntityId != -1) && (this._upsideDown || (this._useVirtualCamera && viewer == this._entity))) {
             pc.unmount(this._parentMountId, this._entity.getEntityId());
@@ -105,14 +105,9 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this._rotationLocked = this.config.get("lockRotation", false);
+        this._rotationLocked = this.getConfig().get("lockRotation", false);
 
-        // When no parent is used, we must fake an offset ourselves
-        if (this.position.isDefault() && this.parent != null) {
-            this._parentMountOffset = this.parent.getMountEntityOffset();
-        }
-
-        ConfigurationNode ejectPosition = this.config.getNode("ejectPosition");
+        ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
         this._ejectPosition.load(ejectPosition);
         this._ejectLockRotation = ejectPosition.get("lockRotation", false);
     }
@@ -143,7 +138,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
             // Mount the player on an invisible entity we control
             if (this._entity == viewer && this._fakeCameraMount == null) {
-                this._fakeCameraMount = new VirtualEntity(this.controller);
+                this._fakeCameraMount = new VirtualEntity(this.getController());
 
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
                 this._fakeCameraMount.setPosition(new Vector(0.0, 1.0, 0.0));
@@ -151,14 +146,14 @@ public class CartAttachmentSeat extends CartAttachment {
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
-                this._fakeCameraMount.updatePosition(this.transform);
+                this._fakeCameraMount.updatePosition(this.getTransform());
                 this._fakeCameraMount.syncPosition(true);
                 this._fakeCameraMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                 this._fakeCameraMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
                 this._fakeCameraMount.spawn(viewer, calcMotion());
                 this._fakeCameraMount.syncPosition(true);
 
-                this.controller.getPassengerController(viewer).mount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
+                this.getController().getPassengerController(viewer).mount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
             }
 
             // Respawn an upside-down player
@@ -228,7 +223,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (this._entity != null) {
             this.refreshMetadata(viewer, true);
 
-            PassengerController pc = this.controller.getPassengerController(viewer);
+            PassengerController pc = this.getController().getPassengerController(viewer);
             pc.remove(this._entity.getEntityId(), false);
             if (this._fakeEntityId != -1) {
                 pc.remove(this._fakeEntityId, false);
@@ -236,14 +231,20 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
+    protected Vector calcMotion() {
+        AttachmentInternalState state = this.getInternalState();
+        Vector pos_old = state.last_transform.toVector();
+        Vector pos_new = state.curr_transform.toVector();
+        return pos_new.subtract(pos_old);
+    }
+
     @Override
-    public void onPositionUpdate() {
+    public void onTransformChanged(Matrix4x4 transform) {
         if (this._fakeMount != null &&
-            (this._parentMountOffset.getX() != 0.0 ||
-             this._parentMountOffset.getY() != 0.0 ||
-             this._parentMountOffset.getZ() != 0.0))
+            this.getConfiguredPosition().isDefault() &&
+            this.getParent() != null)
         {
-            this.transform.translate(this._parentMountOffset);
+            this.getParent().applyDefaultSeatTransform(transform);
         }
     }
 
@@ -254,12 +255,12 @@ public class CartAttachmentSeat extends CartAttachment {
             // This is controlled by having the player mounted on an invisible entity that we control
             // This entity must be updated here to have the correct position of the camera
             if (this._fakeCameraMount != null) {
-                this._fakeCameraMount.updatePosition(this.transform);
+                this._fakeCameraMount.updatePosition(this.getTransform());
                 this._fakeCameraMount.syncPosition(absolute);
             }
         }
         if (this._fakeMount != null) {
-            this._fakeMount.updatePosition(this.transform);
+            this._fakeMount.updatePosition(this.getTransform());
             this._fakeMount.syncPosition(absolute);
         }
     }
@@ -296,13 +297,13 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // If a previous entity was set, unseat it
         if (this._entity != null) {
-            for (PassengerController pc : this.controller.getPassengerControllers()) {
+            for (PassengerController pc : this.getController().getPassengerControllers()) {
                 pc.unmount(this._parentMountId, this._entity.getEntityId());
             }
             if (this._fakeCameraMount != null && this._entity instanceof Player) {
-                this.controller.getPassengerController((Player) this._entity).unmount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
+                this.getController().getPassengerController((Player) this._entity).unmount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
             }
-            for (Player viewer : this.controller.getViewers()) {
+            for (Player viewer : this.getViewers()) {
                 this.makeHidden(viewer);
             }
             TrainCarts.plugin.getSeatAttachmentMap().remove(this._entity.getEntityId(), this);
@@ -316,7 +317,7 @@ public class CartAttachmentSeat extends CartAttachment {
         // Re-seat new entity
         if (this._entity != null) {
             TrainCarts.plugin.getSeatAttachmentMap().set(this._entity.getEntityId(), this);
-            for (Player viewer : this.controller.getViewers()) {
+            for (Player viewer : this.getViewers()) {
                 this.makeVisible(viewer);
             }
         }
@@ -343,7 +344,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
         if (this._entity instanceof Player) {
             // Despawn the old player to all viewers
-            for (Player viewer : this.controller.getViewers()) {
+            for (Player viewer : this.getViewers()) {
                 this.makeHidden(viewer);
             }
 
@@ -354,7 +355,7 @@ public class CartAttachmentSeat extends CartAttachment {
             }
 
             // Respawn the new player to all viewers with the upside-down state changed
-            for (Player viewer : this.controller.getViewers()) {
+            for (Player viewer : this.getViewers()) {
                 this.makeVisible(viewer);
             }
         } else {
@@ -364,7 +365,7 @@ public class CartAttachmentSeat extends CartAttachment {
             // Refresh metadata to reflect this change for the Entity
             // We achieve the upside-down state using nametags
             if (this._entity != null) {
-                for (Player viewer : this.controller.getViewers()) {
+                for (Player viewer : this.getViewers()) {
                     this.refreshMetadata(viewer, false);
                 }
             }
@@ -395,7 +396,7 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         // When the entity isn't a player or is already shown upside-down, ignore further operations
-        if (!(this._entity instanceof Player) || this._upsideDown || !this.controller.getViewers().contains(this._entity)) {
+        if (!(this._entity instanceof Player) || this._upsideDown || !this.getViewers().contains(this._entity)) {
             this._useVirtualCamera = use;
             return;
         }
@@ -427,7 +428,8 @@ public class CartAttachmentSeat extends CartAttachment {
     public Location getEjectPosition(Entity passenger) {
         CartProperties cprop = this.getController().getMember().getProperties();
 
-        Matrix4x4 tmp = this.calcBaseTransform(this._ejectPosition.anchor);
+        Matrix4x4 tmp = this.getTransform().clone();
+        this._ejectPosition.anchor.apply(this, tmp);
 
         // Translate eject offset specified in the cart's properties
         tmp.translate(cprop.exitOffset);
@@ -466,7 +468,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public void onTick() {
-        float selfPitch = (float) this.transform.getYawPitchRoll().getX();
+        float selfPitch = (float) this.getTransform().getYawPitchRoll().getX();
 
         if (MathUtil.getAngleDifference(selfPitch, 180.0f) < 89.0f) {
             // Beyond the point where the entity should be rendered upside-down
@@ -488,7 +490,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (this._hideRealPlayerNextTick) {
             this._hideRealPlayerNextTick = false;
             if (this._entity != null) {
-                for (Player viewer : this.controller.getViewers()) {
+                for (Player viewer : this.getViewers()) {
                     if (this._upsideDown || (this._useVirtualCamera && viewer == this._entity)) {
                         this.hideRealPlayer(viewer);
                     }
@@ -502,7 +504,7 @@ public class CartAttachmentSeat extends CartAttachment {
             if (this._fakeMount != null) {
                 yaw = (float) this._fakeMount.getYawPitchRoll().getY();
             } else {
-                yaw = (float) this.transform.getYawPitchRoll().getY();
+                yaw = (float) this.getTransform().getYawPitchRoll().getY();
             }
 
             float pitch = realPlayer.getPitch();
@@ -536,7 +538,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
                 headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
                 headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
-                for (Player viewer : this.controller.getViewers()) {
+                for (Player viewer : this.getViewers()) {
                     if (viewer.getEntityId() != entityId) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
@@ -555,7 +557,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, entityId);
                 lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
                 lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
-                for (Player viewer : this.controller.getViewers()) {
+                for (Player viewer : this.getViewers()) {
                     if (viewer.getEntityId() != entityId) {
                         PacketUtil.sendPacket(viewer, lookPacket);
                     }
@@ -589,7 +591,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, this._fakeEntityId);
                     lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
                     lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
-                    for (Player viewer : this.controller.getViewers()) {
+                    for (Player viewer : this.getViewers()) {
                         PacketUtil.sendPacket(viewer, lookPacket);
                     }
                     this._fakeEntityLastYaw = protYaw;
@@ -600,7 +602,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
                     headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this._fakeEntityId);
                     headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
-                    for (Player viewer : this.controller.getViewers()) {
+                    for (Player viewer : this.getViewers()) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
                     this._fakeEntityLastHeadYaw = protHeadRot;

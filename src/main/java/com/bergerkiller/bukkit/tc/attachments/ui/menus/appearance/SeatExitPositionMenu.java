@@ -9,8 +9,8 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.attachments.config.PositionAnchorType;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
@@ -42,15 +42,15 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
 
-                for (PositionAnchorType type : PositionAnchorType.values()) {
+                for (AttachmentAnchor type : AttachmentAnchor.values()) {
                     this.addItem(type.toString());
                 }
-                this.setSelectedItem(getConfig().get("anchor", PositionAnchorType.DEFAULT).toString());
+                this.setSelectedItem(getConfig().get("anchor", AttachmentAnchor.DEFAULT.getName()));
             }
 
             @Override
             public void onSelectedItemChanged() {
-                getConfig().set("anchor", PositionAnchorType.get(getSelectedItem()).name());
+                getConfig().set("anchor", getSelectedItem());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 previewViewer();
             }
@@ -158,7 +158,7 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             return;
         }
 
-        CartAttachment attachment = network.getRootAttachment().findChild(this.attachment.getTargetPath());
+        Attachment attachment = network.getRootAttachment().findChild(this.attachment.getTargetPath());
         if (!(attachment instanceof CartAttachmentSeat)) {
             return;
         }

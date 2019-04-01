@@ -344,9 +344,20 @@ public class WheelTrackerMember {
          */
         public Matrix4x4 getAbsoluteTransform() {
             Matrix4x4 result = new Matrix4x4();
-            result.translate(this.getDisplayPosition());
-            result.rotate(Quaternion.fromLookDirection(this._forward.clone(), this._up.clone()));
+            getAbsoluteTransform(result);
             return result;
+        }
+
+        /**
+         * Gets the absolute transformation of this wheel, containing
+         * the position translation and the orientation calculations.
+         * 
+         * @param target to write this information to
+         */
+        public void getAbsoluteTransform(Matrix4x4 target) {
+            target.setIdentity();
+            target.translate(this.getDisplayPosition());
+            target.rotate(Quaternion.fromLookDirection(this._forward.clone(), this._up.clone()));
         }
 
         /**

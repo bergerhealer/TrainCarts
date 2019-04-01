@@ -14,11 +14,13 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
+import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 
@@ -47,7 +49,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
     private final Map<Player, PassengerController> passengerControllers = new HashMap<Player, PassengerController>();
 
-    private CartAttachment rootAttachment;
+    private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
 
     private long animationCurrentTime = 0;
@@ -95,7 +97,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
      * 
      * @return root attachment
      */
-    public CartAttachment getRootAttachment() {
+    public Attachment getRootAttachment() {
         // Set attachment to a fallback if for whatever reason it is null
         if (this.rootAttachment == null) {
             this.onModelChanged(AttachmentModel.getDefaultModel(getMember().getEntity().getType()));
@@ -160,8 +162,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         Collections.sort(result, new Comparator<CartAttachmentSeat>() {
             @Override
             public int compare(CartAttachmentSeat o1, CartAttachmentSeat o2) {
-                double d1 = o1.getPosition().distanceSquared(position);
-                double d2 = o2.getPosition().distanceSquared(position);
+                double d1 = o1.getTransform().toVector().distanceSquared(position);
+                double d2 = o2.getTransform().toVector().distanceSquared(position);
                 return Double.compare(d1, d2);
             }
         });
@@ -200,7 +202,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         super.onDetached();
 
         if (this.rootAttachment != null) {
-            CartAttachment.deinitialize(this.rootAttachment);
+            HelperMethods.perform_onDetached(this.rootAttachment);
         }
         if (this.member != null) {
             this.member.getProperties().getModel().removeOwner(this);
@@ -281,7 +283,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             return;
         }
 
-        CartAttachment.makeVisibleRecursive(this.getRootAttachment(), true, viewer);
+        HelperMethods.makeVisibleRecursive(this.getRootAttachment(), true, viewer);
 
         this.velocityUpdateReceivers.add(viewer);
         this.updateVelocity(viewer);
@@ -292,7 +294,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         //super.makeHidden(viewer, instant);
 
         if (this.rootAttachment != null) {
-            CartAttachment.makeHiddenRecursive(this.rootAttachment, true, viewer);
+            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, viewer);
         }
 
         this.velocityUpdateReceivers.remove(viewer);
@@ -390,7 +392,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
      * @return True if interaction was handled
      */
     public boolean handleInteraction(int entityId) {
-        CartAttachment attachment = CartAttachment.findAttachment(this.rootAttachment, entityId);
+        Attachment attachment = HelperMethods.findAttachmentWithEntityId(this.rootAttachment, entityId);
         if (attachment == null) {
             return false;
         }
@@ -407,10 +409,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.animationCurrentTime = time_now;
 
         try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
-            CartAttachment.updatePositions(this.rootAttachment, getLiveTransform());
+            HelperMethods.updatePositions(this.rootAttachment, getLiveTransform());
         }
         try (Timings t = TCTimings.NETWORK_PERFORM_TICK.start()) {
-            CartAttachment.performTick(this.rootAttachment);
+            HelperMethods.perform_onTick(this.rootAttachment);
         }
     }
 
@@ -430,7 +432,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Perform actual movement, which sends movement update packets
         try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
-            CartAttachment.performMovement(this.rootAttachment, absolute);
+            HelperMethods.perform_onMove(this.rootAttachment, absolute);
         }
 
         this.syncPassengers();
@@ -463,11 +465,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return this.passengerControllers.values();
     }
 
-    private void discoverSeats(CartAttachment attachment) {
+    private void discoverSeats(Attachment attachment) {
         if (attachment instanceof CartAttachmentSeat) {
             this.seatAttachments.add((CartAttachmentSeat) attachment);
         }
-        for (CartAttachment child : attachment.children) {
+        for (Attachment child : attachment.getChildren()) {
             discoverSeats(child);
         }
     }
@@ -480,7 +482,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         for (CartAttachmentSeat seat : this.seatAttachments) {
             Entity oldEntity = seat.getEntity();
             if (oldEntity != null) {
-                oldSeatPositions.put(oldEntity, seat.getPosition());
+                oldSeatPositions.put(oldEntity, seat.getTransform().toVector());
             }
         }
 
@@ -490,9 +492,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // Detach old attachments - after this viewers see nothing anymore
         if (this.rootAttachment != null) {
             for (Player oldViewer : this.getViewers()) {
-                CartAttachment.makeHiddenRecursive(this.rootAttachment, true, oldViewer);
+                HelperMethods.makeHiddenRecursive(this.rootAttachment, true, oldViewer);
             }
-            CartAttachment.deinitialize(this.rootAttachment);
+            HelperMethods.perform_onDetached(this.rootAttachment);
             this.rootAttachment = null;
         }
 
@@ -506,7 +508,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         this.discoverSeats(this.rootAttachment);
 
         for (Player viewer : this.getViewers()) {
-            CartAttachment.makeVisibleRecursive(this.rootAttachment, true, viewer);
+            HelperMethods.makeVisibleRecursive(this.rootAttachment, true, viewer);
         }
 
         // Let all passengers re-enter us

@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -90,14 +89,14 @@ public class VirtualEntity {
         }
     }
 
-    public Vector getMountOffset() {
+    public double getMountOffset() {
         switch (this.entityType) {
         case HORSE:
-            return new Vector(0.0, 1.4, 0.0);
+            return 1.4;
         case BOAT:
-            return new Vector(0.0, 0.2, 0.0);
+            return 0.2;
         default:
-            return new Vector(0.0, 1.0, 0.0);
+            return 1.0;
         }
     }
 

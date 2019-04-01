@@ -7,7 +7,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -32,15 +31,15 @@ public class CartAttachmentItem extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.item = this.config.get("item", ItemStack.class);
+        this.item = this.getConfig().get("item", ItemStack.class);
 
-        if (this.config.isNode("position")) {
-            this.transformType = this.config.get("position.transform", ItemTransformType.HEAD);
+        if (this.getConfig().isNode("position")) {
+            this.transformType = this.getConfig().get("position.transform", ItemTransformType.HEAD);
         } else {
             this.transformType = ItemTransformType.HEAD;
         }
 
-        this.entity = new VirtualEntity(this.controller);
+        this.entity = new VirtualEntity(this.getController());
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.ITEM);
 
@@ -84,7 +83,7 @@ public class CartAttachmentItem extends CartAttachment {
     }
 
     @Override
-    public void onPositionUpdate() {
+    public void onTransformChanged(Matrix4x4 transform) {
         // Switch to old logic for debugging the pivot point changes in 1.12.2-v3
         /*
         if (this.getController().getMember().getProperties().getTags().contains("old")) {
@@ -100,14 +99,14 @@ public class CartAttachmentItem extends CartAttachment {
         if (DEBUG_POSE) {
             Vector dir = new Vector(0, 0, 1);
             for (Player p : Bukkit.getOnlinePlayers()) {
-                dir = p.getEyeLocation().toVector().subtract(this.transform.toVector());
+                dir = p.getEyeLocation().toVector().subtract(transform.toVector());
                 break;
             }
             dir = new Vector(1, 0, 0);
             q_rotation = Quaternion.fromLookDirection(dir, new Vector(0,1,0)); //entity_transform.getRotation();
             q_rotation = Quaternion.multiply(Quaternion.fromAxisAngles(dir, DebugUtil.getDoubleValue("roll", 0.0)), q_rotation);
         } else {
-            q_rotation = this.transform.getRotation();
+            q_rotation = transform.getRotation();
         }
 
         // Detect changes in yaw that we can apply to the entity directly
@@ -173,7 +172,7 @@ public class CartAttachmentItem extends CartAttachment {
         }
 
         // Apply the transform to the entity position and pose of the model
-        this.entity.updatePosition(this.transform, new_entity_ypr);
+        this.entity.updatePosition(transform, new_entity_ypr);
 
         Vector rotation = Util.getArmorStandPose(q_rotation);
         DataWatcher meta = this.entity.getMetaData();
@@ -196,32 +195,32 @@ public class CartAttachmentItem extends CartAttachment {
         this.entity.syncMetadata();
     }
 
-    public final void onPositionUpdate_legacy() {
+    public final void onTransformChanged_legacy(Matrix4x4 transform) {
         this.entity.setRelativeOffset(0.0, -1.2, 0.0);
 
         // Perform additional translation for certain attached pose positions
         // This correct model offsets
         if (this.transformType == ItemTransformType.LEFT_HAND) {
-            Matrix4x4 tmp = this.transform.clone();
+            Matrix4x4 tmp = transform.clone();
             tmp.translate(-0.4, 0.3, 0.9375);
-            tmp.multiply(this.position.transform);
+            tmp.multiply(this.getConfiguredPosition().transform);
             Vector ypr = tmp.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
             this.entity.updatePosition(tmp, ypr);
-            super.onPositionUpdate();
+            super.onTransformChanged(transform);
         } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
-            Matrix4x4 tmp = this.transform.clone();
+            Matrix4x4 tmp = transform.clone();
             tmp.translate(-0.4, 0.3, -0.9375);
-            tmp.multiply(this.position.transform);
+            tmp.multiply(this.getConfiguredPosition().transform);
             Vector ypr = tmp.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
             this.entity.updatePosition(tmp, ypr);
-            super.onPositionUpdate();
+            super.onTransformChanged(transform);
         } else {
-            super.onPositionUpdate();
-            Vector ypr = this.transform.getYawPitchRoll();
+            super.onTransformChanged(transform);
+            Vector ypr = transform.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
-            this.entity.updatePosition(this.transform, ypr);
+            this.entity.updatePosition(transform, ypr);
         }
 
         // Convert the pitch/roll into an appropriate pose

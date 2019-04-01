@@ -4,11 +4,9 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 
 public class CartAttachmentPlatform extends CartAttachment {
     private VirtualEntity actual;
@@ -25,14 +23,14 @@ public class CartAttachmentPlatform extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.actual = new VirtualEntity(this.controller);
+        this.actual = new VirtualEntity(this.getController());
         this.actual.setEntityType(EntityType.SHULKER);
         this.actual.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         updateMeta();
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
-        this.entity = new VirtualEntity(this.controller);
+        this.entity = new VirtualEntity(this.getController());
         this.entity.setEntityType(EntityType.CHICKEN);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
@@ -61,8 +59,8 @@ public class CartAttachmentPlatform extends CartAttachment {
     }
 
     @Override
-    public Vector getMountEntityOffset() {
-        return this.entity.getMountOffset();
+    public void applyDefaultSeatTransform(Matrix4x4 transform) {
+        transform.translate(0.0, 1.0, 0.0);
     }
 
     @Override
@@ -70,23 +68,23 @@ public class CartAttachmentPlatform extends CartAttachment {
         // Send entity spawn packet
         actual.spawn(viewer, new Vector());
         entity.spawn(viewer, new Vector());
-        this.controller.getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+        this.getController().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
     }
 
     @Override
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
-        this.controller.getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
+        this.getController().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
         actual.destroy(viewer);
         entity.destroy(viewer);
     }
 
     @Override
-    public void onPositionUpdate() {
+    public void onTransformChanged(Matrix4x4 transform) {
         // Vector old_p = (this.last_transform == null) ? this.transform.toVector() : this.last_transform.toVector();
 
-        this.entity.updatePosition(this.transform);
-        this.actual.updatePosition(this.transform);
+        this.entity.updatePosition(transform);
+        this.actual.updatePosition(transform);
 
         // This attempts to move players along as a test
         /*
