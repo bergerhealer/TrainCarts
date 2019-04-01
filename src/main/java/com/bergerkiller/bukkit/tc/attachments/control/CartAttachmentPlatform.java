@@ -23,14 +23,14 @@ public class CartAttachmentPlatform extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.actual = new VirtualEntity(this.getController());
+        this.actual = new VirtualEntity(this.getManager());
         this.actual.setEntityType(EntityType.SHULKER);
         this.actual.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         updateMeta();
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
-        this.entity = new VirtualEntity(this.getController());
+        this.entity = new VirtualEntity(this.getManager());
         this.entity.setEntityType(EntityType.CHICKEN);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
@@ -68,13 +68,13 @@ public class CartAttachmentPlatform extends CartAttachment {
         // Send entity spawn packet
         actual.spawn(viewer, new Vector());
         entity.spawn(viewer, new Vector());
-        this.getController().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+        this.getManager().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
     }
 
     @Override
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
-        this.getController().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
+        this.getManager().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
         actual.destroy(viewer);
         entity.destroy(viewer);
     }

@@ -29,6 +29,16 @@ public interface Attachment {
     AttachmentInternalState getInternalState();
 
     /**
+     * Gets the attachment manager instance that initialized this attachment
+     * and oversees its interaction with the outside environment.
+     * 
+     * @return attachment manager
+     */
+    default AttachmentManager getManager() {
+        return getInternalState().manager;
+    }
+
+    /**
      * Gets the configuration of this attachment. This is automatically populated
      * with the attachment's configuration before {@link #onAttached()} is called.
      * The configuration is mutable, and when properties of the attachment are

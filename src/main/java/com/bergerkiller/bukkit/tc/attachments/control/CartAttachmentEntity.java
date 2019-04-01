@@ -30,10 +30,10 @@ public class CartAttachmentEntity extends CartAttachment {
         EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
         if (this.getParent() != null || !VirtualEntity.isMinecart(entityType)) {
             // Generate entity (UU)ID
-            this.entity = new VirtualEntity(this.getController());
+            this.entity = new VirtualEntity(this.getManager());
         } else {
             // Root Minecart node - allow the same Entity Id as the minecart to be used
-            this.entity = new VirtualEntity(this.getController(), this.getController().getEntity().getEntityId(), this.getController().getEntity().getUniqueId());
+            this.entity = new VirtualEntity(this.getManager(), this.getController().getEntity().getEntityId(), this.getController().getEntity().getUniqueId());
             this.entity.setUseParentMetadata(true);
         }
         this.entity.setEntityType(entityType);
@@ -49,7 +49,7 @@ public class CartAttachmentEntity extends CartAttachment {
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
         if (entityType.name().equals("SHULKER")) {
             this.actual = this.entity;
-            this.entity = new VirtualEntity(this.getController());
+            this.entity = new VirtualEntity(this.getManager());
             this.entity.setEntityType(EntityType.CHICKEN);
             this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
             this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
@@ -84,7 +84,7 @@ public class CartAttachmentEntity extends CartAttachment {
         }
         entity.spawn(viewer, new Vector());
         if (actual != null) {
-            this.getController().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+            this.getManager().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
         }
     }
 
@@ -92,7 +92,7 @@ public class CartAttachmentEntity extends CartAttachment {
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
         if (actual != null) {
-            this.getController().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
+            this.getManager().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
             actual.destroy(viewer);
         }
         entity.destroy(viewer);

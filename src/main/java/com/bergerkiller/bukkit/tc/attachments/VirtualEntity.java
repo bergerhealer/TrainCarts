@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
@@ -36,7 +37,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityL
  * The entity can be spawned or destroyed for individual players.
  */
 public class VirtualEntity {
-    private final MinecartMemberNetwork controller;
+    private final AttachmentManager manager;
     private final int entityId;
     private final UUID entityUUID;
     private final DataWatcher metaData;
@@ -57,12 +58,36 @@ public class VirtualEntity {
     private final ArrayList<Player> viewers = new ArrayList<Player>();
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
 
+    /**
+     * Deprecated: now uses Attachment Manager
+     * 
+     * @param controller
+     * @param entityId
+     * @param entityUUID
+     */
+    @Deprecated
     public VirtualEntity(MinecartMemberNetwork controller) {
-        this(controller, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
+        this((AttachmentManager) controller);
     }
 
+    /**
+     * Deprecated: now uses Attachment Manager
+     * 
+     * @param controller
+     * @param entityId
+     * @param entityUUID
+     */
+    @Deprecated
     public VirtualEntity(MinecartMemberNetwork controller, int entityId, UUID entityUUID) {
-        this.controller = controller;
+        this((AttachmentManager) controller, entityId, entityUUID);
+    }
+
+    public VirtualEntity(AttachmentManager manager) {
+        this(manager, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
+    }
+
+    public VirtualEntity(AttachmentManager manager, int entityId, UUID entityUUID) {
+        this.manager = manager;
         this.entityId = entityId;
         this.entityUUID = entityUUID;
         this.metaData = new DataWatcher();
@@ -226,9 +251,10 @@ public class VirtualEntity {
         // This should only be done when sound is enabled for the Minecart
         // Velocity is used exclusively for controlling the minecart's audio level
         // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
+        // Only applies when used in a minecart member network environment
         liveVel = 0.0;
-        if (hasVelocityPacket(this.entityType)) {
-            MinecartMember<?> member = controller.getMember();
+        if (hasVelocityPacket(this.entityType) && this.manager instanceof MinecartMemberNetwork) {
+            MinecartMember<?> member = ((MinecartMemberNetwork) manager).getMember();
             if (!member.isUnloaded() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
                 if (!Double.isNaN(velSyncAbsX)) {
                     liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, velSyncAbsX, velSyncAbsY, velSyncAbsZ);
@@ -350,8 +376,8 @@ public class VirtualEntity {
 
         PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
         PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
-        
-        this.controller.getPassengerController(viewer).resend(this.entityId);
+
+        this.manager.getPassengerController(viewer).resend(this.entityId);
 
         if (this.syncMode == SyncMode.SEAT) {
             PacketPlayOutRelEntityMoveLookHandle movePacket = PacketPlayOutRelEntityMoveLookHandle.createNew(
@@ -552,7 +578,7 @@ public class VirtualEntity {
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.entityId});
         PacketUtil.sendPacket(viewer, destroyPacket);
         if (!this.cancelUnmountLogic) {
-            this.controller.getPassengerController(viewer).remove(this.entityId, false);
+            this.manager.getPassengerController(viewer).remove(this.entityId, false);
         }
     }
 
@@ -569,7 +595,11 @@ public class VirtualEntity {
     }
 
     private DataWatcher getUsedMeta() {
-        return this.useParentMetadata ? this.controller.getEntity().getMetaData() : this.metaData;
+        if (this.useParentMetadata && this.manager instanceof MinecartMemberNetwork) {
+            return ((MinecartMemberNetwork) this.manager).getEntity().getMetaData();
+        } else {
+            return this.metaData;
+        }
     }
 
     private static boolean hasVelocityPacket(EntityType entityType) {

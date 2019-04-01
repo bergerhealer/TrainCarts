@@ -39,7 +39,7 @@ public class CartAttachmentItem extends CartAttachment {
             this.transformType = ItemTransformType.HEAD;
         }
 
-        this.entity = new VirtualEntity(this.getController());
+        this.entity = new VirtualEntity(this.getManager());
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.ITEM);
 

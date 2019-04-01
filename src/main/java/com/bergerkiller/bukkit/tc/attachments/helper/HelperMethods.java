@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
@@ -12,40 +11,12 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 
 /**
  * Just some helper methods to keep the API clean
  */
 public class HelperMethods {
-
-    /**
-     * Creates an attachment controller and all children of it defined inside
-     * a configuration. For all controllers created, {@link Attachment#onLoad(config)}
-     * is called.
-     * 
-     * @param config
-     * @return attachment controller, null if no controller was defined in the config
-     */
-    public static Attachment createController(ConfigurationNode config) {
-        CartAttachmentType attachmentType = config.get("type", CartAttachmentType.EMPTY);
-        if (attachmentType == null) {
-            return null; // invalid!
-        }
-
-        Attachment attachment = attachmentType.createAttachment();
-        attachment.getInternalState().onLoad(config);        
-
-        for (ConfigurationNode childNode : config.getNodeList("attachments")) {
-            Attachment child = createController(childNode);
-            if (child != null) {
-                attachment.addChild(child);
-            }
-        }
-
-        return attachment;
-    }
 
     /**
      * Updates the positions of an attachment and all child attachments

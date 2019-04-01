@@ -15,9 +15,10 @@ import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManagerInternalState;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
@@ -40,14 +41,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> implements AttachmentModelOwner {
+public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> implements AttachmentModelOwner, AttachmentManager {
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
 
+    private final AttachmentManagerInternalState state = new AttachmentManagerInternalState();
     private MinecartMember<?> member = null;
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
-    private final Map<Player, PassengerController> passengerControllers = new HashMap<Player, PassengerController>();
 
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
@@ -90,6 +91,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Debug: add a test attachment
         //this.attachments.add(new TestAttachment(this));
+    }
+
+    @Override
+    public AttachmentManagerInternalState getInternalState() {
+        return this.state;
+    }
+
+    @Override
+    public org.bukkit.World getWorld() {
+        return this.getEntity().getWorld();
     }
 
     /**
@@ -298,7 +309,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
 
         this.velocityUpdateReceivers.remove(viewer);
-        this.passengerControllers.remove(viewer);
+        this.removePassengerController(viewer);
     }
 
     @Override
@@ -448,23 +459,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         return transform;
     }
 
-    public PassengerController getPassengerController(Player viewer) {
-        return getPassengerController(viewer, true);
-    }
-
-    public PassengerController getPassengerController(Player viewer, boolean createIfNotFound) {
-        PassengerController controller = this.passengerControllers.get(viewer);
-        if (controller == null && createIfNotFound) {
-            controller = new PassengerController(viewer);
-            this.passengerControllers.put(viewer, controller);
-        }
-        return controller;
-    }
-
-    public Collection<PassengerController> getPassengerControllers() {
-        return this.passengerControllers.values();
-    }
-
     private void discoverSeats(Attachment attachment) {
         if (attachment instanceof CartAttachmentSeat) {
             this.seatAttachments.add((CartAttachmentSeat) attachment);
@@ -499,11 +493,13 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
 
         // Clear to reset passenger controllers
-        this.passengerControllers.clear();
+        this.clearPassengerControllers();
 
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
-        this.rootAttachment = CartAttachment.initialize(this, model.getConfig());
-        
+        this.rootAttachment = this.createAttachment(model.getConfig());
+        HelperMethods.perform_onAttached(this.rootAttachment);
+        HelperMethods.updatePositions(this.rootAttachment, this.getLiveTransform());
+
         this.seatAttachments.clear();
         this.discoverSeats(this.rootAttachment);
 

@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 /**
@@ -37,13 +36,13 @@ public abstract class AttachmentAnchor {
     public static AttachmentAnchor FRONT_WHEEL = register(new AttachmentAnchor("front wheel") {
         @Override
         public boolean supports(Attachment attachment) {
-            return attachment instanceof CartAttachment;
+            return attachment.getManager() instanceof MinecartMemberNetwork;
         }
 
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
-            if (attachment instanceof CartAttachment) {
-                MinecartMemberNetwork controller = ((CartAttachment) attachment).getController();
+            if (attachment.getManager() instanceof MinecartMemberNetwork) {
+                MinecartMemberNetwork controller = (MinecartMemberNetwork) attachment.getManager();
                 controller.getMember().getWheels().front().getAbsoluteTransform(transform);
             }
         }
@@ -55,13 +54,13 @@ public abstract class AttachmentAnchor {
     public static AttachmentAnchor BACK_WHEEL = register(new AttachmentAnchor("back wheel") {
         @Override
         public boolean supports(Attachment attachment) {
-            return attachment instanceof CartAttachment;
+            return attachment.getManager() instanceof MinecartMemberNetwork;
         }
 
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
-            if (attachment instanceof CartAttachment) {
-                MinecartMemberNetwork controller = ((CartAttachment) attachment).getController();
+            if (attachment.getManager() instanceof MinecartMemberNetwork) {
+                MinecartMemberNetwork controller = (MinecartMemberNetwork) attachment.getManager();
                 controller.getMember().getWheels().back().getAbsoluteTransform(transform);
             }
         }

@@ -23,6 +23,11 @@ import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
  */
 public class AttachmentInternalState {
     /**
+     * Manages that created the attachment and oversees it
+     */
+    protected AttachmentManager manager = null;
+
+    /**
      * Parent of the attachment
      */
     protected Attachment parent = null;
