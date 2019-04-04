@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -99,7 +100,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
         // Check for a vertical rail right above this rail on an outer-facing wall
         // This logic only applies for upside-down rails
-        if (isUpsideDown(railsBlock)) {
+        if (isUpsideDown(railsBlock, rails)) {
             for (BlockFace face : FaceUtil.AXIS) {
                 Block aboveAt = above.getRelative(face);
                 if (Util.ISVERTRAIL.get(aboveAt)) {
@@ -130,22 +131,31 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public boolean isUpsideDown(Block railsBlock) {
+        return isUpsideDown(railsBlock, null);
+    }
+
+    private boolean isUpsideDown(Block railsBlock, Rails rails) {
         if (!TCConfig.allowUpsideDownRails) {
             return false;
         }
 
-        Rails rails = BlockUtil.getRails(railsBlock);
-        if (rails == null) {
-            return false;
-        }
-
-        // Check block directly below - should be able to pass through
-        if (MaterialUtil.ISSOLID.get(railsBlock.getRelative(BlockFace.DOWN))) {
-            return false;
-        }
-
         // Check block directly above - should be a valid solid
-        if (!MaterialUtil.SUFFOCATES.get(railsBlock.getRelative(BlockFace.UP))) {
+        // Shortcut for BlockData 'AIR', as this is the most common type you're going to get
+        // isSuffocating() should be a fast call, but it goes through some layers, so why not.
+        BlockData blockDataAbove = WorldUtil.getBlockData(railsBlock.getWorld(), railsBlock.getX(), railsBlock.getY()+1, railsBlock.getZ());
+        if (blockDataAbove == BlockData.AIR || !blockDataAbove.isSuffocating()) {
+            return false;
+        }
+
+        // Check block directly below supports the rails, or not
+        if (Util.canSupportTop(WorldUtil.getBlockData(railsBlock.getRelative(BlockFace.DOWN)))) {
+            return false;
+        }
+
+        if (rails == null) {
+            rails = BlockUtil.getRails(railsBlock);
+        }
+        if (rails == null) {
             return false;
         }
 
@@ -166,7 +176,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
             return true;
         }
     }
-
+    
     /**
      * Gets the next position to go to, without requesting information from the rail itself.
      * This allows it to be used by other rail types.
@@ -317,7 +327,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     public RailLogicHorizontal getLogicForRails(Block railsBlock, Rails rails, BlockFace enterFace) {
         BlockFace direction = rails.getDirection();
-        boolean upsideDown = isUpsideDown(railsBlock);
+        boolean upsideDown = isUpsideDown(railsBlock, rails);
 
         // Sloped logic
         if (rails.isOnSlope()) {

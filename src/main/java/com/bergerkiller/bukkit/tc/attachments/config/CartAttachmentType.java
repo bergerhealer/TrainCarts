@@ -20,13 +20,15 @@ public enum CartAttachmentType {
     ENTITY(CartAttachmentEntity.class),
     /** Shows the model of an item in an armor stand */
     ITEM(CartAttachmentItem.class),
+    /** Provides an invisible moving platform players can walk on */
+    PLATFORM(CartAttachmentPlatform.class),
     /** A seat a player can sit in */
     SEAT(CartAttachmentSeat.class),
     /** Attaches the full model tree of another model to this one */
     MODEL(CartAttachmentEmpty.class);
 
     private final Class<? extends CartAttachment> attachmentClass;
-    
+
     private CartAttachmentType(Class<? extends CartAttachment> attachmentClass) {
         this.attachmentClass = attachmentClass;
     }
@@ -36,6 +38,9 @@ public enum CartAttachmentType {
         case ITEM:
             ItemStack item = config.get("item", new ItemStack(Material.MINECART));
             return TCConfig.resourcePack.getItemTexture(item, 16, 16);
+
+        case PLATFORM:
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/platform.png");
 
         case SEAT:
             return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/seat.png");

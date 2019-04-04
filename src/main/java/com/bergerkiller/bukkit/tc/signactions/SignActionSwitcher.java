@@ -190,15 +190,8 @@ public class SignActionSwitcher extends SignAction {
     }
 
     @Override
-    public void destroy(SignActionEvent event) {
-        // Remove the switcher name (location toString) from the available node names
-        Block rails = event.getRails();
-        if (rails != null) {
-            PathNode node = PathNode.get(rails);
-            if (node != null) {
-                node.removeName(node.location.toString());
-            }
-        }
+    public boolean isRailSwitcher(SignActionEvent info) {
+        return true;
     }
 
     @Override

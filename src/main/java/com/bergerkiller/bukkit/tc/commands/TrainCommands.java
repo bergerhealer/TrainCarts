@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -588,6 +589,19 @@ public class TrainCommands {
                 msg.send(p);
             } else {
                 p.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
+            }
+        } else if (LogicUtil.contains(cmd, "anim", "animate", "playanimation")) {
+            Permission.COMMAND_ANIMATE.handle(p);
+            if (prop.isLoaded()) {
+                AnimationOptions opt = new AnimationOptions();
+                opt.loadCommandArgs(args);
+                if (prop.getHolder().playNamedAnimation(opt)) {
+                    p.sendMessage(opt.getCommandSuccessMessage());
+                } else {
+                    p.sendMessage(opt.getCommandFailureMessage());
+                }
+            } else {
+                p.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
             }
         } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");

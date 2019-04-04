@@ -9,17 +9,21 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +47,7 @@ import org.bukkit.util.Vector;
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private final Block signblock;
-    private final BlockFace facing;
+    private BlockFace facing;
     private final SignActionHeader header;
     private final Sign sign;
     private BlockFace[] watchedDirections;
@@ -74,6 +78,18 @@ public class SignActionEvent extends Event implements Cancellable {
         this.memberchecked = true;
     }
 
+    public SignActionEvent(RailSignCache.TrackedSign trackedSign, MinecartMember<?> member) {
+        this(trackedSign);
+        this.member = member;
+        this.memberchecked = true;
+    }
+
+    public SignActionEvent(RailSignCache.TrackedSign trackedSign, MinecartGroup group) {
+        this(trackedSign);
+        this.group = group;
+        this.memberchecked = true;
+    }
+
     public SignActionEvent(Block signblock, Block railsBlock, MinecartGroup group) {
         this(signblock, railsBlock);
         this.group = group;
@@ -88,27 +104,29 @@ public class SignActionEvent extends Event implements Cancellable {
         this(signblock, signblock == null ? null : BlockUtil.getSign(signblock), railsblock);
     }
 
+    public SignActionEvent(RailSignCache.TrackedSign trackedSign) {
+        this(trackedSign.signBlock, trackedSign.sign, trackedSign.railBlock);
+    }
+
     public SignActionEvent(final Block signblock, final Sign sign, Block railsblock) {
         this.signblock = signblock;
         this.sign = sign;
         this.railsblock = railsblock;
         this.railschecked = this.railsblock != null;
+        this.actionType = SignActionType.NONE;
+        this.facing = null;
         if (this.sign == null) {
             // No sign available - set default values and abort
             this.header = SignActionHeader.parse(null);
-            this.facing = null;
             this.watchedDirections = FaceUtil.AXIS;
-            return;
         } else {
             // Sign available - initialize the sign
             this.header = SignActionHeader.parseFromEvent(this);
-            this.facing = BlockUtil.getFacing(this.signblock);
             if (this.header.isLegacyConverted() && this.header.isValid()) {
                 this.setLine(0, this.header.toString());
             }
             this.watchedDirections = null;
         }
-        this.actionType = SignActionType.NONE;
     }
 
     public static HandlerList getHandlerList() {
@@ -138,7 +156,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.hasRails()) {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.block.equals(rails)) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
                         return rail.state.enterDirection();
                     }
                 }
@@ -159,8 +177,7 @@ public class SignActionEvent extends Event implements Cancellable {
         // Snap sign direction to the rails, if a rails exists
         if (this.hasRails()) {
             RailState state = new RailState();
-            state.setRailBlock(this.getRails());
-            state.setRailType(RailType.getType(state.railBlock()));
+            state.setRailPiece(this.getRailPiece());
             state.position().setLocation(state.railType().getSpawnLocation(state.railBlock(), signDirection));
             state.position().setMotion(signDirection);
             state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
@@ -182,7 +199,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.hasRails()) {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.block.equals(rails)) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
                         return rail.state.enterFace();
                     }
                 }
@@ -322,7 +339,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.hasRails()) {
                 Block rails = this.getRails();
                 for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.block.equals(rails)) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
                         memberRail = rail;
                         break;
                     }
@@ -337,16 +354,16 @@ public class SignActionEvent extends Event implements Cancellable {
             // Compute the position at the start of the rail's path by walking 'back'
             RailPath.Position pos = memberRail.state.position().clone();
             pos.invertMotion();
-            memberRail.getPath().move(pos, memberRail.block, Double.MAX_VALUE);
+            memberRail.getPath().move(pos, memberRail.state.railBlock(), Double.MAX_VALUE);
 
             // Find the junction closest to this start position
             double min_dist = Double.MAX_VALUE;
             RailJunction best_junc = null;
-            for (RailJunction junc : memberRail.type.getJunctions(memberRail.block)) {
+            for (RailJunction junc : memberRail.state.railType().getJunctions(memberRail.state.railBlock())) {
                 if (junc.position().relative) {
-                    pos.makeRelative(memberRail.block);
+                    pos.makeRelative(memberRail.state.railBlock());
                 } else {
-                    pos.makeAbsolute(memberRail.block);
+                    pos.makeAbsolute(memberRail.state.railBlock());
                 }
                 double dist_sq = junc.position().distanceSquared(pos);
                 if (dist_sq < min_dist) {
@@ -377,6 +394,8 @@ public class SignActionEvent extends Event implements Cancellable {
         if (!this.hasRails() || fromJunction == null || toJunction == null) {
             return;
         }
+
+        MinecartGroupStore.notifyPhysicsChange();
 
         Block railBlock = this.getRails();
         RailType railType = RailType.getType(railBlock);
@@ -571,6 +590,16 @@ public class SignActionEvent extends Event implements Cancellable {
         return this.railsblock;
     }
 
+    public RailPiece getRailPiece() {
+        Block railBlock = this.getRails();
+        if (railBlock == null) {
+            return null;
+        } else {
+            // TODO: RailType should be properly stored inside this class!
+            return RailPiece.create(RailType.getType(railBlock), railBlock);
+        }
+    }
+
     public World getWorld() {
         return this.signblock.getWorld();
     }
@@ -613,6 +642,9 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public BlockFace getFacing() {
+        if (this.facing == null) {
+            this.facing = BlockUtil.getFacing(this.signblock);
+        }
         return this.facing;
     }
 
@@ -676,7 +708,26 @@ public class SignActionEvent extends Event implements Cancellable {
         // If so, then there is a rails there!
         RailType currentType = RailType.getType(getRails());
         RailJunction junction = Util.faceToJunction(currentType.getJunctions(getRails()), direction);
-        return junction != null && currentType.takeJunction(getRails(), junction) != null;
+        if (junction == null) {
+            return false;
+        }
+        RailState state = currentType.takeJunction(getRails(), junction);
+        if (state == null) {
+            return false;
+        }
+
+        // Move backwards again from the rails found
+        state.setMotionVector(state.motionVector().multiply(-1.0));
+        state.initEnterDirection();
+        TrackWalkingPoint wp = new TrackWalkingPoint(state);
+        wp.skipFirst();
+        if (!wp.moveFull()) {
+            return false;
+        }
+
+        // Verify this is the Block we came from
+        return wp.state.railType() == currentType &&
+               wp.state.railBlock().equals(getRails());
     }
 
     /**
@@ -824,6 +875,7 @@ public class SignActionEvent extends Event implements Cancellable {
                             }
 
                             // Simple facing checks - NESW
+                            BlockFace facing = this.getFacing();
                             if (this.isConnectedRails(facing)) {
                                 watchedFaces.add(facing.getOppositeFace());
                             } else if (this.isConnectedRails(facing.getOppositeFace())) {

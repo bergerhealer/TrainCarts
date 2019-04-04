@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
+import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -39,6 +41,7 @@ import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -105,6 +108,47 @@ public class GlobalCommands {
                     sender.sendMessage(ChatColor.RED + "World not found!");
                 }
             }
+            return true;
+        } else if (args[0].equals("menu")) {
+            Permission.COMMAND_GIVE_EDITOR.handle(sender);
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("This command is only for players");
+                return true;
+            }
+            if (args.length <= 2) {
+                sender.sendMessage(ChatColor.YELLOW + "/train menu set [value] - Set value of the current menu element");
+                return true;
+            }
+
+            // Get editor instance
+            AttachmentEditor editor = MapDisplay.getHeldDisplay((Player) sender, AttachmentEditor.class);
+            if (editor == null) {
+                sender.sendMessage(ChatColor.RED + "You do not have the attachment editor open");
+            }
+
+            // Find focused widget
+            MapWidget activated = editor.getActivatedWidget();
+            MapWidget focused = activated;
+            if (activated != null) {
+                for (MapWidget child : activated.getWidgets()) {
+                    if (child.isFocused()) {
+                        focused = child;
+                        break;
+                    }
+                }
+            }
+
+            if (args[1].equals("set") && focused instanceof SetValueTarget) {
+                boolean success = ((SetValueTarget) focused).acceptTextValue(args[2]);
+                if (success) {
+                    sender.sendMessage(ChatColor.GREEN + "Value has been updated");
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Failed to update value!");
+                }
+                return true;
+            }
+
+            sender.sendMessage(ChatColor.RED + "Unknown command or no suitable menu item is active!");
             return true;
         } else if (args[0].equals("reroute")) {
             Permission.COMMAND_REROUTE.handle(sender);
@@ -373,15 +417,19 @@ public class GlobalCommands {
                 Player p = (Player) sender;
                 p.getInventory().addItem(TCMapControl.createTCMapItem());
             } else {
-                sender.sendMessage("This command is only for players");
+                throw new NoPermissionException();
             }
             return true;
         } else if (args[0].equals("attachments")) {
-            Permission.COMMAND_GIVE_EDITOR.handle(sender);
-            ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
-            ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
-            ((Player) sender).getInventory().addItem(item);
-            sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+            if (sender instanceof Player) {
+                Permission.COMMAND_GIVE_EDITOR.handle(sender);
+                ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
+                ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
+                ((Player) sender).getInventory().addItem(item);
+                sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+            } else {
+                throw new NoPermissionException();
+            }
             return true;
         } else if (args[0].equals("chest")) {
             Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
@@ -520,7 +568,7 @@ public class GlobalCommands {
 
             if (prop.hasHolder() && statement.length() > 0) {
                 MinecartGroup group = prop.getHolder();
-                SignActionEvent event = new SignActionEvent(null, group);
+                SignActionEvent event = new SignActionEvent((Block) null, group);
                 if (!Statement.has(group, statement, event)) {
                     continue;
                 }

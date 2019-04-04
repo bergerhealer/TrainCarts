@@ -4,6 +4,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
@@ -26,13 +27,13 @@ public class CartAttachmentEntity extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        EntityType entityType = config.get("entityType", EntityType.MINECART);
-        if (this.parent != null || !VirtualEntity.isMinecart(entityType)) {
+        EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
+        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType)) {
             // Generate entity (UU)ID
-            this.entity = new VirtualEntity(this.controller);
+            this.entity = new VirtualEntity(this.getManager());
         } else {
             // Root Minecart node - allow the same Entity Id as the minecart to be used
-            this.entity = new VirtualEntity(this.controller, this.controller.getEntity().getEntityId(), this.controller.getEntity().getUniqueId());
+            this.entity = new VirtualEntity(this.getManager(), this.getController().getEntity().getEntityId(), this.getController().getEntity().getUniqueId());
             this.entity.setUseParentMetadata(true);
         }
         this.entity.setEntityType(entityType);
@@ -48,7 +49,7 @@ public class CartAttachmentEntity extends CartAttachment {
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
         if (entityType.name().equals("SHULKER")) {
             this.actual = this.entity;
-            this.entity = new VirtualEntity(this.controller);
+            this.entity = new VirtualEntity(this.getManager());
             this.entity.setEntityType(EntityType.CHICKEN);
             this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
             this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
@@ -63,7 +64,16 @@ public class CartAttachmentEntity extends CartAttachment {
 
     @Override
     public int getMountEntityId() {
-        return this.entity.getEntityId();
+        if (this.entity.isMountable()) {
+            return this.entity.getEntityId();
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public void applyDefaultSeatTransform(Matrix4x4 transform) {
+        transform.translate(0.0, this.entity.getMountOffset(), 0.0);
     }
 
     @Override
@@ -74,7 +84,7 @@ public class CartAttachmentEntity extends CartAttachment {
         }
         entity.spawn(viewer, new Vector());
         if (actual != null) {
-            this.controller.getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+            this.getManager().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
         }
     }
 
@@ -82,18 +92,17 @@ public class CartAttachmentEntity extends CartAttachment {
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
         if (actual != null) {
-            this.controller.getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
+            this.getManager().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
             actual.destroy(viewer);
         }
         entity.destroy(viewer);
     }
 
     @Override
-    public void onPositionUpdate() {
-        super.onPositionUpdate();
-        this.entity.updatePosition(this.transform);
+    public void onTransformChanged(Matrix4x4 transform) {
+        this.entity.updatePosition(transform);
         if (this.actual != null) {
-            this.actual.updatePosition(this.transform);
+            this.actual.updatePosition(transform);
         }
     }
 

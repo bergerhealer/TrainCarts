@@ -30,4 +30,14 @@ public class ChangingSign extends BlockStateBase implements Sign {
     public String[] getLines() {
         return this.event.getLines();
     }
+
+    @Override
+    public boolean isEditable() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public void setEditable(boolean editable) {
+    }
 }

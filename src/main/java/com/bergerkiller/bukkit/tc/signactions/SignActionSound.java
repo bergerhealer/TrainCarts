@@ -89,6 +89,11 @@ public class SignActionSound extends SignAction {
     }
 
     @Override
+    public boolean isMemberMoveHandled(SignActionEvent info) {
+        return info.isType("msound");
+    }
+
+    @Override
     public boolean canSupportRC() {
         return true;
     }

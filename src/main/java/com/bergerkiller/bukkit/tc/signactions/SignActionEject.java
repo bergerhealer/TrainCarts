@@ -81,9 +81,7 @@ public class SignActionEject extends SignAction {
 
             // Actually eject
             if (isAbsolute) {
-                System.out.println("WAA: " + offset);
                 Location at = new Location(info.getWorld(), offset.getX(), offset.getY(), offset.getZ());
-                System.out.println("=" + at);
                 for (MinecartMember<?> mm : info.getMembers()) {
                     if (usePlayerRotation) {
                         at.setYaw(0.0f);
@@ -97,7 +95,6 @@ public class SignActionEject extends SignAction {
                             }
                         }
                     }
-                    System.out.println("EJECT TO " + at);
                     mm.eject(at);
                 }
             } else {

@@ -6,13 +6,13 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownB;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownC;
-import com.bergerkiller.bukkit.tc.utils.RailInfo;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -188,9 +188,9 @@ public class RailTypeVertical extends RailType {
         BlockFace dir = Util.getVerticalRailDirection(verticalRail);
         Block possible = above.getRelative(dir);
 
-        RailInfo railInfo = RailType.findRailInfo(possible);
-        if (railInfo != null && LogicUtil.contains(dir.getOppositeFace(), railInfo.railType.getPossibleDirections(railInfo.railBlock))) {
-            return railInfo.railBlock;
+        RailPiece railPiece = RailType.findRailPiece(possible);
+        if (railPiece != null && LogicUtil.contains(dir.getOppositeFace(), railPiece.type().getPossibleDirections(railPiece.block()))) {
+            return railPiece.block();
         }
 
         return null;

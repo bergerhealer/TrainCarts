@@ -31,15 +31,15 @@ public class CartAttachmentItem extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.item = this.config.get("item", ItemStack.class);
+        this.item = this.getConfig().get("item", ItemStack.class);
 
-        if (this.config.isNode("position")) {
-            this.transformType = this.config.get("position.transform", ItemTransformType.HEAD);
+        if (this.getConfig().isNode("position")) {
+            this.transformType = this.getConfig().get("position.transform", ItemTransformType.HEAD);
         } else {
             this.transformType = ItemTransformType.HEAD;
         }
 
-        this.entity = new VirtualEntity(this.controller);
+        this.entity = new VirtualEntity(this.getManager());
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.ITEM);
 
@@ -83,7 +83,7 @@ public class CartAttachmentItem extends CartAttachment {
     }
 
     @Override
-    public void onPositionUpdate() {
+    public void onTransformChanged(Matrix4x4 transform) {
         // Switch to old logic for debugging the pivot point changes in 1.12.2-v3
         /*
         if (this.getController().getMember().getProperties().getTags().contains("old")) {
@@ -92,8 +92,6 @@ public class CartAttachmentItem extends CartAttachment {
         }
         */
 
-        super.onPositionUpdate();
-
         final boolean DEBUG_POSE = false;
 
         // Debug mode makes models look at the viewer to test orientation
@@ -101,14 +99,14 @@ public class CartAttachmentItem extends CartAttachment {
         if (DEBUG_POSE) {
             Vector dir = new Vector(0, 0, 1);
             for (Player p : Bukkit.getOnlinePlayers()) {
-                dir = p.getEyeLocation().toVector().subtract(this.transform.toVector());
+                dir = p.getEyeLocation().toVector().subtract(transform.toVector());
                 break;
             }
             dir = new Vector(1, 0, 0);
             q_rotation = Quaternion.fromLookDirection(dir, new Vector(0,1,0)); //entity_transform.getRotation();
             q_rotation = Quaternion.multiply(Quaternion.fromAxisAngles(dir, DebugUtil.getDoubleValue("roll", 0.0)), q_rotation);
         } else {
-            q_rotation = this.transform.getRotation();
+            q_rotation = transform.getRotation();
         }
 
         // Detect changes in yaw that we can apply to the entity directly
@@ -118,7 +116,7 @@ public class CartAttachmentItem extends CartAttachment {
             Quaternion changes = last_rot.clone();
             changes.invert();
             changes.multiply(q_rotation);
-            yaw_change = changes.getYawPitchRoll().getY();
+            yaw_change = Util.fastGetRotationYaw(changes);
         } else {
             yaw_change = 0.0;
         }
@@ -127,16 +125,30 @@ public class CartAttachmentItem extends CartAttachment {
         // Apply when the yaw change isn't too extreme (does not cause a flip) and has a significant change
         Vector new_entity_ypr = this.entity.getYawPitchRoll().clone();
         int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation((float) new_entity_ypr.getY());
-        int prot_yaw_rot_new;
+        int prot_yaw_rot_new = prot_yaw_rot_old;
         if (yaw_change >= -90.0 && yaw_change <= 90.0) {
             prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) (new_entity_ypr.getY() + yaw_change));
             if (prot_yaw_rot_new != prot_yaw_rot_old) {
+
+                // Do not change entity yaw to beyond the angle requested
+                // This causes the pose yaw angle to compensate, which looks very twitchy
+                double new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                double new_yaw_change = (new_yaw - new_entity_ypr.getY());
+                if (yaw_change < 0.0) {
+                    if (new_yaw_change < yaw_change) {
+                        prot_yaw_rot_new++;
+                        new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                    }
+                } else {
+                    if (new_yaw_change > yaw_change) {
+                        prot_yaw_rot_new--;
+                        new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                    }
+                }
+
                 // Has a change in protocol yaw value, accept the changes
-                new_entity_ypr.setY(new_entity_ypr.getY() + yaw_change);
+                new_entity_ypr.setY(new_yaw);
             }
-        } else {
-            // Too large of a change, do not change entity yaw
-            prot_yaw_rot_new = prot_yaw_rot_old;
         }
 
         // Subtract rotation of Entity (keep protocol error into account)
@@ -160,7 +172,8 @@ public class CartAttachmentItem extends CartAttachment {
         }
 
         // Apply the transform to the entity position and pose of the model
-        this.entity.updatePosition(this.transform, new_entity_ypr);
+        this.entity.updatePosition(transform, new_entity_ypr);
+
         Vector rotation = Util.getArmorStandPose(q_rotation);
         DataWatcher meta = this.entity.getMetaData();
         if (this.transformType.isHead()) {
@@ -177,34 +190,37 @@ public class CartAttachmentItem extends CartAttachment {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
+
+        // Sync right now! Not only when moving!
+        this.entity.syncMetadata();
     }
 
-    public final void onPositionUpdate_legacy() {
+    public final void onTransformChanged_legacy(Matrix4x4 transform) {
         this.entity.setRelativeOffset(0.0, -1.2, 0.0);
 
         // Perform additional translation for certain attached pose positions
         // This correct model offsets
         if (this.transformType == ItemTransformType.LEFT_HAND) {
-            Matrix4x4 tmp = this.transform.clone();
+            Matrix4x4 tmp = transform.clone();
             tmp.translate(-0.4, 0.3, 0.9375);
-            tmp.multiply(this.local_transform);
+            tmp.multiply(this.getConfiguredPosition().transform);
             Vector ypr = tmp.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
             this.entity.updatePosition(tmp, ypr);
-            super.onPositionUpdate();
+            super.onTransformChanged(transform);
         } else if (this.transformType == ItemTransformType.RIGHT_HAND) {
-            Matrix4x4 tmp = this.transform.clone();
+            Matrix4x4 tmp = transform.clone();
             tmp.translate(-0.4, 0.3, -0.9375);
-            tmp.multiply(this.local_transform);
+            tmp.multiply(this.getConfiguredPosition().transform);
             Vector ypr = tmp.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
             this.entity.updatePosition(tmp, ypr);
-            super.onPositionUpdate();
+            super.onTransformChanged(transform);
         } else {
-            super.onPositionUpdate();
-            Vector ypr = this.transform.getYawPitchRoll();
+            super.onTransformChanged(transform);
+            Vector ypr = transform.getYawPitchRoll();
             ypr.setY(MathUtil.round(ypr.getY() - 90.0, 8));
-            this.entity.updatePosition(this.transform, ypr);
+            this.entity.updatePosition(transform, ypr);
         }
 
         // Convert the pitch/roll into an appropriate pose
@@ -232,6 +248,9 @@ public class CartAttachmentItem extends CartAttachment {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
+
+        // Sync right now! Not only when moving!
+        this.entity.syncMetadata();
     }
 
     @Override

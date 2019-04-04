@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.List2D;
 import com.bergerkiller.bukkit.tc.TCTimings;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -161,12 +160,17 @@ public class SignTrackerGroup extends SignTracker {
 
                 // Add all active signs to the block tracker of all members
                 for (TrackedRail info : owner.getRailTracker().getRailInformation()) {
-                    if (info.type == RailType.NONE) {
+                    if (info.state.railType() == RailType.NONE) {
                         continue;
                     }
 
-                    List<TrackedSign> signs = info.member.getSignTracker().liveActiveSigns;
-                    signs.addAll(Arrays.asList(RailSignCache.getSigns(info.type, info.block)));
+                    TrackedSign[] signs = info.state.railSigns();
+                    if (signs.length > 0) {
+                        List<TrackedSign> memberSigns = info.member.getSignTracker().liveActiveSigns;
+                        for (TrackedSign sign : signs) {
+                            memberSigns.add(sign);
+                        }
+                    }
                 }
 
                 // Filter based on cart skip options
@@ -250,7 +254,7 @@ public class SignTrackerGroup extends SignTracker {
                 // Detect new detector regions on the rails
                 Set<DetectorRegion> newRegions = Collections.emptySet();
                 for (TrackedRail rail : rails) {
-                    for (DetectorRegion region : DetectorRegion.getRegions(rail.block)) {
+                    for (DetectorRegion region : DetectorRegion.getRegions(rail.state.railBlock())) {
                         if (!this.detectorRegions.contains(region) && region.add(rail.member)) {
                             rail.member.getSignTracker().detectorRegions.add(region);
                             if (newRegions.isEmpty()) {
@@ -265,8 +269,8 @@ public class SignTrackerGroup extends SignTracker {
 
             // Perform routine update events
             if (needsUpdate.clear()) {
-                for (Block signBlock : getActiveSigns()) {
-                    SignAction.executeAll(new SignActionEvent(signBlock, owner), SignActionType.GROUP_UPDATE);
+                for (TrackedSign sign : getActiveTrackedSigns()) {
+                    SignAction.executeAll(new SignActionEvent(sign, owner), SignActionType.GROUP_UPDATE);
                 }
                 for (DetectorRegion region : getActiveDetectorRegions()) {
                     region.update(owner);

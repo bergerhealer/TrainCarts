@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.entity;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -20,9 +23,16 @@ public class MapWidgetEntityTypeList extends MapWidget {
     @Override
     public void onAttached() {
         selector.clearItems();
+
+        ArrayList<String> items = new ArrayList<String>();
         for (EntityType type : EntityType.values()) {
-            selector.addItem(type.toString());
+            items.add(type.toString());
         }
+        Collections.sort(items);
+        for (String item : items) {
+            selector.addItem(item);
+        }
+
         this.addWidget(selector);
     }
 

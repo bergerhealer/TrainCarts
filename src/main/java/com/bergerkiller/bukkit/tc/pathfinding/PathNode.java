@@ -7,8 +7,8 @@ import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+
 import org.bukkit.block.Block;
 
 import java.io.DataInputStream;
@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class PathNode {
+    static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
     private static boolean hasChanges = false;
     private static BlockMap<PathNode> blockNodes = new BlockMap<>();
     private static Map<String, PathNode> nodes = new HashMap<>();
@@ -26,12 +27,14 @@ public class PathNode {
     public int index;
     private double lastDistance;
     private PathConnection lastTaken;
+    private boolean isRailSwitchable;
 
     private PathNode(final String name, final BlockLocation location) {
         this.location = location;
         if (!LogicUtil.nullOrEmpty(name)) {
             LogicUtil.addArray(this.names, name.split("\n", -1));
         }
+        this.refreshRailSwitchable();
     }
 
     public static void clearAll() {
@@ -47,28 +50,18 @@ public class PathNode {
         BlockSet blocks = new BlockSet();
         blocks.addAll(blockNodes.keySet());
         clearAll();
-        String name;
-        SignActionEvent info;
+
         for (BlockLocation location : blocks) {
-            name = location.toString();
-            // Destination sign? If so, fix up the name
-            Block block = location.getBlock();
-            if (block == null) {
-                continue;
-            }
-            for (Block signBlock : Util.getSignsFromRails(block)) {
-                info = new SignActionEvent(signBlock);
-                if (info.getSign() != null && info.isType("destination")) {
-                    name = info.getLine(2);
-                    break;
-                }
-            }
-            getOrCreate(name, location);
+            PathProvider.discover(location);
         }
     }
 
     public static Collection<PathNode> getAll() {
         return nodes.values();
+    }
+
+    public static PathNode get(BlockLocation railLocation) {
+        return blockNodes.get(railLocation);
     }
 
     public static PathNode get(Block block) {
@@ -347,6 +340,7 @@ public class PathNode {
         if (!this.names.remove(name)) {
             return;
         }
+        this.refreshRailSwitchable();
         nodes.remove(name);
         hasChanges = true;
         if (PathProvider.DEBUG_MODE) {
@@ -400,7 +394,13 @@ public class PathNode {
      * @return True if a switcher sign is contained, False if not
      */
     public boolean containsSwitcher() {
-        return this.names.contains(this.location.toString());
+        return this.isRailSwitchable;
+    }
+
+    // Detect based on node names whether this node's tracks can be switched
+    private void refreshRailSwitchable() {
+        this.isRailSwitchable = this.names.contains(this.location.toString()) ||
+                                this.names.contains(SWITCHER_NAME_FALLBACK);
     }
 
     /**
@@ -457,14 +457,19 @@ public class PathNode {
 
     public void addName(String name) {
         if (this.names.add(name)) {
-            nodes.put(name, this);
+            this.refreshRailSwitchable();
+            if (!PathNode.SWITCHER_NAME_FALLBACK.equals(name)) {
+                nodes.put(name, this);
+            }
             hasChanges = true;
         }
     }
 
     private void addToMapping() {
         for (String name : this.names) {
-            nodes.put(name, this);
+            if (!PathNode.SWITCHER_NAME_FALLBACK.equals(name)) {
+                nodes.put(name, this);
+            }
         }
         blockNodes.put(this.location, this);
         hasChanges = true;

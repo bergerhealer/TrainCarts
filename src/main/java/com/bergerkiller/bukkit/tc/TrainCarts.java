@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
@@ -14,7 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.cache.RailTypeCache;
+import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -39,6 +41,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
@@ -323,7 +326,7 @@ public class TrainCarts extends PluginBase {
         OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
         //Convert Minecarts
-        MinecartMemberStore.convertAll();
+        MinecartMemberStore.convertAllAutomatically();
 
         //Load destinations
         PathNode.init(getDataFolder() + File.separator + "destinations.dat");
@@ -458,19 +461,34 @@ public class TrainCarts extends PluginBase {
         //this corrects minecart positions before saving
         MinecartGroupStore.doPostMoveLogic();
 
-        //undo replacements for correct native saving
+        //unload all groups
         for (MinecartGroup mg : MinecartGroup.getGroups().cloneAsIterable()) {
             mg.unload();
         }
 
-        //entities left behind?
+        //double-check all entities on all worlds, to see no unlinked groups exist. Unload those too.
+        List<CommonEntity<?>> minecartsWithMMControllers = new ArrayList<CommonEntity<?>>();
         for (World world : WorldUtil.getWorlds()) {
             for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
+                // Add minecart entities with MinecartMember controllers assigned
+                if (entity instanceof Minecart) {
+                    CommonEntity<?> commonEntity = CommonEntity.get(entity);
+                    if (commonEntity.getController(MinecartMember.class) != null) {
+                        minecartsWithMMControllers.add(commonEntity);
+                    }
+                }
+
+                // Double-check for groups
                 MinecartGroup group = MinecartGroup.get(entity);
                 if (group != null) {
                     group.unload();
                 }
             }
+        }
+
+        //reset all minecarts with MinecartMember entity controllers to their defaults
+        for (CommonEntity<?> commonEntity : minecartsWithMMControllers) {
+            commonEntity.setController(new DefaultEntityController());
         }
 
         //save all data to disk (autosave=false)
@@ -488,7 +506,7 @@ public class TrainCarts extends PluginBase {
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
         PathProvider.deinit();
-        RailTypeCache.reset();
+        RailPieceCache.reset();
         RailSignCache.reset();
         RailMemberCache.reset();
     }
@@ -515,7 +533,7 @@ public class TrainCarts extends PluginBase {
 
         @Override
         public void run() {
-            RailTypeCache.cleanup();
+            RailPieceCache.cleanup();
             RailSignCache.cleanup();
         }
     }
@@ -540,14 +558,20 @@ public class TrainCarts extends PluginBase {
         }
 
         public void run() {
+            // Refresh whether or not trains are allowed to tick
             if (++ctr >= TCConfig.tickUpdateDivider) {
                 ctr = 0;
                 TCConfig.tickUpdateNow++;
             }
             if (TCConfig.tickUpdateNow > 0) {
                 TCConfig.tickUpdateNow--;
-                MinecartGroupStore.doFixedTick(TCConfig.tickUpdateDivider != 1);
+                TCConfig.tickUpdateEnabled = true;
+            } else {
+                TCConfig.tickUpdateEnabled = false;
             }
+
+            // For all Minecart that were not ticked, tick them ourselves
+            MinecartGroupStore.doFixedTick();
         }
     }
 }

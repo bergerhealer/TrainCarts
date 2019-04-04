@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -10,7 +8,6 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class SignActionDestination extends SignAction {
@@ -84,39 +81,13 @@ public class SignActionDestination extends SignAction {
         } else if (event.isRCSign()) {
             succ = handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
         }
-        if (succ && !event.getLine(2).isEmpty()) {
-            PathNode node = PathNode.get(event.getLine(2));
-            if (node != null) {
-                Player p = event.getPlayer();
-                p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
-                p.sendMessage(ChatColor.RED + "Please remove either sign and use /train reroute to fix");
-
-                // Send location message
-                BlockLocation loc = node.location;
-                StringBuilder locMsg = new StringBuilder(100);
-                locMsg.append(ChatColor.RED).append("Other sign is ");
-                if (loc.getWorld() != event.getPlayer().getWorld()) {
-                    locMsg.append("on world ").append(ChatColor.WHITE).append(node.location.world);
-                    locMsg.append(' ').append(ChatColor.RED);
-                }
-                locMsg.append("at ").append(ChatColor.WHITE);
-                locMsg.append('[').append(loc.x).append('/').append(loc.y);
-                locMsg.append('/').append(loc.z).append(']');
-                p.sendMessage(locMsg.toString());
-            }
-        }
         return succ;
     }
 
     @Override
-    public void destroy(SignActionEvent event) {
-        String name = event.getLine(2);
-        if (!LogicUtil.nullOrEmpty(name)) {
-            PathNode node = PathNode.get(name);
-            if (node != null) {
-                node.removeName(name);
-            }
-        }
+    public String getRailDestinationName(SignActionEvent info) {
+        String name = info.getLine(2);
+        return (name.isEmpty()) ? null : name;
     }
 
     @Override

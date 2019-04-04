@@ -12,20 +12,34 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
  * Shows a simple arrow, indicating arrow keys can be used to switch between items
  */
 public class MapWidgetArrow extends MapWidget {
-    private final MapTexture tex_disabled, tex_enabled, tex_focused;
+    private MapTexture tex_disabled, tex_enabled, tex_focused;
     private int focus_ticks = 0;
+    private BlockFace direction = null;
+
+    public MapWidgetArrow() {
+        this.setDirection(BlockFace.NORTH);
+    }
 
     public MapWidgetArrow(BlockFace direction) {
+        this.setDirection(direction);
+    }
+
+    public void setDirection(BlockFace direction) {
+        if (this.direction == direction) {
+            return;
+        }
+        this.direction = direction;
+
         MapTexture tex = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/arrow.png");
         int w = tex.getWidth() / 3;
         int h = tex.getHeight();
-        MapCanvas in_text_disabled = tex.getView(0, 0, w, tex.getHeight());
-        MapCanvas in_text_enabled = tex.getView(w, 0, w, tex.getHeight());
-        MapCanvas in_text_focused = tex.getView(2 * w, 0, w, tex.getHeight());
+        MapCanvas in_text_disabled = tex.getView(0, 0, w, h);
+        MapCanvas in_text_enabled = tex.getView(w, 0, w, h);
+        MapCanvas in_text_focused = tex.getView(2 * w, 0, w, h);
         this.tex_disabled = MapTexture.rotate(in_text_disabled, FaceUtil.faceToYaw(direction));
         this.tex_enabled = MapTexture.rotate(in_text_enabled, FaceUtil.faceToYaw(direction));
         this.tex_focused = MapTexture.rotate(in_text_focused, FaceUtil.faceToYaw(direction));
-        this.setSize(w, h);
+        this.setSize(this.tex_enabled.getWidth(), this.tex_enabled.getHeight());
     }
 
     public void stopFocus() {

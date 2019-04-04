@@ -101,6 +101,11 @@ public class SignActionEffect extends SignAction {
     }
 
     @Override
+    public boolean isMemberMoveHandled(SignActionEvent info) {
+        return info.isType("meffect");
+    }
+
+    @Override
     public boolean canSupportRC() {
         return true;
     }

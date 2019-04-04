@@ -3,9 +3,11 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
+import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
@@ -14,11 +16,14 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
@@ -32,6 +37,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityMinecartRideableHandle;
 import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
@@ -44,6 +50,7 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -74,9 +81,11 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class TCListener implements Listener {
@@ -97,7 +106,8 @@ public class TCListener implements Listener {
         if (vehicle != null && !vehicle.isPlayerTakable()) {
             vehicle.ignoreNextDie();
             // Eject the player before proceeding to the saving
-            vehicle.eject();
+            // This prevents the player 'taking' the minecart with him
+            vehicle.getEntity().removePassenger(event.getPlayer());
         }
 
         // Clean up the fake teams we've sent
@@ -126,8 +136,11 @@ public class TCListener implements Listener {
         // Check no trains are keeping the chunk loaded
         synchronized (this.expectUnload) {
             this.expectUnload.clear();
+
+            long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
+            World chunkWorld = event.getWorld();
             for (MinecartGroup mg : MinecartGroup.getGroups()) {
-                if (mg.isInChunk(event.getChunk())) {
+                if (mg.isInChunk(chunkWorld, chunkCoordLong)) {
                     if (mg.canUnload()) {
                         this.expectUnload.add(mg);
                     } else {
@@ -136,6 +149,7 @@ public class TCListener implements Listener {
                     }
                 }
             }
+
             // Double-check
             for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
                 if (entity instanceof Minecart) {
@@ -162,8 +176,10 @@ public class TCListener implements Listener {
         OfflineGroupManager.lastUnloadChunk = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
         // Unload groups
         synchronized (this.expectUnload) {
+            long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
+            World chunkWorld = event.getWorld();
             for (MinecartGroup mg : this.expectUnload) {
-                if (mg.isInChunk(event.getChunk())) {
+                if (mg.isInChunk(chunkWorld, chunkCoordLong)) {
                     mg.unload();
                 }
             }
@@ -206,25 +222,36 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityAdd(EntityAddEvent event) {
-        if (!MinecartMemberStore.canConvert(event.getEntity())) {
-            return;
+        if (MinecartMemberStore.canConvertAutomatically(event.getEntity())) {
+            MinecartMemberStore.convert((Minecart) event.getEntity());
+        } else if (event.getEntity() instanceof Minecart) {
+            // Temporary server bugfix: correct null dimension field for non-tc minecart entities
+            // These occurred due to an old bug in BKCommonLib
+            // This 'fix' can be removed after some time, when the issue is resolved for most people
+            if (CommonCapabilities.HAS_DIMENSION_MANAGER) {
+                Object raw_dim = EntityHandle.T.dimension.raw.get(HandleConversion.toEntityHandle(event.getEntity()));
+                if (raw_dim == null) {
+                    EntityHandle.fromBukkit(event.getEntity()).setDimension(WorldUtil.getDimension(event.getEntity().getWorld()));
+                }
+            }
         }
-
-        // If placed by a player, only allow conversion for players that have the permissions
-        if (!OfflineGroupManager.containsMinecart(event.getEntity().getUniqueId())
-                && !TCConfig.allMinecartsAreTrainCarts) {
-            // No conversion allowed
-            return;
-        }
-
-        MinecartMemberStore.convert((Minecart) event.getEntity());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityRemoveFromServer(EntityRemoveFromServerEvent event) {
         if (event.getEntity() instanceof Minecart) {
+            // Verify this entity UUID does not exist on the world as a new entity instance
+            // This can happen when entities are unloaded and reloaded rapidly in the same tick
+            // The entity Bukkit instance is removed, but the actual entity itself simply re-spawned
+            UUID entityUUID = event.getEntity().getUniqueId();
+            for (Entity otherEntity : WorldUtil.getEntities(event.getEntity().getWorld())) {
+                if (otherEntity.getUniqueId().equals(entityUUID)) {
+                    return;
+                }
+            }
+
             if (event.getEntity().isDead()) {
-                OfflineGroupManager.removeMember(event.getEntity().getUniqueId());
+                OfflineGroupManager.removeMember(entityUUID);
             } else {
                 MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());
                 if (member == null) {
@@ -331,16 +358,47 @@ public class TCListener implements Listener {
         Location mloc = mm.getEntity().getLocation();
         mloc.setYaw(FaceUtil.faceToYaw(mm.getDirection()));
         mloc.setPitch(0.0f);
-        final Location loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
+
+        final Location loc;
+        MinecartMemberNetwork network = CommonUtil.tryCast(mm.getEntity().getNetworkController(), MinecartMemberNetwork.class);
+        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(event.getExited());
+
+        if (seat == null) {
+            // Fallback
+            loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
+        } else {
+            // Use seat
+            loc = seat.getEjectPosition(event.getExited());
+        }
+
         final Entity e = event.getExited();
-        //teleport
+        final Location old_location = e.getLocation();
+
+        // Teleport to the exit position a tick later
         CommonUtil.nextTick(new Runnable() {
             public void run() {
                 if (e.isDead() || e.getVehicle() != null) {
                     return;
                 }
-                loc.setYaw(e.getLocation().getYaw());
-                loc.setPitch(e.getLocation().getPitch());
+
+                // Do not teleport if the player changed position dramatically after exiting
+                // This is the case when teleporting (/tp)
+                // The default vanilla exit position is going to be at most 1 block away in all axis
+                Location new_location = e.getLocation();
+                if (old_location.getWorld() != new_location.getWorld()) {
+                    return;
+                }
+                if (Math.abs(old_location.getBlockX() - new_location.getBlockX()) > 1) {
+                    return;
+                }
+                if (Math.abs(old_location.getBlockY() - new_location.getBlockY()) > 1) {
+                    return;
+                }
+                if (Math.abs(old_location.getBlockZ() - new_location.getBlockZ()) > 1) {
+                    return;
+                }
+
+                Util.correctTeleportPosition(loc);
                 e.teleport(loc);
             }
         });
@@ -824,6 +882,7 @@ public class TCListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
+        MinecartGroupStore.notifyPhysicsChange();
         RailType railType = RailType.getType(event.getBlock());
         if (railType != RailType.NONE) {
             // First check that the rails are supported as they are

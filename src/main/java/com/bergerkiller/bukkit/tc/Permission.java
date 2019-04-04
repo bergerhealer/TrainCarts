@@ -48,6 +48,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_SAVE_TRAIN = new Permission("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name");
     public static final Permission COMMAND_ENTER = new Permission("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited");
     public static final Permission COMMAND_LAUNCH = new Permission("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited");
+    public static final Permission COMMAND_ANIMATE = new Permission("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation");
     public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
     public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
     public static final Permission SPAWNER_AUTOMATIC = new Permission("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts");
@@ -84,6 +85,7 @@ public class Permission extends PermissionEnum {
     public static final Permission BUILD_SKIPPER = new Permission("train.build.skipper", PermissionDefault.OP, "The player can build a sign that can tell a train or minecart to skip upcoming signs");
     public static final Permission BUILD_MUTEX = new Permission("train.build.mutex", PermissionDefault.OP, "The player can build a sign that defines a mutual exclusion zone, where only one train can be at");
     public static final Permission BUILD_FLIPPER = new Permission("train.build.flip", PermissionDefault.OP, "The player can build a sign that flips the orientation of a Minecart 180 degrees");
+    public static final Permission BUILD_ANIMATOR = new Permission("train.build.animator", PermissionDefault.OP, "The player can build a sign that plays train animations");
     public static final Permission GENERAL_PLACE_MINECART = new Permission("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts");
     public static final Permission GENERAL_PLACE_TRAINCART = new Permission("train.place.traincart", PermissionDefault.TRUE, "The player can place TrainCarts minecarts");
     public static final Permission BREAK_MINECART_SELF = new Permission("train.break.self", PermissionDefault.TRUE, "The player can break their own minecarts");

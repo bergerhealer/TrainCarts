@@ -2,6 +2,10 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
@@ -10,18 +14,25 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
+import com.bergerkiller.mountiplex.MountiplexUtil;
 
 /**
  * A single attachment node in the attachment node tree, containing
  * the configuration for the node.
  */
-public class MapWidgetAttachmentNode extends MapWidget {
+public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget {
     private ConfigurationNode config;
     private List<MapWidgetAttachmentNode> attachments = new ArrayList<MapWidgetAttachmentNode>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
     private MapTexture icon = null;
     private boolean changingOrder = false;
+    private MapWidgetMenuButton appearanceMenuButton;
 
     public MapWidgetAttachmentNode() {
         this(new ConfigurationNode());
@@ -73,7 +84,15 @@ public class MapWidgetAttachmentNode extends MapWidget {
     }
 
     public ConfigurationNode getFullConfig() {
-        ConfigurationNode result = this.config.clone();
+        // Clone our configuration, skip the 'attachments' node to avoid recursive overhead
+        ConfigurationNode result = new ConfigurationNode();
+        for (Map.Entry<String, Object> entry : this.config.getValues().entrySet()) {
+            if (!entry.getKey().equals("attachments")) {
+                result.set(entry.getKey(), entry.getValue());
+            }
+        }
+
+        // Add attachments
         List<ConfigurationNode> children = new ArrayList<ConfigurationNode>(this.attachments.size());
         for (MapWidgetAttachmentNode attachment : this.attachments) {
             children.add(attachment.getFullConfig());
@@ -133,7 +152,7 @@ public class MapWidgetAttachmentNode extends MapWidget {
 
     /**
      * Sets the column and row this node is displayed at.
-     * This control the indent level when drawing.
+     * This controls the indent level when drawing.
      * 
      * @param col
      * @param row
@@ -151,6 +170,31 @@ public class MapWidgetAttachmentNode extends MapWidget {
         this.config.set("type", type);
     }
 
+    /**
+     * Computes the iteration of attachment indices required to get to this attachment.
+     * This path is suitable for {@link MinecartMember#playAnimationFor}.
+     * 
+     * @return target path
+     */
+    public int[] getTargetPath() {
+        // Count the total number of elements in the path
+        int num_count = 0;
+        MapWidgetAttachmentNode tmp = this;
+        while (tmp.parentAttachment != null) {
+            tmp = tmp.parentAttachment;
+            num_count++;
+        }
+
+        // Generate path
+        tmp = this;
+        int[] targetPath = new int[num_count];
+        for (int i = targetPath.length-1; i >= 0; i--) {
+            targetPath[i] = tmp.parentAttachment.attachments.indexOf(tmp);
+            tmp = tmp.parentAttachment;
+        }
+        return targetPath;
+    }
+
     @Override
     public void onAttached() {
         this.setSize(this.parent.getWidth(), 18);
@@ -160,6 +204,11 @@ public class MapWidgetAttachmentNode extends MapWidget {
     public void onActivate() {
         super.onActivate();
 
+        // Sometimes activates withot being attached? Weird.
+        if (this.display == null) {
+            return;
+        }
+
         // Play a neat sliding sound
         display.playSound(CommonSounds.PISTON_EXTEND);
 
@@ -167,41 +216,26 @@ public class MapWidgetAttachmentNode extends MapWidget {
         // Each button will open its own context menu to edit things
         // The buttons shown here depend on the type of the node, somewhat
         int px = this.col * 17 + 1;
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.APPEARANCE);
-            }
-        }.setIcon(getIcon()).setPosition(px, 1));
+        this.appearanceMenuButton = this.addWidget(new MapWidgetMenuButton(MenuItem.APPEARANCE));
+        this.appearanceMenuButton.setTooltip("Appearance").setIcon(getIcon()).setPosition(px, 1);
         px += 17;
 
         // Only for root nodes: modify Physical properties of the cart
         if (this.parentAttachment == null) {
-            this.addWidget(new MapWidgetBlinkyButton() {
-                @Override
-                public void onClick() {
-                    openMenu(MenuItem.PHYSICAL);
-                }
-            }.setIcon("attachments/physical.png").setPosition(px, 1));
+            this.addWidget(new MapWidgetMenuButton(MenuItem.PHYSICAL).setIcon("attachments/physical.png").setPosition(px, 1));
             px += 17;
         }
 
         // Change 3D position of the attachment
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.POSITION);
-            }
-        }.setIcon("attachments/move.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.POSITION).setIcon("attachments/move.png").setPosition(px, 1));
+        px += 17;
+
+        // Animation frames for an attachment
+        this.addWidget(new MapWidgetMenuButton(MenuItem.ANIMATION).setIcon("attachments/animation.png").setPosition(px, 1));
         px += 17;
 
         // Drops down a menu to add/remove/move the attachment entry
-        this.addWidget(new MapWidgetBlinkyButton() {
-            @Override
-            public void onClick() {
-                openMenu(MenuItem.GENERAL);
-            }
-        }.setIcon("attachments/general_menu.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.GENERAL).setIcon("attachments/general_menu.png").setPosition(px, 1));
         px += 17;
 
         // Enabled/disabled
@@ -225,6 +259,21 @@ public class MapWidgetAttachmentNode extends MapWidget {
         // Click navigation sounds
         //display.playSound(CommonSounds.CLICK_WOOD);
         this.activate();
+    }
+
+    @Override
+    public boolean acceptItem(ItemStack item) {
+        // If this is an item attachment, set the item
+        if (this.getType() == CartAttachmentType.ITEM) {
+            this.config.set("item", item.clone());
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+
+            // Redraw the appearance icon
+            this.resetIcon();
+            ((MapWidgetMenuButton) this.getWidget(0)).setIcon(getIcon());
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -324,7 +373,43 @@ public class MapWidgetAttachmentNode extends MapWidget {
         return this.icon;
     }
 
-    public static enum MenuItem {
-        APPEARANCE, POSITION, GENERAL, PHYSICAL
+    private class MapWidgetMenuButton extends MapWidgetBlinkyButton {
+        private final MenuItem _menu;
+
+        public MapWidgetMenuButton(MenuItem menu) {
+            this._menu = menu;
+            this.setTooltip(Character.toUpperCase(menu.name().charAt(0)) + menu.name().substring(1).toLowerCase(Locale.ENGLISH));
+        }
+
+        @Override
+        public void onClick() {
+            openMenu(this._menu);
+        }
     }
+
+    public static enum MenuItem {
+        APPEARANCE(AppearanceMenu.class),
+        POSITION(PositionMenu.class),
+        ANIMATION(AnimationMenu.class),
+        GENERAL(GeneralMenu.class),
+        PHYSICAL(PhysicalMenu.class);
+
+        private final Class<? extends MapWidgetMenu> _menuClass;
+
+        private MenuItem(Class<? extends MapWidgetMenu> menuClass) {
+            this._menuClass = menuClass;
+        }
+
+        public MapWidgetMenu createMenu(MapWidgetAttachmentNode attachmentNode) {
+            MapWidgetMenu menu;
+            try {
+                menu = this._menuClass.newInstance();
+                menu.setAttachment(attachmentNode);
+                return menu;
+            } catch (Throwable t) {
+                throw MountiplexUtil.uncheckedRethrow(t);
+            }
+        }
+    }
+
 }

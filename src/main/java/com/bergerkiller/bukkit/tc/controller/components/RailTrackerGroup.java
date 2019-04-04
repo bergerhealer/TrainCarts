@@ -190,17 +190,17 @@ public class RailTrackerGroup extends RailTracker {
                     TrackedRail oldRail = tmpIter.next();
                     if (oldRail.position.equals(newRail.position)) {
                         tmpIter.remove();
-                        RailMemberCache.changeMember(newRail.block, oldRail.member, newRail.member);
+                        RailMemberCache.changeMember(newRail.state.railBlock(), oldRail.member, newRail.member);
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-                    RailMemberCache.addBlock(newRail.block, newRail.member);
+                    RailMemberCache.addBlock(newRail.state.railBlock(), newRail.member);
                 }
             }
             for (TrackedRail oldRail : this.railsBuffer) {
-                RailMemberCache.removeBlock(oldRail.block, oldRail.member);
+                RailMemberCache.removeBlock(oldRail.state.railBlock(), oldRail.member);
             }
 
             // Alternative: remove and re-add all the members
@@ -228,7 +228,7 @@ public class RailTrackerGroup extends RailTracker {
 
             // Skip derailed rails
             // If a previous Minecart did exist, we must recalculate the rails after
-            if (rail.type == RailType.NONE) {
+            if (rail.state.railType() == RailType.NONE) {
                 if (hasPreviousMember) {
                     calcWheelTracksAhead(i - 1);
                     hasPreviousMember = false;
@@ -260,7 +260,7 @@ public class RailTrackerGroup extends RailTracker {
     private final void calcWheelTracksAhead(int railIndex) {
         TrackedRail startInfo = this.rails.get(railIndex);
         MinecartMember<?> tail = startInfo.member;
-        if (startInfo.type == RailType.NONE) {
+        if (startInfo.state.railType() == RailType.NONE) {
             return;
         }
 
@@ -304,7 +304,7 @@ public class RailTrackerGroup extends RailTracker {
     private final void calcWheelTracksBehind(int railIndex) {
         TrackedRail startInfo = this.rails.get(railIndex);
         MinecartMember<?> tail = startInfo.member;
-        if (startInfo.type == RailType.NONE) {
+        if (startInfo.state.railType() == RailType.NONE) {
             return;
         }
         if (!tail.getWheels().hasWheelDistance()) {
@@ -374,7 +374,7 @@ public class RailTrackerGroup extends RailTracker {
                 // Move as much as possible over the current rail
                 // This sets our position to the end-position of the current rail
                 RailPath startPath = startRail.getPath();
-                double startMoved = startPath.move(position, startRail.block, wheelDistance);
+                double startMoved = startPath.move(position, startRail.state.railBlock(), wheelDistance);
                 wheelDistance -= startMoved;
 
                 if (wheelDistance > 1e-10) {
@@ -396,7 +396,7 @@ public class RailTrackerGroup extends RailTracker {
 
                         // Walk this rail backwards
                         RailPath path = rail.getPath();
-                        double moved = path.move(position, rail.block, wheelDistance);
+                        double moved = path.move(position, rail.state.railBlock(), wheelDistance);
                         wheelDistance -= moved;
 
                         // Create a new version of the tracked rail with the correct member
@@ -425,7 +425,7 @@ public class RailTrackerGroup extends RailTracker {
                     RailState state = new RailState();
                     state.setPosition(position);
                     state.setMember(tail);
-                    state.setRailBlock(startInfo.block);
+                    state.setRailPiece(startInfo.state.railPiece());
                     RailType.loadRailInformation(state);
                     p = new TrackWalkingPoint(state);
                 }
@@ -581,16 +581,43 @@ public class RailTrackerGroup extends RailTracker {
                         // If we found the next member for the first time, also update the starting minecart with the correct info
                         result.numMembers++;
 
-                        // Preserve motion vector from walking point
-                        // TODO: Should we instead 'move' towards nextPos from p.state?
-                        //       This would better handle curved paths
-                        if (p.state.position().motDot(nextPos.motionVector()) < 0.0) {
-                            nextPos.position().invertMotion();
+                        // We can skip the slow movement steps when the current rail path has only one segment
+                        // This helps performance a bit on vanilla rails.
+                        boolean useFastMethod = (p.currentRailPath.getSegments().length <= 1);
+
+                        TrackedRail currInfo;
+                        if (useFastMethod) {
+                            // Just do a simple dot-product test, which will break in curves. See below:
+                            // TODO: Should we instead 'move' towards nextPos from p.state?
+                            //       This would better handle curved paths
+                            // This is what the not-fast method resolves.
+
+                            if (p.state.position().motDot(nextPos.motionVector()) < 0.0) {
+                                nextPos.position().invertMotion();
+                            }
+
+                            currInfo = new TrackedRail(nextMember, nextPos, false);
+                        } else {
+                            // Move the walking point small steps until no more significant movement occurs
+                            // to close the distance between p.state.position() and nextPos.
+                            int cycle_limit = 10000;
+                            double curr_distance = p.state.position().distance(nextPos.position());
+                            do {
+                                if (curr_distance <= 1e-8 || !p.move(curr_distance) || p.moved <= 1e-8) {
+                                    break;
+                                }
+                                double new_distance = p.state.position().distance(nextPos.position());
+                                if (new_distance >= curr_distance) {
+                                    break;
+                                }
+                                curr_distance = new_distance;
+                            } while (--cycle_limit > 0);
+
+                            currInfo = new TrackedRail(nextMember, p.state, false);
                         }
 
                         // Refresh the next minecart with the information currently iterating at
                         nrCachedRails = 0;
-                        TrackedRail currInfo = new TrackedRail(nextMember, nextPos, false);
                         result.rails.add(currInfo);
 
                         // Continue looking for more minecarts

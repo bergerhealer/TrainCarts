@@ -49,6 +49,11 @@ public class TCPacketListener implements PacketListener {
                 return; // Is a valid Entity. Ignore it.
             }
 
+            // Don't know how to deal with this one
+            if (event.getPlayer().getGameMode().name().equals("SPECTATOR")) {
+                return;
+            }
+
             // Find all Minecart entities that are nearby the player
             Location eyeLoc = event.getPlayer().getEyeLocation();
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
@@ -58,44 +63,45 @@ public class TCPacketListener implements PacketListener {
                     }
 
                     for (MinecartMember<?> member : group) {
-                        double max = 5.0 + 2.0 * ((double) member.getEntity().getWidth());
-                        double dist_sq = member.getEntity().loc.distanceSquared(eyeLoc);
-                        if (dist_sq > (max * max)) {
+                        EntityNetworkController<?> enc_raw = member.getEntity().getNetworkController();
+                        if (!(enc_raw instanceof MinecartMemberNetwork)) {
                             continue;
                         }
 
-                        EntityNetworkController<?> enc = member.getEntity().getNetworkController();
-                        if (enc instanceof MinecartMemberNetwork && ((MinecartMemberNetwork) enc).handleInteraction(entityId)) {
-                            // Rewrite the packet
-                            UseAction useAction = packet.read(PacketType.IN_USE_ENTITY.useAction);
-                            packet.write(PacketType.IN_USE_ENTITY.clickedEntityId, member.getEntity().getEntityId());
-                            if (useAction == UseAction.INTERACT_AT) {
-                                useAction = UseAction.INTERACT;
-                                packet.write(PacketType.IN_USE_ENTITY.useAction, useAction);
-                            }
-
-                            // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
-                            // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
-                            if (event.getPlayer().getGameMode().name().equals("SPECTATOR")) {
-                                return; // Don't know how to deal with this one
-                            }
-                            if (dist_sq < (3.0 * 3.0)) {
-                                return; // Allow
-                            }
-
-                            // Cancel the interaction and handle this ourselves.
-                            if (useAction == UseAction.INTERACT) {
-                                // Get hand used for interaction
-                                HumanHand hand = PacketType.IN_USE_ENTITY.getHand(packet, event.getPlayer());
-                                fakeInteraction(member, event.getPlayer(), hand);
-                                event.setCancelled(true);
-                            } else if (useAction == UseAction.ATTACK) {
-                                // Attack
-                                fakeAttack(member, event.getPlayer());
-                                event.setCancelled(true);
-                            }
-                            return;
+                        MinecartMemberNetwork enc = (MinecartMemberNetwork) enc_raw;
+                        if (!enc.getViewers().contains(event.getPlayer())) {
+                            continue; // If not visible, don't loop through the model to check this
                         }
+                        if (!enc.handleInteraction(entityId)) {
+                            continue; // Id is not used in the model
+                        }
+
+                        // Rewrite the packet
+                        UseAction useAction = packet.read(PacketType.IN_USE_ENTITY.useAction);
+                        packet.write(PacketType.IN_USE_ENTITY.clickedEntityId, member.getEntity().getEntityId());
+                        if (useAction == UseAction.INTERACT_AT) {
+                            useAction = UseAction.INTERACT;
+                            packet.write(PacketType.IN_USE_ENTITY.useAction, useAction);
+                        }
+
+                        // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
+                        // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
+                        if (member.getEntity().loc.distanceSquared(eyeLoc) < (3.0 * 3.0)) {
+                            return; // Allow
+                        }
+
+                        // Cancel the interaction and handle this ourselves.
+                        if (useAction == UseAction.INTERACT) {
+                            // Get hand used for interaction
+                            HumanHand hand = PacketType.IN_USE_ENTITY.getHand(packet, event.getPlayer());
+                            fakeInteraction(member, event.getPlayer(), hand);
+                            event.setCancelled(true);
+                        } else if (useAction == UseAction.ATTACK) {
+                            // Attack
+                            fakeAttack(member, event.getPlayer());
+                            event.setCancelled(true);
+                        }
+                        return;
                     }
                 }
             }
@@ -104,7 +110,7 @@ public class TCPacketListener implements PacketListener {
 
     public static void fakeAttack(final MinecartMember<?> member, final Player player) {
         // Fix cross-thread access
-        if (!isMainThread()) {
+        if (!CommonUtil.isMainThread()) {
             CommonUtil.nextTick(new Runnable() {
                 @Override
                 public void run() {
@@ -120,7 +126,7 @@ public class TCPacketListener implements PacketListener {
 
     public static void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
         // Fix cross-thread access
-        if (!isMainThread()) {
+        if (!CommonUtil.isMainThread()) {
             CommonUtil.nextTick(new Runnable() {
                 @Override
                 public void run() {
@@ -149,16 +155,4 @@ public class TCPacketListener implements PacketListener {
         member.onInteractBy(player, hand);
     }
 
-    // Added in BKC since 1.12.2-v5
-    private static boolean ISMAINTHREAD_AVAILABLE = true;
-    private static boolean isMainThread() {
-        if (ISMAINTHREAD_AVAILABLE) {
-            try {
-                return CommonUtil.isMainThread();
-            } catch (NoSuchMethodError err) {
-                ISMAINTHREAD_AVAILABLE = false;
-            }
-        }
-        return Thread.currentThread() == CommonUtil.MAIN_THREAD;
-    }
 }

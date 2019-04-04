@@ -7,24 +7,20 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 
-public class GeneralMenu extends MapWidgetWindow {
-    private final MapWidgetAttachmentNode attachment;
+public class GeneralMenu extends MapWidgetMenu {
 
-    public GeneralMenu(MapWidgetAttachmentNode attachment) {
-        this.attachment = attachment;
+    public GeneralMenu() {
         this.setBounds(5, 15, 118, 104);
-        this.setDepthOffset(4);
-        this.setFocusable(true);
         this.setBackgroundColor(MapColorPalette.COLOR_YELLOW);
     }
 
     @Override
     public void onAttached() {
-        this.activate();
+        super.onAttached();
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -33,7 +29,7 @@ public class GeneralMenu extends MapWidgetWindow {
                 config.set("type", CartAttachmentType.ITEM);
                 config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
                 attachment.addAttachment(config);
-                GeneralMenu.this.deactivate();
+                GeneralMenu.this.close();
             }
         }).setText("Add Attachment").setBounds(10, 10, 98, 18);
 
@@ -41,7 +37,7 @@ public class GeneralMenu extends MapWidgetWindow {
             @Override
             public void onActivate() {
                 attachment.setChangingOrder(true);
-                GeneralMenu.this.deactivate();
+                GeneralMenu.this.close();
             }
         }).setText("Change order").setBounds(10, 30, 98, 18);
 
@@ -49,7 +45,7 @@ public class GeneralMenu extends MapWidgetWindow {
             @Override
             public void onActivate() {
                 attachment.remove();
-                GeneralMenu.this.deactivate();
+                GeneralMenu.this.close();
             }
         }).setText("Delete").setBounds(10, 50, 98, 18).setEnabled(attachment.getParentAttachment() != null);
 
@@ -60,14 +56,9 @@ public class GeneralMenu extends MapWidgetWindow {
                 MapWidgetAttachmentNode addedNode;
                 addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getFullConfig());
                 attachment.getTree().setSelectedNode(addedNode);
-                GeneralMenu.this.deactivate();
+                GeneralMenu.this.close();
             }
         }).setText("Duplicate").setBounds(10, 70, 98, 18).setEnabled(attachment.getParentAttachment() != null);
-    }
-
-    @Override
-    public void onDeactivate() {
-        this.removeWidget();
     }
 
     public ConfigurationNode getConfig() {
