@@ -54,7 +54,6 @@ public interface Attachment {
     /**
      * Called when the controller is attached to the real world.
      * From this point onwards further initialization can be performed.
-     * {@link #onLoad(config)} is called before this method is called.
      */
     void onAttached();
 
