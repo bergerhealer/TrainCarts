@@ -354,9 +354,12 @@ public class TCListener implements Listener {
                     public void run() {
                         synchronized (markedForUnmounting) {
                             int curr_ticks = CommonUtil.getServerTicks();
-                            Iterator<Integer> iter = markedForUnmounting.values().iterator();
+                            Iterator<Map.Entry<Player, Integer>> iter = markedForUnmounting.entrySet().iterator();
                             while (iter.hasNext()) {
-                                if ((curr_ticks - iter.next().intValue()) >= 2) {
+                                Map.Entry<Player, Integer> e = iter.next();
+                                if (e.getKey().isSneaking() && e.getKey().getVehicle() == null) {
+                                    e.setValue(Integer.valueOf(curr_ticks));
+                                } else if ((curr_ticks - e.getValue().intValue()) >= 2) {
                                     iter.remove();
                                 }
                             }
