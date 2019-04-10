@@ -177,6 +177,7 @@ public class TrainCarts extends PluginBase {
             if (newMinecart != null) {
                 CartPropertiesStore.setEditing(player, newMinecart.getProperties());
             }
+
             // Allow exiting the current minecart
             MinecartMember<?> entered = MinecartMemberStore.getFromEntity(player.getVehicle());
             if (entered != null && !entered.getProperties().getPlayersExit()) {
@@ -374,7 +375,7 @@ public class TrainCarts extends PluginBase {
         });
 
         // Register listeners and commands
-        this.register(packetListener = new TCPacketListener(), PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY);
+        this.register(packetListener = new TCPacketListener(), PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION);
         this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
         this.register(TCListener.class);
         this.register(RedstoneTracker.class);

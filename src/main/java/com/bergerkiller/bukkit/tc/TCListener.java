@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
@@ -37,7 +38,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
-import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityMinecartRideableHandle;
 import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
@@ -81,10 +81,12 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -96,6 +98,7 @@ public class TCListener implements Listener {
     public static boolean cancelNextDrops = false;
     public static MinecartMember<?> killedByMember = null;
     public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
+    private static Map<Player, Integer> markedForUnmounting = new HashMap<Player, Integer>();
     private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
@@ -337,16 +340,55 @@ public class TCListener implements Listener {
         }
     }
 
-    /* Note: is extra, we already do these checks elsewhere. Should not be needed but just in case. */
+    /**
+     * Tells the listener that a player decided, for itself, to exit the Minecart, but that
+     * it is not known yet what vehicle the player is inside of.
+     * 
+     * @param player
+     */
+    public static void markForUnmounting(Player player) {
+        synchronized (markedForUnmounting) {
+            if (markedForUnmounting.isEmpty()) {
+                new Task(TrainCarts.plugin) {
+                    @Override
+                    public void run() {
+                        synchronized (markedForUnmounting) {
+                            int curr_ticks = CommonUtil.getServerTicks();
+                            Iterator<Integer> iter = markedForUnmounting.values().iterator();
+                            while (iter.hasNext()) {
+                                if ((curr_ticks - iter.next().intValue()) >= 2) {
+                                    iter.remove();
+                                }
+                            }
+                            if (markedForUnmounting.isEmpty()) {
+                                stop();
+                            }
+                        }
+                    }
+                }.start(1, 1);
+            }
+            markedForUnmounting.put(player, CommonUtil.getServerTicks());
+        }
+    }
+
     /*
+     * We must handle vehicle exit for when an unmount packet is received before
+     * the player is actually seated inside a vehicle.
+     */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onVehicleExitCheck(VehicleExitEvent event) {
-        MinecartMember<?> mm = MinecartMemberStore.get(event.getVehicle());
+        // Only do this check when marked for unmounting by the packet listener
+        synchronized (markedForUnmounting) {
+            if (!markedForUnmounting.containsKey(event.getExited())) {
+                return;
+            }
+        }
+
+        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(event.getVehicle());
         if (mm != null && (!mm.getProperties().getPlayersExit())) {
             event.setCancelled(true);
         }
     }
-    */
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleExit(VehicleExitEvent event) {
