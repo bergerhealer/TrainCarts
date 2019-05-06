@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -92,7 +91,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
             }
 
             // Direction we are about to connect is supported?
-            if (MaterialUtil.SUFFOCATES.get(railsBlock.getRelative(dir))) {
+            if (BlockUtil.isSuffocating(railsBlock.getRelative(dir))) {
                 rails.setDirection(dir, true);
                 BlockUtil.setData(railsBlock, rails);
             }
@@ -142,13 +141,14 @@ public class RailTypeRegular extends RailTypeHorizontal {
         // Check block directly above - should be a valid solid
         // Shortcut for BlockData 'AIR', as this is the most common type you're going to get
         // isSuffocating() should be a fast call, but it goes through some layers, so why not.
-        BlockData blockDataAbove = WorldUtil.getBlockData(railsBlock.getWorld(), railsBlock.getX(), railsBlock.getY()+1, railsBlock.getZ());
-        if (blockDataAbove == BlockData.AIR || !blockDataAbove.isSuffocating()) {
+        Block blockAbove = railsBlock.getRelative(BlockFace.UP);
+        BlockData blockDataAbove = WorldUtil.getBlockData(blockAbove);
+        if (blockDataAbove == BlockData.AIR || !blockDataAbove.isSuffocating(blockAbove)) {
             return false;
         }
 
         // Check block directly below supports the rails, or not
-        if (Util.canSupportTop(WorldUtil.getBlockData(railsBlock.getRelative(BlockFace.DOWN)))) {
+        if (BlockUtil.canSupportTop(railsBlock.getRelative(BlockFace.DOWN))) {
             return false;
         }
 
@@ -162,7 +162,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         if (rails.isOnSlope()) {
             // Check blocks above-forward - should be valid solid or another upside-down rails
             Block nextBlock = railsBlock.getRelative(rails.getDirection().getOppositeFace());
-            if (!MaterialUtil.SUFFOCATES.get(nextBlock)) {
+            if (!BlockUtil.isSuffocating(nextBlock)) {
                 RailType railType = RailType.getType(nextBlock);
                 if (railType == RailType.NONE) {
                     return false;

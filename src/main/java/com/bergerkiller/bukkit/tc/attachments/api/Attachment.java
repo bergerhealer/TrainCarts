@@ -115,6 +115,17 @@ public interface Attachment {
     }
 
     /**
+     * Gets the transformation matrix that was applied to the entity
+     * in the previous tick (update). See {@link #getTransform()}.
+     * 
+     * @return previous tick transformation matrix
+     */
+    default Matrix4x4 getPreviousTransform() {
+        AttachmentInternalState state = this.getInternalState();
+        return (state.last_transform == null) ? state.curr_transform : state.last_transform;
+    }
+
+    /**
      * Gets the transformation matrix that is currently applied to obtain the
      * absolute world-coordinates position and rotation of this attachment.
      * 

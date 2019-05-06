@@ -2,8 +2,8 @@ package com.bergerkiller.bukkit.tc.rails.logic;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
@@ -111,12 +111,12 @@ public class RailLogicSloped extends RailLogicHorizontal {
             double blockedDistance = Double.MAX_VALUE;
             Block heading = inside.getRelative(this.getDirection().getOppositeFace());
             if (!member.isMoving() || member.isHeadingTo(this.getDirection().getOppositeFace())) {
-                if (MaterialUtil.SUFFOCATES.get(heading)) {
+                if (BlockUtil.isSuffocating(heading)) {
                     blockedDistance = entity.loc.xz.distance(heading) - 1.0;
                 }
             } else if (member.isHeadingTo(this.getDirection())) {
                 Block above = inside.getRelative(BlockFace.UP);
-                if (MaterialUtil.SUFFOCATES.get(above)) {
+                if (BlockUtil.isSuffocating(above)) {
                     blockedDistance = entity.loc.xz.distance(above);
                 }
             }

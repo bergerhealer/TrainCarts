@@ -524,11 +524,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Transform passenger position with it
         Vector position = this.getPassengerPosition(passenger);
         transform.transformPoint(position);
-        BlockData dataAtPos = WorldUtil.getBlockData(entity.getWorld(),
+        Block block = entity.getWorld().getBlockAt(
                 position.getBlockX(), position.getBlockY(), position.getBlockZ());
 
         // Check if suffocating
-        return dataAtPos.isSuffocating();
+        return BlockUtil.isSuffocating(block);
     }
 
     /**

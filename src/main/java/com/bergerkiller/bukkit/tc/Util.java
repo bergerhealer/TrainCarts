@@ -524,7 +524,7 @@ public class Util {
      */
     public static boolean isSupportedFace(Block block, BlockFace face) {
         BlockData block_data = WorldUtil.getBlockData(block);
-        if (MaterialUtil.ISSOLID.get(block_data)) {
+        if (block_data.isOccluding(block)) {
             return true;
         }
 
@@ -1211,30 +1211,6 @@ public class Util {
             Thread.dumpStack();
         }
     }
-
-    /**
-     * Proxy for BlockData canSupportTop(), with a fallback for older BKCommonLib versions.
-     * Can be removed once we are depending solely on BKC 1.13.1-v2 or later.
-     * 
-     * @param data
-     * @return True if top of the Block can support
-     */
-    public static boolean canSupportTop(BlockData data) {
-        if (_bkc_blockdata_cansupporttop == null) {
-            if (SafeMethod.contains(BlockData.class, "canSupportTop")) {
-                _bkc_blockdata_cansupporttop = new SafeMethod<Boolean>(BlockData.class, "canSupportTop");
-            } else {
-                _bkc_blockdata_cansupporttop = new SafeDirectMethod<Boolean>() {
-                    @Override
-                    public Boolean invoke(Object arg0, Object... arg1) {
-                        return MaterialUtil.ISSOLID.get((BlockData) arg0);
-                    }
-                };
-            }
-        }
-        return _bkc_blockdata_cansupporttop.invoke(data);
-    }
-    private static MethodAccessor<Boolean> _bkc_blockdata_cansupporttop = null;
 
     /**
      * Adjusts the teleport position to avoid an entity getting glitched in a block.

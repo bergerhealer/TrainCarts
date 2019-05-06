@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -148,7 +147,7 @@ public abstract class RailTypeHorizontal extends RailType {
                     // If there is also a solid block above the block, then allow this collision to occur
                     if (posBlock.getY() == hitBlock.getY()) {
                         Block above = hitBlock.getRelative(BlockFace.UP);
-                        if (!MaterialUtil.ISSOLID.get(above)) {
+                        if (!BlockUtil.isSolid(above)) {
                             return false;
                         }
                     }

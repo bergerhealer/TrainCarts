@@ -70,6 +70,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
@@ -81,6 +82,7 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -675,7 +677,7 @@ public class TCListener implements Listener {
             // If the block below is air or rail, and above is a solid
             Block below = placedBlock.getRelative(BlockFace.DOWN);
             Block above = placedBlock.getRelative(BlockFace.UP);
-            if ((below.getType() == Material.AIR || Util.ISVERTRAIL.get(below)) && MaterialUtil.SUFFOCATES.get(above)) {
+            if ((below.getType() == Material.AIR || Util.ISVERTRAIL.get(below)) && BlockUtil.isSuffocating(above)) {
 
                 // Custom placement of an upside-down normal rail
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, placedBlock.getState(),
@@ -746,7 +748,7 @@ public class TCListener implements Listener {
                         BlockFace lastDirection = LogicUtil.fixNull(lastClickedDirection.get(player), direction);
                         Rails rails = BlockUtil.getRails(clickedBlock);
                         // First check whether we are clicking towards an up-slope block
-                        if (MaterialUtil.ISSOLID.get(clickedBlock.getRelative(direction))) {
+                        if (BlockUtil.isSolid(clickedBlock.getRelative(direction))) {
                             // Sloped logic
                             if (rails.isOnSlope()) {
                                 if (rails.getDirection() == direction) {
