@@ -20,9 +20,7 @@ public class SignActionAnnounce extends SignAction {
     }
 
     public static void sendMessage(SignActionEvent info, MinecartMember<?> member) {
-        if (member.getEntity().hasPlayerPassenger()) {
-            TrainCarts.sendMessage(member.getEntity().getPlayerPassenger(), getMessage(info));
-        }
+        member.getEntity().getPlayerPassengers().forEach(player -> TrainCarts.sendMessage(player, getMessage(info)));
     }
 
     public static String getMessage(SignActionEvent info) {
