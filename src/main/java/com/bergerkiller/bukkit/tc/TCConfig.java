@@ -38,6 +38,7 @@ public class TCConfig {
     public static boolean destroyAllOnShutdown;
     public static double maxVelocity;
     public static double maxEjectDistance;
+    public static double maxEnterDistance;
     public static double cartDistanceGapMax;
     public static double cartDistanceGap;
     public static double cartDistanceForcer;
@@ -142,6 +143,10 @@ public class TCConfig {
         slowDownMultiplierNormal = config.get("slowDownMultiplier.normal", 0.997);
         slowDownMultiplierSlow = config.get("slowDownMultiplier.slow", 0.96);
 
+
+        config.setHeader("maxEnterDistance", "\nThe maximum allowed enter radius for enter signs");
+        maxEnterDistance = config.get("maxEnterDistance", 50.0);
+        
         config.setHeader("maxEjectDistance", "\nThe maximum allowed ejection distance for eject signs");
         maxEjectDistance = config.get("maxEjectDistance", 10.0);
 
