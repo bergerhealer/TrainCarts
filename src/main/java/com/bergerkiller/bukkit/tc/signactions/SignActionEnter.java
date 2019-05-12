@@ -47,7 +47,7 @@ public class SignActionEnter extends SignAction {
             return;
         }
         // Read the radius to look at
-        double radiusXZ = ParseUtil.parseDouble(info.getLine(1), 2.0);
+        double radiusXZ = Double.min(50.0, ParseUtil.parseDouble(info.getLine(1), 2.0));
         double radiusY = 1.0;
         // Radius cylindrical or spherical?
         if (info.getLine(1).toLowerCase(Locale.ENGLISH).endsWith("s")) {
