@@ -104,6 +104,18 @@ public class VirtualEntity {
         return this.entityId;
     }
 
+    public double getPosX() {
+        return this.liveAbsX;
+    }
+
+    public double getPosY() {
+        return this.liveAbsY;
+    }
+
+    public double getPosZ() {
+        return this.liveAbsZ;
+    }
+
     public boolean isMountable() {
         switch (this.entityType) {
         case HORSE:
@@ -224,12 +236,21 @@ public class VirtualEntity {
      * @param yawPitchRoll rotation
      */
     public void updatePosition(Matrix4x4 transform, Vector yawPitchRoll) {
-        Vector3 v = new Vector3(this.posX, this.posY, this.posZ);
+        Vector v = new Vector(this.posX, this.posY, this.posZ);
         transform.transformPoint(v);
+        updatePosition(v, yawPitchRoll);
+    }
 
-        liveAbsX = v.x + this.relDx;
-        liveAbsY = v.y + this.relDy;
-        liveAbsZ = v.z + this.relDz;
+    /**
+     * Updates the position of the displayed part
+     * 
+     * @param position to move at, the transform-relative position of this entity is ignored
+     * @param yawPitchRoll rotation
+     */
+    public void updatePosition(Vector position, Vector yawPitchRoll) {
+        liveAbsX = position.getX() + this.relDx;
+        liveAbsY = position.getY() + this.relDy;
+        liveAbsZ = position.getZ() + this.relDz;
 
         this.yawPitchRoll = yawPitchRoll;
         this.liveYaw = (float) this.yawPitchRoll.getY();

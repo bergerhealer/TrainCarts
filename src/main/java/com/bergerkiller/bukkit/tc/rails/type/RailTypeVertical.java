@@ -1,8 +1,8 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -182,7 +182,7 @@ public class RailTypeVertical extends RailType {
             return null;
         }
         Block above = verticalRail.getRelative(BlockFace.UP);
-        if (MaterialUtil.ISSOLID.get(above)) {
+        if (BlockUtil.isSolid(above)) {
             return null;
         }
         BlockFace dir = Util.getVerticalRailDirection(verticalRail);

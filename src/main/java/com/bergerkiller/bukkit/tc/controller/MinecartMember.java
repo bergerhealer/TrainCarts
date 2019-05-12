@@ -524,11 +524,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Transform passenger position with it
         Vector position = this.getPassengerPosition(passenger);
         transform.transformPoint(position);
-        BlockData dataAtPos = WorldUtil.getBlockData(entity.getWorld(),
+        Block block = entity.getWorld().getBlockAt(
                 position.getBlockX(), position.getBlockY(), position.getBlockZ());
 
         // Check if suffocating
-        return dataAtPos.isSuffocating();
+        return BlockUtil.isSuffocating(block);
     }
 
     /**
@@ -2101,6 +2101,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     /**
      * Plays an animation for a single attachment node for this minecart.
+     * Only the attachment at the targetPath will play the animation.
      * 
      * @param targetPath
      * @param options defining the animation to play
@@ -2129,7 +2130,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Plays an animation by name for this minecart
+     * Plays an animation by name for this minecart.
+     * All attachments storing an animation with this name will play.
      * 
      * @param name of the animation
      * @return True if an animation was found and started
@@ -2139,7 +2141,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Plays an animation using the animation options specified for this minecart
+     * Plays an animation using the animation options specified for this minecart.
+     * All attachments storing an animation with the options' name will play.
      * 
      * @param options for the animation
      * @return True if an animation was found and started
@@ -2147,7 +2150,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public boolean playNamedAnimation(AnimationOptions options) {
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
         if (network != null) {
-            return network.getRootAttachment().playNamedAnimation(options);
+            return network.getRootAttachment().playNamedAnimationRecursive(options);
         } else {
             return false;
         }

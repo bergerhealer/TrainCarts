@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -76,8 +75,8 @@ public class RailTypePowered extends RailTypeRegular {
                 if (this.isUpsideDown(block)) {
                     block = block.getRelative(BlockFace.DOWN);
                 }
-                boolean pushFrom1 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir.getOppositeFace()));
-                boolean pushFrom2 = MaterialUtil.SUFFOCATES.get(block.getRelative(dir));
+                boolean pushFrom1 = BlockUtil.isSuffocating(block.getRelative(dir.getOppositeFace()));
+                boolean pushFrom2 = BlockUtil.isSuffocating(block.getRelative(dir));
 
                 // If pushing from both directions, block all movement
                 if (pushFrom1 && pushFrom2) {

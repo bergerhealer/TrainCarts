@@ -32,6 +32,7 @@ import net.md_5.bungee.api.ChatColor;
  * Manages the different functionalities provided by /train debug [type]
  */
 public class DebugTool {
+    private static final double PARTICLE_SPACING = 0.2;
 
     /**
      * Shows a box-shaped particle display for all mutex zones for a few seconds
@@ -51,7 +52,6 @@ public class DebugTool {
 
         final int PARTICLE_DURATION = 100;
         final int PARTICLE_INTERVAL = 4;
-        final double PARTICLE_SPACING = 0.2;
         new Task(TrainCarts.plugin) {
             int life = PARTICLE_DURATION / PARTICLE_INTERVAL;
 
@@ -86,31 +86,11 @@ public class DebugTool {
             }
 
             void face(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-                line(color, x1, y1, z1, x2, y1, z1);
-                line(color, x1, y1, z1, x1, y2, z1);
-                line(color, x1, y1, z1, x1, y1, z2);
-                line(color, x1, y2, z2, x2, y2, z2);
-                line(color, x2, y1, z2, x2, y2, z2);
-                line(color, x2, y2, z1, x2, y2, z2);
+                showFaceParticles(player, color, x1, y1, z1, x2, y2, z2);
             }
 
             void line(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-                double dist = MathUtil.distance(x1, y1, z1, x2, y2, z2);
-                if (dist < 1e-8) {
-                    return;
-                }
-                int n = MathUtil.ceil(dist / PARTICLE_SPACING);
-                double dx = x2 - x1;
-                double dy = y2 - y1;
-                double dz = z2 - z1;
-                Vector position = new Vector();
-                for (int i = 0; i < n; i++) {
-                    double t = (double) i / (double) (n-1);
-                    position.setX(x1 + dx * t);
-                    position.setY(y1 + dy * t);
-                    position.setZ(z1 + dz * t);
-                    PlayerUtil.spawnDustParticles(player, position, color);
-                }
+                showLineParticles(player, color, x1, y1, z1, x2, y2, z2);
             }
         }.start(1, PARTICLE_INTERVAL);
     }
@@ -215,5 +195,37 @@ public class DebugTool {
 
     private static void showParticle(Location loc, Particle particle) {
         loc.getWorld().spawnParticle(particle, loc, 5);
+    }
+
+    public static void showFaceParticles(Player viewer, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+        showLineParticles(viewer, color, x1, y1, z1, x2, y1, z1);
+        showLineParticles(viewer, color, x1, y1, z1, x1, y2, z1);
+        showLineParticles(viewer, color, x1, y1, z1, x1, y1, z2);
+        showLineParticles(viewer, color, x1, y2, z2, x2, y2, z2);
+        showLineParticles(viewer, color, x2, y1, z2, x2, y2, z2);
+        showLineParticles(viewer, color, x2, y2, z1, x2, y2, z2);
+    }
+
+    public static void showLineParticles(Player viewer, Color color, Vector p1, Vector p2) {
+        showLineParticles(viewer, color, p1.getX(), p1.getY(), p1.getZ(), p2.getX(), p2.getY(), p2.getZ());
+    }
+
+    public static void showLineParticles(Player viewer, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+        double dist = MathUtil.distance(x1, y1, z1, x2, y2, z2);
+        if (dist < 1e-8) {
+            return;
+        }
+        int n = MathUtil.ceil(dist / PARTICLE_SPACING);
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double dz = z2 - z1;
+        Vector position = new Vector();
+        for (int i = 0; i < n; i++) {
+            double t = (double) i / (double) (n-1);
+            position.setX(x1 + dx * t);
+            position.setY(y1 + dy * t);
+            position.setZ(z1 + dz * t);
+            PlayerUtil.spawnDustParticles(viewer, position, color);
+        }
     }
 }

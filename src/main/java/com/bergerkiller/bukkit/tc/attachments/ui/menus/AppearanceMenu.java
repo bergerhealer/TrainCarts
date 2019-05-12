@@ -17,11 +17,12 @@ import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 
-public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
+public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, SetValueTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
 
     public AppearanceMenu() {
@@ -130,6 +131,7 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
         setType(getAttachment().getConfig().get("type", CartAttachmentType.EMPTY));
 
         this.tabView.activate();
+        this.tabView.getSelectedTab().activate();
     }
 
     public void setType(CartAttachmentType type) {
@@ -146,6 +148,16 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     public boolean acceptItem(ItemStack item) {
         for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
             if (widget instanceof ItemDropTarget && ((ItemDropTarget) widget).acceptItem(item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean acceptTextValue(String value) {
+        for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
+            if (widget instanceof SetValueTarget && ((SetValueTarget) widget).acceptTextValue(value)) {
                 return true;
             }
         }

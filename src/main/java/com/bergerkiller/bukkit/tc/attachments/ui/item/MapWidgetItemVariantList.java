@@ -19,12 +19,13 @@ import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 
 /**
  * Interactive widget that pops down a full list of item base types when
  * activated, and allows switching between item/block variants using left/right.
  */
-public abstract class MapWidgetItemVariantList extends MapWidget {
+public abstract class MapWidgetItemVariantList extends MapWidget implements SetValueTarget {
     private final MapTexture background;
     private List<ItemStack> variants;
     private Map<ItemStack, MapTexture> iconCache = new HashMap<ItemStack, MapTexture>();
@@ -109,6 +110,16 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
     }
 
     @Override
+    public boolean acceptTextValue(String value) {
+        try {
+            this.setVariantIndex(Integer.parseInt(value));
+            return true;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    @Override
     public void onDraw() {
         // Background
         this.view.draw(this.background, 0, 0);
@@ -142,7 +153,10 @@ public abstract class MapWidgetItemVariantList extends MapWidget {
     }
 
     private void changeVariantIndex(int offset) {
-        int newVariantIndex = this.variantIndex + offset;
+        this.setVariantIndex(this.variantIndex + offset);
+    }
+
+    private void setVariantIndex(int newVariantIndex) {
         if (newVariantIndex < 0) {
             newVariantIndex = 0;
         } else if (newVariantIndex >= this.variants.size()) {

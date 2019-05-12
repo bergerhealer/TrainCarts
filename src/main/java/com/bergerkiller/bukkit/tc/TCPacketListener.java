@@ -36,13 +36,31 @@ public class TCPacketListener implements PacketListener {
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
         CommonPacket packet = event.getPacket();
+
+        // Note: sometimes an unmount packet is sent before the player is actually inside a vehicle.
+        // However, this could also be because of a virtual invisible entity being controlled by the player.
+        // We will allow the unmount, but if it spawns a vehicle exit event later on, we must cancel that
+        // event. This is a compromise so that other plugins can still freely eject the player, without
+        // the player exit property blocking that behavior.
+        if (event.getType() == PacketType.IN_ENTITY_ACTION) {
+            Player player = event.getPlayer();
+            String action = packet.read(PacketType.IN_ENTITY_ACTION.actionId).toString();
+            if (player.getVehicle() == null && action.equals("START_SNEAKING")) {
+                TCListener.markForUnmounting(player);
+            }
+        }
         if (event.getType() == PacketType.IN_STEER_VEHICLE && packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
             // Handle vehicle exit cancelling
             Player player = event.getPlayer();
-            if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
+
+            if (player.getVehicle() == null) {
+                TCListener.markForUnmounting(player);
+            } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
                 packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
             }
-        } else if (event.getType() == PacketType.IN_USE_ENTITY) {
+        }
+
+        if (event.getType() == PacketType.IN_USE_ENTITY) {
             // When a player interacts with a virtual attachment, the main entity should receive the interaction
             int entityId = packet.read(PacketType.IN_USE_ENTITY.clickedEntityId);
             if (WorldUtil.getEntityById(event.getPlayer().getWorld(), entityId) != null) {

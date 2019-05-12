@@ -67,7 +67,7 @@ public class AttachmentInternalState {
 
     /**
      * Position information for the attachment. This is automatically
-     * loaded before {@link Attachment#onLoad(config)} is called.
+     * loaded before {@link Attachment#onAttached()} is called.
      */
     public ObjectPosition position = new ObjectPosition();
 

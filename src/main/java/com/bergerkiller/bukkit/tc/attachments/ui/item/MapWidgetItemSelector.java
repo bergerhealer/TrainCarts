@@ -10,12 +10,13 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
+import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 
 /**
  * Combines a toggleable item grid with preview and an item variant item selector list
  * to select an ItemStack
  */
-public abstract class MapWidgetItemSelector extends MapWidget implements ItemDropTarget {
+public abstract class MapWidgetItemSelector extends MapWidget implements ItemDropTarget, SetValueTarget {
     private final MapWidgetItemPreview preview = new MapWidgetItemPreview() {
         
     };
@@ -136,6 +137,11 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
         this.variantList.setItem(item);
         display.playSound(CommonSounds.CLICK_WOOD);
         return true;
+    }
+
+    @Override
+    public boolean acceptTextValue(String value) {
+        return this.variantList.acceptTextValue(value);
     }
 
     private void setGridOpened(boolean opened) {

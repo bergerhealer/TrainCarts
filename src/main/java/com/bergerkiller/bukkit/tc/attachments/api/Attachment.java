@@ -54,7 +54,6 @@ public interface Attachment {
     /**
      * Called when the controller is attached to the real world.
      * From this point onwards further initialization can be performed.
-     * {@link #onLoad(config)} is called before this method is called.
      */
     void onAttached();
 
@@ -113,6 +112,17 @@ public interface Attachment {
      */
     default ObjectPosition getConfiguredPosition() {
         return this.getInternalState().position;
+    }
+
+    /**
+     * Gets the transformation matrix that was applied to the entity
+     * in the previous tick (update). See {@link #getTransform()}.
+     * 
+     * @return previous tick transformation matrix
+     */
+    default Matrix4x4 getPreviousTransform() {
+        AttachmentInternalState state = this.getInternalState();
+        return (state.last_transform == null) ? state.curr_transform : state.last_transform;
     }
 
     /**
