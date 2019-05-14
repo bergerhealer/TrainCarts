@@ -51,6 +51,10 @@ public enum ProfileNameModifier {
         this._teamName = ChatText.fromMessage(teamName);
     }
 
+    public ChatText getPlayerName() {
+        return ChatText.fromMessage(this._playerName);
+    }
+
     /**
      * (Re)spawns the player for a viewer with this profile name modifier applied
      * 
@@ -94,10 +98,9 @@ public enum ProfileNameModifier {
         PacketUtil.sendPacket(viewer, fakePlayerSpawnPacket);
 
         // Also synchronize the head rotation for this player
-        int protHeadRot = EntityTrackerEntryHandle.getProtocolRotation(headRot);
         CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
-        headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
+        headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, headRot);
         PacketUtil.sendPacket(viewer, headPacket);
     }
     

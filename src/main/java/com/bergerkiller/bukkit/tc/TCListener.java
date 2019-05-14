@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -116,9 +115,6 @@ public class TCListener implements Listener {
         }
 
         // Clean up the fake teams we've sent
-        for (FakePlayer.DisplayMode mode : FakePlayer.DisplayMode.values()) {
-            mode.getTeam().remove(event.getPlayer());
-        }
         ProfileNameModifier.onViewerQuit(event.getPlayer());
         TrainCarts.plugin.getMountHandler().remove(event.getPlayer());
     }

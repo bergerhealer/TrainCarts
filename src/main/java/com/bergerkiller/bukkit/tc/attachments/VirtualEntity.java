@@ -11,7 +11,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -30,6 +29,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
 
 /**
@@ -317,37 +317,6 @@ public class VirtualEntity {
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
 
-        // Figure out what the Id is of the entity we spawn
-        // Extradata is depending on the entity type
-        // For minecarts, it defines the type of minecart spawned:
-        //     RIDEABLE(0, "MinecartRideable"),
-        //     CHEST(1, "MinecartChest"), 
-        //     FURNACE(2, "MinecartFurnace"), 
-        //     TNT(3, "MinecartTNT"), 
-        //     SPAWNER(4, "MinecartSpawner"), 
-        //     HOPPER(5, "MinecartHopper"), 
-        //     COMMAND_BLOCK(6, "MinecartCommandBlock");
-        //TODO: Make this less cancerous.
-        int entitySpawnId = (int) this.entityType.getTypeId();
-        int entitySpawnExtraData = 0;
-        if (this.entityType == EntityType.BOAT) {
-            entitySpawnId = 1;
-        } else if (this.entityType == EntityType.MINECART) {
-            entitySpawnId = 10; entitySpawnExtraData = 0;
-        } else if (this.entityType == EntityType.MINECART_CHEST) {
-            entitySpawnId = 10; entitySpawnExtraData = 1;
-        } else if (this.entityType == EntityType.MINECART_FURNACE) {
-            entitySpawnId = 10; entitySpawnExtraData = 2;
-        } else if (this.entityType == EntityType.MINECART_TNT) {
-            entitySpawnId = 10; entitySpawnExtraData = 3;
-        } else if (this.entityType == EntityType.MINECART_MOB_SPAWNER) {
-            entitySpawnId = 10; entitySpawnExtraData = 4;
-        } else if (this.entityType == EntityType.MINECART_HOPPER) {
-            entitySpawnId = 10; entitySpawnExtraData = 5;
-        } else if (this.entityType == EntityType.MINECART_COMMAND) {
-            entitySpawnId = 10; entitySpawnExtraData = 6;
-        }
-
         // Ensure we spawn with a little bit of movement when we are a seat
         if (this.syncMode == SyncMode.SEAT) {
             double xzls = (motion.getX() * motion.getX()) + (motion.getZ() * motion.getZ());
@@ -379,19 +348,18 @@ public class VirtualEntity {
             PacketUtil.sendPacket(viewer, spawnPacket);
         } else {
             // Spawn entity (generic)
-            CommonPacket spawnPacket = PacketType.OUT_ENTITY_SPAWN.newInstance();
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.entityId, this.entityId);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.UUID, this.entityUUID);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.entityType, entitySpawnId);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.posX, this.syncAbsX - motion.getX());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.posY, this.syncAbsY - motion.getY());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.posZ, this.syncAbsZ - motion.getZ());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.motX, motion.getX());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.motY, motion.getY());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.motZ, motion.getZ());
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.yaw, this.syncYaw);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.pitch, this.syncPitch);
-            spawnPacket.write(PacketType.OUT_ENTITY_SPAWN.extraData, entitySpawnExtraData);
+            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+            spawnPacket.setEntityId(this.entityId);
+            spawnPacket.setEntityUUID(this.entityUUID);
+            spawnPacket.setEntityType(this.entityType);
+            spawnPacket.setPosX(this.syncAbsX - motion.getX());
+            spawnPacket.setPosY(this.syncAbsY - motion.getY());
+            spawnPacket.setPosZ(this.syncAbsZ - motion.getZ());
+            spawnPacket.setMotX(motion.getX());
+            spawnPacket.setMotY(motion.getY());
+            spawnPacket.setMotZ(motion.getZ());
+            spawnPacket.setYaw(this.syncYaw);
+            spawnPacket.setPitch(this.syncPitch);
             PacketUtil.sendPacket(viewer, spawnPacket);
         }
 
@@ -563,7 +531,7 @@ public class VirtualEntity {
         if (this.syncMode == SyncMode.NORMAL && isLivingEntity()) {
             CommonPacket packet = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
             packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this.entityId);
-            packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) EntityTrackerEntryHandle.getProtocolRotation(this.liveYaw));
+            packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, this.liveYaw);
             broadcast(packet);
         }
     }
