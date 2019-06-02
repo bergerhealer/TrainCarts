@@ -15,14 +15,16 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class MutexZone {
     public final UUID world;
+    public final IntVector3 sign;
     public final IntVector3 block;
     public final IntVector3 start;
     public final IntVector3 end;
     private MinecartGroup currentGroup = null;
     private int currentGroupTimeout = 0;
 
-    private MutexZone(UUID world, IntVector3 block, int dx, int dy, int dz) {
+    private MutexZone(UUID world, IntVector3 sign, IntVector3 block, int dx, int dy, int dz) {
         this.world = world;
+        this.sign = sign;
         this.block = block;
         this.start = new IntVector3(block.x - dx, block.y - dy, block.z - dz);
         this.end = new IntVector3(block.x + dx, block.y + dy, block.z + dz);
@@ -72,7 +74,7 @@ public class MutexZone {
                 }
             }
         }
-        return new MutexZone(info.getWorld().getUID(), getPosition(info), dx, dy, dz);
+        return new MutexZone(info.getWorld().getUID(), new IntVector3(info.getBlock()), getPosition(info), dx, dy, dz);
     }
 
     public static IntVector3 getPosition(SignActionEvent info) {

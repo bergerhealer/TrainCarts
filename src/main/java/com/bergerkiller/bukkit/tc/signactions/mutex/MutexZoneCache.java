@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,7 +35,17 @@ public class MutexZoneCache {
     }
 
     public static void removeMutexSign(SignActionEvent info) {
-        zones.remove(info.getWorld(), MutexZone.getPosition(info));
+        // This causes pain & suffering (chunk unload event - accessing block data doesn't work)
+        // zones.remove(info.getWorld(), MutexZone.getPosition(info));
+
+        // Instead, a slow way
+        IntVector3 signPos = new IntVector3(info.getBlock());
+        Iterator<MutexZone> zones_iter = zones.values().iterator();
+        while (zones_iter.hasNext()) {
+            if (zones_iter.next().sign.equals(signPos)) {
+                zones_iter.remove();
+            }
+        }
     }
 
     /**
