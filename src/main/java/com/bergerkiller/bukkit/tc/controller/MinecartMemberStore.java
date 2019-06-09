@@ -414,7 +414,15 @@ public abstract class MinecartMemberStore {
             if (group.getWorld() != eyeLocation.getWorld()) {
                 continue;
             }
-            for (MinecartMember<?> member : group) {
+
+            for (int i = 0; i < group.size(); i++) {
+                MinecartMember<?> member;
+                try {
+                    member = group.get(i);
+                } catch (IndexOutOfBoundsException ex) {
+                    break;
+                }
+
                 double max_rad = 2.0 * ((double) member.getEntity().getWidth());
                 double dist_sq = member.getEntity().loc.distanceSquared(eyeLocation);
                 if (dist_sq > (max_rad * max_rad)) {
