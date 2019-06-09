@@ -10,6 +10,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
@@ -313,7 +314,7 @@ public class RailPath {
 
             double theta = s.calcTheta(position);
             s.calcPosition(position, theta);
-            int order = s.calcDirection(position);
+            int order = s.calcDirection(position, theta);
             if (order == 1) {
                 // p0 -> p1
                 if (theta >= 1.0) {
@@ -942,6 +943,7 @@ public class RailPath {
         public final Point p1;
         public final Point dt;
         public final Point dt_norm;
+        public final Quaternion dt_quat;
         public final boolean lerp_roll;
         public final double l;
         public final double ls;
@@ -956,6 +958,7 @@ public class RailPath {
             } else {
                 this.dt_norm = new Point(this.dt.x / this.l, this.dt.y / this.l, this.dt.z / this.l);
             }
+            this.dt_quat = Quaternion.fromLookDirection(this.dt_norm.toVector());
 
             // Uses the roll values of the points and the segment slope
             // to calculate the normal 'up' vector. This is the direction
@@ -1033,7 +1036,49 @@ public class RailPath {
          * @return order (-1 for decrement, 1 for increment)
          */
         public final int calcDirection(Position position) {
-            double dot = position.motDot(this.dt_norm);
+            return calcDirection(position, calcTheta(position));
+        }
+
+        /**
+         * Calculates the direction best matching this segment, using vector dot product.
+         * Returns an integer representing the order in which segments should be iterated.
+         * A value of 1 indicates p0 -> p1 (increment segments) and -1 indicates p1 -> p0
+         * (decrement segments).
+         * 
+         * @param position, is assigned the direction and roll of this segment that best matches
+         * @param theta (0.0 ... 1.0) of the position on this segment from previous calculation
+         * @return order (-1 for decrement, 1 for increment)
+         */
+        public final int calcDirection(Position position, double theta) {
+            // Interpolate the forward direction based on the position (theta) on the segment
+            double dx, dy, dz;
+            if (theta > 0.5) {
+                // Interpolate using next segment
+                if (this.next == null) {
+                    dx = this.dt_norm.x;
+                    dy = this.dt_norm.y;
+                    dz = this.dt_norm.z;
+                } else {
+                    Vector v = Quaternion.lerp(this.dt_quat, this.next.dt_quat, theta - 0.5).forwardVector();
+                    dx = v.getX();
+                    dy = v.getY();
+                    dz = v.getZ();
+                }
+            } else {
+                // Interpolate using previous segment
+                if (this.prev == null) {
+                    dx = this.dt_norm.x;
+                    dy = this.dt_norm.y;
+                    dz = this.dt_norm.z;
+                } else {
+                    Vector v = Quaternion.lerp(this.prev.dt_quat, this.dt_quat, theta + 0.5).forwardVector();
+                    dx = v.getX();
+                    dy = v.getY();
+                    dz = v.getZ();
+                }
+            }
+
+            double dot = position.motDot(dx, dy, dz);
 
             // Hitting the segment at a 90-degree angle
             // This means the path direction cannot be easily assessed from the direction
@@ -1060,14 +1105,14 @@ public class RailPath {
             }
 
             if (dot >= 0.0) {
-                position.motX = this.dt_norm.x;
-                position.motY = this.dt_norm.y;
-                position.motZ = this.dt_norm.z;
+                position.motX = dx;
+                position.motY = dy;
+                position.motZ = dz;
                 return 1;
             } else {
-                position.motX = -this.dt_norm.x;
-                position.motY = -this.dt_norm.y;
-                position.motZ = -this.dt_norm.z;
+                position.motX = -dx;
+                position.motY = -dy;
+                position.motZ = -dz;
                 return -1;
             }
         }

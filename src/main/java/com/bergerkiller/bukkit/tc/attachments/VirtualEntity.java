@@ -447,8 +447,9 @@ public class VirtualEntity {
 
         boolean moved, rotated, rotatedNow;
 
-        // Check for changes in position
-        moved = (abs_delta > EntityNetworkController.MIN_RELATIVE_POS_CHANGE);
+        // Check that the position changed meaningfully (can be represented in protocol)
+        // TODO: make this a constant somewhere
+        moved = (abs_delta >= (1.0 / 4096.0));
 
         // Check for changes in rotation
         rotatedNow = EntityTrackerEntryHandle.hasProtocolRotationChanged(this.liveYaw, this.syncYaw) ||
