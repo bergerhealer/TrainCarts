@@ -437,7 +437,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.clear();
         this.updateChunkInformation(true);
         this.chunkArea.reset();
-        System.out.println("RESET DA CHUNKS!");
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
             this.prop = null;
