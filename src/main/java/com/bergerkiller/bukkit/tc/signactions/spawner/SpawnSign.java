@@ -15,10 +15,11 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
+import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TCTimings;
@@ -27,7 +28,6 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
-import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 
 public class SpawnSign {
     private final BlockLocation location;
@@ -40,7 +40,7 @@ public class SpawnSign {
     private LongHashSet chunks = new LongHashSet();
 
     // This is used to track and load chunks in preparation of a spawn
-    private long[] chunks_array = null;
+    private SignSpawnChunk[] chunks_array = null;
     private int chunks_last_idx = 0;
 
     public SpawnSign(BlockLocation location) {
@@ -180,24 +180,31 @@ public class SpawnSign {
      * @param percent of chunks that should be loaded
      */
     public void loadChunksAsync(double percent) {
-        if (this.chunks_array == null) {
-            this.chunks_array = this.chunks.toArray();
-        }
-        if (this.chunks_last_idx >= this.chunks_array.length) {
+        if (getWorld() == null) {
+            this.chunks_last_idx = this.chunks.size();
             return;
         }
-        if (getWorld() == null) {
-            this.chunks_last_idx = this.chunks_array.length;
+
+        if (this.chunks_array == null) {
+            this.chunks_array = new SignSpawnChunk[this.chunks.size()];
+            LongIterator iter = this.chunks.longIterator();
+            int chunkIndex = 0;
+            while (iter.hasNext()) {
+                long chunkComp = iter.next();
+                int chunkX = MathUtil.longHashMsw(chunkComp);
+                int chunkZ = MathUtil.longHashLsw(chunkComp);
+                this.chunks_array[chunkIndex++] = new SignSpawnChunk(this.getWorld(), chunkX, chunkZ);
+            }
+        }
+
+        if (this.chunks_last_idx >= this.chunks_array.length) {
             return;
         }
 
         percent = MathUtil.clamp(percent, 0.0, 1.0);
         int endIdxExcl = ((int) ((double) this.chunks_array.length * percent));
         while (this.chunks_last_idx < endIdxExcl) {
-            long chunkComp = this.chunks_array[this.chunks_last_idx++];
-            int chunkX = MathUtil.longHashMsw(chunkComp);
-            int chunkZ = MathUtil.longHashLsw(chunkComp);
-            WorldUtil.getChunkAsync(this.world_last, chunkX, chunkZ, ChunkArea.DUMMY_RUNNABLE);
+            this.chunks_array[this.chunks_last_idx++].loadAsync();
         }
         if (this.chunks_last_idx >= this.chunks_array.length) {
             this.world_last = null;
@@ -208,6 +215,12 @@ public class SpawnSign {
      * Called after the spawn sign goes back to a longer-term slumber
      */
     public void loadChunksAsyncReset() {
+        if (this.chunks_array != null) {
+            for (SignSpawnChunk chunk : this.chunks_array) {
+                chunk.chunk.close();
+            }
+            this.chunks_array = null;
+        }
         this.chunks_last_idx = 0;
     }
 
@@ -223,7 +236,7 @@ public class SpawnSign {
     }
 
     private void addChunk(int x, int z) {
-        this.chunks_array = null; // reset
+        this.loadChunksAsyncReset();
         for (int dx = -2; dx <= 2; dx++) {
             for (int dz = -2; dz <= 2; dz++) {
                 this.chunks.add(x + dx, z + dz);
@@ -262,8 +275,8 @@ public class SpawnSign {
     public void spawn(SignActionEvent sign) {
         try (Timings t = TCTimings.SIGNACTION_SPAWN.start()) {
             // Ensure all chunks we may need are loaded (getChunk())
+            World world = sign.getWorld();
             {
-                World world = sign.getWorld();
                 LongIterator chunkIter = this.chunks.longIterator();
                 while (chunkIter.hasNext()) {
                     long chunkComp = chunkIter.next();
@@ -275,14 +288,30 @@ public class SpawnSign {
             List<Location> locs = SignActionSpawn.spawn(this, sign);
             if (locs != null && !locs.isEmpty()) {
                 // Refresh the chunk coordinates we keep loaded
+                boolean hasSpawnChunks = (this.chunks_array != null);
                 HashSet<IntVector2> coords = new HashSet<IntVector2>(this.chunks.size());
                 this.chunks.clear();
-                this.chunks_array = null;
+                this.loadChunksAsyncReset();
                 for (Location loc : locs) {
                     coords.add(new IntVector2(MathUtil.toChunk(loc.getX()), MathUtil.toChunk(loc.getZ())));
                 }
                 for (IntVector2 coord : coords) {
                     this.addChunk(coord.x, coord.z);
+                }
+
+                // Refresh spawn chunks
+                if (hasSpawnChunks) {
+                    this.chunks_array = new SignSpawnChunk[this.chunks.size()];
+                    LongIterator chunkIter = this.chunks.longIterator();
+                    int chunkIndex = 0;
+                    while (chunkIter.hasNext()) {
+                        long chunkComp = chunkIter.next();
+                        int chunkX = MathUtil.longHashMsw(chunkComp);
+                        int chunkZ = MathUtil.longHashLsw(chunkComp);
+                        SignSpawnChunk chunk = new SignSpawnChunk(world, chunkX, chunkZ);
+                        chunk.loadAsync();
+                        this.chunks_array[chunkIndex++] = chunk;
+                    }
                 }
             }
         }
@@ -385,4 +414,21 @@ public class SpawnSign {
         return event != null && event.getMode() != SignActionMode.NONE && event.isType("spawn");
     }
 
+    private static class SignSpawnChunk {
+        public final ForcedChunk chunk;
+        public final World world;
+        public final int x;
+        public final int z;
+
+        public SignSpawnChunk(World world, int x, int z) {
+            this.chunk = ForcedChunk.none();
+            this.world = world;
+            this.x = x;
+            this.z = z;
+        }
+
+        public void loadAsync() {
+            this.chunk.move(ChunkUtil.forceChunkLoaded(world, x, z));
+        }
+    }
 }

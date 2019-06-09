@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.*;
-import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.*;
@@ -658,10 +657,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public TrackMap makeTrackMap(int size) {
         return new TrackMap(this.getBlock(), this.direction, size);
-    }
-
-    public void loadChunks() {
-        WorldUtil.loadChunks(entity.getWorld(), entity.loc.x.chunk(), entity.loc.z.chunk(), 2);
     }
 
     public boolean isCollisionIgnored(org.bukkit.entity.Entity entity) {

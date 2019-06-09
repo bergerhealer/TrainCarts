@@ -42,12 +42,12 @@ public class SpawnSignManager {
 
     public void deinit() {
         updateTask.stop();
+        this.clear();
     }
 
     public void load(String filename) {
         // Load spawn signs from file
-        this.signs.clear();
-        this.cachedSortedSigns = null;
+        this.clear();
         new DataReader(filename) {
             public void read(DataInputStream stream) throws IOException {
                 int count = stream.readInt();
@@ -76,6 +76,14 @@ public class SpawnSignManager {
         hasChanges = false;
     }
 
+    public void clear() {
+        for (SpawnSign old_sign : this.signs.values()) {
+            old_sign.loadChunksAsyncReset();
+        }
+        this.signs.clear();
+        this.cachedSortedSigns = null;
+    }
+
     public SpawnSign create(SignActionEvent signEvent) {
         SpawnSign result = this.signs.get(signEvent.getBlock());
         if (result == null) {
@@ -90,6 +98,7 @@ public class SpawnSignManager {
     public void remove(SignActionEvent signEvent) {
         SpawnSign removed = this.signs.remove(signEvent.getBlock());
         if (removed != null) {
+            removed.loadChunksAsyncReset();
             this.notifyChanged();
         }
     }
@@ -97,6 +106,7 @@ public class SpawnSignManager {
     public void remove(SpawnSign sign) {
         SpawnSign removed = this.signs.remove(sign.getLocation());
         if (removed != null) {
+            removed.loadChunksAsyncReset();
             this.notifyChanged();
         }
     }

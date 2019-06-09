@@ -436,6 +436,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         GroupRemoveEvent.call(this);
         this.clear();
         this.updateChunkInformation(true);
+        this.chunkArea.reset();
+        System.out.println("RESET DA CHUNKS!");
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
             this.prop = null;
@@ -905,8 +907,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return new MergedInventory(source);
     }
 
-    public void loadChunks() {
-        for (MinecartMember<?> mm : this) mm.loadChunks();
+    public void keepChunksLoaded(boolean keepLoaded) {
+        for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
+            chunk.keepLoaded(keepLoaded);
+        }
     }
 
     public boolean isInChunk(World world, long chunkLongCoord) {
@@ -1105,22 +1109,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     }
                 }
             } else {
-                // Enqueue chunks we moved away from for unloading
-                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getRemoved()) {
-                    chunk.unloadChunkRequest();
+                // Load chunks we entered for asynchronous loading
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
+                    chunk.keepLoaded(true);
                 }
 
                 // Load chunks closeby right away and guarantee they are loaded at all times
                 for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
                     if (chunk.getDistance() <= 1 && chunk.getPreviousDistance() > 1) {
                         chunk.loadChunk();
-                    }
-                }
-
-                // Load chunks we entered, and are far enough away, for asynchronous loading
-                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
-                    if (chunk.getDistance() > 1) {
-                        chunk.loadChunkRequest();
                     }
                 }
             }
