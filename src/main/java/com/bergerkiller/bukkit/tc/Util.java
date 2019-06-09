@@ -1233,4 +1233,44 @@ public class Util {
             loc.setY((double) locBlock.getY() + bounds.getMaxY() + 1e-5);
         }
     }
+
+    /**
+     * Adds protocol-limited rotation steps the yaw of an entity to rotate in accordance
+     * of the requested change in yaw.
+     * 
+     * @param old_yaw
+     * @param yaw_change
+     * @return new entity yaw
+     */
+    public static float getNextEntityYaw(float old_yaw, double yaw_change) {
+        // When change is too large, do not use entity yaw for it, snap pose instead
+        if (yaw_change < -90.0 || yaw_change > 90.0) {
+            return old_yaw;
+        }
+
+        int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation(old_yaw);
+        int prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) ((double) old_yaw + yaw_change));
+        if (prot_yaw_rot_new != prot_yaw_rot_old) {
+
+            // Do not change entity yaw to beyond the angle requested
+            // This causes the pose yaw angle to compensate, which looks very twitchy
+            float new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+            double new_yaw_change = MathUtil.wrapAngle((double) new_yaw - (double) old_yaw);
+            if (yaw_change < 0.0) {
+                if (new_yaw_change < yaw_change) {
+                    prot_yaw_rot_new++;
+                    new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                }
+            } else {
+                if (new_yaw_change > yaw_change) {
+                    prot_yaw_rot_new--;
+                    new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                }
+            }
+
+            // Has a change in protocol yaw value, accept the changes
+            return new_yaw;
+        }
+        return old_yaw;
+    }
 }

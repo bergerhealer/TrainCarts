@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;
 
 public class CartAttachmentItem extends CartAttachment {
@@ -124,37 +123,11 @@ public class CartAttachmentItem extends CartAttachment {
 
         // Apply when the yaw change isn't too extreme (does not cause a flip) and has a significant change
         Vector new_entity_ypr = this.entity.getYawPitchRoll().clone();
-        int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation((float) new_entity_ypr.getY());
-        int prot_yaw_rot_new = prot_yaw_rot_old;
-        if (yaw_change >= -90.0 && yaw_change <= 90.0) {
-            prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) (new_entity_ypr.getY() + yaw_change));
-            if (prot_yaw_rot_new != prot_yaw_rot_old) {
-
-                // Do not change entity yaw to beyond the angle requested
-                // This causes the pose yaw angle to compensate, which looks very twitchy
-                double new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
-                double new_yaw_change = (new_yaw - new_entity_ypr.getY());
-                if (yaw_change < 0.0) {
-                    if (new_yaw_change < yaw_change) {
-                        prot_yaw_rot_new++;
-                        new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
-                    }
-                } else {
-                    if (new_yaw_change > yaw_change) {
-                        prot_yaw_rot_new--;
-                        new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
-                    }
-                }
-
-                // Has a change in protocol yaw value, accept the changes
-                new_entity_ypr.setY(new_yaw);
-            }
-        }
+        new_entity_ypr.setY(Util.getNextEntityYaw((float) new_entity_ypr.getY(), yaw_change));
 
         // Subtract rotation of Entity (keep protocol error into account)
-        double entity_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
         Quaternion q = new Quaternion();
-        q.rotateY(entity_yaw);
+        q.rotateY(new_entity_ypr.getY());
         q_rotation = Quaternion.multiply(q, q_rotation);
 
         // Adjust relative offset of the armorstand entity to take shoulder angle into account
@@ -164,9 +137,9 @@ public class CartAttachmentItem extends CartAttachment {
         double ver_offset = this.transformType.getVerticalOffset();
         if (hor_offset != 0.0) {
             this.entity.setRelativeOffset(
-                    -hor_offset * Math.cos(Math.toRadians(entity_yaw)),
+                    -hor_offset * Math.cos(Math.toRadians(new_entity_ypr.getY())),
                     -ver_offset,
-                    -hor_offset * Math.sin(Math.toRadians(entity_yaw)));
+                    -hor_offset * Math.sin(Math.toRadians(new_entity_ypr.getY())));
         } else {
             this.entity.setRelativeOffset(0.0, -ver_offset, 0.0);
         }
