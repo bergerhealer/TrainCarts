@@ -41,6 +41,9 @@ public class RailPath {
                 this.segments[i].next = this.segments[i + 1];
                 this.segments[i + 1].prev = this.segments[i];
             }
+            for (int i = 0; i < this.segments.length; i++) {
+                this.segments[i].postinit();
+            }
             this.totalDistance = distance;
         }
     }
@@ -85,9 +88,7 @@ public class RailPath {
         p.posX = firstSegment.p0.x;
         p.posY = firstSegment.p0.y;
         p.posZ = firstSegment.p0.z;
-        p.upX = firstSegment.p0.up_x;
-        p.upY = firstSegment.p0.up_y;
-        p.upZ = firstSegment.p0.up_z;
+        p.orientation = firstSegment.p0_orientation;
         p.motX = -firstSegment.dt_norm.x;
         p.motY = -firstSegment.dt_norm.y;
         p.motZ = -firstSegment.dt_norm.z;
@@ -107,9 +108,7 @@ public class RailPath {
         p.posX = lastSegment.p1.x;
         p.posY = lastSegment.p1.y;
         p.posZ = lastSegment.p1.z;
-        p.upX = lastSegment.p1.up_x;
-        p.upY = lastSegment.p1.up_y;
-        p.upZ = lastSegment.p1.up_z;
+        p.orientation = lastSegment.p1_orientation;
         p.motX = lastSegment.dt_norm.x;
         p.motY = lastSegment.dt_norm.y;
         p.motZ = lastSegment.dt_norm.z;
@@ -314,7 +313,7 @@ public class RailPath {
 
             double theta = s.calcTheta(position);
             s.calcPosition(position, theta);
-            int order = s.calcDirection(position, theta);
+            int order = s.calcDirection(position);
             if (order == 1) {
                 // p0 -> p1
                 if (theta >= 1.0) {
@@ -527,18 +526,16 @@ public class RailPath {
          */
         public double motX, motY, motZ;
         /**
-         * The orientation 'up' unit vector. This is the direction
-         * the object's top-side faces while traveling over the rails.
-         * It is interpolated and calculated from the rail path roll values.
+         * Orientation of a wheel on the path
          */
-        public double upX, upY, upZ;
+        public Quaternion orientation;
         /**
          * Whether we are walking the path in reverse. This is important
          * when applying the south-east rule when encountering an orthogonal
          * rail path intersection.
          */
         public boolean reverse = false;
-        
+
         /**
          * Whether this position is relative to the rails (true), or absolute
          * world coordinates (false). Property is automatically switched when
@@ -737,9 +734,7 @@ public class RailPath {
             p.motX = this.motX;
             p.motY = this.motY;
             p.motZ = this.motZ;
-            p.upX = this.upX;
-            p.upY = this.upY;
-            p.upZ = this.upZ;
+            p.orientation = this.orientation;
             p.reverse = this.reverse;
             p.relative = this.relative;
         }
@@ -943,8 +938,9 @@ public class RailPath {
         public final Point p1;
         public final Point dt;
         public final Point dt_norm;
-        public final Quaternion dt_quat;
-        public final boolean lerp_roll;
+        public final Quaternion p0_orientation;
+        public final Quaternion p1_orientation;
+        public final boolean has_changing_up_orientation;
         public final double l;
         public final double ls;
         private Segment prev, next;
@@ -958,7 +954,6 @@ public class RailPath {
             } else {
                 this.dt_norm = new Point(this.dt.x / this.l, this.dt.y / this.l, this.dt.z / this.l);
             }
-            this.dt_quat = Quaternion.fromLookDirection(this.dt_norm.toVector());
 
             // Uses the roll values of the points and the segment slope
             // to calculate the normal 'up' vector. This is the direction
@@ -969,7 +964,32 @@ public class RailPath {
             Vector up1 = dir.clone().crossProduct(p1.up()).crossProduct(dir).normalize();
             this.p0 = new Point(p0.x, p0.y, p0.z, up0.getX(), up0.getY(), up0.getZ());
             this.p1 = new Point(p1.x, p1.y, p1.z, up1.getX(), up1.getY(), up1.getZ());
-            this.lerp_roll = (up0.distanceSquared(up1) > 1e-6);
+            this.has_changing_up_orientation = (up0.distanceSquared(up1) > 1e-6);
+            this.p0_orientation = new Quaternion();
+            this.p1_orientation = new Quaternion();
+        }
+
+        /**
+         * Called after the prev/next segments have been set
+         */
+        public void postinit() {
+            // Orientation of a wheel when at p0
+            Quaternion mid_up0 = Quaternion.fromLookDirection(this.dt_norm.toVector(), this.p0.up());
+            if (this.prev == null) {
+                this.p0_orientation.setTo(mid_up0);
+            } else {
+                Quaternion prev_up = Quaternion.fromLookDirection(this.prev.dt_norm.toVector(), this.prev.p1.up());
+                this.p0_orientation.setTo(Quaternion.slerp(prev_up, mid_up0, 0.5));
+            }
+
+            // Orientation of a wheel when at p1
+            Quaternion mid_up1 = Quaternion.fromLookDirection(this.dt_norm.toVector(), this.p1.up());
+            if (this.next == null) {
+                this.p1_orientation.setTo(mid_up1);
+            } else {
+                Quaternion next_up = Quaternion.fromLookDirection(this.next.dt_norm.toVector(), this.next.p0.up());
+                this.p1_orientation.setTo(Quaternion.slerp(next_up, mid_up1, 0.5));
+            }
         }
 
         /**
@@ -1036,49 +1056,7 @@ public class RailPath {
          * @return order (-1 for decrement, 1 for increment)
          */
         public final int calcDirection(Position position) {
-            return calcDirection(position, calcTheta(position));
-        }
-
-        /**
-         * Calculates the direction best matching this segment, using vector dot product.
-         * Returns an integer representing the order in which segments should be iterated.
-         * A value of 1 indicates p0 -> p1 (increment segments) and -1 indicates p1 -> p0
-         * (decrement segments).
-         * 
-         * @param position, is assigned the direction and roll of this segment that best matches
-         * @param theta (0.0 ... 1.0) of the position on this segment from previous calculation
-         * @return order (-1 for decrement, 1 for increment)
-         */
-        public final int calcDirection(Position position, double theta) {
-            // Interpolate the forward direction based on the position (theta) on the segment
-            double dx, dy, dz;
-            if (theta > 0.5) {
-                // Interpolate using next segment
-                if (this.next == null) {
-                    dx = this.dt_norm.x;
-                    dy = this.dt_norm.y;
-                    dz = this.dt_norm.z;
-                } else {
-                    Vector v = Quaternion.lerp(this.dt_quat, this.next.dt_quat, theta - 0.5).forwardVector();
-                    dx = v.getX();
-                    dy = v.getY();
-                    dz = v.getZ();
-                }
-            } else {
-                // Interpolate using previous segment
-                if (this.prev == null) {
-                    dx = this.dt_norm.x;
-                    dy = this.dt_norm.y;
-                    dz = this.dt_norm.z;
-                } else {
-                    Vector v = Quaternion.lerp(this.prev.dt_quat, this.dt_quat, theta + 0.5).forwardVector();
-                    dx = v.getX();
-                    dy = v.getY();
-                    dz = v.getZ();
-                }
-            }
-
-            double dot = position.motDot(dx, dy, dz);
+            double dot = position.motDot(this.dt_norm);
 
             // Hitting the segment at a 90-degree angle
             // This means the path direction cannot be easily assessed from the direction
@@ -1105,18 +1083,18 @@ public class RailPath {
             }
 
             if (dot >= 0.0) {
-                position.motX = dx;
-                position.motY = dy;
-                position.motZ = dz;
+                position.motX = this.dt_norm.x;
+                position.motY = this.dt_norm.y;
+                position.motZ = this.dt_norm.z;
                 return 1;
             } else {
-                position.motX = -dx;
-                position.motY = -dy;
-                position.motZ = -dz;
+                position.motX = -this.dt_norm.x;
+                position.motY = -this.dt_norm.y;
+                position.motZ = -this.dt_norm.z;
                 return -1;
             }
         }
-        
+
         /**
          * Calculates the squared distance between an arbitrary point and this segment.
          * 
@@ -1234,27 +1212,27 @@ public class RailPath {
                 position.posX = p0.x;
                 position.posY = p0.y;
                 position.posZ = p0.z;
-                position.upX = p0.up_x;
-                position.upY = p0.up_y;
-                position.upZ = p0.up_z;
+                position.orientation = p0_orientation;
             } else if (theta >= 1.0) {
                 position.posX = p1.x;
                 position.posY = p1.y;
                 position.posZ = p1.z;
-                position.upX = p1.up_x;
-                position.upY = p1.up_y;
-                position.upZ = p1.up_z;
+                position.orientation = p1_orientation;
             } else {
                 position.posX = p0.x + dt.x * theta;
                 position.posY = p0.y + dt.y * theta;
                 position.posZ = p0.z + dt.z * theta;
-                if (this.lerp_roll) {
+                position.orientation = Quaternion.slerp(p0_orientation, p1_orientation, theta);
+
+                /*
+                if (this.has_changing_up_orientation) {
                     Util.lerpOrientation(position, this.p0, this.p1, theta);
                 } else {
                     position.upX = p0.up_x;
                     position.upY = p0.up_y;
                     position.upZ = p0.up_z;
                 }
+                */
             }
         }
 

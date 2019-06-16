@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
-import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -21,9 +20,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.mountiplex.reflection.MethodAccessor;
-import com.bergerkiller.mountiplex.reflection.SafeDirectMethod;
-import com.bergerkiller.mountiplex.reflection.SafeMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
@@ -968,24 +964,6 @@ public class Util {
         Quaternion qb = Quaternion.fromLookDirection(up1);
         Quaternion q = Quaternion.slerp(qa, qb, theta);
         return q.forwardVector();
-    }
-
-    /**
-     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
-     * rotation between the two.
-     * 
-     * @param result to store the lerp result into
-     * @param p0
-     * @param p1
-     * @param theta
-     */
-    public static void lerpOrientation(RailPath.Position result, RailPath.Point p0, RailPath.Point p1, double theta) {
-        Vector vup0 = p0.up();
-        Vector vup1 = p1.up();
-        Vector vup = lerpOrientation(vup0, vup1, theta);
-        result.upX = vup.getX();
-        result.upY = vup.getY();
-        result.upZ = vup.getZ();
     }
 
     /**
