@@ -9,8 +9,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -22,14 +20,14 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
-import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHeadRotationHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutEntityLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
@@ -38,9 +36,9 @@ public class CartAttachmentSeat extends CartAttachment {
     private boolean _hideRealPlayerNextTick = false;
     private Entity _entity = null;
     private int _fakeEntityId = -1;
-    private int _fakeEntityLastYaw = 0;
-    private int _fakeEntityLastPitch = 0;
-    private int _fakeEntityLastHeadYaw = 0;
+    private float _fakeEntityLastYaw = 0;
+    private float _fakeEntityLastPitch = 0;
+    private float _fakeEntityLastHeadYaw = 0;
     private int _fakeEntityRotationCtr = 0;
     private VirtualEntity _fakeCameraMount = null;
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
@@ -182,15 +180,11 @@ public class CartAttachmentSeat extends CartAttachment {
 
             // Do not send viewer to self - bad things happen
             if (entityId != viewer.getEntityId()) {
-                CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
-                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
-                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) this._fakeEntityLastHeadYaw);
+                PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, this._fakeEntityLastHeadYaw);
                 PacketUtil.sendPacket(viewer, headPacket);
 
-                CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
-                lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, entityId);
-                lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) this._fakeEntityLastYaw);
-                lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) this._fakeEntityLastPitch);
+                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(
+                        entityId, this._fakeEntityLastYaw, this._fakeEntityLastPitch, false);
                 PacketUtil.sendPacket(viewer, lookPacket);
             }
         }
@@ -408,15 +402,15 @@ public class CartAttachmentSeat extends CartAttachment {
         this.makeVisible((Player) this._entity);
     }
 
-    public int getPassengerYaw() {
+    public float getPassengerYaw() {
         return this._fakeEntityLastYaw;
     }
 
-    public int getPassengerPitch() {
+    public float getPassengerPitch() {
         return this._fakeEntityLastPitch;
     }
 
-    public int getPassengerHeadYaw() {
+    public float getPassengerHeadYaw() {
         return this._fakeEntityLastHeadYaw;
     }
 
@@ -534,43 +528,37 @@ public class CartAttachmentSeat extends CartAttachment {
                 }
             }
 
-            // Protocolify
             int entityId = (this._fakeEntityId != -1) ? this._fakeEntityId : this._entity.getEntityId();
-            int protYaw = EntityTrackerEntryHandle.getProtocolRotation(yaw);
-            int protPitch = EntityTrackerEntryHandle.getProtocolRotation(pitch);
-            int protHeadRot = EntityTrackerEntryHandle.getProtocolRotation(headRot);
 
             // Refresh head rotation
-            if (protHeadRot != this._fakeEntityLastHeadYaw) {
-                CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
-                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
-                headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
+            if (EntityTrackerEntryHandle.hasProtocolRotationChanged(headRot, this._fakeEntityLastHeadYaw)) {
+                PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
+                this._fakeEntityLastHeadYaw = headPacket.getHeadYaw();
                 for (Player viewer : this.getViewers()) {
                     if (viewer.getEntityId() != entityId) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
                 }
-                this._fakeEntityLastHeadYaw = protHeadRot;
             }
 
             // Refresh body yaw and head pitch
             // Repeat this packet every 15 ticks to make sure the entity's orientation stays correct
             // The client will automatically rotate the body towards the head after a short delay
             // Sending look packets regularly prevents that from happening
-            if (this._fakeEntityRotationCtr == 0 || protYaw != this._fakeEntityLastYaw || protPitch != this._fakeEntityLastPitch) {
+            if (this._fakeEntityRotationCtr == 0 || 
+                EntityTrackerEntryHandle.hasProtocolRotationChanged(yaw, this._fakeEntityLastYaw) ||
+                EntityTrackerEntryHandle.hasProtocolRotationChanged(pitch, this._fakeEntityLastPitch))
+            {
                 this._fakeEntityRotationCtr = 10;
 
-                CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
-                lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, entityId);
-                lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
-                lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
+                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, yaw, pitch, false);
+                this._fakeEntityLastYaw = lookPacket.getYaw();
+                this._fakeEntityLastPitch = lookPacket.getPitch();
                 for (Player viewer : this.getViewers()) {
                     if (viewer.getEntityId() != entityId) {
                         PacketUtil.sendPacket(viewer, lookPacket);
                     }
                 }
-                this._fakeEntityLastYaw = protYaw;
-                this._fakeEntityLastPitch = protPitch;
             } else {
                 this._fakeEntityRotationCtr--;
             }
@@ -588,31 +576,23 @@ public class CartAttachmentSeat extends CartAttachment {
                     headRot = -headRot + 2.0f * yaw;
                 }
 
-                // Protocolify
-                int protYaw = EntityTrackerEntryHandle.getProtocolRotation(yaw);
-                int protPitch = EntityTrackerEntryHandle.getProtocolRotation(pitch);
-                int protHeadRot = EntityTrackerEntryHandle.getProtocolRotation(headRot);
-
-                if (protYaw != this._fakeEntityLastYaw || protPitch != this._fakeEntityLastPitch) {
-                    CommonPacket lookPacket = PacketType.OUT_ENTITY_LOOK.newInstance();
-                    lookPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, this._fakeEntityId);
-                    lookPacket.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) protYaw);
-                    lookPacket.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) protPitch);
+                if (EntityTrackerEntryHandle.hasProtocolRotationChanged(yaw, this._fakeEntityLastYaw) ||
+                    EntityTrackerEntryHandle.hasProtocolRotationChanged(pitch, this._fakeEntityLastPitch))
+                {
+                    PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(this._fakeEntityId, yaw, pitch, false);
+                    this._fakeEntityLastYaw = lookPacket.getYaw();
+                    this._fakeEntityLastPitch = lookPacket.getPitch();
                     for (Player viewer : this.getViewers()) {
                         PacketUtil.sendPacket(viewer, lookPacket);
                     }
-                    this._fakeEntityLastYaw = protYaw;
-                    this._fakeEntityLastPitch = protPitch;
                 }
 
-                if (protHeadRot != this._fakeEntityLastHeadYaw) {
-                    CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
-                    headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this._fakeEntityId);
-                    headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) protHeadRot);
+                if (EntityTrackerEntryHandle.hasProtocolRotationChanged(headRot, this._fakeEntityLastHeadYaw)) {
+                    PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(this._fakeEntityId, headRot);
+                    this._fakeEntityLastHeadYaw = headPacket.getHeadYaw();
                     for (Player viewer : this.getViewers()) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
-                    this._fakeEntityLastHeadYaw = protHeadRot;
                 }
             }
         }
@@ -641,7 +621,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (!(this._entity instanceof Player) && this._upsideDown && !reset) {
             // Apply metadata 'Dinnerbone' with nametag invisible
             DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, FakePlayer.DisplayMode.UPSIDEDOWN.getPlayerName());
+            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, ProfileNameModifier.UPSIDEDOWN.getPlayerName());
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true);
             PacketUtil.sendPacket(viewer, metaPacket);

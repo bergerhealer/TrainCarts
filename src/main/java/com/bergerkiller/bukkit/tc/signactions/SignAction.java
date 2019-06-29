@@ -104,9 +104,11 @@ public abstract class SignAction {
      */
     public static void handleLoadChange(Sign sign, boolean loaded) {
         final SignActionEvent info = new SignActionEvent(sign.getBlock(), sign, null);
-        SignAction action = getSignAction(info);
-        if (action != null) {
-            action.loadedChanged(info, loaded);
+        for (SignAction action : actions) {
+            if (action._hasLoadedChangeHandler && action.match(info) && action.verify(info)) {
+                action.loadedChanged(info, loaded);
+                return;
+            }
         }
     }
 
@@ -279,6 +281,12 @@ public abstract class SignAction {
             TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
                     " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
         }
+    }
+
+    private final boolean _hasLoadedChangeHandler;
+
+    public SignAction() {
+        this._hasLoadedChangeHandler = CommonUtil.isMethodOverrided(SignAction.class, this.getClass(), "loadedChanged", SignActionEvent.class, boolean.class);
     }
 
     /**

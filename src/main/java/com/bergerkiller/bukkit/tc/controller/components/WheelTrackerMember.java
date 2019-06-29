@@ -475,12 +475,14 @@ public class WheelTrackerMember {
             this._position.setX(position.posX - this.member.getEntity().loc.getX());
             this._position.setY(position.posY - this.member.getEntity().loc.getY());
             this._position.setZ(position.posZ - this.member.getEntity().loc.getZ());
-            this._up.setX(position.upX);
-            this._up.setY(position.upY);
-            this._up.setZ(position.upZ);
-            this._forward.setX(position.motX);
-            this._forward.setY(position.motY);
-            this._forward.setZ(position.motZ);
+
+            //TODO: Do we really have to split this into 'forward' and 'up'?
+            // Could just keep it a Quaternion storing both. 
+            Util.setVector(this._up, position.orientation.upVector());
+            Util.setVector(this._forward, position.orientation.forwardVector());
+            if (position.motDot(this._forward) < 0.0) {
+                this._forward.multiply(-1.0);
+            }
             if (!this._front) {
                 this._forward.multiply(-1.0);
             }

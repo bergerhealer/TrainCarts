@@ -285,7 +285,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (state && !this.keepChunksLoaded) {
             restore();
         }
-        this.keepChunksLoaded = state;
+        if (state != this.keepChunksLoaded) {
+            this.keepChunksLoaded = state;
+            MinecartGroup group = this.getHolder();
+            if (group != null) {
+                group.keepChunksLoaded(state);
+            }
+        }
     }
 
     /**
@@ -955,7 +961,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "allowmanual", "manualmove", "manual")) {
             this.allowManualMovement = ParseUtil.parseBool(arg);
         } else if (LogicUtil.contains(key, "keepcloaded", "loadchunks", "keeploaded")) {
-            this.keepChunksLoaded = ParseUtil.parseBool(arg);
+            this.setKeepChunksLoaded(ParseUtil.parseBool(arg));
         } else if (key.equals("addtag")) {
             this.addTags(arg);
         } else if (key.equals("settag")) {
@@ -1127,7 +1133,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
-        this.keepChunksLoaded = node.get("keepChunksLoaded", this.keepChunksLoaded);
+        this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
         this.waitDistance = node.get("waitDistance", this.waitDistance);
         this.suffocation = node.get("suffocation", this.suffocation);
@@ -1205,7 +1211,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setCollisionDamage(source.collisionDamage);
         this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
         this.requirePoweredMinecart = source.requirePoweredMinecart;
-        this.keepChunksLoaded = source.keepChunksLoaded;
+        this.setKeepChunksLoaded(source.keepChunksLoaded);
         this.allowManualMovement = source.allowManualMovement;
         this.tickets = new ArrayList<String>(source.tickets);
         this.setSkipOptions(source.skipOptions);

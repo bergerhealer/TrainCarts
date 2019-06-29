@@ -2,11 +2,11 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
-import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.wrappers.IntHashMap;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHeadRotationHandle;
 
 /**
  * Simple map, mapping passenger entity Id's to the seat attachment
@@ -47,23 +47,25 @@ public class SeatAttachmentMap implements PacketListener {
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
-        CommonPacket packet = event.getPacket();
         if (event.getType() == PacketType.OUT_ENTITY_MOVE_LOOK) {
-            CartAttachmentSeat seat = get(packet.read(PacketType.OUT_ENTITY_MOVE_LOOK.entityId));
+            PacketPlayOutEntityHandle packet = PacketPlayOutEntityHandle.createHandle(event.getPacket().getHandle());
+            CartAttachmentSeat seat = get(packet.getEntityId());
             if (seat != null && seat.isRotationLocked()) {
-                packet.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) seat.getPassengerYaw());
-                packet.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) seat.getPassengerPitch());
+                packet.setYaw(seat.getPassengerYaw());
+                packet.setPitch(seat.getPassengerPitch());
             }
         } else if (event.getType() == PacketType.OUT_ENTITY_LOOK) {
-            CartAttachmentSeat seat = get(packet.read(PacketType.OUT_ENTITY_LOOK.entityId));
+            PacketPlayOutEntityHandle packet = PacketPlayOutEntityHandle.createHandle(event.getPacket().getHandle());
+            CartAttachmentSeat seat = get(packet.getEntityId());
             if (seat != null && seat.isRotationLocked()) {
-                packet.write(PacketPlayOutEntityHandle.T.dyaw_raw.toFieldAccessor(), (byte) seat.getPassengerYaw());
-                packet.write(PacketPlayOutEntityHandle.T.dpitch_raw.toFieldAccessor(), (byte) seat.getPassengerPitch());
+                packet.setYaw(seat.getPassengerYaw());
+                packet.setPitch(seat.getPassengerPitch());
             }
         } else if (event.getType() == PacketType.OUT_ENTITY_HEAD_ROTATION) {
-            CartAttachmentSeat seat = get(packet.read(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId));
+            PacketPlayOutEntityHeadRotationHandle packet = PacketPlayOutEntityHeadRotationHandle.createHandle(event.getPacket().getHandle());
+            CartAttachmentSeat seat = get(packet.getEntityId());
             if (seat != null && seat.isRotationLocked()) {
-                packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, (byte) seat.getPassengerHeadYaw());
+                packet.setHeadYaw(seat.getPassengerHeadYaw());
             }
         }
     }

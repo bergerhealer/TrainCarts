@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
-import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -21,9 +20,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.mountiplex.reflection.MethodAccessor;
-import com.bergerkiller.mountiplex.reflection.SafeDirectMethod;
-import com.bergerkiller.mountiplex.reflection.SafeMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
@@ -971,24 +967,6 @@ public class Util {
     }
 
     /**
-     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
-     * rotation between the two.
-     * 
-     * @param result to store the lerp result into
-     * @param p0
-     * @param p1
-     * @param theta
-     */
-    public static void lerpOrientation(RailPath.Position result, RailPath.Point p0, RailPath.Point p1, double theta) {
-        Vector vup0 = p0.up();
-        Vector vup1 = p1.up();
-        Vector vup = lerpOrientation(vup0, vup1, theta);
-        result.upX = vup.getX();
-        result.upY = vup.getY();
-        result.upZ = vup.getZ();
-    }
-
-    /**
      * Calculates the 3 rotation angles for an armor stand pose from a Quaternion rotation
      * 
      * @param rotation
@@ -1232,5 +1210,45 @@ public class Util {
         {
             loc.setY((double) locBlock.getY() + bounds.getMaxY() + 1e-5);
         }
+    }
+
+    /**
+     * Adds protocol-limited rotation steps the yaw of an entity to rotate in accordance
+     * of the requested change in yaw.
+     * 
+     * @param old_yaw
+     * @param yaw_change
+     * @return new entity yaw
+     */
+    public static float getNextEntityYaw(float old_yaw, double yaw_change) {
+        // When change is too large, do not use entity yaw for it, snap pose instead
+        if (yaw_change < -90.0 || yaw_change > 90.0) {
+            return old_yaw;
+        }
+
+        int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation(old_yaw);
+        int prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) ((double) old_yaw + yaw_change));
+        if (prot_yaw_rot_new != prot_yaw_rot_old) {
+
+            // Do not change entity yaw to beyond the angle requested
+            // This causes the pose yaw angle to compensate, which looks very twitchy
+            float new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+            double new_yaw_change = MathUtil.wrapAngle((double) new_yaw - (double) old_yaw);
+            if (yaw_change < 0.0) {
+                if (new_yaw_change < yaw_change) {
+                    prot_yaw_rot_new++;
+                    new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                }
+            } else {
+                if (new_yaw_change > yaw_change) {
+                    prot_yaw_rot_new--;
+                    new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                }
+            }
+
+            // Has a change in protocol yaw value, accept the changes
+            return new_yaw;
+        }
+        return old_yaw;
     }
 }

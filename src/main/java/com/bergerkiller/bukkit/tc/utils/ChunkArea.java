@@ -7,8 +7,9 @@ import java.util.Set;
 
 import org.bukkit.World;
 
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
+import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 
@@ -33,6 +34,21 @@ public class ChunkArea {
     private final List<OwnedChunk> added_chunks = new ArrayList<OwnedChunk>();
 
     /**
+     * Clears all chunks stores inside this chunk area, without handling events for them.
+     * This makes it have the same state as when first constructed.
+     */
+    public void reset() {
+        this.added_chunk_centers.clear();
+        this.chunks.clear();
+        for (OwnedChunk chunk : all_chunks) {
+            chunk.forcedChunk.close();
+        }
+        this.all_chunks.clear();
+        this.removed_chunks.clear();
+        this.added_chunks.clear();
+    }
+
+    /**
      * Refreshes this chunk area to contain all the minecart chunk coordinates in the set.
      * After this refresh the added and removed chunks can be queried, as well as all currently managed chunks.
      * 
@@ -48,6 +64,9 @@ public class ChunkArea {
         if (this.current_world != world) {
             this.current_world = world;
             this.removed_chunks.addAll(this.chunks.getValues());
+            for (OwnedChunk chunk : this.removed_chunks) {
+                chunk.forcedChunk.close();
+            }
             this.added_chunk_centers.clear();
             this.chunks = new LongHashMap<OwnedChunk>();
             this.all_chunks.clear();
@@ -105,6 +124,7 @@ public class ChunkArea {
                         if (ownedChunk != null) {
                             ownedChunk.removeChunk(coord, mx, mz);
                             if (ownedChunk.isEmpty()) {
+                                ownedChunk.forcedChunk.close();
                                 this.removed_chunks.add(ownedChunk);
                                 this.chunks.remove(ownedCoord);
                                 this.all_chunks.remove(ownedChunk);
@@ -172,6 +192,7 @@ public class ChunkArea {
         private final LongHashSet chunks = new LongHashSet();
         private int distance;
         private int distance_previous;
+        private final ForcedChunk forcedChunk = ForcedChunk.none();
 
         public OwnedChunk(World world, int cx, int cz) {
             this.world = world;
@@ -185,12 +206,12 @@ public class ChunkArea {
             return this.world.isChunkLoaded(this.cx, this.cz);
         }
 
-        public void unloadChunkRequest() {
-            this.world.unloadChunkRequest(this.cx, this.cz);
-        }
-
-        public void loadChunkRequest() {
-            WorldUtil.getChunkAsync(this.world, this.cx, this.cz, DUMMY_RUNNABLE);
+        public void keepLoaded(boolean keepLoaded) {
+            if (keepLoaded) {
+                this.forcedChunk.move(ChunkUtil.forceChunkLoaded(this.world, this.cx, this.cz));
+            } else {
+                this.forcedChunk.close();
+            }
         }
 
         public void loadChunk() {

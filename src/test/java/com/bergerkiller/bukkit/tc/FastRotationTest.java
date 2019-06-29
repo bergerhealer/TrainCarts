@@ -1,12 +1,15 @@
 package com.bergerkiller.bukkit.tc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Random;
 
 import org.junit.Test;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class FastRotationTest {
     // maximum allowed error in the calculated armor stand angle in degrees
@@ -76,6 +79,29 @@ public class FastRotationTest {
 
         for (int i = 0; i < values.length; i++) {
             assertEquals(yaw_a[i], yaw_b[i], MAX_ANGLE_ERROR);
+        }
+    }
+
+    @Test
+    public void testEntityYaw() {
+        for (float base_angle = -360.0f; base_angle <= 360.0f; base_angle += 0.01f) {
+            for (double yaw_change = -89.0; yaw_change <= 89.0; yaw_change += 0.01) {
+                double new_yaw = Util.getNextEntityYaw(base_angle, yaw_change);
+                double actual_change = new_yaw - base_angle;
+                while (actual_change <= -180.0) {
+                    actual_change += 360.0;
+                }
+                while (actual_change > 180.0) {
+                    actual_change -= 360.0;
+                }
+
+                if (MathUtil.getAngleDifference((float) yaw_change, (float) actual_change) > 1.41f) {
+                    fail("Yaw change undershoot: base=" + base_angle + " change=" + yaw_change + " output_change=" + actual_change);
+                }
+                if ((yaw_change >= 0.0) ? (actual_change > yaw_change) : (actual_change < yaw_change)) {
+                    fail("Yaw change overshoot: base=" + base_angle + " change=" + yaw_change + " output_change=" + actual_change);
+                }
+            }
         }
     }
 }

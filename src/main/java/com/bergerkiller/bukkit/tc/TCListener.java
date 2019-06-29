@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.old.FakePlayer;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -47,6 +46,7 @@ import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -70,7 +70,6 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
@@ -82,7 +81,6 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -101,7 +99,6 @@ public class TCListener implements Listener {
     public static MinecartMember<?> killedByMember = null;
     public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
     private static Map<Player, Integer> markedForUnmounting = new HashMap<Player, Integer>();
-    private final ArrayList<MinecartGroup> expectUnload = new ArrayList<>();
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
 
@@ -116,9 +113,6 @@ public class TCListener implements Listener {
         }
 
         // Clean up the fake teams we've sent
-        for (FakePlayer.DisplayMode mode : FakePlayer.DisplayMode.values()) {
-            mode.getTeam().remove(event.getPlayer());
-        }
         ProfileNameModifier.onViewerQuit(event.getPlayer());
         TrainCarts.plugin.getMountHandler().remove(event.getPlayer());
     }
@@ -130,67 +124,42 @@ public class TCListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onChunkUnloadLow(ChunkUnloadEvent event) {
-        // Check no spawn sign is keeping the chunk loaded
-        if (!TrainCarts.plugin.getSpawnSignManager().canUnloadChunk(event.getChunk())) {
-            event.setCancelled(true);
-            return;
-        }
-
-        // Check no trains are keeping the chunk loaded
-        synchronized (this.expectUnload) {
-            this.expectUnload.clear();
-
-            long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
-            World chunkWorld = event.getWorld();
-            for (MinecartGroup mg : MinecartGroup.getGroups()) {
-                if (mg.isInChunk(chunkWorld, chunkCoordLong)) {
-                    if (mg.canUnload()) {
-                        this.expectUnload.add(mg);
-                    } else {
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-            }
-
-            // Double-check
-            for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
-                if (entity instanceof Minecart) {
-                    MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
-                    if (member == null || !member.isInteractable()) {
-                        continue;
-                    }
-                    if (member.getGroup().canUnload()) {
-                        if (!this.expectUnload.contains(member.getGroup())) {
-                            this.expectUnload.add(member.getGroup());
-                        }
-                    } else {
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event) {
         // This chunk is still referenced, ensure that it is really gone
-        OfflineGroupManager.lastUnloadChunk = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
-        // Unload groups
-        synchronized (this.expectUnload) {
-            long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
-            World chunkWorld = event.getWorld();
-            for (MinecartGroup mg : this.expectUnload) {
-                if (mg.isInChunk(chunkWorld, chunkCoordLong)) {
-                    mg.unload();
-                }
+        long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
+        OfflineGroupManager.lastUnloadChunk = Long.valueOf(chunkCoordLong);
+
+        // Check no trains are keeping the chunk loaded
+        World chunkWorld = event.getWorld();
+        for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
+            if (group.isInChunk(chunkWorld, chunkCoordLong)) {
+                unloadChunkForGroup(group, event.getChunk());
             }
         }
+
+        // Double-check
+        for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
+            if (entity instanceof Minecart) {
+                MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
+                if (member == null || !member.isInteractable()) {
+                    continue;
+                }
+                unloadChunkForGroup(member.getGroup(), event.getChunk());
+            }
+        }
+
         OfflineGroupManager.unloadChunk(event.getChunk());
         OfflineGroupManager.lastUnloadChunk = null;
+    }
+
+    private void unloadChunkForGroup(MinecartGroup group, Chunk chunk) {
+        if (group.canUnload()) {
+            group.unload();
+        } else {
+            TrainCarts.plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
+                    " of group " + group.getProperties().getTrainName() + " unloaded unexpectedly!");
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

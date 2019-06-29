@@ -135,11 +135,27 @@ public class RedstoneTracker implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onChunkLoad(ChunkLoadEvent event) {
+        CommonUtil.nextTick(new Runnable() {
+
+            @Override
+            public void run() {
+                // TODO Auto-generated method stub
+                try {
+                    loadSigns(WorldUtil.getBlockStates(event.getChunk()));
+                } catch (Throwable t) {
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
+                }
+            }
+            
+        });
+        
+        /*
         try {
             loadSigns(WorldUtil.getBlockStates(event.getChunk()));
         } catch (Throwable t) {
             TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
         }
+        */
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

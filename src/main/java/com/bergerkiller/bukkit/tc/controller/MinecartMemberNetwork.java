@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManagerInternalState
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
@@ -31,7 +30,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -321,7 +319,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
             // If this minecart is unloaded, simply sync self only without any movement updates
             if (this.getMember().isUnloaded()) {
-                this.syncSelf(false, false, false);
+                this.syncSelf(false);
                 return;
             }
 
@@ -356,7 +354,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
                 // Perform absolute updates
                 for (i = 0; i < count; i++) {
-                    networkControllers[i].syncSelf(true, true, true);
+                    networkControllers[i].syncSelf(true);
                 }
             } else {
                 // Perform relative updates
@@ -371,19 +369,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                     }
                 }
                 if (needsSync) {
-                    boolean moved = false;
-                    boolean rotated = false;
-
-                    // Check whether changes are needed
-                    for (i = 0; i < count; i++) {
-                        MinecartMemberNetwork controller = networkControllers[i];
-                        moved |= controller.isPositionChanged(MIN_RELATIVE_POS_CHANGE);
-                        rotated |= controller.isRotationChanged(MIN_RELATIVE_ROT_CHANGE);
-                    }
-
                     // Perform actual updates
                     for (i = 0; i < count; i++) {
-                        networkControllers[i].syncSelf(moved, rotated, false);
+                        networkControllers[i].syncSelf(false);
                     }
                 }
             }
@@ -427,7 +415,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    public void syncSelf(boolean moved, boolean rotated, boolean absolute) {
+    public void syncSelf(boolean absolute) {
         // Check
         MinecartMember<?> member = this.getMember();
         if (member == null) {
