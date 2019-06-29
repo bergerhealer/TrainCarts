@@ -1788,7 +1788,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.doPostMoveLogic();
         if (!this.isDerailed()) {
             // Slowing down of minecarts
-            if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
+            if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION) && this.entity.getMaxSpeed() > 0.0) {
                 if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TCConfig.slowDownEmptyCarts) {
                     entity.vel.multiply(TCConfig.slowDownMultiplierNormal);
                 } else {
