@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
+import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.widgets.*;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
@@ -7,9 +9,6 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
@@ -107,6 +106,52 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, Set
                     AppearanceMenu.this.addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
                 }
             }).setText("Change Exit").setBounds(0, 30, 100, 16);
+        }
+
+        // TEXT
+        {
+            MapWidgetTabView.Tab textTab = tabView.addTab();
+            MapWidgetSubmitText textBox = new MapWidgetSubmitText() {
+                @Override
+                public void onAttached() {
+                    this.setDescription("Enter text");
+                }
+
+                @Override
+                public void onAccept(String text) {
+                    getAttachment().getConfig().set("text", text);
+                    markChanged();
+                }
+            };
+
+            textTab.addWidget(textBox);
+            textTab.addWidget(new MapWidgetText().setText("Current Text:")).setBounds(0, 10, 100, 16);
+            textTab.addWidget(new MapWidgetText() {
+                @Override
+                public void onTick() {
+                    setText("\"" + getAttachment().getConfig().get("text", "") + "\"");
+                }
+            })
+                    .setAlignment(MapFont.Alignment.MIDDLE)
+                    .setBounds(0, 30, 100, 16);
+
+            textTab.addWidget(new MapWidgetButton() {
+
+
+                @Override
+                public void onAttached() {
+                    this.setText("Edit Text");
+                }
+
+                @Override
+                public void onActivate() {
+                    textBox.activate();
+                    markChanged();
+
+                }
+
+
+            }).setBounds(0, 60, 100, 16);
         }
 
         tabView.addTab(); // MODEL

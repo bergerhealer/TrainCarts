@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
+import com.bergerkiller.bukkit.common.map.MapFont;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
@@ -24,6 +25,8 @@ public enum CartAttachmentType {
     PLATFORM(CartAttachmentPlatform.class),
     /** A seat a player can sit in */
     SEAT(CartAttachmentSeat.class),
+    /** Display a String as text */
+    TEXT(CartAttachmentText.class),
     /** Attaches the full model tree of another model to this one */
     MODEL(CartAttachmentEmpty.class);
 
@@ -44,6 +47,9 @@ public enum CartAttachmentType {
 
         case SEAT:
             return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/seat.png");
+
+        case TEXT:
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/text.png");
 
         case ENTITY:
             EntityType type = config.get("entityType", EntityType.MINECART);
