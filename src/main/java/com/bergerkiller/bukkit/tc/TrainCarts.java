@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
-import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
@@ -65,6 +64,7 @@ public class TrainCarts extends PluginBase {
     private SavedTrainPropertiesStore savedTrainsStore;
     private TCMountPacketHandler mountHandler;
     private SeatAttachmentMap seatAttachmentMap;
+    private RedstoneTracker redstoneTracker;
 
     /**
      * Gets a mapping of passenger entity Ids to the cart attachment seat they are occupying,
@@ -375,10 +375,10 @@ public class TrainCarts extends PluginBase {
         });
 
         // Register listeners and commands
-        this.register(packetListener = new TCPacketListener(), PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION);
+        this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
         this.register(TCListener.class);
-        this.register(RedstoneTracker.class);
+        this.register(this.redstoneTracker = new RedstoneTracker(this));
         this.register("train", "cart");
 
         // Destroy all trains after initializing if specified
@@ -510,6 +510,9 @@ public class TrainCarts extends PluginBase {
         RailPieceCache.reset();
         RailSignCache.reset();
         RailMemberCache.reset();
+
+        this.redstoneTracker.disable();
+        this.redstoneTracker = null;
     }
 
     public boolean command(CommandSender sender, String cmd, String[] args) {

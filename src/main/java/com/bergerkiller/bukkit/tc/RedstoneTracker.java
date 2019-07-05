@@ -1,12 +1,16 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.CollectionBasics;
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -77,8 +81,19 @@ public class RedstoneTracker implements Listener {
         }
     };
 
-    public RedstoneTracker() {
+    // Executes sign loading logic outside of onChunkLoad
+    private final SignLoaderTask signLoader;
+
+    public RedstoneTracker(TrainCarts plugin) {
+        this.signLoader = new SignLoaderTask(plugin);
+        this.signLoader.start(1, 1);
+
         initPowerLevels();
+    }
+
+    public void disable() {
+        this.signLoader.stop();
+        this.signLoader.run();
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -98,11 +113,35 @@ public class RedstoneTracker implements Listener {
      */
     public void initPowerLevels() {
         for (World world : WorldUtil.getWorlds()) {
-            try {
-                loadSigns(WorldUtil.getBlockStates(world));
-            } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in world " + world.getName(), t);
+            loadSignsInWorld(world);
+        }
+    }
+
+    public void loadSignsInWorld(World world) {
+        for (Chunk chunk : world.getLoadedChunks()) {
+            loadSignsInChunk(chunk);
+        }
+    }
+
+    public void loadSignsInChunk(Chunk chunk) {
+        // Check that this chunk has all 8 neighbouring chunks loaded too
+        for (int cx = -1; cx <= 1; cx++) {
+            for (int cz = -1; cz <= 1; cz++) {
+                if (cx == 0 && cz == 0) {
+                    continue;
+                }
+                if (!WorldUtil.isLoaded(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz)) {
+                    return;
+                }
             }
+        }
+
+        // Actually load it
+        try {
+            loadSigns(WorldUtil.getBlockStates(chunk));
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + chunk.getWorld().getName() +
+                    " [" + chunk.getX() + "/" + chunk.getZ() + "]", t);
         }
     }
 
@@ -126,36 +165,25 @@ public class RedstoneTracker implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldLoad(WorldLoadEvent event) {
-        try {
-            loadSigns(WorldUtil.getBlockStates(event.getWorld()));
-        } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in world " + event.getWorld().getName(), t);
-        }
+        loadSignsInWorld(event.getWorld());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onChunkLoad(ChunkLoadEvent event) {
-        CommonUtil.nextTick(new Runnable() {
+        Chunk chunk = event.getChunk();
+        this.signLoader.schedule(chunk);
+        for (int cx = -1; cx <= 1; cx++) {
+            for (int cz = -1; cz <= 1; cz++) {
+                if (cx == 0 && cz == 0) {
+                    continue;
+                }
 
-            @Override
-            public void run() {
-                // TODO Auto-generated method stub
-                try {
-                    loadSigns(WorldUtil.getBlockStates(event.getChunk()));
-                } catch (Throwable t) {
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
+                Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
+                if (neigh_chunk != null) {
+                    this.signLoader.schedule(neigh_chunk);
                 }
             }
-            
-        });
-        
-        /*
-        try {
-            loadSigns(WorldUtil.getBlockStates(event.getChunk()));
-        } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
         }
-        */
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -257,5 +285,29 @@ public class RedstoneTracker implements Listener {
         // Fire the event, with a REDSTONE_CHANGE afterwards
         SignAction.executeAll(info, type);
         SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+    }
+
+    private final class SignLoaderTask extends Task {
+        private final ImplicitlySharedSet<Chunk> nextTickChunksToCheck = new ImplicitlySharedSet<Chunk>();
+
+        public void schedule(Chunk chunk) {
+            nextTickChunksToCheck.add(chunk);
+        }
+
+        public SignLoaderTask(TrainCarts plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            while (!nextTickChunksToCheck.isEmpty()) {
+                try (ImplicitlySharedSet<Chunk> copy = nextTickChunksToCheck.clone()) {
+                    for (Chunk chunk : copy) {
+                        loadSignsInChunk(chunk);
+                    }
+                    nextTickChunksToCheck.removeAll(copy);
+                }
+            }
+        }
     }
 }

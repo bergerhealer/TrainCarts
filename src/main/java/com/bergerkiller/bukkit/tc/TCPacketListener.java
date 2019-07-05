@@ -27,6 +27,10 @@ import org.bukkit.inventory.EquipmentSlot;
  * Temporary (???) packet listener to handle and cancel player SHIFT presses to cancel vehicle exit
  */
 public class TCPacketListener implements PacketListener {
+    public static final PacketType[] LISTENED_TYPES = new PacketType[] {
+            PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION,
+            PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK
+    };
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
