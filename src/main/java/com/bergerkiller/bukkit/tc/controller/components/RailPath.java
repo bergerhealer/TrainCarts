@@ -621,6 +621,13 @@ public class RailPath {
                                             pos.posX, pos.posY, pos.posZ);
         }
 
+        public double distanceSquared(LocationAbstract pos) {
+            if (this.relative) {
+                throw new IllegalStateException("Self position must be absolute");
+            }
+            return pos.distanceSquared(this.posX, this.posY, this.posZ);
+        }
+
         public Location toLocation(World world) {
             this.assertAbsolute();
             return new Location(world, posX, posY, posZ);

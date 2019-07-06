@@ -920,7 +920,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (this.preMovePosition == null) {
             this.preMovePosition = this.entity.getLocation();
         }
-        RailPath.Position pos = RailPath.Position.fromTo(this.preMovePosition, entity.getLocation());
+
+        Location currPos = entity.getLocation();
+        RailPath.Position pos = RailPath.Position.fromTo(this.preMovePosition, currPos);
         double toMove = MathUtil.length(pos.motX, pos.motY, pos.motZ);
 
         // When movement is large, teleport is almost certain
@@ -932,9 +934,25 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         toMove -= path.move(pos, this.getBlock(), toMove);
+
         this.preMovePosition.setX(pos.posX);
         this.preMovePosition.setY(pos.posY);
         this.preMovePosition.setZ(pos.posZ);
+
+        // Correct motion based on anticipated end location
+        // Sometimes the input motion is incorrect
+        // When dot = 0 then there is no extra movement (or 90 degree angle, weird)
+        double dx = currPos.getX() - this.preMovePosition.getX();
+        double dy = currPos.getY() - this.preMovePosition.getY();
+        double dz = currPos.getZ() - this.preMovePosition.getZ();
+        double dot = dx*pos.motX + dy*pos.motY + dz*pos.motZ;
+        if (dot != 0.0) {
+            toMove = Math.sqrt(dx*dx+dy*dy+dz*dz);
+            if (dot < 0.0) {
+                pos.invertMotion();
+            }
+        }
+
         if (toMove > 0.0) {
             pos.posX += toMove * pos.motX;
             pos.posY += toMove * pos.motY;
@@ -1728,7 +1746,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * Moves the minecart and performs post-movement logic such as events, onBlockChanged and other (rail) logic
      * Physics stage: <b>4</b>
      *
-     * @param speedFactor to apply, which is used to adjust minecart positioning
      * @throws MemberMissingException - thrown when the minecart is dead or dies
      * @throws GroupUnloadedException - thrown when the group is no longer loaded
      */
