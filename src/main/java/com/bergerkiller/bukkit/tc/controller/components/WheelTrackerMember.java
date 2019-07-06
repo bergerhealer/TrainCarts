@@ -432,11 +432,58 @@ public class WheelTrackerMember {
 
             // Start by doing a movement of 0 distance to correctly calculate the movement direction
             // This initializes the running Position object correctly
-            TrackedRail rail = rails.get(railIndex);
             RailPath.Position position = this._railPosition;
             position.setLocation(this.member.getEntity().loc);
             position.setMotion(member.getRailTracker().getMotionVector());
-            rail.getPath().move(position, rail.state.railBlock(), 0.0);
+            {
+                TrackedRail rail = rails.get(railIndex);
+                rail.getPath().move(position, rail.state.railBlock(), 0.0);
+            }
+
+            // Below code attempts to correct the error between the position and the actual minecart location
+            // It does so by picking a different rail that has less error with the current position of the member
+            // This fix 'works', but further testing showed it was only needed when more than one track is at
+            // a single rails block. By fixing that, this fix was no longer needed.
+            // Evidently, this correction is only needed when 'jumping' occurs due to multiple track paths per rail block
+            /*
+            double initial_position_error = position.distanceSquared(this.member.getEntity().loc);
+            if (initial_position_error > 1e-5) {
+                // Too large an error. Check whether railIndex-1 or railIndex+1 are better suited
+                int original_rail_index = railIndex;
+                if (original_rail_index > 0) {
+                    RailPath.Position prev_position = new RailPath.Position();
+                    prev_position.setLocation(this.member.getEntity().loc);
+                    prev_position.setMotion(member.getRailTracker().getMotionVector());
+                    {
+                        TrackedRail prev_rail = rails.get(original_rail_index-1);
+                        prev_rail.getPath().move(prev_position, prev_rail.state.railBlock(), 0.0);
+                    }
+
+                    double prev_initial_error = prev_position.distanceSquared(this.member.getEntity().loc);
+                    if (prev_initial_error < initial_position_error) {
+                        prev_position.copyTo(position);
+                        initial_position_error = prev_initial_error;
+                        railIndex = original_rail_index-1;
+                    }
+                }
+                if (original_rail_index < (rails.size()-1)) {
+                    RailPath.Position next_position = new RailPath.Position();
+                    next_position.setLocation(this.member.getEntity().loc);
+                    next_position.setMotion(member.getRailTracker().getMotionVector());
+                    {
+                        TrackedRail next_rail = rails.get(original_rail_index+1);
+                        next_rail.getPath().move(next_position, next_rail.state.railBlock(), 0.0);
+                    }
+
+                    double next_initial_error = next_position.distanceSquared(this.member.getEntity().loc);
+                    if (next_initial_error < initial_position_error) {
+                        next_position.copyTo(position);
+                        initial_position_error = next_initial_error;
+                        railIndex = original_rail_index+1;
+                    }
+                }
+            }
+            */
 
             // Flip the direction when the orientation vs front differs
             // When dot is 0.0, we hit an odd 90-degree incline
@@ -460,7 +507,7 @@ public class WheelTrackerMember {
                 // Distance is set: walk the path
                 double remainingDistance = this._distance;
                 for (int index = railIndex; index >= 0 && index < rails.size() && remainingDistance >= 0.0001; index += order) {
-                    rail = rails.get(index);
+                    TrackedRail rail = rails.get(index);
                     RailPath path = rail.getPath();
                     remainingDistance -= path.move(position, rail.state.railBlock(), remainingDistance);
                 }
@@ -475,6 +522,11 @@ public class WheelTrackerMember {
             this._position.setX(position.posX - this.member.getEntity().loc.getX());
             this._position.setY(position.posY - this.member.getEntity().loc.getY());
             this._position.setZ(position.posZ - this.member.getEntity().loc.getZ());
+
+            // Empty paths produce null orientation
+            if (position.orientation == null) {
+                position.orientation = this.member.getOrientation();
+            }
 
             //TODO: Do we really have to split this into 'forward' and 'up'?
             // Could just keep it a Quaternion storing both. 
