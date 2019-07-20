@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.collections.CollectionBasics;
-import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -81,19 +79,11 @@ public class RedstoneTracker implements Listener {
         }
     };
 
-    // Executes sign loading logic outside of onChunkLoad
-    private final SignLoaderTask signLoader;
-
     public RedstoneTracker(TrainCarts plugin) {
-        this.signLoader = new SignLoaderTask(plugin);
-        this.signLoader.start(1, 1);
-
         initPowerLevels();
     }
 
     public void disable() {
-        this.signLoader.stop();
-        this.signLoader.run();
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -119,19 +109,21 @@ public class RedstoneTracker implements Listener {
 
     public void loadSignsInWorld(World world) {
         for (Chunk chunk : world.getLoadedChunks()) {
-            loadSignsInChunk(chunk);
+            loadSignsInChunk(chunk, true);
         }
     }
 
-    public void loadSignsInChunk(Chunk chunk) {
+    public void loadSignsInChunk(Chunk chunk, boolean checkNeighboursLoaded) {
         // Check that this chunk has all 8 neighbouring chunks loaded too
-        for (int cx = -1; cx <= 1; cx++) {
-            for (int cz = -1; cz <= 1; cz++) {
-                if (cx == 0 && cz == 0) {
-                    continue;
-                }
-                if (!WorldUtil.isLoaded(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz)) {
-                    return;
+        if (checkNeighboursLoaded) {
+            for (int cx = -1; cx <= 1; cx++) {
+                for (int cz = -1; cz <= 1; cz++) {
+                    if (cx == 0 && cz == 0) {
+                        continue;
+                    }
+                    if (!WorldUtil.isLoaded(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz)) {
+                        return;
+                    }
                 }
             }
         }
@@ -171,7 +163,7 @@ public class RedstoneTracker implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
-        this.signLoader.schedule(chunk);
+        boolean isAllNeighboursLoaded = true;
         for (int cx = -1; cx <= 1; cx++) {
             for (int cz = -1; cz <= 1; cz++) {
                 if (cx == 0 && cz == 0) {
@@ -179,10 +171,15 @@ public class RedstoneTracker implements Listener {
                 }
 
                 Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
-                if (neigh_chunk != null) {
-                    this.signLoader.schedule(neigh_chunk);
+                if (neigh_chunk == null) {
+                    isAllNeighboursLoaded = false;
+                } else {
+                    this.loadSignsInChunk(neigh_chunk, true);
                 }
             }
+        }
+        if (isAllNeighboursLoaded) {
+            this.loadSignsInChunk(chunk, false);
         }
     }
 
@@ -287,27 +284,4 @@ public class RedstoneTracker implements Listener {
         SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
     }
 
-    private final class SignLoaderTask extends Task {
-        private final ImplicitlySharedSet<Chunk> nextTickChunksToCheck = new ImplicitlySharedSet<Chunk>();
-
-        public void schedule(Chunk chunk) {
-            nextTickChunksToCheck.add(chunk);
-        }
-
-        public SignLoaderTask(TrainCarts plugin) {
-            super(plugin);
-        }
-
-        @Override
-        public void run() {
-            while (!nextTickChunksToCheck.isEmpty()) {
-                try (ImplicitlySharedSet<Chunk> copy = nextTickChunksToCheck.clone()) {
-                    for (Chunk chunk : copy) {
-                        loadSignsInChunk(chunk);
-                    }
-                    nextTickChunksToCheck.removeAll(copy);
-                }
-            }
-        }
-    }
 }
