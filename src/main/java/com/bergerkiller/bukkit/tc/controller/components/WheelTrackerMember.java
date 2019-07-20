@@ -445,7 +445,6 @@ public class WheelTrackerMember {
             // This fix 'works', but further testing showed it was only needed when more than one track is at
             // a single rails block. By fixing that, this fix was no longer needed.
             // Evidently, this correction is only needed when 'jumping' occurs due to multiple track paths per rail block
-            /*
             double initial_position_error = position.distanceSquared(this.member.getEntity().loc);
             if (initial_position_error > 1e-5) {
                 // Too large an error. Check whether railIndex-1 or railIndex+1 are better suited
@@ -483,7 +482,6 @@ public class WheelTrackerMember {
                     }
                 }
             }
-            */
 
             // Flip the direction when the orientation vs front differs
             // When dot is 0.0, we hit an odd 90-degree incline
