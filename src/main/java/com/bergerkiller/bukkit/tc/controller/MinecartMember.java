@@ -942,6 +942,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Correct motion based on anticipated end location
         // Sometimes the input motion is incorrect
         // When dot = 0 then there is no extra movement (or 90 degree angle, weird)
+        /*
         double dx = currPos.getX() - this.preMovePosition.getX();
         double dy = currPos.getY() - this.preMovePosition.getY();
         double dz = currPos.getZ() - this.preMovePosition.getZ();
@@ -952,6 +953,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 pos.invertMotion();
             }
         }
+        */
 
         if (toMove > 0.0) {
             pos.posX += toMove * pos.motX;
