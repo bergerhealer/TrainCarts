@@ -132,7 +132,12 @@ public class GlobalCommands {
                 focused = editor.getActivatedWidget();
             }
             if (args[1].equals("set") && focused instanceof SetValueTarget) {
-                boolean success = ((SetValueTarget) focused).acceptTextValue(args[2]);
+                String fullValue = args[2];
+                for (int n = 3; n < args.length; n++) {
+                    fullValue += " " + args[n];
+                }
+
+                boolean success = ((SetValueTarget) focused).acceptTextValue(fullValue);
                 String propname = ((SetValueTarget) focused).getAcceptedPropertyName();
                 if (success) {
                     sender.sendMessage(ChatColor.GREEN + propname + " has been updated");

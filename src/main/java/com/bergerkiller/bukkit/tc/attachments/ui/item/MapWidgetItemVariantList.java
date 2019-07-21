@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -20,6 +21,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
@@ -128,17 +130,86 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
 
     @Override
     public String getAcceptedPropertyName() {
-        return "Item Damage Value";
+        return "Item Information";
     }
 
     @Override
     public boolean acceptTextValue(String value) {
-        try {
-            this.setVariantIndex(Integer.parseInt(value));
-            return true;
-        } catch (NumberFormatException ex) {
-            return false;
+        // Try parsing the item name from the value
+        value = value.trim();
+        int nameEnd = 0;
+        while (nameEnd < value.length()) {
+            if (value.charAt(nameEnd) == '{' || value.charAt(nameEnd) == ' ') {
+                break;
+            } else {
+                nameEnd++;
+            }
         }
+        String itemName = value.substring(0, nameEnd);
+        if (nameEnd >= value.length()) {
+            value = "";
+        } else {
+            value = value.substring(nameEnd).trim();
+        }
+        if (!ParseUtil.isNumeric(itemName)) {
+            // Item name
+            Material newItemMaterial = ParseUtil.parseMaterial(itemName, null);
+            if (newItemMaterial == null) {
+                return false;
+            }
+            ItemStack newItem = ItemUtil.createItem(newItemMaterial, 1);
+
+            // Item durability
+            nameEnd = 0;
+            while (nameEnd < value.length()) {
+                if (value.charAt(nameEnd) == '{' || value.charAt(nameEnd) == ' ') {
+                    break;
+                } else {
+                    nameEnd++;
+                }
+            }
+            String durabilityValueStr = value.substring(0, nameEnd).trim();
+            if (!durabilityValueStr.isEmpty() && ParseUtil.isNumeric(durabilityValueStr)) {
+                try {
+                    int durability = Integer.parseInt(durabilityValueStr);
+                    if (durability < 0 || durability > ItemUtil.getMaxDurability(newItem)) {
+                        return false;
+                    }
+                    newItem.setDurability((short) durability);
+                } catch (NumberFormatException ex) {
+                    return false;
+                }
+            }
+
+            // Update
+            this.setItem(newItem);
+        } else {
+            // Variant index (no item name specified)
+            try {
+                this.setVariantIndex(Integer.parseInt(itemName));
+            } catch (NumberFormatException ex) {
+                return false;
+            }
+        }
+
+        // Find NBT in Mojangson format
+        int nbtStart = value.indexOf('{');
+        if (nbtStart != -1) {
+            CommonTagCompound nbt = CommonTagCompound.fromMojangson(value.substring(nbtStart));
+            if (nbt == null) {
+                return false;
+            }
+
+            ItemStack newItem = ItemUtil.createItem(this.getItem());
+            short oldDurability = newItem.getDurability();
+            ItemUtil.setMetaTag(newItem, nbt);
+            if (!nbt.containsKey("Damage")) {
+                newItem.setDurability(oldDurability);
+            }
+            this.setItem(newItem);
+        }
+
+        return true;
     }
 
     @Override
