@@ -45,6 +45,11 @@ public class PhysicalMenu extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Cart Length";
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("cartLength", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -60,6 +65,11 @@ public class PhysicalMenu extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Wheel Distance";
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("wheelDistance", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -71,6 +81,11 @@ public class PhysicalMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setValue(getConfig().get("wheelCenter", 0.0));
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Wheel Center Offset";
             }
 
             @Override

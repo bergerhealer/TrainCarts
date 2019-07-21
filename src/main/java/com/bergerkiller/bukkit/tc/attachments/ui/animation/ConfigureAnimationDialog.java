@@ -33,6 +33,11 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Animation Speed";
+            }
+
+            @Override
             public void onActivate() {
                 setValue(1.0);
             }
@@ -56,6 +61,11 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setValue(menu.getAnimation().getOptions().getDelay());
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Animation Delay";
             }
 
             @Override

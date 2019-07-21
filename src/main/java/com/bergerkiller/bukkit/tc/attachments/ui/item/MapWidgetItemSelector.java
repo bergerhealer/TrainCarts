@@ -1,15 +1,26 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
-import org.bukkit.block.BlockFace;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 
 /**
@@ -17,54 +28,44 @@ import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
  * to select an ItemStack
  */
 public abstract class MapWidgetItemSelector extends MapWidget implements ItemDropTarget, SetValueTarget {
-    private final MapWidgetItemPreview preview = new MapWidgetItemPreview() {
-        
+
+    private final MapWidgetTabView itemOptions = new MapWidgetTabView() {
+        @Override
+        public void onKeyPressed(MapKeyEvent event) {
+            // Disable this when inside the custom model data selector
+            // Sadly there is no clean way to do this
+            if (root.getActivatedWidget() instanceof CustomModelDataSelector) {
+                super.onKeyPressed(event);
+                return;
+            }
+
+            if (event.getKey() == Key.UP && this.getSelectedIndex() > 0) {
+                display.playSound(CommonSounds.PISTON_EXTEND);
+                this.setSelectedIndex(this.getSelectedIndex()-1);
+                this.getSelectedTab().activate();
+            } else if (event.getKey() == Key.DOWN && this.getSelectedIndex() < (this.getTabCount()-1)) {
+                display.playSound(CommonSounds.PISTON_EXTEND);
+                this.setSelectedIndex(this.getSelectedIndex()+1);
+                this.getSelectedTab().activate();
+            } else if (event.getKey() == Key.DOWN) {
+                display.playSound(CommonSounds.PISTON_CONTRACT);
+                this.setSelectedIndex(0); // loop around first
+                setGridOpened(true);
+            } else {
+                super.onKeyPressed(event);
+            }
+        }
     };
+
     private final MapWidgetItemVariantList variantList = new MapWidgetItemVariantList() {
         @Override
         public void onActivate() {
             setGridOpened(true);
         }
+    };
 
-        @Override
-        public void onItemChanged() {
-            preview.setItem(getItem());
-            onSelectedItemChanged();
-        }
-
-        @Override
-        public void onKeyReleased(MapKeyEvent event) {
-            super.onKeyReleased(event);
-            if (event.getKey() == MapPlayerInput.Key.LEFT) {
-                nav_left.stopFocus();
-            } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
-                nav_right.stopFocus();
-            }
-        }
-
-        @Override
-        public void onKeyPressed(MapKeyEvent event) {
-            super.onKeyPressed(event);
-            if (event.getKey() == MapPlayerInput.Key.LEFT) {
-                nav_left.sendFocus();
-            } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
-                nav_right.sendFocus();
-            } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
-                this.activate();
-            }
-        }
-
-        @Override
-        public void onFocus() {
-            nav_left.setVisible(true);
-            nav_right.setVisible(true);
-        }
-
-        @Override
-        public void onBlur() {
-            nav_left.setVisible(false);
-            nav_right.setVisible(false);
-        }
+    private final MapWidgetItemPreview preview = new MapWidgetItemPreview() {
+        
     };
     private final MapWidgetItemGrid grid = new MapWidgetItemGrid() {
         @Override
@@ -86,19 +87,143 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
             super.onKeyPressed(event);
         }
     };
-    private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
-    private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
 
     public MapWidgetItemSelector() {
         // Set the positions/bounds of all the child widgets and set self to its limits
         grid.setDimensions(6, 4);
-        variantList.setPosition((grid.getWidth() - variantList.getWidth()) / 2, 0);
-        grid.setPosition(0, variantList.getHeight() + 1);
+        itemOptions.setSize(100, 18);
+        itemOptions.setPosition((grid.getWidth() - itemOptions.getWidth()) / 2, 0);
+        grid.setPosition(0, itemOptions.getHeight() + 1);
         grid.addCreativeItems();
         preview.setBounds(grid.getX(), grid.getY(), grid.getWidth(), grid.getHeight());
-        nav_left.setPosition(0, 4);
-        nav_right.setPosition(grid.getWidth() - nav_right.getWidth(), 4);
         setSize(grid.getWidth(), grid.getY() + grid.getHeight());
+
+        // Different tabs for different options/properties that can be changed for an item
+        { // Tab with damage value
+            itemOptions.addTab().addWidget(variantList);
+        }
+        { // Tab with additional item options
+            MapWidgetTabView.Tab tab = itemOptions.addTab(new MapWidgetTabView.Tab() {
+                private final MapTexture bg_texture = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/item_options_bg.png");
+
+                @Override
+                public void onDraw() {
+                    this.view.draw(bg_texture, 0, 0);
+                }
+            });
+
+            { // Damageable or not
+                final MapWidgetBlinkyButton unbreakableOption = new MapWidgetBlinkyButton() {
+                    @Override
+                    protected MapWidget navigateNextWidget(List<MapWidget> widgets, MapPlayerInput.Key key) {
+                        if (key == MapPlayerInput.Key.LEFT) {
+                            return null; // cancel
+                        }
+                        return super.navigateNextWidget(widgets, key);
+                    }
+
+                    @Override
+                    public void onClick() {
+                        ItemStack item = variantList.getItem();
+                        if (item == null) {
+                            return;
+                        }
+
+                        item = ItemUtil.createItem(item);
+                        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+                        if (tag == null) {
+                            return;
+                        }
+                        tag.putValue("Unbreakable", !(tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)));
+                        variantList.setItem(item);
+                    }
+                };
+                this.variantList.registerItemChangedListener(new ItemChangedListener() {
+                    @Override
+                    public void onItemChanged(ItemStack item) {
+                        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+                        if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
+                            unbreakableOption.setTooltip("Unbreakable");
+                            unbreakableOption.setIcon("attachments/item_unbreakable.png");
+                        } else {
+                            unbreakableOption.setTooltip("Breakable");
+                            unbreakableOption.setIcon("attachments/item_breakable.png");
+                        }
+                    }
+                }, true);
+                tab.addWidget(unbreakableOption.setPosition(8, 1));
+            }
+
+            { // Custom Model Data (1.14 or later)
+                /*
+                tab.addWidget(new MapWidgetBlinkyButton() {
+                    @Override
+                    public void onClick() {
+                        ItemStack item = variantList.getItem();
+                        if (item == null) {
+                            return;
+                        }
+                        
+                    }
+                }).setIcon("attachments/item_cmd.png")
+                  .setTooltip("Custom Model Data")
+                  .setPosition(25, 1);
+                */
+
+                final CustomModelDataSelector selector = new CustomModelDataSelector() {
+                    @Override
+                    protected MapWidget navigateNextWidget(List<MapWidget> widgets, MapPlayerInput.Key key) {
+                        if (key == MapPlayerInput.Key.RIGHT) {
+                            return null; // cancel
+                        }
+                        return super.navigateNextWidget(widgets, key);
+                    }
+
+                    @Override
+                    public void onValueChanged() {
+                        ItemStack item = variantList.getItem();
+                        if (item == null) {
+                            return;
+                        }
+
+                        item = ItemUtil.createItem(item);
+                        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+                        if (tag == null) {
+                            return;
+                        }
+                        if (this.getValue() <= 0) {
+                            tag.remove("CustomModelData");
+                        } else {
+                            tag.putValue("CustomModelData", this.getValue());
+                        }
+                        variantList.setItem(item);
+                    }
+                };
+                selector.setPosition(42, 2);
+                tab.addWidget(selector);
+
+                this.variantList.registerItemChangedListener(new ItemChangedListener() {
+                    @Override
+                    public void onItemChanged(ItemStack item) {
+                        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+                        int value = 0;
+                        if (tag != null && tag.containsKey("CustomModelData")) {
+                            value = tag.getValue("CustomModelData", 0);
+                        }
+                        selector.setValue(value);
+                    }
+                }, true);
+            }
+        }
+
+        // Handle item being changed, changing the preview and firing event
+        this.variantList.registerItemChangedListener(new ItemChangedListener() {
+            @Override
+            public void onItemChanged(ItemStack item) {
+                preview.setItem(item);
+                onSelectedItemChanged();
+            }
+        }, false);
     }
 
     /**
@@ -123,11 +248,8 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
     @Override
     public void onAttached() {
-        this.nav_left.setVisible(false);
-        this.nav_right.setVisible(false);
-        this.addWidget(this.variantList);
-        this.addWidget(this.nav_left);
-        this.addWidget(this.nav_right);
+        // Add the options tab view and show preview widget
+        this.addWidget(this.itemOptions);
         setGridOpened(false);
     }
 
@@ -140,6 +262,11 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
     }
 
     @Override
+    public String getAcceptedPropertyName() {
+        return this.variantList.getAcceptedPropertyName();
+    }
+
+    @Override
     public boolean acceptTextValue(String value) {
         return this.variantList.acceptTextValue(value);
     }
@@ -147,6 +274,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
     private void setGridOpened(boolean opened) {
         if (!opened && !this.getWidgets().contains(this.preview)) {
             this.swapWidget(this.grid, this.preview);
+            this.itemOptions.focus();
         } else if (opened && !this.getWidgets().contains(this.grid)) {
             this.swapWidget(this.preview, this.grid).activate();
         }

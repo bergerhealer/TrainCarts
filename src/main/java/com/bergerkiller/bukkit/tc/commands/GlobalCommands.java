@@ -127,23 +127,17 @@ public class GlobalCommands {
             }
 
             // Find focused widget
-            MapWidget activated = editor.getActivatedWidget();
-            MapWidget focused = activated;
-            if (activated != null) {
-                for (MapWidget child : activated.getWidgets()) {
-                    if (child.isFocused()) {
-                        focused = child;
-                        break;
-                    }
-                }
+            MapWidget focused = editor.getFocusedWidget();
+            if (focused == null) {
+                focused = editor.getActivatedWidget();
             }
-
             if (args[1].equals("set") && focused instanceof SetValueTarget) {
                 boolean success = ((SetValueTarget) focused).acceptTextValue(args[2]);
+                String propname = ((SetValueTarget) focused).getAcceptedPropertyName();
                 if (success) {
-                    sender.sendMessage(ChatColor.GREEN + "Value has been updated");
+                    sender.sendMessage(ChatColor.GREEN + propname + " has been updated");
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Failed to update value!");
+                    sender.sendMessage(ChatColor.RED + "Failed to update " + propname + "!");
                 }
                 return true;
             }

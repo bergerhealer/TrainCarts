@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 
-public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, SetValueTarget {
+public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
 
     public AppearanceMenu() {
@@ -193,16 +193,6 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, Set
     public boolean acceptItem(ItemStack item) {
         for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
             if (widget instanceof ItemDropTarget && ((ItemDropTarget) widget).acceptItem(item)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean acceptTextValue(String value) {
-        for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
-            if (widget instanceof SetValueTarget && ((SetValueTarget) widget).acceptTextValue(value)) {
                 return true;
             }
         }

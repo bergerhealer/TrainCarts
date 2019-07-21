@@ -5,12 +5,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -19,13 +22,17 @@ import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 
 /**
  * Interactive widget that pops down a full list of item base types when
  * activated, and allows switching between item/block variants using left/right.
  */
-public abstract class MapWidgetItemVariantList extends MapWidget implements SetValueTarget {
+public abstract class MapWidgetItemVariantList extends MapWidget implements SetValueTarget, ItemChangedListener {
+    private final List<ItemChangedListener> itemChangedListeners = new ArrayList<ItemChangedListener>();
+    private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
+    private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
     private final MapTexture background;
     private List<ItemStack> variants;
     private Map<ItemStack, MapTexture> iconCache = new HashMap<ItemStack, MapTexture>();
@@ -33,9 +40,19 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
 
     public MapWidgetItemVariantList() {
         this.background = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/item_selector_bg.png");
-        this.setSize(86, 18);
+        this.setSize(100, 18);
         this.setFocusable(true);
         this.variants = new ArrayList<ItemStack>(0);
+
+        this.nav_left.setPosition(0, 4);
+        this.nav_right.setPosition(this.getWidth() - nav_right.getWidth(), 4);
+        this.nav_left.setVisible(false);
+        this.nav_right.setVisible(false);
+        this.addWidget(this.nav_left);
+        this.addWidget(this.nav_right);
+        this.setRetainChildWidgets(true);
+
+        this.itemChangedListeners.add(this);
     }
 
     public ItemStack getItem() {
@@ -51,7 +68,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
             this.variants = new ArrayList<ItemStack>(0);
             this.variantIndex = 0;
             this.invalidate();
-            this.onItemChanged();
+            this.fireItemChangeEvent();
             return;
         }
         int maxDurability = ItemUtil.getMaxDurability(item);
@@ -106,7 +123,12 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         }
 
         this.invalidate();
-        this.onItemChanged();
+        this.fireItemChangeEvent();
+    }
+
+    @Override
+    public String getAcceptedPropertyName() {
+        return "Item Damage Value";
     }
 
     @Override
@@ -120,9 +142,26 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
     }
 
     @Override
+    public void onFocus() {
+        nav_left.setVisible(true);
+        nav_right.setVisible(true);
+    }
+
+    @Override
+    public void onBlur() {
+        nav_left.setVisible(false);
+        nav_right.setVisible(false);
+    }
+
+    @Override
     public void onDraw() {
+        // Subregion where things are drawn
+        // To the left and right are navigation buttons
+        int selector_edge = this.nav_left.getWidth()+1;
+        MapCanvas itemView = this.view.getView(selector_edge, 0, this.getWidth() - 2*selector_edge, this.getHeight());
+
         // Background
-        this.view.draw(this.background, 0, 0);
+        itemView.draw(this.background, 0, 0);
 
         // Draw the same item with -2 to +2 variant indices
         int x = 1;
@@ -137,7 +176,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
                     icon.fillItem(TCConfig.resourcePack, item);
                     this.iconCache.put(item, icon);
                 }
-                view.draw(icon, x, y);
+                itemView.draw(icon, x, y);
             }
             x += 17;
         }
@@ -146,8 +185,8 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         if (this.variantIndex >= 0 && this.variantIndex < this.variants.size()) {
             ItemStack item = this.variants.get(this.variantIndex);
             if (ItemUtil.getMaxDurability(item) > 0) {
-                view.setAlignment(MapFont.Alignment.MIDDLE);
-                view.draw(MapFont.TINY, 44, 12, MapColorPalette.COLOR_RED, Short.toString(item.getDurability()));
+                itemView.setAlignment(MapFont.Alignment.MIDDLE);
+                itemView.draw(MapFont.TINY, 44, 12, MapColorPalette.COLOR_RED, Short.toString(item.getDurability()));
             }
         }
     }
@@ -167,20 +206,52 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         }
         this.variantIndex = newVariantIndex;
         this.invalidate();
-        this.onItemChanged();
+        this.fireItemChangeEvent();
         this.display.playSound(CommonSounds.CLICK);
+    }
+
+    @Override
+    public void onKeyReleased(MapKeyEvent event) {
+        super.onKeyReleased(event);
+        if (event.getKey() == MapPlayerInput.Key.LEFT) {
+            nav_left.stopFocus();
+        } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
+            nav_right.stopFocus();
+        }
     }
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == Key.LEFT) {
             changeVariantIndex(-1 - (event.getRepeat() / 40));
+            nav_left.sendFocus();
         } else if (event.getKey() == Key.RIGHT) {
             changeVariantIndex(1 + (event.getRepeat() / 40));
+            nav_right.sendFocus();
         } else {
             super.onKeyPressed(event);
         }
     }
 
-    public abstract void onItemChanged();
+    /**
+     * Registers a listener called when the item is changed.
+     * 
+     * @param listener
+     * @param fireEventNow when true, fires an item change event right now while registering
+     */
+    public void registerItemChangedListener(ItemChangedListener listener, boolean fireEventNow) {
+        this.itemChangedListeners.add(listener);
+        if (fireEventNow) {
+            listener.onItemChanged(this.getItem());
+        }
+    }
+
+    private void fireItemChangeEvent() {
+        ItemStack item = this.getItem();
+        for (ItemChangedListener listener : this.itemChangedListeners) {
+            listener.onItemChanged(item);
+        }
+    }
+
+    public void onItemChanged(ItemStack item) {}
 }

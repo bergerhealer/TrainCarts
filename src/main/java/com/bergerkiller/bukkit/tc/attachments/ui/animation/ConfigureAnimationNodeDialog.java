@@ -108,6 +108,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Delta Time";
+            }
+
+            @Override
             public void onKeyPressed(MapKeyEvent event) {
                 if (event.getKey() == Key.UP) {
                     // Force the duplicate button to be focused
@@ -129,6 +134,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Position X-Coordinate";
+            }
+
+            @Override
             public void onValueChanged() {
                 updateNode(ChangeMode.POS_X, this.getValue());
             }
@@ -144,6 +154,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Position Y-Coordinate";
+            }
+
+            @Override
             public void onValueChanged() {
                 updateNode(ChangeMode.POS_Y, this.getValue());
             }
@@ -156,6 +171,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setValue(getNode().getPosition().getZ());
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Position Z-Coordinate";
             }
 
             @Override
@@ -175,6 +195,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Rotation Pitch";
+            }
+
+            @Override
             public void onValueChanged() {
                 updateNode(ChangeMode.ROT_X, this.getValue());
             }
@@ -191,6 +216,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Rotation Yaw";
+            }
+
+            @Override
             public void onValueChanged() {
                 updateNode(ChangeMode.ROT_Y, this.getValue());
             }
@@ -204,6 +234,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                 super.onAttached();
                 this.setIncrement(0.1);
                 this.setValue(getNode().getRotationVector().getZ());
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Rotation Roll";
             }
 
             @Override

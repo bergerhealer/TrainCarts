@@ -80,6 +80,11 @@ public class PositionMenu extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Position X-Coordinate";
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("posX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -96,6 +101,11 @@ public class PositionMenu extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Position Y-Coordinate";
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("posY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -109,6 +119,11 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setValue(getConfig().get("posZ", 0.0));
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Position Z-Coordinate";
             }
 
             @Override
@@ -129,6 +144,11 @@ public class PositionMenu extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Rotation Pitch";
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("rotX", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -146,6 +166,11 @@ public class PositionMenu extends MapWidgetMenu {
             }
 
             @Override
+            public String getAcceptedPropertyName() {
+                return "Rotation Yaw";
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("rotY", getValue());
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -160,6 +185,11 @@ public class PositionMenu extends MapWidgetMenu {
                 super.onAttached();
                 this.setIncrement(0.1);
                 this.setValue(getConfig().get("rotZ", 0.0));
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Rotation Roll";
             }
 
             @Override

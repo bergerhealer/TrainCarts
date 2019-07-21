@@ -53,7 +53,7 @@ public class MapWidgetTooltip extends MapWidget {
     }
 
     private void calcBounds() {
-        if (this.parent == null || this._text == null) {
+        if (this.parent == null || this._text == null || this.view == null) {
             this.setBounds(0, 0, 0, 0);
             return;
         }
