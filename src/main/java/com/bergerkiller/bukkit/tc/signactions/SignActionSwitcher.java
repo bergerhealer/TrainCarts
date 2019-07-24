@@ -62,12 +62,19 @@ public class SignActionSwitcher extends SignAction {
         if (facing) {
             //find out what statements to parse
             List<DirectionStatement> statements = new ArrayList<>();
-            statements.add(new DirectionStatement(info.getLine(2), "left"));
-            statements.add(new DirectionStatement(info.getLine(3), "right"));
+            if (!info.getLine(2).isEmpty()) {
+                statements.add(new DirectionStatement(info.getLine(2), "left"));
+            }
+            if (!info.getLine(3).isEmpty()) {
+                statements.add(new DirectionStatement(info.getLine(3), "right"));
+            }
             //other signs below this sign we could parse?
             for (Sign sign : info.findSignsBelow()) {
                 boolean valid = true;
                 for (String line : sign.getLines()) {
+                    if (line.isEmpty()) {
+                        continue;
+                    }
                     DirectionStatement stat = new DirectionStatement(line, "");
                     if (stat.direction.isEmpty()) {
                         valid = false;
@@ -81,61 +88,66 @@ public class SignActionSwitcher extends SignAction {
                 }
             }
 
-            //parse all of the statements
-            //are we going to use a counter?
-            int maxcount = 0;
-            int currentcount = 0;
-            AtomicInteger signcounter = null;
-            for (DirectionStatement stat : statements) {
-                //System.out.println(stat.toString());
-                if (stat.hasNumber()) {
-                    maxcount += stat.number;
-                    if (signcounter == null) {
-                        signcounter = getSwitchedTimes(info.getBlock());
-                        if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
-                            currentcount = signcounter.getAndIncrement();
-                        } else {
-                            currentcount = signcounter.get();
+            if (statements.isEmpty()) {
+                // If no directions are at all specified, all we do is toggle the lever
+                info.setLevers(true);
+            } else {
+                //parse all of the statements
+                //are we going to use a counter?
+                int maxcount = 0;
+                int currentcount = 0;
+                AtomicInteger signcounter = null;
+                for (DirectionStatement stat : statements) {
+                    //System.out.println(stat.toString());
+                    if (stat.hasNumber()) {
+                        maxcount += stat.number;
+                        if (signcounter == null) {
+                            signcounter = getSwitchedTimes(info.getBlock());
+                            if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
+                                currentcount = signcounter.getAndIncrement();
+                            } else {
+                                currentcount = signcounter.get();
+                            }
                         }
                     }
                 }
-            }
-            if (signcounter != null && currentcount >= maxcount) {
-                signcounter.set(1);
-                currentcount = 0;
-            }
-
-            int counter = 0;
-            String dir = "";
-            boolean foundDirection = false;
-            for (DirectionStatement stat : statements) {
-                if ((stat.hasNumber() && (counter += stat.number) > currentcount)
-                        || (doCart && stat.has(info, info.getMember()))
-                        || (doTrain && stat.has(info, info.getGroup()))) {
-
-                    dir = stat.direction;
-                    foundDirection = true;
-                    break;
+                if (signcounter != null && currentcount >= maxcount) {
+                    signcounter.set(1);
+                    currentcount = 0;
                 }
-            }
-            if (!foundDirection) {
-                // Check if any direction is marked "default"
+
+                int counter = 0;
+                String dir = "";
+                boolean foundDirection = false;
                 for (DirectionStatement stat : statements) {
-                    String str = stat.text.toLowerCase(Locale.ENGLISH);
-                    if (str.equals("def") || str.equals("default")) {
+                    if ((stat.hasNumber() && (counter += stat.number) > currentcount)
+                            || (doCart && stat.has(info, info.getMember()))
+                            || (doTrain && stat.has(info, info.getGroup()))) {
+
                         dir = stat.direction;
+                        foundDirection = true;
                         break;
                     }
                 }
-            }
-
-            info.setLevers(!dir.isEmpty());
-            if (!dir.isEmpty() && info.isPowered()) {
-                //handle this direction
-                if (toggleRails) {
-                    info.setRailsTo(dir);
+                if (!foundDirection) {
+                    // Check if any direction is marked "default"
+                    for (DirectionStatement stat : statements) {
+                        String str = stat.text.toLowerCase(Locale.ENGLISH);
+                        if (str.equals("def") || str.equals("default")) {
+                            dir = stat.direction;
+                            break;
+                        }
+                    }
                 }
-                return; //don't do destination stuff
+
+                info.setLevers(!dir.isEmpty());
+                if (!dir.isEmpty() && info.isPowered()) {
+                    //handle this direction
+                    if (toggleRails) {
+                        info.setRailsTo(dir);
+                    }
+                    return; //don't do destination stuff
+                }
             }
         }
 
