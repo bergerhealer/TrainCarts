@@ -1,12 +1,14 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 
 import org.bukkit.block.Block;
 
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Keeps track of the active signs and detector regions from rail information
@@ -42,10 +44,24 @@ public abstract class SignTracker {
      */
     public void clear() {
         if (!activeSigns.isEmpty()) {
-            for (TrackedSign signBlock : activeSigns.values()) {
-                onSignChange(signBlock, false);
+            int maxResetIterCtr = 100; // happens more than this, infinite loop suspected
+            int expectedCount = activeSigns.size();
+            Iterator<TrackedSign> iter = activeSigns.values().iterator();
+            while (iter.hasNext()) {
+                TrackedSign sign = iter.next();
+                iter.remove();
+                expectedCount--;
+                onSignChange(sign, false);
+
+                if (expectedCount != activeSigns.size()) {
+                    expectedCount = activeSigns.size();
+                    iter = activeSigns.values().iterator();
+                    if (--maxResetIterCtr <= 0) {
+                        TrainCarts.plugin.log(Level.WARNING, "Number of iteration reset attempts exceeded limit");
+                        break;
+                    }
+                }
             }
-            activeSigns.clear();
         }
     }
 
