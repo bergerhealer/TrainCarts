@@ -293,7 +293,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public World getWorld() {
-        return isEmpty() ? null : get(0).getEntity().getWorld();
+        if (isEmpty()) {
+            return null;
+        } else {
+            CommonEntity<?> entity = get(0).getEntity();
+            return (entity == null) ? null : entity.getWorld();
+        }
     }
 
     public int size(EntityType carttype) {
@@ -435,7 +440,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         GroupRemoveEvent.call(this);
         this.clear();
-        this.updateChunkInformation(true);
+        this.updateChunkInformation();
         this.chunkArea.reset();
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
@@ -1091,7 +1096,20 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return chunksBuffer;
     }
 
-    private void updateChunkInformation(boolean canUnload) {
+    /**
+     * Called after the group has been spawned or created for the first time
+     */
+    public void onGroupCreated() {
+        this.onPropertiesChanged();
+        this.updateChunkInformation();
+    }
+
+    /**
+     * Refreshes the chunks this train is occupying. When the train keeps chunks loaded,
+     * makes sure to load the new chunks and allow old chunks to unload again.
+     */
+    private void updateChunkInformation() {
+        boolean canUnload = this.canUnload();
         try (Timings t = TCTimings.GROUP_UPDATE_CHUNKS.start()) {
             // Refresh the chunk area tracker using this information
             this.chunkArea.refresh(this.getWorld(), this.loadChunksBuffer());
@@ -1588,7 +1606,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Refresh chunks
-            this.updateChunkInformation(this.canUnload());
+            this.updateChunkInformation();
 
             // Refresh wheel position information, important to do it AFTER updateDirection()
             for (MinecartMember<?> member : this) {
