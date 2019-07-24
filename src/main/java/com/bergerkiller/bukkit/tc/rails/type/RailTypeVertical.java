@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeNormalB;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownB;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownC;
+import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownD;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -120,7 +121,11 @@ public class RailTypeVertical extends RailType {
                 return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
             }
 
-            return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
+            if (isVerticalSlopeUpsideDownB(state.railBlock())) {
+                return RailLogicVerticalSlopeUpsideDownD.get(dir.getOppositeFace());
+            } else {
+                return RailLogicVerticalSlopeUpsideDownC.get(dir.getOppositeFace());
+            }
         } else if (isVerticalSlopeUpsideDownB(state.railBlock())) {
             return RailLogicVerticalSlopeUpsideDownB.get(dir.getOppositeFace());
         } else if (getAfterSlope(state.railBlock()) != null) {
