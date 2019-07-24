@@ -53,8 +53,18 @@ public abstract class RailTypeHorizontal extends RailType {
 
             // Collide with block down the slope, only when there is no vertical rails there
             Block blockBwd = posBlock.getRelative(railDir.getOppositeFace());
-            if (BlockUtil.equals(blockBwd, hitBlock) && !RailType.VERTICAL.isRail(posBlock.getRelative(BlockFace.DOWN))) {
-                return true;
+            if (BlockUtil.equals(blockBwd, hitBlock)) {
+                // When not sloped, hitting a block head-on is always a collision
+                if (!member.isOnSlope()) {
+                    return true;
+                }
+
+                // Down a slope. Check if we are going down (or up) a vertical rail
+                if (!RailType.VERTICAL.isRail(posBlock.getRelative(BlockFace.DOWN)) &&
+                    !RailType.VERTICAL.isRail(blockBwd.getRelative(railDir)))
+                {
+                    return true;
+                }
             }
 
             // Block directly below
