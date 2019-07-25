@@ -1694,10 +1694,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             MinecartMember<?> n1 = this.getNeighbour(-1);
             MinecartMember<?> n2 = this.getNeighbour(1);
             if (n1 != null) {
-                this.speedFactor.add(calculateSpeedFactor(n1, this));
+                this.speedFactor.add(calculateSpeedFactor(this, n1));
             }
             if (n2 != null) {
-                this.speedFactor.add(calculateSpeedFactor(this, n2));
+                this.speedFactor.add(calculateSpeedFactor(n2, this));
             }
             if (n1 != null && n2 != null) {
                 this.speedFactor.multiply(0.5);
@@ -1705,41 +1705,51 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    private final Vector calculateSpeedFactor(MinecartMember<?> m1, MinecartMember<?> m2) {
+    /**
+     * Calculates the gap between two minecarts, and the movement direction to change to move
+     * from the back cart to the front cart.
+     * 
+     * @param back cart
+     * @param front cart
+     * @param direction output Vector, is modified by function
+     * @return gap between the back and front carts
+     */
+    public static double calculateGapAndDirection(MinecartMember<?> back, MinecartMember<?> front, Vector direction) {
         // Retrieve the positions of the backwards moving part of the cart,
         // and the forwards moving part of the cart behind. The gap
         // between these two positions must be kept.
-        WheelTrackerMember.Wheel m1wheel = m1.getWheels().movingBackwards();
-        WheelTrackerMember.Wheel m2wheel = m2.getWheels().movingForwards();
-        Vector m1pos = m1wheel.getAbsolutePosition();
-        Vector m2pos = m2wheel.getAbsolutePosition();
-        Vector direction;
-        if (m1 == this) {
-            direction = m1pos.subtract(m2pos);
-        } else {
-            direction = m2pos.subtract(m1pos);
-        }
+        WheelTrackerMember.Wheel frontwheel = front.getWheels().movingBackwards();
+        WheelTrackerMember.Wheel backwheel = back.getWheels().movingForwards();
+        Vector frontpos = frontwheel.getAbsolutePosition();
+        Vector backpos = backwheel.getAbsolutePosition();
+        direction.setX(frontpos.getX() - backpos.getX());
+        direction.setY(frontpos.getY() - backpos.getY());
+        direction.setZ(frontpos.getZ() - backpos.getZ());
 
         // If distance can not be reliably calculated, use BlockFace direction
         // Otherwise normalize the direction vector
         double distance = direction.length();
         if (distance < 0.01) {
-            direction.setX(this.getDirection().getModX());
-            direction.setY(this.getDirection().getModY());
-            direction.setZ(this.getDirection().getModZ());
+            direction.setX(front.getDirection().getModX());
+            direction.setY(front.getDirection().getModY());
+            direction.setZ(front.getDirection().getModZ());
             direction.normalize();
         } else {
-            direction.setX(direction.getX() / distance);
-            direction.setY(direction.getY() / distance);
-            direction.setZ(direction.getZ() / distance);
+            direction.multiply(1.0 / distance);
         }
 
-        // Calculate the preferred distance between these two wheels
-        // Keep the edge between wheel and edge of cart in mind
-        double preferredDistance = m1wheel.getEdgeDistance() + m2wheel.getEdgeDistance() + TCConfig.cartDistanceGap;
+        return distance - frontwheel.getEdgeDistance() - backwheel.getEdgeDistance();
+    }
+
+    private final Vector calculateSpeedFactor(MinecartMember<?> back, MinecartMember<?> front) {
+        Vector direction = new Vector();
+        double gap = calculateGapAndDirection(back, front, direction);
+        if (back == this) {
+            direction.multiply(-1.0);
+        }
 
         // Set the factor to the offset we must make to correct the distance
-        double distanceDiff = (preferredDistance - distance);
+        double distanceDiff = (TCConfig.cartDistanceGap - gap);
         direction.multiply(distanceDiff);
         return direction;
     }

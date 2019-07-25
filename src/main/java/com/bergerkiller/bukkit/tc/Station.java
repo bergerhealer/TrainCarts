@@ -435,7 +435,18 @@ public class Station {
             double total_size = center_size;
             for (int i = 1; i < group.size(); i++) {
                 MinecartMember<?> m = group.get(i);
-                total_size += m.getEntity().loc.distance(group.get(i-1).getEntity().loc);
+
+                // Add half the widths of both minecarts
+                total_size += 0.5 * (double) m.getEntity().getWidth();
+                total_size += 0.5 * (double) group.get(i-1).getEntity().getWidth();
+
+                // Find the size of the gap between the two minecarts, as this can vary
+                // TODO: Using the calculated value works but caused far worse station centering performance
+                //       It seems specifying the hardcoded configured gap works best
+                //       Perhaps this is because the gap changes during the station launching?
+                total_size += TCConfig.cartDistanceGap;
+                //total_size += MinecartMember.calculateGapAndDirection(m, group.get(i-1), new org.bukkit.util.Vector());
+
                 if (m == info.cart) {
                     center_size = total_size;
                 }
