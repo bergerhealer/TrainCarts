@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -17,6 +16,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 /**
  * Represents the Station sign information
@@ -31,6 +31,7 @@ public class Station {
     private final BlockFace railDirection;
     private final Block railsBlock;
     private boolean wasCentered = false;
+    private double centerOffset = 0.0;
 
     public Station(SignActionEvent info) {
         this.info = info;
@@ -103,8 +104,33 @@ public class Station {
             }
         }
 
+        // Parse and filter offset before parsing launcher configuration
+        // Offset is specified using '0.352m'
+        String launchConfigStr = info.getLine(1).substring(7);
+        int offsetTextEndIdx = launchConfigStr.indexOf('m');
+        if (offsetTextEndIdx != -1) {
+            launchConfigStr = launchConfigStr.substring(0, offsetTextEndIdx) + launchConfigStr.substring(offsetTextEndIdx + 1);
+
+            int offsetTextStartIdx = offsetTextEndIdx - 1;
+            while (offsetTextStartIdx >= 0) {
+                char c = launchConfigStr.charAt(offsetTextStartIdx);
+                if (!Character.isDigit(c) && c != '.' && c != ',' && c != '-') {
+                    break;
+                } else {
+                    offsetTextStartIdx--;
+                }
+            }
+            offsetTextStartIdx++;
+
+            if (offsetTextStartIdx < offsetTextEndIdx) {
+                String offsetStr = launchConfigStr.substring(offsetTextStartIdx, offsetTextEndIdx);
+                launchConfigStr = launchConfigStr.substring(0, offsetTextStartIdx) + launchConfigStr.substring(offsetTextEndIdx);
+                this.centerOffset = ParseUtil.parseDouble(offsetStr, 0.0);
+            }
+        }
+
         // Get initial station length, delay and direction
-        this.launchConfig = LauncherConfig.parse(info.getLine(1).substring(7));
+        this.launchConfig = LauncherConfig.parse(launchConfigStr);
         if (!this.launchConfig.hasDuration() && !this.launchConfig.hasDistance() && this.instruction != null) {
             // Manually calculate the length
             // Use the amount of straight blocks
@@ -362,7 +388,7 @@ public class Station {
                 stationInfo.cart.getActions().addActionLaunch(stationInfo.cartDir, stationInfo.distance, 0.0).addTag(this.getTag());
             } else {
                 // Alternative: get as close as possible (may fail)
-                stationInfo.cart.getActions().addActionLaunch(info.getCenterLocation(), 0).addTag(this.getTag());
+                stationInfo.cart.getActions().addActionLaunch(stationInfo.centerLocation, 0).addTag(this.getTag());
             }
         }
         this.wasCentered = true;
@@ -394,7 +420,7 @@ public class Station {
     private CartToStationInfo getCartToStationInfo() {
         CartToStationInfo info = new CartToStationInfo();
         info.cart = this.getCenterPositionCart();
-        Location centerPos = this.info.getCenterLocation();
+        info.centerLocation = this.info.getCenterLocation();
 
         // Get rail state info of the center cart, plus one in the opposite direction
         RailState centercart_state = info.cart.getRailTracker().getState();
@@ -403,19 +429,22 @@ public class Station {
         centercart_state_inv.initEnterDirection();
 
         // Try both directions of movement from the center cart perspective and find the rails block
-        info.distance = centercart_state.position().distance(centerPos);
+        info.distance = centercart_state.position().distance(info.centerLocation);
         info.cartDir = Util.vecToFace(info.cart.getRailTracker().getMotionVector(), false);
+        info.centerMoveDir = info.cart.getRailTracker().getMotionVector();
         double maxDistance = 2.0 * info.distance;
         TrackWalkingPoint p = new TrackWalkingPoint(centercart_state);
         TrackWalkingPoint p_inv = new TrackWalkingPoint(centercart_state_inv);
         if (p.moveFindRail(this.info.getRails(), maxDistance)) {
             maxDistance = p.movedTotal;
             info.distance = p.movedTotal;
+            info.centerMoveDir = p.state.motionVector();
         }
         if (p_inv.moveFindRail(this.info.getRails(), maxDistance)) {
             p = p_inv;
             maxDistance = p.movedTotal;
             info.distance = p.movedTotal;
+            info.centerMoveDir = p.state.motionVector();
             info.cartDir = info.cartDir.getOppositeFace();
         }
 
@@ -458,12 +487,35 @@ public class Station {
             info.distance += (0.5*total_size) - center_size;
         }
 
+        // Add distance based on center offset
+        if (this.centerOffset != 0.0) {
+            // Figure out what movement vector is positive for this station based on sign facing
+            Vector stationMoveDir = info.centerMoveDir.clone();
+            if ((stationMoveDir.getX()+stationMoveDir.getY()+stationMoveDir.getZ()) < 0.0) {
+                stationMoveDir.multiply(-1.0);
+            }
+            Vector facingVec = FaceUtil.faceToVector(this.info.getFacing());
+            facingVec = new Vector(facingVec.getZ(), facingVec.getY(), facingVec.getX());
+            if (stationMoveDir.dot(facingVec) < 0.0) {
+                stationMoveDir.multiply(-1.0);
+            }
+
+            // Add or subtract the offset from launch distance
+            if (stationMoveDir.dot(info.centerMoveDir) < 0.0) {
+                info.distance += this.centerOffset;
+            } else {
+                info.distance -= this.centerOffset;
+            }
+        }
+
         return info;
     }
 
     private static class CartToStationInfo {
         public MinecartMember<?> cart;
         public BlockFace cartDir;
+        public Vector centerMoveDir;
         public double distance;
+        public Location centerLocation;
     }
 }
