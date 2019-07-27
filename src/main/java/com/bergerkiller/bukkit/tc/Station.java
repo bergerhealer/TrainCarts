@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -419,8 +420,8 @@ public class Station {
         }
 
         // Adjust distance moved since calculating the center cart's position
-        info.distance -= info.cart.getRailTracker().getState().position().distance(info.cart.getEntity().getLocation());
-        
+        //info.distance -= info.cart.getRailTracker().getState().position().distance(info.cart.getEntity().getLocation());
+
         // The center of the train is not exactly where this center cart is at
         // Calculate an additional distance offset to center the train
         // This also takes care of uneven-cart count trains

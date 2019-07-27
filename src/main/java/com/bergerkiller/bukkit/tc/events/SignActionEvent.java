@@ -622,9 +622,9 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return Center location
      */
     public Location getCenterLocation() {
-        if (!this.hasRails()) return null;
-        RailType type = RailType.getType(this.railsblock);
-        return type.getSpawnLocation(this.railsblock, this.getFacing());
+        RailPiece railPiece = this.getRailPiece();
+        if (railPiece == null) return null;
+        return railPiece.type().getSpawnLocation(railPiece.block(), this.getFacing());
     }
 
     /**

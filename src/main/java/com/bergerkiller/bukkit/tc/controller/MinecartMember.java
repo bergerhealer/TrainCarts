@@ -1690,7 +1690,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void calculateSpeedFactor() {
         this.speedFactor.setX(0.0).setY(0.0).setZ(0.0);
         MinecartGroup group = this.getGroup();
-        if (group.size() != 1) {
+        if (group.size() != 1 && !group.getActions().isMovementControlled() && !this.getActions().isMovementControlled()) {
             MinecartMember<?> n1 = this.getNeighbour(-1);
             MinecartMember<?> n2 = this.getNeighbour(1);
             if (n1 != null) {
