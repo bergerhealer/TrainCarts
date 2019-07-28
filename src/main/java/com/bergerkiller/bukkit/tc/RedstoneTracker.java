@@ -115,7 +115,7 @@ public class RedstoneTracker implements Listener {
 
     public void loadSignsInChunk(Chunk chunk, boolean checkNeighboursLoaded) {
         // Check that this chunk has all 8 neighbouring chunks loaded too
-        if (checkNeighboursLoaded) {
+        if (TCConfig.initRedstoneWithRadius && checkNeighboursLoaded) {
             for (int cx = -1; cx <= 1; cx++) {
                 for (int cz = -1; cz <= 1; cz++) {
                     if (cx == 0 && cz == 0) {
@@ -147,6 +147,14 @@ public class RedstoneTracker implements Listener {
         }
     }
 
+    public void unloadSignsInChunk(Chunk chunk) {
+        try {
+            unloadSigns(WorldUtil.getBlockStates(chunk));
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + chunk.getX() + "/" + chunk.getZ(), t);
+        }
+    }
+
     public void unloadSigns(Collection<BlockState> states) {
         for (BlockState state : states) {
             if (state instanceof Sign) {
@@ -164,17 +172,19 @@ public class RedstoneTracker implements Listener {
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
         boolean isAllNeighboursLoaded = true;
-        for (int cx = -1; cx <= 1; cx++) {
-            for (int cz = -1; cz <= 1; cz++) {
-                if (cx == 0 && cz == 0) {
-                    continue;
-                }
+        if (TCConfig.initRedstoneWithRadius) {
+            for (int cx = -1; cx <= 1; cx++) {
+                for (int cz = -1; cz <= 1; cz++) {
+                    if (cx == 0 && cz == 0) {
+                        continue;
+                    }
 
-                Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
-                if (neigh_chunk == null) {
-                    isAllNeighboursLoaded = false;
-                } else {
-                    this.loadSignsInChunk(neigh_chunk, true);
+                    Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
+                    if (neigh_chunk == null) {
+                        isAllNeighboursLoaded = false;
+                    } else {
+                        this.loadSignsInChunk(neigh_chunk, true);
+                    }
                 }
             }
         }
@@ -188,12 +198,53 @@ public class RedstoneTracker implements Listener {
         
     }
 
+    // Checks that all neighbouring chunks, except one, are loaded
+    private static boolean checkAllNeighboursLoadedExcept(Chunk chunk, Chunk except) {
+        for (int dcx = -1; dcx <= 1; dcx++) {
+            for (int dcz = -1; dcz <= 1; dcz++) {
+                if (dcx == 0 && dcz == 0) {
+                    continue;
+                }
+
+                int cx = chunk.getX() + dcx;
+                int cz = chunk.getZ() + dcz;
+                if (cx == except.getX() && cz == except.getZ()) {
+                    continue;
+                }
+                if (!WorldUtil.isLoaded(chunk.getWorld(), cx, cz)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event) {
-        try {
-            unloadSigns(WorldUtil.getBlockStates(event.getChunk()));
-        } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Error while initializing sign power states in chunk " + event.getChunk().getX() + "/" + event.getChunk().getZ(), t);
+        Chunk chunk = event.getChunk();
+        boolean isAllNeighboursLoaded = true;
+        if (TCConfig.initRedstoneWithRadius) {
+            // All neighbouring chunks unload when their loaded neighbouring chunk count is 8
+            for (int cx = -1; cx <= 1; cx++) {
+                for (int cz = -1; cz <= 1; cz++) {
+                    if (cx == 0 && cz == 0) {
+                        continue;
+                    }
+
+                    Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
+                    if (neigh_chunk == null) {
+                        // Neighbour not loaded, which means the chunk unloading already has all signs unloaded
+                        isAllNeighboursLoaded = false;
+                    } else if (checkAllNeighboursLoadedExcept(neigh_chunk, chunk)) {
+                        // When the chunk unloads, this neighbour no longer has all 8 neighbours loaded
+                        // Unloads the chunk!
+                        unloadSignsInChunk(neigh_chunk);
+                    }
+                }
+            }
+        }
+        if (isAllNeighboursLoaded) {
+            unloadSignsInChunk(chunk);
         }
     }
 
