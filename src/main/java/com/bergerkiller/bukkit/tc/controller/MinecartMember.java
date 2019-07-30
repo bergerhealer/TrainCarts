@@ -1608,7 +1608,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                         // Use Entity yaw and pitch to find the direction to boost the minecart into
                         // For now, this only supports horizontal 'pushing'
                         Vector direction = ((LivingEntity) passenger).getEyeLocation().getDirection();
-                        entity.vel.add(direction.getX() * 0.1, 0.0, direction.getZ() * 0.1);
+                        entity.vel.add(direction.getX() * TCConfig.manualMovementFactor, 0.0, direction.getZ() * TCConfig.manualMovementFactor);
                     }
                 }
             }
@@ -1658,7 +1658,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 Vector vel = passenger.getVelocity();
                 vel.setY(0.0);
                 if (vel.lengthSquared() > 1.0E-4 && entity.vel.xz.lengthSquared() < 0.01) {
-                    entity.vel.xz.add(vel.multiply(0.1));
+                    entity.vel.xz.add(vel.multiply(TCConfig.manualMovementFactor));
                 }
             }
         }

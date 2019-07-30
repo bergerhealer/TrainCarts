@@ -43,7 +43,6 @@ public class TCConfig {
     public static double cartDistanceGap;
     public static double cartDistanceForcer;
     public static double cartDistanceForcerConstant;
-    public static double maxCartDistance;
     public static boolean breakCombinedCarts;
     public static double poweredCartBoost;
     public static double poweredRailBoost;
@@ -69,10 +68,9 @@ public class TCConfig {
     public static boolean refillAtStations;
     public static boolean instantCreativeDestroy;
     public static boolean allowRailEditing;
-    public static double manualMovementSpeed;
+    public static double manualMovementFactor;
     public static boolean allMinecartsAreTrainCarts;
     public static boolean useNetworkSynchronizer;
-    public static boolean allowVerticalPitch;
     public static boolean allowUpsideDownRails;
     public static boolean allowNetherTeleport;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
@@ -111,21 +109,38 @@ public class TCConfig {
         resourcePack = new MapResourcePack(config.get("resourcePack", "server"));
         resourcePack.load();
 
-        config.setHeader("normal", "\nSettings for normally-aligned (straight) carts");
-        config.setHeader("normal.cartDistanceGap", "The distance between two carts in a train");
-        config.setHeader("normal.cartDistanceForcer", "The factor at which this distance is kept");
-        if (!config.contains("normal.cartDistanceGap") && config.contains("normal.cartDistance")) {
-            config.set("normal.cartDistanceGap", config.get("normal.cartDistance", 1.5) - 1.0);
-            config.remove("normal.cartDistance");
+        // Legacy old 'normal' node, which used to exist because there was also one for 'angled'
+        // Remove it and move the configuration properties to where they are now
+        if (config.contains("normal")) {
+            if (!config.contains("normal.cartDistanceGap") && config.contains("normal.cartDistance")) {
+                config.set("normal.cartDistanceGap", config.get("normal.cartDistance", 1.5) - 1.0);
+            }
+            if (config.contains("normal.cartDistanceGap")) {
+                config.set("linkProperties.cartDistanceGap", config.get("normal.cartDistanceGap"));
+            }
+            if (config.contains("normal.cartDistanceForcer")) {
+                config.set("linkProperties.cartDistanceForcer", config.get("normal.cartDistanceForcer"));
+            }
+            if (config.contains("normal.cartDistanceForcerConstant")) {
+                config.set("linkProperties.cartDistanceForcerConstant", config.get("normal.cartDistanceForcerConstant"));
+            }
+            config.remove("normal");
+        }
+        if (config.contains("maxCartDistance")) {
+            config.remove("maxCartDistance");
         }
 
-        cartDistanceGap = config.get("normal.cartDistanceGap", 0.5);
-        cartDistanceGapMax = cartDistanceGap + 2.0;
-        cartDistanceForcer = config.get("normal.cartDistanceForcer", 0.1);
-        cartDistanceForcerConstant = config.get("normal.cartDistanceForcerConstant", 0.0);
+        config.setHeader("linkProperties", "\nProperties of the link between the carts of a train");
+        config.setHeader("linkProperties.cartDistanceGap", "The distance between two carts in a train");
+        config.setHeader("linkProperties.cartDistanceGapMax", "The distance between two carts above which they lose linkage and disconnect");
+        config.setHeader("linkProperties.cartDistanceForcer", "Factor at which the gap is maintained, based on train velocity");
+        config.setHeader("linkProperties.cartDistanceForcerConstant", "Factor at which the gap is maintained, always active");
+        config.addHeader("linkProperties.cartDistanceForcerConstant", "When set to nonzero, will cause carts to move at standstill");
 
-        config.setHeader("maxCartDistance", "\nThe maximum allowed cart distance, after this distance the carts break apart");
-        maxCartDistance = config.get("maxCartDistance", 4.0);
+        cartDistanceGap = config.get("linkProperties.cartDistanceGap", 0.5);
+        cartDistanceGapMax = config.get("linkProperties.cartDistanceGapMax", cartDistanceGap + 2.0);
+        cartDistanceForcer = config.get("linkProperties.cartDistanceForcer", 0.1);
+        cartDistanceForcerConstant = config.get("linkProperties.cartDistanceForcerConstant", 0.0);
 
         config.setHeader("breakCombinedCarts", "\nWhether or not the combined carts (powered/storage minecarts) break up into two items");
         breakCombinedCarts = config.get("breakCombinedCarts", false);
@@ -240,9 +255,10 @@ public class TCConfig {
                 "\nWhen set to false, players will never instantly destroy minecarts and they will have to break it as if in survival.");
         instantCreativeDestroy = config.get("instantCreativeDestroy", true);
 
-        config.setHeader("allowVerticalPitch", "\nWhether minecarts are allowed to have a 90-degree pitch angle when going up vertical rails");
-        config.addHeader("allowVerticalPitch", "When disabled, minecarts will keep a 0-degree pitch angle instead");
-        allowVerticalPitch = config.get("allowVerticalPitch", true);
+        // Allow vertical pitch doesn't work anymore
+        if (config.contains("allowVerticalPitch")) {
+            config.remove("allowVerticalPitch");
+        }
 
         config.setHeader("allowUpsideDownRails", "\nWhether upside-down rail functionality is enabled on the server");
         config.addHeader("allowUpsideDownRails", "When disabled, minecarts can not be rotated upside-down");
@@ -258,8 +274,12 @@ public class TCConfig {
         config.setHeader("allowRailEditing", "\nWhether players (with build permissions) can edit existing rails by right-clicking on them");
         allowRailEditing = config.get("allowRailEditing", true);
 
-        config.setHeader("manualMovementSpeed", "\nWhat velocity to set when a player tries to manually move a train (by damaging it)");
-        manualMovementSpeed = config.get("manualMovementSpeed", 12.0);
+        // Manual movement speed (slapping the cart) changes to using movement controls, so remove this old configuration option
+        if (config.contains("manualMovementSpeed")) {
+            config.remove("manualMovementSpeed");
+        }
+        config.setHeader("manualMovementFactor", "\nVelocity factor to apply when a player tries to move a cart using movement controls");
+        manualMovementFactor = config.get("manualMovementFactor", 0.1);
 
         config.setHeader("currencyFormat", "\nThe currency Ticket signs will display in messages, %value% represents the displayed value");
         currencyFormat = config.get("currencyFormat", "%value% Dollars");

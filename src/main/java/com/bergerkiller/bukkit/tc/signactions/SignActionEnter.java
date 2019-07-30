@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -47,7 +48,7 @@ public class SignActionEnter extends SignAction {
             return;
         }
         // Read the radius to look at
-        double radiusXZ = Double.min(50.0, ParseUtil.parseDouble(info.getLine(1), 2.0));
+        double radiusXZ = Double.min(TCConfig.maxEnterDistance, ParseUtil.parseDouble(info.getLine(1), 2.0));
         double radiusY = 1.0;
         // Radius cylindrical or spherical?
         if (info.getLine(1).toLowerCase(Locale.ENGLISH).endsWith("s")) {
