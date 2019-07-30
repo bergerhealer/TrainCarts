@@ -17,7 +17,6 @@ import org.bukkit.block.Sign;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SignActionSwitcher extends SignAction {
@@ -62,11 +61,17 @@ public class SignActionSwitcher extends SignAction {
         if (facing) {
             //find out what statements to parse
             List<DirectionStatement> statements = new ArrayList<>();
-            if (!info.getLine(2).isEmpty()) {
-                statements.add(new DirectionStatement(info.getLine(2), "left"));
-            }
-            if (!info.getLine(3).isEmpty()) {
-                statements.add(new DirectionStatement(info.getLine(3), "right"));
+            if (!info.getLine(2).isEmpty() || !info.getLine(3).isEmpty()) {
+                if (info.getLine(2).isEmpty()) {
+                    statements.add(new DirectionStatement("default", "left"));
+                } else {
+                    statements.add(new DirectionStatement(info.getLine(2), "left"));
+                }
+                if (info.getLine(3).isEmpty()) {
+                    statements.add(new DirectionStatement("default", "right"));
+                } else {
+                    statements.add(new DirectionStatement(info.getLine(3), "right"));
+                }
             }
             //other signs below this sign we could parse?
             for (Sign sign : info.findSignsBelow()) {
@@ -132,15 +137,14 @@ public class SignActionSwitcher extends SignAction {
                 if (!foundDirection) {
                     // Check if any direction is marked "default"
                     for (DirectionStatement stat : statements) {
-                        String str = stat.text.toLowerCase(Locale.ENGLISH);
-                        if (str.equals("def") || str.equals("default")) {
+                        if (stat.isDefault()) {
                             dir = stat.direction;
                             break;
                         }
                     }
                 }
 
-                info.setLevers(!dir.isEmpty());
+                info.setLevers(foundDirection || statements.isEmpty());
                 if (!dir.isEmpty() && info.isPowered()) {
                     //handle this direction
                     if (toggleRails) {

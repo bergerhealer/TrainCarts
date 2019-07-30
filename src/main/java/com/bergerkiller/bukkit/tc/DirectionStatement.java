@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.util.Locale;
+
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -18,6 +20,9 @@ public class DirectionStatement {
         } else {
             this.text = text.substring(idx + 1);
             this.direction = text.substring(0, idx);
+        }
+        if (this.text.isEmpty()) {
+            this.text = "default";
         }
 
         // Number (counter) statements
@@ -38,6 +43,17 @@ public class DirectionStatement {
 
     public boolean hasNumber() {
         return this.number != null;
+    }
+
+    /**
+     * Gets whether this statement is a default rule.
+     * This means this direction should be chosen if no other statements match.
+     * 
+     * @return True if this is a default rule
+     */
+    public boolean isDefault() {
+        String str = this.text.toLowerCase(Locale.ENGLISH);
+        return str.equals("def") || str.equals("default");
     }
 
     @Override
