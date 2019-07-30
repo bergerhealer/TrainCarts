@@ -1101,7 +1101,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public void onGroupCreated() {
         this.onPropertiesChanged();
-        this.updateChunkInformation();
+
+        // When keep chunks loaded is active, make sure to enforce that right away
+        // If we do it next tick a chunk could unload before we can do so
+        // Do not do this for normal unloading logic, as that may unload the train in there (this should be later)
+        if (!this.canUnload()) {
+            this.updateChunkInformation();
+        }
     }
 
     /**
