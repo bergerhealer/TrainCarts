@@ -247,7 +247,7 @@ public class TicketStore {
             return true;
         } else {
             CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-            UUID ownerUUID = tag.getUUID("owner");
+            UUID ownerUUID = tag.getUUID("ticketOwner");
             if (ownerUUID == null) {
                 return true;
             } else {
