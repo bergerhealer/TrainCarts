@@ -100,4 +100,13 @@ public class MutexZoneCache {
         }
         return result;
     }
+
+    /**
+     * Refreshes all mutex zones, releasing groups that are no longer on it
+     */
+    public static void refreshAll() {
+        for (MutexZone zone : zones.values()) {
+            zone.refresh(false);
+        }
+    }
 }

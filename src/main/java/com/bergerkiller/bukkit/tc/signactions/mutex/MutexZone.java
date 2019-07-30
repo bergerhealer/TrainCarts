@@ -2,25 +2,33 @@ package com.bergerkiller.bukkit.tc.signactions.mutex;
 
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class MutexZone {
+    private static int TICK_DELAY_CLEAR_AUTOMATIC = 6; // clear delay when no trains are waiting for it
+    private static int TICK_DELAY_CLEAR_WAITING = 5; // clear delay when trains are waiting for it
     public final UUID world;
     public final IntVector3 sign;
     public final IntVector3 block;
     public final IntVector3 start;
     public final IntVector3 end;
     private MinecartGroup currentGroup = null;
-    private int currentGroupTimeout = 0;
+    private int currentGroupTime = 0;
 
     private MutexZone(UUID world, IntVector3 sign, IntVector3 block, int dx, int dy, int dz) {
         this.world = world;
@@ -47,6 +55,14 @@ public class MutexZone {
 
         return block.x>=(start.x-radius) && block.y>=(start.y-radius) && block.z>=(start.z-radius) &&
                block.x<=(end.x + radius) && block.y<=(end.y + radius) && block.z<=(end.z + radius);
+    }
+
+    public Block getSignBlock() {
+        World world = Bukkit.getWorld(this.world);
+        if (world != null) {
+            return world.getBlockAt(this.sign.x, this.sign.y, this.sign.z);
+        }
+        return null;
     }
 
     public static MutexZone fromSign(SignActionEvent info) {
@@ -86,27 +102,62 @@ public class MutexZone {
         }
     }
 
-    public boolean tryEnter(MinecartGroup group) {
-        // Check not occupied by someone else
-        int serverTicks = CommonUtil.getServerTicks();
-        if (this.currentGroup != null && this.currentGroup != group && MinecartGroupStore.getGroups().contains(this.currentGroup)) {
-            if (serverTicks < this.currentGroupTimeout) {
-                return false;
+    private void setLevers(boolean down) {
+        Block signBlock = getSignBlock();
+        if (signBlock != null) {
+            BlockData data = WorldUtil.getBlockData(signBlock);
+            if (MaterialUtil.ISSIGN.get(data)) {
+                BlockUtil.setLeversAroundBlock(signBlock.getRelative(data.getAttachedFace()), down);
             }
+        }
+    }
 
+    /**
+     * Called every tick to refresh mutex zones that have a group inside.
+     * If a group leaves a zone, this eventually releases that group again.
+     */
+    public void refresh(boolean trainWaiting) {
+        if (this.currentGroup == null) {
+            return;
+        }
+
+        if (!MinecartGroupStore.getGroups().contains(this.currentGroup)) {
+            this.currentGroup = null;
+            this.setLevers(false);
+            return;
+        }
+
+        int serverTicks = CommonUtil.getServerTicks();        
+        if ((serverTicks - this.currentGroupTime) >= (trainWaiting ? TICK_DELAY_CLEAR_WAITING : TICK_DELAY_CLEAR_AUTOMATIC)) {
             // Check whether the group is still occupying this mutex zone
             // Do so by iterating all the rails (positiosn!) of that train
             for (TrackedRail rail : this.currentGroup.getRailTracker().getRailInformation()) {
                 if (this.containsBlock(rail.minecartBlock)) {
-                    this.currentGroupTimeout = serverTicks + 5;
-                    return false;
+                    this.currentGroupTime = serverTicks;
+                    return;
                 }
+            }
+
+            // It is not. clear it.
+            this.currentGroup = null;
+            this.setLevers(false);
+            return;
+        }
+    }
+
+    public boolean tryEnter(MinecartGroup group) {
+        // Check not occupied by someone else
+        if (this.currentGroup != null && this.currentGroup != group) {
+            this.refresh(true);
+            if (this.currentGroup != null) {
+                return false;
             }
         }
 
         // Occupy it.
         this.currentGroup = group;
-        this.currentGroupTimeout = serverTicks + 5;
+        this.currentGroupTime = CommonUtil.getServerTicks();
+        this.setLevers(true);
         return true;
     }
 

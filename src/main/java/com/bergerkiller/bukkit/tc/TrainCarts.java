@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSignManager;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -52,10 +53,11 @@ import java.util.logging.Level;
 
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
-    private static Task fixGroupTickTask;
+    private Task fixGroupTickTask;
     private Task signtask;
     private Task autosaveTask;
     private Task cacheCleanupTask;
+    private Task mutexZoneUpdateTask;
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
@@ -365,6 +367,9 @@ public class TrainCarts extends PluginBase {
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);
 
+        // Refreshes mutex signs with trains on it to release state again
+        mutexZoneUpdateTask = new MutexZoneUpdateTask(this).start(1, 1);
+
         //Properly dispose of partly-referenced carts
         CommonUtil.nextTick(new Runnable() {
             public void run() {
@@ -449,6 +454,7 @@ public class TrainCarts extends PluginBase {
         Task.stop(fixGroupTickTask);
         Task.stop(autosaveTask);
         Task.stop(cacheCleanupTask);
+        Task.stop(mutexZoneUpdateTask);
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
@@ -576,6 +582,18 @@ public class TrainCarts extends PluginBase {
 
             // For all Minecart that were not ticked, tick them ourselves
             MinecartGroupStore.doFixedTick();
+        }
+    }
+
+    private static class MutexZoneUpdateTask extends Task {
+
+        public MutexZoneUpdateTask(JavaPlugin plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            MutexZoneCache.refreshAll();
         }
     }
 }
