@@ -109,6 +109,14 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
                     ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
                 }
             }
+            if (tag != null && tag.containsKey("CustomModelData")) {
+                int customModelData = tag.getValue("CustomModelData", 0);
+                if (customModelData > 0) {
+                    for (ItemStack variant : this.variants) {
+                        ItemUtil.getMetaTag(variant, true).putValue("CustomModelData", customModelData);
+                    }
+                }
+            }
         }
 
         // Find the item in the variants to deduce the currently selected index
