@@ -71,7 +71,7 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
 
         // PLATFORM
         // TODO: Specify platform dimensions
-        tabView.addTab();
+        // tabView.addTab();
 
         // SEAT
         {
