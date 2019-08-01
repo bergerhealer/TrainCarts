@@ -105,7 +105,7 @@ public class SignActionEject extends SignAction {
         } else {
             // Actually eject
             for (MinecartMember<?> mm : info.getMembers()) {
-                mm.ejectWithOffset();
+                mm.eject();
             }
         }
     }

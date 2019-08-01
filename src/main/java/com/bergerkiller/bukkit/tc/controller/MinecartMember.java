@@ -1415,20 +1415,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Ejects the passenger with the offset, yaw and pitch as specified in the properties.
-     * The passenger is ejected relative to the train.
-     */
-    public void ejectWithOffset() {
-        Location loc = entity.getLocation();
-        loc.setYaw(FaceUtil.faceToYaw(getDirection()));
-        loc.setPitch(0.0f);
-        loc = MathUtil.move(loc, getProperties().exitOffset);
-        loc.setYaw(loc.getYaw() + getProperties().exitYaw + 90.0f);
-        loc.setPitch(loc.getPitch() + getProperties().exitPitch);
-        eject(loc);
-    }
-
-    /**
      * Ejects the passenger of this Minecart and teleports him to the offset and rotation specified
      *
      * @param offset to teleport to
