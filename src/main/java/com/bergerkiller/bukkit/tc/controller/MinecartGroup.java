@@ -1570,6 +1570,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // It is important to do it here, so that gravity is taken into account
             // when sliding over the ground. Doing this in the wrong spot will make the minecart 'hover'.
             if (this.getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
+                double usf_sq = this.getUpdateSpeedFactor() * this.getUpdateSpeedFactor();
                 for (MinecartMember<?> member : this) {
                     if (member.isUnloaded()) continue; // not loaded - no physics occur
                     if (member.isMovementControlled()) continue; // launched by station, launcher, etc.
@@ -1581,10 +1582,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     RailPath.Segment segment = logic.getPath().findSegment(entity.loc.vector(), block);
                     if (segment == null) {
                         // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
-                        entity.vel.y.subtract(this.getUpdateSpeedFactor() * logic.getGravityMultiplier(member));
+                        entity.vel.y.subtract(usf_sq * logic.getGravityMultiplier(member));
                     } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
                         // On a non-level segment, gravity must be applied based on the slope the segment is at
-                        double f = this.getUpdateSpeedFactor() * logic.getGravityMultiplier(member) * segment.dt_norm.y;
+                        double f = usf_sq * logic.getGravityMultiplier(member) * segment.dt_norm.y;
                         entity.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
                     }
                 }

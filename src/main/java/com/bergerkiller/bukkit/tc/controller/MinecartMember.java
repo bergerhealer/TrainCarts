@@ -1801,11 +1801,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (!this.isDerailed()) {
             // Slowing down of minecarts
             if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION) && this.entity.getMaxSpeed() > 0.0) {
+                double factor;
                 if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TCConfig.slowDownEmptyCarts) {
-                    entity.vel.multiply(TCConfig.slowDownMultiplierNormal);
+                    factor = TCConfig.slowDownMultiplierNormal;
                 } else {
-                    entity.vel.multiply(TCConfig.slowDownMultiplierSlow);
+                    factor = TCConfig.slowDownMultiplierSlow;
                 }
+                if (this.getGroup().getUpdateStepCount() > 1) {
+                    factor = Math.pow(factor, this.getGroup().getUpdateSpeedFactor());
+                }
+                entity.vel.multiply(factor);
             }
         }
 
