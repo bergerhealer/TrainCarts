@@ -24,6 +24,7 @@ import org.bukkit.util.Vector;
 public class Station {
     private final SignActionEvent info;
     private final LauncherConfig launchConfig;
+    private final double launchForce;
     private final long delay;
     private final BlockFace instruction;
     private final Direction nextDirection;
@@ -36,8 +37,23 @@ public class Station {
     public Station(SignActionEvent info) {
         this.info = info;
         this.delay = ParseUtil.parseTime(info.getLine(2));
-        this.nextDirection = Direction.parse(info.getLine(3));
         this.railsBlock = info.getRails();
+
+        String[] launchData = info.getLine(3).split(" ");
+        if (launchData.length > 0) {
+            this.nextDirection = Direction.parse(launchData[0]);
+
+            if (launchData.length > 1) {
+                this.launchForce = parseLaunchForce(launchData[1], info);
+            } else if (this.nextDirection == Direction.NONE) {
+                this.launchForce = parseLaunchForce(launchData[0], info);
+            } else {
+                this.launchForce = TCConfig.launchForce;
+            }
+        } else {
+            this.nextDirection = Direction.NONE;
+            this.launchForce = TCConfig.launchForce;
+        }
 
         // Vertical or horizontal rail logic
         this.railDirection = info.getRailDirection();
@@ -412,7 +428,7 @@ public class Station {
         }
 
         setLevers(false);
-        MemberActionLaunchDirection action = getCenterPositionCart().getActions().addActionLaunch(direction, this.launchConfig, TCConfig.launchForce);
+        MemberActionLaunchDirection action = getCenterPositionCart().getActions().addActionLaunch(direction, this.launchConfig, this.launchForce);
         action.addTag(this.getTag());
         this.wasCentered = false;
     }
@@ -509,6 +525,14 @@ public class Station {
         }
 
         return info;
+    }
+
+    private double parseLaunchForce(String text, SignActionEvent info) {
+        if (text.equalsIgnoreCase("max") && info.hasGroup()) {
+            return info.getGroup().getProperties().getSpeedLimit();
+        }
+
+        return ParseUtil.parseDouble(text, TCConfig.launchForce);
     }
 
     private static class CartToStationInfo {
