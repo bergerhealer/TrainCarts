@@ -633,6 +633,15 @@ public class RailPath {
             return new Location(world, posX, posY, posZ);
         }
 
+        public Location toLocation(Block railsBlock) {
+            if (this.relative) {
+                return new Location(railsBlock.getWorld(),
+                        railsBlock.getX()+posX, railsBlock.getY()+posY, railsBlock.getZ()+posZ);
+            } else {
+                return new Location(railsBlock.getWorld(), posX, posY, posZ);
+            }
+        }
+
         public void getLocation(Location location) {
             this.assertAbsolute();
             location.setX(this.posX);

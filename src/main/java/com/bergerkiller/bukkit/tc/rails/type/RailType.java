@@ -166,9 +166,10 @@ public abstract class RailType {
                     try {
                         List<Block> rails = type.findRails(positionBlock);
                         if (!rails.isEmpty()) {
+                            int index = cachedPieces.length;
+                            cachedPieces = Arrays.copyOf(cachedPieces, cachedPieces.length + rails.size());
                             for (Block railsBlock : rails) {
-                                cachedPieces = Arrays.copyOf(cachedPieces, cachedPieces.length + 1);
-                                cachedPieces[cachedPieces.length - 1] = RailPiece.create(type, railsBlock);
+                                cachedPieces[index++] = RailPiece.create(type, railsBlock);
                             }
                             break;
                         }
