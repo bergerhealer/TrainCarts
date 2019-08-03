@@ -208,7 +208,14 @@ public class RailLogicAir extends RailLogic {
 
         // Apply flying friction
         if (!member.isMovementControlled() && member.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
-            entity.vel.multiply(entity.getFlyingVelocityMod());
+            Vector flyingMod = entity.getFlyingVelocityMod();
+            if (member.getGroup().getUpdateStepCount() > 1) {
+                entity.vel.x.multiply(Math.pow(flyingMod.getX(), member.getGroup().getUpdateSpeedFactor()));
+                entity.vel.y.multiply(Math.pow(flyingMod.getY(), member.getGroup().getUpdateSpeedFactor()));
+                entity.vel.z.multiply(Math.pow(flyingMod.getZ(), member.getGroup().getUpdateSpeedFactor()));
+            } else {
+                entity.vel.multiply(flyingMod);
+            }
         }
     }
 }
