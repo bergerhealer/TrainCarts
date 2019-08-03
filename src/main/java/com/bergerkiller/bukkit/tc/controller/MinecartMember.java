@@ -78,9 +78,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T> implements IPropertiesHolder, AttachmentModelOwner {
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
-    public static final double VERTRAIL_MULTIPLIER_LEGACY = 0.02; // LEGACY!!! Uses SLOPE_VELOCITY_MULTIPLIER instead by default.
-    public static final double SLOPE_VELOCITY_MULTIPLIER = 0.0078125;
-    public static final double MIN_VEL_FOR_SLOPE = 0.05;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
     private static final double MAX_MOVEMENT_STEP = 0.7; // ~ sqrt(3 * 0.4^2) with legacy speed limiting
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
