@@ -39,21 +39,19 @@ public class Station {
         this.delay = ParseUtil.parseTime(info.getLine(2));
         this.railsBlock = info.getRails();
 
-        String[] launchData = info.getLine(3).split(" ");
-        if (launchData.length > 0) {
-            this.nextDirection = Direction.parse(launchData[0]);
-
-            if (launchData.length > 1) {
-                this.launchForce = parseLaunchForce(launchData[1], info);
-            } else if (this.nextDirection == Direction.NONE) {
-                this.launchForce = parseLaunchForce(launchData[0], info);
+        // Parse the (next) launch direction and launch force (speed) on the fourth line
+        Direction parsedNextDirection = Direction.NONE;
+        double parsedLaunchForce = TCConfig.launchForce;
+        for (String part : info.getLine(3).split(" ")) {
+            Direction direction = Direction.parse(part);
+            if (direction != Direction.NONE) {
+                parsedNextDirection = direction;
             } else {
-                this.launchForce = TCConfig.launchForce;
+                parsedLaunchForce = parseLaunchForce(part, info);
             }
-        } else {
-            this.nextDirection = Direction.NONE;
-            this.launchForce = TCConfig.launchForce;
         }
+        this.nextDirection = parsedNextDirection;
+        this.launchForce = parsedLaunchForce;
 
         // Vertical or horizontal rail logic
         this.railDirection = info.getRailDirection();
