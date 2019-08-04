@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -58,41 +59,42 @@ public class SignActionSwitcher extends SignAction {
             return;
         }
         final boolean facing = info.isFacing();
-        if (facing) {
-            //find out what statements to parse
-            List<DirectionStatement> statements = new ArrayList<>();
-            if (!info.getLine(2).isEmpty() || !info.getLine(3).isEmpty()) {
-                if (info.getLine(2).isEmpty()) {
-                    statements.add(new DirectionStatement("default", "left"));
-                } else {
-                    statements.add(new DirectionStatement(info.getLine(2), "left"));
-                }
-                if (info.getLine(3).isEmpty()) {
-                    statements.add(new DirectionStatement("default", "right"));
-                } else {
-                    statements.add(new DirectionStatement(info.getLine(3), "right"));
-                }
-            }
-            //other signs below this sign we could parse?
-            for (Sign sign : info.findSignsBelow()) {
-                boolean valid = true;
-                for (String line : sign.getLines()) {
-                    if (line.isEmpty()) {
-                        continue;
-                    }
-                    DirectionStatement stat = new DirectionStatement(line, "");
-                    if (stat.direction.isEmpty()) {
-                        valid = false;
-                        break;
-                    } else {
-                        statements.add(stat);
-                    }
-                }
-                if (!valid) {
-                    break;
-                }
-            }
 
+        //find out what statements to parse
+        List<DirectionStatement> statements = new ArrayList<>();
+        if (!info.getLine(2).isEmpty() || !info.getLine(3).isEmpty()) {
+            if (info.getLine(2).isEmpty()) {
+                statements.add(new DirectionStatement("default", "left"));
+            } else {
+                statements.add(new DirectionStatement(info.getLine(2), "left"));
+            }
+            if (info.getLine(3).isEmpty()) {
+                statements.add(new DirectionStatement("default", "right"));
+            } else {
+                statements.add(new DirectionStatement(info.getLine(3), "right"));
+            }
+        }
+        //other signs below this sign we could parse?
+        for (Sign sign : info.findSignsBelow()) {
+            boolean valid = true;
+            for (String line : sign.getLines()) {
+                if (line.isEmpty()) {
+                    continue;
+                }
+                DirectionStatement stat = new DirectionStatement(line, "");
+                if (stat.direction.isEmpty()) {
+                    valid = false;
+                    break;
+                } else {
+                    statements.add(stat);
+                }
+            }
+            if (!valid) {
+                break;
+            }
+        }
+
+        if (facing) {
             if (statements.isEmpty()) {
                 // If no directions are at all specified, all we do is toggle the lever
                 info.setLevers(true);
@@ -155,8 +157,16 @@ public class SignActionSwitcher extends SignAction {
             }
         }
 
-        // Handle destination alternatively
-        if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && (facing || !info.isWatchedDirectionsDefined())) {
+        // Pathfinding or nah?
+        boolean handlePathfinding;
+        if (TCConfig.onlyPoweredEmptySwitchersDoPathfinding) {
+            handlePathfinding = info.isPowered() && statements.isEmpty();
+        } else {
+            handlePathfinding = true;
+        }
+
+        // Handle path finding
+        if (handlePathfinding && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && (facing || !info.isWatchedDirectionsDefined())) {
             PathNode node = PathNode.getOrCreate(info);
             if (node != null) {
                 String destination = null;

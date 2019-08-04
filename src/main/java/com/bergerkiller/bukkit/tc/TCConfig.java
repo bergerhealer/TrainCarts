@@ -82,6 +82,7 @@ public class TCConfig {
     public static boolean railTrackerDebugEnabled = false;
     public static boolean wheelTrackerDebugEnabled = false;
     public static boolean initRedstoneWithRadius = true;
+    public static boolean onlyPoweredEmptySwitchersDoPathfinding = true;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -370,6 +371,12 @@ public class TCConfig {
         config.addHeader("initRedstoneWithRadius", "True can prevent crashes and helps performance by avoiding recursive chunk loads");
         config.addHeader("initRedstoneWithRadius", "False will make sure signs initialize sooner and respond to redstone faster");
         initRedstoneWithRadius = config.get("initRedstoneWithRadius", true);
+
+        config.setHeader("onlyPoweredEmptySwitchersDoPathfinding", "\nSets whether only powered switcher signs without statements on them");
+        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "actively switch tracks to lead trains towards their destination");
+        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "When true, only [+train] switcher signs do pathfinding logic");
+        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "When false, the original behavior is used, where any switcher sign handles path finding");
+        onlyPoweredEmptySwitchersDoPathfinding = config.get("onlyPoweredEmptySwitchersDoPathfinding", true);
 
         parsers.clear();
 
