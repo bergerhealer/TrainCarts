@@ -140,7 +140,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 this._fakeCameraMount = new VirtualEntity(this.getManager());
 
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
-                this._fakeCameraMount.setPosition(new Vector(0.0, 1.0, 0.0));
+                this._fakeCameraMount.setPosition(new Vector(0.0, 1.4, 0.0));
                 this._fakeCameraMount.setRelativeOffset(0.0, -1.32, 0.0);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 

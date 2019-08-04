@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.EntityPropertyUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -127,6 +128,9 @@ public class VirtualEntity {
     }
 
     public double getMountOffset() {
+        if (this.entityType.name().contains("MINECART")) {
+            return 0.3;
+        }
         switch (this.entityType) {
         case HORSE:
             return 1.4;
