@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
-import com.bergerkiller.bukkit.common.map.MapFont;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
@@ -22,7 +21,7 @@ public enum CartAttachmentType {
     /** Shows the model of an item in an armor stand */
     ITEM(CartAttachmentItem.class),
     /** Provides an invisible moving platform players can walk on */
-    // PLATFORM(CartAttachmentPlatform.class),
+    PLATFORM(CartAttachmentPlatformOriginal.class),
     /** A seat a player can sit in */
     SEAT(CartAttachmentSeat.class),
     /** Display a String as text */
@@ -42,8 +41,8 @@ public enum CartAttachmentType {
             ItemStack item = config.get("item", new ItemStack(Material.MINECART));
             return TCConfig.resourcePack.getItemTexture(item, 16, 16);
 
-        //case PLATFORM:
-        //    return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/platform.png");
+        case PLATFORM:
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/platform.png");
 
         case SEAT:
             return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/seat.png");
