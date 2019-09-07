@@ -1,28 +1,11 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.common.MaterialTypeProperty;
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.*;
-import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
-import com.bergerkiller.bukkit.tc.properties.IParsable;
-import com.bergerkiller.bukkit.tc.properties.IProperties;
-import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
-import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
-import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
-import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
-import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
-import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
-import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
-import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -44,18 +27,45 @@ import org.bukkit.material.Stairs;
 import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.logging.Level;
+import com.bergerkiller.bukkit.common.MaterialTypeProperty;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityPropertyUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.cache.RailSignCache;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.properties.IParsable;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
+import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
+import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
+import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
+import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
-    private static List<Block> blockbuff = new ArrayList<Block>();
+    private static List<Block> blockbuff = new ArrayList<>();
 
     public static void setItemMaxSize(Material material, int maxstacksize) {
         NMSItem.maxStackSize.set(Conversion.toItemHandle.convert(material), maxstacksize);
@@ -85,7 +95,7 @@ public class Util {
     /**
      * Splits a text into separate parts delimited by the separator characters
      *
-     * @param text  to split
+     * @param text to split
      * @return split parts
      */
     public static String[] splitBySeparator(String text) {
@@ -300,9 +310,7 @@ public class Util {
     }
 
     /**
-     * This will return:
-     * South or west if it's a straight piece
-     * Self if it is a cross-intersection
+     * This will return: South or west if it's a straight piece Self if it is a cross-intersection
      */
     public static BlockFace getPlateDirection(Block plate) {
         boolean s = isRailsAt(plate, BlockFace.NORTH) || isRailsAt(plate, BlockFace.SOUTH);
@@ -441,14 +449,14 @@ public class Util {
         int index = 0;
         boolean has = true;
         boolean first = true;
-        for (int i = 0; i < elements.length; i++) {
-            if (elements[i].length() == 0) continue;
-            index = text.indexOf(elements[i], index);
+        for (String element : elements) {
+            if (element.length() == 0) continue;
+            index = text.indexOf(element, index);
             if (index == -1 || (first && !firstAny && index != 0)) {
                 has = false;
                 break;
             } else {
-                index += elements[i].length();
+                index += element.length();
             }
             first = false;
         }
@@ -462,11 +470,11 @@ public class Util {
 
     public static boolean evaluate(double value, String text) {
         if (text == null || text.isEmpty()) {
-            return false; //no valid input
+            return false; // no valid input
         }
         int idx = getOperatorIndex(text);
         if (idx == -1) {
-            return value > 0; //no operators, just perform a 'has'
+            return value > 0; // no operators, just perform a 'has'
         } else {
             text = text.substring(idx);
         }
@@ -490,8 +498,8 @@ public class Util {
     }
 
     /**
-     * Gets whether a particular entity is in a state of destroying minecarts instantly.
-     * This is when they are in creative mode, and only when not sneaking (players).
+     * Gets whether a particular entity is in a state of destroying minecarts instantly. This is when they are in creative
+     * mode, and only when not sneaking (players).
      * 
      * @param entity to check
      * @return True if the entity can instantly destroy a minecart, False if not
@@ -507,12 +515,12 @@ public class Util {
     }
 
     public static boolean canInstantlyBuild(Entity entity) {
-        return entity instanceof HumanEntity && EntityUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
+        return entity instanceof HumanEntity && EntityPropertyUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
     }
 
     /**
-     * Checks whether a Block supports placement/attachment of solid blocks on a particular face.
-     * Note that signs do not use this logic - they allow pretty much any sort of attachment.
+     * Checks whether a Block supports placement/attachment of solid blocks on a particular face. Note that signs do not use
+     * this logic - they allow pretty much any sort of attachment.
      *
      * @param block to check
      * @param face  to check
@@ -538,7 +546,7 @@ public class Util {
                 return face == FaceUtil.getVertical(((Stairs) data).isInverted());
             } else {
                 // For some strange reason...stairs don't support attachments to the back
-                //return face == ((Stairs) data).getFacing().getOppositeFace();
+                // return face == ((Stairs) data).getFacing().getOppositeFace();
                 return false;
             }
         }
@@ -611,6 +619,8 @@ public class Util {
         } else {
             return false;
         }
+        key = key.toLowerCase(Locale.ENGLISH);
+        args = args.toLowerCase(Locale.ENGLISH);
         if (holder == null) {
             return prop.parseSet(key, args);
         } else if (prop.parseSet(key, args) || holder.parseSet(key, args)) {
@@ -622,8 +632,7 @@ public class Util {
     }
 
     /**
-     * Obtains the maximum straight length achieved from a particular block.
-     * This length is limited to 20 blocks.
+     * Obtains the maximum straight length achieved from a particular block. This length is limited to 20 blocks.
      *
      * @param railsBlock to calculate from
      * @param direction  to look into, use SELF to check all possible directions
@@ -644,80 +653,77 @@ public class Util {
             }
         }
         return p.movedTotal;
-        
-        /*
-        // Read track information and parameters
-        RailType type = RailType.getType(railsBlock);
-        boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock));
-        final BlockFace[] toCheck;
-        if (direction == BlockFace.SELF) {
-            toCheck = type.getPossibleDirections(railsBlock);
-        } else {
-            toCheck = new BlockFace[]{direction};
-        }
-        double length = 0.0;
-        TrackIterator iter = new TrackIterator(null, null, 20, false);
 
-        // Check all directions
-        for (BlockFace face : toCheck) {
-            double trackLength = 0.0;
-            iter.reset(railsBlock, face);
-            // Skip the start block, abort if no start block was found
-            if (iter.hasNext()) {
-                iter.next();
-            } else {
-                continue;
-            }
-            // Two modes: diagonal and straight
-            if (diagonal) {
-                // Diagonal mode
-                BlockFace lastFace = null;
-                int lastAngle = Integer.MAX_VALUE;
-                while (iter.hasNext()) {
-                    iter.next();
-                    // Check that the direction alternates
-                    if (lastFace == null) {
-                        // Start block: store it's information
-                        lastFace = iter.currentDirection();
-                    } else {
-                        BlockFace newFace = iter.currentDirection();
-                        int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) - FaceUtil.faceToYaw(lastFace));
-                        if (Math.abs(newAngle) != 90) {
-                            // Not a 90-degree angle!
-                            break;
-                        }
-                        if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) {
-                            // Not the exact opposite from last time
-                            break;
-                        }
-                        lastFace = newFace;
-                        lastAngle = newAngle;
-                    }
-                    trackLength += MathUtil.HALFROOTOFTWO;
-                }
-            } else {
-                // Straight mode
-                while (iter.hasNext()) {
-                    iter.next();
-                    // Check that the direction stays the same
-                    if (iter.currentDirection() != face) {
-                        break;
-                    }
-                    trackLength++;
-                }
-            }
-            // Update the length
-            if (trackLength > length) {
-                length = trackLength;
-            }
-        }
-        return length;
-        */
+//        // Read track information and parameters
+//        RailType type = RailType.getType(railsBlock);
+//        boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock));
+//        final BlockFace[] toCheck;
+//        if (direction == BlockFace.SELF) {
+//            toCheck = type.getPossibleDirections(railsBlock);
+//        } else {
+//            toCheck = new BlockFace[] { direction };
+//        }
+//        double length = 0.0;
+//        TrackIterator iter = new TrackIterator(null, null, 20, false);
+//        // Check all directions
+//        for (BlockFace face : toCheck) {
+//            double trackLength = 0.0;
+//            iter.reset(railsBlock, face);
+//            // Skip the start block, abort if no start block was found
+//            if (iter.hasNext()) {
+//                iter.next();
+//            } else {
+//                continue;
+//            }
+//            // Two modes: diagonal and straight
+//            if (diagonal) {
+//                // Diagonal mode
+//                BlockFace lastFace = null;
+//                int lastAngle = Integer.MAX_VALUE;
+//                while (iter.hasNext()) {
+//                    iter.next();
+//                    // Check that the direction alternates
+//                    if (lastFace == null) {
+//                        // Start block: store it's information
+//                        lastFace = iter.currentDirection();
+//                    } else {
+//                        BlockFace newFace = iter.currentDirection();
+//                        int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) - FaceUtil.faceToYaw(lastFace));
+//                        if (Math.abs(newAngle) != 90) {
+//                            // Not a 90-degree angle!
+//                            break;
+//                        }
+//                        if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) {
+//                            // Not the exact opposite from last time
+//                            break;
+//                        }
+//                        lastFace = newFace;
+//                        lastAngle = newAngle;
+//                    }
+//                    trackLength += MathUtil.HALFROOTOFTWO;
+//                }
+//            } else {
+//                // Straight mode
+//                while (iter.hasNext()) {
+//                    iter.next();
+//                    // Check that the direction stays the same
+//                    if (iter.currentDirection() != face) {
+//                        break;
+//                    }
+//                    trackLength++;
+//                }
+//            }
+//            // Update the length
+//            if (trackLength > length) {
+//                length = trackLength;
+//            }
+//        }
+//        return length;
     }
 
     /**
-     * Attempts to parse the text as time ticks, converting values such as '12s' and '500ms' into ticks.
-     * If no time statement is found, -1 is returned.
+     * Attempts to parse the text as time ticks, converting values such as '12s' and '500ms' into ticks. If no time
+     * statement is found, -1 is returned.
      * 
      * @param text to parse as time
      * @return time ticks, or -1 if not parsed
@@ -739,22 +745,21 @@ public class Util {
 
     /**
      * Will return for hexcode for every char
+     * 
      * @param unicode to get hexcode for
      * @return hexcode, in unicode format
      */
     public static String getUnicode(char unicode) {
-        return "\\u" + Integer.toHexString( unicode | 0x10000).substring(1);
+        return "\\u" + Integer.toHexString(unicode | 0x10000).substring(1);
     }
 
     /**
-     * Reads a line from a sign change event and clears characters that can't be parsed by TC.
-     * If the line contains no invalid characters, the exact same String is returned
-     * without the overhead of allocating a new String.
-     * If the line is null, an empty String is returned instead.
-     * A null event will also result in an empty String.
+     * Reads a line from a sign change event and clears characters that can't be parsed by TC. If the line contains no
+     * invalid characters, the exact same String is returned without the overhead of allocating a new String. If the line is
+     * null, an empty String is returned instead. A null event will also result in an empty String.
      * 
      * @param event to get a clean line of
-     * @param line index
+     * @param line  index
      * @return clean line of the sign, guaranteed to never be null or have invalid characters
      */
     public static String getCleanLine(SignChangeEvent event, int line) {
@@ -766,11 +771,9 @@ public class Util {
     }
 
     /**
-     * Reads a line from a sign and clears characters that can't be parsed by TC.
-     * If the line contains no invalid characters, the exact same String is returned
-     * without the overhead of allocating a new String.
-     * If the line is null, an empty String is returned instead.
-     * A null sign will also result in an empty String.
+     * Reads a line from a sign and clears characters that can't be parsed by TC. If the line contains no invalid
+     * characters, the exact same String is returned without the overhead of allocating a new String. If the line is null,
+     * an empty String is returned instead. A null sign will also result in an empty String.
      * 
      * @param sign to get a clean line of
      * @param line index
@@ -785,10 +788,9 @@ public class Util {
     }
 
     /**
-     * Clears input of characters that can't be parsed by TC.
-     * If the line contains no invalid characters, the exact same String is returned
-     * without the overhead of allocating a new String.
-     * If the line is null, an empty String is returned instead.
+     * Clears input of characters that can't be parsed by TC. If the line contains no invalid characters, the exact same
+     * String is returned without the overhead of allocating a new String. If the line is null, an empty String is returned
+     * instead.
      * 
      * @param line to parse
      * @return line cleared from invalid characters
@@ -816,25 +818,24 @@ public class Util {
     }
 
     /**
-     * Clears input sign lines of characters that can't be parsed by TC.
-     * If none of the lines contain invalid characters, the exact same String[] array
-     * is returned without the overhead of allocating a new String[] array.
-     * If the input array is null, or its length is not 4, it is resized so it is
-     * using a newly allocated array. The lines are guaranteed to not be null.
+     * Clears input sign lines of characters that can't be parsed by TC. If none of the lines contain invalid characters,
+     * the exact same String[] array is returned without the overhead of allocating a new String[] array. If the input array
+     * is null, or its length is not 4, it is resized so it is using a newly allocated array. The lines are guaranteed to
+     * not be null.
      * 
      * @param lines to parse
      * @return lines cleared from invalid characters
      */
     public static String[] cleanSignLines(String[] lines) {
         if (lines == null) {
-            return new String[] {"", "", "", ""};
+            return new String[] { "", "", "", "" };
         }
 
         // Create a new array of Strings only if one of the lines has invalid characters
         boolean hasInvalid = false;
         if (lines.length != 4) {
             hasInvalid = true;
-            String[] newLines = new String[] {"", "", "", ""};
+            String[] newLines = new String[] { "", "", "", "" };
             for (int i = 0; i < Math.min(lines.length, 4); i++) {
                 newLines[i] = lines[i];
             }
@@ -842,7 +843,8 @@ public class Util {
         }
 
         // We do so using a String identity check (equals is unneeded)
-        // Only when trimInvalidCharacters returns a new String do we update the input array
+        // Only when trimInvalidCharacters returns a new String do we update the input
+        // array
         for (int i = 0; i < lines.length; i++) {
             String oldLine = lines[i];
             String newLine = cleanSignLine(oldLine);
@@ -858,8 +860,8 @@ public class Util {
     }
 
     /**
-     * Checks whether a particular character is valid on TrainCarts signs.
-     * Control codes and other unsupported characters return True.
+     * Checks whether a particular character is valid on TrainCarts signs. Control codes and other unsupported characters
+     * return True.
      * 
      * @param c character to test
      * @return True if the character is invalid
@@ -869,8 +871,7 @@ public class Util {
     }
 
     /**
-     * Checks whether Minecraft's crappy rotation system will crap out when rotating
-     * from one angle to another
+     * Checks whether Minecraft's crappy rotation system will crap out when rotating from one angle to another
      * 
      * @param angleOld
      * @param angleNew
@@ -885,7 +886,7 @@ public class Util {
     /**
      * For debugging: spawns a particle at a particular location
      * 
-     * @param loc to spawn at
+     * @param loc      to spawn at
      * @param particle to spawn
      */
     public static void spawnParticle(Location loc, Particle particle) {
@@ -899,10 +900,10 @@ public class Util {
     /**
      * Spawns a colored dust particle, the color can be specified
      * 
-     * @param loc to spawn at
-     * @param red color value [0.0 ... 1.0]
+     * @param loc   to spawn at
+     * @param red   color value [0.0 ... 1.0]
      * @param green color value [0.0 ... 1.0]
-     * @param blue color value [0.0 ... 1.0]
+     * @param blue  color value [0.0 ... 1.0]
      */
     public static void spawnDustParticle(Location loc, double red, double green, double blue) {
         int c_red = (int) MathUtil.clamp(255.0 * red, 0.0, 255.0);
@@ -911,7 +912,7 @@ public class Util {
         org.bukkit.Color color = org.bukkit.Color.fromRGB(c_red, c_green, c_blue);
         Vector position = loc.toVector();
         for (Player player : loc.getWorld().getPlayers()) {
-            if (player.getLocation().distanceSquared(loc) > (256.0*256.0)) {
+            if (player.getLocation().distanceSquared(loc) > (256.0 * 256.0)) {
                 continue;
             }
             PlayerUtil.spawnDustParticles(player, position, color);
@@ -925,7 +926,7 @@ public class Util {
      * @return input loc (loc is modified)
      */
     public static Location invertRotation(Location loc) {
-        //TODO: Maybe this can be done without Quaternion?
+        // TODO: Maybe this can be done without Quaternion?
         Quaternion q = Quaternion.fromYawPitchRoll(loc.getPitch(), loc.getYaw(), 0.0);
         q.rotateYFlip();
         Vector ypr_new = q.getYawPitchRoll();
@@ -941,8 +942,8 @@ public class Util {
 
     // some magic to turn a vector into the most appropriate block face
     public static BlockFace vecToFace(double dx, double dy, double dz, boolean useSubCardinalDirections) {
-        double sqlenxz = dx*dx + dz*dz;
-        double sqleny = dy*dy;
+        double sqlenxz = dx * dx + dz * dz;
+        double sqleny = dy * dy;
         if (sqleny > (sqlenxz + 1e-6)) {
             return FaceUtil.getVertical(dy);
         } else {
@@ -951,8 +952,7 @@ public class Util {
     }
 
     /**
-     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean
-     * rotation between the two.
+     * Linearly interpolates an orientation 'up' vector between two stages, performing a clean rotation between the two.
      * 
      * @param up0
      * @param up1
@@ -978,22 +978,19 @@ public class Util {
         double qz = rotation.getZ();
         double qw = rotation.getW();
 
-        double rx = 1.0 + 2.0 * (-qy*qy-qz*qz);
-        double ry = 2.0 * (qx*qy+qz*qw);
-        double rz = 2.0 * (qx*qz-qy*qw);
-        double uz = 2.0 * (qy*qz+qx*qw);
-        double fz = 1.0 + 2.0 * (-qx*qx-qy*qy);
+        double rx = 1.0 + 2.0 * (-qy * qy - qz * qz);
+        double ry = 2.0 * (qx * qy + qz * qw);
+        double rz = 2.0 * (qx * qz - qy * qw);
+        double uz = 2.0 * (qy * qz + qx * qw);
+        double fz = 1.0 + 2.0 * (-qx * qx - qy * qy);
 
         if (Math.abs(rz) < (1.0 - 1E-15)) {
             // Standard calculation
-            return new Vector(MathUtil.atan2(uz, fz),
-                              fastAsin(rz),
-                              MathUtil.atan2(-ry, rx));
+            return new Vector(MathUtil.atan2(uz, fz), fastAsin(rz), MathUtil.atan2(-ry, rx));
         } else {
             // At the -90 or 90 degree angle singularity
             final double sign = (rz < 0) ? -1.0 : 1.0;
-            return new Vector(0.0, sign * 90.0,
-                    -sign * 2.0 * MathUtil.atan2(qx, qw));
+            return new Vector(0.0, sign * 90.0, -sign * 2.0 * MathUtil.atan2(qx, qw));
         }
     }
 
@@ -1008,8 +1005,8 @@ public class Util {
     }
 
     /**
-     * Calculates the next Minecart block position when going on a rail block in a particular direction.
-     * This logic is largely deprecated and is only used in places where there is no alternative possible yet.
+     * Calculates the next Minecart block position when going on a rail block in a particular direction. This logic is
+     * largely deprecated and is only used in places where there is no alternative possible yet.
      * 
      * @param railBlock
      * @param direction
@@ -1038,13 +1035,12 @@ public class Util {
     }
 
     /**
-     * Attempts to find the most appropriate junction for a BlockFace wind direction.
-     * This is used when switcher signs have to switch rails based on wind directions, but
-     * no wind direction names are used for the junction names. This is also used for sign-relative
-     * left/right/forward/backward logic, which is first turned into a BlockFace.
+     * Attempts to find the most appropriate junction for a BlockFace wind direction. This is used when switcher signs have
+     * to switch rails based on wind directions, but no wind direction names are used for the junction names. This is also
+     * used for sign-relative left/right/forward/backward logic, which is first turned into a BlockFace.
      * 
      * @param junctions to select from
-     * @param face to find
+     * @param face      to find
      * @return the best matching junction, null if not found
      */
     public static RailJunction faceToJunction(List<RailJunction> junctions, BlockFace face) {
@@ -1057,8 +1053,8 @@ public class Util {
     }
 
     /**
-     * Checks for a 'contents' field in the configuration, and if it exists, loads
-     * all items contained within. The inventory is wiped beforehand.
+     * Checks for a 'contents' field in the configuration, and if it exists, loads all items contained within. The inventory
+     * is wiped beforehand.
      * 
      * @param inventory
      * @param config
@@ -1083,8 +1079,8 @@ public class Util {
     }
 
     /**
-     * Saves all items in the inventory to the configuration under a 'contents' field. If
-     * the inventory is empty, nothing is saved.
+     * Saves all items in the inventory to the configuration under a 'contents' field. If the inventory is empty, nothing is
+     * saved.
      * 
      * @param inventory
      * @param config
@@ -1105,7 +1101,7 @@ public class Util {
     /**
      * Sets the value of a vector to that of another
      * 
-     * @param v to set
+     * @param v  to set
      * @param v2 to set the x/y/z values to
      */
     public static void setVector(Vector v, Vector v2) {
@@ -1129,12 +1125,11 @@ public class Util {
         double px = vel.getX();
         double py = vel.getY();
         double pz = vel.getZ();
-        return (((px*(x*z+y*w) + py*(y*z-x*w) - pz*(x*x+y*y-0.5))) <= 0.0);
+        return (((px * (x * z + y * w) + py * (y * z - x * w) - pz * (x * x + y * y - 0.5))) <= 0.0);
     }
 
     /**
-     * Retrieves just the yaw angle from the Quaternion getYawPitchRoll function.
-     * Saves a little on computation.
+     * Retrieves just the yaw angle from the Quaternion getYawPitchRoll function. Saves a little on computation.
      * 
      * @param rotation
      * @return yaw angle
@@ -1191,8 +1186,8 @@ public class Util {
     }
 
     /**
-     * Adjusts the teleport position to avoid an entity getting glitched in a block.
-     * The player is teleported upwards any block they are currently inside of with their feet.
+     * Adjusts the teleport position to avoid an entity getting glitched in a block. The player is teleported upwards any
+     * block they are currently inside of with their feet.
      * 
      * @param loc to correct
      */
@@ -1203,18 +1198,14 @@ public class Util {
         rel.setY(rel.getY() - locBlock.getY());
         rel.setZ(rel.getZ() - locBlock.getZ());
         AxisAlignedBBHandle bounds = WorldUtil.getBlockData(locBlock).getBoundingBox(locBlock);
-        if (bounds != null /* AIR */ &&
-            rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX() &&
-            rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY() &&
-            rel.getZ() >= bounds.getMinZ() && rel.getZ() <= bounds.getMaxZ())
-        {
-            loc.setY((double) locBlock.getY() + bounds.getMaxY() + 1e-5);
+        if (bounds != null /* AIR */ && rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX() && rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY()
+                && rel.getZ() >= bounds.getMinZ() && rel.getZ() <= bounds.getMaxZ()) {
+            loc.setY(locBlock.getY() + bounds.getMaxY() + 1e-5);
         }
     }
 
     /**
-     * Adds protocol-limited rotation steps the yaw of an entity to rotate in accordance
-     * of the requested change in yaw.
+     * Adds protocol-limited rotation steps the yaw of an entity to rotate in accordance of the requested change in yaw.
      * 
      * @param old_yaw
      * @param yaw_change
@@ -1227,7 +1218,7 @@ public class Util {
         }
 
         int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation(old_yaw);
-        int prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) ((double) old_yaw + yaw_change));
+        int prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) (old_yaw + yaw_change));
         if (prot_yaw_rot_new != prot_yaw_rot_old) {
 
             // Do not change entity yaw to beyond the angle requested
