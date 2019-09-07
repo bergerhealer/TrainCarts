@@ -96,18 +96,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public boolean hasHolder() {
-        return getHolder() != null;
+        return this.getHolder() != null;
     }
 
     @Override
     public boolean restore() {
-        if (isLoaded()) {
+        if (this.isLoaded()) {
             return true;
         }
         // Load all the chunks of this group to trigger a restore
         OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
         if (group == null) {
-            TrainPropertiesStore.remove(getTrainName());
+            TrainPropertiesStore.remove(this.getTrainName());
             return false;
         }
         World world = Bukkit.getWorld(group.worldUUID);
@@ -116,7 +116,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
             }
         }
-        return hasHolder();
+        return this.hasHolder();
     }
 
     /**
@@ -282,11 +282,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setKeepChunksLoaded(boolean state) {
         if (state && !this.keepChunksLoaded) {
-            restore();
+            this.restore();
         }
         if (state != this.keepChunksLoaded) {
             this.keepChunksLoaded = state;
-            MinecartGroup group = getHolder();
+            MinecartGroup group = this.getHolder();
             if (group != null) {
                 group.keepChunksLoaded(state);
             }
@@ -354,21 +354,20 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     @Override
     public boolean isOwnedByEveryone() {
-        return !hasOwners() && !hasOwnerPermissions();
+        return !this.hasOwners() && !this.hasOwnerPermissions();
     }
 
     @Override
     public boolean hasOwners() {
         for (CartProperties prop : this) {
-            if (prop.hasOwners())
-                return true;
+            if (prop.hasOwners()) return true;
         }
         return false;
     }
 
     @Override
     public boolean hasOwnership(Player player) {
-        return CartProperties.hasGlobalOwnership(player) || isOwnedByEveryone() || isOwner(player);
+        return CartProperties.hasGlobalOwnership(player) || this.isOwnedByEveryone() || this.isOwner(player);
     }
 
     @Override
@@ -486,8 +485,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public boolean matchTag(String tag) {
         for (CartProperties prop : this) {
-            if (prop.matchTag(tag))
-                return true;
+            if (prop.matchTag(tag)) return true;
         }
         return false;
     }
@@ -610,8 +608,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public boolean hasDestination() {
         for (CartProperties prop : this) {
-            if (prop.hasDestination())
-                return true;
+            if (prop.hasDestination()) return true;
         }
         return false;
     }
@@ -619,8 +616,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public String getDestination() {
         for (CartProperties prop : this) {
-            if (prop.hasDestination())
-                return prop.getDestination();
+            if (prop.hasDestination()) return prop.getDestination();
         }
         return "";
     }
@@ -641,7 +637,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public String getLastPathNode() {
-        return isEmpty() ? "" : this.get(0).getLastPathNode();
+        return this.isEmpty() ? "" : this.get(0).getLastPathNode();
     }
 
     @Override
@@ -662,7 +658,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public CollisionMode getCollisionMode(Entity entity) {
-        if (!getColliding() || entity.isDead()) {
+        if (!this.getColliding() || entity.isDead()) {
             return CollisionMode.CANCEL;
         }
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
@@ -687,7 +683,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                         return CollisionMode.DEFAULT;
                     }
                 }
-                if (hasOwnership((Player) entity)) {
+                if (this.hasOwnership((Player) entity)) {
                     return CollisionMode.DEFAULT;
                 }
             }
@@ -815,15 +811,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public boolean isLoaded() {
-        return hasHolder();
+        return this.hasHolder();
     }
 
     public boolean matchName(String expression) {
-        return Util.matchText(getTrainName(), expression);
+        return Util.matchText(this.getTrainName(), expression);
     }
 
     public boolean matchName(String[] expressionElements, boolean firstAny, boolean lastAny) {
-        return Util.matchText(getTrainName(), expressionElements, firstAny, lastAny);
+        return Util.matchText(this.getTrainName(), expressionElements, firstAny, lastAny);
     }
 
     @Override
@@ -835,7 +831,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public void setDefault() {
-        setDefault("default");
+        this.setDefault("default");
     }
 
     public void setDefault(String key) {
@@ -850,7 +846,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         for (CartProperties prop : this) {
             prop.load(node);
         }
-        tryUpdate();
+        this.tryUpdate();
     }
 
     public void setDefault(Player player) {
@@ -864,9 +860,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public void tryUpdate() {
-        MinecartGroup g = getHolder();
-        if (g != null)
-            g.onPropertiesChanged();
+        MinecartGroup g = this.getHolder();
+        if (g != null) g.onPropertiesChanged();
     }
 
     @Override
@@ -912,34 +907,30 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.soundEnabled = ParseUtil.parseBool(arg);
         } else if (key.equals("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null)
-                return false;
+            if (mode == null) return false;
             this.playerCollision = mode;
         } else if (key.equals("misccollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null)
-                return false;
+            if (mode == null) return false;
             this.miscCollision = mode;
         } else if (key.equals("traincollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null)
-                return false;
+            if (mode == null) return false;
             this.trainCollision = mode;
         } else if (key.equals("blockcollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null)
-                return false;
+            if (mode == null) return false;
             this.blockCollision = mode;
         } else if (key.equals("collisiondamage")) {
-            setCollisionDamage(Double.parseDouble(arg));
+            this.setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equals("suffocation")) {
             this.suffocation = ParseUtil.parseBool(arg);
-        } else if (setCollisionMode(key, arg)) {
+        } else if (this.setCollisionMode(key, arg)) {
             return true;
         } else if (LogicUtil.contains(key, "collision", "collide")) {
-            setColliding(ParseUtil.parseBool(arg));
+            this.setColliding(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "linking", "link")) {
-            setLinking(ParseUtil.parseBool(arg));
+            this.setLinking(ParseUtil.parseBool(arg));
         } else if (key.toLowerCase(Locale.ENGLISH).startsWith("slow")) {
             SlowdownMode slowMode = null;
             for (SlowdownMode mode : SlowdownMode.values()) {
@@ -962,40 +953,40 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
             this.playerCollision = this.miscCollision = mode;
-            updateAllCollisionProperties(mode);
+            this.updateAllCollisionProperties(mode);
         } else if (LogicUtil.contains(key, "speedlimit", "maxspeed")) {
-            setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
+            this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
         } else if (LogicUtil.contains(key, "allowmanual", "manualmove", "manual")) {
             this.allowManualMovement = ParseUtil.parseBool(arg);
         } else if (LogicUtil.contains(key, "keepcloaded", "loadchunks", "keeploaded")) {
-            setKeepChunksLoaded(ParseUtil.parseBool(arg));
+            this.setKeepChunksLoaded(ParseUtil.parseBool(arg));
         } else if (key.equals("addtag")) {
-            addTags(arg);
+            this.addTags(arg);
         } else if (key.equals("settag")) {
-            setTags(arg);
+            this.setTags(arg);
         } else if (key.equals("destination")) {
-            setDestination(arg);
+            this.setDestination(arg);
         } else if (key.equals("remtag") || key.equals("removetag")) {
-            removeTags(arg);
+            this.removeTags(arg);
         } else if (LogicUtil.contains(key, "name", "rename", "setname")) {
-            setName(generateTrainName(arg));
+            this.setName(generateTrainName(arg));
         } else if (LogicUtil.contains(key, "dname", "displayname", "setdisplayname", "setdname")) {
-            setDisplayName(arg);
+            this.setDisplayName(arg);
         } else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {
-            updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
+            this.updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
         } else if (key.equals("waitdistance")) {
-            setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
+            this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equals("playerenter")) {
-            setPlayersEnter(ParseUtil.parseBool(arg));
+            this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equals("playerexit")) {
-            setPlayersExit(ParseUtil.parseBool(arg));
+            this.setPlayersExit(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "invincible", "godmode")) {
-            setInvincible(ParseUtil.parseBool(arg));
+            this.setInvincible(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "banking")) {
             String[] args = arg.split(" ");
-            setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
+            this.setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
             if (args.length >= 2) {
-                setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
+                this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
             }
         } else if (key.equals("setownerperm")) {
             for (CartProperties prop : this) {
@@ -1027,18 +1018,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 cprop.getOwners().remove(arg);
             }
         } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
-            setSpawnItemDrops(ParseUtil.parseBool(arg));
+            this.setSpawnItemDrops(ParseUtil.parseBool(arg));
         } else if (key.equals("addticket")) {
-            addTicket(arg);
+            this.addTicket(arg);
         } else if (key.equals("remticket")) {
-            removeTicket(arg);
+            this.removeTicket(arg);
         } else if (key.equals("setticket")) {
-            clearTickets();
+            this.clearTickets();
             if (arg.length() > 0) {
-                addTicket(arg);
+                this.addTicket(arg);
             }
         } else if (key.equals("clrticket")) {
-            clearTickets();
+            this.clearTickets();
         } else if (key.equals("drivesound")) {
             for (CartProperties cprop : this) {
                 cprop.setDriveSound(arg);
@@ -1046,7 +1037,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else {
             return false;
         }
-        tryUpdate();
+        this.tryUpdate();
         return true;
     }
 
@@ -1065,12 +1056,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             } else {
                 mode = CollisionMode.parse(value);
             }
-            return updateCollisionProperties(mobType, mode);
+            return this.updateCollisionProperties(mobType, mode);
         }
         if (key.endsWith("collision") && key.length() > 9) {
             String mobType = key.substring(0, key.length() - 9);
             CollisionMode mode = CollisionMode.parse(value);
-            return updateCollisionProperties(mobType, mode);
+            return this.updateCollisionProperties(mobType, mode);
         }
         return false;
     }
@@ -1112,10 +1103,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public void load(ConfigurationNode node) {
-        setDisplayName(node.get("displayName", this.displayName));
+        this.setDisplayName(node.get("displayName", this.displayName));
         this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
         this.collision = node.get("trainCollision", this.collision);
-        setCollisionDamage(node.get("collisionDamage", getCollisionDamage()));
+        this.setCollisionDamage(node.get("collisionDamage", this.getCollisionDamage()));
         this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
 
         if (node.isNode("slowDown")) {
@@ -1139,7 +1130,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
-        setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
+        this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
         this.waitDistance = node.get("waitDistance", this.waitDistance);
         this.suffocation = node.get("suffocation", this.suffocation);
@@ -1187,7 +1178,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
         // Apply block types / block height to the actual minecart, if set
         if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
-            MinecartGroup group = getHolder();
+            MinecartGroup group = this.getHolder();
             if (group != null) {
                 if (this.blockTypes.isEmpty()) {
                     SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
@@ -1217,13 +1208,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.miscCollision = source.miscCollision;
         this.trainCollision = source.trainCollision;
         this.blockCollision = source.blockCollision;
-        setCollisionDamage(source.collisionDamage);
+        this.setCollisionDamage(source.collisionDamage);
         this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
         this.requirePoweredMinecart = source.requirePoweredMinecart;
-        setKeepChunksLoaded(source.keepChunksLoaded);
+        this.setKeepChunksLoaded(source.keepChunksLoaded);
         this.allowManualMovement = source.allowManualMovement;
         this.tickets = new ArrayList<>(source.tickets);
-        setSkipOptions(source.skipOptions);
+        this.setSkipOptions(source.skipOptions);
         this.blockTypes = source.blockTypes;
         this.blockOffset = source.blockOffset;
         this.waitDistance = source.waitDistance;
@@ -1244,7 +1235,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("allowPlayerTake", this.allowPlayerTake);
         node.set("requirePoweredMinecart", this.requirePoweredMinecart);
         node.set("trainCollision", this.collision);
-        node.set("collisionDamage", getCollisionDamage());
+        node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
         node.set("waitDistance", this.waitDistance);
@@ -1255,9 +1246,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         banking.set("strength", this.bankingStrength);
         banking.set("smoothness", this.bankingSmoothness);
 
-        if (isSlowingDownAll()) {
+        if (this.isSlowingDownAll()) {
             node.set("slowDown", true);
-        } else if (isSlowingDownNone()) {
+        } else if (this.isSlowingDownNone()) {
             node.set("slowDown", false);
         } else {
             ConfigurationNode slowdownNode = node.getNode("slowDown");
@@ -1287,7 +1278,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("allowPlayerTake", this.allowPlayerTake ? true : null);
         node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
         node.set("trainCollision", this.collision ? null : false);
-        node.set("collisionDamage", getCollisionDamage());
+        node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
@@ -1302,9 +1293,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             node.remove("banking");
         }
 
-        if (isSlowingDownAll()) {
+        if (this.isSlowingDownAll()) {
             node.remove("slowDown");
-        } else if (isSlowingDownNone()) {
+        } else if (this.isSlowingDownNone()) {
             node.set("slowDown", false);
         } else {
             ConfigurationNode slowdownNode = node.getNode("slowDown");
@@ -1333,13 +1324,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (this.blockCollision != CollisionMode.DEFAULT) {
             node.set("collision.block", this.blockCollision);
         }
-        if (!isEmpty()) {
+        if (!this.isEmpty()) {
             ConfigurationNode carts = node.getNode("carts");
             for (CartProperties prop : this) {
                 ConfigurationNode cart = carts.getNode(prop.getUUID().toString());
                 prop.save(cart);
-                if (cart.getKeys().isEmpty())
-                    carts.remove(cart.getName());
+                if (cart.getKeys().isEmpty()) carts.remove(cart.getName());
             }
         }
 
