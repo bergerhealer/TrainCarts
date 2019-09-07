@@ -1142,8 +1142,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.skipOptions.load(node.getNode("skipOptions"));
         }
 
-        // Only used when loading defaults from tickets, or when 'destination: ' is set
-        // in DefTrProps.yml
+        // Only used when loading defaults from tickets, or when 'destination: ' is set in DefTrProps.yml
         // This allows properties defined at train level to be applied to all carts
         for (CartProperties cart : this) {
             cart.load(node);
@@ -1162,10 +1161,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        // These properties are purely saved so they are written correctly when saving
-        // defaults
-        // There are not meant to be read anywhere, because these exist as part of
-        // minecart metadata
+        // These properties are purely saved so they are written correctly when saving defaults
+        // There are not meant to be read anywhere, because these exist as part of minecart metadata
         this.blockTypes = node.get("blockTypes", "");
         this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
 
