@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -424,6 +425,9 @@ public class GlobalCommands {
                 Permission.COMMAND_GIVE_EDITOR.handle(sender);
                 ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
                 ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
+                CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+                CommonTagCompound display = tag.createCompound("display");
+                display.putValue("MapColor", 0xFF0000);
                 ((Player) sender).getInventory().addItem(item);
                 sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
             } else {
