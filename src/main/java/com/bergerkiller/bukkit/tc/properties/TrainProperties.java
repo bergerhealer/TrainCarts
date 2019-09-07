@@ -76,7 +76,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private String killMessage = "";
 
     protected TrainProperties(String trainname) {
-        displayName = this.trainname = trainname;
+        this.displayName = this.trainname = trainname;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             return true;
         }
         // Load all the chunks of this group to trigger a restore
-        OfflineGroup group = OfflineGroupManager.findGroup(trainname);
+        OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
         if (group == null) {
             TrainPropertiesStore.remove(getTrainName());
             return false;
@@ -126,7 +126,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return waitDistance
      */
     public double getWaitDistance() {
-        return waitDistance;
+        return this.waitDistance;
 
     }
 
@@ -147,7 +147,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return max speed in blocks/tick
      */
     public double getSpeedLimit() {
-        return speedLimit;
+        return this.speedLimit;
     }
 
     /**
@@ -157,7 +157,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param limit in blocks/tick
      */
     public void setSpeedLimit(double limit) {
-        speedLimit = MathUtil.clamp(limit, 0, TCConfig.maxVelocity);
+        this.speedLimit = MathUtil.clamp(limit, 0, TCConfig.maxVelocity);
     }
 
     /**
@@ -168,7 +168,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     @Deprecated
     public boolean isSlowingDown() {
-        return !slowDownOptions.isEmpty();
+        return !this.slowDownOptions.isEmpty();
     }
 
     /**
@@ -177,7 +177,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if all modes are active (legacy slowdown = true set)
      */
     public boolean isSlowingDownAll() {
-        return slowDownOptions.size() == SlowdownMode.values().length;
+        return this.slowDownOptions.size() == SlowdownMode.values().length;
     }
 
     /**
@@ -186,7 +186,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if all slowdown is disabled (legacy slowdown = false set)
      */
     public boolean isSlowingDownNone() {
-        return slowDownOptions.isEmpty();
+        return this.slowDownOptions.isEmpty();
     }
 
     /**
@@ -198,10 +198,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void setSlowingDown(boolean slowingDown) {
         if (slowingDown) {
             for (SlowdownMode mode : SlowdownMode.values()) {
-                slowDownOptions.add(mode);
+                this.slowDownOptions.add(mode);
             }
         } else {
-            slowDownOptions.clear();
+            this.slowDownOptions.clear();
         }
     }
 
@@ -212,7 +212,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if the slowdown mode is activated
      */
     public boolean isSlowingDown(SlowdownMode mode) {
-        return slowDownOptions.contains(mode);
+        return this.slowDownOptions.contains(mode);
     }
 
     /**
@@ -222,7 +222,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param slowingDown option to set that mode to
      */
     public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
-        LogicUtil.addOrRemove(slowDownOptions, mode, slowingDown);
+        LogicUtil.addOrRemove(this.slowDownOptions, mode, slowingDown);
     }
 
     /**
@@ -231,7 +231,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if it can collide, False if not
      */
     public boolean getColliding() {
-        return collision;
+        return this.collision;
     }
 
     /**
@@ -240,7 +240,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param state to set to
      */
     public void setColliding(boolean state) {
-        collision = state;
+        this.collision = state;
     }
 
     /**
@@ -249,7 +249,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return display name
      */
     public String getDisplayName() {
-        return displayName;
+        return this.displayName;
     }
 
     /**
@@ -260,7 +260,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setDisplayName(String displayName) {
         if (displayName == null || displayName.isEmpty()) {
-            this.displayName = trainname;
+            this.displayName = this.trainname;
         } else {
             this.displayName = displayName;
         }
@@ -272,7 +272,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True or False
      */
     public boolean isKeepingChunksLoaded() {
-        return keepChunksLoaded;
+        return this.keepChunksLoaded;
     }
 
     /**
@@ -281,11 +281,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param state to set to
      */
     public void setKeepChunksLoaded(boolean state) {
-        if (state && !keepChunksLoaded) {
+        if (state && !this.keepChunksLoaded) {
             restore();
         }
-        if (state != keepChunksLoaded) {
-            keepChunksLoaded = state;
+        if (state != this.keepChunksLoaded) {
+            this.keepChunksLoaded = state;
             MinecartGroup group = getHolder();
             if (group != null) {
                 group.keepChunksLoaded(state);
@@ -299,7 +299,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if enabled, False if not
      */
     public boolean isSoundEnabled() {
-        return soundEnabled;
+        return this.soundEnabled;
     }
 
     /**
@@ -308,7 +308,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param enabled state to set to
      */
     public void setSoundEnabled(boolean enabled) {
-        soundEnabled = enabled;
+        this.soundEnabled = enabled;
     }
 
     /*
@@ -430,7 +430,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if players can take Minecarts with them, False if not.
      */
     public boolean isPlayerTakeable() {
-        return allowPlayerTake;
+        return this.allowPlayerTake;
     }
 
     /**
@@ -440,23 +440,23 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param takeable state to set to
      */
     public void setPlayerTakeable(boolean takeable) {
-        allowPlayerTake = takeable;
+        this.allowPlayerTake = takeable;
     }
 
     public double getBankingStrength() {
-        return bankingStrength;
+        return this.bankingStrength;
     }
 
     public double getBankingSmoothness() {
-        return bankingSmoothness;
+        return this.bankingSmoothness;
     }
 
     public void setBankingStrength(double strength) {
-        bankingStrength = strength;
+        this.bankingStrength = strength;
     }
 
     public void setBankingSmoothness(double smoothness) {
-        bankingSmoothness = smoothness;
+        this.bankingSmoothness = smoothness;
     }
 
     @Override
@@ -658,7 +658,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return Collision Mode
      */
     public Set<CollisionMode> getAllCollisionModes() {
-        return (Set<CollisionMode>) collisionModes.values();
+        return (Set<CollisionMode>) this.collisionModes.values();
     }
 
     public CollisionMode getCollisionMode(Entity entity) {
@@ -667,21 +667,21 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
         if (member != null) {
-            if (trainCollision == CollisionMode.LINK) {
+            if (this.trainCollision == CollisionMode.LINK) {
                 if (member.getGroup().getProperties().trainCollision == CollisionMode.LINK) {
                     return CollisionMode.LINK;
                 } else {
                     return CollisionMode.CANCEL;
                 }
             } else {
-                return trainCollision;
+                return this.trainCollision;
             }
         } else if (entity instanceof Player) {
             GameMode playerGameMode = ((Player) entity).getGameMode();
             if (playerGameMode == GameMode.SPECTATOR) {
                 return CollisionMode.CANCEL;
             }
-            if (TCConfig.collisionIgnoreOwners && playerCollision != CollisionMode.DEFAULT) {
+            if (TCConfig.collisionIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
                 if (TCConfig.collisionIgnoreGlobalOwners) {
                     if (CartProperties.hasGlobalOwnership((Player) entity)) {
                         return CollisionMode.DEFAULT;
@@ -693,25 +693,25 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
             // Don't kill or damage players in creative
             if (playerGameMode == GameMode.CREATIVE) {
-                if (playerCollision == CollisionMode.KILL || playerCollision == CollisionMode.KILLNODROPS || playerCollision == CollisionMode.DAMAGE
-                        || playerCollision == CollisionMode.DAMAGENODROPS) {
+                if (this.playerCollision == CollisionMode.KILL || this.playerCollision == CollisionMode.KILLNODROPS || this.playerCollision == CollisionMode.DAMAGE
+                        || this.playerCollision == CollisionMode.DAMAGENODROPS) {
                     return CollisionMode.PUSH;
                 }
             }
-            return playerCollision;
+            return this.playerCollision;
         } else {
             for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                CollisionMode collisionMode = collisionModes.get(collisionConfigObject);
+                CollisionMode collisionMode = this.collisionModes.get(collisionConfigObject);
                 if (collisionMode != null && collisionConfigObject.isMobType(entity)) {
                     return collisionMode;
                 }
             }
-            return miscCollision;
+            return this.miscCollision;
         }
     }
 
     public String getTrainName() {
-        return trainname;
+        return this.trainname;
     }
 
     /**
@@ -731,7 +731,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if suffocation damage is enabled
      */
     public boolean hasSuffocation() {
-        return suffocation;
+        return this.suffocation;
     }
 
     /**
@@ -749,7 +749,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if manual movement is allowed, False if not
      */
     public boolean isManualMovementAllowed() {
-        return allowManualMovement;
+        return this.allowManualMovement;
     }
 
     /**
@@ -758,7 +758,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param allow state to set to
      */
     public void setManualMovementAllowed(boolean allow) {
-        allowManualMovement = allow;
+        this.allowManualMovement = allow;
     }
 
     /**
@@ -767,7 +767,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return tickets
      */
     public List<String> getTickets() {
-        return Collections.unmodifiableList(tickets);
+        return Collections.unmodifiableList(this.tickets);
     }
 
     /**
@@ -776,7 +776,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param ticketName to add
      */
     public void addTicket(String ticketName) {
-        tickets.add(ticketName);
+        this.tickets.add(ticketName);
     }
 
     /**
@@ -785,25 +785,25 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param ticketName to remove
      */
     public void removeTicket(String ticketName) {
-        tickets.remove(ticketName);
+        this.tickets.remove(ticketName);
     }
 
     public void clearTickets() {
-        tickets.clear();
+        this.tickets.clear();
     }
 
     public SignSkipOptions getSkipOptions() {
-        return skipOptions;
+        return this.skipOptions;
     }
 
     public void setSkipOptions(SignSkipOptions options) {
-        skipOptions.filter = options.filter;
-        skipOptions.ignoreCtr = options.ignoreCtr;
-        skipOptions.skipCtr = options.skipCtr;
+        this.skipOptions.filter = options.filter;
+        this.skipOptions.ignoreCtr = options.ignoreCtr;
+        this.skipOptions.skipCtr = options.skipCtr;
     }
 
     public String getKillMessage() {
-        return killMessage;
+        return this.killMessage;
     }
 
     public void setKillMessage(String killMessage) {
@@ -811,7 +811,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public boolean isTrainRenamed() {
-        return !trainname.startsWith("train") || !ParseUtil.isNumeric(trainname.substring(5));
+        return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
     }
 
     public boolean isLoaded() {
@@ -907,33 +907,33 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 prop.exitPitch = pitch;
             }
         } else if (key.equals("killmessage")) {
-            killMessage = arg;
+            this.killMessage = arg;
         } else if (key.equals("sound") || key.equals("minecartsound")) {
-            soundEnabled = ParseUtil.parseBool(arg);
+            this.soundEnabled = ParseUtil.parseBool(arg);
         } else if (key.equals("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null)
                 return false;
-            playerCollision = mode;
+            this.playerCollision = mode;
         } else if (key.equals("misccollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null)
                 return false;
-            miscCollision = mode;
+            this.miscCollision = mode;
         } else if (key.equals("traincollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null)
                 return false;
-            trainCollision = mode;
+            this.trainCollision = mode;
         } else if (key.equals("blockcollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null)
                 return false;
-            blockCollision = mode;
+            this.blockCollision = mode;
         } else if (key.equals("collisiondamage")) {
             setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equals("suffocation")) {
-            suffocation = ParseUtil.parseBool(arg);
+            this.suffocation = ParseUtil.parseBool(arg);
         } else if (setCollisionMode(key, arg)) {
             return true;
         } else if (LogicUtil.contains(key, "collision", "collide")) {
@@ -956,17 +956,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "setdefault", "default")) {
             this.setDefault(arg);
         } else if (key.equals("pushplayers")) {
-            playerCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
+            this.playerCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
         } else if (key.equals("pushmisc")) {
-            miscCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
+            this.miscCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            playerCollision = miscCollision = mode;
+            this.playerCollision = this.miscCollision = mode;
             updateAllCollisionProperties(mode);
         } else if (LogicUtil.contains(key, "speedlimit", "maxspeed")) {
             setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
         } else if (LogicUtil.contains(key, "allowmanual", "manualmove", "manual")) {
-            allowManualMovement = ParseUtil.parseBool(arg);
+            this.allowManualMovement = ParseUtil.parseBool(arg);
         } else if (LogicUtil.contains(key, "keepcloaded", "loadchunks", "keeploaded")) {
             setKeepChunksLoaded(ParseUtil.parseBool(arg));
         } else if (key.equals("addtag")) {
@@ -984,7 +984,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {
             updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
         } else if (key.equals("waitdistance")) {
-            setWaitDistance(ParseUtil.parseDouble(arg, waitDistance));
+            setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equals("playerenter")) {
             setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equals("playerexit")) {
@@ -993,9 +993,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             setInvincible(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "banking")) {
             String[] args = arg.split(" ");
-            setBankingStrength(ParseUtil.parseDouble(args[0], bankingStrength));
+            setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
             if (args.length >= 2) {
-                setBankingSmoothness(ParseUtil.parseDouble(args[1], bankingSmoothness));
+                setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
             }
         } else if (key.equals("setownerperm")) {
             for (CartProperties prop : this) {
@@ -1083,9 +1083,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setLinking(boolean linking) {
         if (linking) {
-            trainCollision = CollisionMode.LINK;
-        } else if (trainCollision == CollisionMode.LINK) {
-            trainCollision = CollisionMode.DEFAULT;
+            this.trainCollision = CollisionMode.LINK;
+        } else if (this.trainCollision == CollisionMode.LINK) {
+            this.trainCollision = CollisionMode.DEFAULT;
         }
     }
 
@@ -1095,7 +1095,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
-                collisionModes.put(collisionConfigObject, mode);
+                this.collisionModes.put(collisionConfigObject, mode);
                 return true;
             }
         }
@@ -1105,18 +1105,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void updateAllCollisionProperties(CollisionMode mode) {
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             if (collisionConfigObject.isAddToConfigFile() == true) {
-                collisionModes.put(collisionConfigObject, mode);
+                this.collisionModes.put(collisionConfigObject, mode);
             }
         }
     }
 
     @Override
     public void load(ConfigurationNode node) {
-        setDisplayName(node.get("displayName", displayName));
-        allowPlayerTake = node.get("allowPlayerTake", allowPlayerTake);
-        collision = node.get("trainCollision", collision);
+        setDisplayName(node.get("displayName", this.displayName));
+        this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
+        this.collision = node.get("trainCollision", this.collision);
         setCollisionDamage(node.get("collisionDamage", getCollisionDamage()));
-        soundEnabled = node.get("soundEnabled", soundEnabled);
+        this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
 
         if (node.isNode("slowDown")) {
             ConfigurationNode slowDownNode = node.getNode("slowDown");
@@ -1130,25 +1130,25 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (node.contains("collision")) {
             for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
                 CollisionMode mode = node.get("collision." + collisionConfigObject.getMobType(), CollisionMode.SKIP);
-                collisionModes.put(collisionConfigObject, mode == CollisionMode.SKIP ? null : mode);
+                this.collisionModes.put(collisionConfigObject, mode == CollisionMode.SKIP ? null : mode);
             }
-            playerCollision = node.get("collision.players", playerCollision);
-            miscCollision = node.get("collision.misc", miscCollision);
-            trainCollision = node.get("collision.train", trainCollision);
-            blockCollision = node.get("collision.block", blockCollision);
+            this.playerCollision = node.get("collision.players", this.playerCollision);
+            this.miscCollision = node.get("collision.misc", this.miscCollision);
+            this.trainCollision = node.get("collision.train", this.trainCollision);
+            this.blockCollision = node.get("collision.block", this.blockCollision);
         }
-        speedLimit = MathUtil.clamp(node.get("speedLimit", speedLimit), 0, TCConfig.maxVelocity);
-        requirePoweredMinecart = node.get("requirePoweredMinecart", requirePoweredMinecart);
-        setKeepChunksLoaded(node.get("keepChunksLoaded", keepChunksLoaded));
-        allowManualMovement = node.get("allowManualMovement", allowManualMovement);
-        waitDistance = node.get("waitDistance", waitDistance);
-        suffocation = node.get("suffocation", suffocation);
-        killMessage = node.get("killMessage", killMessage);
+        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
+        this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
+        setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
+        this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
+        this.waitDistance = node.get("waitDistance", this.waitDistance);
+        this.suffocation = node.get("suffocation", this.suffocation);
+        this.killMessage = node.get("killMessage", this.killMessage);
         for (String ticket : node.getList("tickets", String.class)) {
-            tickets.add(ticket);
+            this.tickets.add(ticket);
         }
         if (node.isNode("skipOptions")) {
-            skipOptions.load(node.getNode("skipOptions"));
+            this.skipOptions.load(node.getNode("skipOptions"));
         }
 
         // Only used when loading defaults from tickets, or when 'destination: ' is set
@@ -1175,24 +1175,24 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         // defaults
         // There are not meant to be read anywhere, because these exist as part of
         // minecart metadata
-        blockTypes = node.get("blockTypes", "");
-        blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
+        this.blockTypes = node.get("blockTypes", "");
+        this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
 
         // Banking
         if (node.isNode("banking")) {
             ConfigurationNode banking = node.getNode("banking");
-            bankingStrength = banking.get("strength", bankingStrength);
-            bankingSmoothness = banking.get("smoothness", bankingSmoothness);
+            this.bankingStrength = banking.get("strength", this.bankingStrength);
+            this.bankingSmoothness = banking.get("smoothness", this.bankingSmoothness);
         }
 
         // Apply block types / block height to the actual minecart, if set
-        if (!blockTypes.isEmpty() || blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
+        if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
             MinecartGroup group = getHolder();
             if (group != null) {
-                if (blockTypes.isEmpty()) {
-                    SignActionBlockChanger.setBlocks(group, new ItemParser[0], blockOffset);
+                if (this.blockTypes.isEmpty()) {
+                    SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
                 } else {
-                    SignActionBlockChanger.setBlocks(group, blockTypes, blockOffset);
+                    SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
                 }
             }
         }
@@ -1205,55 +1205,55 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param source to load from
      */
     public void load(TrainProperties source) {
-        soundEnabled = source.soundEnabled;
-        displayName = source.displayName;
-        collision = source.collision;
-        slowDownOptions.clear();
-        slowDownOptions.addAll(source.slowDownOptions);
+        this.soundEnabled = source.soundEnabled;
+        this.displayName = source.displayName;
+        this.collision = source.collision;
+        this.slowDownOptions.clear();
+        this.slowDownOptions.addAll(source.slowDownOptions);
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            collisionModes.put(collisionConfigObject, source.getCollisionMode(collisionConfigObject));
+            this.collisionModes.put(collisionConfigObject, source.getCollisionMode(collisionConfigObject));
         }
-        playerCollision = source.playerCollision;
-        miscCollision = source.miscCollision;
-        trainCollision = source.trainCollision;
-        blockCollision = source.blockCollision;
+        this.playerCollision = source.playerCollision;
+        this.miscCollision = source.miscCollision;
+        this.trainCollision = source.trainCollision;
+        this.blockCollision = source.blockCollision;
         setCollisionDamage(source.collisionDamage);
-        speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
-        requirePoweredMinecart = source.requirePoweredMinecart;
+        this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
+        this.requirePoweredMinecart = source.requirePoweredMinecart;
         setKeepChunksLoaded(source.keepChunksLoaded);
-        allowManualMovement = source.allowManualMovement;
-        tickets = new ArrayList<>(source.tickets);
+        this.allowManualMovement = source.allowManualMovement;
+        this.tickets = new ArrayList<>(source.tickets);
         setSkipOptions(source.skipOptions);
-        blockTypes = source.blockTypes;
-        blockOffset = source.blockOffset;
-        waitDistance = source.waitDistance;
-        bankingStrength = source.bankingStrength;
-        bankingSmoothness = source.bankingSmoothness;
-        suffocation = source.suffocation;
-        killMessage = source.killMessage;
+        this.blockTypes = source.blockTypes;
+        this.blockOffset = source.blockOffset;
+        this.waitDistance = source.waitDistance;
+        this.bankingStrength = source.bankingStrength;
+        this.bankingSmoothness = source.bankingSmoothness;
+        this.suffocation = source.suffocation;
+        this.killMessage = source.killMessage;
     }
 
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
-        return collisionModes.get(collisionConfigObject);
+        return this.collisionModes.get(collisionConfigObject);
     }
 
     @Override
     public void saveAsDefault(ConfigurationNode node) {
-        node.set("soundEnabled", soundEnabled);
-        node.set("displayName", displayName);
-        node.set("allowPlayerTake", allowPlayerTake);
-        node.set("requirePoweredMinecart", requirePoweredMinecart);
-        node.set("trainCollision", collision);
+        node.set("soundEnabled", this.soundEnabled);
+        node.set("displayName", this.displayName);
+        node.set("allowPlayerTake", this.allowPlayerTake);
+        node.set("requirePoweredMinecart", this.requirePoweredMinecart);
+        node.set("trainCollision", this.collision);
         node.set("collisionDamage", getCollisionDamage());
-        node.set("keepChunksLoaded", keepChunksLoaded);
-        node.set("speedLimit", speedLimit);
-        node.set("waitDistance", waitDistance);
-        node.set("suffocation", suffocation);
-        node.set("killMessage", killMessage);
+        node.set("keepChunksLoaded", this.keepChunksLoaded);
+        node.set("speedLimit", this.speedLimit);
+        node.set("waitDistance", this.waitDistance);
+        node.set("suffocation", this.suffocation);
+        node.set("killMessage", this.killMessage);
 
         ConfigurationNode banking = node.getNode("banking");
-        banking.set("strength", bankingStrength);
-        banking.set("smoothness", bankingSmoothness);
+        banking.set("strength", this.bankingStrength);
+        banking.set("smoothness", this.bankingSmoothness);
 
         if (isSlowingDownAll()) {
             node.set("slowDown", true);
@@ -1266,14 +1266,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        node.set("allowManualMovement", allowManualMovement);
+        node.set("allowManualMovement", this.allowManualMovement);
         node.set("tickets", StringUtil.EMPTY_ARRAY);
-        node.set("collision.players", playerCollision);
-        node.set("collision.misc", miscCollision);
-        node.set("collision.train", trainCollision);
-        node.set("collision.block", blockCollision);
-        node.set("blockTypes", (blockTypes == null) ? "" : blockTypes);
-        node.set("blockOffset", (blockOffset == SignActionBlockChanger.BLOCK_OFFSET_NONE) ? "unset" : blockOffset);
+        node.set("collision.players", this.playerCollision);
+        node.set("collision.misc", this.miscCollision);
+        node.set("collision.train", this.trainCollision);
+        node.set("collision.block", this.blockCollision);
+        node.set("blockTypes", (this.blockTypes == null) ? "" : this.blockTypes);
+        node.set("blockOffset", (this.blockOffset == SignActionBlockChanger.BLOCK_OFFSET_NONE) ? "unset" : this.blockOffset);
         for (CartProperties prop : this) {
             prop.saveAsDefault(node);
             break;
@@ -1282,22 +1282,22 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public void save(ConfigurationNode node) {
-        node.set("displayName", displayName.equals(trainname) ? null : displayName);
-        node.set("soundEnabled", soundEnabled ? null : false);
-        node.set("allowPlayerTake", allowPlayerTake ? true : null);
-        node.set("requirePoweredMinecart", requirePoweredMinecart ? true : null);
-        node.set("trainCollision", collision ? null : false);
+        node.set("displayName", this.displayName.equals(this.trainname) ? null : this.displayName);
+        node.set("soundEnabled", this.soundEnabled ? null : false);
+        node.set("allowPlayerTake", this.allowPlayerTake ? true : null);
+        node.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
+        node.set("trainCollision", this.collision ? null : false);
         node.set("collisionDamage", getCollisionDamage());
-        node.set("keepChunksLoaded", keepChunksLoaded ? true : null);
-        node.set("speedLimit", speedLimit != 0.4 ? speedLimit : null);
-        node.set("waitDistance", (waitDistance > 0) ? waitDistance : null);
-        node.set("suffocation", suffocation ? null : false);
-        node.set("killMessage", killMessage.isEmpty() ? null : killMessage);
+        node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
+        node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+        node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
+        node.set("suffocation", this.suffocation ? null : false);
+        node.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
 
-        if (bankingStrength != 0.0 || bankingSmoothness != 10.0) {
+        if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
             ConfigurationNode banking = node.getNode("banking");
-            banking.set("strength", bankingStrength != 0.0 ? bankingStrength : null);
-            banking.set("smoothness", bankingSmoothness != 10.0 ? bankingSmoothness : null);
+            banking.set("strength", this.bankingStrength != 0.0 ? this.bankingStrength : null);
+            banking.set("smoothness", this.bankingSmoothness != 10.0 ? this.bankingSmoothness : null);
         } else {
             node.remove("banking");
         }
@@ -1313,25 +1313,25 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        node.set("allowManualMovement", allowManualMovement ? true : null);
-        node.set("tickets", LogicUtil.toArray(tickets, String.class));
+        node.set("allowManualMovement", this.allowManualMovement ? true : null);
+        node.set("tickets", LogicUtil.toArray(this.tickets, String.class));
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            CollisionMode value = collisionModes.get(collisionConfigObject);
+            CollisionMode value = this.collisionModes.get(collisionConfigObject);
             if (collisionConfigObject.isAddToConfigFile() || value != null) {
                 node.set("collision." + collisionConfigObject.getMobType(), value != null ? value : CollisionMode.DEFAULT);
             }
         }
-        if (playerCollision != CollisionMode.DEFAULT) {
-            node.set("collision.players", playerCollision);
+        if (this.playerCollision != CollisionMode.DEFAULT) {
+            node.set("collision.players", this.playerCollision);
         }
-        if (miscCollision != CollisionMode.DEFAULT) {
-            node.set("collision.misc", miscCollision);
+        if (this.miscCollision != CollisionMode.DEFAULT) {
+            node.set("collision.misc", this.miscCollision);
         }
-        if (trainCollision != CollisionMode.LINK) {
-            node.set("collision.train", trainCollision);
+        if (this.trainCollision != CollisionMode.LINK) {
+            node.set("collision.train", this.trainCollision);
         }
-        if (blockCollision != CollisionMode.DEFAULT) {
-            node.set("collision.block", blockCollision);
+        if (this.blockCollision != CollisionMode.DEFAULT) {
+            node.set("collision.block", this.blockCollision);
         }
         if (!isEmpty()) {
             ConfigurationNode carts = node.getNode("carts");
@@ -1343,15 +1343,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        if (skipOptions.isActive()) {
-            skipOptions.save(node.getNode("skipOptions"));
+        if (this.skipOptions.isActive()) {
+            this.skipOptions.save(node.getNode("skipOptions"));
         } else if (node.contains("skipOptions")) {
             node.remove("skipOptions");
         }
     }
 
     public double getCollisionDamage() {
-        return collisionDamage;
+        return this.collisionDamage;
     }
 
     public void setCollisionDamage(double collisionDamage) {
