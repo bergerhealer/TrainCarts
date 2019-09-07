@@ -120,8 +120,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the wait distance. The train will automatically wait to maintain this
-     * distance between itself and the train up ahead.
+     * Gets the wait distance. The train will automatically wait to maintain this distance between itself and the train up
+     * ahead.
      * 
      * @return waitDistance
      */
@@ -131,8 +131,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets the wait distance. The train will automatically wait to maintain this
-     * distance between itself and the train up ahead.
+     * Sets the wait distance. The train will automatically wait to maintain this distance between itself and the train up
+     * ahead.
      * 
      * @param waitDistance
      */
@@ -141,9 +141,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the maximum speed this Train can move at. Do not use this property
-     * inside physics functions! In there getEntity().getMaxSpeed() should be used
-     * instead.
+     * Gets the maximum speed this Train can move at. Do not use this property inside physics functions! In there
+     * getEntity().getMaxSpeed() should be used instead.
      *
      * @return max speed in blocks/tick
      */
@@ -173,8 +172,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether the slow down options are set to a default, where all slowdown
-     * modes are active.
+     * Gets whether the slow down options are set to a default, where all slowdown modes are active.
      * 
      * @return True if all modes are active (legacy slowdown = true set)
      */
@@ -256,8 +254,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     /**
      * Sets the Display Name for these properties<br>
-     * If a null or empty String is passed in as argument, the display name is set
-     * to the train name. (it is reset)
+     * If a null or empty String is passed in as argument, the display name is set to the train name. (it is reset)
      *
      * @param displayName to set to
      */
@@ -427,8 +424,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether this Train supports players taking minecarts with them when they
-     * leave. When the Minecart is part of a Train, it is always disallowed.
+     * Gets whether this Train supports players taking minecarts with them when they leave. When the Minecart is part of a
+     * Train, it is always disallowed.
      *
      * @return True if players can take Minecarts with them, False if not.
      */
@@ -437,8 +434,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets whether this Train supports players taking minecarts with them when they
-     * leave. When the Minecart is part of a Train, it is always disallowed.
+     * Sets whether this Train supports players taking minecarts with them when they leave. When the Minecart is part of a
+     * Train, it is always disallowed.
      *
      * @param takeable state to set to
      */
@@ -696,8 +693,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
             // Don't kill or damage players in creative
             if (playerGameMode == GameMode.CREATIVE) {
-                if (playerCollision == CollisionMode.KILL || playerCollision == CollisionMode.KILLNODROPS
-                        || playerCollision == CollisionMode.DAMAGE || playerCollision == CollisionMode.DAMAGENODROPS) {
+                if (playerCollision == CollisionMode.KILL || playerCollision == CollisionMode.KILLNODROPS || playerCollision == CollisionMode.DAMAGE
+                        || playerCollision == CollisionMode.DAMAGENODROPS) {
                     return CollisionMode.PUSH;
                 }
             }
@@ -729,8 +726,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether passengers inside this train sustain suffocation damage when
-     * their head is submerged inside a block.
+     * Gets whether passengers inside this train sustain suffocation damage when their head is submerged inside a block.
      * 
      * @return True if suffocation damage is enabled
      */
@@ -739,8 +735,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets whether passengers inside this train sustain suffocation damage when
-     * their head is submerged inside a block.
+     * Sets whether passengers inside this train sustain suffocation damage when their head is submerged inside a block.
      * 
      * @param suffocation option
      */
@@ -1056,8 +1051,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /*
-     * Sets collision mode, used by ParseSet. Supports the formats: - mobcollision /
-     * playercollision /creepercollision / etc. - pushplayers / pushmobs / etc.
+     * Sets collision mode, used by ParseSet. Supports the formats: - mobcollision / playercollision /creepercollision /
+     * etc. - pushplayers / pushmobs / etc.
      */
     public boolean setCollisionMode(String key, String value) {
         key = key.toLowerCase(Locale.ENGLISH);
@@ -1081,8 +1076,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets train collision mode to link when true. When false is specified and the
-     * collision mode is linking, it is set to default. This is legacy behavior.
+     * Sets train collision mode to link when true. When false is specified and the collision mode is linking, it is set to
+     * default. This is legacy behavior.
      * 
      * @param linking
      */
@@ -1099,8 +1094,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             return false;
         }
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            if (mobType.equals(collisionConfigObject.getMobType())
-                    || mobType.equals(collisionConfigObject.getPluralMobType())) {
+            if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
                 collisionModes.put(collisionConfigObject, mode);
                 return true;
             }
@@ -1324,8 +1318,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             CollisionMode value = collisionModes.get(collisionConfigObject);
             if (collisionConfigObject.isAddToConfigFile() || value != null) {
-                node.set("collision." + collisionConfigObject.getMobType(),
-                        value != null ? value : CollisionMode.DEFAULT);
+                node.set("collision." + collisionConfigObject.getMobType(), value != null ? value : CollisionMode.DEFAULT);
             }
         }
         if (playerCollision != CollisionMode.DEFAULT) {
