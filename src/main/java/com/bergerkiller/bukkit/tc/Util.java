@@ -450,8 +450,7 @@ public class Util {
         boolean has = true;
         boolean first = true;
         for (String element : elements) {
-            if (element.length() == 0)
-                continue;
+            if (element.length() == 0) continue;
             index = text.indexOf(element, index);
             if (index == -1 || (first && !firstAny && index != 0)) {
                 has = false;
