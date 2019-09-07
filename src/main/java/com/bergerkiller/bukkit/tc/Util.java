@@ -499,7 +499,8 @@ public class Util {
     }
 
     /**
-     * Gets whether a particular entity is in a state of destroying minecarts instantly. This is when they are in creative mode, and only when not sneaking (players).
+     * Gets whether a particular entity is in a state of destroying minecarts instantly. This is when they are in creative
+     * mode, and only when not sneaking (players).
      * 
      * @param entity to check
      * @return True if the entity can instantly destroy a minecart, False if not
@@ -519,8 +520,8 @@ public class Util {
     }
 
     /**
-     * Checks whether a Block supports placement/attachment of solid blocks on a particular face. Note that signs do not use this logic - they allow pretty much any sort of
-     * attachment.
+     * Checks whether a Block supports placement/attachment of solid blocks on a particular face. Note that signs do not use
+     * this logic - they allow pretty much any sort of attachment.
      *
      * @param block to check
      * @param face  to check
@@ -654,24 +655,76 @@ public class Util {
         }
         return p.movedTotal;
 
-        /*
-         * // Read track information and parameters RailType type = RailType.getType(railsBlock); boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock)); final
-         * BlockFace[] toCheck; if (direction == BlockFace.SELF) { toCheck = type.getPossibleDirections(railsBlock); } else { toCheck = new BlockFace[]{direction}; } double length
-         * = 0.0; TrackIterator iter = new TrackIterator(null, null, 20, false);
-         * 
-         * // Check all directions for (BlockFace face : toCheck) { double trackLength = 0.0; iter.reset(railsBlock, face); // Skip the start block, abort if no start block was
-         * found if (iter.hasNext()) { iter.next(); } else { continue; } // Two modes: diagonal and straight if (diagonal) { // Diagonal mode BlockFace lastFace = null; int
-         * lastAngle = Integer.MAX_VALUE; while (iter.hasNext()) { iter.next(); // Check that the direction alternates if (lastFace == null) { // Start block: store it's
-         * information lastFace = iter.currentDirection(); } else { BlockFace newFace = iter.currentDirection(); int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) -
-         * FaceUtil.faceToYaw(lastFace)); if (Math.abs(newAngle) != 90) { // Not a 90-degree angle! break; } if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) { // Not
-         * the exact opposite from last time break; } lastFace = newFace; lastAngle = newAngle; } trackLength += MathUtil.HALFROOTOFTWO; } } else { // Straight mode while
-         * (iter.hasNext()) { iter.next(); // Check that the direction stays the same if (iter.currentDirection() != face) { break; } trackLength++; } } // Update the length if
-         * (trackLength > length) { length = trackLength; } } return length;
-         */
+//        // Read track information and parameters
+//        RailType type = RailType.getType(railsBlock);
+//        boolean diagonal = FaceUtil.isSubCardinal(type.getDirection(railsBlock));
+//        final BlockFace[] toCheck;
+//        if (direction == BlockFace.SELF) {
+//            toCheck = type.getPossibleDirections(railsBlock);
+//        } else {
+//            toCheck = new BlockFace[] { direction };
+//        }
+//        double length = 0.0;
+//        TrackIterator iter = new TrackIterator(null, null, 20, false);
+//        // Check all directions
+//        for (BlockFace face : toCheck) {
+//            double trackLength = 0.0;
+//            iter.reset(railsBlock, face);
+//            // Skip the start block, abort if no start block was found
+//            if (iter.hasNext()) {
+//                iter.next();
+//            } else {
+//                continue;
+//            }
+//            // Two modes: diagonal and straight
+//            if (diagonal) {
+//                // Diagonal mode
+//                BlockFace lastFace = null;
+//                int lastAngle = Integer.MAX_VALUE;
+//                while (iter.hasNext()) {
+//                    iter.next();
+//                    // Check that the direction alternates
+//                    if (lastFace == null) {
+//                        // Start block: store it's information
+//                        lastFace = iter.currentDirection();
+//                    } else {
+//                        BlockFace newFace = iter.currentDirection();
+//                        int newAngle = MathUtil.wrapAngle(FaceUtil.faceToYaw(newFace) - FaceUtil.faceToYaw(lastFace));
+//                        if (Math.abs(newAngle) != 90) {
+//                            // Not a 90-degree angle!
+//                            break;
+//                        }
+//                        if (lastAngle != Integer.MAX_VALUE && newAngle != -lastAngle) {
+//                            // Not the exact opposite from last time
+//                            break;
+//                        }
+//                        lastFace = newFace;
+//                        lastAngle = newAngle;
+//                    }
+//                    trackLength += MathUtil.HALFROOTOFTWO;
+//                }
+//            } else {
+//                // Straight mode
+//                while (iter.hasNext()) {
+//                    iter.next();
+//                    // Check that the direction stays the same
+//                    if (iter.currentDirection() != face) {
+//                        break;
+//                    }
+//                    trackLength++;
+//                }
+//            }
+//            // Update the length
+//            if (trackLength > length) {
+//                length = trackLength;
+//            }
+//        }
+//        return length;
     }
 
     /**
-     * Attempts to parse the text as time ticks, converting values such as '12s' and '500ms' into ticks. If no time statement is found, -1 is returned.
+     * Attempts to parse the text as time ticks, converting values such as '12s' and '500ms' into ticks. If no time
+     * statement is found, -1 is returned.
      * 
      * @param text to parse as time
      * @return time ticks, or -1 if not parsed
@@ -702,8 +755,9 @@ public class Util {
     }
 
     /**
-     * Reads a line from a sign change event and clears characters that can't be parsed by TC. If the line contains no invalid characters, the exact same String is returned without
-     * the overhead of allocating a new String. If the line is null, an empty String is returned instead. A null event will also result in an empty String.
+     * Reads a line from a sign change event and clears characters that can't be parsed by TC. If the line contains no
+     * invalid characters, the exact same String is returned without the overhead of allocating a new String. If the line is
+     * null, an empty String is returned instead. A null event will also result in an empty String.
      * 
      * @param event to get a clean line of
      * @param line  index
@@ -718,8 +772,9 @@ public class Util {
     }
 
     /**
-     * Reads a line from a sign and clears characters that can't be parsed by TC. If the line contains no invalid characters, the exact same String is returned without the overhead
-     * of allocating a new String. If the line is null, an empty String is returned instead. A null sign will also result in an empty String.
+     * Reads a line from a sign and clears characters that can't be parsed by TC. If the line contains no invalid
+     * characters, the exact same String is returned without the overhead of allocating a new String. If the line is null,
+     * an empty String is returned instead. A null sign will also result in an empty String.
      * 
      * @param sign to get a clean line of
      * @param line index
@@ -734,8 +789,9 @@ public class Util {
     }
 
     /**
-     * Clears input of characters that can't be parsed by TC. If the line contains no invalid characters, the exact same String is returned without the overhead of allocating a new
-     * String. If the line is null, an empty String is returned instead.
+     * Clears input of characters that can't be parsed by TC. If the line contains no invalid characters, the exact same
+     * String is returned without the overhead of allocating a new String. If the line is null, an empty String is returned
+     * instead.
      * 
      * @param line to parse
      * @return line cleared from invalid characters
@@ -763,9 +819,10 @@ public class Util {
     }
 
     /**
-     * Clears input sign lines of characters that can't be parsed by TC. If none of the lines contain invalid characters, the exact same String[] array is returned without the
-     * overhead of allocating a new String[] array. If the input array is null, or its length is not 4, it is resized so it is using a newly allocated array. The lines are
-     * guaranteed to not be null.
+     * Clears input sign lines of characters that can't be parsed by TC. If none of the lines contain invalid characters,
+     * the exact same String[] array is returned without the overhead of allocating a new String[] array. If the input array
+     * is null, or its length is not 4, it is resized so it is using a newly allocated array. The lines are guaranteed to
+     * not be null.
      * 
      * @param lines to parse
      * @return lines cleared from invalid characters
@@ -804,7 +861,8 @@ public class Util {
     }
 
     /**
-     * Checks whether a particular character is valid on TrainCarts signs. Control codes and other unsupported characters return True.
+     * Checks whether a particular character is valid on TrainCarts signs. Control codes and other unsupported characters
+     * return True.
      * 
      * @param c character to test
      * @return True if the character is invalid
@@ -948,8 +1006,8 @@ public class Util {
     }
 
     /**
-     * Calculates the next Minecart block position when going on a rail block in a particular direction. This logic is largely deprecated and is only used in places where there is
-     * no alternative possible yet.
+     * Calculates the next Minecart block position when going on a rail block in a particular direction. This logic is
+     * largely deprecated and is only used in places where there is no alternative possible yet.
      * 
      * @param railBlock
      * @param direction
@@ -978,8 +1036,9 @@ public class Util {
     }
 
     /**
-     * Attempts to find the most appropriate junction for a BlockFace wind direction. This is used when switcher signs have to switch rails based on wind directions, but no wind
-     * direction names are used for the junction names. This is also used for sign-relative left/right/forward/backward logic, which is first turned into a BlockFace.
+     * Attempts to find the most appropriate junction for a BlockFace wind direction. This is used when switcher signs have
+     * to switch rails based on wind directions, but no wind direction names are used for the junction names. This is also
+     * used for sign-relative left/right/forward/backward logic, which is first turned into a BlockFace.
      * 
      * @param junctions to select from
      * @param face      to find
@@ -995,7 +1054,8 @@ public class Util {
     }
 
     /**
-     * Checks for a 'contents' field in the configuration, and if it exists, loads all items contained within. The inventory is wiped beforehand.
+     * Checks for a 'contents' field in the configuration, and if it exists, loads all items contained within. The inventory
+     * is wiped beforehand.
      * 
      * @param inventory
      * @param config
@@ -1020,7 +1080,8 @@ public class Util {
     }
 
     /**
-     * Saves all items in the inventory to the configuration under a 'contents' field. If the inventory is empty, nothing is saved.
+     * Saves all items in the inventory to the configuration under a 'contents' field. If the inventory is empty, nothing is
+     * saved.
      * 
      * @param inventory
      * @param config
@@ -1126,7 +1187,8 @@ public class Util {
     }
 
     /**
-     * Adjusts the teleport position to avoid an entity getting glitched in a block. The player is teleported upwards any block they are currently inside of with their feet.
+     * Adjusts the teleport position to avoid an entity getting glitched in a block. The player is teleported upwards any
+     * block they are currently inside of with their feet.
      * 
      * @param loc to correct
      */
