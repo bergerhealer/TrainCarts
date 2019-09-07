@@ -120,24 +120,24 @@ public class Util {
      */
     public static BlockFace snapFace(BlockFace face) {
         switch (face) {
-        case NORTH_NORTH_EAST:
-            return BlockFace.NORTH_EAST;
-        case EAST_NORTH_EAST:
-            return BlockFace.EAST;
-        case EAST_SOUTH_EAST:
-            return BlockFace.SOUTH_EAST;
-        case SOUTH_SOUTH_EAST:
-            return BlockFace.SOUTH;
-        case SOUTH_SOUTH_WEST:
-            return BlockFace.SOUTH_WEST;
-        case WEST_SOUTH_WEST:
-            return BlockFace.WEST;
-        case WEST_NORTH_WEST:
-            return BlockFace.NORTH_WEST;
-        case NORTH_NORTH_WEST:
-            return BlockFace.NORTH;
-        default:
-            return face;
+            case NORTH_NORTH_EAST:
+                return BlockFace.NORTH_EAST;
+            case EAST_NORTH_EAST:
+                return BlockFace.EAST;
+            case EAST_SOUTH_EAST:
+                return BlockFace.SOUTH_EAST;
+            case SOUTH_SOUTH_EAST:
+                return BlockFace.SOUTH;
+            case SOUTH_SOUTH_WEST:
+                return BlockFace.SOUTH_WEST;
+            case WEST_SOUTH_WEST:
+                return BlockFace.WEST;
+            case WEST_NORTH_WEST:
+                return BlockFace.NORTH_WEST;
+            case NORTH_NORTH_WEST:
+                return BlockFace.NORTH;
+            default:
+                return face;
         }
     }
 
@@ -379,15 +379,15 @@ public class Util {
      */
     public static BlockFace getVerticalRailDirection(int raildata) {
         switch (raildata) {
-        case 0x2:
-            return BlockFace.SOUTH;
-        case 0x3:
-            return BlockFace.NORTH;
-        case 0x4:
-            return BlockFace.EAST;
-        default:
-        case 0x5:
-            return BlockFace.WEST;
+            case 0x2:
+                return BlockFace.SOUTH;
+            case 0x3:
+                return BlockFace.NORTH;
+            case 0x4:
+                return BlockFace.EAST;
+            default:
+            case 0x5:
+                return BlockFace.WEST;
         }
     }
 
