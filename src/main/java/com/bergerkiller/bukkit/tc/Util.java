@@ -63,8 +63,7 @@ import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
-    public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS,
-            MaterialUtil.ISPRESSUREPLATE);
+    public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
     private static List<Block> blockbuff = new ArrayList<>();
 
@@ -524,8 +523,7 @@ public class Util {
     }
 
     public static boolean canInstantlyBuild(Entity entity) {
-        return entity instanceof HumanEntity
-                && EntityPropertyUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
+        return entity instanceof HumanEntity && EntityPropertyUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
     }
 
     /**
@@ -1190,9 +1188,8 @@ public class Util {
         rel.setY(rel.getY() - locBlock.getY());
         rel.setZ(rel.getZ() - locBlock.getZ());
         AxisAlignedBBHandle bounds = WorldUtil.getBlockData(locBlock).getBoundingBox(locBlock);
-        if (bounds != null /* AIR */ && rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX()
-                && rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY() && rel.getZ() >= bounds.getMinZ()
-                && rel.getZ() <= bounds.getMaxZ()) {
+        if (bounds != null /* AIR */ && rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX() && rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY()
+                && rel.getZ() >= bounds.getMinZ() && rel.getZ() <= bounds.getMaxZ()) {
             loc.setY(locBlock.getY() + bounds.getMaxY() + 1e-5);
         }
     }
