@@ -607,6 +607,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
         this.updateDirection();
+        this.updateChunkInformation();
         this.getSignTracker().updatePosition();
     }
 

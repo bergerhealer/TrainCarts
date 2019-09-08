@@ -1,32 +1,5 @@
 package com.bergerkiller.bukkit.tc.properties;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.inventory.ItemParser;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.CollisionMode;
-import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
-import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
-import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
-import com.bergerkiller.bukkit.tc.utils.SoftReference;
-
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.World;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,6 +11,34 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+
+import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.CollisionMode;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
+import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
     public static final TrainProperties EMPTY = new TrainProperties("");
@@ -64,7 +65,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private boolean allowManualMovement = false;
     private boolean allowPlayerTake = false;
     private boolean soundEnabled = true;
-    private List<String> tickets = new ArrayList<String>();
+    private List<String> tickets = new ArrayList<>();
     private SignSkipOptions skipOptions = new SignSkipOptions();
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
@@ -87,7 +88,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public MinecartGroup getHolder() {
         MinecartGroup group = this.group.get();
         if (group == null || group.isRemoved()) {
-            return this.group.set(MinecartGroup.get(this));
+            return this.group.set(MinecartGroupStore.get(this));
         } else {
             return group;
         }
@@ -95,7 +96,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public boolean hasHolder() {
-        return getHolder() != null;
+        return this.getHolder() != null;
     }
 
     @Override
@@ -106,7 +107,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         // Load all the chunks of this group to trigger a restore
         OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
         if (group == null) {
-            TrainProperties.remove(getTrainName());
+            TrainPropertiesStore.remove(this.getTrainName());
             return false;
         }
         World world = Bukkit.getWorld(group.worldUUID);
@@ -119,8 +120,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the wait distance. The train will automatically wait to maintain this distance
-     * between itself and the train up ahead.
+     * Gets the wait distance. The train will automatically wait to maintain this distance between itself and the train up
+     * ahead.
      * 
      * @return waitDistance
      */
@@ -130,8 +131,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets the wait distance. The train will automatically wait to maintain this distance
-     * between itself and the train up ahead.
+     * Sets the wait distance. The train will automatically wait to maintain this distance between itself and the train up
+     * ahead.
      * 
      * @param waitDistance
      */
@@ -140,9 +141,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the maximum speed this Train can move at.
-     * Do not use this property inside physics functions!
-     * In there getEntity().getMaxSpeed() should be used instead.
+     * Gets the maximum speed this Train can move at. Do not use this property inside physics functions! In there
+     * getEntity().getMaxSpeed() should be used instead.
      *
      * @return max speed in blocks/tick
      */
@@ -218,7 +218,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     /**
      * Sets whether a particular slow down mode is activated
      * 
-     * @param mode to set
+     * @param mode        to set
      * @param slowingDown option to set that mode to
      */
     public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
@@ -254,8 +254,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     /**
      * Sets the Display Name for these properties<br>
-     * If a null or empty String is passed in as argument, the display name is set to
-     * the train name. (it is reset)
+     * If a null or empty String is passed in as argument, the display name is set to the train name. (it is reset)
      *
      * @param displayName to set to
      */
@@ -283,7 +282,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setKeepChunksLoaded(boolean state) {
         if (state && !this.keepChunksLoaded) {
-            restore();
+            this.restore();
         }
         if (state != this.keepChunksLoaded) {
             this.keepChunksLoaded = state;
@@ -300,7 +299,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if enabled, False if not
      */
     public boolean isSoundEnabled() {
-        return soundEnabled;
+        return this.soundEnabled;
     }
 
     /**
@@ -393,7 +392,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public Set<String> getOwnerPermissions() {
-        Set<String> rval = new HashSet<String>();
+        Set<String> rval = new HashSet<>();
         for (CartProperties cprop : this) {
             rval.addAll(cprop.getOwnerPermissions());
         }
@@ -402,7 +401,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public Set<String> getOwners() {
-        Set<String> rval = new HashSet<String>();
+        Set<String> rval = new HashSet<>();
         for (CartProperties cprop : this) {
             rval.addAll(cprop.getOwners());
         }
@@ -424,18 +423,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether this Train supports players taking minecarts with them when they leave.
-     * When the Minecart is part of a Train, it is always disallowed.
+     * Gets whether this Train supports players taking minecarts with them when they leave. When the Minecart is part of a
+     * Train, it is always disallowed.
      *
      * @return True if players can take Minecarts with them, False if not.
      */
     public boolean isPlayerTakeable() {
-        return allowPlayerTake;
+        return this.allowPlayerTake;
     }
 
     /**
-     * Sets whether this Train supports players taking minecarts with them when they leave.
-     * When the Minecart is part of a Train, it is always disallowed.
+     * Sets whether this Train supports players taking minecarts with them when they leave. When the Minecart is part of a
+     * Train, it is always disallowed.
      *
      * @param takeable state to set to
      */
@@ -503,7 +502,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public Collection<String> getTags() {
-        Set<String> tags = new HashSet<String>();
+        Set<String> tags = new HashSet<>();
         for (CartProperties prop : this) {
             tags.addAll(prop.getTags());
         }
@@ -690,15 +689,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
             // Don't kill or damage players in creative
             if (playerGameMode == GameMode.CREATIVE) {
-                if (this.playerCollision == CollisionMode.KILL || this.playerCollision == CollisionMode.KILLNODROPS ||
-                        this.playerCollision == CollisionMode.DAMAGE || this.playerCollision == CollisionMode.DAMAGENODROPS) {
+                if (this.playerCollision == CollisionMode.KILL || this.playerCollision == CollisionMode.KILLNODROPS || this.playerCollision == CollisionMode.DAMAGE
+                        || this.playerCollision == CollisionMode.DAMAGENODROPS) {
                     return CollisionMode.PUSH;
                 }
             }
             return this.playerCollision;
         } else {
             for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                CollisionMode collisionMode = collisionModes.get(collisionConfigObject);
+                CollisionMode collisionMode = this.collisionModes.get(collisionConfigObject);
                 if (collisionMode != null && collisionConfigObject.isMobType(entity)) {
                     return collisionMode;
                 }
@@ -723,8 +722,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether passengers inside this train sustain suffocation damage when their
-     * head is submerged inside a block.
+     * Gets whether passengers inside this train sustain suffocation damage when their head is submerged inside a block.
      * 
      * @return True if suffocation damage is enabled
      */
@@ -733,8 +731,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets whether passengers inside this train sustain suffocation damage when their
-     * head is submerged inside a block.
+     * Sets whether passengers inside this train sustain suffocation damage when their head is submerged inside a block.
      * 
      * @param suffocation option
      */
@@ -825,6 +822,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         return Util.matchText(this.getTrainName(), expressionElements, firstAny, lastAny);
     }
 
+    @Override
     public BlockLocation getLocation() {
         for (CartProperties prop : this) {
             return prop.getLocation();
@@ -833,7 +831,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public void setDefault() {
-        setDefault("default");
+        this.setDefault("default");
     }
 
     public void setDefault(String key) {
@@ -853,10 +851,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     public void setDefault(Player player) {
         if (player == null) {
-            //Set default
+            // Set default
             this.setDefault();
         } else {
-            //Load it
+            // Load it
             this.setDefault(getDefaultsByPlayer(player));
         }
     }
@@ -924,10 +922,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             if (mode == null) return false;
             this.blockCollision = mode;
         } else if (key.equals("collisiondamage")) {
-            this.setCollisionDamage(Double.parseDouble(CollisionMode.parse(arg).toString()));
+            this.setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equals("suffocation")) {
             this.suffocation = ParseUtil.parseBool(arg);
-        } else if (setCollisionMode(key, arg)) {
+        } else if (this.setCollisionMode(key, arg)) {
             return true;
         } else if (LogicUtil.contains(key, "collision", "collide")) {
             this.setColliding(ParseUtil.parseBool(arg));
@@ -955,7 +953,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
             this.playerCollision = this.miscCollision = mode;
-            updateAllCollisionProperties(mode);
+            this.updateAllCollisionProperties(mode);
         } else if (LogicUtil.contains(key, "speedlimit", "maxspeed")) {
             this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
         } else if (LogicUtil.contains(key, "allowmanual", "manualmove", "manual")) {
@@ -975,7 +973,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.contains(key, "dname", "displayname", "setdisplayname", "setdname")) {
             this.setDisplayName(arg);
         } else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {
-            updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
+            this.updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
         } else if (key.equals("waitdistance")) {
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equals("playerenter")) {
@@ -986,9 +984,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setInvincible(ParseUtil.parseBool(arg));
         } else if (LogicUtil.contains(key, "banking")) {
             String[] args = arg.split(" ");
-            setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
+            this.setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
             if (args.length >= 2) {
-                setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
+                this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
             }
         } else if (key.equals("setownerperm")) {
             for (CartProperties prop : this) {
@@ -1032,7 +1030,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (key.equals("clrticket")) {
             this.clearTickets();
-        } else if(key.equals("drivesound")) {
+        } else if (key.equals("drivesound")) {
             for (CartProperties cprop : this) {
                 cprop.setDriveSound(arg);
             }
@@ -1044,9 +1042,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /*
-     * Sets collision mode, used by ParseSet. Supports the formats:
-     * - mobcollision / playercollision /creepercollision / etc.
-     * - pushplayers / pushmobs / etc.
+     * Sets collision mode, used by ParseSet. Supports the formats: - mobcollision / playercollision /creepercollision /
+     * etc. - pushplayers / pushmobs / etc.
      */
     public boolean setCollisionMode(String key, String value) {
         key = key.toLowerCase(Locale.ENGLISH);
@@ -1059,19 +1056,19 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             } else {
                 mode = CollisionMode.parse(value);
             }
-            return updateCollisionProperties(mobType, mode);
+            return this.updateCollisionProperties(mobType, mode);
         }
         if (key.endsWith("collision") && key.length() > 9) {
             String mobType = key.substring(0, key.length() - 9);
             CollisionMode mode = CollisionMode.parse(value);
-            return updateCollisionProperties(mobType, mode);
+            return this.updateCollisionProperties(mobType, mode);
         }
         return false;
     }
 
     /**
-     * Sets train collision mode to link when true. When false is specified and the
-     * collision mode is linking, it is set to default. This is legacy behavior.
+     * Sets train collision mode to link when true. When false is specified and the collision mode is linking, it is set to
+     * default. This is legacy behavior.
      * 
      * @param linking
      */
@@ -1089,7 +1086,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
-                collisionModes.put(collisionConfigObject, mode);
+                this.collisionModes.put(collisionConfigObject, mode);
                 return true;
             }
         }
@@ -1099,7 +1096,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void updateAllCollisionProperties(CollisionMode mode) {
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             if (collisionConfigObject.isAddToConfigFile() == true) {
-                collisionModes.put(collisionConfigObject, mode);
+                this.collisionModes.put(collisionConfigObject, mode);
             }
         }
     }
@@ -1124,7 +1121,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (node.contains("collision")) {
             for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
                 CollisionMode mode = node.get("collision." + collisionConfigObject.getMobType(), CollisionMode.SKIP);
-                collisionModes.put(collisionConfigObject, mode == CollisionMode.SKIP ? null : mode);
+                this.collisionModes.put(collisionConfigObject, mode == CollisionMode.SKIP ? null : mode);
             }
             this.playerCollision = node.get("collision.players", this.playerCollision);
             this.miscCollision = node.get("collision.misc", this.miscCollision);
@@ -1155,7 +1152,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (node.isNode("carts")) {
             for (ConfigurationNode cart : node.getNode("carts").getNodes()) {
                 try {
-                    CartProperties prop = CartProperties.get(UUID.fromString(cart.getName()), this);
+                    CartProperties prop = CartPropertiesStore.get(UUID.fromString(cart.getName()), this);
                     this.add(prop);
                     prop.load(cart);
                 } catch (Exception ex) {
@@ -1202,7 +1199,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.slowDownOptions.clear();
         this.slowDownOptions.addAll(source.slowDownOptions);
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            collisionModes.put(collisionConfigObject, source.getCollisionMode(collisionConfigObject));
+            this.collisionModes.put(collisionConfigObject, source.getCollisionMode(collisionConfigObject));
         }
         this.playerCollision = source.playerCollision;
         this.miscCollision = source.miscCollision;
@@ -1213,7 +1210,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.requirePoweredMinecart = source.requirePoweredMinecart;
         this.setKeepChunksLoaded(source.keepChunksLoaded);
         this.allowManualMovement = source.allowManualMovement;
-        this.tickets = new ArrayList<String>(source.tickets);
+        this.tickets = new ArrayList<>(source.tickets);
         this.setSkipOptions(source.skipOptions);
         this.blockTypes = source.blockTypes;
         this.blockOffset = source.blockOffset;
@@ -1304,10 +1301,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        node.set("allowManualMovement", allowManualMovement ? true : null);
+        node.set("allowManualMovement", this.allowManualMovement ? true : null);
         node.set("tickets", LogicUtil.toArray(this.tickets, String.class));
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            CollisionMode value = collisionModes.get(collisionConfigObject);
+            CollisionMode value = this.collisionModes.get(collisionConfigObject);
             if (collisionConfigObject.isAddToConfigFile() || value != null) {
                 node.set("collision." + collisionConfigObject.getMobType(), value != null ? value : CollisionMode.DEFAULT);
             }
@@ -1341,7 +1338,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public double getCollisionDamage() {
-        return collisionDamage;
+        return this.collisionDamage;
     }
 
     public void setCollisionDamage(double collisionDamage) {

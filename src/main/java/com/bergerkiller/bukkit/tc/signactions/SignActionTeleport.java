@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 import net.md_5.bungee.api.ChatColor;
 
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 public class SignActionTeleport extends SignAction {
@@ -125,8 +127,21 @@ public class SignActionTeleport extends SignAction {
                 }
             }
 
-            // Teleport!
-            group.teleportAndGo(dest.getRailsBlock(), spawnDirection);
+            // Teleporting to another world doesn't work on the tick we are updating on (1.14 and later)
+            // We must do this a tick delayed to prevent issues
+            if (dest.getRailsBlock().getWorld() == group.getWorld()) {
+                group.teleportAndGo(dest.getRailsBlock(), spawnDirection);
+            } else {
+                final MinecartGroup targetGroup = group;
+                final Block destRail = dest.getRailsBlock();
+                final BlockFace destDirection = spawnDirection;
+                CommonUtil.nextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        targetGroup.teleportAndGo(destRail, destDirection);
+                    }
+                });
+            }
         }
     }
 

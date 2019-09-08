@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -75,10 +76,17 @@ public class TCMountPacketHandler implements PacketMonitor {
 
         private PlayerHandler(Player player) {
             this._player = player;
+            this.onPlayerRespawned();
         }
 
         public Player getPlayer() {
             return this._player;
+        }
+
+        public synchronized void onPlayerRespawned() {
+            this._checkTasks.clear();
+            this._map.clear();
+            this._map.put(this._player.getEntityId(), new EntityMeta());
         }
 
         public synchronized void mount(int vehicleId, int[] passengerIds) {
@@ -91,10 +99,14 @@ public class TCMountPacketHandler implements PacketMonitor {
 
         private synchronized void despawn(int[] ids) {
             for (int id : ids) {
+                if (id == this._player.getEntityId()) {
+                    continue; // Should never happen, but to be sure.
+                }
+
                 EntityMeta meta = _map.get(id);
                 if (meta != null && meta.spawned) {
                     meta.spawned = false;
-                    if (meta.pendingTasks == null || meta.pendingTasks.isEmpty()) {
+                    if (meta.pendingTasks.isEmpty()) {
                         _map.remove(id);
                     }
                 }
@@ -123,7 +135,7 @@ public class TCMountPacketHandler implements PacketMonitor {
                 meta.spawned = true;
 
                 // Refresh tasks associated with this Id
-                if (meta.pendingTasks != null && !meta.pendingTasks.isEmpty()) {
+                if (!meta.pendingTasks.isEmpty()) {
                     if (this._checkTasks.isEmpty()) {
                         CommonUtil.nextTick(new Runnable() {
                             @Override
@@ -138,6 +150,9 @@ public class TCMountPacketHandler implements PacketMonitor {
         }
 
         private synchronized void runCheckTasks() {
+            if (this._checkTasks.isEmpty()) {
+                return;
+            }
             ArrayList<PendingTask> tasks = new ArrayList<PendingTask>(this._checkTasks);
             this._checkTasks.clear();
             for (PendingTask task : tasks) {
@@ -156,15 +171,14 @@ public class TCMountPacketHandler implements PacketMonitor {
             } else if (type == PacketType.OUT_ENTITY_DESTROY) {
                 despawn(packet.read(PacketType.OUT_ENTITY_DESTROY.entityIds));
             } else if (type == PacketType.OUT_RESPAWN) {
-                this._map.clear();
-                this._checkTasks.clear();
+                onPlayerRespawned();
             }
         }
 
         // called before running a task to handle pre-spawn dependencies
         // adds the pending task to the metadata of the entity, if the entity is not yet spawned
         private boolean require(PendingTask task, int entityId) {
-            if (entityId < 0 || entityId == this._player.getEntityId()) {
+            if (entityId < 0) {
                 return true;
             }
             EntityMeta meta = _map.get(entityId);
@@ -176,14 +190,14 @@ public class TCMountPacketHandler implements PacketMonitor {
                 _map.put(entityId, meta);
                 return false;
             }
-            if (meta.pendingTasks != null) {
+            if (!meta.pendingTasks.isEmpty()) {
                 meta.pendingTasks.remove(task);
                 if (meta.pendingTasks.isEmpty()) {
-                    meta.pendingTasks = null;
+                    meta.pendingTasks = Collections.emptyList();
                 }
             }
             if (!meta.spawned) {
-                if (meta.pendingTasks == null) {
+                if (meta.pendingTasks.isEmpty()) {
                     meta.pendingTasks = new ArrayList<PendingTask>(1);
                 }
                 meta.pendingTasks.add(task);
@@ -195,7 +209,7 @@ public class TCMountPacketHandler implements PacketMonitor {
 
     private static class EntityMeta {
         public boolean spawned = true;
-        public List<PendingTask> pendingTasks = null;
+        public List<PendingTask> pendingTasks = Collections.emptyList();
     }
 
     private static interface PendingTask {
