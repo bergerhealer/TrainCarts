@@ -82,6 +82,7 @@ public class TCConfig {
     public static boolean railTrackerDebugEnabled = false;
     public static boolean wheelTrackerDebugEnabled = false;
     public static boolean initRedstoneWithRadius = true;
+    public static boolean animationsUseTickTime = false;
     public static boolean onlyPoweredEmptySwitchersDoPathfinding = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
@@ -223,6 +224,11 @@ public class TCConfig {
         config.addHeader("useNetworkSynchronizer", "With this enabled, trains are expected to move smoother with less bumping");
         config.addHeader("useNetworkSynchronizer", "With this disabled, no smoothing is applied. Only disable it if it causes problems/incompatibility");
         useNetworkSynchronizer = config.get("useNetworkSynchronizer", true);
+
+        config.setHeader("animationsUseTickTime", "\nSets whether attachment animations use tick time or wall clock time");
+        config.addHeader("animationsUseTickTime", "When false, wall clock time is used, and server lag will not slow down/speed up animations");
+        config.addHeader("animationsUseTickTime", "When true, tick time is used, and server lag will cause speed changes. Animations do stay in sync with physics");
+        animationsUseTickTime = config.get("animationsUseTickTime", false);
 
         config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
         config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");

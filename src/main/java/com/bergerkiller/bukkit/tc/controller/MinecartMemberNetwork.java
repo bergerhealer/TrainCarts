@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -116,9 +117,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     /**
-     * Gets the time point in milliseconds of the last animation update
+     * Gets the delta time in seconds of the current animation frame for the current tick
      * 
-     * @return animation time
+     * @return animation delta time in seconds
      */
     public double getAnimationDeltaTime() {
         return this.animationDeltaTime;
@@ -403,9 +404,13 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void tickSelf() {
         this.getRootAttachment();
 
-        long time_now = System.currentTimeMillis();
-        this.animationDeltaTime = 0.001 * (double) (time_now - this.animationCurrentTime);
-        this.animationCurrentTime = time_now;
+        if (TCConfig.animationsUseTickTime) {
+            this.animationDeltaTime = 1.0 / 20.0;
+        } else {
+            long time_now = System.currentTimeMillis();
+            this.animationDeltaTime = 0.001 * (double) (time_now - this.animationCurrentTime);
+            this.animationCurrentTime = time_now;
+        }
 
         try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
             HelperMethods.updatePositions(this.rootAttachment, getLiveTransform());
