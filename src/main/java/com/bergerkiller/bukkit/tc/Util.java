@@ -620,7 +620,6 @@ public class Util {
             return false;
         }
         key = key.toLowerCase(Locale.ENGLISH);
-        args = args.toLowerCase(Locale.ENGLISH);
         if (holder == null) {
             return prop.parseSet(key, args);
         } else if (prop.parseSet(key, args) || holder.parseSet(key, args)) {
