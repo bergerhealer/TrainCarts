@@ -83,6 +83,7 @@ public class TCConfig {
     public static boolean wheelTrackerDebugEnabled = false;
     public static boolean initRedstoneWithRadius = true;
     public static boolean animationsUseTickTime = false;
+    public static boolean claimNewSavedTrains = true;
     public static boolean onlyPoweredEmptySwitchersDoPathfinding = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
@@ -229,6 +230,13 @@ public class TCConfig {
         config.addHeader("animationsUseTickTime", "When false, wall clock time is used, and server lag will not slow down/speed up animations");
         config.addHeader("animationsUseTickTime", "When true, tick time is used, and server lag will cause speed changes. Animations do stay in sync with physics");
         animationsUseTickTime = config.get("animationsUseTickTime", false);
+
+        config.setHeader("claimNewSavedTrains", "\nSets whether players automatically claim new saved trains that they save");
+        config.addHeader("claimNewSavedTrains", "Once claimed, other players cannot overwrite the saved train, effectively protecting it");
+        config.addHeader("claimNewSavedTrains", "Setting this to false will have new trains exist in public domain, and anyone can modify it");
+        config.addHeader("claimNewSavedTrains", "The original owner can put the train in public domain by disclaiming it (/savedtrain [name] disclaim)");
+        config.addHeader("claimNewSavedTrains", "Players (moderators) with the " + Permission.COMMAND_SAVEDTRAIN_GLOBAL.getName() + " permission are exempt");
+        claimNewSavedTrains = config.get("claimNewSavedTrains", true);
 
         config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
         config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");

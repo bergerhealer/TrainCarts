@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CollisionConfig;
+import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
@@ -476,6 +477,26 @@ public class TrainCommands {
                 MinecartGroup group = prop.getHolder();
                 if (group != null) {
                     String name = args[0];
+                    if (!TrainCarts.plugin.getSavedTrains().hasPermission(p, name)) {
+                        // Check that the player has global editing permission
+                        if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(p)) {
+                            p.sendMessage(ChatColor.RED + "You do not have permission to overwrite saved train " + name);
+                            return true;
+                        }
+
+                        // Check that a second argument, 'forced', is specified
+                        if (args.length > 1 && args[1].equalsIgnoreCase("forced")) {
+                            args = StringUtil.remove(args, 1);
+                        } else {
+                            p.sendMessage(ChatColor.RED + "The saved train '" + name + "' already exists, but it is not yours!");
+                            p.sendMessage(ChatColor.RED + "Here are some options:");
+                            p.sendMessage(ChatColor.RED + "/savedtrain " + name + " info  -  See who claimed it");
+                            p.sendMessage(ChatColor.RED + "/savedtrain " + name + " claim  -  Claim it yourself");
+                            p.sendMessage(ChatColor.RED + "/train save " + name + " forced  -  Force a save and overwrite");
+                            return true;
+                        }
+                    }
+
                     boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
                     try {
                         String module = null;
@@ -489,6 +510,9 @@ public class TrainCommands {
                             p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString + ", a previous train was overwritten");
                         } else {
                             p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
+                            if (TCConfig.claimNewSavedTrains) {
+                                TrainCarts.plugin.getSavedTrains().setClaims(name, Collections.singletonList(new SavedTrainPropertiesStore.Claim(p)));
+                            }
                         }
                     } catch (IllegalNameException ex) {
                         p.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());

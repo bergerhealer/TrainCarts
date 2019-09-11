@@ -12,6 +12,8 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -25,11 +27,28 @@ public class Commands {
     }
 
     public static boolean execute(CommandSender sender, String command, String[] args) {
-        if (args.length == 0) {
-            Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
-            return true;
-        }
         try {
+            // Saved train properties
+            if (command.equalsIgnoreCase("savedtrain")) {
+                if (args.length == 0) {
+                    sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain [trainname] [command] to modify saved trains");
+                    sender.sendMessage("");
+                    SavedTrainCommands.execute(sender, "list", new String[0]);
+                    return true;
+                }
+
+                String savedTrainName = args[0];
+                String[] st_args = StringUtil.remove(args, 0);
+                SavedTrainCommands.execute(sender, savedTrainName, st_args);
+                return true;
+            }
+
+            // Show version information when /train or /cart is used
+            if (args.length == 0) {
+                Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
+                return true;
+            }
+
             // Global commands that do not mutate properties or tickets
             if (GlobalCommands.execute(sender, args)) {
                 return true;
@@ -44,6 +63,7 @@ public class Commands {
                     return true;
                 }
             }
+
             if (!(sender instanceof Player)) {
                 return false;
             }

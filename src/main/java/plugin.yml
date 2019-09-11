@@ -15,3 +15,6 @@ commands:
     cart:
         description: Perform TrainCarts commands for single minecarts
         usage: See development or WIKI page of TrainCarts
+    savedtrain:
+        description: Performs TrainCarts commands for trains that have been saved
+        usage: See development or WIKI page of TrainCarts

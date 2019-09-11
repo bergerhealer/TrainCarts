@@ -2,13 +2,20 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.ListIterator;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
+
+import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -64,6 +71,43 @@ public class SavedTrainPropertiesStore {
     }
 
     /**
+     * Gets a set of modules that have been created
+     * 
+     * @return set of module names
+     */
+    public Set<String> getModuleNames() {
+        return this.modules.keySet();
+    }
+
+    /**
+     * Gets a module by name
+     * 
+     * @param moduleName
+     * @return module, null if no module by this name exists
+     */
+    public SavedTrainPropertiesStore getModule(String moduleName) {
+        return this.modules.get(moduleName);
+    }
+
+    /**
+     * Checks to see what module a train is saved in.
+     * If it is saved in the default place, null is returned.
+     * 
+     * @param name
+     * @return module name, null if not stored in a separate module
+     */
+    public String getModuleNameOfTrain(String name) {
+        if (this.savedTrainsConfig.isNode(name)) {
+            for (Map.Entry<String, SavedTrainPropertiesStore> module : this.modules.entrySet()) {
+                if (module.getValue().savedTrainsConfig.isNode(name)) {
+                    return module.getKey();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Create a module from a filename. If it does not exist, it will be created.
      * @param fileName The filename of the desired module, in format `moduleName.yml`
      */
@@ -74,6 +118,112 @@ public class SavedTrainPropertiesStore {
         }
 
         modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + fileName, false));
+    }
+
+    /**
+     * Checks whether a player has permission to make changes to a saved train.
+     * Returns true if no train by this name exists yet.
+     * 
+     * @param player
+     * @param name
+     * @return True if the player has permission
+     */
+    public boolean hasPermission(CommandSender sender, String name) {
+        // Console always has permission
+        if (!(sender instanceof Player)) {
+            return true; 
+        }
+
+        // Check claims
+        List<Claim> claims = this.getClaims(name);
+        if (claims.isEmpty()) {
+            return true;
+        } else {
+            UUID playerUUID = ((Player) sender).getUniqueId();
+            for (Claim claim : claims) {
+                if (playerUUID.equals(claim.playerUUID)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Gets a list of players that have claimed ownership over a saved train.
+     * An empty list indicates nobody has claimed the saved train, or that the saved
+     * train does not exist.
+     * 
+     * @param name
+     * @return list of player claims, empty is unclaimed or non-existant train
+     */
+    public List<Claim> getClaims(String name) {
+        ConfigurationNode config = this.getConfig(name);
+        if (config != null && config.contains("claims")) {
+            List<String> claim_strings = config.getList("claims", String.class);
+            if (claim_strings != null && !claim_strings.isEmpty()) {
+                List<Claim> claims = new ArrayList<Claim>(claim_strings.size());
+                for (String claim_str : claim_strings) {
+                    try {
+                        claims.add(new Claim(claim_str));
+                    } catch (IllegalArgumentException ex) {
+                        // Ignore
+                    }
+                }
+                return claims;
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Sets a list of players that have claimed ownership over a saved train.
+     * An empty list indicates nobody has claimed the saved train.
+     * Fails silently if the train does not exist.
+     * 
+     * @param name
+     * @param claims list to set to
+     */
+    public void setClaims(String name, List<Claim> claims) {
+        ConfigurationNode config = this.getConfig(name);
+        if (config != null) {
+            // Update configuration
+            if (claims.isEmpty()) {
+                config.remove("claims");
+            } else {
+                List<String> claim_strings = new ArrayList<String>(claims.size());
+                for (Claim claim : claims) {
+                    claim_strings.add(claim.toString());
+                }
+                config.set("claims", claim_strings);
+            }
+
+            // Mark changed
+            String moduleName = this.getModuleNameOfTrain(name);
+            if (moduleName != null) {
+                this.modules.get(moduleName).changed = true;
+            } else {
+                this.changed = true;
+            }
+        }
+    }
+
+    /**
+     * Checks whether a particular saved train name exists inside this store
+     * 
+     * @param name
+     * @return True if the train is contained
+     */
+    public boolean containsTrain(String name) {
+        if (this.savedTrainsConfig.isNode(name)) {
+            return true;
+        }
+        for (SavedTrainPropertiesStore module : this.modules.values()) {
+            if (module.containsTrain(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void save(boolean autosave) {
@@ -106,12 +256,30 @@ public class SavedTrainPropertiesStore {
             if (!this.modules.containsKey(module)) {
                 createModule(module + ".yml");
             }
-            this.modules.get(module).save(group, name, module);
+
+            List<Claim> previousClaims = null;
+            if (this.savedTrainsConfig.isNode(name)) {
+                previousClaims = this.getClaims(name);
+                this.changed = true;
+                this.savedTrainsConfig.remove(name);
+                this.names.remove(name);
+            }
+            SavedTrainPropertiesStore moduleStore = this.modules.get(module);
+            moduleStore.save(group, name, module);
+            if (previousClaims != null) {
+                moduleStore.setClaims(name, previousClaims);
+            }
             return;
         }
 
+        // Save config, preserve claims
+        ConfigurationNode newConfig = group.saveConfig();
+        if (this.savedTrainsConfig.contains(name + ".claims")) {
+            newConfig.set("claims", this.savedTrainsConfig.getList(name + ".claims", String.class));
+        }
+
         this.changed = true;
-        this.savedTrainsConfig.set(name, group.saveConfig());
+        this.savedTrainsConfig.set(name, newConfig);
         this.names.remove(name);
         this.names.add(name);
     }
@@ -120,7 +288,7 @@ public class SavedTrainPropertiesStore {
      * Gets the configuration for a saved train
      * 
      * @param name of the saved train
-     * @return configuration
+     * @return configuration, null if the train is not stored
      */
     public ConfigurationNode getConfig(String name) {
         if (!this.savedTrainsConfig.isNode(name)) {
@@ -163,11 +331,19 @@ public class SavedTrainPropertiesStore {
     }
 
     /**
-     * Get a list of all saved trains in this store (not including modules)
-     * @return A List of the names of all saved trains' in this store
+     * Get a list of all saved trains
+     * 
+     * @return A List of the names of all saved trains
      */
     public List<String> getNames() {
-        return this.names;
+        if (this.modules.isEmpty()) {
+            return this.names;
+        }
+        List<String> result = new ArrayList<String>(this.names);
+        for (SavedTrainPropertiesStore module : this.modules.values()) {
+            result.addAll(module.names);
+        }
+        return result;
     }
 
     /**
@@ -361,11 +537,69 @@ public class SavedTrainPropertiesStore {
         positionNode.set("rotZ", MathUtil.round(rot.getZ(), 6));
     }
 
-    private static List<SavedTrainPropertiesStore> loadSavedTrainsModules(String directory) {
-        List<SavedTrainPropertiesStore> modules = new ArrayList<>();
-        for (File file : StreamUtil.listFiles(new File(directory))) {
-            modules.add(new SavedTrainPropertiesStore(directory + File.separator + file.getName()));
+    /**
+     * A single claim on a saved train
+     */
+    public static class Claim {
+        public final UUID playerUUID;
+        public final String playerName;
+
+        public Claim(OfflinePlayer player) {
+            this.playerUUID = player.getUniqueId();
+            this.playerName = player.getName();
         }
-        return modules;
+
+        public Claim(UUID playerUUID) {
+            this.playerUUID = playerUUID;
+            this.playerName = null;
+        }
+
+        public Claim(String config) throws IllegalArgumentException {
+            config = config.trim();
+            int name_end = config.indexOf(' ');
+            if (name_end == -1) {
+                // Assume only UUID is specified
+                this.playerName = null;
+                this.playerUUID = UUID.fromString(config);
+            } else {
+                // Format 'playername uuid' is used
+                this.playerName = config.substring(0, name_end);
+                this.playerUUID = UUID.fromString(config.substring(name_end+1).trim());
+            }
+        }
+
+        public String description() {
+            if (this.playerName == null) {
+                return "uuid=" + this.playerUUID.toString();
+            } else {
+                return this.playerName;
+            }
+        }
+
+        @Override
+        public String toString() {
+            if (this.playerName == null) {
+                return this.playerUUID.toString();
+            } else {
+                return this.playerName + " " + this.playerUUID.toString();
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return this.playerUUID.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof Claim) {
+                Claim other = (Claim) o;
+                return other.playerUUID.equals(this.playerUUID);
+            } else {
+                return false;
+            }
+        }
     }
 }

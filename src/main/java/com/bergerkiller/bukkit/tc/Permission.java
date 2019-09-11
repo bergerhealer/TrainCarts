@@ -46,6 +46,10 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_GIVE_EDITOR = new Permission("train.command.editor", PermissionDefault.OP, "Whether the player can use commands to give himself editors for trains (models) and signs");
     public static final Permission COMMAND_USE_STORAGE_CHEST = new Permission("train.command.chest", PermissionDefault.OP, "Whether the player can use a chest item that can store and spawn trains");
     public static final Permission COMMAND_SAVE_TRAIN = new Permission("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name");
+    public static final Permission COMMAND_SAVEDTRAIN_RENAME = new Permission("train.command.savedtrain.rename", PermissionDefault.OP, "Whether the player can rename a saved train to a new name");
+    public static final Permission COMMAND_SAVEDTRAIN_DELETE = new Permission("train.command.savedtrain.delete", PermissionDefault.OP, "Whether the player can delete a previously saved train");
+    public static final Permission COMMAND_SAVEDTRAIN_CLAIM = new Permission("train.command.savedtrain.claim", PermissionDefault.OP, "Whether the player can change who has claimed a saved train");
+    public static final Permission COMMAND_SAVEDTRAIN_GLOBAL = new Permission("train.command.savedtrain.global", PermissionDefault.OP, "Whether the player can modify, delete or claim saved trains claimed by other players");
     public static final Permission COMMAND_ENTER = new Permission("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited");
     public static final Permission COMMAND_LAUNCH = new Permission("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited");
     public static final Permission COMMAND_ANIMATE = new Permission("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation");
