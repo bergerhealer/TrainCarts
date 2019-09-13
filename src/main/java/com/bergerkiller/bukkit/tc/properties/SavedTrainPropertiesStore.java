@@ -331,6 +331,62 @@ public class SavedTrainPropertiesStore {
     }
 
     /**
+     * Tries to remove saved train properties by name.
+     * If the same name exists multiple times in different modules, only one
+     * instance is removed.
+     * 
+     * @param name
+     * @return True if found and removed
+     */
+    public boolean remove(String name) {
+        if (this.savedTrainsConfig.isNode(name)) {
+            this.savedTrainsConfig.remove(name);
+            this.names.remove(name);
+            this.changed = true;
+            return true;
+        } else {
+            for (SavedTrainPropertiesStore module : this.modules.values()) {
+                if (module.remove(name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Tries to rename saved train properties.
+     * If the same name exists multiple times in different modules, only one
+     * instance is renamed.
+     * 
+     * @param name
+     * @param newName
+     * @return True if found and renamed
+     */
+    public boolean rename(String name, String newName) {
+        if (this.savedTrainsConfig.isNode(name)) {
+            if (name.equals(newName)) {
+                return true;
+            }
+            ConfigurationNode oldConfig = this.savedTrainsConfig.getNode(name).clone();
+            this.savedTrainsConfig.remove(name);
+            this.names.remove(name);
+            this.names.remove(newName);
+            this.savedTrainsConfig.set(newName, oldConfig);
+            this.names.add(newName);
+            this.changed = true;
+            return true;
+        } else {
+            for (SavedTrainPropertiesStore module : this.modules.values()) {
+                if (module.rename(name, newName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
      * Get a list of all saved trains
      * 
      * @return A List of the names of all saved trains

@@ -36,13 +36,15 @@ public class SavedTrainCommands {
         SavedTrainPropertiesStore savedTrains = TrainCarts.plugin.getSavedTrains();
         ConfigurationNode savedTrainConfig;
         boolean checkPerms = (sender instanceof Player) && !Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender);
+        boolean isClaimedBySender;
         String command = "info";
         if (args.length > 0) {
             command = args[0].toLowerCase(Locale.ENGLISH);
             args = StringUtil.remove(args, 0);
         }
         if (savedTrains.containsTrain(savedTrainName)) {
-            if (checkPerms && !savedTrains.hasPermission(sender, savedTrainName)) {
+            isClaimedBySender = savedTrains.hasPermission(sender, savedTrainName);
+            if (checkPerms && !isClaimedBySender) {
                 sender.sendMessage(ChatColor.RED + "You do not have permission to change this saved train!");
                 return;
             }
@@ -219,6 +221,51 @@ public class SavedTrainCommands {
             buildClaimList(builder, updatedClaimList);
             builder.send(sender);
 
+            return;
+        }
+
+        // Remove: removes the train. If not self-owned, requires force as second parameter
+        if (LogicUtil.contains(command, "delete", "remove", "erase")) {
+            Permission.COMMAND_SAVEDTRAIN_DELETE.handle(sender);
+
+            // Deny if not claimed by the sender, unless forced
+            if (!isClaimedBySender && (args.length == 0 || !LogicUtil.contains(args[0].toLowerCase(Locale.ENGLISH), "force", "forced"))) {
+                sender.sendMessage(ChatColor.RED + "The saved train '" + savedTrainName + "' is not yours!");
+                sender.sendMessage(ChatColor.RED + "To force removal anyway, use /savedtrain " + savedTrainName + " remove force");
+                return;
+            }
+
+            savedTrains.remove(savedTrainName);
+            sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + savedTrainName +
+                    ChatColor.YELLOW + "' has been removed!");
+            return;
+        }
+
+        // Rename: change the name of a train
+        if (LogicUtil.contains(command, "rename", "changename", "move")) {
+            Permission.COMMAND_SAVEDTRAIN_RENAME.handle(sender);
+
+            // Verify name is specified
+            if (args.length == 0) {
+                sender.sendMessage(ChatColor.RED + "Please specify the new name for " + savedTrainName);
+                return;
+            }
+            if (args[0].equals(savedTrainName)) {
+                sender.sendMessage(ChatColor.RED + "The new name is the same as the current name");
+                return;
+            }
+
+            // Deny if not claimed by the sender, unless forced
+            if (!isClaimedBySender && (args.length == 1 || !LogicUtil.contains(args[1].toLowerCase(Locale.ENGLISH), "force", "forced"))) {
+                sender.sendMessage(ChatColor.RED + "The saved train '" + savedTrainName + "' is not yours!");
+                sender.sendMessage(ChatColor.RED + "To force rename anyway, use /savedtrain " + savedTrainName + " rename " + args[0] + " force");
+                return;
+            }
+
+            savedTrains.rename(savedTrainName, args[0]);
+            sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + savedTrainName +
+                    ChatColor.YELLOW + "' has been renamed to '" + ChatColor.WHITE + args[0] +
+                    ChatColor.YELLOW + "'!");
             return;
         }
 
