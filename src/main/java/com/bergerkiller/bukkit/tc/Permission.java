@@ -46,6 +46,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_GIVE_EDITOR = new Permission("train.command.editor", PermissionDefault.OP, "Whether the player can use commands to give himself editors for trains (models) and signs");
     public static final Permission COMMAND_USE_STORAGE_CHEST = new Permission("train.command.chest", PermissionDefault.OP, "Whether the player can use a chest item that can store and spawn trains");
     public static final Permission COMMAND_SAVE_TRAIN = new Permission("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name");
+    public static final Permission COMMAND_SAVEDTRAIN_REVERSE = new Permission("train.command.savedtrain.reverse", PermissionDefault.OP, "Whether the player can reverse a saved train, so that back becomes front when spawning");
     public static final Permission COMMAND_SAVEDTRAIN_RENAME = new Permission("train.command.savedtrain.rename", PermissionDefault.OP, "Whether the player can rename a saved train to a new name");
     public static final Permission COMMAND_SAVEDTRAIN_DELETE = new Permission("train.command.savedtrain.delete", PermissionDefault.OP, "Whether the player can delete a previously saved train");
     public static final Permission COMMAND_SAVEDTRAIN_CLAIM = new Permission("train.command.savedtrain.claim", PermissionDefault.OP, "Whether the player can change who has claimed a saved train");

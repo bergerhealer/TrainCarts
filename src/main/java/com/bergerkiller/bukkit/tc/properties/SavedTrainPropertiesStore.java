@@ -387,6 +387,34 @@ public class SavedTrainPropertiesStore {
     }
 
     /**
+     * Reverses the carts of a train, reversing both the order and toggling the 'flipped' property
+     * for each cart.
+     * 
+     * @param name of the train
+     * @return True if the train was found and reversed
+     */
+    public boolean reverse(String name) {
+        if (this.savedTrainsConfig.isNode(name)) {
+            ConfigurationNode config = this.savedTrainsConfig.getNode(name);
+            List<ConfigurationNode> carts = config.getNodeList("carts");
+            Collections.reverse(carts);
+            for (ConfigurationNode cart : carts) {
+                cart.set("flipped", !cart.get("flipped", false));
+            }
+            config.setNodeList("carts", carts);
+            this.changed = true;
+            return true;
+        } else {
+            for (SavedTrainPropertiesStore module : this.modules.values()) {
+                if (module.reverse(name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
      * Get a list of all saved trains
      * 
      * @return A List of the names of all saved trains

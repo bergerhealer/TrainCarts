@@ -54,12 +54,13 @@ public class SavedTrainCommands {
             // Then show all trains the player could be editing
             boolean isListCommand = savedTrainName.equals("list");
             if (!isListCommand) {
-                sender.sendMessage(ChatColor.RED + "Saved train '" + savedTrainName + "' does not exist!");
                 sender.sendMessage("");
+                sender.sendMessage(ChatColor.RED + "Saved train '" + savedTrainName + "' does not exist!");
             }
 
             SavedTrainPropertiesStore module = savedTrains;
             MessageBuilder builder = new MessageBuilder();
+            builder.newLine();
             if (isListCommand && args.length > 0 && args[0].equalsIgnoreCase("modules")) {
                 builder.blue("The following modules are available:");
                 builder.newLine().setSeparator(ChatColor.WHITE, " / ");
@@ -93,6 +94,7 @@ public class SavedTrainCommands {
         if (command.equals("info")) {
             String module = savedTrains.getModuleNameOfTrain(savedTrainName);
             MessageBuilder builder = new MessageBuilder();
+            builder.newLine();
             builder.green("Properties of saved train '").white(savedTrainName).green("':").newLine();
             if (module != null) {
                 builder.yellow("Stored in module: ").white(module).newLine();
@@ -217,6 +219,9 @@ public class SavedTrainCommands {
 
             // Display new values
             MessageBuilder builder = new MessageBuilder();
+            if (updatedClaimList.size() > 1) {
+                builder.newLine();
+            }
             builder.yellow("Saved train '").white(savedTrainName).yellow("' is now claimed by: ");
             buildClaimList(builder, updatedClaimList);
             builder.send(sender);
@@ -224,16 +229,32 @@ public class SavedTrainCommands {
             return;
         }
 
+        // All below commands alter the saved train in some way. When the player has not actually claimed
+        // the train, require prepending the command with 'force' or 'forced'
+        if (LogicUtil.contains(command, "force", "forced")) {
+            isClaimedBySender = true;
+            if (args.length == 0) {
+                sender.sendMessage(ChatColor.RED + "Please specify the command to force");
+                sender.sendMessage(ChatColor.RED + "/savedtrain " + savedTrainName + " force [command]");
+                return;
+            }
+
+            // Take one extra argument for the command
+            command = args[0].toLowerCase(Locale.ENGLISH);
+            args = StringUtil.remove(args, 0);
+        }
+
+        // Deny if not claimed by the sender, unless forced
+        if (!isClaimedBySender) {
+            sender.sendMessage(ChatColor.RED + "The saved train '" + savedTrainName + "' is not yours!");
+            sender.sendMessage(ChatColor.RED + "To force the " + command + " command, use:");
+            sender.sendMessage(ChatColor.RED + "/savedtrain " + savedTrainName + " force " + command + " " + StringUtil.join(" ", args));
+            return;
+        }
+
         // Remove: removes the train. If not self-owned, requires force as second parameter
         if (LogicUtil.contains(command, "delete", "remove", "erase")) {
             Permission.COMMAND_SAVEDTRAIN_DELETE.handle(sender);
-
-            // Deny if not claimed by the sender, unless forced
-            if (!isClaimedBySender && (args.length == 0 || !LogicUtil.contains(args[0].toLowerCase(Locale.ENGLISH), "force", "forced"))) {
-                sender.sendMessage(ChatColor.RED + "The saved train '" + savedTrainName + "' is not yours!");
-                sender.sendMessage(ChatColor.RED + "To force removal anyway, use /savedtrain " + savedTrainName + " remove force");
-                return;
-            }
 
             savedTrains.remove(savedTrainName);
             sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + savedTrainName +
@@ -255,13 +276,6 @@ public class SavedTrainCommands {
                 return;
             }
 
-            // Deny if not claimed by the sender, unless forced
-            if (!isClaimedBySender && (args.length == 1 || !LogicUtil.contains(args[1].toLowerCase(Locale.ENGLISH), "force", "forced"))) {
-                sender.sendMessage(ChatColor.RED + "The saved train '" + savedTrainName + "' is not yours!");
-                sender.sendMessage(ChatColor.RED + "To force rename anyway, use /savedtrain " + savedTrainName + " rename " + args[0] + " force");
-                return;
-            }
-
             savedTrains.rename(savedTrainName, args[0]);
             sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + savedTrainName +
                     ChatColor.YELLOW + "' has been renamed to '" + ChatColor.WHITE + args[0] +
@@ -269,7 +283,18 @@ public class SavedTrainCommands {
             return;
         }
 
-        sender.sendMessage(ChatColor.RED + "Unknown command: " + command);
+        // Reverse: reverse the order of the carts and flip each individual cart around
+        if (LogicUtil.contains(command, "reverse", "inverse", "invert", "flip")) {
+            Permission.COMMAND_SAVEDTRAIN_RENAME.handle(sender);
+
+            savedTrains.reverse(savedTrainName);
+            sender.sendMessage(ChatColor.GREEN + "Saved train '" + ChatColor.WHITE + savedTrainName +
+                    ChatColor.GREEN + "' has been reversed!");
+            return;
+        }
+
+        sender.sendMessage(ChatColor.RED + "Unknown command: '" + command + "'. Available sub-commands:");
+        sender.sendMessage(ChatColor.RED + "[info/claim/unclaim/clearclaims/remove/rename/reverse]");
     }
 
     private static void buildClaimList(MessageBuilder builder, List<SavedTrainPropertiesStore.Claim> claims) {
