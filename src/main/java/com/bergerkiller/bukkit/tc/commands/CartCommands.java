@@ -34,24 +34,24 @@ public class CartCommands {
         TrainPropertiesStore.markForAutosave();
         if (cmd.equals("info") || cmd.equals("i")) {
             info(p, prop);
-        } else if (cmd.equals("playerenter")) {
+        } else if (cmd.equalsIgnoreCase("playerenter")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYERENTER.handle(p);
                 prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players can enter this minecart: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
-        } else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "playerleave", "playerexit")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYEREXIT.handle(p);
                 prop.setPlayersExit(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players can exit this minecart: " + ChatColor.WHITE + " " + prop.getPlayersExit());
-        } else if (cmd.equals("claim")) {
+        } else if (cmd.equalsIgnoreCase("claim")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwners();
             prop.setOwner(p, true);
             p.sendMessage(ChatColor.YELLOW + "You claimed this minecart your own!");
-        } else if (cmd.equals("addowner") || cmd.equals("addowners")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "addowner", "addowners")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.YELLOW + "Please specify the player names to set as owner!");
@@ -61,7 +61,7 @@ public class CartCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as owners of this minecart!");
             }
-        } else if (cmd.equals("setowner") || cmd.equals("setowners")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setowner", "setowners")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwners();
             if (args.length == 0) {
@@ -72,7 +72,7 @@ public class CartCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as owners of this minecart!");
             }
-        } else if (cmd.equals("setownerperm") || cmd.equals("setownerpermission") || cmd.equals("setownerpermissions")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setownerperm", "setownerpermission", "setownerpermissions")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwnerPermissions();
             if (args.length == 0) {
@@ -84,7 +84,7 @@ public class CartCommands {
                 p.sendMessage(ChatColor.YELLOW + "You set the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " for this minecart");
                 p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
             }
-        } else if (cmd.equals("addownerperm") || cmd.equals("addownerpermission") || cmd.equals("addownerpermissions")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "addownerperm", "addownerpermission", "addownerpermissions")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.YELLOW + "Please specify the permission nodes to add!");
@@ -95,7 +95,7 @@ public class CartCommands {
                 p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this minecart");
                 p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
             }
-        } else if (cmd.equals("addtags") || cmd.equals("addtag")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "addtags", "addtag")) {
             Permission.COMMAND_SETTAGS.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.RED + "You need to give at least one tag to add!");
@@ -103,7 +103,7 @@ public class CartCommands {
                 prop.addTags(args);
                 p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for this minecart!");
             }
-        } else if (cmd.equals("settags") || cmd.equals("settag") || cmd.equals("tags") || cmd.equals("tag")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "settags", "settag", "tags", "tag")) {
             Permission.COMMAND_SETTAGS.handle(p);
             prop.clearTags();
             if (args.length == 0) {
@@ -112,7 +112,7 @@ public class CartCommands {
                 prop.addTags(args);
                 p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for this minecart!");
             }
-        } else if (cmd.equals("dest") || cmd.equals("destination")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "dest", "destination")) {
             Permission.COMMAND_SETDESTINATION.handle(p);
             if (args.length == 0) {
                 prop.clearDestination();
@@ -121,7 +121,7 @@ public class CartCommands {
                 prop.setDestination(StringUtil.join(" ", args[0]));
                 p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + args[0] + ChatColor.YELLOW + " as destination for this minecart!");
             }
-        } else if (cmd.equals("remove") || cmd.equals("destroy")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "remove", "destroy")) {
             Permission.COMMAND_DESTROY.handle(p);
             MinecartMember<?> mm = prop.getHolder();
             if (mm == null) {
@@ -131,7 +131,7 @@ public class CartCommands {
                 mm.onDie();
             }
             p.sendMessage(ChatColor.YELLOW + "The selected minecart has been destroyed!");
-        } else if (cmd.equals("public")) {
+        } else if (cmd.equalsIgnoreCase("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             if (args.length == 0) {
                 prop.setPublic(true);
@@ -139,7 +139,7 @@ public class CartCommands {
                 prop.setPublic(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "The selected minecart can be used by everyone: " + ChatColor.WHITE + prop.isPublic());
-        } else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "private", "locked", "lock")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             if (args.length == 0) {
                 prop.setPublic(false);
@@ -147,7 +147,7 @@ public class CartCommands {
                 prop.setPublic(!ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be used by you: " + ChatColor.WHITE + !prop.isPublic());
-        } else if (cmd.equals("pickup")) {
+        } else if (cmd.equalsIgnoreCase("pickup")) {
             Permission.COMMAND_PICKUP.handle(p);
             if (args.length == 0) {
                 prop.setPickup(true);
@@ -155,7 +155,7 @@ public class CartCommands {
                 prop.setPickup(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "The selected minecart picks up nearby items: " + ChatColor.WHITE + prop.canPickup());
-        } else if (cmd.equals("break")) {
+        } else if (cmd.equalsIgnoreCase("break")) {
             Permission.COMMAND_BREAKBLOCK.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.YELLOW + "This cart breaks: " + ChatColor.WHITE + StringUtil.combineNames(prop.getBlockBreakTypes()));
@@ -192,10 +192,10 @@ public class CartCommands {
                     }
                 }
             }
-        } else if (cmd.equals("path") || cmd.equals("route") || cmd.equals("pathinfo")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "path", "route", "pathinfo")) {
             Permission.COMMAND_PATHINFO.handle(p);
             Commands.showPathInfo(p, prop);
-        } else if (cmd.equals("teleport") || cmd.equals("tp")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "teleport", "tp")) {
             Permission.COMMAND_TELEPORT.handle(p);
             if (!prop.restore()) {
                 p.sendMessage(ChatColor.RED + "Cart location could not be found: Cart is lost");
@@ -208,7 +208,7 @@ public class CartCommands {
                     EntityUtil.teleport(p, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
                 }
             }
-        } else if (LogicUtil.contains(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
             Permission.COMMAND_CHANGEBLOCK.handle(p);
             MinecartMember<?> member = prop.getHolder();
             if (member == null) {
@@ -222,7 +222,7 @@ public class CartCommands {
                 SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args), SignActionBlockChanger.BLOCK_OFFSET_NONE);
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block updated!");
             }
-        } else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
             Permission.COMMAND_CHANGEBLOCK.handle(p);
             MinecartMember<?> member = prop.getHolder();
             if (member == null) {
@@ -235,7 +235,7 @@ public class CartCommands {
                 member.getEntity().setBlockOffset(offset);
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block offset updated!");
             }
-        } else if (LogicUtil.contains(cmd, "anim", "animate", "playanimation")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "anim", "animate", "playanimation")) {
             Permission.COMMAND_ANIMATE.handle(p);
             if (prop.hasHolder()) {
                 AnimationOptions opt = new AnimationOptions();
@@ -253,7 +253,7 @@ public class CartCommands {
             return true;
         } else {
             // Show help
-            if (!cmd.equals("help") && !cmd.equals("?")) {
+            if (!cmd.equalsIgnoreCase("help") && !cmd.equalsIgnoreCase("?")) {
                 p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
             }
             help(new MessageBuilder()).send(p);

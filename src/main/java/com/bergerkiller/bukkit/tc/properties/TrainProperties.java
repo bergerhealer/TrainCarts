@@ -867,7 +867,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public boolean parseSet(String key, String arg) {
         TrainPropertiesStore.markForAutosave();
-        if (key.equals("exitoffset")) {
+        if (key.equalsIgnoreCase("exitoffset")) {
             Vector vec = Util.parseVector(arg, null);
             if (vec != null) {
                 if (vec.length() > TCConfig.maxEjectDistance) {
@@ -877,17 +877,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                     prop.exitOffset = vec;
                 }
             }
-        } else if (key.equals("exityaw")) {
+        } else if (key.equalsIgnoreCase("exityaw")) {
             float yaw = ParseUtil.parseFloat(arg, 0.0f);
             for (CartProperties prop : this) {
                 prop.exitYaw = yaw;
             }
-        } else if (key.equals("exitpitch")) {
+        } else if (key.equalsIgnoreCase("exitpitch")) {
             float pitch = ParseUtil.parseFloat(arg, 0.0f);
             for (CartProperties prop : this) {
                 prop.exitPitch = pitch;
             }
-        } else if (LogicUtil.contains(key, "exitrot", "exitrotation")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "exitrot", "exitrotation")) {
             String[] angletext = Util.splitBySeparator(arg);
             float yaw = 0.0f;
             float pitch = 0.0f;
@@ -901,35 +901,35 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 prop.exitYaw = yaw;
                 prop.exitPitch = pitch;
             }
-        } else if (key.equals("killmessage")) {
+        } else if (key.equalsIgnoreCase("killmessage")) {
             this.killMessage = arg;
-        } else if (key.equals("sound") || key.equals("minecartsound")) {
+        } else if (key.equalsIgnoreCase("sound") || key.equalsIgnoreCase("minecartsound")) {
             this.soundEnabled = ParseUtil.parseBool(arg);
-        } else if (key.equals("playercollision")) {
+        } else if (key.equalsIgnoreCase("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
             this.playerCollision = mode;
-        } else if (key.equals("misccollision")) {
+        } else if (key.equalsIgnoreCase("misccollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
             this.miscCollision = mode;
-        } else if (key.equals("traincollision")) {
+        } else if (key.equalsIgnoreCase("traincollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
             this.trainCollision = mode;
-        } else if (key.equals("blockcollision")) {
+        } else if (key.equalsIgnoreCase("blockcollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
             this.blockCollision = mode;
-        } else if (key.equals("collisiondamage")) {
+        } else if (key.equalsIgnoreCase("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(arg));
-        } else if (key.equals("suffocation")) {
+        } else if (key.equalsIgnoreCase("suffocation")) {
             this.suffocation = ParseUtil.parseBool(arg);
         } else if (this.setCollisionMode(key, arg)) {
             return true;
-        } else if (LogicUtil.contains(key, "collision", "collide")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "collision", "collide")) {
             this.setColliding(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.contains(key, "linking", "link")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "linking", "link")) {
             this.setLinking(ParseUtil.parseBool(arg));
         } else if (key.toLowerCase(Locale.ENGLISH).startsWith("slow")) {
             SlowdownMode slowMode = null;
@@ -944,93 +944,93 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             } else {
                 this.setSlowingDown(ParseUtil.parseBool(arg));
             }
-        } else if (LogicUtil.contains(key, "setdefault", "default")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "setdefault", "default")) {
             this.setDefault(arg);
-        } else if (key.equals("pushplayers")) {
+        } else if (key.equalsIgnoreCase("pushplayers")) {
             this.playerCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-        } else if (key.equals("pushmisc")) {
+        } else if (key.equalsIgnoreCase("pushmisc")) {
             this.miscCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.contains(key, "push", "pushing")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
             this.playerCollision = this.miscCollision = mode;
             this.updateAllCollisionProperties(mode);
-        } else if (LogicUtil.contains(key, "speedlimit", "maxspeed")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
             this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
-        } else if (LogicUtil.contains(key, "allowmanual", "manualmove", "manual")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
             this.allowManualMovement = ParseUtil.parseBool(arg);
-        } else if (LogicUtil.contains(key, "keepcloaded", "loadchunks", "keeploaded")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "keepcloaded", "loadchunks", "keeploaded")) {
             this.setKeepChunksLoaded(ParseUtil.parseBool(arg));
-        } else if (key.equals("addtag")) {
+        } else if (key.equalsIgnoreCase("addtag")) {
             this.addTags(arg);
-        } else if (key.equals("settag")) {
+        } else if (key.equalsIgnoreCase("settag")) {
             this.setTags(arg);
-        } else if (key.equals("destination")) {
+        } else if (key.equalsIgnoreCase("destination")) {
             this.setDestination(arg);
-        } else if (key.equals("remtag") || key.equals("removetag")) {
+        } else if (key.equalsIgnoreCase("remtag") || key.equalsIgnoreCase("removetag")) {
             this.removeTags(arg);
-        } else if (LogicUtil.contains(key, "name", "rename", "setname")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "name", "rename", "setname")) {
             this.setName(generateTrainName(arg));
-        } else if (LogicUtil.contains(key, "dname", "displayname", "setdisplayname", "setdname")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {
             this.setDisplayName(arg);
-        } else if (LogicUtil.contains(key, "mobenter", "mobsenter")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "mobenter", "mobsenter")) {
             this.updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
-        } else if (key.equals("waitdistance")) {
+        } else if (key.equalsIgnoreCase("waitdistance")) {
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
-        } else if (key.equals("playerenter")) {
+        } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
-        } else if (key.equals("playerexit")) {
+        } else if (key.equalsIgnoreCase("playerexit")) {
             this.setPlayersExit(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.contains(key, "invincible", "godmode")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "invincible", "godmode")) {
             this.setInvincible(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.contains(key, "banking")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "banking")) {
             String[] args = arg.split(" ");
             this.setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
             if (args.length >= 2) {
                 this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
             }
-        } else if (key.equals("setownerperm")) {
+        } else if (key.equalsIgnoreCase("setownerperm")) {
             for (CartProperties prop : this) {
                 prop.clearOwnerPermissions();
                 prop.getOwnerPermissions().add(arg);
             }
-        } else if (key.equals("addownerperm")) {
+        } else if (key.equalsIgnoreCase("addownerperm")) {
             for (CartProperties prop : this) {
                 prop.getOwnerPermissions().add(arg);
             }
-        } else if (key.equals("remownerperm")) {
+        } else if (key.equalsIgnoreCase("remownerperm")) {
             for (CartProperties prop : this) {
                 prop.getOwnerPermissions().remove(arg);
             }
-        } else if (key.equals("setowner")) {
+        } else if (key.equalsIgnoreCase("setowner")) {
             arg = arg.toLowerCase();
             for (CartProperties cprop : this) {
                 cprop.clearOwners();
                 cprop.getOwners().add(arg);
             }
-        } else if (key.equals("addowner")) {
+        } else if (key.equalsIgnoreCase("addowner")) {
             arg = arg.toLowerCase();
             for (CartProperties cprop : this) {
                 cprop.getOwners().add(arg);
             }
-        } else if (key.equals("remowner")) {
+        } else if (key.equalsIgnoreCase("remowner")) {
             arg = arg.toLowerCase();
             for (CartProperties cprop : this) {
                 cprop.getOwners().remove(arg);
             }
-        } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
-        } else if (key.equals("addticket")) {
+        } else if (key.equalsIgnoreCase("addticket")) {
             this.addTicket(arg);
-        } else if (key.equals("remticket")) {
+        } else if (key.equalsIgnoreCase("remticket")) {
             this.removeTicket(arg);
-        } else if (key.equals("setticket")) {
+        } else if (key.equalsIgnoreCase("setticket")) {
             this.clearTickets();
             if (arg.length() > 0) {
                 this.addTicket(arg);
             }
-        } else if (key.equals("clrticket")) {
+        } else if (key.equalsIgnoreCase("clrticket")) {
             this.clearTickets();
-        } else if (key.equals("drivesound")) {
+        } else if (key.equalsIgnoreCase("drivesound")) {
             for (CartProperties cprop : this) {
                 cprop.setDriveSound(arg);
             }

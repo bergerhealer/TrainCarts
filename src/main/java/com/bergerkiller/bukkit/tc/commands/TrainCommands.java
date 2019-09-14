@@ -41,57 +41,57 @@ public class TrainCommands {
 
     public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
-        if (cmd.equals("info") || cmd.equals("i")) {
+        if (LogicUtil.containsIgnoreCase(cmd, "info", "i")) {
             info(p, prop);
-        } else if (cmd.equals("playerenter")) {
+        } else if (cmd.equalsIgnoreCase("playerenter")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYERENTER.handle(p);
                 prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players can enter this train: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
-        } else if (cmd.equals("playerleave") || cmd.equals("playerexit")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "playerleave", "playerexit")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYEREXIT.handle(p);
                 prop.setPlayersExit(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players can exit this train: " + ChatColor.WHITE + " " + prop.getPlayersExit());
-        } else if (cmd.equals("sound") || cmd.equals("soundenabled")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "sound", "soundenabled")) {
             if (args.length == 1) {
                 Permission.COMMAND_SOUND.handle(p);
                 prop.setSoundEnabled(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Minecart sound enabled: " + ChatColor.WHITE + prop.isSoundEnabled());
-        } else if (cmd.equals("linking") || cmd.equals("link")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "linking", "link")) {
             if (args.length == 1) {
                 Permission.COMMAND_SETLINKING.handle(p);
                 prop.setLinking(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + (prop.trainCollision == CollisionMode.LINK));
-        } else if (cmd.equals("playertake") || cmd.equals("allowplayertake")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "playertake", "allowplayertake")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYERTAKE.handle(p);
                 prop.setPlayerTakeable(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players take Minecart with them: " + ChatColor.WHITE + prop.isPlayerTakeable());
-        } else if (cmd.equals("keepchunksloaded")) {
+        } else if (cmd.equalsIgnoreCase("keepchunksloaded")) {
             if (args.length == 1) {
                 Permission.COMMAND_KEEPCHUNKSLOADED.handle(p);
                 prop.setKeepChunksLoaded(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
-        } else if (cmd.equals("invincible")) {
+        } else if (cmd.equalsIgnoreCase("invincible")) {
             if (args.length == 1) {
                 Permission.COMMAND_INVINCIBLE.handle(p);
                 prop.setInvincible(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Train invincible: " + ChatColor.WHITE + prop.isInvincible());
-        } else if (cmd.equals("manualmove") || cmd.equals("allowmanual") || cmd.equals("manual") || cmd.equals("allowmanualmovement")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "manualmove", "allowmanual", "manual", "allowmanualmovement")) {
             if (args.length == 1) {
                 Permission.COMMAND_MANUALMOVE.handle(p);
                 prop.setManualMovementAllowed(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players can move carts by damaging them: " + ChatColor.WHITE + prop.isManualMovementAllowed());
-        } else if (cmd.equals("setownerperm") || cmd.equals("setownerpermission") || cmd.equals("setownerpermissions")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setownerperm", "setownerpermission", "setownerpermissions")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwnerPermissions();
             if (args.length == 0) {
@@ -114,7 +114,7 @@ public class TrainCommands {
                     }
                 }
             }
-        } else if (cmd.equals("addownerperm") || cmd.equals("addownerpermission") || cmd.equals("addownerpermissions")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "addownerperm", "addownerpermission", "addownerpermissions")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.YELLOW + "Please specify the permission nodes to add!");
@@ -136,7 +136,7 @@ public class TrainCommands {
                     }
                 }
             }
-        } else if (cmd.equals("claim") || cmd.equals("addowner") || cmd.equals("setowner") || cmd.equals("addowners") || cmd.equals("setowners")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "claim", "addowner", "setowner", "addowners", "setowners")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             //claim as many carts as possible
             int changed = 0;
@@ -172,7 +172,7 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.RED + "You failed to set any owners: you don't own any carts!");
             }
-        } else if (cmd.equals("pushmobs") || cmd.equals("pushplayers") || cmd.equals("pushmisc")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "pushmobs", "pushplayers", "pushmisc")) {
             Permission.COMMAND_PUSHING.handle(p);
             // Parse a new collision mode to set to
             CollisionMode newState = null;
@@ -206,7 +206,7 @@ public class TrainCommands {
                 msg += result.getFriendlyMobName() + ": " + ChatColor.WHITE + " " + (newState == CollisionMode.PUSH);
             }
             p.sendMessage(msg);
-        } else if (cmd.equals("slowdown") || cmd.equals("slow") || cmd.equals("setslow") || cmd.equals("setslowdown")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "slowdown", "slow", "setslow", "setslowdown")) {
             Permission.COMMAND_SLOWDOWN.handle(p);
 
             // Get the mode queried, optionally set it if a boolean parameter is specified
@@ -234,7 +234,7 @@ public class TrainCommands {
             MessageBuilder message = new MessageBuilder();
             infoSlowDown(message, prop);
             message.send(p);
-        } else if (cmd.equals("setcollide") || cmd.equals("setcollision") || cmd.equals("collision") || cmd.equals("collide")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setcollide", "setcollision", "collision", "collide")) {
             Permission.COMMAND_SETCOLLIDE.handle(p);
             if (args.length == 2) {
                 CollisionMode mode = CollisionMode.parse(args[1]);
@@ -280,7 +280,7 @@ public class TrainCommands {
                 p.sendMessage(ChatColor.YELLOW + "Can collide with other entities: " + ChatColor.WHITE + prop.getColliding());
             }
             prop.tryUpdate();
-        } else if (cmd.equals("speedlimit") || cmd.equals("maxspeed")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "speedlimit", "maxspeed")) {
             Permission.COMMAND_SETSPEEDLIMIT.handle(p);
             if (args.length == 1) {
                 try {
@@ -290,13 +290,13 @@ public class TrainCommands {
                 }
             }
             p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
-        } else if (cmd.equals("requirepoweredminecart") || cmd.equals("requirepowered")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "requirepoweredminecart", "requirepowered")) {
             Permission.COMMAND_SETPOWERCARTREQ.handle(p);
             if (args.length == 1) {
                 prop.requirePoweredMinecart = ParseUtil.parseBool(args[0]);
             }
             p.sendMessage(ChatColor.YELLOW + "Requires powered minecart to stay alive: " + ChatColor.WHITE + prop.requirePoweredMinecart);
-        } else if (cmd.equals("rename") || cmd.equals("setname") || cmd.equals("name")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "rename", "setname", "name")) {
             Permission.COMMAND_RENAME.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
@@ -309,7 +309,7 @@ public class TrainCommands {
                     p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
                 }
             }
-        } else if (cmd.equals("displayname") || cmd.equals("display") || cmd.equals("dname") || cmd.equals("setdname") || cmd.equals("setdisplayname")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "displayname", "display", "dname", "setdname", "setdisplayname")) {
             Permission.COMMAND_DISPLAYNAME.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
@@ -317,7 +317,7 @@ public class TrainCommands {
                 prop.setDisplayName(StringUtil.ampToColor(StringUtil.join(" ", args)));
                 p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.getDisplayName() + ChatColor.YELLOW + "!");
             }
-        } else if (cmd.equals("addtags") || cmd.equals("addtag")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "addtags", "addtag")) {
             Permission.COMMAND_SETTAGS.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.RED + "You need to give at least one tag to add!");
@@ -325,7 +325,7 @@ public class TrainCommands {
                 prop.addTags(args);
                 p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for all minecarts in this train!");
             }
-        } else if (cmd.equals("settags") || cmd.equals("settag") || cmd.equals("tags") || cmd.equals("tag")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "settags", "settag", "tags", "tag")) {
             Permission.COMMAND_SETTAGS.handle(p);
             prop.clearTags();
             if (args.length == 0) {
@@ -334,7 +334,7 @@ public class TrainCommands {
                 prop.addTags(args);
                 p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for all minecarts in this train!");
             }
-        } else if (cmd.equals("dest") || cmd.equals("destination")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "dest", "destination")) {
             Permission.COMMAND_SETDESTINATION.handle(p);
             if (args.length == 0) {
                 prop.clearDestination();
@@ -344,7 +344,7 @@ public class TrainCommands {
                 prop.setDestination(dest);
                 p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as destination for all the minecarts in this train!");
             }
-        } else if (cmd.equals("remove") || cmd.equals("destroy")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "remove", "destroy")) {
             Permission.COMMAND_DESTROY.handle(p);
             MinecartGroup group = prop.getHolder();
             if (group == null) {
@@ -354,25 +354,25 @@ public class TrainCommands {
                 group.destroy();
             }
             p.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
-        } else if (cmd.equals("public")) {
+        } else if (cmd.equalsIgnoreCase("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             boolean pub;
             pub = args.length == 0 || ParseUtil.parseBool(args[0]);
             prop.setPublic(pub);
             p.sendMessage(ChatColor.YELLOW + "The selected train can be used by everyone: " + ChatColor.WHITE + pub);
-        } else if (cmd.equals("private") || cmd.equals("locked") || cmd.equals("lock")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "private", "locked", "lock")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             boolean pub;
             pub = args.length != 0 && !ParseUtil.parseBool(args[0]);
             prop.setPublic(pub);
             p.sendMessage(ChatColor.YELLOW + "The selected train can only be used by the respective owners: " + ChatColor.WHITE + !pub);
-        } else if (cmd.equals("pickup")) {
+        } else if (cmd.equalsIgnoreCase("pickup")) {
             Permission.COMMAND_PICKUP.handle(p);
             boolean mode = true;
             if (args.length > 0) mode = ParseUtil.parseBool(args[0]);
             prop.setPickup(mode);
             p.sendMessage(ChatColor.YELLOW + "The selected train picks up nearby items: " + ChatColor.WHITE + mode);
-        } else if (cmd.equals("default") || cmd.equals("def")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "default", "def")) {
             Permission.COMMAND_DEFAULT.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.RED + "Not enough args!");
@@ -381,7 +381,7 @@ public class TrainCommands {
                 prop.setDefault(args[0]);
                 p.sendMessage(ChatColor.GREEN + "Train properties has been re-set to the defaults named '" + args[0] + "'!");
             }
-        } else if (cmd.equals("break")) {
+        } else if (cmd.equalsIgnoreCase("break")) {
             Permission.COMMAND_BREAKBLOCK.handle(p);
             if (args.length == 0) {
                 Set<Material> types = new HashSet<>();
@@ -424,10 +424,10 @@ public class TrainCommands {
                     }
                 }
             }
-        } else if (cmd.equals("path") || cmd.equals("route") || cmd.equals("pathinfo")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "path", "route", "pathinfo")) {
             Permission.COMMAND_PATHINFO.handle(p);
             Commands.showPathInfo(p, prop);
-        } else if (cmd.equals("teleport") || cmd.equals("tp")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "teleport", "tp")) {
             Permission.COMMAND_TELEPORT.handle(p);
             if (!prop.restore()) {
                 p.sendMessage(ChatColor.RED + "Train location could not be found: Train is lost");
@@ -440,7 +440,7 @@ public class TrainCommands {
                     EntityUtil.teleport(p, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
                 }
             }
-        } else if (LogicUtil.contains(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
             Permission.COMMAND_CHANGEBLOCK.handle(p);
             MinecartGroup members = prop.getHolder();
             if (members == null) {
@@ -454,7 +454,7 @@ public class TrainCommands {
                 SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args), SignActionBlockChanger.BLOCK_OFFSET_NONE);
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
             }
-        } else if (LogicUtil.contains(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
             Permission.COMMAND_CHANGEBLOCK.handle(p);
             MinecartGroup members = prop.getHolder();
             if (members == null) {
@@ -471,7 +471,7 @@ public class TrainCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
             }
-        } else if (LogicUtil.contains(cmd, "save")) {
+        } else if (cmd.equalsIgnoreCase("save")) {
             Permission.COMMAND_SAVE_TRAIN.handle(p);
             if (args.length > 0) {
                 MinecartGroup group = prop.getHolder();
@@ -523,7 +523,7 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.YELLOW + "You need to specify the name to save the train as");
             }
-        } else if (LogicUtil.contains(cmd, "enter")) {
+        } else if (cmd.equalsIgnoreCase("enter")) {
             Permission.COMMAND_ENTER.handle(p);
             if (prop.isLoaded()) {
                 CartProperties cprop = CartProperties.getEditing(p);
@@ -552,7 +552,7 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.RED + "Can not enter the train: it is not loaded");
             }
-        } else if (LogicUtil.contains(cmd, "launch")) {
+        } else if (cmd.equalsIgnoreCase("launch")) {
             Permission.COMMAND_LAUNCH.handle(p);
             if (prop.isLoaded()) {
                 // Parse all the arguments specified into launch direction, distance and speed
@@ -614,7 +614,7 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
             }
-        } else if (LogicUtil.contains(cmd, "anim", "animate", "playanimation")) {
+        } else if (LogicUtil.containsIgnoreCase(cmd, "anim", "animate", "playanimation")) {
             Permission.COMMAND_ANIMATE.handle(p);
             if (prop.isLoaded()) {
                 AnimationOptions opt = new AnimationOptions();
@@ -631,7 +631,7 @@ public class TrainCommands {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
             return true;
         } else {
-            if (!cmd.equals("help") && !cmd.equals("?")) {
+            if (!cmd.equalsIgnoreCase("help") && !cmd.equalsIgnoreCase("?")) {
                 p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
             }
             help(new MessageBuilder()).send(p);

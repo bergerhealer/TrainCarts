@@ -474,7 +474,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     @Override
     public boolean parseSet(String key, String arg) {
         TrainPropertiesStore.markForAutosave();
-        if (key.equals("exitoffset")) {
+        if (key.equalsIgnoreCase("exitoffset")) {
             Vector vec = Util.parseVector(arg, null);
             if (vec != null) {
                 if (vec.length() > TCConfig.maxEjectDistance) {
@@ -482,11 +482,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
                 }
                 exitOffset = vec;
             }
-        } else if (key.equals("exityaw")) {
+        } else if (key.equalsIgnoreCase("exityaw")) {
             exitYaw = ParseUtil.parseFloat(arg, 0.0f);
-        } else if (key.equals("exitpitch")) {
+        } else if (key.equalsIgnoreCase("exitpitch")) {
             exitPitch = ParseUtil.parseFloat(arg, 0.0f);
-        } else if (LogicUtil.contains(key, "exitrot", "exitrotation")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "exitrot", "exitrotation")) {
             String[] angletext = Util.splitBySeparator(arg);
             float yaw = 0.0f;
             float pitch = 0.0f;
@@ -498,43 +498,43 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             }
             exitYaw = yaw;
             exitPitch = pitch;
-        } else if (key.equals("addtag")) {
+        } else if (key.equalsIgnoreCase("addtag")) {
             this.addTags(arg);
-        } else if (key.equals("settag")) {
+        } else if (key.equalsIgnoreCase("settag")) {
             this.setTags(arg);
-        } else if (key.equals("destination")) {
+        } else if (key.equalsIgnoreCase("destination")) {
             this.setDestination(arg);
-        } else if (key.equals("remtag") || key.equals("removetag")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "remtag", "removetag")) {
             this.removeTags(arg);
-        } else if (key.equals("playerenter")) {
+        } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
-        } else if (key.equals("playerexit")) {
+        } else if (key.equalsIgnoreCase("playerexit")) {
             this.setPlayersExit(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.contains(key, "invincible", "godmode")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "invincible", "godmode")) {
             this.setInvincible(ParseUtil.parseBool(arg));
-        } else if (key.equals("setownerperm")) {
+        } else if (key.equalsIgnoreCase("setownerperm")) {
             this.clearOwnerPermissions();
             this.getOwnerPermissions().add(arg);
-        } else if (key.equals("addownerperm")) {
+        } else if (key.equalsIgnoreCase("addownerperm")) {
             this.getOwnerPermissions().add(arg);
-        } else if (key.equals("remownerperm")) {
+        } else if (key.equalsIgnoreCase("remownerperm")) {
             this.getOwnerPermissions().remove(arg);
-        } else if (key.equals("setowner")) {
+        } else if (key.equalsIgnoreCase("setowner")) {
             arg = arg.toLowerCase();
             this.setOwner(arg);
-        } else if (key.equals("addowner")) {
+        } else if (key.equalsIgnoreCase("addowner")) {
             arg = arg.toLowerCase();
             this.getOwners().add(arg);
-        } else if (key.equals("remowner")) {
+        } else if (key.equalsIgnoreCase("remowner")) {
             arg = arg.toLowerCase();
             this.getOwners().remove(arg);
-        } else if (key.equals("model")) {
+        } else if (key.equalsIgnoreCase("model")) {
             setModelName(arg);
-        } else if (key.equals("clearmodel") || key.equals("resetmodel")) {
+        } else if (LogicUtil.containsIgnoreCase(key,  "clearmodel", "resetmodel")) {
             resetModel();
-        } else if (LogicUtil.contains(key, "spawnitemdrops", "spawndrops", "killdrops")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
-        } else if(key.equals("drivesound")) {
+        } else if(key.equalsIgnoreCase("drivesound")) {
             this.setDriveSound(arg);
         } else {
             return false;
