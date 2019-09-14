@@ -91,29 +91,34 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
                 this.variants.set(i, ItemUtil.createItem(this.variants.get(i)));
             }
 
-            // Preserve some of the extra properties of the input item
-            for (ItemStack variant : this.variants) {
-                for (Map.Entry<Enchantment, Integer> enchantment : item.getEnchantments().entrySet()) {
-                    variant.addEnchantment(enchantment.getKey(), enchantment.getValue().intValue());
-                }
-            }
-            if (item.getItemMeta().hasDisplayName()) {
-                String name = item.getItemMeta().getDisplayName();
+            if (this.variants.size() == 1) {
+                // Preverve all properties if there is only one variant
+                variants.get(0).setItemMeta(item.getItemMeta());
+            } else {
+                // Preserve some of the extra properties of the input item
                 for (ItemStack variant : this.variants) {
-                    ItemUtil.setDisplayName(variant, name);
+                    for (Map.Entry<Enchantment, Integer> enchantment : item.getEnchantments().entrySet()) {
+                        variant.addEnchantment(enchantment.getKey(), enchantment.getValue().intValue());
+                    }
                 }
-            }
-            CommonTagCompound tag = ItemUtil.getMetaTag(item);
-            if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
-                for (ItemStack variant : this.variants) {
-                    ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
-                }
-            }
-            if (tag != null && tag.containsKey("CustomModelData")) {
-                int customModelData = tag.getValue("CustomModelData", 0);
-                if (customModelData > 0) {
+                if (item.getItemMeta().hasDisplayName()) {
+                    String name = item.getItemMeta().getDisplayName();
                     for (ItemStack variant : this.variants) {
-                        ItemUtil.getMetaTag(variant, true).putValue("CustomModelData", customModelData);
+                        ItemUtil.setDisplayName(variant, name);
+                    }
+                }
+                CommonTagCompound tag = ItemUtil.getMetaTag(item);
+                if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
+                    for (ItemStack variant : this.variants) {
+                        ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
+                    }
+                }
+                if (tag != null && tag.containsKey("CustomModelData")) {
+                    int customModelData = tag.getValue("CustomModelData", 0);
+                    if (customModelData > 0) {
+                        for (ItemStack variant : this.variants) {
+                            ItemUtil.getMetaTag(variant, true).putValue("CustomModelData", customModelData);
+                        }
                     }
                 }
             }
