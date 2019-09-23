@@ -12,6 +12,7 @@ import org.bukkit.Material;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import com.bergerkiller.bukkit.common.Hastebin;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
@@ -98,6 +99,7 @@ public class TCConfig {
     public static Map<String, ItemParser[]> parsers = new HashMap<>();
     public static MapResourcePack resourcePack = MapResourcePack.SERVER;
     public static Map<String, Animation> defaultAnimations = new HashMap<>();
+    public static Hastebin hastebin = null;
 
     public static void load(FileConfiguration config) {
         config.setHeader("This is the configuration file of TrainCarts");
@@ -237,6 +239,10 @@ public class TCConfig {
         config.addHeader("claimNewSavedTrains", "The original owner can put the train in public domain by disclaiming it (/savedtrain [name] disclaim)");
         config.addHeader("claimNewSavedTrains", "Players (moderators) with the " + Permission.COMMAND_SAVEDTRAIN_GLOBAL.getName() + " permission are exempt");
         claimNewSavedTrains = config.get("claimNewSavedTrains", true);
+
+        config.setHeader("hastebinServer", "\nThe hastebin server which is used to upload saved trains");
+        config.addHeader("hastebinServer", "This will be used when using the /savedtrain [name] paste command");
+        hastebin = new Hastebin(TrainCarts.plugin, config.get("hastebinServer", config.get("hastebinServer", "https://paste.traincarts.net")));
 
         config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
         config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");

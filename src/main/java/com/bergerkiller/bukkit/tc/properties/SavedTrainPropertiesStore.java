@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
@@ -38,20 +39,19 @@ public class SavedTrainPropertiesStore {
     private final List<String> names = new ArrayList<String>();
     private Map<String, SavedTrainPropertiesStore> modules = new HashMap<String, SavedTrainPropertiesStore>();;
     private boolean changed = false;
-    private boolean allowModules = true;
+    private boolean allowModules;
 
     public SavedTrainPropertiesStore(String filename) {
-        this.savedTrainsConfig = new FileConfiguration(filename);
-        this.savedTrainsConfig.load();
-        this.names.addAll(this.savedTrainsConfig.getKeys());
-
-        renameTrainsBeginningWithDigits();
-
+        this(filename, true);
     }
 
     public SavedTrainPropertiesStore(String filename, boolean allowModules) {
-        this(filename);
+        this.savedTrainsConfig = new FileConfiguration(filename);
+        this.savedTrainsConfig.load();
+        this.names.addAll(this.savedTrainsConfig.getKeys());
         this.allowModules = allowModules;
+
+        renameTrainsBeginningWithDigits();
     }
 
     public void loadModules(String directory) {
@@ -86,7 +86,7 @@ public class SavedTrainPropertiesStore {
      * @return module, null if no module by this name exists
      */
     public SavedTrainPropertiesStore getModule(String moduleName) {
-        return this.modules.get(moduleName);
+        return this.modules.get(moduleName.toLowerCase(Locale.ENGLISH));
     }
 
     /**
@@ -97,7 +97,7 @@ public class SavedTrainPropertiesStore {
      * @return module name, null if not stored in a separate module
      */
     public String getModuleNameOfTrain(String name) {
-        if (this.savedTrainsConfig.isNode(name)) {
+        if (!this.savedTrainsConfig.isNode(name)) {
             for (Map.Entry<String, SavedTrainPropertiesStore> module : this.modules.entrySet()) {
                 if (module.getValue().savedTrainsConfig.isNode(name)) {
                     return module.getKey();
@@ -105,6 +105,76 @@ public class SavedTrainPropertiesStore {
             }
         }
         return null;
+    }
+
+    /**
+     * Sets the module a train is saved in.
+     * If it is currently not saved in a module and a non-null module is provided,
+     * the train will be moved to a module of that name. Similarly if a train was
+     * saved in a module and a null module is provided, the train is moved out of the
+     * module.<br>
+     * <br>
+     * If no saved train with this name exists, this method does nothing.
+     * Make sure to call this method after saving configuration, not before.
+     * 
+     * @param name
+     * @param module name, null for the default store
+     */
+    public void setModuleNameOfTrain(String name, String module) {
+        if (!this.allowModules) {
+            return;
+        }
+
+        // Retrieve and remove the original configuration
+        ConfigurationNode config = null;
+        if (this.savedTrainsConfig.isNode(name)) {
+            if (module == null) {
+                return; // already stored in default store
+            }
+
+            // Module is set and is stored in default, remove it
+            config = this.savedTrainsConfig.getNode(name).clone();
+            this.savedTrainsConfig.remove(name);
+            this.names.remove(name);
+            this.changed = true;
+        } else {
+            // Find it in an existing module
+            for (Map.Entry<String, SavedTrainPropertiesStore> moduleEntry : this.modules.entrySet()) {
+                SavedTrainPropertiesStore moduleStore = moduleEntry.getValue();
+                if (moduleStore.savedTrainsConfig.isNode(name)) {
+                    if (moduleEntry.getKey().equals(module)) {
+                        return; // already stored in this module
+                    }
+                    config = moduleStore.savedTrainsConfig.getNode(name).clone();
+                    moduleStore.savedTrainsConfig.remove(name);
+                    moduleStore.names.remove(name);
+                    moduleStore.changed = true;
+                    break;
+                }
+            }
+            if (config == null) {
+                return; // not found
+            }
+        }
+
+        // Store it in the default or new module
+        SavedTrainPropertiesStore moduleStore;
+        if (module == null) {
+            moduleStore = this;
+        } else {
+            moduleStore = this.modules.get(module.toLowerCase(Locale.ENGLISH));
+            if (moduleStore == null) {
+                createModule(module + ".yml");
+                moduleStore = this.modules.get(module.toLowerCase(Locale.ENGLISH));
+                if (moduleStore == null) {
+                    return; // What?
+                }
+            }
+        }
+
+        moduleStore.savedTrainsConfig.set(name, config);
+        moduleStore.names.add(name);
+        moduleStore.changed = true;
     }
 
     /**
@@ -116,6 +186,7 @@ public class SavedTrainPropertiesStore {
         if (fileName.indexOf(".") > 0) {
             name = fileName.substring(0, fileName.lastIndexOf("."));
         }
+        name = name.toLowerCase(Locale.ENGLISH);
 
         modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + fileName, false));
     }
@@ -152,7 +223,7 @@ public class SavedTrainPropertiesStore {
     /**
      * Gets a list of players that have claimed ownership over a saved train.
      * An empty list indicates nobody has claimed the saved train, or that the saved
-     * train does not exist.
+     * train does not exist. The returned list is unmodifiable.
      * 
      * @param name
      * @return list of player claims, empty is unclaimed or non-existant train
@@ -170,10 +241,20 @@ public class SavedTrainPropertiesStore {
                         // Ignore
                     }
                 }
-                return claims;
+                return Collections.unmodifiableList(claims);
             }
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * Calls {@link #setClaims(String, List)} with a single claim of a player.
+     * 
+     * @param name
+     * @param player to add to the claim list
+     */
+    public void setClaim(String name, Player player) {
+        setClaims(name, Collections.singletonList(new Claim(player)));
     }
 
     /**
@@ -239,47 +320,73 @@ public class SavedTrainPropertiesStore {
     }
 
     /**
-     * Saves the train information under a name
+     * Saves the train information under a name.<br>
+     * <br>
+     * <b>Deprecated: saving has been split into two methods, use those instead:
+     * <ul>
+     * <li>{@link #saveGroup(name, group)}
+     * <li>{@link #setModuleNameOfTrain(name, module)}
+     * </ul>
+     * </b>
      * 
      * @param group to save
      * @param name to save as
      * @param module to save in. null for the default store.
      */
+    @Deprecated
     public void save(MinecartGroup group, String name, String module) throws IllegalNameException {
+        this.saveGroup(name, group);
+        this.setModuleNameOfTrain(name, module);
+    }
+
+    /**
+     * Saves the live train information in a Minecart Group as a saved train.
+     * If the train was already stored in a module, it will be saved in that module.
+     * 
+     * @param name
+     * @param group
+     * @throws IllegalNameException Thrown if the train name is of an invalid format
+     */
+    public void saveGroup(String name, MinecartGroup group) throws IllegalNameException {
+        setConfig(name, group.saveConfig());
+    }
+
+    /**
+     * Sets the configuration for a saved train
+     * 
+     * @param name of the saved train
+     * @param config to set to
+     * @throws IllegalNameException Thrown if the train name is of an invalid format
+     */
+    public void setConfig(String name, ConfigurationNode config) throws IllegalNameException {
+        // Check if stored in a module, first
+        if (!this.savedTrainsConfig.isNode(name)) {
+            for (SavedTrainPropertiesStore module : this.modules.values()) {
+                if (module.savedTrainsConfig.isNode(name)) {
+                    module.setConfig(name, config);
+                    return;
+                }
+            }
+        }
+
+        // Name validation
         if (name == null || name.isEmpty()) {
             throw new IllegalNameException("Name is empty");
         }
         if (Character.isDigit(name.charAt(0))) {
             throw new IllegalNameException("Name starts with a digit");
         }
-        if (module != null && this.allowModules) {
-            if (!this.modules.containsKey(module)) {
-                createModule(module + ".yml");
-            }
 
-            List<Claim> previousClaims = null;
-            if (this.savedTrainsConfig.isNode(name)) {
-                previousClaims = this.getClaims(name);
-                this.changed = true;
-                this.savedTrainsConfig.remove(name);
-                this.names.remove(name);
-            }
-            SavedTrainPropertiesStore moduleStore = this.modules.get(module);
-            moduleStore.save(group, name, module);
-            if (previousClaims != null) {
-                moduleStore.setClaims(name, previousClaims);
-            }
-            return;
-        }
-
-        // Save config, preserve claims
-        ConfigurationNode newConfig = group.saveConfig();
+        // Clone to prevent the original being mutated later
+        // Preserve claims set in the original properties
+        ConfigurationNode newConfig = config.clone();
         if (this.savedTrainsConfig.contains(name + ".claims")) {
             newConfig.set("claims", this.savedTrainsConfig.getList(name + ".claims", String.class));
         }
 
+        // Store in mapping
         this.changed = true;
-        this.savedTrainsConfig.set(name, newConfig);
+        this.savedTrainsConfig.set(name, config);
         this.names.remove(name);
         this.names.add(name);
     }

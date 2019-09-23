@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CollisionConfig;
-import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
@@ -499,19 +498,19 @@ public class TrainCommands {
 
                     boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
                     try {
-                        String module = null;
+                        TrainCarts.plugin.getSavedTrains().saveGroup(name, group);
                         String moduleString = "";
                         if (args.length > 1) {
-                            module = args[1];
-                            moduleString = " in module " + module;
+                            moduleString = " in module " + args[1];
+                            TrainCarts.plugin.getSavedTrains().setModuleNameOfTrain(name, args[1]);
                         }
-                        TrainCarts.plugin.getSavedTrains().save(group, name, module);
+
                         if (wasContained) {
                             p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString + ", a previous train was overwritten");
                         } else {
                             p.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
                             if (TCConfig.claimNewSavedTrains) {
-                                TrainCarts.plugin.getSavedTrains().setClaims(name, Collections.singletonList(new SavedTrainPropertiesStore.Claim(p)));
+                                TrainCarts.plugin.getSavedTrains().setClaim(name, p);
                             }
                         }
                     } catch (IllegalNameException ex) {

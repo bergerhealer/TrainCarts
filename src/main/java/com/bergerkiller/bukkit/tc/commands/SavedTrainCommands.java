@@ -1,11 +1,12 @@
 package com.bergerkiller.bukkit.tc.commands;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -13,7 +14,10 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.Hastebin.DownloadResult;
+import com.bergerkiller.bukkit.common.Hastebin.UploadResult;
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -22,6 +26,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 
 /**
@@ -34,22 +39,47 @@ public class SavedTrainCommands {
         // After this block the sender has been verified to have the permission to modify savedTrainName,
         // and that savedTrainName refers to an existing saved train.
         SavedTrainPropertiesStore savedTrains = TrainCarts.plugin.getSavedTrains();
-        ConfigurationNode savedTrainConfig;
-        boolean checkPerms = (sender instanceof Player) && !Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender);
-        boolean isClaimedBySender;
-        String command = "info";
+        ConfigurationNode savedTrainConfig = null;
+        boolean checkPermissions = true;
+        boolean isClaimedBySender = false;
+        String command = "";
         if (args.length > 0) {
             command = args[0].toLowerCase(Locale.ENGLISH);
             args = StringUtil.remove(args, 0);
         }
+
+        // Preprocess a 'force' modifier on the commandline, which allows using the global permission
+        if (LogicUtil.contains(command, "force", "forced") && Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender)) {
+            checkPermissions = false;
+            isClaimedBySender = true;
+            if (args.length == 0) {
+                sender.sendMessage(ChatColor.RED + "Please specify the command to force");
+                sender.sendMessage(ChatColor.RED + "/savedtrain " + savedTrainName + " force [command]");
+                return;
+            }
+
+            // Take one extra argument for the command
+            command = args[0].toLowerCase(Locale.ENGLISH);
+            args = StringUtil.remove(args, 0);
+        }
+
+        // Find a previous train by this name, and if it exists, check permissions
         if (savedTrains.containsTrain(savedTrainName)) {
-            isClaimedBySender = savedTrains.hasPermission(sender, savedTrainName);
-            if (checkPerms && !isClaimedBySender) {
+            if (checkPermissions && !savedTrains.hasPermission(sender, savedTrainName)) {
                 sender.sendMessage(ChatColor.RED + "You do not have permission to change this saved train!");
                 return;
             }
             savedTrainConfig = savedTrains.getConfig(savedTrainName);
-        } else {
+        }
+
+        // Import: load a pasted saved train configuration from a hastebin server
+        // It's an exception case where the train does not already have to exist
+        if (LogicUtil.contains(command, "load", "import", "download")) {
+            executeImport(sender, savedTrainName, args);
+            return;
+        }
+
+        if (savedTrainConfig == null) {
             // Saved train is not found. Show a warning (if train name is not 'list').
             // Then show all trains the player could be editing
             boolean isListCommand = savedTrainName.equals("list");
@@ -61,7 +91,7 @@ public class SavedTrainCommands {
             SavedTrainPropertiesStore module = savedTrains;
             MessageBuilder builder = new MessageBuilder();
             builder.newLine();
-            if (isListCommand && args.length > 0 && args[0].equalsIgnoreCase("modules")) {
+            if (isListCommand && command.equals("modules")) {
                 builder.blue("The following modules are available:");
                 builder.newLine().setSeparator(ChatColor.WHITE, " / ");
                 for (String moduleName : savedTrains.getModuleNames()) {
@@ -69,20 +99,20 @@ public class SavedTrainCommands {
                 }
                 builder.send(sender);
                 return;
-            } else if (isListCommand && args.length > 0) {
-                module = savedTrains.getModule(args[0]);
+            } else if (isListCommand && !command.isEmpty()) {
+                module = savedTrains.getModule(command);
                 if (module == null) {
-                    sender.sendMessage(ChatColor.RED + "Module '" + args[0] + "' does not exist");
+                    sender.sendMessage(ChatColor.RED + "Module '" + command + "' does not exist");
                     return;
                 }
-                builder.blue("The following saved trains are stored in " + args[0] + ":");
+                builder.blue("The following saved trains are stored in module '" + command + "':");
             } else {
                 builder.yellow("The following saved trains are available:");
             }
 
             builder.newLine().setSeparator(ChatColor.WHITE, " / ");
             for (String name : module.getNames()) {
-                if (!checkPerms || module.hasPermission(sender, name)) {
+                if (!checkPermissions || module.hasPermission(sender, name)) {
                     builder.green(name);
                 }
             }
@@ -91,7 +121,7 @@ public class SavedTrainCommands {
         }
 
         // No command specified or 'info'
-        if (command.equals("info")) {
+        if (command.isEmpty() || command.equals("info")) {
             String module = savedTrains.getModuleNameOfTrain(savedTrainName);
             MessageBuilder builder = new MessageBuilder();
             builder.newLine();
@@ -229,19 +259,35 @@ public class SavedTrainCommands {
             return;
         }
 
-        // All below commands alter the saved train in some way. When the player has not actually claimed
-        // the train, require prepending the command with 'force' or 'forced'
-        if (LogicUtil.contains(command, "force", "forced")) {
-            isClaimedBySender = true;
-            if (args.length == 0) {
-                sender.sendMessage(ChatColor.RED + "Please specify the command to force");
-                sender.sendMessage(ChatColor.RED + "/savedtrain " + savedTrainName + " force [command]");
-                return;
+        // Change the module in which the train is saved
+        if (LogicUtil.contains(command, "module")) {
+            String module = (args.length > 0) ? args[0] : null;
+            savedTrains.setModuleNameOfTrain(savedTrainName, module);
+            if (module == null) {
+                sender.sendMessage(ChatColor.GREEN + "Train '" + savedTrainName + "' is now stored in the default module!");
+            } else {
+                sender.sendMessage(ChatColor.GREEN + "Train '" + savedTrainName + "' is now stored in module '" + module + "'!");
             }
+            return;
+        }
 
-            // Take one extra argument for the command
-            command = args[0].toLowerCase(Locale.ENGLISH);
-            args = StringUtil.remove(args, 0);
+        // Paste: paste the saved train configuration to a hastebin server
+        if (LogicUtil.contains(command, "paste", "share", "export", "upload")) {
+            ConfigurationNode exportedConfig = savedTrainConfig.clone();
+            exportedConfig.remove("claims");
+            exportedConfig.set("name", savedTrainName);
+            TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(new Consumer<UploadResult>() {
+                @Override
+                public void accept(UploadResult t) {
+                    if (t.success()) {
+                        sender.sendMessage(ChatColor.GREEN + "Train '" + ChatColor.YELLOW + savedTrainName +
+                                ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
+                    } else {
+                        sender.sendMessage(ChatColor.RED + "Failed to export train '" + savedTrainName + "': " + t.error());
+                    }
+                }
+            });
+            return;
         }
 
         // Deny if not claimed by the sender, unless forced
@@ -295,6 +341,51 @@ public class SavedTrainCommands {
 
         sender.sendMessage(ChatColor.RED + "Unknown command: '" + command + "'. Available sub-commands:");
         sender.sendMessage(ChatColor.RED + "[info/claim/unclaim/clearclaims/remove/rename/reverse]");
+    }
+
+    public static void executeImport(CommandSender sender, final String savedTrainName, String[] args) throws NoPermissionException {
+        if (args.length == 0) {
+            sender.sendMessage(ChatColor.RED + "Please specify the URL to a Hastebin-hosted paste to download from");
+            return;
+        }
+
+        TCConfig.hastebin.download(args[0]).thenAccept(new Consumer<DownloadResult>() {
+            @Override
+            public void accept(DownloadResult result) {
+                // Check successful
+                if (!result.success()) {
+                    sender.sendMessage(ChatColor.RED + "Failed to import train: " + result.error());
+                    return;
+                }
+
+                // Parse the String contents as YAML
+                BasicConfiguration config;
+                try {
+                    config = result.contentYAML();
+                } catch (IOException ex) {
+                    sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
+                    return;
+                }
+
+                // Update configuration
+                SavedTrainPropertiesStore savedTrains = TrainCarts.plugin.getSavedTrains();
+                boolean isNewTrain = !savedTrains.containsTrain(savedTrainName);
+                try {
+                    savedTrains.setConfig(savedTrainName, config);
+                } catch (IllegalNameException e) {
+                    sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrainName);
+                    return;
+                }
+                if (isNewTrain) {
+                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName);
+                    if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
+                        savedTrains.setClaim(savedTrainName, (Player) sender);
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName + ", a previous train was overwritten");
+                }
+            }
+        });
     }
 
     private static void buildClaimList(MessageBuilder builder, List<SavedTrainPropertiesStore.Claim> claims) {

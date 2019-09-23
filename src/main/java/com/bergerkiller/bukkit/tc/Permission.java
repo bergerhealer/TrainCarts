@@ -51,6 +51,8 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_SAVEDTRAIN_DELETE = new Permission("train.command.savedtrain.delete", PermissionDefault.OP, "Whether the player can delete a previously saved train");
     public static final Permission COMMAND_SAVEDTRAIN_CLAIM = new Permission("train.command.savedtrain.claim", PermissionDefault.OP, "Whether the player can change who has claimed a saved train");
     public static final Permission COMMAND_SAVEDTRAIN_GLOBAL = new Permission("train.command.savedtrain.global", PermissionDefault.OP, "Whether the player can modify, delete or claim saved trains claimed by other players");
+    public static final Permission COMMAND_SAVEDTRAIN_IMPORT = new Permission("train.command.savedtrain.import", PermissionDefault.OP, "Whether the player can import saved trains from online using hastebin");
+    public static final Permission COMMAND_SAVEDTRAIN_EXPORT = new Permission("train.command.savedtrain.export", PermissionDefault.OP, "Whether the player can export (paste) saved trains to online using hastebin");
     public static final Permission COMMAND_ENTER = new Permission("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited");
     public static final Permission COMMAND_LAUNCH = new Permission("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited");
     public static final Permission COMMAND_ANIMATE = new Permission("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation");
