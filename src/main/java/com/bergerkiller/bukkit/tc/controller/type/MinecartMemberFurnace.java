@@ -28,22 +28,36 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         super.onAttached();
         this.soundLoop = new PoweredCartSoundLoop(this);
 
-        Vector pushVector = new Vector(entity.getPushX(), 0.0, entity.getPushZ());
-        pushVector.multiply(MathUtil.getNormalizationFactorLS(pushVector.lengthSquared()));
-        this.isPushingForwards = this.getOrientationForward().dot(pushVector) >= 0.0;
+        Vector fwd = this.getOrientationForward();
+        Vector push;
+        if (Math.abs(fwd.getY()) > Math.max(Math.abs(fwd.getX()), Math.abs(fwd.getZ()))) {
+            // Vertical
+            push = new Vector(0.0, entity.getPushX(), 0.0);
+        } else {
+            // Horizontal
+            push = new Vector(entity.getPushX(), 0.0, entity.getPushZ());
+        }
+        this.isPushingForwards = fwd.dot(push) >= 0.0;
     }
 
     // Only needed for saving/restoring, otherwise unused!
     private void updatePushXZ() {
         Vector fwd = this.getOrientationForward();
-        fwd.setY(0.0);
-        fwd.multiply(MathUtil.getNormalizationFactorLS(fwd.lengthSquared()));
-        if (this.isPushingForwards) {
-            entity.setPushX(fwd.getX());
-            entity.setPushZ(fwd.getZ());
+        if (!this.isPushingForwards) {
+            fwd.multiply(-1.0);
+        }
+        if (Math.abs(fwd.getY()) > Math.max(Math.abs(fwd.getX()), Math.abs(fwd.getZ()))) {
+            // Vertical
+            entity.setPushX(fwd.getY() >= 1.0 ? 1.0 : -1.0);
+            entity.setPushZ(0.0);
         } else {
-            entity.setPushX(-fwd.getX());
-            entity.setPushZ(-fwd.getZ());
+            // Horizontal
+            fwd.setY(0.0);
+            if (fwd.lengthSquared() > 1e-10) {
+                fwd.multiply(MathUtil.getNormalizationFactorLS(fwd.lengthSquared()));
+                entity.setPushX(fwd.getX());
+                entity.setPushZ(fwd.getZ());
+            }
         }
     }
 
