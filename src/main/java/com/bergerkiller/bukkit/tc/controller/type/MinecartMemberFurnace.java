@@ -48,7 +48,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         }
         if (Math.abs(fwd.getY()) > Math.max(Math.abs(fwd.getX()), Math.abs(fwd.getZ()))) {
             // Vertical
-            entity.setPushX(fwd.getY() >= 1.0 ? 1.0 : -1.0);
+            entity.setPushX(fwd.getY() >= 0.0 ? 1.0 : -1.0);
             entity.setPushZ(0.0);
         } else {
             // Horizontal
