@@ -40,7 +40,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onSelectedItemChanged() {
                 getConfig().set("anchor", getSelectedItem());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Anchor");
@@ -61,7 +61,7 @@ public class PositionMenu extends MapWidgetMenu {
                 @Override
                 public void onSelectedItemChanged() {
                     getConfig().set("transform", ItemTransformType.get(getSelectedItem()).name());
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
                 }
             }).setBounds(30, y_offset, slider_width, 11);
             addLabel(5, y_offset + 3, "Mode");
@@ -87,7 +87,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("posX", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.X");
@@ -108,7 +108,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("posY", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Y");
@@ -129,13 +129,13 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("posZ", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Z");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Z
+        this.addWidget(new MapWidgetNumberBox() { // Rotation X (pitch)
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -151,13 +151,13 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("rotX", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pitch");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Z
+        this.addWidget(new MapWidgetNumberBox() { // Rotation Y (yaw)
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -173,13 +173,13 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("rotY", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Yaw");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Z
+        this.addWidget(new MapWidgetNumberBox() { // Rotation Z (roll)
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -195,7 +195,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("rotZ", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Roll");

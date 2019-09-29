@@ -35,6 +35,11 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         this.getEditor().onSelectedNodeChanged();
     }
 
+    public void updateModelNode(MapWidgetAttachmentNode node) {
+        this.model.updateNode(node.getTargetPath(), node.getConfig());
+        this.getEditor().onSelectedNodeChanged();
+    }
+
     public abstract void onMenuOpen(MapWidgetAttachmentNode node, MapWidgetAttachmentNode.MenuItem menu);
 
     public MapWidgetAttachmentNode getRoot() {

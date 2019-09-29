@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -528,5 +529,20 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         //TODO!
         
         //model.log();
+    }
+
+    @Override
+    public void onModelNodeChanged(AttachmentModel model, int[] targetPath, ConfigurationNode config) {
+        // Find the child. If not found, just refresh the entire model.
+        Attachment attachment = this.getRootAttachment().findChild(targetPath);
+        if (attachment == null) {
+            this.onModelChanged(model);
+            return;
+        }
+
+        // Reload the configuration of just this one attachment
+        attachment.getInternalState().onLoad(config);
+        attachment.onLoad(config);
+        HelperMethods.updatePositions(this.rootAttachment, this.getLiveTransform());
     }
 }

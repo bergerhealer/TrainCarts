@@ -105,6 +105,12 @@ public class AttachmentModel {
         this.owners.remove(owner);
     }
 
+    /**
+     * Updates the full configuration of this attachment model. All users of this model
+     * will be notified.
+     * 
+     * @param newConfig
+     */
     public void update(ConfigurationNode newConfig) {
         this.config = newConfig;
         this.onConfigChanged();
@@ -112,6 +118,29 @@ public class AttachmentModel {
         //TODO: Tell save scheduler we can re-save models.yml
 
         //TODO: Tell everyone that uses this model to refresh
+    }
+
+    /**
+     * Updates only a single leaf of the attachment model tree. All users of this model
+     * will be notified.
+     * 
+     * @param targetPath to the leaf that changed
+     * @param newConfig for the leaf
+     */
+    public void updateNode(int[] targetPath, ConfigurationNode newConfig) {
+        ConfigurationNode changedNode = this.config;
+        for (int index : targetPath) {
+            List<ConfigurationNode> attachments = changedNode.getNodeList("attachments");
+            if (index >= 0 && index < attachments.size()) {
+                changedNode = attachments.get(index);
+            } else {
+                return; // invalid path
+            }
+        }
+        for (String key : newConfig.getKeys()) {
+            changedNode.set(key, newConfig.get(key));
+        }
+        this.onConfigNodeChanged(targetPath, changedNode);
     }
 
     public void log() {
@@ -144,6 +173,14 @@ public class AttachmentModel {
 
         for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
             owner.onModelChanged(this);
+        }
+    }
+
+    private void onConfigNodeChanged(int[] targetPath, ConfigurationNode config) {
+        this._isDefault = false; // Was changed; no longer default!
+
+        for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
+            owner.onModelNodeChanged(this, targetPath, config);
         }
     }
 

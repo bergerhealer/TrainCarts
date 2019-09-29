@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;
 
 /**
  * Transformation mode for displaying an Item.
@@ -99,6 +101,10 @@ public enum ItemTransformType {
         default:
             return 1.44;
         }
+    }
+
+    public PacketPlayOutEntityEquipmentHandle createEquipmentPacket(int entityId, ItemStack item) {
+        return PacketPlayOutEntityEquipmentHandle.createNew(entityId, this.getSlot(), item);
     }
 
     public static ItemTransformType get(String name) {

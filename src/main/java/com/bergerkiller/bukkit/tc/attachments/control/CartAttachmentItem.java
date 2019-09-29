@@ -6,8 +6,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -18,7 +20,6 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityEquipmentHandle;
 
 public class CartAttachmentItem extends CartAttachment {
     private VirtualEntity entity;
@@ -30,23 +31,46 @@ public class CartAttachmentItem extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.item = this.getConfig().get("item", ItemStack.class);
-
-        if (this.getConfig().isNode("position")) {
-            this.transformType = this.getConfig().get("position.transform", ItemTransformType.HEAD);
-        } else {
-            this.transformType = ItemTransformType.HEAD;
-        }
-
         this.entity = new VirtualEntity(this.getManager());
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.ITEM);
+        this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
+        this.transformType = ItemTransformType.HEAD;
+    }
 
-        if (this.transformType.isSmall()) {
-            this.entity.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) EntityArmorStandHandle.DATA_FLAG_IS_SMALL);
+    @Override
+    public void onDetached() {
+        super.onDetached();
+
+        this.entity = null;
+    }
+
+    @Override
+    public void onLoad(ConfigurationNode config) {
+        super.onLoad(config);
+
+        // New settings
+        ItemStack newItem = config.get("item", ItemStack.class);
+        ItemTransformType newTransformType;
+        if (config.isNode("position")) {
+            newTransformType = config.get("position.transform", ItemTransformType.HEAD);
+        } else {
+            newTransformType = ItemTransformType.HEAD;
         }
 
-        this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
+        // Check changed and resend packets if so
+        if (!LogicUtil.bothNullOrEqual(newItem, this.item) || this.transformType != newTransformType) {
+            if (this.item != null) {
+                this.entity.broadcast(this.transformType.createEquipmentPacket(this.entity.getEntityId(), null));
+            }
+            this.transformType = newTransformType;
+            this.item = newItem;
+            if (this.item != null) {
+                this.entity.broadcast(this.transformType.createEquipmentPacket(this.entity.getEntityId(), this.item));
+            }
+            this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL, this.transformType.isSmall());
+        }
     }
 
     @Override
@@ -69,9 +93,7 @@ public class CartAttachmentItem extends CartAttachment {
 
         // Set equipment
         if (this.item != null) {
-            PacketPlayOutEntityEquipmentHandle equipment = PacketPlayOutEntityEquipmentHandle.createNew(
-                    this.entity.getEntityId(), this.transformType.getSlot(), this.item);
-            PacketUtil.sendPacket(viewer, equipment);
+            PacketUtil.sendPacket(viewer, this.transformType.createEquipmentPacket(this.entity.getEntityId(), this.item));
         }
     }
 

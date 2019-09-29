@@ -48,10 +48,16 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public void loadConfig(ConfigurationNode config) {
-        this.config = config;
-        this.attachments.clear();
+        // Load the configuration, exclude the 'attachments' child
+        this.config = new ConfigurationNode();
+        for (Map.Entry<String, Object> entry : config.getValues().entrySet()) {
+            if (!entry.getKey().equals("attachments")) {
+                this.config.set(entry.getKey(), entry.getValue());
+            }
+        }
 
         // Add child attachments
+        this.attachments.clear();
         if (config.contains("attachments")) {
             for (ConfigurationNode subAttachment : config.getNodeList("attachments")) {
                 MapWidgetAttachmentNode sub = new MapWidgetAttachmentNode(subAttachment);
@@ -80,21 +86,25 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public List<MapWidgetAttachmentNode> getAttachments() {
         return this.attachments;
     }
-    
+
+    /**
+     * Gets the configuration of just this node, excluding all child nodes.
+     * Changes to this configuration node will be reflected in {@link #getFullConfig()}.
+     * 
+     * @return node configuration
+     */
     public ConfigurationNode getConfig() {
         return this.config;
     }
 
+    /**
+     * Gets the full configuration of this node, including all child nodes, recursively
+     * 
+     * @return full node configuration
+     */
     public ConfigurationNode getFullConfig() {
-        // Clone our configuration, skip the 'attachments' node to avoid recursive overhead
-        ConfigurationNode result = new ConfigurationNode();
-        for (Map.Entry<String, Object> entry : this.config.getValues().entrySet()) {
-            if (!entry.getKey().equals("attachments")) {
-                result.set(entry.getKey(), entry.getValue());
-            }
-        }
-
-        // Add attachments
+        // Clone our configuration and include the configuration of the children
+        ConfigurationNode result = this.config.clone();
         List<ConfigurationNode> children = new ArrayList<ConfigurationNode>(this.attachments.size());
         for (MapWidgetAttachmentNode attachment : this.attachments) {
             children.add(attachment.getFullConfig());

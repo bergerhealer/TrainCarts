@@ -97,7 +97,12 @@ public class AttachmentEditor extends MapDisplay {
     @Override
     public void onStatusChanged(MapStatusEvent event) {
         if (event.isName("changed")) {
-            this.tree.updateModel();
+            MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
+            if (node != null) {
+                this.tree.updateModelNode(node);
+            } else {
+                this.tree.updateModel();
+            }
         } else if (event.isName("reset")) {
             // Completely re-initialize the model
             this.tree.updateView();
@@ -110,13 +115,11 @@ public class AttachmentEditor extends MapDisplay {
 
     public void onSelectedNodeChanged() {
         Attachment attachment = this.tree.getSelectedNode().getAttachment();
-        if (attachment != this._lastSelectedAttachment) {
-            if (this._lastSelectedAttachment != null) {
-                this._lastSelectedAttachment.setFocused(false);
-            }
-            this._lastSelectedAttachment = attachment;
-            this.pauseBlinking(this.getFocusedWidget() instanceof MapWidgetAttachmentNode);
+        if (attachment != this._lastSelectedAttachment && this._lastSelectedAttachment != null) {
+            this._lastSelectedAttachment.setFocused(false);
         }
+        this._lastSelectedAttachment = attachment;
+        this.pauseBlinking(this.getFocusedWidget() instanceof MapWidgetAttachmentNode);
     }
 
     private void pauseBlinking(boolean focused) {

@@ -65,7 +65,7 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
             @Override
             public void onSelectedItemChanged() {
                 getAttachment().getConfig().set("item", this.getSelectedItem());
-                markChanged();
+                markNodeChanged();
             }
         });
 
@@ -205,6 +205,11 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
 
     public MapWidgetAttachmentNode getAttachment() {
         return this.attachment;
+    }
+
+    private void markNodeChanged() {
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", this.attachment);
+        getAttachment().resetIcon();
     }
 
     private void markChanged() {

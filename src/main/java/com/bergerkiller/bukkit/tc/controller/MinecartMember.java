@@ -1527,6 +1527,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
+    @Override
+    public void onModelNodeChanged(AttachmentModel model, int[] targetPath, ConfigurationNode config) {
+        this.onModelChanged(model);
+    }
+
     /**
      * Checks whether this Minecart Member is being controlled externally by an
      * action. If this is True, the default physics such as gravity and slowing-down

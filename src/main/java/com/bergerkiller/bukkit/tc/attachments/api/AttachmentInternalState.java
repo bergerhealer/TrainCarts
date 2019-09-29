@@ -129,6 +129,5 @@ public class AttachmentInternalState {
         this.animations.clear();
         this.last_transform = null;
         this.curr_transform = null;
-        this.attached = false;
     }
 }

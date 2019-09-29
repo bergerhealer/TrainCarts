@@ -575,13 +575,13 @@ public class VirtualEntity {
         }
     }
 
-    private void broadcast(CommonPacket packet) {
+    public void broadcast(CommonPacket packet) {
         for (Player viewer : this.viewers) {
             PacketUtil.sendPacket(viewer, packet);
         }
     }
 
-    private void broadcast(PacketHandle packet) {
+    public void broadcast(PacketHandle packet) {
         for (Player viewer : this.viewers) {
             PacketUtil.sendPacket(viewer, packet);
         }

@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
@@ -23,6 +24,10 @@ public abstract class CartAttachment implements Attachment {
 
     @Override
     public void onDetached() {
+    }
+
+    @Override
+    public void onLoad(ConfigurationNode config) {
     }
 
     @Override

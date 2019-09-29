@@ -191,6 +191,7 @@ public class HelperMethods {
     public static void perform_onAttached(Attachment attachment) {
         attachment.getInternalState().attached = true;
         attachment.onAttached();
+        attachment.onLoad(attachment.getConfig());
         if (attachment.isFocused()) {
             attachment.onFocus();
         }
@@ -204,6 +205,7 @@ public class HelperMethods {
             perform_onDetached(child);
         }
         attachment.onDetached();
+        attachment.getInternalState().attached = false;
         attachment.getInternalState().reset();
     }
 

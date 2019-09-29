@@ -66,6 +66,16 @@ public interface Attachment {
     void onDetached();
 
     /**
+     * Called when the attachment need to (re)load the configuration.
+     * This method is called after {@link #onAttached()} is called for the first time,
+     * and when configuration is reloaded while the attachment remains attached.
+     * A guarantee is made that the attachment will be attached when this method is called.
+     * 
+     * @param config The configuration of the attachment
+     */
+    void onLoad(ConfigurationNode config);
+
+    /**
      * Called every tick to update the attachment
      */
     void onTick();
