@@ -16,10 +16,12 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
  * Also manages the view area scrolling for larger trees.
  */
 public abstract class MapWidgetAttachmentTree extends MapWidget {
+    private static final int MAX_VISIBLE_DEPTH = 3;
     private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode(this);
     private int offset = 0;
     private int count = 6;
     private int lastSelIdx = 0;
+    private int column_offset = 0;
     private boolean resetNeeded;
     private AttachmentModel model = null;
 
@@ -28,7 +30,6 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         this.root = new MapWidgetAttachmentNode(this);
         this.root.loadConfig(model.getConfig());
         this.lastSelIdx = this.root.getEditorOption("selectedIndex", 0);
-        System.out.println("READ OFFSET: " + this.root.getEditorOption("scrollOffset", 0));
         this.updateView(this.root.getEditorOption("scrollOffset", 0));
     }
 
@@ -92,9 +93,18 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         //view.fill(MapColorPalette.COLOR_GREEN);
     }
 
+    /**
+     * Gets a list of visible node widgets
+     * 
+     * @return list
+     */
+    public List<MapWidgetAttachmentNode> getVisibleNodes() {
+        return CommonUtil.unsafeCast(this.getWidgets());
+    }
+
     @Override
     public void onKeyPressed(MapKeyEvent event) {
-        List<MapWidgetAttachmentNode> widgets = CommonUtil.unsafeCast(this.getWidgets());
+        List<MapWidgetAttachmentNode> widgets = this.getVisibleNodes();
         if (widgets.isEmpty()) {
             return;
         }
@@ -182,20 +192,17 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             if (this.lastSelIdx > 0) {
                 // Focus previous widget
                 this.setSelectedIndex(this.lastSelIdx - 1);
-                widgets.get(this.lastSelIdx).focus();
             } else if (this.offset > 0) {
                 // Shift view one up, if possible, and focus the top widget
                 this.lastSelIdx = -1;
                 this.updateView(this.offset - 1);
-                widgets = CommonUtil.unsafeCast(this.getWidgets());
+                widgets = this.getVisibleNodes();
                 this.setSelectedIndex(0);
-                widgets.get(this.lastSelIdx).focus();
             }
         } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
             if (this.lastSelIdx < (widgets.size() - 1)) {
                 // Focus next widget
                 this.setSelectedIndex(this.lastSelIdx + 1);
-                widgets.get(this.lastSelIdx).focus();
             } else {
                 // Shift view one down, if possible
                 // Check if the last widget displayed is the very last widget in the tree
@@ -221,9 +228,8 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 if (!isLast) {
                     this.lastSelIdx = -1;
                     this.updateView(this.offset + 1);
-                    widgets = CommonUtil.unsafeCast(this.getWidgets());
+                    widgets = this.getVisibleNodes();
                     this.setSelectedIndex(widgets.size() - 1);
-                    widgets.get(this.lastSelIdx).focus();
                 }
             }
         } else {
@@ -234,7 +240,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         // Faster redraw
         if (this.resetNeeded) {
             this.updateView(this.offset);
-            widgets = CommonUtil.unsafeCast(this.getWidgets());
+            widgets = this.getVisibleNodes();
         }
 
         // Changed selected node during all this?
@@ -247,22 +253,24 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         boolean changed = (this.getSelectedNode() != node);
         int new_index = findIndexOf(node) - this.offset;
         if (new_index != this.lastSelIdx) {
-            this.setSelectedIndex(new_index);
             this.resetNeeded = true;
         }
 
         // Index too high, scroll
-        int a = this.lastSelIdx - this.getWidgetCount() + 1;
+        int a = new_index - this.getWidgetCount() + 1;
         if (a > 0) {
             this.offset += a;
-            this.setSelectedIndex(this.lastSelIdx - a);
+            new_index -= a;
         }
 
         // Index too low, scroll
-        if (this.lastSelIdx < 0) {
-            this.offset += this.lastSelIdx;
-            this.setSelectedIndex(0);
+        if (new_index < 0) {
+            this.offset += new_index;
+            new_index = 0;
         }
+
+        // Select it
+        this.setSelectedIndex(new_index);
 
         // Event
         if (changed) {
@@ -280,7 +288,6 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     public void updateView(int offset) {
         this.offset = offset;
-        System.out.println("SET OFFSET TO " + offset);
         this.root.setEditorOption("scrollOffset", 0, offset);
 
         this.clearWidgets();
@@ -289,21 +296,32 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         op.count = this.count;
         op.col = 0;
         op.row = 0;
+        op.min_col = Integer.MAX_VALUE;
+        op.max_col = 0;
+        this.column_offset = 0;
         this.updateView(this.root, op);
+
         this.resetNeeded = false;
         if (this.lastSelIdx >= 0 && this.getWidgetCount() > 0) {
             if (this.lastSelIdx >= this.getWidgetCount()) {
                 this.setSelectedIndex(this.getWidgetCount() - 1);
+            } else {
+                this.setSelectedIndex(this.lastSelIdx);
             }
-            this.getWidget(this.lastSelIdx).focus();
         }
     }
 
     private void updateView(MapWidgetAttachmentNode node, UpdateViewOp op) {
-        node.setCell(op.col, op.row);
         if (op.offset > 0) {
             op.offset--;
         } else if (op.count > 0) {
+            if (op.col < op.min_col) {
+                op.min_col = op.col;
+            }
+            if (op.col > op.max_col) {
+                op.max_col = op.col;
+            }
+            node.setCell(op.col, op.row);
             node.setPosition(0, this.getWidgets().size() * 17);
             this.addWidget(node);
             op.count--;
@@ -324,6 +342,29 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         if (this.lastSelIdx != newIndex) {
             this.lastSelIdx = newIndex;
             this.root.setEditorOption("selectedIndex", 0, newIndex);
+        }
+        if (this.lastSelIdx >= 0 && this.lastSelIdx < this.getWidgetCount()) {
+            this.computeColumnOffset();
+            this.getWidget(this.lastSelIdx).focus();
+        }
+    }
+
+    // Recomputes the column offset that makes sure the selected node column is < MAX_VISIBLE_DEPTH
+    private void computeColumnOffset() {
+        // Compute the new column offset, keeping the currently set column offset into account
+        MapWidgetAttachmentNode selectedNode = (MapWidgetAttachmentNode) this.getWidget(this.lastSelIdx);
+        int new_column_offset = MAX_VISIBLE_DEPTH - (selectedNode.getCellColumn() - this.column_offset);
+        if (new_column_offset > 0) {
+            new_column_offset = 0;
+        }
+
+        // If different, re-render
+        if (new_column_offset != this.column_offset) {
+            for (MapWidgetAttachmentNode node : this.getVisibleNodes()) {
+                node.setCell(node.getCellColumn() - this.column_offset + new_column_offset, node.getCellRow());
+                node.invalidate();
+            }
+            this.column_offset = new_column_offset;
         }
     }
 
@@ -358,5 +399,6 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         public int offset;
         public int count;
         public int col, row;
+        public int max_col, min_col;
     }
 }

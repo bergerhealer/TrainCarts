@@ -170,7 +170,6 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         } else {
             this.config.set("editor." + name, value);
         }
-        System.out.println("OPTION " + name + " SET TO " + value + "  " + this.config.isNode("editor"));
         this.getTree().sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed_silent", this);
     }
 
@@ -233,6 +232,24 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public void setCell(int col, int row) {
         this.col = col;
         this.row = row;
+    }
+
+    /**
+     * Gets the column of where this node is displayed
+     * 
+     * @return cell column
+     */
+    public int getCellColumn() {
+        return this.col;
+    }
+
+    /**
+     * Gets the row of where this node is displayed
+     * 
+     * @return cell row
+     */
+    public int getCellRow() {
+        return this.row;
     }
 
     public CartAttachmentType getType() {

@@ -97,7 +97,6 @@ public class AttachmentEditor extends MapDisplay {
     @Override
     public void onStatusChanged(MapStatusEvent event) {
         if (event.isName("changed") || event.isName("changed_silent")) {
-            System.out.println("CHANGE: " + event.getName());
             MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
             if (node != null) {
                 this.tree.updateModelNode(node, !event.isName("changed_silent"));
