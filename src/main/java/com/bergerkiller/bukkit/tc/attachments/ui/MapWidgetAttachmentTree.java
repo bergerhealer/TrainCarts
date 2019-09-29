@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
  * Also manages the view area scrolling for larger trees.
  */
 public abstract class MapWidgetAttachmentTree extends MapWidget {
-    private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode();
+    private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode(this);
     private int offset = 0;
     private int count = 6;
     private int lastSelIdx = 0;
@@ -25,18 +25,20 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     public void setModel(AttachmentModel model) {
         this.model = model;
-        this.root = new MapWidgetAttachmentNode();
+        this.root = new MapWidgetAttachmentNode(this);
         this.root.loadConfig(model.getConfig());
-        this.updateView(0);
+        this.lastSelIdx = this.root.getEditorOption("selectedIndex", 0);
+        System.out.println("READ OFFSET: " + this.root.getEditorOption("scrollOffset", 0));
+        this.updateView(this.root.getEditorOption("scrollOffset", 0));
     }
 
-    public void updateModel() {
-        this.model.update(root.getFullConfig());
+    public void updateModel(boolean notify) {
+        this.model.update(root.getFullConfig(), notify);
         this.getEditor().onSelectedNodeChanged();
     }
 
-    public void updateModelNode(MapWidgetAttachmentNode node) {
-        this.model.updateNode(node.getTargetPath(), node.getConfig());
+    public void updateModelNode(MapWidgetAttachmentNode node, boolean notify) {
+        this.model.updateNode(node.getTargetPath(), node.getConfig(), notify);
         this.getEditor().onSelectedNodeChanged();
     }
 
@@ -166,6 +168,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                         attachments.remove(from_index);
                         new_parent.getAttachments().add(selected);
                         selected.setParentAttachment(new_parent);
+                        new_parent.setExpanded(true);
 
                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                         this.resetNeeded = true;
@@ -178,20 +181,20 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         } else if (event.getKey() == MapPlayerInput.Key.UP) {
             if (this.lastSelIdx > 0) {
                 // Focus previous widget
-                this.lastSelIdx--;
+                this.setSelectedIndex(this.lastSelIdx - 1);
                 widgets.get(this.lastSelIdx).focus();
             } else if (this.offset > 0) {
                 // Shift view one up, if possible, and focus the top widget
                 this.lastSelIdx = -1;
                 this.updateView(this.offset - 1);
                 widgets = CommonUtil.unsafeCast(this.getWidgets());
-                this.lastSelIdx = 0;
+                this.setSelectedIndex(0);
                 widgets.get(this.lastSelIdx).focus();
             }
         } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
             if (this.lastSelIdx < (widgets.size() - 1)) {
                 // Focus next widget
-                this.lastSelIdx++;
+                this.setSelectedIndex(this.lastSelIdx + 1);
                 widgets.get(this.lastSelIdx).focus();
             } else {
                 // Shift view one down, if possible
@@ -219,7 +222,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                     this.lastSelIdx = -1;
                     this.updateView(this.offset + 1);
                     widgets = CommonUtil.unsafeCast(this.getWidgets());
-                    this.lastSelIdx = widgets.size() - 1;
+                    this.setSelectedIndex(widgets.size() - 1);
                     widgets.get(this.lastSelIdx).focus();
                 }
             }
@@ -244,7 +247,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         boolean changed = (this.getSelectedNode() != node);
         int new_index = findIndexOf(node) - this.offset;
         if (new_index != this.lastSelIdx) {
-            this.lastSelIdx = new_index;
+            this.setSelectedIndex(new_index);
             this.resetNeeded = true;
         }
 
@@ -252,13 +255,13 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         int a = this.lastSelIdx - this.getWidgetCount() + 1;
         if (a > 0) {
             this.offset += a;
-            this.lastSelIdx -= a;
+            this.setSelectedIndex(this.lastSelIdx - a);
         }
 
         // Index too low, scroll
         if (this.lastSelIdx < 0) {
             this.offset += this.lastSelIdx;
-            this.lastSelIdx = 0;
+            this.setSelectedIndex(0);
         }
 
         // Event
@@ -277,6 +280,8 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     public void updateView(int offset) {
         this.offset = offset;
+        System.out.println("SET OFFSET TO " + offset);
+        this.root.setEditorOption("scrollOffset", 0, offset);
 
         this.clearWidgets();
         UpdateViewOp op = new UpdateViewOp();
@@ -288,7 +293,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         this.resetNeeded = false;
         if (this.lastSelIdx >= 0 && this.getWidgetCount() > 0) {
             if (this.lastSelIdx >= this.getWidgetCount()) {
-                this.lastSelIdx = this.getWidgetCount() - 1;
+                this.setSelectedIndex(this.getWidgetCount() - 1);
             }
             this.getWidget(this.lastSelIdx).focus();
         }
@@ -306,11 +311,20 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             return;
         }
         op.row++;
-        op.col++;
-        for (MapWidgetAttachmentNode childAttachment : node.getAttachments()) {
-            updateView(childAttachment, op);
+        if (node.isExpanded()) {
+            op.col++;
+            for (MapWidgetAttachmentNode childAttachment : node.getAttachments()) {
+                updateView(childAttachment, op);
+            }
+            op.col--;
         }
-        op.col--;
+    }
+
+    private void setSelectedIndex(int newIndex) {
+        if (this.lastSelIdx != newIndex) {
+            this.lastSelIdx = newIndex;
+            this.root.setEditorOption("selectedIndex", 0, newIndex);
+        }
     }
 
     private int findIndexOf(MapWidgetAttachmentNode node) {
@@ -325,9 +339,11 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             return true;
         }
         op.index++;
-        for (MapWidgetAttachmentNode child : parent.getAttachments()) {
-            if (searchForNode(child, op)) {
-                return true;
+        if (parent.isExpanded()) {
+            for (MapWidgetAttachmentNode child : parent.getAttachments()) {
+                if (searchForNode(child, op)) {
+                    return true;
+                }
             }
         }
         return false;

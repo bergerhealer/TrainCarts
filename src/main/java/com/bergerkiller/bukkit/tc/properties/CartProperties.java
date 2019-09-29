@@ -598,7 +598,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         }
         if (this.model != null) {
             if (node.isNode("model")) {
-                this.model.update(node.getNode("model").clone());
+                this.model.update(node.getNode("model").clone(), true);
             }
         } else {
             if (node.isNode("model")) {

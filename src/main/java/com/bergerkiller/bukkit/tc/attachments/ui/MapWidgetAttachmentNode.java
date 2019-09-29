@@ -8,11 +8,14 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
@@ -28,19 +31,24 @@ import com.bergerkiller.mountiplex.MountiplexUtil;
  * the configuration for the node.
  */
 public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget {
+    private final MapWidgetAttachmentTree tree;
+    private static MapTexture expanded_icon = null;
+    private static MapTexture collapsed_icon = null;
     private ConfigurationNode config;
     private List<MapWidgetAttachmentNode> attachments = new ArrayList<MapWidgetAttachmentNode>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
     private MapTexture icon = null;
     private boolean changingOrder = false;
+    private boolean expanded = true;
     private MapWidgetMenuButton appearanceMenuButton;
 
-    public MapWidgetAttachmentNode() {
-        this(new ConfigurationNode());
+    public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree) {
+        this(tree, new ConfigurationNode());
     }
 
-    public MapWidgetAttachmentNode(ConfigurationNode config) {
+    public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree, ConfigurationNode config) {
+        this.tree = tree;
         this.loadConfig(config);
 
         // Can be focused
@@ -60,17 +68,24 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         this.attachments.clear();
         if (config.contains("attachments")) {
             for (ConfigurationNode subAttachment : config.getNodeList("attachments")) {
-                MapWidgetAttachmentNode sub = new MapWidgetAttachmentNode(subAttachment);
+                MapWidgetAttachmentNode sub = new MapWidgetAttachmentNode(this.tree, subAttachment);
                 sub.parentAttachment = this;
                 this.attachments.add(sub);
             }
         }
+
+        // Special properties
+        this.expanded = this.getEditorOption("expanded", true);
+        if (!this.expanded && this.attachments.isEmpty()) {
+            this.expanded = true;
+            this.setEditorOption("expanded", true, true);
+        }
     }
 
     public MapWidgetAttachmentTree getTree() {
-        return ((MapWidgetAttachmentTree) this.parent);
+        return this.tree;
     }
-    
+
     public MapWidgetAttachmentNode getParentAttachment() {
         return this.parentAttachment;
     }
@@ -114,10 +129,56 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     /**
+     * Gets an option for this node under the 'editor' block
+     * 
+     * @param name of the option
+     * @param defaultValue to return if not set
+     * @return option
+     */
+    public <T> T getEditorOption(String name, T defaultValue) {
+        if (this.config.contains("editor." + name)) {
+            return this.config.get("editor." + name, defaultValue);
+        } else {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Sets an option for this node under the 'editor' block. If the value
+     * is the default value, the option is removed. If the editor block has
+     * no more options, it is removed also.
+     * 
+     * @param name
+     * @param defaultValue
+     * @param value
+     */
+    public <T> void setEditorOption(String name, T defaultValue, T value) {
+        T oldValue = this.getEditorOption(name, defaultValue);
+        if (LogicUtil.bothNullOrEqual(oldValue, value)) {
+            return; // unchanged
+        }
+        if (LogicUtil.bothNullOrEqual(defaultValue, value)) {
+            if (this.config.isNode("editor")) {
+                ConfigurationNode editor = this.config.getNode("editor");
+                if (editor.contains(name)) {
+                    editor.remove(name);
+                }
+                if (editor.isEmpty()) {
+                    this.config.remove("editor");
+                }
+            }
+        } else {
+            this.config.set("editor." + name, value);
+        }
+        System.out.println("OPTION " + name + " SET TO " + value + "  " + this.config.isNode("editor"));
+        this.getTree().sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed_silent", this);
+    }
+
+    /**
      * Applies updated configurations to the models system, refreshing trains that use this model
      */
     public void update() {
-        this.getTree().updateModel();
+        this.getTree().updateModel(true);
     }
 
     public MapWidgetAttachmentNode addAttachment(ConfigurationNode config) {
@@ -125,7 +186,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public MapWidgetAttachmentNode addAttachment(int index, ConfigurationNode config) {
-        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(config);
+        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(this.tree, config);
         attachment.parentAttachment = this;
         this.attachments.add(index, attachment);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
@@ -298,6 +359,20 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     @Override
+    public void onKeyPressed(MapKeyEvent event) {
+        if (event.getKey() == Key.LEFT &&
+            this.parentAttachment != null &&
+            this.getWidgetCount() > 0 &&
+            this.getWidget(0).isFocused() &&
+            !this.attachments.isEmpty())
+        {
+            this.setExpanded(!this.isExpanded());
+        } else {
+            super.onKeyPressed(event);
+        }
+    }
+
+    @Override
     public boolean acceptItem(ItemStack item) {
         // If this is an item attachment, set the item
         if (this.getType() == CartAttachmentType.ITEM) {
@@ -368,6 +443,22 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
                 tmpNode = tmpNodeParent;
                 tmpX -= 17;
             }
+
+            // When this node has children, show a [+] or [-] depending on collapsed or not
+            // Do not show for the parent node!
+            if (!this.attachments.isEmpty()) {
+                if (this.expanded) {
+                    if (expanded_icon == null) {
+                        expanded_icon = this.getDisplay().loadTexture("com/bergerkiller/bukkit/tc/textures/attachments/expanded.png");
+                    }
+                    view.draw(expanded_icon,  px-9-(expanded_icon.getWidth()/2), (view.getHeight()-expanded_icon.getHeight())/2 + dotOffset);
+                } else {
+                    if (collapsed_icon == null) {
+                        collapsed_icon = this.getDisplay().loadTexture("com/bergerkiller/bukkit/tc/textures/attachments/collapsed.png");
+                    }
+                    view.draw(collapsed_icon, px-9-(collapsed_icon.getWidth()/2), (view.getHeight()-collapsed_icon.getHeight())/2 + dotOffset);
+                }
+            }
         }
 
         // Draw icon and maybe labels or other stuff when not activated
@@ -375,6 +466,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             view.draw(getIcon(), px + 1, 1);
         }
 
+        // Show different focus rectangles depending on the mode
         if (this.isChangingOrder()) {
             view.drawRectangle(px, 0, getWidth() - px, getHeight(), MapColorPalette.COLOR_RED);
         } else if (this.isFocused()) {
@@ -400,6 +492,19 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
 
     public boolean isChangingOrder() {
         return this.changingOrder;
+    }
+
+    public void setExpanded(boolean expanded) {
+        if (this.expanded != expanded) {
+            this.expanded = expanded;
+            this.setEditorOption("expanded", true, this.expanded);
+            this.getTree().updateView();
+            this.invalidate();
+        }
+    }
+
+    public boolean isExpanded() {
+        return this.expanded;
     }
 
     private MapTexture getIcon() {

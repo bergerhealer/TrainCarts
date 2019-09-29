@@ -9,6 +9,7 @@ import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 public class AttachmentModel {
     private ConfigurationNode config;
@@ -26,7 +27,7 @@ public class AttachmentModel {
     public AttachmentModel(ConfigurationNode config) {
         this.config = config;
         this._isDefault = false;
-        this.onConfigChanged();
+        this.computeProperties();
     }
 
     public ConfigurationNode getConfig() {
@@ -67,7 +68,7 @@ public class AttachmentModel {
             seatNode.set("type", CartAttachmentType.SEAT);
             config.setNodeList("attachments", Arrays.asList(seatNode));
         }
-        this.update(config);
+        this.update(config, false);
         this._isDefault = true;
     }
 
@@ -80,7 +81,7 @@ public class AttachmentModel {
         ConfigurationNode config = new ConfigurationNode();
         config.set("type", CartAttachmentType.MODEL);
         config.set("model", modelName);
-        this.update(config);
+        this.update(config, false);
     }
 
     /**
@@ -110,10 +111,11 @@ public class AttachmentModel {
      * will be notified.
      * 
      * @param newConfig
+     * @param notify True to not notify the changes, False for a silent update
      */
-    public void update(ConfigurationNode newConfig) {
+    public void update(ConfigurationNode newConfig, boolean notify) {
         this.config = newConfig;
-        this.onConfigChanged();
+        this.onConfigChanged(notify);
 
         //TODO: Tell save scheduler we can re-save models.yml
 
@@ -126,8 +128,9 @@ public class AttachmentModel {
      * 
      * @param targetPath to the leaf that changed
      * @param newConfig for the leaf
+     * @param notify True to not notify the changes, False for a silent update
      */
-    public void updateNode(int[] targetPath, ConfigurationNode newConfig) {
+    public void updateNode(int[] targetPath, ConfigurationNode newConfig, boolean notify) {
         ConfigurationNode changedNode = this.config;
         for (int index : targetPath) {
             List<ConfigurationNode> attachments = changedNode.getNodeList("attachments");
@@ -138,9 +141,16 @@ public class AttachmentModel {
             }
         }
         for (String key : newConfig.getKeys()) {
-            changedNode.set(key, newConfig.get(key));
+            if (!key.equals("attachments")) {
+                changedNode.set(key, newConfig.get(key));
+            }
         }
-        this.onConfigNodeChanged(targetPath, changedNode);
+        for (String oldKey : new ArrayList<String>(changedNode.getKeys())) {
+            if (!newConfig.contains(oldKey) && !oldKey.equals("attachments")) {
+                changedNode.remove(oldKey);
+            }
+        }
+        this.onConfigNodeChanged(targetPath, changedNode, notify);
     }
 
     public void log() {
@@ -161,7 +171,7 @@ public class AttachmentModel {
         }
     }
 
-    private void onConfigChanged() {
+    private void computeProperties() {
         this.seatCount = 0;
         this.loadSeats(this.config);
 
@@ -169,18 +179,26 @@ public class AttachmentModel {
         this.cartLength = physical.get("cartLength", 0.98f);
         this.wheelCenter = physical.get("wheelCenter", 0.0);
         this.wheelDistance = physical.get("wheelDistance", 0.0);
-        this._isDefault = false; // Was changed; no longer default!
+    }
 
-        for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
-            owner.onModelChanged(this);
+    private void onConfigChanged(boolean notify) {
+        this._isDefault = false; // Was changed; no longer default!
+        this.computeProperties();
+        TrainPropertiesStore.markForAutosave(); // hack!
+        if (notify) {
+            for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
+                owner.onModelChanged(this);
+            }
         }
     }
 
-    private void onConfigNodeChanged(int[] targetPath, ConfigurationNode config) {
+    private void onConfigNodeChanged(int[] targetPath, ConfigurationNode config, boolean notify) {
         this._isDefault = false; // Was changed; no longer default!
-
-        for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
-            owner.onModelNodeChanged(this, targetPath, config);
+        TrainPropertiesStore.markForAutosave(); // hack!
+        if (notify) {
+            for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
+                owner.onModelNodeChanged(this, targetPath, config);
+            }
         }
     }
 

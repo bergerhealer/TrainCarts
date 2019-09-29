@@ -96,17 +96,18 @@ public class AttachmentEditor extends MapDisplay {
 
     @Override
     public void onStatusChanged(MapStatusEvent event) {
-        if (event.isName("changed")) {
+        if (event.isName("changed") || event.isName("changed_silent")) {
+            System.out.println("CHANGE: " + event.getName());
             MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
             if (node != null) {
-                this.tree.updateModelNode(node);
+                this.tree.updateModelNode(node, !event.isName("changed_silent"));
             } else {
-                this.tree.updateModel();
+                this.tree.updateModel(!event.isName("changed_silent"));
             }
         } else if (event.isName("reset")) {
             // Completely re-initialize the model
             this.tree.updateView();
-            this.tree.updateModel();
+            this.tree.updateModel(true);
 
             // Do not blink for a little while, with focused=false
             this.pauseBlinking(false);
