@@ -189,7 +189,11 @@ public class HelperMethods {
     }
 
     public static void perform_onAttached(Attachment attachment) {
+        attachment.getInternalState().attached = true;
         attachment.onAttached();
+        if (attachment.isFocused()) {
+            attachment.onFocus();
+        }
         for (Attachment child : attachment.getChildren()) {
             perform_onAttached(child);
         }

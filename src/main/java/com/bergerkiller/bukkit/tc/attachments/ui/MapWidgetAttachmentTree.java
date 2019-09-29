@@ -32,11 +32,19 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     public void updateModel() {
         this.model.update(root.getFullConfig());
+        this.getEditor().onSelectedNodeChanged();
     }
 
     public abstract void onMenuOpen(MapWidgetAttachmentNode node, MapWidgetAttachmentNode.MenuItem menu);
 
     public MapWidgetAttachmentNode getRoot() {
+        return this.root;
+    }
+
+    public MapWidgetAttachmentNode getSelectedNode() {
+        if (this.lastSelIdx >= 0 && this.lastSelIdx < this.getWidgetCount()) {
+            return (MapWidgetAttachmentNode) this.getWidget(this.lastSelIdx);
+        }
         return this.root;
     }
 
@@ -85,7 +93,8 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         }
 
         this.lastSelIdx = widgets.indexOf(this.getNextInputWidget());
-        if (this.lastSelIdx >= 0 && this.lastSelIdx < widgets.size() && widgets.get(this.lastSelIdx).isChangingOrder()) {
+        MapWidgetAttachmentNode currentlySelected = this.getSelectedNode();
+        if (currentlySelected != null && currentlySelected.isChangingOrder()) {
             MapWidgetAttachmentNode selected = widgets.get(this.lastSelIdx);
 
             // Complete changing order of widget
@@ -170,6 +179,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 // Shift view one up, if possible, and focus the top widget
                 this.lastSelIdx = -1;
                 this.updateView(this.offset - 1);
+                widgets = CommonUtil.unsafeCast(this.getWidgets());
                 this.lastSelIdx = 0;
                 widgets.get(this.lastSelIdx).focus();
             }
@@ -203,8 +213,9 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 if (!isLast) {
                     this.lastSelIdx = -1;
                     this.updateView(this.offset + 1);
-                    this.lastSelIdx = this.getWidgetCount() - 1;
-                    this.getWidgets().get(this.lastSelIdx).focus();
+                    widgets = CommonUtil.unsafeCast(this.getWidgets());
+                    this.lastSelIdx = widgets.size() - 1;
+                    widgets.get(this.lastSelIdx).focus();
                 }
             }
         } else {
@@ -215,10 +226,17 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         // Faster redraw
         if (this.resetNeeded) {
             this.updateView(this.offset);
+            widgets = CommonUtil.unsafeCast(this.getWidgets());
+        }
+
+        // Changed selected node during all this?
+        if (this.getSelectedNode() != currentlySelected) {
+            this.getEditor().onSelectedNodeChanged();
         }
     }
 
     public void setSelectedNode(MapWidgetAttachmentNode node) {
+        boolean changed = (this.getSelectedNode() != node);
         int new_index = findIndexOf(node) - this.offset;
         if (new_index != this.lastSelIdx) {
             this.lastSelIdx = new_index;
@@ -237,6 +255,15 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             this.offset += this.lastSelIdx;
             this.lastSelIdx = 0;
         }
+
+        // Event
+        if (changed) {
+            this.getEditor().onSelectedNodeChanged();
+        }
+    }
+
+    public AttachmentEditor getEditor() {
+        return (AttachmentEditor) super.getDisplay();
     }
 
     public void updateView() {

@@ -13,12 +13,14 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
 /**
@@ -193,6 +195,30 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             tmp = tmp.parentAttachment;
         }
         return targetPath;
+    }
+
+    /**
+     * Looks up the attachment that this node refers to. Changes to this attachment will
+     * cause live changes.
+     * 
+     * @return attachment, null if the minecart isn't available or the attachment is missing
+     */
+    public Attachment getAttachment() {
+        AttachmentEditor editor = this.getEditor();
+        MinecartMember<?> member;
+        if (editor == null || editor.editedCart == null || (member = editor.editedCart.getHolder()) == null) {
+            return null; // detached or not loaded
+        } else {
+            return member.findAttachment(this.getTargetPath());
+        }
+    }
+
+    public AttachmentEditor getEditor() {
+        if (this.display == null && this.root != null) {
+            return (AttachmentEditor) this.root.getDisplay();
+        } else {
+            return (AttachmentEditor) this.getDisplay();
+        }
     }
 
     @Override
@@ -371,6 +397,15 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             this.icon = this.getType().getIcon(this.getConfig());
         }
         return this.icon;
+    }
+
+    @Override
+    public String toString() {
+        String name = this.getType().toString();
+        for (int p : this.getTargetPath()) {
+            name += "." + p;
+        }
+        return name;
     }
 
     private class MapWidgetMenuButton extends MapWidgetBlinkyButton {

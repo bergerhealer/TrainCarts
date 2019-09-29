@@ -88,6 +88,62 @@ public interface Attachment {
     void onMove(boolean absolute);
 
     /**
+     * Gets whether this attachment has been attached. This returns true if
+     * {@link #onAttached()} was last called. It returns false if this was never
+     * called, or {@link #onDetached()} was last called.
+     * 
+     * @return True if this attachment has been attached
+     */
+    default boolean isAttached() {
+        return this.getInternalState().attached;
+    }
+
+    /**
+     * Gets whether this attachment is focused. This returns true if {@link #onFocus()}
+     * was last called. It returns false if this was never called, or {@link #onBlur()}
+     * was last called.
+     * 
+     * @return True if this attachment receives focus
+     */
+    default boolean isFocused() {
+        return this.getInternalState().focused;
+    }
+
+    /**
+     * Sets whether this attachment is focused. This changes the {@link #isFocused()}
+     * state, as well call the {@link #onFocus()} or {@link #onBlur()} callbacks as required.
+     * 
+     * @param focused state to set to
+     */
+    default void setFocused(boolean focused) {
+        AttachmentInternalState state = this.getInternalState();
+        if (state.focused != focused) {
+            state.focused = focused;
+            if (this.isAttached()) {
+                if (focused) {
+                    onFocus();
+                } else {
+                    onBlur();
+                }
+            }
+        }
+    }
+
+    /**
+     * Called when an attachment is focused in the editor or by other means.
+     * The attachment should try to change appearance to indicate it received focus.
+     */
+    default void onFocus() {
+    }
+
+    /**
+     * Called when an attachment loses focus in the editor or by other means.
+     * The attachment should reset the appearance changes that were performed by {@link #onFocus()}.
+     */
+    default void onBlur() {
+    }
+
+    /**
      * Makes this attachment visible to a viewer for the first time.
      * This is automatically called for you after {@link #onAttached()} is called,
      * and whenever a new viewer moves within range.

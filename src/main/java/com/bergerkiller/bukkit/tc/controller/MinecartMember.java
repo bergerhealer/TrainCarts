@@ -2229,7 +2229,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    private Attachment findAttachment(int[] targetPath) {
+    /**
+     * Looks up an attachment of the Minecart by target path. The path is a series of indices to
+     * get to that particular attachment in the tree hierarchy.
+     * 
+     * @param targetPath
+     * @return Attachment at this path, or null if not found
+     */
+    public Attachment findAttachment(int[] targetPath) {
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
         return (network == null) ? null : network.getRootAttachment().findChild(targetPath);
     }

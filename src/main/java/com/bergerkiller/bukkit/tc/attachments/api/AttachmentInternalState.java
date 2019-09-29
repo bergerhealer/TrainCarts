@@ -66,6 +66,20 @@ public class AttachmentInternalState {
     protected boolean active = true;
 
     /**
+     * Whether the attachment is focused at this time.
+     * Retrieved using {@link Attachment#isFocused()}.
+     * Updated using {@link Attachment#setFocused(boolean)}.
+     */
+    protected boolean focused = false;
+
+    /**
+     * Whether the attachment has been attached, either as a root,
+     * or to parent attachment. Retrieved using {@link Attachment#isAttached()}.
+     * Updated automatically when attaching and detaching.
+     */
+    public boolean attached = false;
+
+    /**
      * Position information for the attachment. This is automatically
      * loaded before {@link Attachment#onAttached()} is called.
      */
@@ -115,5 +129,6 @@ public class AttachmentInternalState {
         this.animations.clear();
         this.last_transform = null;
         this.curr_transform = null;
+        this.attached = false;
     }
 }

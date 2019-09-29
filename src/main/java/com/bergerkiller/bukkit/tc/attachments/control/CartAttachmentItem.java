@@ -82,6 +82,22 @@ public class CartAttachmentItem extends CartAttachment {
     }
 
     @Override
+    public void onFocus() {
+        this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                EntityArmorStandHandle.DATA_FLAG_SET_MARKER, true);
+
+        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
+    }
+
+    @Override
+    public void onBlur() {
+        this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                EntityArmorStandHandle.DATA_FLAG_SET_MARKER, false);
+
+        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
+    }
+
+    @Override
     public void onTransformChanged(Matrix4x4 transform) {
         // Switch to old logic for debugging the pivot point changes in 1.12.2-v3
         /*

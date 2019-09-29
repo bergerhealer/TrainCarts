@@ -58,6 +58,16 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
+    public void onFocus() {
+        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
+    }
+
+    @Override
+    public void onBlur() {
+        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
+    }
+
+    @Override
     public boolean containsEntityId(int entityId) {
         return this.entity != null && this.entity.getEntityId() == entityId;
     }

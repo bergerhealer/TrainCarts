@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -23,6 +24,8 @@ public class AttachmentEditor extends MapDisplay {
     public AttachmentModel model;
     private boolean sneakWalking = false;
     private boolean _hasPermission;
+    private int blinkCounter = 0;
+    private Attachment _lastSelectedAttachment = null;
 
     private MapWidgetWindow window = new MapWidgetWindow();
     private MapWidgetAttachmentTree tree = new MapWidgetAttachmentTree() {
@@ -53,6 +56,14 @@ public class AttachmentEditor extends MapDisplay {
         if (this._hasPermission != Permission.COMMAND_GIVE_EDITOR.has(getOwners().get(0))) {
             this.setRunning(false);
             this.setRunning(true);
+        }
+
+        // Update blink counter, toggle between showing focused and not
+        if (this._lastSelectedAttachment != null) {
+            if (++this.blinkCounter > 6) {
+                this._lastSelectedAttachment.setFocused(!this._lastSelectedAttachment.isFocused());
+                this.blinkCounter = 0;
+            }
         }
     }
 
@@ -91,6 +102,27 @@ public class AttachmentEditor extends MapDisplay {
             // Completely re-initialize the model
             this.tree.updateView();
             this.tree.updateModel();
+
+            // Do not blink for a little while, with focused=false
+            this.pauseBlinking(false);
+        }
+    }
+
+    public void onSelectedNodeChanged() {
+        Attachment attachment = this.tree.getSelectedNode().getAttachment();
+        if (attachment != this._lastSelectedAttachment) {
+            if (this._lastSelectedAttachment != null) {
+                this._lastSelectedAttachment.setFocused(false);
+            }
+            this._lastSelectedAttachment = attachment;
+            this.pauseBlinking(this.getFocusedWidget() instanceof MapWidgetAttachmentNode);
+        }
+    }
+
+    private void pauseBlinking(boolean focused) {
+        if (this._lastSelectedAttachment != null) {
+            this._lastSelectedAttachment.setFocused(focused);
+            this.blinkCounter = -30;
         }
     }
 
@@ -101,6 +133,14 @@ public class AttachmentEditor extends MapDisplay {
         this.setSessionMode(MapSessionMode.HOLDING);
         this.setMasterVolume(0.3f);
         this.reload();
+    }
+
+    @Override
+    public void onDetached() {
+        if (this._lastSelectedAttachment != null) {
+            this._lastSelectedAttachment.setFocused(false);
+            this._lastSelectedAttachment = null;
+        }
     }
 
     /**
