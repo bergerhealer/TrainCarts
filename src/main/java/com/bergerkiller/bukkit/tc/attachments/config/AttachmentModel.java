@@ -111,6 +111,16 @@ public class AttachmentModel {
      * will be notified.
      * 
      * @param newConfig
+     */
+    public void update(ConfigurationNode newConfig) {
+        this.update(newConfig, true);
+    }
+
+    /**
+     * Updates the full configuration of this attachment model. All users of this model
+     * will be notified if notify is true.
+     * 
+     * @param newConfig
      * @param notify True to not notify the changes, False for a silent update
      */
     public void update(ConfigurationNode newConfig, boolean notify) {
@@ -125,6 +135,17 @@ public class AttachmentModel {
     /**
      * Updates only a single leaf of the attachment model tree. All users of this model
      * will be notified.
+     * 
+     * @param targetPath to the leaf that changed
+     * @param newConfig for the leaf
+     */
+    public void updateNode(int[] targetPath, ConfigurationNode newConfig) {
+        this.updateNode(targetPath, newConfig);
+    }
+
+    /**
+     * Updates only a single leaf of the attachment model tree. All users of this model
+     * will be notified if notify is true.
      * 
      * @param targetPath to the leaf that changed
      * @param newConfig for the leaf
