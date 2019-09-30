@@ -4,7 +4,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 /**
@@ -27,6 +31,47 @@ public abstract class AttachmentAnchor {
 
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
+        }
+    });
+
+    /**
+     * Disables all rotation information that comes from the parent attachment (or cart).
+     * This will cause the attachment to always point in the same direction.
+     */
+    public static AttachmentAnchor NO_ROTATION = register(new AttachmentAnchor("no rotation") {
+        @Override
+        public boolean supports(Attachment attachment) {
+            return true;
+        }
+
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
+            Vector3 absolutePosition = transform.toVector3();
+            transform.setIdentity();
+            transform.translate(absolutePosition);
+        }
+    });
+
+    /**
+     * Aligns the attachment so that it is always pointing upwards (y-coordinate). Only yaw
+     * is preserved of the parent attachment.
+     */
+    public static AttachmentAnchor ALIGN_UP = register(new AttachmentAnchor("align up") {
+        @Override
+        public boolean supports(Attachment attachment) {
+            return true;
+        }
+
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
+            Vector3 absolutePosition = transform.toVector3();
+            Vector forward = transform.getRotation().forwardVector();
+            forward.setY(0.0);
+            transform.setIdentity();
+            transform.translate(absolutePosition);
+            if (forward.lengthSquared() > 1e-9) {
+                transform.rotate(Quaternion.fromLookDirection(forward));
+            }
         }
     });
 
@@ -84,7 +129,7 @@ public abstract class AttachmentAnchor {
 
     /**
      * Gets whether this anchor supports the attachment specified.
-     * Some anchors can not be used with some attachment types of in certain environments,
+     * Some anchors can not be used with some attachment types or in certain environments,
      * in which case this method should return false. If the anchor is not supported,
      * it will not be shown in the attachment editor as a valid option.
      * 
