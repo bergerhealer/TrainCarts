@@ -452,9 +452,9 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
                 if (tmpNodeParent != null && tmpNode != tmpNodeParent.attachments.get(tmpNodeParent.attachments.size() - 1)) {
                     // Node has a parent and is not the last child of that parent: we need to draw a line
                     // Use the known row property to calculate the dot index
-                    dotOffset = (((this.row - tmpNodeParent.row) & 0x1) == 0x1) ? 1 : 0;
+                    int childDotOffset = (((this.row - tmpNodeParent.row) & 0x1) == 0x1) ? 1 : 0;
                     for (int n = 0; n < 9; n++) {
-                        this.view.drawPixel(tmpX, n * 2 + dotOffset, dotColor);
+                        this.view.drawPixel(tmpX, n * 2 + childDotOffset, dotColor);
                     }
                 }
                 tmpNode = tmpNodeParent;
