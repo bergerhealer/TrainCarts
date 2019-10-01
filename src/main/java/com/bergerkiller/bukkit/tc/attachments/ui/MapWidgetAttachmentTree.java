@@ -204,28 +204,10 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 // Focus next widget
                 this.setSelectedIndex(this.lastSelIdx + 1);
             } else {
-                // Shift view one down, if possible
-                // Check if the last widget displayed is the very last widget in the tree
-                MapWidgetAttachmentNode tmp = widgets.get(widgets.size() - 1);
-                boolean isLast = true;
-                if (tmp.getAttachments().isEmpty()) {
-                    while (tmp != null) {
-                        MapWidgetAttachmentNode tmpParent = tmp.getParentAttachment();
-                        if (tmpParent != null) {
-                            List<MapWidgetAttachmentNode> tmpParentCh = tmpParent.getAttachments();
-                            if (tmpParentCh.get(tmpParentCh.size() - 1) != tmp) {
-                                isLast = false; // Not last child of parent
-                                break;
-                            }
-                        }
-                        tmp = tmpParent;
-                    }
-                } else {
-                    isLast = false; // Has children, not last
-                }
-
-                // If not last widget, offset the view
-                if (!isLast) {
+                // Shift view one down, if the last displayed node is not the last node of the tree
+                MapWidgetAttachmentNode lastVisibleNode = widgets.get(widgets.size() - 1);
+                MapWidgetAttachmentNode lastTreeNode = findLastNode(root);
+                if (lastVisibleNode != lastTreeNode) {
                     this.lastSelIdx = -1;
                     this.updateView(this.offset + 1);
                     widgets = this.getVisibleNodes();
@@ -365,6 +347,15 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 node.invalidate();
             }
             this.column_offset = new_column_offset;
+        }
+    }
+
+    private static MapWidgetAttachmentNode findLastNode(MapWidgetAttachmentNode node) {
+        List<MapWidgetAttachmentNode> children = node.getAttachments();
+        if (!node.isExpanded() || children.isEmpty()) {
+            return node;
+        } else {
+            return findLastNode(children.get(children.size()-1));
         }
     }
 
