@@ -37,6 +37,9 @@ public enum CartAttachmentType {
 
     public MapTexture getIcon(ConfigurationNode config) {
         switch (this) {
+        case EMPTY:
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/empty.png");
+
         case ITEM:
             ItemStack item = config.get("item", new ItemStack(Material.MINECART));
             return TCConfig.resourcePack.getItemTexture(item, 16, 16);

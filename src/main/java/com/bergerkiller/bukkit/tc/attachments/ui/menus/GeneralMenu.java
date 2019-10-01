@@ -28,8 +28,9 @@ public class GeneralMenu extends MapWidgetMenu {
                 ConfigurationNode config = new ConfigurationNode();
                 config.set("type", CartAttachmentType.ITEM);
                 config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
-                attachment.addAttachment(config);
+                MapWidgetAttachmentNode added = attachment.addAttachment(config);
                 GeneralMenu.this.close();
+                attachment.getTree().setSelectedNode(added);
             }
         }).setText("Add Attachment").setBounds(10, 10, 98, 18);
 
