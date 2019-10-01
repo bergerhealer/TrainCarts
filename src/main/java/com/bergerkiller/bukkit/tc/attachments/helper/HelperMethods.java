@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.helper;
 
 import java.util.Collection;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -17,6 +18,17 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
  * Just some helper methods to keep the API clean
  */
 public class HelperMethods {
+    /**
+     * Cyclical color wheel from which a color is picked by index of the
+     * attachment relative to parent. Modulus 16.
+     */
+    private static final ChatColor[] GLOW_COLORS = new ChatColor[] {
+            ChatColor.DARK_RED, ChatColor.DARK_GREEN, ChatColor.DARK_BLUE,
+            ChatColor.DARK_AQUA, ChatColor.DARK_PURPLE, ChatColor.YELLOW,
+            ChatColor.RED, ChatColor.GREEN, ChatColor.BLUE,
+            ChatColor.AQUA, ChatColor.LIGHT_PURPLE, ChatColor.GOLD,
+            ChatColor.BLACK, ChatColor.DARK_GRAY, ChatColor.GRAY, ChatColor.WHITE
+    };
 
     /**
      * Updates the positions of an attachment and all child attachments
@@ -249,6 +261,34 @@ public class HelperMethods {
         }
 
         return false;
+    }
+
+    public static void setFocusedRecursive(Attachment attachment, boolean focused) {
+        attachment.setFocused(focused);
+        for (Attachment child : attachment.getChildren()) {
+            setFocusedRecursive(child, focused);
+        }
+    }
+
+    /**
+     * Uses the relative positioning information of an attachment to figure out an appropriate
+     * glow color that will best differentiate it from other selections. If no proper
+     * color can be selected, WHITE is returned as fallback.
+     * 
+     * @param attachment
+     * @return glow color
+     */
+    public static ChatColor getFocusGlowColor(Attachment attachment) {
+        while (true) {
+            Attachment parent = attachment.getParent();
+            if (parent == null) {
+                return ChatColor.WHITE;
+            } else if (parent.isFocused()) {
+                attachment = parent;
+            } else {
+                return GLOW_COLORS[parent.getChildren().indexOf(attachment) & 0xF];
+            }
+        }
     }
 
     private static boolean playStoredAnimation(Attachment attachment, AnimationOptions options) {

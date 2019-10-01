@@ -100,6 +100,10 @@ public class VirtualEntity {
         return this.metaData;
     }
 
+    public UUID getEntityUUID() {
+        return this.entityUUID;
+    }
+
     public int getEntityId() {
         return this.entityId;
     }

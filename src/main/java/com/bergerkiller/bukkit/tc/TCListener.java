@@ -116,6 +116,7 @@ public class TCListener implements Listener {
         // Clean up the fake teams we've sent
         ProfileNameModifier.onViewerQuit(event.getPlayer());
         TrainCarts.plugin.getMountHandler().remove(event.getPlayer());
+        TrainCarts.plugin.getGlowColorTeamProvider().reset(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -186,6 +187,7 @@ public class TCListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         TrainCarts.plugin.getMountHandler().get(event.getPlayer()).onPlayerRespawned();
+        TrainCarts.plugin.getGlowColorTeamProvider().reset(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

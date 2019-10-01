@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
+import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
@@ -67,6 +68,17 @@ public class TrainCarts extends PluginBase {
     private TCMountPacketHandler mountHandler;
     private SeatAttachmentMap seatAttachmentMap;
     private RedstoneTracker redstoneTracker;
+    private GlowColorTeamProvider glowColorTeamProvider;
+
+    /**
+     * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
+     * color.
+     * 
+     * @return glow color team provider
+     */
+    public GlowColorTeamProvider getGlowColorTeamProvider() {
+        return this.glowColorTeamProvider;
+    }
 
     /**
      * Gets a mapping of passenger entity Ids to the cart attachment seat they are occupying,
@@ -298,6 +310,10 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        //Initialize entity glow color provider
+        this.glowColorTeamProvider = new GlowColorTeamProvider(this);
+        this.glowColorTeamProvider.enable();
+
         //Initialize mount packet handler
         this.mountHandler = new TCMountPacketHandler();
         this.register((PacketMonitor) this.mountHandler, TCMountPacketHandler.MONITORED_TYPES);
@@ -516,6 +532,9 @@ public class TrainCarts extends PluginBase {
         RailPieceCache.reset();
         RailSignCache.reset();
         RailMemberCache.reset();
+
+        this.glowColorTeamProvider.disable();
+        this.glowColorTeamProvider = null;
 
         this.redstoneTracker.disable();
         this.redstoneTracker = null;

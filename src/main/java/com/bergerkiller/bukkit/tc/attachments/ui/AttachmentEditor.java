@@ -13,9 +13,11 @@ import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
+import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
@@ -26,6 +28,7 @@ public class AttachmentEditor extends MapDisplay {
     private boolean _hasPermission;
     private int blinkCounter = 0;
     private Attachment _lastSelectedAttachment = null;
+    private AttachmentGlowAnimation _glowAnim = new AttachmentGlowAnimation();
 
     private MapWidgetWindow window = new MapWidgetWindow();
     private MapWidgetAttachmentTree tree = new MapWidgetAttachmentTree() {
@@ -60,13 +63,21 @@ public class AttachmentEditor extends MapDisplay {
 
         // Update blink counter, toggle between showing focused and not
         if (this._lastSelectedAttachment != null) {
-            if (++this.blinkCounter > 6) {
-                this._lastSelectedAttachment.setFocused(!this._lastSelectedAttachment.isFocused());
+            this.blinkCounter++;
+            if (this.blinkCounter == 10) {
+                updateFocus(FocusMode.SELECTED);
+            } else if (this.blinkCounter == 12) {
+                updateFocus(FocusMode.SELECTED_AND_CHILDREN);
+            } else if (this.blinkCounter == 20) {
+                updateFocus(FocusMode.NONE);
                 this.blinkCounter = 0;
             }
         }
+        _glowAnim.next();
     }
 
+    int blinkctr2 = 0;
+    
     public boolean updateSneakWalking(MapKeyEvent event) {
         if (event.getKey() == Key.BACK) {
             MapWidget activated = this.getActivatedWidget();
@@ -109,7 +120,7 @@ public class AttachmentEditor extends MapDisplay {
             this.tree.updateModel(true);
 
             // Do not blink for a little while, with focused=false
-            this.pauseBlinking(false);
+            this.pauseBlinking(FocusMode.NONE, 30);
         }
     }
 
@@ -117,15 +128,14 @@ public class AttachmentEditor extends MapDisplay {
         Attachment attachment = this.tree.getSelectedNode().getAttachment();
         if (attachment != this._lastSelectedAttachment && this._lastSelectedAttachment != null) {
             this._lastSelectedAttachment.setFocused(false);
+            setChildrenFocused(this._lastSelectedAttachment, false);
         }
         this._lastSelectedAttachment = attachment;
-        this.pauseBlinking(this.getFocusedWidget() instanceof MapWidgetAttachmentNode);
-    }
 
-    private void pauseBlinking(boolean focused) {
-        if (this._lastSelectedAttachment != null) {
-            this._lastSelectedAttachment.setFocused(focused);
-            this.blinkCounter = -30;
+        if (this.getFocusedWidget() instanceof MapWidgetAttachmentNode) {
+            this.pauseBlinking(FocusMode.SELECTED, 2);
+        } else {
+            this.pauseBlinking(FocusMode.NONE, 30);
         }
     }
 
@@ -189,6 +199,16 @@ public class AttachmentEditor extends MapDisplay {
         }
     }
 
+    private static void setChildrenFocused(Attachment attachment, boolean focused) {
+        if (attachment == null) {
+            return;
+        }
+        for (Attachment child : attachment.getChildren()) {
+            child.setFocused(focused);
+            setChildrenFocused(child, focused);
+        }
+    }
+
     public boolean acceptItem(ItemStack item) {
         if (item == null) {
             return false;
@@ -197,5 +217,30 @@ public class AttachmentEditor extends MapDisplay {
         MapWidget activated = this.getActivatedWidget();
         return (activated instanceof ItemDropTarget) ?
                 ((ItemDropTarget) activated).acceptItem(item) : false;
+    }
+
+    private void pauseBlinking(FocusMode mode, int time) {
+        this.updateFocus(mode);
+        this.blinkCounter = -time;
+    }
+
+    private void updateFocus(FocusMode mode) {
+        if (this._lastSelectedAttachment != null) {
+            switch (mode) {
+            case NONE:
+                HelperMethods.setFocusedRecursive(this._lastSelectedAttachment, false);
+                break;
+            case SELECTED:
+                this._lastSelectedAttachment.setFocused(true);
+                break;
+            case SELECTED_AND_CHILDREN:
+                HelperMethods.setFocusedRecursive(this._lastSelectedAttachment, true);
+                break;
+            }
+        }
+    }
+
+    private static enum FocusMode {
+        NONE, SELECTED, SELECTED_AND_CHILDREN
     }
 }

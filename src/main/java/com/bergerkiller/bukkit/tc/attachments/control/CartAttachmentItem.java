@@ -14,10 +14,12 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
@@ -95,12 +97,23 @@ public class CartAttachmentItem extends CartAttachment {
         if (this.item != null) {
             PacketUtil.sendPacket(viewer, this.transformType.createEquipmentPacket(this.entity.getEntityId(), this.item));
         }
+
+        // Apply focus color
+        if (this.isFocused()) {
+            TrainCarts.plugin.getGlowColorTeamProvider().update(viewer,
+                    this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
+        }
     }
 
     @Override
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
-        entity.destroy(viewer);
+        this.entity.destroy(viewer);
+
+        // Undo focus color
+        if (this.isFocused()) {
+            TrainCarts.plugin.getGlowColorTeamProvider().reset(viewer, this.entity.getEntityUUID());
+        }
     }
 
     @Override
@@ -109,6 +122,8 @@ public class CartAttachmentItem extends CartAttachment {
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER, true);
 
         this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
+        this.entity.syncMetadata();
+        this.updateGlowColor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
     }
 
     @Override
@@ -117,6 +132,10 @@ public class CartAttachmentItem extends CartAttachment {
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER, false);
 
         this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
+        this.entity.syncMetadata();
+
+        // Leave entity registered under the glow color to prevent flickering of white
+        // this.resetGlowColor(this.entity.getEntityUUID());
     }
 
     @Override
