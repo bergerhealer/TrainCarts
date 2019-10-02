@@ -1030,7 +1030,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (key.equalsIgnoreCase("clrticket")) {
             this.clearTickets();
-        } else if (key.equalsIgnoreCase("drivesound")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "drivesound", "driveeffect")) {
             for (CartProperties cprop : this) {
                 cprop.setDriveSound(arg);
             }

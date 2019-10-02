@@ -2,11 +2,16 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.ResourceKey;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+
+import net.md_5.bungee.api.ChatColor;
+
 import org.bukkit.Location;
 
 public class SignActionSound extends SignAction {
@@ -15,12 +20,24 @@ public class SignActionSound extends SignAction {
         return info.isType("sound", "msound");
     }
 
+    public ResourceKey getSound(SignActionEvent info) {
+        try {
+            return ResourceKey.fromPath(info.getLine(2) + info.getLine(3));
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     @Override
     public void execute(SignActionEvent info) {
         boolean move = info.isType("msound");
         if (!info.isPowered()) return;
 
-        String sound = info.getLine(2) + info.getLine(3);
+        ResourceKey sound = getSound(info);
+        if (sound == null) {
+            return;
+        }
+
         float pitch = 1f;
         float volume = 1f;
 
@@ -40,11 +57,11 @@ public class SignActionSound extends SignAction {
                 if (info.isTrainSign()) {
                     for (MinecartMember<?> member : info.getGroup()) {
                         Location location = member.getEntity().getLocation();
-                        location.getWorld().playSound(location, sound, volume, pitch);
+                        WorldUtil.playSound(location, sound, volume, pitch);
                     }
                 } else if (info.isCartSign()) {
                     Location location = info.getMember().getEntity().getLocation();
-                    location.getWorld().playSound(location, sound, volume, pitch);
+                    WorldUtil.playSound(location, sound, volume, pitch);
                 }
             }
             return;
@@ -52,16 +69,16 @@ public class SignActionSound extends SignAction {
         if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.hasGroup()) {
             for (MinecartMember<?> member : info.getGroup()) {
                 Location location = member.getEntity().getLocation();
-                location.getWorld().playSound(location, sound, volume, pitch);
+                WorldUtil.playSound(location, sound, volume, pitch);
             }
         } else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.hasMember()) {
             Location location = info.getMember().getEntity().getLocation();
-            location.getWorld().playSound(location, sound, volume, pitch);
+            WorldUtil.playSound(location, sound, volume, pitch);
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (MinecartGroup group : info.getRCTrainGroups()) {
                 for (MinecartMember<?> member : group) {
                     Location location = member.getEntity().getLocation();
-                    location.getWorld().playSound(location, sound, volume, pitch);
+                    WorldUtil.playSound(location, sound, volume, pitch);
                 }
             }
         } else if (info.isAction(SignActionType.REDSTONE_ON)) {
@@ -71,12 +88,16 @@ public class SignActionSound extends SignAction {
             } else {
                 location = info.getLocation().add(0.0, 2.0, 0.0);
             }
-            location.getWorld().playSound(location, sound, volume, pitch);
+            WorldUtil.playSound(location, sound, volume, pitch);
         }
     }
 
     @Override
     public boolean build(SignChangeActionEvent event) {
+        if (getSound(event) == null) {
+            event.getPlayer().sendMessage(ChatColor.RED + "Sound name '" + event.getLine(2) + event.getLine(3) + "' is invalid!");
+            return false;
+        }
         String app = event.isType("msound") ? " while moving" : "";
         if (event.isCartSign()) {
             return handleBuild(event, Permission.BUILD_SOUND, "cart sound player", "play a sound in the minecart" + app);

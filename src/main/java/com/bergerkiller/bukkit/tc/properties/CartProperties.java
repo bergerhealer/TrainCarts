@@ -530,11 +530,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.getOwners().remove(arg);
         } else if (key.equalsIgnoreCase("model")) {
             setModelName(arg);
-        } else if (LogicUtil.containsIgnoreCase(key,  "clearmodel", "resetmodel")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "clearmodel", "resetmodel")) {
             resetModel();
         } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
-        } else if(key.equalsIgnoreCase("drivesound")) {
+        } else if (LogicUtil.containsIgnoreCase(key, "drivesound", "driveeffect")) {
             this.setDriveSound(arg);
         } else {
             return false;

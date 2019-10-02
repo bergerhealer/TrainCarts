@@ -4,7 +4,7 @@ import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.ResourceKey;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -65,21 +65,34 @@ public class Effect {
         return text.substring(StringUtil.getSuccessiveCharCount(text, '_'));
     }
 
-    private void play(Location location, org.bukkit.Effect effect, int data) {
-        try {
-            location.getWorld().playEffect(location, effect, data);
-        } catch (Throwable ignored) {
-        }
+    /**
+     * Plays the effect for a player
+     * 
+     * @param player
+     */
+    public void play(Player player) {
+        play(player.getEyeLocation(), player);
     }
 
-    private void play(Location location, String name, float volume, float pitch) {
-        try {
-            location.getWorld().playSound(location, name, volume, pitch);
-        } catch(Throwable ignored) {}
-    }
-
+    /**
+     * Plays the effects at a location for everyone nearby.
+     * 
+     * @param location
+     */
     public void play(Location location) {
+        play(location, null);
+    }
+
+    /**
+     * Plays the effects at a location for a player. If the player specified is
+     * null, then it is played for everyone nearby.
+     * 
+     * @param location
+     * @param player, null to play for players that are nearby
+     */
+    public void play(Location location, Player player) {
         for (String name : effects) {
+            // Special handling of certain effects
             if (name.startsWith("SMOKE")) {
                 name = trimSpace(name.substring(5));
                 Integer data = null;
@@ -99,9 +112,9 @@ public class Effect {
                     data = 0;
                 }
                 if (data == 4) {
-                    play(location.clone().add(0.0, 0.5, 0.0), org.bukkit.Effect.SMOKE, data);
+                    playEffect(location.clone().add(0.0, 0.5, 0.0), player, org.bukkit.Effect.SMOKE, data);
                 } else {
-                    play(location, org.bukkit.Effect.SMOKE, data);
+                    playEffect(location, player, org.bukkit.Effect.SMOKE, data);
                 }
                 continue;
             } else if (name.startsWith("RECORD")) {
@@ -119,26 +132,63 @@ public class Effect {
                 if (data == null) {
                     data = 2257;
                 }
-                play(location, org.bukkit.Effect.RECORD_PLAY, data);
+                playEffect(location, player, org.bukkit.Effect.RECORD_PLAY, data);
                 continue;
             }
+
+            // Try to parse an Effect from the name, and if successful, play it
             org.bukkit.Effect effect = ParseUtil.parseEnum(org.bukkit.Effect.class, name, null);
             if (effect != null && !effect.toString().toUpperCase(Locale.ENGLISH).endsWith("_BREAK")) {
-                play(location, effect, 0);
+                playEffect(location, player, effect, 0);
                 continue;
             }
+
+            // Try to parse a Sound from the name, and if successful, play it
             Sound sound = ParseUtil.parseEnum(Sound.class, name, null);
             if (sound != null) {
-                location.getWorld().playSound(location, sound, volume, pitch);
+                playSound(location, player, sound, volume, pitch);
                 continue;
             }
-            play(location, name, volume, pitch);
+
+            // Play a sound by name otherwise
+            playSound(location, player, name, volume, pitch);
         }
     }
 
-    public void play(Player player) {
-        for (String name : effects) {
-            PlayerUtil.playSound(player, ResourceKey.fromPath(name), volume, pitch);
+    // Play an Effect by enum value
+    @SuppressWarnings("deprecation")
+    private static void playEffect(Location location, Player player, org.bukkit.Effect effect, int data) {
+        try {
+            if (player != null) {
+                player.playEffect(location, effect, data);
+            } else {
+                location.getWorld().playEffect(location, effect, data);
+            }
+            location.getWorld().playEffect(location, effect, data);
+        } catch (Throwable ignored) {
         }
+    }
+
+    // Play a sound by Sound enum value
+    private static void playSound(Location location, Player player, org.bukkit.Sound sound, float volume, float pitch) {
+        try {
+            if (player != null) {
+                player.playSound(location, sound, volume, pitch);
+            } else {
+                location.getWorld().playSound(location, sound, volume, pitch);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    // Play a sound by path
+    private static void playSound(Location location, Player player, String name, float volume, float pitch) {
+        try {
+            if (player != null) {
+                PlayerUtil.playSound(player, location, ResourceKey.fromPath(name), volume, pitch);
+            } else {
+                WorldUtil.playSound(location, ResourceKey.fromPath(name), volume, pitch);
+            }
+        } catch(Throwable ignored) {}
     }
 }
