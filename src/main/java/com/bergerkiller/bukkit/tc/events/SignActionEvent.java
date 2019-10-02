@@ -436,9 +436,15 @@ public class SignActionEvent extends Event implements Cancellable {
             // Launch train into the opposite direction, if required
             if (this.hasMember()) {
                 // Break this cart from the train if needed
-                this.member.getGroup().split(this.member.getIndex());
-                this.member.getGroup().getActions().clear();
-                this.member.getGroup().reverse();
+                MinecartGroup group = this.member.getGroup();
+                if (group != null) {
+                    group.getActions().clear();
+                    group.split(this.member.getIndex());
+                }
+                group = this.member.getGroup();
+                if (group != null) {
+                    group.reverse();
+                }
             }
 
             return;
