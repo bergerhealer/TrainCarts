@@ -13,7 +13,6 @@ import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
@@ -28,7 +27,6 @@ public class AttachmentEditor extends MapDisplay {
     private boolean _hasPermission;
     private int blinkCounter = 0;
     private Attachment _lastSelectedAttachment = null;
-    private AttachmentGlowAnimation _glowAnim = new AttachmentGlowAnimation();
 
     private MapWidgetWindow window = new MapWidgetWindow();
     private MapWidgetAttachmentTree tree = new MapWidgetAttachmentTree() {
@@ -73,7 +71,6 @@ public class AttachmentEditor extends MapDisplay {
                 this.blinkCounter = 0;
             }
         }
-        _glowAnim.next();
     }
 
     int blinkctr2 = 0;
@@ -150,10 +147,12 @@ public class AttachmentEditor extends MapDisplay {
 
     @Override
     public void onDetached() {
-        if (this._lastSelectedAttachment != null) {
-            this._lastSelectedAttachment.setFocused(false);
-            this._lastSelectedAttachment = null;
-        }
+        // Deactivate whatever menu is active right now before detaching all child widgets
+        // This makes sure status events can be handled by this editor without running into NPEs
+        this.getRootWidget().deactivate();
+
+        // Make sure previously selected attachments are not focused
+        this.updateFocus(FocusMode.NONE);
     }
 
     /**
