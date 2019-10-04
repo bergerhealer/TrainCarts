@@ -158,9 +158,15 @@ public class CartAttachmentEntity extends CartAttachment {
      * @return True if supported
      */
     public static boolean isEntityTypeSupported(EntityType entityType) {
-        if (entityType == EntityType.PAINTING) {
+        switch (entityType) {
+        case PAINTING:
+        case FISHING_HOOK:
+        case LIGHTNING:
+        case PLAYER:
+        case UNKNOWN:
             return false;
+        default:
+            return true;
         }
-        return true;
     }
 }
