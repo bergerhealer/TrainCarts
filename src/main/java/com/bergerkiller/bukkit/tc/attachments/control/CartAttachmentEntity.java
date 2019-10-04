@@ -30,6 +30,12 @@ public class CartAttachmentEntity extends CartAttachment {
         super.onAttached();
 
         EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
+
+        // Some entity types cannot be spawned, use placeholder
+        if (!isEntityTypeSupported(entityType)) {
+            entityType = EntityType.MINECART;
+        }
+
         if (this.getParent() != null || !VirtualEntity.isMinecart(entityType)) {
             // Generate entity (UU)ID
             this.entity = new VirtualEntity(this.getManager());
@@ -145,4 +151,16 @@ public class CartAttachmentEntity extends CartAttachment {
     public void onTick() {
     }
 
+    /**
+     * Whether a particular entity type can be used at all in an entity attachment
+     * 
+     * @param entityType
+     * @return True if supported
+     */
+    public static boolean isEntityTypeSupported(EntityType entityType) {
+        if (entityType == EntityType.PAINTING) {
+            return false;
+        }
+        return true;
+    }
 }

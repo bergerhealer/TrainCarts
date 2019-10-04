@@ -7,6 +7,7 @@ import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 
 /**
@@ -26,7 +27,9 @@ public class MapWidgetEntityTypeList extends MapWidget {
 
         ArrayList<String> items = new ArrayList<String>();
         for (EntityType type : EntityType.values()) {
-            items.add(type.toString());
+            if (CartAttachmentEntity.isEntityTypeSupported(type)) {
+                items.add(type.toString());
+            }
         }
         Collections.sort(items);
         for (String item : items) {
