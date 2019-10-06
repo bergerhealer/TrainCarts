@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -214,8 +216,8 @@ public class GlowColorTeamProvider {
 
             public Team(ViewerState state, ChatColor color) {
                 this.state = state;
-                this.name = "tcGlowColor" + color.ordinal();
-                this.displayName = ChatText.fromMessage("Traincarts Glow Team " + color.name());
+                this.name = "tcglowcolor" + color.ordinal();
+                this.displayName = ChatText.fromMessage(this.name);
                 this.color = color;
                 this.teamCreated = false;
             }
@@ -267,7 +269,7 @@ public class GlowColorTeamProvider {
             }
 
             private PacketPlayOutScoreboardTeamHandle createPacket(int mode) {
-                PacketPlayOutScoreboardTeamHandle packet = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
+                PacketPlayOutScoreboardTeamHandle packet = PacketPlayOutScoreboardTeamHandle.createNew();
                 packet.setName(this.name);
                 packet.setMode(mode);
                 return packet;
