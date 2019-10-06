@@ -2,7 +2,11 @@
 [Spigot Resource Page](https://www.spigotmc.org/resources/traincarts.39592/) | [Dev Builds](https://ci.mg-dev.eu/job/TrainCarts/) | [Javadocs](http://jd.mg-dev.eu/TrainCarts)
 
 This Minecraft Bukkit server plugin links carts together to form trains you can control!
-Public transportation redefined. :)
+
+It looks for suitable Minecarts and links them together if possible. When two Minecarts are being "linked", the Minecarts will act as one single moving train. 
+Once carts are successfully linked, an effect is played and their velocity is shared in combination with an individual factor for each Minecart, which is used to remain a steady gap between carts. This gap is adjustable, the force at which this happens as well.
+
+End result: a train! You can move it, make a roller-coaster out of it, split it in half, watch trains collide or whatever you want to do with trains. :)
 
 ## Development
 1. Use JDK 1.8 & Maven
