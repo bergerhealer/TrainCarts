@@ -158,6 +158,11 @@ public class CartAttachmentEntity extends CartAttachment {
      * @return True if supported
      */
     public static boolean isEntityTypeSupported(EntityType entityType) {
+        String name = entityType.name();
+        if (name.equals("WEATHER") || name.equals("COMPLEX_PART")) {
+            return false;
+        }
+
         switch (entityType) {
         case PAINTING:
         case FISHING_HOOK:
