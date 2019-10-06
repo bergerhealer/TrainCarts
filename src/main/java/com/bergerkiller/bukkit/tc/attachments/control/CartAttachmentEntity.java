@@ -163,6 +163,7 @@ public class CartAttachmentEntity extends CartAttachment {
         case FISHING_HOOK:
         case LIGHTNING:
         case PLAYER:
+        case EXPERIENCE_ORB:
         case UNKNOWN:
             return false;
         default:
