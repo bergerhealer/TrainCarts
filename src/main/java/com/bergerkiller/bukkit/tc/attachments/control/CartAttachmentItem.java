@@ -169,9 +169,8 @@ public class CartAttachmentItem extends CartAttachment {
         // The remainder or 'error' is applied to the pose of the model
         double yaw_change;
         if (last_rot != null) {
-            Quaternion changes = last_rot.clone();
-            changes.invert();
-            changes.multiply(q_rotation);
+            Quaternion changes = q_rotation.clone();
+            changes.divide(last_rot);
             yaw_change = Util.fastGetRotationYaw(changes);
         } else {
             yaw_change = 0.0;
