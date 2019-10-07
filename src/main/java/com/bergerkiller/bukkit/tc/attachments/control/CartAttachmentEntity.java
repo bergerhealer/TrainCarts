@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
@@ -76,7 +75,7 @@ public class CartAttachmentEntity extends CartAttachment {
         this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
 
         // Leave entity registered under the glow color to prevent flickering of white
-        // this.resetGlowColor(this.entity.getEntityUUID());
+        // this.updateGlowColor(this.entity.getEntityUUID(), null);
     }
 
     @Override
@@ -111,8 +110,7 @@ public class CartAttachmentEntity extends CartAttachment {
 
         // Apply focus color
         if (this.isFocused()) {
-            TrainCarts.plugin.getGlowColorTeamProvider().update(viewer,
-                    this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
+            this.updateGlowColorFor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this), viewer);
         }
     }
 
@@ -126,9 +124,7 @@ public class CartAttachmentEntity extends CartAttachment {
         entity.destroy(viewer);
 
         // Undo focus color
-        if (this.isFocused()) {
-            TrainCarts.plugin.getGlowColorTeamProvider().reset(viewer, this.entity.getEntityUUID());
-        }
+        this.updateGlowColorFor(this.entity.getEntityUUID(), null, viewer);
     }
 
     @Override

@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -62,14 +60,8 @@ public class GlowColorTeamProvider {
                     if (!team.teamCreated) {
                         team.teamCreated = true;
 
-                        // We are sending all entities for a team for the first time. Create the team with these entities
-                        // Create team for the first time
+                        // We are sending all entities for a team for the first time. Create the team with these entities.
                         PacketPlayOutScoreboardTeamHandle packet = team.createPacket(0x0);
-                        packet.setDisplayName(team.displayName);
-                        packet.setFriendlyFire(0);
-                        packet.setVisibility("never");
-                        packet.setCollisionRule("never");
-                        packet.setColor(team.color);
                         packet.setPlayers(team.pendingAdd);
                         team.pendingAdd = Collections.emptySet();
                         PacketUtil.sendPacket(team.state.viewer, packet);
@@ -77,6 +69,7 @@ public class GlowColorTeamProvider {
                         // Add the set of entities for this viewer
                         PacketPlayOutScoreboardTeamHandle packet = team.createPacket(0x3);
                         packet.setPlayers(team.pendingAdd);
+                        team.pendingAdd = Collections.emptySet();
                         PacketUtil.sendPacket(team.state.viewer, packet);
                     }
                 }
@@ -207,7 +200,7 @@ public class GlowColorTeamProvider {
         private static final class Team {
             private final ViewerState state;
             public final String name;
-            public final ChatText displayName;
+            public final ChatText prefix;
             public final ChatColor color;
             public final Set<UUID> entities = new HashSet<>();
             private Set<String> pendingAdd = Collections.emptySet();
@@ -217,7 +210,7 @@ public class GlowColorTeamProvider {
             public Team(ViewerState state, ChatColor color) {
                 this.state = state;
                 this.name = "tcglowcolor" + color.ordinal();
-                this.displayName = ChatText.fromMessage(this.name);
+                this.prefix = ChatText.fromChatColor(color);
                 this.color = color;
                 this.teamCreated = false;
             }
@@ -272,6 +265,13 @@ public class GlowColorTeamProvider {
                 PacketPlayOutScoreboardTeamHandle packet = PacketPlayOutScoreboardTeamHandle.createNew();
                 packet.setName(this.name);
                 packet.setMode(mode);
+                if (mode == 0) {
+                    packet.setFriendlyFire(3);
+                    packet.setVisibility("always");
+                    packet.setCollisionRule("always");
+                    packet.setPrefix(this.prefix);
+                    packet.setColor(this.color);
+                }
                 return packet;
             }
         }

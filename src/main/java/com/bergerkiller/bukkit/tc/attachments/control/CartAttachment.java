@@ -66,15 +66,19 @@ public abstract class CartAttachment implements Attachment {
     public void onTransformChanged(Matrix4x4 transform) {
     }
 
-    public void resetGlowColor(UUID entityUUID) {
-        for (Player viewer : this.getViewers()) {
-            TrainCarts.plugin.getGlowColorTeamProvider().reset(viewer, entityUUID);
+    protected void updateGlowColorFor(UUID entityUUID, ChatColor color, Player viewer) {
+        if (TrainCarts.plugin != null && TrainCarts.plugin.getGlowColorTeamProvider() != null) {
+            if (color == null) {
+                TrainCarts.plugin.getGlowColorTeamProvider().reset(viewer, entityUUID);
+            } else {
+                TrainCarts.plugin.getGlowColorTeamProvider().update(viewer, entityUUID, color);
+            }
         }
     }
 
-    public void updateGlowColor(UUID entityUUID, ChatColor color) {
+    protected void updateGlowColor(UUID entityUUID, ChatColor color) {
         for (Player viewer : this.getViewers()) {
-            TrainCarts.plugin.getGlowColorTeamProvider().update(viewer, entityUUID, color);
+            updateGlowColorFor(entityUUID, color, viewer);
         }
     }
 }
