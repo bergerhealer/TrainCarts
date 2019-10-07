@@ -30,8 +30,33 @@ public class AttachmentModel {
         this.computeProperties();
     }
 
+    /**
+     * Gets the full configuration of this entire model. The configuration
+     * returned is for the root node, and stores child attachments recursively.
+     * 
+     * @return root configuration
+     */
     public ConfigurationNode getConfig() {
         return this.config;
+    }
+
+    /**
+     * Gets the configuration for a single node in the model.
+     * If node node is found at this path, null is returned.
+     * 
+     * @param targetPath of the node
+     * @return node configuration
+     */
+    public ConfigurationNode getNodeConfig(int[] targetPath) {
+        ConfigurationNode config = this.config;
+        for (int index : targetPath) {
+            List<ConfigurationNode> attachments = config.getNodeList("attachments");
+            if (attachments == null || index < 0 || index >= attachments.size()) {
+                return null;
+            }
+            config = attachments.get(index);
+        }
+        return config;
     }
 
     public int getSeatCount() {

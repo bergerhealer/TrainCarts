@@ -55,7 +55,12 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         this.setFocusable(true);
     }
 
-    public void loadConfig(ConfigurationNode config) {
+    /**
+     * Loads just the properties of the model. Child attachments are ignored.
+     * 
+     * @param config to load
+     */
+    public void loadModelProperties(ConfigurationNode config) {
         // Load the configuration, exclude the 'attachments' child
         this.config = new ConfigurationNode();
         for (Map.Entry<String, Object> entry : config.getValues().entrySet()) {
@@ -63,6 +68,17 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
                 this.config.set(entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    /**
+     * Loads model node configurations for the first time. This also initializes
+     * all the nodes for the child attachments.
+     * 
+     * @param config
+     */
+    public void loadConfig(ConfigurationNode config) {
+        // Load the properties
+        this.loadModelProperties(config);
 
         // Add child attachments
         this.attachments.clear();
@@ -95,6 +111,13 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public void openMenu(MenuItem item) {
+        // Refresh configuration of this attachment node
+        ConfigurationNode nodeConfig = getTree().getModel().getNodeConfig(this.getTargetPath());
+        if (nodeConfig != null) {
+            this.loadModelProperties(nodeConfig);
+        }
+
+        // Open the menu
         getTree().onMenuOpen(this, item);
     }
 

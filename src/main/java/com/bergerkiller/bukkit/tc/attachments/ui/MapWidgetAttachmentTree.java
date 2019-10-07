@@ -25,6 +25,10 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     private boolean resetNeeded;
     private AttachmentModel model = null;
 
+    public AttachmentModel getModel() {
+        return this.model;
+    }
+
     public void setModel(AttachmentModel model) {
         this.model = model;
         this.root = new MapWidgetAttachmentNode(this);
