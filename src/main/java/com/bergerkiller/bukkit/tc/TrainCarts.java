@@ -256,6 +256,9 @@ public class TrainCarts extends PluginBase {
         TCConfig.load(config);
         config.trim();
         config.save();
+
+        // Refresh
+        this.autosaveTask.stop().start(TCConfig.autoSaveInterval, TCConfig.autoSaveInterval);
     }
 
     public void loadSavedTrains() {
@@ -297,6 +300,10 @@ public class TrainCarts extends PluginBase {
 
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
+
+        // Routinely saves TrainCarts changed state information to disk (autosave=true)
+        // Configured by loadConfig() so instantiate it here
+        autosaveTask = new AutosaveTask(this);
 
         //Load configuration
         loadConfig();
@@ -376,9 +383,6 @@ public class TrainCarts extends PluginBase {
 
         // Hackish fix the chunk persistence failing
         fixGroupTickTask = new TrainUpdateTask(this).start(1, 1);
-
-        // Routinely saves TrainCarts changed state information to disk (autosave=true)
-        autosaveTask = new AutosaveTask(this).start(TCConfig.autoSaveInterval, TCConfig.autoSaveInterval);
 
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);

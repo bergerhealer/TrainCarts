@@ -233,6 +233,12 @@ public class TCConfig {
         config.addHeader("animationsUseTickTime", "When true, tick time is used, and server lag will cause speed changes. Animations do stay in sync with physics");
         animationsUseTickTime = config.get("animationsUseTickTime", false);
 
+        config.setHeader("autoSaveInterval", "\nSets the interval at which all the properties of all trains on the server are saved to disk");
+        config.addHeader("autoSaveInterval", "This saving may have a negative performance impact, as seen in the AutoSaveTask in timings");
+        config.addHeader("autoSaveInterval", "If you do not worry about preserving this information, you can raise this interval");
+        config.addHeader("autoSaveInterval", "A manual save can be performed using /train saveall");
+        autoSaveInterval = config.get("autoSaveInterval", 30 * 20);
+
         config.setHeader("claimNewSavedTrains", "\nSets whether players automatically claim new saved trains that they save");
         config.addHeader("claimNewSavedTrains", "Once claimed, other players cannot overwrite the saved train, effectively protecting it");
         config.addHeader("claimNewSavedTrains", "Setting this to false will have new trains exist in public domain, and anyone can modify it");
