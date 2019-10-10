@@ -10,17 +10,14 @@ import org.bukkit.block.Sign;
 
 public class SignActionAnnounce extends SignAction {
 
-    public static void sendMessage(SignActionEvent info, MinecartGroup group) {
-        String msg = getMessage(info);
+    public static void sendMessage(SignActionEvent info, MinecartGroup group, String message) {
         for (MinecartMember<?> member : group) {
-            if (member.getEntity().hasPlayerPassenger()) {
-                TrainCarts.sendMessage(member.getEntity().getPlayerPassenger(), msg);
-            }
+            sendMessage(info, member, message);
         }
     }
 
-    public static void sendMessage(SignActionEvent info, MinecartMember<?> member) {
-        member.getEntity().getPlayerPassengers().forEach(player -> TrainCarts.sendMessage(player, getMessage(info)));
+    public static void sendMessage(SignActionEvent info, MinecartMember<?> member, String message) {
+        member.getEntity().getPlayerPassengers().forEach(player -> TrainCarts.sendMessage(player, message));
     }
 
     public static String getMessage(SignActionEvent info) {
@@ -42,15 +39,16 @@ public class SignActionAnnounce extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
+        String message = getMessage(info);
         if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
             if (!info.hasRailedMember() || !info.isPowered()) return;
-            sendMessage(info, info.getGroup());
+            sendMessage(info, info.getGroup(), message);
         } else if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
             if (!info.hasRailedMember() || !info.isPowered()) return;
-            sendMessage(info, info.getMember());
+            sendMessage(info, info.getMember(), message);
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (MinecartGroup group : info.getRCTrainGroups()) {
-                sendMessage(info, group);
+                sendMessage(info, group, message);
             }
         }
     }
