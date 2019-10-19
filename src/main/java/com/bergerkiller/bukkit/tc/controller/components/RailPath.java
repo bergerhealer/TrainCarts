@@ -41,8 +41,8 @@ public class RailPath {
                 this.segments[i].next = this.segments[i + 1];
                 this.segments[i + 1].prev = this.segments[i];
             }
-            for (int i = 0; i < this.segments.length; i++) {
-                this.segments[i].postinit();
+            for (Segment segment : this.segments) {
+                segment.postinit();
             }
             this.totalDistance = distance;
         }
@@ -135,8 +135,7 @@ public class RailPath {
      */
     public double distanceSquared(Vector position) {
         double closestDistance = Double.MAX_VALUE;
-        for (int i = 0; i < this.segments.length; i++) {
-            Segment tmpSegment = this.segments[i];
+        for (Segment tmpSegment : this.segments) {
             if (tmpSegment.isZeroLength()) continue;
             double tmpTheta = tmpSegment.calcTheta(position);
             double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);
@@ -163,8 +162,7 @@ public class RailPath {
             Segment s = null;
             {
                 double closestDistance = Double.MAX_VALUE;
-                for (int i = 0; i < this.segments.length; i++) {
-                    Segment tmpSegment = this.segments[i];
+                for (Segment tmpSegment : this.segments) {
                     if (tmpSegment.isZeroLength()) continue;
                     double tmpTheta = tmpSegment.calcTheta(position);
                     double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);

@@ -253,11 +253,7 @@ public class TCListener implements Listener {
                 }
                 group.unload();
                 // For the next tick: update the storage system to restore trains here and there
-                CommonUtil.nextTick(new Runnable() {
-                    public void run() {
-                        OfflineGroupManager.refresh();
-                    }
-                });
+                CommonUtil.nextTick(() -> OfflineGroupManager.refresh());
             }
         }
     }
@@ -310,12 +306,7 @@ public class TCListener implements Listener {
         if (event.isCancelled()) {
             final Entity entered = event.getEntered();
             exemptFromEjectOffset.add(entered);
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    exemptFromEjectOffset.remove(entered);
-                }
-            });
+            CommonUtil.nextTick(() -> exemptFromEjectOffset.remove(entered));
         }
     }
 
@@ -399,32 +390,30 @@ public class TCListener implements Listener {
         final Location old_location = e.getLocation();
 
         // Teleport to the exit position a tick later
-        CommonUtil.nextTick(new Runnable() {
-            public void run() {
-                if (e.isDead() || e.getVehicle() != null) {
-                    return;
-                }
-
-                // Do not teleport if the player changed position dramatically after exiting
-                // This is the case when teleporting (/tp)
-                // The default vanilla exit position is going to be at most 1 block away in all axis
-                Location new_location = e.getLocation();
-                if (old_location.getWorld() != new_location.getWorld()) {
-                    return;
-                }
-                if (Math.abs(old_location.getBlockX() - new_location.getBlockX()) > 1) {
-                    return;
-                }
-                if (Math.abs(old_location.getBlockY() - new_location.getBlockY()) > 1) {
-                    return;
-                }
-                if (Math.abs(old_location.getBlockZ() - new_location.getBlockZ()) > 1) {
-                    return;
-                }
-
-                Util.correctTeleportPosition(loc);
-                e.teleport(loc);
+        CommonUtil.nextTick(() -> {
+            if (e.isDead() || e.getVehicle() != null) {
+                return;
             }
+
+            // Do not teleport if the player changed position dramatically after exiting
+            // This is the case when teleporting (/tp)
+            // The default vanilla exit position is going to be at most 1 block away in all axis
+            Location new_location = e.getLocation();
+            if (old_location.getWorld() != new_location.getWorld()) {
+                return;
+            }
+            if (Math.abs(old_location.getBlockX() - new_location.getBlockX()) > 1) {
+                return;
+            }
+            if (Math.abs(old_location.getBlockY() - new_location.getBlockY()) > 1) {
+                return;
+            }
+            if (Math.abs(old_location.getBlockZ() - new_location.getBlockZ()) > 1) {
+                return;
+            }
+
+            Util.correctTeleportPosition(loc);
+            e.teleport(loc);
         });
         mm.resetCollisionEnter();
         mm.onPropertiesChanged();
@@ -889,13 +878,11 @@ public class TCListener implements Listener {
         RailType railType = RailType.getType(event.getBlockPlaced());
         if (railType != RailType.NONE) {
             final Block placed = event.getBlockPlaced();
-            CommonUtil.nextTick(new Runnable() {
-                public void run() {
-                    RailType railType = RailType.getType(placed);
-                    if (railType != RailType.NONE) {
-                        railType.onBlockPlaced(placed);
-                        BlockUtil.applyPhysics(placed, placed.getType());
-                    }
+            CommonUtil.nextTick(() -> {
+                RailType railType1 = RailType.getType(placed);
+                if (railType1 != RailType.NONE) {
+                    railType1.onBlockPlaced(placed);
+                    BlockUtil.applyPhysics(placed, placed.getType());
                 }
             });
         }
@@ -1000,12 +987,7 @@ public class TCListener implements Listener {
         final PortalDestination dest = PortalDestination.findDestinationAtNetherPortal(loc.getBlock(), direction);
         if (dest != null && dest.getRailsBlock() != null && dest.hasDirections()) {
             final MinecartGroup group = member.getGroup();
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    group.teleport(dest.getRailsBlock(), dest.getDirections()[0]);
-                }
-            });
+            CommonUtil.nextTick(() -> group.teleport(dest.getRailsBlock(), dest.getDirections()[0]));
         }
     }
 

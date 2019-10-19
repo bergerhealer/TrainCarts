@@ -415,10 +415,10 @@ public abstract class MinecartMemberStore {
                 continue;
             }
 
-            for (int i = 0; i < group.size(); i++) {
+            for (MinecartMember<?> element : group) {
                 MinecartMember<?> member;
                 try {
-                    member = group.get(i);
+                    member = element;
                 } catch (IndexOutOfBoundsException ex) {
                     break;
                 }

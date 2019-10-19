@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -14,8 +13,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.Hastebin.DownloadResult;
-import com.bergerkiller.bukkit.common.Hastebin.UploadResult;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -276,15 +273,12 @@ public class SavedTrainCommands {
             ConfigurationNode exportedConfig = savedTrainConfig.clone();
             exportedConfig.remove("claims");
             exportedConfig.set("name", savedTrainName);
-            TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(new Consumer<UploadResult>() {
-                @Override
-                public void accept(UploadResult t) {
-                    if (t.success()) {
-                        sender.sendMessage(ChatColor.GREEN + "Train '" + ChatColor.YELLOW + savedTrainName +
-                                ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
-                    } else {
-                        sender.sendMessage(ChatColor.RED + "Failed to export train '" + savedTrainName + "': " + t.error());
-                    }
+            TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(t -> {
+                if (t.success()) {
+                    sender.sendMessage(ChatColor.GREEN + "Train '" + ChatColor.YELLOW + savedTrainName +
+                            ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Failed to export train '" + savedTrainName + "': " + t.error());
                 }
             });
             return;
@@ -349,41 +343,38 @@ public class SavedTrainCommands {
             return;
         }
 
-        TCConfig.hastebin.download(args[0]).thenAccept(new Consumer<DownloadResult>() {
-            @Override
-            public void accept(DownloadResult result) {
-                // Check successful
-                if (!result.success()) {
-                    sender.sendMessage(ChatColor.RED + "Failed to import train: " + result.error());
-                    return;
-                }
+        TCConfig.hastebin.download(args[0]).thenAccept(result -> {
+            // Check successful
+            if (!result.success()) {
+                sender.sendMessage(ChatColor.RED + "Failed to import train: " + result.error());
+                return;
+            }
 
-                // Parse the String contents as YAML
-                BasicConfiguration config;
-                try {
-                    config = result.contentYAML();
-                } catch (IOException ex) {
-                    sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
-                    return;
-                }
+            // Parse the String contents as YAML
+            BasicConfiguration config;
+            try {
+                config = result.contentYAML();
+            } catch (IOException ex) {
+                sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
+                return;
+            }
 
-                // Update configuration
-                SavedTrainPropertiesStore savedTrains = TrainCarts.plugin.getSavedTrains();
-                boolean isNewTrain = !savedTrains.containsTrain(savedTrainName);
-                try {
-                    savedTrains.setConfig(savedTrainName, config);
-                } catch (IllegalNameException e) {
-                    sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrainName);
-                    return;
+            // Update configuration
+            SavedTrainPropertiesStore savedTrains = TrainCarts.plugin.getSavedTrains();
+            boolean isNewTrain = !savedTrains.containsTrain(savedTrainName);
+            try {
+                savedTrains.setConfig(savedTrainName, config);
+            } catch (IllegalNameException e) {
+                sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrainName);
+                return;
+            }
+            if (isNewTrain) {
+                sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName);
+                if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
+                    savedTrains.setClaim(savedTrainName, (Player) sender);
                 }
-                if (isNewTrain) {
-                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName);
-                    if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
-                        savedTrains.setClaim(savedTrainName, (Player) sender);
-                    }
-                } else {
-                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName + ", a previous train was overwritten");
-                }
+            } else {
+                sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName + ", a previous train was overwritten");
             }
         });
     }

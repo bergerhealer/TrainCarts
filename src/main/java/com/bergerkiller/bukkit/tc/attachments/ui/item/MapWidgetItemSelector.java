@@ -138,17 +138,14 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         variantList.setItem(item);
                     }
                 };
-                this.variantList.registerItemChangedListener(new ItemChangedListener() {
-                    @Override
-                    public void onItemChanged(ItemStack item) {
-                        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-                        if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
-                            unbreakableOption.setTooltip("Unbreakable");
-                            unbreakableOption.setIcon("attachments/item_unbreakable.png");
-                        } else {
-                            unbreakableOption.setTooltip("Breakable");
-                            unbreakableOption.setIcon("attachments/item_breakable.png");
-                        }
+                this.variantList.registerItemChangedListener(item -> {
+                    CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+                    if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
+                        unbreakableOption.setTooltip("Unbreakable");
+                        unbreakableOption.setIcon("attachments/item_unbreakable.png");
+                    } else {
+                        unbreakableOption.setTooltip("Breakable");
+                        unbreakableOption.setIcon("attachments/item_breakable.png");
                     }
                 }, true);
                 tab.addWidget(unbreakableOption.setPosition(8, 1));
@@ -202,27 +199,21 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                 selector.setPosition(42, 2);
                 tab.addWidget(selector);
 
-                this.variantList.registerItemChangedListener(new ItemChangedListener() {
-                    @Override
-                    public void onItemChanged(ItemStack item) {
-                        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-                        int value = 0;
-                        if (tag != null && tag.containsKey("CustomModelData")) {
-                            value = tag.getValue("CustomModelData", 0);
-                        }
-                        selector.setValue(value);
+                this.variantList.registerItemChangedListener(item -> {
+                    CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+                    int value = 0;
+                    if (tag != null && tag.containsKey("CustomModelData")) {
+                        value = tag.getValue("CustomModelData", 0);
                     }
+                    selector.setValue(value);
                 }, true);
             }
         }
 
         // Handle item being changed, changing the preview and firing event
-        this.variantList.registerItemChangedListener(new ItemChangedListener() {
-            @Override
-            public void onItemChanged(ItemStack item) {
-                preview.setItem(item);
-                onSelectedItemChanged();
-            }
+        this.variantList.registerItemChangedListener(item -> {
+            preview.setItem(item);
+            onSelectedItemChanged();
         }, false);
     }
 

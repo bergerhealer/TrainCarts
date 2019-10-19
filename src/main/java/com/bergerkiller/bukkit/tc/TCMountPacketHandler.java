@@ -137,12 +137,7 @@ public class TCMountPacketHandler implements PacketMonitor {
                 // Refresh tasks associated with this Id
                 if (!meta.pendingTasks.isEmpty()) {
                     if (this._checkTasks.isEmpty()) {
-                        CommonUtil.nextTick(new Runnable() {
-                            @Override
-                            public void run() {
-                                runCheckTasks();
-                            }
-                        });
+                        CommonUtil.nextTick(() -> runCheckTasks());
                     }
                     this._checkTasks.addAll(meta.pendingTasks);
                 }

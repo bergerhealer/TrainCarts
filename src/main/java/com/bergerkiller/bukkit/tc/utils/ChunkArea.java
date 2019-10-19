@@ -22,7 +22,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
  * easier to test.
  */
 public class ChunkArea {
-    public static final Runnable DUMMY_RUNNABLE = new Runnable() { public void run() {} };
+    public static final Runnable DUMMY_RUNNABLE = () -> {};
     public static final int CHUNK_RANGE = 2;
     public static final int CHUNK_EDGE = 2 * CHUNK_RANGE + 1;
     public static final int CHUNK_AREA = CHUNK_EDGE * CHUNK_EDGE;

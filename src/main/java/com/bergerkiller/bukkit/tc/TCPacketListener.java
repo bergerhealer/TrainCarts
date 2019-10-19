@@ -133,12 +133,7 @@ public class TCPacketListener implements PacketListener {
     public static void fakeAttack(final MinecartMember<?> member, final Player player) {
         // Fix cross-thread access
         if (!CommonUtil.isMainThread()) {
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    fakeAttack(member, player);
-                }
-            });
+            CommonUtil.nextTick(() -> fakeAttack(member, player));
             return;
         }
 
@@ -149,12 +144,7 @@ public class TCPacketListener implements PacketListener {
     public static void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
         // Fix cross-thread access
         if (!CommonUtil.isMainThread()) {
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    fakeInteraction(member, player, hand);
-                }
-            });
+            CommonUtil.nextTick(() -> fakeInteraction(member, player, hand));
             return;
         }
 

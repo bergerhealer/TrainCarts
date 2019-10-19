@@ -135,12 +135,7 @@ public class SignActionTeleport extends SignAction {
                 final MinecartGroup targetGroup = group;
                 final Block destRail = dest.getRailsBlock();
                 final BlockFace destDirection = spawnDirection;
-                CommonUtil.nextTick(new Runnable() {
-                    @Override
-                    public void run() {
-                        targetGroup.teleportAndGo(destRail, destDirection);
-                    }
-                });
+                CommonUtil.nextTick(() -> targetGroup.teleportAndGo(destRail, destDirection));
             }
         }
     }

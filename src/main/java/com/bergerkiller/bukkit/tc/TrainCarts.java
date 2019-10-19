@@ -391,11 +391,9 @@ public class TrainCarts extends PluginBase {
         mutexZoneUpdateTask = new MutexZoneUpdateTask(this).start(1, 1);
 
         //Properly dispose of partly-referenced carts
-        CommonUtil.nextTick(new Runnable() {
-            public void run() {
-                for (World world : WorldUtil.getWorlds()) {
-                    OfflineGroupManager.removeBuggedMinecarts(world);
-                }
+        CommonUtil.nextTick(() -> {
+            for (World world : WorldUtil.getWorlds()) {
+                OfflineGroupManager.removeBuggedMinecarts(world);
             }
         });
 

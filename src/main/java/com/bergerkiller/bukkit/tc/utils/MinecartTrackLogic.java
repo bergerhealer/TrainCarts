@@ -98,8 +98,7 @@ public class MinecartTrackLogic {
     }
 
     private boolean isNeighbourAt(IntVector3 blockposition) {
-        for (int i = 0; i < this.neigh.size(); ++i) {
-            IntVector3 blockposition1 = this.neigh.get(i);
+        for (IntVector3 blockposition1 : this.neigh) {
             if (blockposition1.x == blockposition.x && blockposition1.z == blockposition.z) {
                 return true;
             }
@@ -354,8 +353,8 @@ public class MinecartTrackLogic {
         if (forcePhysics || !WorldUtil.getBlockData(this.world, this.pos).equals(this.data)) {
             WorldUtil.setBlockData(this.world, this.pos, this.data);
 
-            for (int i = 0; i < this.neigh.size(); ++i) {
-                MinecartTrackLogic blockminecarttrackabstract_minecarttracklogic = this.createTrackLogic(this.neigh.get(i));
+            for (IntVector3 element : this.neigh) {
+                MinecartTrackLogic blockminecarttrackabstract_minecarttracklogic = this.createTrackLogic(element);
 
                 if (blockminecarttrackabstract_minecarttracklogic != null) {
                     blockminecarttrackabstract_minecarttracklogic.refreshNeighbours();

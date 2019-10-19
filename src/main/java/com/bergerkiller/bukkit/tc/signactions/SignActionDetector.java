@@ -211,12 +211,10 @@ public class SignActionDetector extends SignAction {
                     detectors.put(startsign, detector);
                     detectors.put(endsign, detector);
                     hasChanges = true;
-                    CommonUtil.nextTick(new Runnable() {
-                        public void run() {
-                            DetectorRegion region = DetectorRegion.create(map);
-                            region.register(detector);
-                            region.detectMinecarts();
-                        }
+                    CommonUtil.nextTick(() -> {
+                        DetectorRegion region = DetectorRegion.create(map);
+                        region.register(detector);
+                        region.detectMinecarts();
                     });
                     return detector;
                 }

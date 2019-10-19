@@ -282,11 +282,7 @@ public class RedstoneTracker implements Listener {
             if (MaterialUtil.ISSIGN.get(signblock) && BlockUtil.getAttachedFace(signblock) == face.getOppositeFace()) {
                 if (ignoredSigns.isEmpty()) {
                     // clear this the next tick
-                    CommonUtil.nextTick(new Runnable() {
-                        public void run() {
-                            ignoredSigns.clear();
-                        }
-                    });
+                    CommonUtil.nextTick(() -> ignoredSigns.clear());
                 }
                 ignoredSigns.add(signblock);
             }

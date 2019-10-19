@@ -292,8 +292,8 @@ public class MapWidgetAnimationView extends MapWidget {
                         this._nodes[i].setSelected(i == relIndex);
                     }
                 } else {
-                    for (int i = 0; i < this._nodes.length; i++) {
-                        this._nodes[i].setSelected(false);
+                    for (MapWidgetAnimationNode _node : this._nodes) {
+                        _node.setSelected(false);
                     }
                 }
             }

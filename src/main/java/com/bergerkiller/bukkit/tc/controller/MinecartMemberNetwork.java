@@ -33,7 +33,6 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -170,13 +169,10 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
     private List<CartAttachmentSeat> getSeatsClosestTo(Vector position) {
         ArrayList<CartAttachmentSeat> result = new ArrayList<CartAttachmentSeat>(this.seatAttachments);
-        Collections.sort(result, new Comparator<CartAttachmentSeat>() {
-            @Override
-            public int compare(CartAttachmentSeat o1, CartAttachmentSeat o2) {
-                double d1 = o1.getTransform().toVector().distanceSquared(position);
-                double d2 = o2.getTransform().toVector().distanceSquared(position);
-                return Double.compare(d1, d2);
-            }
+        Collections.sort(result, (o1, o2) -> {
+            double d1 = o1.getTransform().toVector().distanceSquared(position);
+            double d2 = o2.getTransform().toVector().distanceSquared(position);
+            return Double.compare(d1, d2);
         });
         return result;
     }
@@ -280,14 +276,11 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         if (this.getMember() == null) {
             World world = (this.entity == null) ? null : this.entity.getWorld();
             if (world != null) {
-                CommonUtil.nextTick(new Runnable() {
-                    @Override
-                    public void run() {
-                        EntityTracker tracker = WorldUtil.getTracker(world);
-                        EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
-                        if (entry != null && getHandle() == entry.getRaw()) {
-                            tracker.stopTracking(entity.getEntity());
-                        }
+                CommonUtil.nextTick(() -> {
+                    EntityTracker tracker = WorldUtil.getTracker(world);
+                    EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
+                    if (entry != null && getHandle() == entry.getRaw()) {
+                        tracker.stopTracking(entity.getEntity());
                     }
                 });
             }

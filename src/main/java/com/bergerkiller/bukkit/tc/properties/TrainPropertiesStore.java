@@ -343,12 +343,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @return Default properties configuration node, or null if not found
      */
     public static ConfigurationNode getDefaultsByPlayer(Player player) {
-        Set<ConfigurationNode> specialNodes = new TreeSet<>(new Comparator<ConfigurationNode>() {
-            @Override
-            public int compare(ConfigurationNode o1, ConfigurationNode o2) {
-                return o1.getName().compareTo(o2.getName());
-            }
-        });
+        Set<ConfigurationNode> specialNodes = new TreeSet<>((o1, o2) -> o1.getName().compareTo(o2.getName()));
         for (ConfigurationNode node : defconfig.getNodes()) {
             if (LogicUtil.contains(node.getName(), "default", "spawner")) {
                 continue;

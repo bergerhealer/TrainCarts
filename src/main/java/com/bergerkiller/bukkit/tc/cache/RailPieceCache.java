@@ -69,8 +69,7 @@ public class RailPieceCache {
             // It is incredibly rare that the rails stops existing, so make this as fast as possible!
             // Hence we use an array instead of a list because why not?
             // If we detect a single rail being missing, invalidate the entire cache for that block
-            for (int i = 0; i < cached.info.length; i++) {
-                RailPiece info = cached.info[i];
+            for (RailPiece info : cached.info) {
                 try {
                     // Verify rail exists
                     if (!info.type().isRail(info.block())) {

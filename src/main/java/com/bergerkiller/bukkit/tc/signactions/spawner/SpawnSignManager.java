@@ -5,7 +5,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import org.bukkit.Chunk;
@@ -141,12 +140,7 @@ public class SpawnSignManager {
     public List<SpawnSign> getSigns() {
         if (this.cachedSortedSigns == null) {
             this.cachedSortedSigns = new ArrayList<SpawnSign>(this.signs.values());
-            Collections.sort(this.cachedSortedSigns, new Comparator<SpawnSign>() {
-                @Override
-                public int compare(SpawnSign s1, SpawnSign s2) {
-                    return Long.compare(s1.getNextSpawnTime(), s2.getNextSpawnTime());
-                }
-            });
+            Collections.sort(this.cachedSortedSigns, (s1, s2) -> Long.compare(s1.getNextSpawnTime(), s2.getNextSpawnTime()));
         }
         return this.cachedSortedSigns;
     }
