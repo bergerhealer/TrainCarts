@@ -253,7 +253,7 @@ public class TCListener implements Listener {
                 }
                 group.unload();
                 // For the next tick: update the storage system to restore trains here and there
-                CommonUtil.nextTick(() -> OfflineGroupManager.refresh());
+                CommonUtil.nextTick(OfflineGroupManager::refresh);
             }
         }
     }
