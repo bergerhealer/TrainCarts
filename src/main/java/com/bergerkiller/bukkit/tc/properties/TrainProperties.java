@@ -1163,8 +1163,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
         // These properties are purely saved so they are written correctly when saving defaults
         // There are not meant to be read anywhere, because these exist as part of minecart metadata
-        this.blockTypes = node.get("blockTypes", "");
-        this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
+        // Only read these when actually set, don't add them using get's default if not so
+        // We don't want
+        if (node.contains("blockTypes") || node.contains("blockOffset")) {
+            this.blockTypes = node.get("blockTypes", "");
+            this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
+        } else {
+            this.blockTypes = "";
+            this.blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
+        }
 
         // Banking
         if (node.isNode("banking")) {
