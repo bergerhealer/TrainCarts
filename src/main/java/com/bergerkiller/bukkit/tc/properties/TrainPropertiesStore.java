@@ -20,6 +20,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     private static final long serialVersionUID = 1L;
     private static final String propertiesFile = "TrainProperties.yml";
     private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
+    private static FileConfiguration config = null;
     private static FileConfiguration defconfig = null;
     private static Map<String, TrainProperties> trainProperties = new TreeMap<>();
 
@@ -64,9 +65,12 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         OfflineGroupManager.rename(properties.getTrainName(), newTrainName);
         // Rename the properties
         trainProperties.remove(properties.getTrainName());
+        ConfigurationNode oldConfig = config.getNode(properties.getTrainName());
+        config.remove(properties.getTrainName());
         properties.setDisplayName(newTrainName);
         properties.trainname = newTrainName;
         trainProperties.put(newTrainName, properties);
+        config.set(newTrainName, oldConfig);
         hasChanges = true;
     }
 
@@ -77,8 +81,12 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      */
     public static void remove(String trainName) {
         TrainProperties prop = trainProperties.remove(trainName);
-        if (prop != null && !prop.isEmpty()) {
-            hasChanges = true;
+        if (prop == null) {
+            return;
+        }
+        hasChanges = true;
+        config.remove(trainName);
+        if (!prop.isEmpty()) {
             Iterator<CartProperties> iter = prop.iterator();
             while (iter.hasNext()) {
                 CartProperties cprop = iter.next();
@@ -177,6 +185,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      */
     public static void clearAll() {
         trainProperties.clear();
+        config.clear();
         CartPropertiesStore.clearAllCarts();
         hasChanges = true;
     }
@@ -186,7 +195,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      */
     public static void load() {
         loadDefaults();
-        FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
+        config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
         config.load();
         if (fixDeprecation(config)) {
             config.save();
@@ -313,7 +322,6 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         if (autosave && !hasChanges) {
             return;
         }
-        FileConfiguration config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
         for (TrainProperties prop : trainProperties.values()) {
             //does this train even exist?!
             if (prop.hasHolder() || OfflineGroupManager.contains(prop.getTrainName())) {
