@@ -159,16 +159,36 @@ public class DebugTool {
     }
 
     public static void debugRails(Player player, RailState state) {
-        TrackWalkingPoint walker = new TrackWalkingPoint(state);
+        debugRails(player, new TrackWalkingPoint(state));
+    }
+
+    public static void debugRails(Player player, TrackWalkingPoint walker) {
         walker.setLoopFilter(true);
         int lim = 10000;
         if (player.isSneaking()) {
-            while (walker.moveFull() && --lim > 0) {
-                showParticle(walker.state.railBlock().getLocation().add(0.5, 0.5, 0.5));
+            if (walker.moveFull()) {
+                // Show the exact path of the first section
+                for (RailPath.Point point : walker.currentRailPath.getPoints()) {
+                    Util.spawnDustParticle(point.getLocation(walker.state.railBlock()), 0.1, 0.1, 1.0);
+                }
+
+                // Show the rail blocks
+                do {
+                    showParticle(walker.state.railBlock().getLocation().add(0.5, 0.5, 0.5));
+                } while (walker.moveFull() && --lim > 0);
             }
         } else {
+            RailPath oldPath = null;
+            int segmentCounter = 0;
+            double[][] colors = new double[][] {{1.0, 0.1, 0.1}, {0.9, 0.1, 0.1}, {0.8, 0.1, 0.1}};
             while (walker.move(0.3) && --lim > 0) {
-                showParticle(walker.state.positionLocation());
+                if (oldPath != walker.currentRailPath) {
+                    oldPath = walker.currentRailPath;
+                    segmentCounter++;
+                }
+                Location loc = walker.state.positionLocation();
+                double[] color = colors[segmentCounter % colors.length];
+                Util.spawnDustParticle(loc, color[0], color[1], color[2]);
             }
         }
     }
@@ -176,17 +196,7 @@ public class DebugTool {
     public static void debugRails(Player player, Block railsBlock) {
         Vector direction = player.getEyeLocation().getDirection();
         TrackWalkingPoint walker = new TrackWalkingPoint(railsBlock, FaceUtil.getDirection(direction, false));
-        walker.setLoopFilter(true);
-        int lim = 10000;
-        if (player.isSneaking()) {
-            while (walker.moveFull() && --lim > 0) {
-                showParticle(walker.state.railBlock().getLocation().add(0.5, 0.5, 0.5));
-            }
-        } else {
-            while (walker.move(0.3) && --lim > 0) {
-                showParticle(walker.state.positionLocation());
-            }
-        }
+        debugRails(player, walker);
     }
 
     private static void showParticle(Location loc) {
