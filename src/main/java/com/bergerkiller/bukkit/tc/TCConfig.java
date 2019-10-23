@@ -185,10 +185,6 @@ public class TCConfig {
             config.remove("pushAway");
         }
 
-        config.setHeader("pushAway", "\nSettings used when carts push away/aside others (if enabled)");
-        config.setHeader("pushAway.ignoreOwners", "If train owners are ignored");
-        config.setHeader("pushAway.ignoreGlobalOwners", "If global train owners are ignored");
-
         config.setHeader("collision", "\nSettings used when carts collide with entities");
         config.setHeader("collision.ignoreOwners", "If train owners are ignored");
         config.setHeader("collision.ignoreGlobalOwners", "If global train owners are ignored");
