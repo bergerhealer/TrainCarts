@@ -190,22 +190,19 @@ public abstract class RailType {
 
         // If more than one rail piece exists here, pick the most appropriate one for this position
         // This is a little bit slower, but required for rare instances of multiple rails per block
-        RailPiece resultPiece;
+        RailPiece resultPiece = cachedPieces[0];
         if (cachedPieces.length >= 2) {
-            resultPiece = cachedPieces[0];
-            double minDistSq = Double.MAX_VALUE;
+            RailPath.ProximityInfo nearest = null;
             for (RailPiece piece : cachedPieces) {
                 state.setRailPiece(piece);
                 RailLogic logic = state.loadRailLogic();
                 RailPath path = logic.getPath();
-                double distSq = path.distanceSquared(state.railPosition());
-                if (distSq < minDistSq) {
-                    minDistSq = distSq;
+                RailPath.ProximityInfo near = path.getProximityInfo(state.railPosition(), state.motionVector());
+                if (nearest == null || near.compareTo(nearest) < 0) {
+                    nearest = near;
                     resultPiece = piece;
                 }
             }
-        } else {
-            resultPiece = cachedPieces[0];
         }
 
         state.setRailPiece(resultPiece);

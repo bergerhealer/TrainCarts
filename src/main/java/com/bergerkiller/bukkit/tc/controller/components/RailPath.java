@@ -127,6 +127,37 @@ public class RailPath {
     }
 
     /**
+     * Computes proximity information which describes how close to the path a particular position is.
+     * This is an extension of {@link #distanceSquared(Vector)} to describe additional information
+     * required for nearest-sorting. Use {@link ProximityInfo#compareTo(ProximityInfo)} to compare
+     * different positions.
+     * 
+     * @param position      The rail-relative position on this path
+     * @param motionVector  The movement vector while on this path
+     * @return Proximity information
+     */
+    public ProximityInfo getProximityInfo(Vector position, Vector motionVector) {
+        ProximityInfo info = new ProximityInfo();
+        for (int i = 0; i < this.segments.length; i++) {
+            Segment tmpSegment = this.segments[i];
+            if (tmpSegment.isZeroLength()) continue;
+            double tmpTheta = tmpSegment.calcTheta(position);
+            double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);
+            if (tmpDistSquared < info.distanceSquared) {
+                info.distanceSquared = tmpDistSquared;
+                if (tmpTheta < 1e-5 && i == 0) {
+                    info.canMoveForward = tmpSegment.dt_norm.dot(motionVector) >= 0.0;
+                } else if (tmpTheta > (1.0-1e-5) && i == (this.segments.length-1)) {
+                    info.canMoveForward = tmpSegment.dt_norm.dot(motionVector) <= 0.0;
+                } else {
+                    info.canMoveForward = true;
+                }
+            }
+        }
+        return info;
+    }
+
+    /**
      * Finds the distance squared between a rail-relative position and this rail path.
      * Returns {@link Double#MAX_VALUE} if this path has no segments.
      * 
@@ -508,6 +539,26 @@ public class RailPath {
             );
         }
         return create(points_offset);
+    }
+
+    /**
+     * Stores state for proximity comparison
+     */
+    public static class ProximityInfo implements Comparable<ProximityInfo> {
+        public double distanceSquared = Double.MAX_VALUE;
+        public boolean canMoveForward = false;
+
+        @Override
+        public int compareTo(ProximityInfo o) {
+            double diffDistSq = this.distanceSquared - o.distanceSquared;
+            if (diffDistSq > 1e-10) {
+                return 1;
+            } else if (diffDistSq < -1e-10) {
+                return -1;
+            } else {
+                return Boolean.compare(o.canMoveForward, this.canMoveForward);
+            }
+        }
     }
 
     /**
@@ -893,6 +944,16 @@ public class RailPath {
             double dy = (position.posY - this.y);
             double dz = (position.posZ - this.z);
             return dx * dx + dy * dy + dz * dz;
+        }
+
+        /**
+         * Computes the dot product of this point's x/y/z values and a vector
+         * 
+         * @param vector
+         * @return dot product
+         */
+        public double dot(Vector vector) {
+            return this.x * vector.getX() + this.y * vector.getY() + this.z * vector.getZ();
         }
 
         /**
