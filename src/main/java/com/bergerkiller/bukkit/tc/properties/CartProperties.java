@@ -568,10 +568,13 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void load(ConfigurationNode node) {
+        this.owners.clear();
         for (String owner : node.getList("owners", String.class)) {
             this.owners.add(owner.toLowerCase());
         }
+        this.ownerPermissions.clear();
         this.ownerPermissions.addAll(node.getList("ownerPermissions", String.class));
+        this.tags.clear();
         for (String tag : node.getList("tags", String.class)) {
             this.tags.add(tag);
         }
