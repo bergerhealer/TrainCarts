@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
@@ -73,8 +74,6 @@ public class AttachmentEditor extends MapDisplay {
         }
     }
 
-    int blinkctr2 = 0;
-    
     public boolean updateSneakWalking(MapKeyEvent event) {
         if (event.getKey() == Key.BACK) {
             MapWidget activated = this.getActivatedWidget();
@@ -88,9 +87,11 @@ public class AttachmentEditor extends MapDisplay {
                 (activated == this.tree) ||
                 (activated instanceof MapWidgetAttachmentNode))
             {
-                this.setReceiveInputWhenHolding(false);
-                getOwners().get(0).setSneaking(true);
-                this.sneakWalking = true;
+                if (TCConfig.enableSneakingInAttachmentEditor) {
+                    this.setReceiveInputWhenHolding(false);
+                    getOwners().get(0).setSneaking(true);
+                    this.sneakWalking = true;
+                }
                 return true;
             }
         }

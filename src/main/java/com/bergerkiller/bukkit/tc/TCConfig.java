@@ -12,10 +12,12 @@ import org.bukkit.Material;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Hastebin;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -86,6 +88,7 @@ public class TCConfig {
     public static boolean animationsUseTickTime = false;
     public static boolean claimNewSavedTrains = true;
     public static boolean onlyPoweredEmptySwitchersDoPathfinding = false;
+    public static boolean enableSneakingInAttachmentEditor = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -228,6 +231,9 @@ public class TCConfig {
         config.addHeader("animationsUseTickTime", "When false, wall clock time is used, and server lag will not slow down/speed up animations");
         config.addHeader("animationsUseTickTime", "When true, tick time is used, and server lag will cause speed changes. Animations do stay in sync with physics");
         animationsUseTickTime = config.get("animationsUseTickTime", false);
+
+        config.setHeader("enableSneakingInAttachmentEditor", "\nSets whether the player can move around by holding shift in the attachment editor");
+        enableSneakingInAttachmentEditor = config.get("enableSneakingInAttachmentEditor", !CommonCapabilities.PLAYER_OFF_HAND);
 
         config.setHeader("autoSaveInterval", "\nSets the interval at which all the properties of all trains on the server are saved to disk");
         config.addHeader("autoSaveInterval", "This saving may have a negative performance impact, as seen in the AutoSaveTask in timings");
