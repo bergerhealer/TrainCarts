@@ -587,6 +587,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.exitYaw = node.get("exitYaw", this.exitYaw);
         this.exitPitch = node.get("exitPitch", this.exitPitch);
         this.driveSound = node.get("driveSound", this.driveSound);
+        this.blockBreakTypes.clear();
         for (String blocktype : node.getList("blockBreakTypes", String.class)) {
             Material mat = ParseUtil.parseMaterial(blocktype, null);
             if (mat != null) {
@@ -624,6 +625,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("exitPitch", this.exitPitch);
         node.set("driveSound", this.driveSound);
         List<String> items = node.getList("blockBreakTypes", String.class);
+        items.clear();
         for (Material mat : this.blockBreakTypes) {
             items.add(mat.toString());
         }
@@ -656,6 +658,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             node.remove("blockBreakTypes");
         } else {
             List<String> items = node.getList("blockBreakTypes", String.class);
+            items.clear();
             for (Material mat : this.blockBreakTypes) {
                 items.add(mat.toString());
             }
