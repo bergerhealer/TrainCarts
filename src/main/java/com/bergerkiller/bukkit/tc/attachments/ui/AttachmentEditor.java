@@ -22,11 +22,12 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuIte
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
+    private static final int SNEAK_DEBOUNCE_TICKS = 5;
     public CartProperties editedCart;
     public AttachmentModel model;
-    private boolean sneakWalking = false;
     private boolean _hasPermission;
     private int blinkCounter = 0;
+    private int sneakCounter = 0;
     private Attachment _lastSelectedAttachment = null;
 
     private MapWidgetWindow window = new MapWidgetWindow();
@@ -49,9 +50,12 @@ public class AttachmentEditor extends MapDisplay {
         Player player = this.getViewers().get(0);
 
         // Allow walking around when sneaking
-        if (this.sneakWalking && !player.isSneaking()) {
-            this.sneakWalking = false;
-            this.setReceiveInputWhenHolding(true);
+        if (this.sneakCounter > 0) {
+            if (player.isSneaking()) {
+                this.sneakCounter = SNEAK_DEBOUNCE_TICKS;
+            } else if (--this.sneakCounter == 0) {
+                this.setReceiveInputWhenHolding(true);
+            }
         }
 
         // If permission changes, reload
@@ -88,9 +92,8 @@ public class AttachmentEditor extends MapDisplay {
                 (activated instanceof MapWidgetAttachmentNode))
             {
                 if (TCConfig.enableSneakingInAttachmentEditor) {
+                    this.sneakCounter = SNEAK_DEBOUNCE_TICKS;
                     this.setReceiveInputWhenHolding(false);
-                    getOwners().get(0).setSneaking(true);
-                    this.sneakWalking = true;
                 }
                 return true;
             }
@@ -180,8 +183,8 @@ public class AttachmentEditor extends MapDisplay {
         } else {
             this.editedCart = CartProperties.getEditing(this.getOwners().get(0));
             if (this.editedCart != null) {
-                this.sneakWalking = this.getOwners().get(0).isSneaking();
-                this.setReceiveInputWhenHolding(!this.sneakWalking);
+                this.sneakCounter = this.getOwners().get(0).isSneaking() ? SNEAK_DEBOUNCE_TICKS : 0;
+                this.setReceiveInputWhenHolding(this.sneakCounter == 0);
                 this.model = this.editedCart.getModel();
                 this.tree.setModel(this.model);
                 this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
