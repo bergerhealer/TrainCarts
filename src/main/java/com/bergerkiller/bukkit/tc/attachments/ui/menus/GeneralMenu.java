@@ -10,6 +10,8 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfirmAnimationDeleteDialog;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ConfirmAttachmentDeleteDialog;
 
 public class GeneralMenu extends MapWidgetMenu {
 
@@ -45,8 +47,13 @@ public class GeneralMenu extends MapWidgetMenu {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
-                attachment.remove();
-                GeneralMenu.this.close();
+                GeneralMenu.this.addWidget(new ConfirmAttachmentDeleteDialog() {
+                    @Override
+                    public void onConfirmDelete() {
+                        GeneralMenu.this.attachment.remove();
+                        GeneralMenu.this.close();
+                    }
+                });
             }
         }).setText("Delete").setBounds(10, 50, 98, 18).setEnabled(attachment.getParentAttachment() != null);
 
