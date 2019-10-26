@@ -3,6 +3,10 @@
 .project
 .settings/
 
+# Minecraft stuff added during test
+minecraft/
+logs/
+
 # netbeans
 nbproject/
 nbactions.xml
