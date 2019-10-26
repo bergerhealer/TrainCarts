@@ -117,7 +117,7 @@ public class CartAttachmentItem extends CartAttachment {
         this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER, true);
 
-        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
+        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, true);
         this.entity.syncMetadata();
         this.updateGlowColor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
     }
@@ -127,7 +127,7 @@ public class CartAttachmentItem extends CartAttachment {
         this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER, false);
 
-        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
+        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, false);
         this.entity.syncMetadata();
 
         // Leave entity registered under the glow color to prevent flickering of white
