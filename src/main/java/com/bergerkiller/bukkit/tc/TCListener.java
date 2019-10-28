@@ -46,6 +46,7 @@ import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -537,7 +538,11 @@ public class TCListener implements Listener {
                 if (tag != null) {
                     String debugType = tag.getValue("TrainCartsDebug", String.class);
                     if (debugType != null) {
-                        DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), debugType);
+                        if (Permission.DEBUG_COMMAND_DEBUG.has(event.getPlayer())) {
+                            DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), debugType);
+                        } else {
+                            event.getPlayer().sendMessage(ChatColor.RED + "No permission to use this item!");
+                        }
                     }
                 }
             }

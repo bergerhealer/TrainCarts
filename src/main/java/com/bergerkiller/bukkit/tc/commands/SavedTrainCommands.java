@@ -273,6 +273,7 @@ public class SavedTrainCommands {
 
         // Paste: paste the saved train configuration to a hastebin server
         if (LogicUtil.contains(command, "paste", "share", "export", "upload")) {
+            Permission.COMMAND_SAVEDTRAIN_EXPORT.handle(sender);
             ConfigurationNode exportedConfig = savedTrainConfig.clone();
             exportedConfig.remove("claims");
             exportedConfig.set("name", savedTrainName);
@@ -331,7 +332,7 @@ public class SavedTrainCommands {
 
         // Reverse: reverse the order of the carts and flip each individual cart around
         if (LogicUtil.contains(command, "reverse", "inverse", "invert", "flip")) {
-            Permission.COMMAND_SAVEDTRAIN_RENAME.handle(sender);
+            Permission.COMMAND_SAVEDTRAIN_REVERSE.handle(sender);
 
             savedTrains.reverse(savedTrainName);
             sender.sendMessage(ChatColor.GREEN + "Saved train '" + ChatColor.WHITE + savedTrainName +
@@ -344,6 +345,8 @@ public class SavedTrainCommands {
     }
 
     public static void executeImport(CommandSender sender, final String savedTrainName, String[] args) throws NoPermissionException {
+        Permission.COMMAND_SAVEDTRAIN_IMPORT.handle(sender);
+
         if (args.length == 0) {
             sender.sendMessage(ChatColor.RED + "Please specify the URL to a Hastebin-hosted paste to download from");
             return;
