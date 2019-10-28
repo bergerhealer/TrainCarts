@@ -893,6 +893,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 this.preMovePosition.getZ() + smallStep * direction.getZ());
         state.position().setLocation(prePos);
         if (RailType.loadRailInformation(state)) {
+            state.position().setLocation(entity.getLocation());
             return true;
         }
 
