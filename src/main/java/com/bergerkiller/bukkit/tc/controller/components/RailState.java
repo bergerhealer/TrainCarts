@@ -34,6 +34,23 @@ public class RailState {
     }
 
     /**
+     * Sets the state of this rail state to another state
+     * 
+     * @param state
+     */
+    public void setTo(RailState state) {
+        state.position().copyTo(this.position());
+        this.setRailPiece(state.railPiece());
+        this.setMember(state.member());
+        this._enterDirection.setX(state._enterDirection.getX());
+        this._enterDirection.setY(state._enterDirection.getY());
+        this._enterDirection.setZ(state._enterDirection.getZ());
+        this._enterPosition.setX(state._enterPosition.getX());
+        this._enterPosition.setY(state._enterPosition.getY());
+        this._enterPosition.setZ(state._enterPosition.getZ());
+    }
+
+    /**
      * Returns the rail path position information, which stores the position,
      * orientation and movement direction. This returned {@link RailPath.Position} object
      * is mutable.
@@ -344,15 +361,7 @@ public class RailState {
     @Override
     public RailState clone() {
         RailState state = new RailState();
-        this.position().copyTo(state.position());
-        state.setRailPiece(this.railPiece());
-        state.setMember(this.member());
-        state._enterDirection.setX(this._enterDirection.getX());
-        state._enterDirection.setY(this._enterDirection.getY());
-        state._enterDirection.setZ(this._enterDirection.getZ());
-        state._enterPosition.setX(this._enterPosition.getX());
-        state._enterPosition.setY(this._enterPosition.getY());
-        state._enterPosition.setZ(this._enterPosition.getZ());
+        state.setTo(this);
         return state;
     }
 
