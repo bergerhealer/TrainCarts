@@ -1461,6 +1461,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             for (MinecartMember<?> mm : this) {
                 mm.checkMissing();
                 mm.getEntity().setMaxSpeed(speedLimitClamped);
+                mm.verifyPreMovePosition();
             }
 
             // Set up a valid network controller if needed
@@ -1596,6 +1597,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             for (MinecartMember<?> member : this) {
                 try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
                     member.onPhysicsPostMove();
+                    member.calcPostMovePosition();
                     if (this.breakPhysics) return true;
                 }
             }

@@ -124,6 +124,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private float cachedOrientation_pitch = 0.0f;
     private boolean hasLinkedFarMinecarts = false;
     private Location preMovePosition = null;
+    private Location postMovePosition = null;
     private Vector lastRailRefreshPosition = null;
     private Vector lastRailRefreshDirection = null;
 
@@ -876,6 +877,18 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Normalize direction vector
         direction.multiply(1.0 / moved);
+
+        // Debug: uses walking point to do this instead of the small offset
+        /*
+        TrackWalkingPoint p = new TrackWalkingPoint(this.preMovePosition, direction);
+        p.move(0.0);
+        if (p.move(moved)) {
+            state.setTo(p.state);
+            state.setMember(this);
+            return true;
+        }
+        */
+
         // TODO: Do we use this direction vector for motion or not?
         // Using this causes reverse() to not work anymore
 
@@ -953,27 +966,35 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (path.isEmpty()) {
             return;
         }
-        if (this.preMovePosition == null) {
-            this.preMovePosition = entity.getLocation();
-        }
 
+        RailPath.Position pos;
+        double toMove;
         Location currPos = entity.getLocation();
-        RailPath.Position pos = RailPath.Position.fromTo(this.preMovePosition, currPos);
-        double toMove = MathUtil.length(pos.motX, pos.motY, pos.motZ);
+        if (this.preMovePosition == null) {
+            pos = RailPath.Position.fromTo(currPos, currPos);
+            toMove = 0.0;
+        } else {
+            pos = RailPath.Position.fromTo(this.preMovePosition, currPos);
+            toMove = MathUtil.length(pos.motX, pos.motY, pos.motZ);
+        }
 
         // When movement is large, teleport is almost certain
         // Because the only movement allowed in onMove is limited to 0.4
         if (toMove > MAX_MOVEMENT_STEP) {
-            entity.getLocation(this.preMovePosition);
-            pos = RailPath.Position.fromTo(this.preMovePosition, this.preMovePosition);
+            if (this.preMovePosition != null) {
+                this.preMovePosition = currPos;
+            }
+            pos = RailPath.Position.fromTo(currPos, currPos);
             toMove = 0.0;
         }
 
         toMove -= path.move(pos, this.getBlock(), toMove);
 
-        this.preMovePosition.setX(pos.posX);
-        this.preMovePosition.setY(pos.posY);
-        this.preMovePosition.setZ(pos.posZ);
+        if (this.preMovePosition != null) {
+            this.preMovePosition.setX(pos.posX);
+            this.preMovePosition.setY(pos.posY);
+            this.preMovePosition.setZ(pos.posZ);
+        }
 
         // Correct motion based on anticipated end location
         // Sometimes the input motion is incorrect
@@ -1804,6 +1825,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         double distanceDiff = (TCConfig.cartDistanceGap - gap);
         direction.multiply(distanceDiff);
         return direction;
+    }
+
+    protected void verifyPreMovePosition() {
+        if (this.postMovePosition != null) {
+            if (this.postMovePosition.getX() != this.entity.loc.getX()
+                    || this.postMovePosition.getY() != this.entity.loc.getY()
+                    || this.postMovePosition.getZ() != this.entity.loc.getZ()) {
+                this.preMovePosition = null;
+            }
+        }
+    }
+
+    protected void calcPostMovePosition() {
+        if (this.postMovePosition == null) {
+            this.postMovePosition = this.entity.getLocation();
+        } else {
+            this.entity.getLocation(this.postMovePosition);
+        }
     }
 
     /**
