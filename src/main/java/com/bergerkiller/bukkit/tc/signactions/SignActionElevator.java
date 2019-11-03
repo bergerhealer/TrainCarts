@@ -123,7 +123,7 @@ public class SignActionElevator extends SignAction {
         BlockFace[] startDirs = RailType.getType(dest).getPossibleDirections(dest);
         BlockFace launchDir = null;
         if (destsign != null) {
-            BlockFace signdir = ((Directional) destsign.getData()).getFacing();
+            BlockFace signdir = BlockUtil.getFacing(destsign.getBlock());
             if (startDirs[0] == signdir || startDirs[1] == signdir) {
                 launchDir = signdir;
             }
