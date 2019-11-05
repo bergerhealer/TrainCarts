@@ -1,10 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.permissions.PermissionEnum;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -84,12 +84,37 @@ public abstract class SignAction {
         return null;
     }
 
+    /**
+     * Registers a new SignAction, which will then be used by trains discovering signs matching
+     * its format. Priority will be false, meaning it will not override previously registered
+     * sign actions.
+     * 
+     * @param action    The sign action instance that represents the sign
+     * @return input action
+     */
     public static <T extends SignAction> T register(T action) {
-        if (actions == null) return action;
-        actions.add(action);
-        return action;
+        return register(action, false);
     }
 
+    /**
+     * Registers a new SignAction, which will then be used by trains discovering signs matching
+     * its format.
+     * 
+     * @param action    The sign action instance that represents the sign
+     * @param priority  True to have this action override previously registered signs, False otherwise
+     * @return input action
+     */
+    public static <T extends SignAction> T register(T action, boolean priority) {
+        if (actions != null) {
+            if (priority) {
+                actions.add(0, action);
+            } else {
+                actions.add(action);
+            }
+        }
+        return action;
+    }
+    
     public static void unregister(SignAction action) {
         if (actions == null) return;
         actions.remove(action);
@@ -128,11 +153,11 @@ public abstract class SignAction {
         return action != null && action.click(info, player);
     }
 
-    public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname) {
+    public static boolean handleBuild(SignChangeActionEvent event, PermissionEnum permission, String signname) {
         return handleBuild(event, permission, signname, null);
     }
 
-    public static boolean handleBuild(SignChangeActionEvent event, Permission permission, String signname, String signdescription) {
+    public static boolean handleBuild(SignChangeActionEvent event, PermissionEnum permission, String signname, String signdescription) {
         if (permission.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use this sign")) {
             event.getPlayer().sendMessage(ChatColor.YELLOW + "You built a " + ChatColor.WHITE + signname + ChatColor.YELLOW + "!");
             if (signdescription != null) {
