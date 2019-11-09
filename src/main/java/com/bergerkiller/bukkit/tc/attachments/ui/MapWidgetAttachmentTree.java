@@ -280,12 +280,32 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         UpdateViewOp op = new UpdateViewOp();
         op.offset = this.offset;
         op.count = this.count;
+        op.num_visible_nodes = 0;
         op.col = 0;
         op.row = 0;
         op.min_col = Integer.MAX_VALUE;
         op.max_col = 0;
         this.column_offset = 0;
         this.updateView(this.root, op);
+
+        // If less nodes are visible than there are slots, force offset to be 0 so root is at the top
+        if (op.num_visible_nodes <= this.count && this.offset > 0) {
+            int new_offset = 0;
+            int new_selidx = this.lastSelIdx - (new_offset - offset);
+            this.updateView(new_offset);
+            this.setSelectedIndex(new_selidx);
+            return;
+        }
+
+        // Otherwise, if not all slots are filled with widgets, then we scrolled out of range
+        // Check that more are available than are displayed, and if so, scroll to fill
+        if (op.count > 0 && op.num_visible_nodes > this.count) {
+            int new_offset = op.num_visible_nodes - this.count;
+            int new_selidx = this.lastSelIdx - (new_offset - offset);
+            this.updateView(new_offset);
+            this.setSelectedIndex(new_selidx);
+            return;
+        }
 
         this.resetNeeded = false;
         if (this.lastSelIdx >= 0 && this.getWidgetCount() > 0) {
@@ -298,6 +318,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     }
 
     private void updateView(MapWidgetAttachmentNode node, UpdateViewOp op) {
+        op.num_visible_nodes++;
         if (op.offset > 0) {
             op.offset--;
         } else if (op.count > 0) {
@@ -393,6 +414,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     private static class UpdateViewOp {
         public int offset;
         public int count;
+        public int num_visible_nodes;
         public int col, row;
         public int max_col, min_col;
     }
