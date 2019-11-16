@@ -292,13 +292,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return !this.isEmpty() && (index >= 0 && index < this.size());
     }
 
+    @Override
     public World getWorld() {
-        if (isEmpty()) {
-            return null;
-        } else {
-            CommonEntity<?> entity = get(0).getEntity();
-            return (entity == null) ? null : entity.getWorld();
-        }
+        return isEmpty() ? null : get(0).getWorld();
     }
 
     public int size(EntityType carttype) {

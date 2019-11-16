@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -53,6 +54,8 @@ import org.bukkit.util.Vector;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
 
 public class GlobalCommands {
@@ -532,9 +535,18 @@ public class GlobalCommands {
         MessageBuilder builder = new MessageBuilder();
         builder.yellow("The following train destinations are available:");
         builder.newLine().setSeparator(ChatColor.WHITE, " / ");
-        for (PathNode node : PathNode.getAll()) {
-            if (!node.containsOnlySwitcher()) {
-                builder.green(node.getName());
+        Collection<PathWorld> worlds;
+        if (sender instanceof Player) {
+            World playerWorld = ((Player) sender).getWorld();
+            worlds = Collections.singleton(TrainCarts.plugin.getPathProvider().getWorld(playerWorld));
+        } else {
+            worlds = TrainCarts.plugin.getPathProvider().getWorlds();
+        }
+        for (PathWorld world : worlds) {
+            for (PathNode node : world.getNodes()) {
+                if (!node.containsOnlySwitcher()) {
+                    builder.green(node.getName());
+                }
             }
         }
         builder.send(sender);

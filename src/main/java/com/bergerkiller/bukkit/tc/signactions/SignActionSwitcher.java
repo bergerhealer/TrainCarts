@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -183,7 +184,7 @@ public class SignActionSwitcher extends SignAction {
                 // Continue with path finding if a valid destination is specified
                 // If the current node denotes the destination - don't switch!
                 if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
-                    if (PathProvider.isProcessing()) {
+                    if (TrainCarts.plugin.getPathProvider().isProcessing()) {
                         double currentForce = info.getGroup().getAverageForce();
                         // Add an action to let the train wait until the node IS explored
                         info.getGroup().getActions().addAction(new GroupActionWaitPathFinding(info, node, destination));

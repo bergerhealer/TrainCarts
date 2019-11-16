@@ -1,26 +1,17 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.collections.BlockSet;
-import com.bergerkiller.bukkit.common.config.CompressedDataReader;
-import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 import org.bukkit.block.Block;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.*;
 
 public class PathNode {
     static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
-    private static boolean hasChanges = false;
-    private static BlockMap<PathNode> blockNodes = new BlockMap<>();
-    private static Map<String, PathNode> nodes = new HashMap<>();
+    private final PathWorld world;
     public final BlockLocation location;
     private final Set<String> names = new HashSet<>();
     private final List<PathConnection> neighbors = new ArrayList<>(3);
@@ -29,7 +20,8 @@ public class PathNode {
     private PathConnection lastTaken;
     private boolean isRailSwitchable;
 
-    private PathNode(final String name, final BlockLocation location) {
+    protected PathNode(final String name, final PathWorld world, final BlockLocation location) {
+        this.world = world;
         this.location = location;
         if (!LogicUtil.nullOrEmpty(name)) {
             LogicUtil.addArray(this.names, name.split("\n", -1));
@@ -38,48 +30,33 @@ public class PathNode {
     }
 
     public static void clearAll() {
-        nodes.clear();
-        blockNodes.clear();
-        hasChanges = true;
+        for (PathWorld world : TrainCarts.plugin.getPathProvider().getWorlds()) {
+            world.clearAll();
+        }
     }
 
     /**
      * Re-calculates all path nodes from scratch
      */
     public static void reroute() {
-        BlockSet blocks = new BlockSet();
-        blocks.addAll(blockNodes.keySet());
-        clearAll();
-
-        for (BlockLocation location : blocks) {
-            PathProvider.discover(location);
-        }
-    }
-
-    public static Collection<PathNode> getAll() {
-        return nodes.values();
+        TrainCarts.plugin.getPathProvider().reroute();
     }
 
     public static PathNode get(BlockLocation railLocation) {
-        return blockNodes.get(railLocation);
+        return TrainCarts.plugin.getPathProvider().getWorld(railLocation.world).getNodeAtRail(railLocation);
     }
 
     public static PathNode get(Block block) {
         if (block == null) {
             return null;
+        } else {
+            return TrainCarts.plugin.getPathProvider().getWorld(block.getWorld()).getNodeAtRail(block);
         }
-        return blockNodes.get(block);
-    }
-
-    public static PathNode get(final String name) {
-        return nodes.get(name);
     }
 
     public static PathNode remove(Block railsblock) {
         if (railsblock == null) return null;
-        PathNode node = blockNodes.remove(railsblock);
-        if (node != null) node.remove();
-        return node;
+        return TrainCarts.plugin.getPathProvider().getWorld(railsblock.getWorld()).removeAtRail(railsblock);
     }
 
     public static PathNode getOrCreate(SignActionEvent event) {
@@ -115,24 +92,7 @@ public class PathNode {
     }
 
     public static PathNode getOrCreate(final String name, final BlockLocation location) {
-        if (LogicUtil.nullOrEmpty(name) || location == null) {
-            return null;
-        }
-        PathNode node = get(name);
-        if (node != null) {
-            return node;
-        }
-        node = blockNodes.get(location);
-        if (node == null) {
-            // Create a new node
-            node = new PathNode(name, location);
-            node.addToMapping();
-            PathProvider.schedule(node);
-        } else {
-            // Add the name to the existing node
-            node.addName(name);
-        }
-        return node;
+        return TrainCarts.plugin.getPathProvider().getWorld(location.world).getOrCreateAtRail(name, location);        
     }
 
     private static double getDistanceTo(PathConnection from, PathConnection conn, double currentDistance, double maxDistance, PathNode destination) {
@@ -164,69 +124,6 @@ public class PathNode {
         clearAll();
     }
 
-    public static void init(String filename) {
-        new CompressedDataReader(filename) {
-            public void read(DataInputStream stream) throws IOException {
-                //initializing the nodes
-                int count = stream.readInt();
-                nodes = new HashMap<>(count);
-                blockNodes.clear();
-                PathNode[] parr = new PathNode[count];
-                for (int i = 0; i < count; i++) {
-                    String name = stream.readUTF();
-                    BlockLocation loc = new BlockLocation(stream.readUTF(), stream.readInt(), stream.readInt(), stream.readInt());
-                    if (name.isEmpty()) {
-                        name = loc.toString();
-                    }
-                    parr[i] = new PathNode(name, loc);
-                    parr[i].addToMapping();
-                }
-                //generating connections
-                for (PathNode node : parr) {
-                    int ncount = stream.readInt();
-                    for (int i = 0; i < ncount; i++) {
-                        node.neighbors.add(new PathConnection(parr[stream.readInt()], stream));
-                    }
-                }
-            }
-        }.read();
-        hasChanges = false;
-    }
-
-    public static void save(boolean autosave, String filename) {
-        if (autosave && !hasChanges) {
-            return;
-        }
-        new CompressedDataWriter(filename) {
-            public void write(DataOutputStream stream) throws IOException {
-                stream.writeInt(nodes.size());
-                //generate indices
-                int i = 0;
-                for (PathNode node : nodes.values()) {
-                    node.index = i;
-                    if (node.containsOnlySwitcher()) {
-                        stream.writeUTF("");
-                    } else {
-                        stream.writeUTF(StringUtil.join("\n", node.names));
-                    }
-                    stream.writeUTF(node.location.world);
-                    stream.writeInt(node.location.x);
-                    stream.writeInt(node.location.y);
-                    stream.writeInt(node.location.z);
-                    i++;
-                }
-                //write out connections
-                for (PathNode node : nodes.values()) {
-                    stream.writeInt(node.neighbors.size());
-                    for (PathConnection conn : node.neighbors) {
-                        conn.writeTo(stream);
-                    }
-                }
-            }
-        }.write();
-        hasChanges = false;
-    }
-
     /**
      * Tries to find a connection from this node to the node specified
      *
@@ -234,7 +131,7 @@ public class PathNode {
      * @return A connection, or null if none could be found
      */
     public PathConnection findConnection(String destination) {
-        PathNode node = get(destination);
+        PathNode node = world.getNodeByName(destination);
         return node == null ? null : findConnection(node);
     }
 
@@ -245,7 +142,7 @@ public class PathNode {
      * @return A connection, or null if none could be found
      */
     public PathConnection findConnection(PathNode destination) {
-        for (PathNode node : nodes.values()) {
+        for (PathNode node : world.getNodes()) {
             node.lastDistance = Integer.MAX_VALUE;
             node.lastTaken = null;
         }
@@ -312,14 +209,18 @@ public class PathNode {
         }
         // Add a new one
         conn = new PathConnection(to, distance, junctionName);
-        this.neighbors.add(conn);
-        hasChanges = true;
+        addNeighbourFast(conn);
+        world.getProvider().markChanged();
         return conn;
+    }
+
+    protected void addNeighbourFast(PathConnection connection) {
+        this.neighbors.add(connection);
     }
 
     public void clear() {
         this.neighbors.clear();
-        for (PathNode node : nodes.values()) {
+        for (PathNode node : world.getNodes()) {
             Iterator<PathConnection> iter = node.neighbors.iterator();
             while (iter.hasNext()) {
                 if (iter.next().destination == this) {
@@ -327,7 +228,7 @@ public class PathNode {
                 }
             }
         }
-        hasChanges = true;
+        world.getProvider().markChanged();
     }
 
     /**
@@ -341,8 +242,7 @@ public class PathNode {
             return;
         }
         this.refreshRailSwitchable();
-        nodes.remove(name);
-        hasChanges = true;
+        world.removeNodeName(this, name);
         if (PathProvider.DEBUG_MODE) {
             String dbg = "NODE " + location + " NO LONGER HAS NAME " + name;
             if (this.names.isEmpty()) {
@@ -360,12 +260,7 @@ public class PathNode {
      */
     public void remove() {
         this.clear();
-        //remove globally
-        for (String name : this.names) {
-            nodes.remove(name);
-        }
-        blockNodes.remove(this.location);
-        hasChanges = true;
+        world.removeFromMapping(this);
     }
 
     /**
@@ -386,6 +281,14 @@ public class PathNode {
      */
     public boolean containsOnlySwitcher() {
         return this.names.size() == 1 && this.containsSwitcher();
+    }
+
+    public Collection<String> getNames() {
+        return this.names;
+    }
+
+    public Collection<PathConnection> getNeighbours() {
+        return this.neighbors;
     }
 
     /**
@@ -458,20 +361,7 @@ public class PathNode {
     public void addName(String name) {
         if (this.names.add(name)) {
             this.refreshRailSwitchable();
-            if (!PathNode.SWITCHER_NAME_FALLBACK.equals(name)) {
-                nodes.put(name, this);
-            }
-            hasChanges = true;
+            world.addNodeName(this, name);
         }
-    }
-
-    private void addToMapping() {
-        for (String name : this.names) {
-            if (!PathNode.SWITCHER_NAME_FALLBACK.equals(name)) {
-                nodes.put(name, this);
-            }
-        }
-        blockNodes.put(this.location, this);
-        hasChanges = true;
     }
 }

@@ -1,11 +1,11 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
-import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 
 public class GroupActionWaitPathFinding extends GroupActionWaitForever {
     private final SignActionEvent info;
@@ -23,7 +23,7 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 
     @Override
     public boolean update() {
-        if (PathProvider.isProcessing()) {
+        if (TrainCarts.plugin.getPathProvider().isProcessing()) {
             if (this.failCounter++ == 20) {
                 Localization.PATHING_BUSY.broadcast(this.getGroup());
             }

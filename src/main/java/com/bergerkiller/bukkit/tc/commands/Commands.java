@@ -9,8 +9,10 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 import org.bukkit.ChatColor;
@@ -105,15 +107,20 @@ public class Commands {
         MessageBuilder msg = new MessageBuilder();
         msg.yellow("This ").append(prop.getTypeName());
         final String lastName = prop.getDestination();
+        IPropertiesHolder holder;
         if (LogicUtil.nullOrEmpty(lastName)) {
             msg.append(" is not trying to reach a destination.");
+        } else if ((holder = prop.getHolder()) == null) {
+            msg.append(" is not currently loaded.");
         } else {
             msg.append(" is trying to reach ").green(lastName).newLine();
-            final PathNode first = PathNode.get(prop.getLastPathNode());
+
+            PathWorld pathWorld = TrainCarts.plugin.getPathProvider().getWorld(holder.getWorld());
+            final PathNode first = pathWorld.getNodeByName(prop.getLastPathNode());
             if (first == null) {
                 msg.yellow("It has not yet visited a routing node, so no route is available yet.");
             } else {
-                PathNode last = PathNode.get(lastName);
+                PathNode last = pathWorld.getNodeByName(lastName);
                 if (last == null) {
                     msg.red("The destination position to reach can not be found!");
                 } else {

@@ -2,6 +2,9 @@ package com.bergerkiller.bukkit.tc.pathfinding;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.config.CompressedDataReader;
+import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
@@ -16,12 +19,19 @@ import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -30,37 +40,187 @@ public class PathProvider extends Task {
     private static final int STEP_COUNT = 100; // Steps performed per timing check
     private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
-    private static PathProvider task;
+    private final Map<String, PathWorld> worlds = new HashMap<String, PathWorld>();
     private Queue<BlockLocation> pendingDiscovery = new LinkedList<BlockLocation>();
     private Set<PathNode> pendingNodes = new LinkedHashSet<>();
     private Queue<PathFindOperation> pendingOperations = new LinkedList<>();
+    private boolean hasChanges = false;
 
-    private PathProvider(JavaPlugin plugin) {
+    public PathProvider(JavaPlugin plugin) {
         super(plugin);
     }
 
-    public static void init() {
-        task = new PathProvider(TrainCarts.plugin);
-        task.start(1, 1);
+    public void enable(String filename) {
+        this.start(1, 1);
+
+        new CompressedDataReader(filename) {
+            public void read(DataInputStream stream) throws IOException {
+                // clear all previous data by clearing the worlds mapping
+                worlds.clear();
+
+                // Initializing the nodes
+                int count = stream.readInt();
+                PathNode[] parr = new PathNode[count];
+                for (int i = 0; i < count; i++) {
+                    String name = stream.readUTF();
+                    BlockLocation loc = new BlockLocation(stream.readUTF(), stream.readInt(), stream.readInt(), stream.readInt());
+                    if (name.isEmpty()) {
+                        name = loc.toString();
+                    }
+                    parr[i] = getWorld(loc.world).addNode(name, loc);
+                }
+                // Generating connections
+                for (PathNode node : parr) {
+                    int ncount = stream.readInt();
+                    for (int i = 0; i < ncount; i++) {
+                        node.addNeighbourFast(new PathConnection(parr[stream.readInt()], stream));
+                    }
+                }
+            }
+        }.read();
+
+        hasChanges = false;
     }
 
-    public static void deinit() {
-        if (task == null) {
+    public void disable() {
+        this.stop();
+    }
+
+    public void save(boolean autosave, String filename) {
+        if (autosave && !hasChanges) {
             return;
         }
-        task.stop();
-        task = null;
+        new CompressedDataWriter(filename) {
+            public void write(DataOutputStream stream) throws IOException {
+                // Compute and write total amount of nodes
+                int totalNodeCount = 0;
+                for (PathWorld world : getWorlds()) {
+                    totalNodeCount += world.getNodes().size();
+                }
+                stream.writeInt(totalNodeCount);
+
+                // Generate indices
+                int i = 0;
+                for (PathWorld world : getWorlds()) {
+                    for (PathNode node : world.getNodes()) {
+                        node.index = i;
+                        if (node.containsOnlySwitcher()) {
+                            stream.writeUTF("");
+                        } else {
+                            stream.writeUTF(StringUtil.join("\n", node.getNames()));
+                        }
+                        stream.writeUTF(node.location.world);
+                        stream.writeInt(node.location.x);
+                        stream.writeInt(node.location.y);
+                        stream.writeInt(node.location.z);
+                        i++;
+                    }
+                }
+
+                // Write out connections
+                for (PathWorld world : getWorlds()) {
+                    for (PathNode node : world.getNodes()) {
+                        stream.writeInt(node.getNeighbours().size());
+                        for (PathConnection conn : node.getNeighbours()) {
+                            conn.writeTo(stream);
+                        }
+                    }
+                }
+            }
+        }.write();
+        hasChanges = false;
+    }
+    
+    /**
+     * Gets a collection of worlds on which path data is stored
+     * 
+     * @return worlds
+     */
+    public Collection<PathWorld> getWorlds() {
+        return this.worlds.values();
     }
 
     /**
-     * Tells this Path Provider to start calculating all neighboring paths from the node specified
+     * Gets the path node information stored for a world
+     * 
+     * @param worldName
+     * @return PathWorld instance for the world with worldName
+     */
+    public PathWorld getWorld(String worldName) {
+        PathWorld world = this.worlds.get(worldName);
+        if (world == null) {
+            world = new PathWorld(this, worldName);
+            this.worlds.put(worldName, world);
+        }
+        return world;
+    }
+
+    /**
+     * Gets the path node information stored for a world
+     * 
+     * @param world
+     * @return PathWorld instance for the world
+     */
+    public PathWorld getWorld(World world) {
+        return getWorld(world.getName());
+    }
+
+    /**
+     * Clears all node information on all worlds
+     */
+    public void clearAll() {
+        for (PathWorld world : getWorlds()) {
+            world.clearAll();
+        }
+    }
+
+    /**
+     * Starts rerouting all nodes on all worlds
+     */
+    public void reroute() {
+        for (PathWorld world : getWorlds()) {
+            world.rerouteAll();
+        }
+    }
+
+    /**
+     * Tells this provider that node information has changed and needs to be saved again to file
+     */
+    protected void markChanged() {
+        this.hasChanges = true;
+    }
+
+    /**
+     * Tells this Path Provider to start calculating all neighboring paths from the node specified<br>
+     * <b>Deprecated: use {@link #scheduleNode(PathNode)} instead on PathProvider instance in TrainCarts plugin</b>
      *
      * @param startNode to schedule
      */
+    @Deprecated
     public static void schedule(PathNode startNode) {
-        if (task != null) {
-            task.pendingNodes.add(startNode);
-        }
+        TrainCarts.plugin.getPathProvider().scheduleNode(startNode);
+    }
+
+    /**
+     * Schedules a node to start calculating all neighboring paths
+     * 
+     * @param startNode
+     */
+    public void scheduleNode(PathNode startNode) {
+        pendingNodes.add(startNode);
+    }
+
+    /**
+     * Tells this Path Provider to schedule new destination and switcher sign discovery, starting at a particular
+     * rails block. This rail location must have signs that switch or declare a destination, otherwise
+     * nothing will happen.<br>
+     * <b>Deprecated: use {@link #discoverFromRail(BlockLocation)} instead</b>
+     * 
+     * @param railLocation to discover destinations and switchers at
+     */
+    @Deprecated
+    public static void discover(BlockLocation railLocation) {
+        TrainCarts.plugin.getPathProvider().discoverFromRail(railLocation);
     }
 
     /**
@@ -70,10 +230,8 @@ public class PathProvider extends Task {
      * 
      * @param railLocation to discover destinations and switchers at
      */
-    public static void discover(BlockLocation railLocation) {
-        if (task != null) {
-            task.pendingDiscovery.add(railLocation);
-        }
+    public void discoverFromRail(BlockLocation railLocation) {
+        pendingDiscovery.add(railLocation);
     }
 
     /**
@@ -81,8 +239,8 @@ public class PathProvider extends Task {
      *
      * @return True if processing is being performed, False if not
      */
-    public static boolean isProcessing() {
-        return task != null && (!task.pendingOperations.isEmpty() || !task.pendingNodes.isEmpty());
+    public boolean isProcessing() {
+        return !pendingOperations.isEmpty() || !pendingNodes.isEmpty();
     }
 
     @Override
@@ -245,9 +403,7 @@ public class PathProvider extends Task {
     }
 
     private void scheduleNode(PathNode node, RailState state, RailJunction junction) {
-        if (task != null) {
-            task.pendingOperations.offer(new PathFindOperation(node, state, junction));
-        }
+        pendingOperations.offer(new PathFindOperation(node, state, junction));
     }
 
     private static class PathFindOperation {

@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.common.bases.ExtendedEntity;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -237,6 +238,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             return this.group.indexOf(this);
         }
+    }
+
+    @Override
+    public World getWorld() {
+        return (entity == null) ? null : entity.getWorld();
     }
 
     /**

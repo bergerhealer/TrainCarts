@@ -69,6 +69,7 @@ public class TrainCarts extends PluginBase {
     private SeatAttachmentMap seatAttachmentMap;
     private RedstoneTracker redstoneTracker;
     private GlowColorTeamProvider glowColorTeamProvider;
+    private PathProvider pathProvider;
 
     /**
      * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
@@ -125,6 +126,15 @@ public class TrainCarts extends PluginBase {
      */
     public SavedTrainPropertiesStore getSavedTrains() {
         return this.savedTrainsStore;
+    }
+
+    /**
+     * Gets the path provider, which is responsible for finding the route to destinations
+     * 
+     * @return path provider
+     */
+    public PathProvider getPathProvider() {
+        return this.pathProvider;
     }
 
     public static boolean canBreak(Material type) {
@@ -354,8 +364,9 @@ public class TrainCarts extends PluginBase {
         //Convert Minecarts
         MinecartMemberStore.convertAllAutomatically();
 
-        //Load destinations
-        PathNode.init(getDataFolder() + File.separator + "destinations.dat");
+        // Start the path finding task
+        this.pathProvider = new PathProvider(this);
+        this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
 
         //Load arrival times
         ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
@@ -374,9 +385,6 @@ public class TrainCarts extends PluginBase {
         //Restore carts where possible
         TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
         OfflineGroupManager.refresh();
-
-        // Start the path finding task
-        PathProvider.init();
 
         //Activate all detector regions with trains that are on it
         DetectorRegion.detectAllMinecarts();
@@ -426,7 +434,7 @@ public class TrainCarts extends PluginBase {
         TicketStore.save(autosave);
 
         //Save destinations
-        PathNode.save(autosave, getDataFolder() + File.separator + "destinations.dat");
+        pathProvider.save(autosave, getDataFolder() + File.separator + "destinations.dat");
 
         //Save arrival times
         if (!autosave) {
@@ -532,7 +540,12 @@ public class TrainCarts extends PluginBase {
         SignAction.deinit();
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
-        PathProvider.deinit();
+
+        if (this.pathProvider != null) {
+            this.pathProvider.disable();
+            this.pathProvider = null;
+        }
+
         RailPieceCache.reset();
         RailSignCache.reset();
         RailMemberCache.reset();
