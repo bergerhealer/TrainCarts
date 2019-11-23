@@ -6,6 +6,7 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
@@ -64,6 +65,7 @@ public class GeneralMenu extends MapWidgetMenu {
                 MapWidgetAttachmentNode addedNode;
                 addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getFullConfig());
                 attachment.getTree().setSelectedNode(addedNode);
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
                 GeneralMenu.this.close();
             }
         }).setText("Duplicate").setBounds(10, 70, 98, 18).setEnabled(attachment.getParentAttachment() != null);
