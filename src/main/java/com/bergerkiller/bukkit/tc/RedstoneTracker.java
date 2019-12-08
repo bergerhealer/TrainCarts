@@ -317,21 +317,13 @@ public class RedstoneTracker implements Listener {
         // Is the event allowed?
         SignActionEvent info = new SignActionEvent(signblock);
         SignActionType type = info.getHeader().getRedstoneAction(newPowerState);
-        if (type == SignActionType.NONE) {
-            LogicUtil.addOrRemove(poweredBlocks, info.getBlock(), newPowerState);
-            return;
-        }
 
         // Change in redstone power?
-        if (!LogicUtil.addOrRemove(poweredBlocks, info.getBlock(), newPowerState)) {
-
-            // No change in redstone power, but a redstone change nevertheless
-            SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-            return;
+        if (LogicUtil.addOrRemove(poweredBlocks, info.getBlock(), newPowerState) && type != SignActionType.NONE) {
+            SignAction.executeAll(info, type);
         }
 
-        // Fire the event, with a REDSTONE_CHANGE afterwards
-        SignAction.executeAll(info, type);
+        // Fire a REDSTONE_CHANGE event afterwards at all times
         SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
     }
 

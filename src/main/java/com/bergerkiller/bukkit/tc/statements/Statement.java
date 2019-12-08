@@ -55,7 +55,9 @@ public abstract class Statement {
     }
 
     /**
-     * Gets if the member or group has the statement specified
+     * Gets if the member or group has the statement specified.
+     * If both member and group are null, then only statements that require no train
+     * will function. Statements that do will return false.
      *
      * @param member to use, or null to use group
      * @param group  to use, or null to use member
@@ -83,12 +85,16 @@ public abstract class Statement {
                     return statement.handleArray(member, array, event) != inv;
                 } else if (group != null) {
                     return statement.handleArray(group, array, event) != inv;
+                } else if (!statement.requiresTrain()) {
+                    return statement.handleArray((MinecartMember<?>) null, array, event) != inv;
                 }
             } else if (statement.match(lowerText)) {
                 if (member != null) {
                     return statement.handle(member, text, event) != inv;
                 } else if (group != null) {
                     return statement.handle(group, text, event) != inv;
+                } else if (!statement.requiresTrain()) {
+                    return statement.handle((MinecartMember<?>) null, text, event) != inv;
                 }
             }
         }
@@ -113,6 +119,17 @@ public abstract class Statement {
      * @return if it matches and can handle an array
      */
     public abstract boolean matchArray(String text);
+
+    /**
+     * Whether a MinecartMember or MinecartGroup is required for this statement to operate.
+     * Some statements also work without using the train, and can therefore return false here.
+     * If this method returns false, then <i>handle</i> can be called with null as group/member argument.
+     * 
+     * @return True if a train is required
+     */
+    public boolean requiresTrain() {
+        return true;
+    }
 
     public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
         for (MinecartMember<?> member : group) {

@@ -22,6 +22,11 @@ public class StatementBoolean extends Statement {
     }
 
     @Override
+    public boolean requiresTrain() {
+        return false;
+    }
+
+    @Override
     public boolean matchArray(String text) {
         return false;
     }

@@ -347,7 +347,8 @@ public class SignActionHeader {
         if (type == SignActionType.NONE) {
             return false;
         }
-        if ((this.power_always_on || this.power_always_off) && type.isRedstone()) {
+        if ((this.power_always_on || this.power_always_off) &&
+            (type == SignActionType.REDSTONE_ON || type == SignActionType.REDSTONE_OFF)) {
             return true;
         }
         if ((this.power_rising || this.power_falling) && !type.isRedstone()) {

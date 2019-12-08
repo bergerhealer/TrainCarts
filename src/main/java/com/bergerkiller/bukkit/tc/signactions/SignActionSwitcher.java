@@ -8,11 +8,11 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
-import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -33,34 +33,7 @@ public class SignActionSwitcher extends SignAction {
         return i;
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("switcher", "tag");
-    }
-
-    @Override
-    public void execute(SignActionEvent info) {
-        boolean toggleRails = info.isAction(SignActionType.GROUP_ENTER, SignActionType.MEMBER_ENTER);
-        boolean doCart = false;
-        boolean doTrain = false;
-        if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
-            doTrain = true;
-        } else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
-            doCart = true;
-        } else if (info.isAction(SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
-            info.setLevers(false);
-            return;
-        } else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
-            info.setLevers(false);
-            return;
-        } else {
-            return;
-        }
-        if (!info.hasRailedMember()) {
-            return;
-        }
-        final boolean facing = info.isFacing();
-
+    private static List<DirectionStatement> parseDirectionStatements(SignActionEvent info) {
         //find out what statements to parse
         List<DirectionStatement> statements = new ArrayList<>();
         if (!info.getLine(2).isEmpty() || !info.getLine(3).isEmpty()) {
@@ -94,11 +67,54 @@ public class SignActionSwitcher extends SignAction {
                 break;
             }
         }
+        
+        return statements;
+    }
+
+    @Override
+    public boolean match(SignActionEvent info) {
+        return info.isType("switcher", "tag");
+    }
+
+    @Override
+    public void execute(SignActionEvent info) {
+        List<DirectionStatement> statements = parseDirectionStatements(info);
+        boolean hasFromDirections = false;
+        for (DirectionStatement statement : statements) {
+            if (!statement.isSwitchedFromSelf()) {
+                hasFromDirections = true;
+                break;
+            }
+        }
+
+        boolean toggleRails = info.isAction(SignActionType.GROUP_ENTER, SignActionType.MEMBER_ENTER);
+        boolean doCart = false;
+        boolean doTrain = false;
+        if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
+            doTrain = true;
+        } else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
+            doCart = true;
+        } else if (info.isAction(SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
+            info.setLevers(false);
+            return;
+        } else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
+            info.setLevers(false);
+            return;
+        } else if (hasFromDirections && info.isPowered()) {
+            toggleRails = true;
+        } else {
+            return;
+        }
+
+        final boolean hasMember = info.hasRailedMember();
+        final boolean facing = !hasMember || info.isFacing();
 
         if (facing) {
             if (statements.isEmpty()) {
                 // If no directions are at all specified, all we do is toggle the lever
-                info.setLevers(true);
+                if (hasMember) {
+                    info.setLevers(true);
+                }
             } else {
                 //parse all of the statements
                 //are we going to use a counter?
@@ -113,6 +129,8 @@ public class SignActionSwitcher extends SignAction {
                             signcounter = getSwitchedTimes(info.getBlock());
                             if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
                                 currentcount = signcounter.getAndIncrement();
+                            } else if (info.isAction(SignActionType.REDSTONE_ON) && !stat.isSwitchedFromSelf()) {
+                                currentcount = signcounter.getAndIncrement();
                             } else {
                                 currentcount = signcounter.get();
                             }
@@ -125,33 +143,49 @@ public class SignActionSwitcher extends SignAction {
                 }
 
                 int counter = 0;
-                String dir = "";
-                boolean foundDirection = false;
+                DirectionStatement dir = null;
                 for (DirectionStatement stat : statements) {
-                    if ((stat.hasNumber() && (counter += stat.number) > currentcount)
-                            || (doCart && stat.has(info, info.getMember()))
-                            || (doTrain && stat.has(info, info.getGroup()))) {
+                    // Counter logic
+                    if (stat.hasNumber() && (counter += stat.number) > currentcount) {
+                        dir = stat;
+                        break;
+                    }
 
-                        dir = stat.direction;
-                        foundDirection = true;
+                    // Cart/Train logic
+                    if ((doCart && stat.has(info, info.getMember())) || (doTrain && stat.has(info, info.getGroup()))) {
+                        dir = stat;
+                        break;
+                    }
+
+                    // When no member exists, but the statement supports that, and a from direction is also specified
+                    if (!hasMember && !stat.isSwitchedFromSelf() && stat.has(info, (MinecartMember<?>) null)) {
+                        dir = stat;
                         break;
                     }
                 }
+                boolean foundDirection = (dir != null);
                 if (!foundDirection) {
                     // Check if any direction is marked "default"
                     for (DirectionStatement stat : statements) {
-                        if (stat.isDefault()) {
-                            dir = stat.direction;
+                        if (stat.isDefault() && (hasMember || !stat.isSwitchedFromSelf())) {
+                            dir = stat;
                             break;
                         }
                     }
                 }
 
-                info.setLevers(foundDirection || statements.isEmpty());
-                if (!dir.isEmpty() && info.isPowered()) {
+                if (hasMember) {
+                    info.setLevers(foundDirection || statements.isEmpty());
+                }
+
+                if (dir != null && !dir.direction.isEmpty() && info.isPowered()) {
                     //handle this direction
                     if (toggleRails) {
-                        info.setRailsTo(dir);
+                        if (dir.isSwitchedFromSelf()) {
+                            info.setRailsTo(dir.direction);
+                        } else {
+                            info.setRailsFromTo(dir.directionFrom, dir.direction);
+                        }
                     }
                     return; //don't do destination stuff
                 }

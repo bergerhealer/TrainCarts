@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
 public class DirectionStatement {
+    public String directionFrom;
     public String direction;
     public String text;
     public Integer number;
@@ -25,6 +26,16 @@ public class DirectionStatement {
             this.text = "default";
         }
 
+        // Using - between two directions to denote from and to directions
+        // When not used, it switches from the direction the minecart came ('self')
+        idx = this.direction.indexOf('-');
+        if (idx == -1) {
+            this.directionFrom = "self";
+        } else {
+            this.directionFrom = this.direction.substring(0, idx);
+            this.direction = this.direction.substring(idx + 1);
+        }
+
         // Number (counter) statements
         try {
             this.number = Integer.parseInt(this.text);
@@ -39,6 +50,16 @@ public class DirectionStatement {
 
     public boolean has(SignActionEvent event, MinecartGroup group) {
         return Statement.has(group, this.text, event);
+    }
+
+    /**
+     * Whether this switcher sign switches from the 'self' direction, that is,
+     * the direction from which the train entered the switcher sign.
+     * 
+     * @return True if switched from the train's direction
+     */
+    public boolean isSwitchedFromSelf() {
+        return this.directionFrom.equals("self");
     }
 
     public boolean hasNumber() {
@@ -59,9 +80,9 @@ public class DirectionStatement {
     @Override
     public String toString() {
         if (this.number != null) {
-            return "{direction=" + this.direction + " every " + this.number.intValue() + "}";
+            return "{from=" + this.directionFrom + " to=" + this.direction + " every " + this.number.intValue() + "}";
         } else {
-            return "{direction=" + this.direction + " when " + this.text + "}";
+            return "{from=" + this.directionFrom + " to=" + this.direction + " when " + this.text + "}";
         }
     }
 }

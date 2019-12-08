@@ -386,6 +386,10 @@ public class SignActionEvent extends Event implements Cancellable {
         setRailsFromTo(getEnterJunction(), toJunction);
     }
 
+    public void setRailsFromTo(String fromJunctionName, String toJunctionName) {
+        setRailsFromTo(findJunction(fromJunctionName), findJunction(toJunctionName));
+    }
+
     public void setRailsFromTo(RailJunction fromJunction, String toJunctionName) {
         setRailsFromTo(fromJunction, findJunction(toJunctionName));
     }

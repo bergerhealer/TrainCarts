@@ -18,6 +18,11 @@ public class StatementRandom extends Statement {
         return text.startsWith("rand");
     }
 
+    @Override
+    public boolean requiresTrain() {
+        return false;
+    }
+
     private boolean handle(String... text) {
         double chance = 0.5;
         if (text.length > 0) {

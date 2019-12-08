@@ -19,6 +19,11 @@ public class StatementRedstone extends Statement {
     }
 
     @Override
+    public boolean requiresTrain() {
+        return false;
+    }
+
+    @Override
     public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
         return this.handle(text, event);
     }
