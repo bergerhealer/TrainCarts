@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -88,6 +89,20 @@ public final class RailPiece {
     public void verifySigns() {
         if (this.cachedSigns != null && !RailSignCache.verifySigns(this.cachedSigns)) {
             this.cachedSigns = null;
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof RailPiece) {
+            RailPiece other = (RailPiece) o;
+            return this.type == other.type &&
+                   this.world == other.world &&
+                   LogicUtil.bothNullOrEqual(this.block, other.block);
+        } else {
+            return false;
         }
     }
 

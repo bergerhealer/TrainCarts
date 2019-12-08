@@ -40,13 +40,13 @@ public abstract class RailTracker {
         public final RailState state;
 
         public TrackedRail(MinecartMember<?> member, TrackWalkingPoint point, boolean disconnected) {
-            this(member, point.state, disconnected);
+            this(member, point.state.clone(), disconnected);
         }
 
         public TrackedRail(MinecartMember<?> member, RailState state, boolean disconnected) {
             state.position().assertAbsolute();
             this.member = member;
-            this.state = state.clone();
+            this.state = state;
             this.state.setMember(member);
             this.minecartBlock = state.positionBlock();
             this.disconnected = disconnected;

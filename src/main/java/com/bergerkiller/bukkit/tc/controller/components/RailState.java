@@ -104,11 +104,11 @@ public class RailState {
      * @return position location
      */
     public Location positionLocation() {
-        Block railBlock = this.railBlock();
-        if (railBlock == null) {
-            throw new IllegalStateException("Rails Block must be set before positionLocation can be obtained");
-        }
         if (this._position.relative) {
+            Block railBlock = this.railBlock();
+            if (railBlock == null) {
+                throw new IllegalStateException("Rails Block must be set before positionLocation can be obtained");
+            }
             return new Location(
                     railBlock.getWorld(),
                     railBlock.getX() + this._position.posX,
@@ -117,8 +117,12 @@ public class RailState {
                     MathUtil.getLookAtYaw(this._position.motX, this._position.motZ),
                     MathUtil.getLookAtPitch(this._position.motX, this._position.motY, this._position.motZ));
         } else {
+            World railWorld = this.railWorld();
+            if (railWorld == null) {
+                throw new IllegalStateException("Rails Block or World must be set before positionLocation can be obtained");
+            }
             return new Location(
-                    railBlock.getWorld(),
+                    railWorld,
                     this._position.posX,
                     this._position.posY,
                     this._position.posZ,

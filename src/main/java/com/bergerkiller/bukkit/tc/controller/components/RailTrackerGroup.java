@@ -285,7 +285,7 @@ public class RailTrackerGroup extends RailTracker {
             TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
             while (p.moveStep(wheelDistance - p.movedTotal)) {
-                this.rails.add(++railIndex, new TrackedRail(tail, p.state, false));
+                this.rails.add(++railIndex, new TrackedRail(tail, p, false));
             }
 
             //Location loc = position.toLocation(owner.getWorld());
@@ -431,7 +431,7 @@ public class RailTrackerGroup extends RailTracker {
                 }
 
                 while (p.moveStep(wheelDistance - p.movedTotal)) {
-                    TrackedRail rail = new TrackedRail(tail, p.state, false);
+                    TrackedRail rail = new TrackedRail(tail, p, false);
                     rail = rail.invertMotionVector();
                     rail.cachedPath = p.currentRailPath;
                     this.rails.add(railIndex, rail);
@@ -613,7 +613,10 @@ public class RailTrackerGroup extends RailTracker {
                                 curr_distance = new_distance;
                             } while (--cycle_limit > 0);
 
-                            currInfo = new TrackedRail(nextMember, p.state, false);
+                            // Update rail state, change rail piece of different
+                            RailState currInfoState = p.state.clone();
+                            currInfoState.setRailPiece(nextPos.railPiece());
+                            currInfo = new TrackedRail(nextMember, currInfoState, false);
                         }
 
                         // Refresh the next minecart with the information currently iterating at
