@@ -266,7 +266,12 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return junctions
      */
     public List<RailJunction> getJunctions() {
-        return RailType.getType(this.getRails()).getJunctions(this.getRails());
+        Block railBlock = this.getRails();
+        if (railBlock == null) {
+            return Collections.emptyList();
+        } else {
+            return RailType.getType(railBlock).getJunctions(railBlock);
+        }
     }
 
     /**
