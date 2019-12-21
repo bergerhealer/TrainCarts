@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
-import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutEntityLookHandle;
@@ -29,6 +29,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityVelocityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
 
@@ -348,11 +349,10 @@ public class VirtualEntity {
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
-            spawnPacket.setDataWatcher(this.metaData);
             spawnPacket.setYaw(this.syncYaw);
             spawnPacket.setPitch(this.syncPitch);
             spawnPacket.setHeadYaw((this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
-            PacketUtil.sendPacket(viewer, spawnPacket);
+            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, this.metaData);
         } else {
             // Spawn entity (generic)
             PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
@@ -390,7 +390,7 @@ public class VirtualEntity {
 
         // Resend velocity if one is set
         if (this.syncVel > 0.0) {
-            PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0));
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
         }
     }
 
@@ -415,8 +415,7 @@ public class VirtualEntity {
         if (Math.abs(this.liveVel - this.syncVel) > 0.01 || (this.syncVel > 0.0 && this.liveVel == 0.0)) {
             this.syncVel = this.liveVel;
 
-            CommonPacket packet = PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, this.syncVel, 0.0, 0.0);
-            broadcast(packet);
+            broadcast(PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
         }
 
         // Synchronize metadata
@@ -459,8 +458,8 @@ public class VirtualEntity {
         moved = (abs_delta >= (1.0 / 4096.0));
 
         // Check for changes in rotation
-        rotatedNow = EntityTrackerEntryHandle.hasProtocolRotationChanged(this.liveYaw, this.syncYaw) ||
-                     EntityTrackerEntryHandle.hasProtocolRotationChanged(this.livePitch, this.syncPitch);
+        rotatedNow = EntityTrackerEntryStateHandle.hasProtocolRotationChanged(this.liveYaw, this.syncYaw) ||
+                     EntityTrackerEntryStateHandle.hasProtocolRotationChanged(this.livePitch, this.syncPitch);
 
         // Remember the rotation change for X more ticks. This prevents partial rotation on the client.
         rotated = false;

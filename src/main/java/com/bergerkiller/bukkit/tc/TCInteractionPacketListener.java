@@ -97,7 +97,17 @@ public class TCInteractionPacketListener implements PacketListener {
 
         // For BLOCK_DIG and arm swings we check if clicking on a player, handling the entity attack() event
         // When we cancel a BLOCK_DIG event, be sure to send a block update of the block being dug
-        if (event.getType() == PacketType.IN_BLOCK_DIG || event.getType() == PacketType.IN_ENTITY_ANIMATION) {
+        // For arm animation, make sure it is that of the player's off hand.
+        boolean isAttackClick = false;
+        if (event.getType() == PacketType.IN_BLOCK_DIG) {
+            isAttackClick = true;
+        } else if (event.getType() == PacketType.IN_ENTITY_ANIMATION) {
+            HumanHand hand = PacketType.IN_ENTITY_ANIMATION.getHand(event.getPacket(), event.getPlayer());
+            if (hand == HumanHand.getOffHand(event.getPlayer())) {
+                isAttackClick = true;
+            }
+        }
+        if (isAttackClick) {
             MinecartMember<?> member = MinecartMemberStore.getFromHitTest(event.getPlayer().getEyeLocation());
             if (member != null) {
                 event.setCancelled(true);

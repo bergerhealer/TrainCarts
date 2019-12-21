@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPlayerInfoHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutScoreboardTeamHandle;
@@ -93,9 +92,7 @@ public enum ProfileNameModifier {
         // This reduces the glitchy effects before the player is mounted
         DataWatcher metaData = EntityUtil.getDataWatcher(player).clone();
         //setMetaVisibility(metaData, false);
-        fakePlayerSpawnPacket.setDataWatcher(metaData);
-
-        PacketUtil.sendPacket(viewer, fakePlayerSpawnPacket);
+        PacketUtil.sendNamedEntitySpawnPacket(viewer, fakePlayerSpawnPacket, metaData);
 
         // Also synchronize the head rotation for this player
         CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
