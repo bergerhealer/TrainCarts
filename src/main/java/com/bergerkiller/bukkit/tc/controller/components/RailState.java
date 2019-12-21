@@ -6,7 +6,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -347,7 +346,7 @@ public class RailState {
      * @return True if the same rails
      */
     public boolean isSameRails(RailState other) {
-        return this.railType() == other.railType() && BlockUtil.equals(this.railBlock(), other.railBlock());
+        return this.railPiece().equals(other.railPiece());
     }
 
     /**
