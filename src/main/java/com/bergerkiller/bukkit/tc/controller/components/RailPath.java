@@ -499,6 +499,16 @@ public class RailPath {
         }
     }
 
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("RailPath[npoints=").append(this.points.length + "]:");
+        for (RailPath.Point p : this.points) {
+            str.append("\n  - ").append(p.toString());
+        }
+        return str.toString();
+    }
+
     public static RailPath create(Vector... pointVectors) {
         Point[] points = new Point[pointVectors.length];
         for (int i = 0; i < pointVectors.length; i++) {
