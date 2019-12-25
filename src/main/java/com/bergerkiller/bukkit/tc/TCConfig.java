@@ -12,7 +12,6 @@ import org.bukkit.Material;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Hastebin;
 import com.bergerkiller.bukkit.common.StringReplaceBundle;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;

@@ -257,7 +257,7 @@ public abstract class RailLogic {
             double vel = entity.vel.length();
             RailPath.Position pos = new RailPath.Position();
             pos.setLocation(entity.loc);
-            pos.setMotion(member.getDirection());
+            pos.setMotion(entity.vel);
             this.getPath().move(pos, member.getBlock(), 0.0);
             entity.vel.set(vel * pos.motX, vel * pos.motY, vel * pos.motZ);
         }

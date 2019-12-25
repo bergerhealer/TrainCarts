@@ -10,6 +10,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
+import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -768,6 +769,12 @@ public class RailPath {
             v.setY(this.motY);
             v.setZ(this.motZ);
             return v;
+        }
+
+        public void setMotion(VectorAbstract movement) {
+            this.motX = movement.getX();
+            this.motY = movement.getY();
+            this.motZ = movement.getZ();
         }
 
         public void setMotion(Vector movement) {
