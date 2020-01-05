@@ -1240,4 +1240,36 @@ public class Util {
         }
         return old_yaw;
     }
+
+    /**
+     * Turns a number value into a length-limited (4 digits) decimal value
+     * 
+     * @param time
+     * @return stringified time
+     */
+    public static String stringifyAnimationNodeTime(double time) {
+        if (time < 0.001) {
+            return "0.0";
+        } else if (time > 9999.0) {
+            return "9999";
+        } else {
+            String timeStr = Double.toString(time);
+            int decimalIdx = StringUtil.firstIndexOf(timeStr, '.', ',');
+            if (decimalIdx != -1) {
+                int maxDigitsAfter = (4-decimalIdx);
+                if (maxDigitsAfter <= 0) {
+                    // Remove decimal point and all digits after
+                    timeStr = timeStr.substring(0, decimalIdx);
+                } else {
+                    // Include decimal point and remove excess digits, and unneeded trailing 0's
+                    int end_idx = Math.min(timeStr.length(), decimalIdx + maxDigitsAfter + 1);
+                    while (end_idx > (decimalIdx+2) && timeStr.charAt(end_idx-1) == '0') {
+                        end_idx--;
+                    }
+                    timeStr = timeStr.substring(0, end_idx);
+                }
+            }
+            return timeStr;
+        }
+    }
 }

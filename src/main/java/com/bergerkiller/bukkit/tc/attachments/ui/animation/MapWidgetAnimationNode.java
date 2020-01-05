@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 
 /**
@@ -113,14 +114,7 @@ public class MapWidgetAnimationNode extends MapWidget {
             // Delta time: we can only show 4 digits, and an optional dot
             // Below the limit we show '0.000'
             // Above the limit we show '9999'
-            String timeStr;
-            if (time < 0.001) {
-                timeStr = "0.000";
-            } else if (time > 9999.0) {
-                timeStr = "9999";
-            } else {
-                timeStr = Double.toString(time);
-            }
+            String timeStr = Util.stringifyAnimationNodeTime(time);
             byte light_green_color = MapColorPalette.getColor(56, 178, 127);
             int drawTimeOffset = 1;
             int numDigits = 0;
