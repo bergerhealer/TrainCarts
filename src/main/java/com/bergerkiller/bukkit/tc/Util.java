@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -69,6 +70,24 @@ public class Util {
 
     public static void setItemMaxSize(Material material, int maxstacksize) {
         NMSItem.maxStackSize.set(Conversion.toItemHandle.convert(material), maxstacksize);
+    }
+
+    // Number format used by stringifyNumberBoxValue
+    private static final NumberFormat numberBox_NumberFormat = createNumberFormat(1, 4);
+
+    // Number formats used by stringifyAnimationNodeTime
+    private static final NumberFormat animationodeTime_NumberFormat1000 = createNumberFormat(0, 0);
+    private static final NumberFormat animationodeTime_NumberFormat100 = createNumberFormat(1, 1);
+    private static final NumberFormat animationodeTime_NumberFormat10 = createNumberFormat(1, 2);
+    private static final NumberFormat animationodeTime_NumberFormat1 = createNumberFormat(1, 3);
+
+    // Internal use
+    private static NumberFormat createNumberFormat(int min_fractionDigits, int max_fractionDigits) {
+        NumberFormat fmt = NumberFormat.getNumberInstance(Locale.ENGLISH);
+        fmt.setMinimumFractionDigits(min_fractionDigits);
+        fmt.setMaximumFractionDigits(max_fractionDigits);
+        fmt.setGroupingUsed(false);
+        return fmt;
     }
 
     /**
@@ -1242,34 +1261,35 @@ public class Util {
     }
 
     /**
+     * Turns a double value into the text displayed in a number box, limited to 4
+     * decimals
+     * 
+     * @param value
+     * @return number box text value
+     */
+    public static String stringifyNumberBoxValue(double value) {
+        return numberBox_NumberFormat.format(value);
+    }
+
+    /**
      * Turns a number value into a length-limited (4 digits) decimal value
      * 
      * @param time
      * @return stringified time
      */
     public static String stringifyAnimationNodeTime(double time) {
-        if (time < 0.001) {
-            return "0.0";
-        } else if (time > 9999.0) {
+        if (time >= 9999) {
             return "9999";
+        } else if (time >= 999.95) {
+            return animationodeTime_NumberFormat1000.format(time);
+        } else if (time >= 99.995) {
+            return animationodeTime_NumberFormat100.format(time);
+        } else if (time >= 9.9995) {
+            return animationodeTime_NumberFormat10.format(time);
+        } else if (time >= 0.0005) {
+            return animationodeTime_NumberFormat1.format(time);
         } else {
-            String timeStr = Double.toString(time);
-            int decimalIdx = StringUtil.firstIndexOf(timeStr, '.', ',');
-            if (decimalIdx != -1) {
-                int maxDigitsAfter = (4-decimalIdx);
-                if (maxDigitsAfter <= 0) {
-                    // Remove decimal point and all digits after
-                    timeStr = timeStr.substring(0, decimalIdx);
-                } else {
-                    // Include decimal point and remove excess digits, and unneeded trailing 0's
-                    int end_idx = Math.min(timeStr.length(), decimalIdx + maxDigitsAfter + 1);
-                    while (end_idx > (decimalIdx+2) && timeStr.charAt(end_idx-1) == '0') {
-                        end_idx--;
-                    }
-                    timeStr = timeStr.substring(0, end_idx);
-                }
-            }
-            return timeStr;
+            return "0.0";
         }
     }
 }
