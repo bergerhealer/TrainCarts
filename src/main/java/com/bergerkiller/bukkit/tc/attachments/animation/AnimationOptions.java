@@ -233,10 +233,14 @@ public class AnimationOptions implements Cloneable {
      * @param config to save to
      */
     public void saveToConfig(ConfigurationNode config) {
-        if (this._speed != 1.0) {
+        if (this._speed == 1.0) {
+            config.remove("speed");
+        } else {
             config.set("speed", this._speed);
         }
-        if (this._delay != 0.0) {
+        if (this._delay == 0.0) {
+            config.remove("delay");
+        } else {
             config.set("delay", this._delay);
         }
 
