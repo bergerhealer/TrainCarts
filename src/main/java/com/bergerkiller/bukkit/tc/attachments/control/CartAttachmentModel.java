@@ -2,7 +2,22 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+
 public class CartAttachmentModel extends CartAttachment {
+    public static final AttachmentType TYPE = new AttachmentType() {
+        @Override
+        public String getID() {
+            return "MODEL";
+        }
+
+        @Override
+        public Attachment createController(ConfigurationNode config) {
+            return new CartAttachmentModel();
+        }
+    };
 
     @Override
     public void makeVisible(Player viewer) {

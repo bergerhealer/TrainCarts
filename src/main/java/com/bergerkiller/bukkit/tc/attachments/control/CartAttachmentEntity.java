@@ -1,12 +1,25 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 /**
@@ -14,6 +27,63 @@ import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
  * This is also used for Vanilla style minecarts.
  */
 public class CartAttachmentEntity extends CartAttachment {
+    public static final AttachmentType TYPE = new AttachmentType() {
+        @Override
+        public String getID() {
+            return "ENTITY";
+        }
+
+        @Override
+        public MapTexture getIcon(ConfigurationNode config) {
+            EntityType type = config.get("entityType", EntityType.MINECART);
+            if (type == EntityType.MINECART) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_MINECART")), 16, 16);
+            } else if (type == EntityType.MINECART_CHEST) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_STORAGE_MINECART")), 16, 16);
+            } else if (type == EntityType.MINECART_COMMAND) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_COMMAND_MINECART")), 16, 16);
+            } else if (type == EntityType.MINECART_FURNACE) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_POWERED_MINECART")), 16, 16);
+            } else if (type == EntityType.MINECART_HOPPER) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_HOPPER_MINECART")), 16, 16);
+            } else if (type == EntityType.MINECART_MOB_SPAWNER) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_MOB_SPAWNER")), 16, 16);
+            } else if (type == EntityType.MINECART_TNT) {
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_EXPLOSIVE_MINECART")), 16, 16);
+            } else {
+                return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/mob.png");
+            }
+        }
+
+        @Override
+        public Attachment createController(ConfigurationNode config) {
+            return new CartAttachmentEntity();
+        }
+
+        @Override
+        public void getDefaultConfig(ConfigurationNode config) {
+            config.set("entityType", EntityType.MINECART);
+        }
+
+        @Override
+        public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            tab.addWidget(new MapWidgetEntityTypeList() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setEntityType(attachment.getConfig().get("entityType", EntityType.MINECART));
+                }
+
+                @Override
+                public void onEntityTypeChanged() {
+                    attachment.getConfig().set("entityType", this.getEntityType());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                }
+            }).setBounds(0, 0, 100, 11);
+        }
+    };
+
     private VirtualEntity actual;
     private VirtualEntity entity;
 

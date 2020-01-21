@@ -1,28 +1,25 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
-import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.*;
-import org.bukkit.Material;
-import org.bukkit.entity.EntityType;
+
+import java.util.List;
+
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
-import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
-import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
-import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 
 public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
+    private AttachmentTypeRegistry typeRegistry;
+    private List<AttachmentType> attachmentTypeList;
 
     public AppearanceMenu() {
         this.setBounds(5, 15, 118, 104);
@@ -33,128 +30,14 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     public void onAttached() {
         super.onAttached();
 
+        this.typeRegistry = AttachmentTypeRegistry.instance();
+        this.attachmentTypeList = this.typeRegistry.all();
+
         // Tab view widget to switch between different appearance editing modes
-        // The order of these tabs is important, and must match the order in CartAttachmentType!
-
-        // EMPTY
-        tabView.addTab();
-
-        // ENTITY
-        tabView.addTab().addWidget(new MapWidgetEntityTypeList() {
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setEntityType(getAttachment().getConfig().get("entityType", EntityType.MINECART));
-            }
-
-            @Override
-            public void onEntityTypeChanged() {
-                getAttachment().getConfig().set("entityType", this.getEntityType());
-                markChanged();
-            }
-        }).setBounds(0, 0, 100, 11);
-
-        // ITEM
-        tabView.addTab().addWidget(new MapWidgetItemSelector() {
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setSelectedItem(getAttachment().getConfig().get("item", new ItemStack(Material.PUMPKIN)));
-            }
-
-            @Override
-            public void onSelectedItemChanged() {
-                getAttachment().getConfig().set("item", this.getSelectedItem());
-                markNodeChanged();
-            }
-        });
-
-        // PLATFORM
-        // TODO: Specify platform dimensions
-        tabView.addTab();
-
-        // SEAT
-        {
-            MapWidgetTabView.Tab seatTab = tabView.addTab();
-            seatTab.addWidget(new MapWidgetButton() { // Lock rotation toggle button
-                private boolean checked = false;
-
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.checked = getAttachment().getConfig().get("lockRotation", false);
-                    updateText();
-                }
-
-                private void updateText() {
-                    this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
-                }
-
-                @Override
-                public void onActivate() {
-                    this.checked = !this.checked;
-                    updateText();
-                    getAttachment().getConfig().set("lockRotation", this.checked);
-                    markChanged();
-                    display.playSound(CommonSounds.CLICK);
-                }
-            }).setBounds(0, 10, 100, 16);
-
-            seatTab.addWidget(new MapWidgetButton() { // Change exit position button
-                @Override
-                public void onActivate() {
-                    AppearanceMenu.this.addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
-                }
-            }).setText("Change Exit").setBounds(0, 30, 100, 16);
+        // The order of these tabs is important, and must match the order in attachmentTypeList!
+        for (AttachmentType type : this.attachmentTypeList) {
+            type.createAppearanceTab(this.tabView.addTab(), this.attachment);
         }
-
-        // TEXT
-        {
-            MapWidgetTabView.Tab textTab = tabView.addTab();
-            MapWidgetSubmitText textBox = new MapWidgetSubmitText() {
-                @Override
-                public void onAttached() {
-                    this.setDescription("Enter text");
-                }
-
-                @Override
-                public void onAccept(String text) {
-                    getAttachment().getConfig().set("text", text);
-                    markChanged();
-                }
-            };
-
-            textTab.addWidget(textBox);
-            textTab.addWidget(new MapWidgetText().setText("Current Text:")).setBounds(0, 10, 100, 16);
-            textTab.addWidget(new MapWidgetText() {
-                @Override
-                public void onTick() {
-                    setText("\"" + getAttachment().getConfig().get("text", "") + "\"");
-                }
-            })
-                    .setAlignment(MapFont.Alignment.MIDDLE)
-                    .setBounds(0, 30, 100, 16);
-
-            textTab.addWidget(new MapWidgetButton() {
-
-
-                @Override
-                public void onAttached() {
-                    this.setText("Edit Text");
-                }
-
-                @Override
-                public void onActivate() {
-                    textBox.activate();
-                    markChanged();
-
-                }
-
-
-            }).setBounds(0, 60, 100, 16);
-        }
-
-        tabView.addTab(); // MODEL
 
         tabView.setPosition(7, 16);
         this.addWidget(tabView);
@@ -163,30 +46,44 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
         MapWidgetSelectionBox typeSelectionBox = this.addWidget(new MapWidgetSelectionBox() {
             @Override
             public void onSelectedItemChanged() {
-                setType(ParseUtil.parseEnum(this.getSelectedItem(), CartAttachmentType.EMPTY));
+                int index = this.getSelectedIndex();
+                if (index >= 0 && index < attachmentTypeList.size()) {
+                    setType(attachmentTypeList.get(index));
+                }
             }
         });
-        for (CartAttachmentType type : CartAttachmentType.values()) {
-            typeSelectionBox.addItem(type.toString());
+
+        AttachmentType selected = this.typeRegistry.fromConfig(getAttachment().getConfig());
+        for (AttachmentType type : this.attachmentTypeList) {
+            typeSelectionBox.addItem(type.getName());
+            if (selected != null && selected.getID().equalsIgnoreCase(type.getID())) {
+                typeSelectionBox.setSelectedIndex(typeSelectionBox.getItemCount() - 1);
+            }
         }
-        typeSelectionBox.setSelectedItem(getAttachment().getConfig().get("type", String.class));
         typeSelectionBox.setBounds(7, 3, 100, 11);
 
         // Set to display currently selected type
-        setType(getAttachment().getConfig().get("type", CartAttachmentType.EMPTY));
+
+        setType(selected);
 
         this.tabView.activate();
         this.tabView.getSelectedTab().activate();
     }
 
-    public void setType(CartAttachmentType type) {
-        if (getAttachment().getConfig().get("type", CartAttachmentType.EMPTY) != type) {
-            getAttachment().getConfig().set("type", type);
-            markChanged();
+    public void setType(AttachmentType type) {
+        if (this.typeRegistry.fromConfig(getAttachment().getConfig()) != type) {
+            this.typeRegistry.toConfig(getAttachment().getConfig(), type);
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+            getAttachment().resetIcon();
         }
 
         // Switch tab
-        this.tabView.setSelectedIndex(type.ordinal());
+        for (int i = 0; i < this.attachmentTypeList.size(); i++) {
+            if (this.attachmentTypeList.get(i).getID().equalsIgnoreCase(type.getID())) {
+                this.tabView.setSelectedIndex(i);
+                break;
+            }
+        }
     }
 
     @Override
@@ -206,15 +103,4 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     public MapWidgetAttachmentNode getAttachment() {
         return this.attachment;
     }
-
-    private void markNodeChanged() {
-        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", this.attachment);
-        getAttachment().resetIcon();
-    }
-
-    private void markChanged() {
-        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-        getAttachment().resetIcon();
-    }
-
 }

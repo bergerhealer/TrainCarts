@@ -1,12 +1,18 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -14,15 +20,61 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 public class CartAttachmentItem extends CartAttachment {
+    public static final AttachmentType TYPE = new AttachmentType() {
+        @Override
+        public String getID() {
+            return "ITEM";
+        }
+
+        @Override
+        public MapTexture getIcon(ConfigurationNode config) {
+            ItemStack item = config.get("item", new ItemStack(Material.MINECART));
+            return TCConfig.resourcePack.getItemTexture(item, 16, 16);
+        }
+
+        @Override
+        public Attachment createController(ConfigurationNode config) {
+            return new CartAttachmentItem();
+        }
+
+        @Override
+        public void getDefaultConfig(ConfigurationNode config) {
+            config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
+        }
+
+        @Override
+        public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            tab.addWidget(new MapWidgetItemSelector() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setSelectedItem(attachment.getConfig().get("item", new ItemStack(Material.PUMPKIN)));
+                }
+
+                @Override
+                public void onSelectedItemChanged() {
+                    attachment.getConfig().set("item", this.getSelectedItem());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                    attachment.resetIcon();
+                }
+            });
+        }
+    };
+
     private VirtualEntity entity;
     private ItemStack item;
     private ItemTransformType transformType;

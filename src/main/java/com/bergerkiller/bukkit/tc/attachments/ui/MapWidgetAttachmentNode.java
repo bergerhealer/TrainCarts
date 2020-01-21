@@ -17,7 +17,9 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AnimationMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
@@ -275,12 +277,12 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         return this.row;
     }
 
-    public CartAttachmentType getType() {
-        return this.config.get("type", CartAttachmentType.ENTITY);
+    public AttachmentType getType() {
+        return AttachmentTypeRegistry.instance().fromConfig(this.config);
     }
 
-    public void setType(CartAttachmentType type) {
-        this.config.set("type", type);
+    public void setType(AttachmentType type) {
+        AttachmentTypeRegistry.instance().toConfig(this.config, type);
     }
 
     /**
@@ -415,7 +417,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     @Override
     public boolean acceptItem(ItemStack item) {
         // If this is an item attachment, set the item
-        if (this.getType() == CartAttachmentType.ITEM) {
+        if (this.getType() == CartAttachmentItem.TYPE) {
             this.config.set("item", item.clone());
             sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
 

@@ -6,7 +6,6 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 
 /**
@@ -66,6 +65,16 @@ public interface AttachmentManager {
     }
 
     /**
+     * Gets the {@link AttachmentTypeRegistry} used to find and create new attachments from
+     * configuration.
+     * 
+     * @return attachment type registry
+     */
+    default AttachmentTypeRegistry getTypeRegistry() {
+        return AttachmentTypeRegistry.instance();
+    }
+
+    /**
      * Creates a new attachment by loading it from configuration.
      * No further operations, such as attaching it, are performed yet.
      * 
@@ -73,12 +82,12 @@ public interface AttachmentManager {
      * @return created attachment, null if no attachment could be detected in the config
      */
     default Attachment createAttachment(ConfigurationNode config) {
-        CartAttachmentType attachmentType = config.get("type", CartAttachmentType.EMPTY);
+        AttachmentType attachmentType = getTypeRegistry().fromConfig(config);
         if (attachmentType == null) {
             return null; // invalid!
         }
 
-        Attachment attachment = attachmentType.createAttachment();
+        Attachment attachment = attachmentType.createController(config);
         AttachmentInternalState state = attachment.getInternalState();
         state.manager = this;
         state.onLoad(config);

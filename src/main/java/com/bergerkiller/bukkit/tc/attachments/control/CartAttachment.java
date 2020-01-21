@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 public abstract class CartAttachment implements Attachment {
@@ -80,5 +81,18 @@ public abstract class CartAttachment implements Attachment {
         for (Player viewer : this.getViewers()) {
             updateGlowColorFor(entityUUID, color, viewer);
         }
+    }
+
+    /**
+     * Register all default TrainCarts attachment types
+     */
+    public static void registerDefaultAttachments() {
+        AttachmentTypeRegistry.instance().register(CartAttachmentEmpty.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentEntity.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentItem.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentModel.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentSeat.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentText.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentPlatformOriginal.TYPE);
     }
 }

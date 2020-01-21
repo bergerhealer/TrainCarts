@@ -4,8 +4,8 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
@@ -46,7 +46,7 @@ public class PositionMenu extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Anchor");
         y_offset += y_step;
 
-        if (this.attachment.getType() == CartAttachmentType.ITEM) {
+        if (this.attachment.getType() == CartAttachmentItem.TYPE) {
             this.addWidget(new MapWidgetSelectionBox() {
                 @Override
                 public void onAttached() {

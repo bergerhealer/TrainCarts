@@ -24,8 +24,10 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 
@@ -581,7 +583,7 @@ public class SavedTrainPropertiesStore {
 
     private static void upgradeSavedTrains(Matrix4x4 old_transform, Matrix4x4 new_transform, ConfigurationNode node, boolean undo) {
         // If node is a seat without position information, proxy the call since no changes occur
-        if (node.get("type", CartAttachmentType.EMPTY) == CartAttachmentType.SEAT && !node.isNode("position")) {
+        if (AttachmentTypeRegistry.instance().fromConfig(node) == CartAttachmentSeat.TYPE && !node.isNode("position")) {
 
             // Recursively operate on child attachments
             for (ConfigurationNode attNode : node.getNodeList("attachments")) {
@@ -612,7 +614,7 @@ public class SavedTrainPropertiesStore {
         node.set("position_legacy", node.getNode("position").clone());
 
         Matrix4x4 abs_old_transform;
-        if (undo || node.get("type",  CartAttachmentType.EMPTY) != CartAttachmentType.ITEM) {
+        if (undo || AttachmentTypeRegistry.instance().fromConfig(node) == CartAttachmentItem.TYPE) {
             // Other type of attachment - default update
             abs_old_transform = old_transform.clone();
             abs_old_transform.multiply(getAttTransform(node.getNode("position_legacy")));

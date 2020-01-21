@@ -72,6 +72,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- LightAPI (optional) for light attachment -->
+        <dependency>
+            <groupId>ru.beykerykt</groupId>
+            <artifactId>lightapi</artifactId>
+            <version>3.4.2</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/LightAPI-fork-3.4.2.jar</systemPath>
+            <optional>true</optional>
+        </dependency>
+
         <!--
         <dependency>
             <groupId>com.earth2me</groupId>

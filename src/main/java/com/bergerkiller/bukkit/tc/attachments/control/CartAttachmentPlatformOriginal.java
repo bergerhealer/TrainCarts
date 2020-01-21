@@ -4,11 +4,33 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 public class CartAttachmentPlatformOriginal extends CartAttachment {
+    public static final AttachmentType TYPE = new AttachmentType() {
+        @Override
+        public String getID() {
+            return "PLATFORM";
+        }
+
+        @Override
+        public MapTexture getIcon(ConfigurationNode config) {
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/platform.png");
+        }
+
+        @Override
+        public Attachment createController(ConfigurationNode config) {
+            return new CartAttachmentPlatformOriginal();
+        }
+    };
+
     private VirtualEntity actual;
     private VirtualEntity entity;
 

@@ -71,6 +71,10 @@ public class MapWidgetSelectionBox extends MapWidget {
         return this;
     }
 
+    public int getSelectedIndex() {
+        return this.selectedIndex;
+    }
+
     public String getSelectedItem() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.items.size()) {
             return this.items.get(this.selectedIndex);
@@ -80,12 +84,19 @@ public class MapWidgetSelectionBox extends MapWidget {
     }
 
     public void setSelectedItem(String item) {
-        int new_index = this.items.indexOf(item);
+        setSelectedIndex(this.items.indexOf(item));
+    }
+
+    public void setSelectedIndex(int new_index) {
         if (new_index != this.selectedIndex) {
             this.selectedIndex = new_index;
             this.invalidate();
             this.onSelectedItemChanged();
         }
+    }
+
+    public int getItemCount() {
+        return this.items.size();
     }
 
     @Override

@@ -11,7 +11,10 @@ import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
@@ -37,6 +40,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -297,6 +301,12 @@ public class TrainCarts extends PluginBase {
             case "Essentials":
                 TCConfig.EssentialsEnabled = enabled;
                 break;
+            case "LightAPI":
+                if (enabled)
+                    AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
+                else
+                    AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE);
+                break;
         }
     }
 
@@ -310,6 +320,16 @@ public class TrainCarts extends PluginBase {
 
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
+
+        // And this
+        CartAttachment.registerDefaultAttachments();
+        {
+            // BEFORE we load configurations!
+            Plugin lightAPI = Bukkit.getPluginManager().getPlugin("LightAPI");
+            if (lightAPI != null && lightAPI.isEnabled()) {
+                updateDependency(lightAPI, lightAPI.getName(), true);
+            }
+        }
 
         // Routinely saves TrainCarts changed state information to disk (autosave=true)
         // Configured by loadConfig() so instantiate it here
@@ -555,6 +575,8 @@ public class TrainCarts extends PluginBase {
 
         this.redstoneTracker.disable();
         this.redstoneTracker = null;
+
+        AttachmentTypeRegistry.instance().unregisterAll();
     }
 
     public boolean command(CommandSender sender, String cmd, String[] args) {

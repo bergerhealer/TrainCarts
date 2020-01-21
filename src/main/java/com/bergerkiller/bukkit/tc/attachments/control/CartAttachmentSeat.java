@@ -8,7 +8,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -18,8 +23,12 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
@@ -31,6 +40,59 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
+    public static final AttachmentType TYPE = new AttachmentType() {
+        @Override
+        public String getID() {
+            return "SEAT";
+        }
+
+        @Override
+        public MapTexture getIcon(ConfigurationNode config) {
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/seat.png");
+        }
+
+        @Override
+        public Attachment createController(ConfigurationNode config) {
+            return new CartAttachmentSeat();
+        }
+
+        @Override
+        public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            tab.addWidget(new MapWidgetButton() { // Lock rotation toggle button
+                private boolean checked = false;
+
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.checked = attachment.getConfig().get("lockRotation", false);
+                    updateText();
+                }
+
+                private void updateText() {
+                    this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
+                }
+
+                @Override
+                public void onActivate() {
+                    this.checked = !this.checked;
+                    updateText();
+                    attachment.getConfig().set("lockRotation", this.checked);
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                    display.playSound(CommonSounds.CLICK);
+                }
+            }).setBounds(0, 10, 100, 16);
+
+            tab.addWidget(new MapWidgetButton() { // Change exit position button
+                @Override
+                public void onActivate() {
+                    //TODO: Cleaner way to open a sub dialog
+                    tab.getParent().getParent().addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
+                }
+            }).setText("Change Exit").setBounds(0, 30, 100, 16);
+        }
+    };
+
     private boolean _upsideDown = false;
     private boolean _useVirtualCamera = false;
     private boolean _hideRealPlayerNextTick = false;

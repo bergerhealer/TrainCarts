@@ -8,10 +8,10 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfirmAnimationDeleteDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ConfirmAttachmentDeleteDialog;
 
 public class GeneralMenu extends MapWidgetMenu {
@@ -29,7 +29,7 @@ public class GeneralMenu extends MapWidgetMenu {
             @Override
             public void onActivate() {
                 ConfigurationNode config = new ConfigurationNode();
-                config.set("type", CartAttachmentType.ITEM);
+                AttachmentTypeRegistry.instance().toConfig(config, CartAttachmentItem.TYPE);
                 config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
                 MapWidgetAttachmentNode added = attachment.addAttachment(config);
                 GeneralMenu.this.close();

@@ -25,7 +25,8 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.config.CartAttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 
@@ -452,7 +453,7 @@ public class SavedTrainCommands {
 
     private static int getNumberOfSeatAttachmentsRecurse(ConfigurationNode attachmentConfig) {
         int count = 0;
-        if (attachmentConfig.get("type", CartAttachmentType.EMPTY) == CartAttachmentType.SEAT) {
+        if (AttachmentTypeRegistry.instance().fromConfig(attachmentConfig) == CartAttachmentSeat.TYPE) {
             count = 1;
         }
         if (attachmentConfig.isNode("attachments")) {
