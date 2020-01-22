@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
@@ -340,7 +341,7 @@ public class TrainCarts extends PluginBase {
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
-            for (Material material : Material.values()) {
+            for (Material material : MaterialsByName.getAllMaterials()) {
                 if (MaterialUtil.ISMINECART.get(material)) {
                     Util.setItemMaxSize(material, TCConfig.maxMinecartStackSize);
                 }
@@ -506,7 +507,7 @@ public class TrainCarts extends PluginBase {
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
-            for (Material material : Material.values()) {
+            for (Material material : MaterialsByName.getAllMaterials()) {
                 if (MaterialUtil.ISMINECART.get(material)) {
                     Util.setItemMaxSize(material, 1);
                 }
