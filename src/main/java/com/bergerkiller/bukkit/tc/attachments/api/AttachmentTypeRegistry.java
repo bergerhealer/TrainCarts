@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -27,12 +28,17 @@ public class AttachmentTypeRegistry {
     /**
      * Retrieves a list of all registered attachment types. The returned collection
      * is read-only and will not change as a result of new attachment types
-     * being registered. It can be modified, such as sorting it.
+     * being registered. It can be modified. By default the values
+     * are sorted alphabetically by name.
      * 
      * @return collection of attachment types
      */
     public synchronized List<AttachmentType> all() {
-        return new ArrayList<AttachmentType>(_types.values());
+        ArrayList<AttachmentType> result = new ArrayList<AttachmentType>(_types.values());
+        Collections.sort(result, (t1, t2) -> {
+            return t1.getName().compareTo(t2.getName());
+        });
+        return result;
     }
 
     /**
