@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -10,7 +9,6 @@ import org.bukkit.block.Block;
 import java.util.*;
 
 public class PathNode {
-    static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
     private final PathWorld world;
     public final BlockLocation location;
     private final Set<String> names = new HashSet<>();
@@ -20,13 +18,10 @@ public class PathNode {
     private PathConnection lastTaken;
     private boolean isRailSwitchable;
 
-    protected PathNode(final String name, final PathWorld world, final BlockLocation location) {
+    protected PathNode(final PathWorld world, final BlockLocation location) {
         this.world = world;
         this.location = location;
-        if (!LogicUtil.nullOrEmpty(name)) {
-            LogicUtil.addArray(this.names, name.split("\n", -1));
-        }
-        this.refreshRailSwitchable();
+        this.isRailSwitchable = false;
     }
 
     public static void clearAll() {
@@ -62,7 +57,9 @@ public class PathNode {
     public static PathNode getOrCreate(SignActionEvent event) {
         if (event.isType("destination")) {
             //get this destination name
-            return getOrCreate(event.getLine(2), event.getRails());
+            PathNode node = getOrCreate(event.getRails());
+            node.addName(event.getLine(2));
+            return node;
         } else {
             //check if the current train or cart has a destination
             if (event.isCartSign()) {
@@ -75,7 +72,9 @@ public class PathNode {
                 }
             }
             //create from location
-            return getOrCreate(event.getRails());
+            PathNode node = getOrCreate(event.getRails());
+            node.addSwitcher();
+            return node;
         }
     }
 
@@ -83,16 +82,8 @@ public class PathNode {
         return getOrCreate(new BlockLocation(location));
     }
 
-    public static PathNode getOrCreate(BlockLocation location) {
-        return getOrCreate(location.toString(), location);
-    }
-
-    public static PathNode getOrCreate(final String name, Block location) {
-        return getOrCreate(name, new BlockLocation(location));
-    }
-
-    public static PathNode getOrCreate(final String name, final BlockLocation location) {
-        return TrainCarts.plugin.getPathProvider().getWorld(location.world).getOrCreateAtRail(name, location);        
+    public static PathNode getOrCreate(final BlockLocation location) {
+        return TrainCarts.plugin.getPathProvider().getWorld(location.world).getOrCreateAtRail(location);
     }
 
     private static double getDistanceTo(PathConnection from, PathConnection conn, double currentDistance, double maxDistance, PathNode destination) {
@@ -233,7 +224,7 @@ public class PathNode {
 
     /**
      * Removes a single available name that was usable by this Path Node.
-     * If no names are left, the node is removed entirely.
+     * If no names are left and this is not a switcher, the node is removed entirely.
      *
      * @param name to remove
      */
@@ -241,7 +232,6 @@ public class PathNode {
         if (!this.names.remove(name)) {
             return;
         }
-        this.refreshRailSwitchable();
         world.removeNodeName(this, name);
         if (PathProvider.DEBUG_MODE) {
             String dbg = "NODE " + location + " NO LONGER HAS NAME " + name;
@@ -250,7 +240,7 @@ public class PathNode {
             }
             System.out.println(dbg);
         }
-        if (this.names.isEmpty()) {
+        if (this.names.isEmpty() && !this.containsSwitcher()) {
             this.remove();
         }
     }
@@ -280,7 +270,7 @@ public class PathNode {
      * @return True if only a switcher sign is contained, False if not
      */
     public boolean containsOnlySwitcher() {
-        return this.names.size() == 1 && this.containsSwitcher();
+        return this.names.isEmpty() && this.containsSwitcher();
     }
 
     public Collection<String> getNames() {
@@ -300,10 +290,14 @@ public class PathNode {
         return this.isRailSwitchable;
     }
 
-    // Detect based on node names whether this node's tracks can be switched
-    private void refreshRailSwitchable() {
-        this.isRailSwitchable = this.names.contains(this.location.toString()) ||
-                                this.names.contains(SWITCHER_NAME_FALLBACK);
+    /**
+     * Sets that this node is covered by a switcher sign
+     */
+    public void addSwitcher() {
+        if (PathProvider.DEBUG_MODE && !this.isRailSwitchable) {
+            System.out.println("NODE AT " + this.location.toString() + " ADDED SWITCHER");
+        }
+        this.isRailSwitchable = true;
     }
 
     /**
@@ -313,10 +307,12 @@ public class PathNode {
      * @return Reverse-lookup-able Node name
      */
     public String getName() {
-        if (this.names.isEmpty()) {
-            return null;
-        } else {
+        if (!this.names.isEmpty()) {
             return this.names.iterator().next();
+        } else if (this.containsSwitcher()) {
+            return this.location.toString();
+        } else {
+            return null; // invalid, should be removed
         }
     }
 
@@ -327,17 +323,14 @@ public class PathNode {
      * @return Node display name
      */
     public String getDisplayName() {
-        String locDName = "[" + this.location.x + "/" + this.location.y + "/" + this.location.z + "]";
         // No name at all - use location as name
         if (this.names.isEmpty()) {
-            return locDName;
+            return "[" + this.location.x + "/" + this.location.y + "/" + this.location.z + "]";
         }
 
-        // Get all names except the location name
-        String locName = this.location.toString();
         if (this.names.size() == 1) {
             // Show this one name
-            return this.names.iterator().next().replace(locName, locDName);
+            return this.names.iterator().next();
         } else {
             // Show a list of names
             StringBuilder builder = new StringBuilder(this.names.size() * 15);
@@ -346,7 +339,7 @@ public class PathNode {
                 if (builder.length() > 1) {
                     builder.append("/");
                 }
-                builder.append(name.replace(locName, locDName));
+                builder.append(name);
             }
             builder.append('}');
             return builder.toString();
@@ -360,7 +353,9 @@ public class PathNode {
 
     public void addName(String name) {
         if (this.names.add(name)) {
-            this.refreshRailSwitchable();
+            if (PathProvider.DEBUG_MODE) {
+                System.out.println("NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
+            }
             world.addNodeName(this, name);
         }
     }

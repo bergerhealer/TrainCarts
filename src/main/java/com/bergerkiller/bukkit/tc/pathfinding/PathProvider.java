@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.Location;
@@ -37,6 +36,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public class PathProvider extends Task {
+    private static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
     private static final int STEP_COUNT = 100; // Steps performed per timing check
     private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
@@ -64,10 +64,20 @@ public class PathProvider extends Task {
                 for (int i = 0; i < count; i++) {
                     String name = stream.readUTF();
                     BlockLocation loc = new BlockLocation(stream.readUTF(), stream.readInt(), stream.readInt(), stream.readInt());
+                    parr[i] = getWorld(loc.world).addNode(loc);
                     if (name.isEmpty()) {
-                        name = loc.toString();
+                        // No name, is a switcher
+                        parr[i].addSwitcher();
+                    } else {
+                        // Go by all newline-separated names
+                        for (String name_part : name.split("\n")) {
+                            if (name_part.equals(SWITCHER_NAME_FALLBACK)) {
+                                parr[i].addSwitcher();
+                            } else {
+                                parr[i].addName(name_part);
+                            }
+                        }
                     }
-                    parr[i] = getWorld(loc.world).addNode(name, loc);
                 }
                 // Generating connections
                 for (PathNode node : parr) {
@@ -104,9 +114,17 @@ public class PathProvider extends Task {
                 for (PathWorld world : getWorlds()) {
                     for (PathNode node : world.getNodes()) {
                         node.index = i;
-                        if (node.containsOnlySwitcher()) {
-                            stream.writeUTF("");
+                        if (node.containsSwitcher()) {
+                            if (node.getNames().isEmpty()) {
+                                // Only switcher sign, write an empty String
+                                stream.writeUTF("");
+                            } else {
+                                // Switcher and destination sign are both at the same block
+                                // To indicate that, write the switcher name fallback in addition to the names
+                                stream.writeUTF(SWITCHER_NAME_FALLBACK + "\n" + StringUtil.join("\n", node.getNames()));
+                            }
                         } else {
+                            // Only destination sign(s), write names
                             stream.writeUTF(StringUtil.join("\n", node.getNames()));
                         }
                         stream.writeUTF(node.location.world);
@@ -326,26 +344,7 @@ public class PathProvider extends Task {
                     continue;
                 }
 
-                // Check for switchers and potential (new) destinations
-                boolean switchable = action.isRailSwitcher(event);
-                String destinationName = action.getRailDestinationName(event);
-                if (!switchable && destinationName == null) {
-                    continue; // Not path finding related
-                }
-
-                // Get location of the rails, and define a name to use
-                String locationStr = railLocation.toString();
-                if (switchable && destinationName == null) {
-                    destinationName = locationStr;
-                }
-
-                // Add new path node
-                PathNode to = PathNode.getOrCreate(destinationName, railLocation);
-
-                // when switchable and name does not equal the location String, add an extra tag name as fallback
-                if (switchable && !to.containsName(locationStr)) {
-                    to.addName(PathNode.SWITCHER_NAME_FALLBACK);
-                }
+                initNode(railBlock, event, action);
             }
         }
     }
@@ -361,7 +360,7 @@ public class PathProvider extends Task {
                 }
                 if (node.containsSwitcher()) {
                     if (DEBUG_MODE) {
-                        System.out.println("NODE " + node.getDisplayName() + " CONTAINS A SWITCHER");
+                        System.out.println("NODE " + node.getDisplayName() + " CONTAINS A SWITCHER, BRANCHING OFF");
                     }
 
                     // Check north-east-south-west for possible routes
@@ -437,6 +436,7 @@ public class PathProvider extends Task {
             }
             Block nextRail = p.state.railBlock();
             boolean hasFinished = false;
+            PathNode foundNode = null;
             for (RailSignCache.TrackedSign trackedSign : p.state.railSigns()) {
                 // Discover a SignAction at this sign
                 SignActionEvent event = new SignActionEvent(trackedSign);
@@ -446,51 +446,66 @@ public class PathProvider extends Task {
                     continue;
                 }
 
-                // Check for switchers and potential (new) destinations
-                boolean switchable = action.isRailSwitcher(event);
-                String destinationName = action.getRailDestinationName(event);
-                if (switchable || destinationName != null) {
-                    // Get location of the rails, and define a name to use
-                    BlockLocation railLocation = new BlockLocation(nextRail);
-                    String locationStr = railLocation.toString();
-                    if (switchable && destinationName == null) {
-                        destinationName = locationStr;
-                    }
-
-                    // Quick check that the start node not already contains this name we are trying to define
-                    // This is extra protection against loops
-                    if (!startNode.containsName(destinationName)) {
-
-                        // include distance between spawn position on rail, and the current position with the walker
-                        double totalDistance = p.movedTotal;
-                        {
-                            Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
-                            totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
-                        }
-
-                        // finished, we found our first target - create connection
-                        PathNode to = PathNode.getOrCreate(destinationName, railLocation);
-
-                        // when switchable and name does not equal the location String, add an extra tag name as fallback
-                        if (switchable && !to.containsName(locationStr)) {
-                            to.addName(PathNode.SWITCHER_NAME_FALLBACK);
-                        }
-
-                        this.startNode.addNeighbour(to, totalDistance, this.getJunctionName());
-                        hasFinished = true;
-                        if (DEBUG_MODE) {
-                            System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + destinationName);
-                        }
-                    }
-
-                } else if (action.isPathFindingBlocked(event, p.state)) {
+                // Check for blocker signs
+                if (action.isPathFindingBlocked(event, p.state)) {
                     // If blocked, abort
                     hasFinished = true;
                     break;
+                }
+
+                // Update the node we found with the information of the current sign
+                foundNode = initNode(nextRail, event, action);
+                if (foundNode == null) {
+                    continue;
+                }
+
+                // Ignore signs at the start position (same node)
+                // We do refresh the switchers and destination names at the start node
+                if (this.startNode.location.equals(foundNode.location)) {
+                    foundNode = null;
+                    continue;
+                }
+
+                // At a switcher/destination sign, stop now, continue looking from points we add
+                hasFinished = true;
+            }
+            if (foundNode != null) {
+                // Calculate distance from the start node to this new node
+                // Include distance between spawn position on rail, and the current position with the walker
+                double totalDistance = p.movedTotal;
+                {
+                    Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
+                    totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
+                }
+
+                // Add neighbour
+                this.startNode.addNeighbour(foundNode, totalDistance, this.getJunctionName());
+                if (DEBUG_MODE) {
+                    System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
                 }
             }
             return hasFinished;
         }
     }
 
+    private static PathNode initNode(Block railBlock, SignActionEvent event, SignAction action) {
+        // Check for switchers and potential (new) destinations
+        boolean switchable = action.isRailSwitcher(event);
+        String destinationName = action.getRailDestinationName(event);
+        if (!switchable && destinationName == null) {
+            return null; // no pathfinding relevant signs
+        }
+
+        // Update the node we found with the information of the current sign
+        BlockLocation railLocation = new BlockLocation(railBlock);
+        PathNode node = PathNode.getOrCreate(railLocation);
+        if (switchable) {
+            node.addSwitcher();
+        }
+        if (destinationName != null) {
+            node.addName(destinationName);
+        }
+
+        return node;
+    }
 }

@@ -9,7 +9,6 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 
 /**
  * A single world on which path nodes are stored
@@ -62,7 +61,7 @@ public class PathWorld {
     }
 
     public Collection<PathNode> getNodes() {
-        return _nodes.values();
+        return _blockNodes.values();
     }
 
     public PathNode removeAtRail(Block railBlock) {
@@ -71,30 +70,19 @@ public class PathWorld {
         return node;
     }
 
-    public PathNode getOrCreateAtRail(final String name, final BlockLocation location) {
-        if (LogicUtil.nullOrEmpty(name) || location == null) {
+    public PathNode getOrCreateAtRail(final BlockLocation location) {
+        if (location == null) {
             return null;
         }
-        PathNode node = getNodeByName(name);
-        if (node != null) {
-            return node;
-        }
-        node = getNodeAtRail(location);
-        if (node == null) {
-            // Create a new node
-            node = new PathNode(name, this, location);
-            addToMapping(node);
-            _provider.scheduleNode(node);
-        } else {
-            // Add the name to the existing node
-            node.addName(name);
-        }
-        return node;
+
+        PathNode node = getNodeAtRail(location);
+        return (node != null) ? node : addNode(location);
     }
 
-    public PathNode addNode(final String name, final BlockLocation location) {
-        PathNode node = new PathNode(name, this, location);
+    public PathNode addNode(BlockLocation location) {
+        PathNode node = new PathNode(this, location);
         addToMapping(node);
+        _provider.scheduleNode(node);
         return node;
     }
 
@@ -112,10 +100,8 @@ public class PathWorld {
     }
 
     protected void addNodeName(PathNode node, String name) {
-        if (!PathNode.SWITCHER_NAME_FALLBACK.equals(name)) {
-            _nodes.put(name, node);
-            _provider.markChanged();
-        }
+        _nodes.put(name, node);
+        _provider.markChanged();
     }
 
     protected void removeNodeName(PathNode node, String name) {
@@ -132,6 +118,7 @@ public class PathWorld {
             addNodeName(node, name);
         }
         _blockNodes.put(node.location, node);
+        _nodes.put(node.location.toString(), node);
         _provider.markChanged();
     }
 
@@ -145,6 +132,8 @@ public class PathWorld {
         PathNode removed = _blockNodes.remove(node.location);
         if (removed != null && removed != node) {
             _blockNodes.put(node.location, removed); // restore
+        } else if (removed != null) {
+            _nodes.remove(node.location.toString());
         }
         _provider.markChanged();
     }
