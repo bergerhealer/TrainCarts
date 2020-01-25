@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -125,14 +126,14 @@ public class Commands {
                     msg.red("The destination position to reach can not be found!");
                 } else {
                     // Calculate the exact route taken from first to last
-                    PathNode[] route = first.findRoute(last);
+                    PathConnection[] route = first.findRoute(last);
                     msg.yellow("Route: ");
                     if (route.length == 0) {
                         msg.red(first.getDisplayName() + " /=/ " + last.getDisplayName() + " (not found)");
                     } else {
                         msg.setSeparator(ChatColor.YELLOW, " -> ");
-                        for (PathNode node : route) {
-                            msg.green(node.getDisplayName());
+                        for (PathConnection connection : route) {
+                            msg.green(connection.destination.getDisplayName());
                         }
                     }
                 }

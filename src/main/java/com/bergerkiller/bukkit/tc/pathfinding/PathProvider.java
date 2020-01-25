@@ -258,7 +258,7 @@ public class PathProvider extends Task {
      * @return True if processing is being performed, False if not
      */
     public boolean isProcessing() {
-        return !pendingOperations.isEmpty() || !pendingNodes.isEmpty();
+        return !pendingDiscovery.isEmpty() || !pendingOperations.isEmpty() || !pendingNodes.isEmpty();
     }
 
     @Override
@@ -402,15 +402,17 @@ public class PathProvider extends Task {
     }
 
     private void scheduleNode(PathNode node, RailState state, RailJunction junction) {
-        pendingOperations.offer(new PathFindOperation(node, state, junction));
+        pendingOperations.offer(new PathFindOperation(this, node, state, junction));
     }
 
     private static class PathFindOperation {
+        private final PathProvider provider;
         private final TrackWalkingPoint p;
         private final PathNode startNode;
         private final String junctionName;
 
-        public PathFindOperation(PathNode startNode, RailState state, RailJunction junction) {
+        public PathFindOperation(PathProvider provider, PathNode startNode, RailState state, RailJunction junction) {
+            this.provider = provider;
             this.p = new TrackWalkingPoint(state);
             this.p.setLoopFilter(true);
             this.junctionName = junction.name();
@@ -454,7 +456,7 @@ public class PathProvider extends Task {
                 }
 
                 // Update the node we found with the information of the current sign
-                foundNode = initNode(nextRail, event, action);
+                foundNode = provider.initNode(nextRail, event, action);
                 if (foundNode == null) {
                     continue;
                 }
@@ -488,7 +490,38 @@ public class PathProvider extends Task {
         }
     }
 
-    private static PathNode initNode(Block railBlock, SignActionEvent event, SignAction action) {
+    /**
+     * Finds out rail information at a particular rail position.
+     * If new nodes are discovered, they are scheduled.
+     * 
+     * @param state
+     * @return info
+     */
+    public PathRailInfo getRailInfo(RailState state) {
+        PathRailInfo result = PathRailInfo.NONE;
+        for (RailSignCache.TrackedSign trackedSign : state.railSigns()) {
+            // Discover a SignAction at this sign
+            SignActionEvent event = new SignActionEvent(trackedSign);
+            event.setAction(SignActionType.GROUP_ENTER);
+            SignAction action = SignAction.getSignAction(event);
+            if (action == null) {
+                continue;
+            }
+
+            // Check for blocker signs
+            if (action.isPathFindingBlocked(event, state)) {
+                return PathRailInfo.BLOCKED;
+            }
+
+            // Update the node we found with the information of the current sign
+            if (initNode(state.railBlock(), event, action) != null) {
+                result = PathRailInfo.NODE;
+            }
+        }
+        return result;
+    }
+
+    private PathNode initNode(Block railBlock, SignActionEvent event, SignAction action) {
         // Check for switchers and potential (new) destinations
         boolean switchable = action.isRailSwitcher(event);
         String destinationName = action.getRailDestinationName(event);
@@ -497,8 +530,7 @@ public class PathProvider extends Task {
         }
 
         // Update the node we found with the information of the current sign
-        BlockLocation railLocation = new BlockLocation(railBlock);
-        PathNode node = PathNode.getOrCreate(railLocation);
+        PathNode node = getWorld(railBlock.getWorld()).getOrCreateAtRail(new BlockLocation(railBlock));
         if (switchable) {
             node.addSwitcher();
         }

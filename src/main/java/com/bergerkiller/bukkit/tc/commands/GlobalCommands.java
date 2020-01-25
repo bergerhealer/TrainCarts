@@ -500,11 +500,18 @@ public class GlobalCommands {
             Player player = (Player) sender;
             String cmd = (args.length >= 2) ? args[1] : "";
             if (cmd.equalsIgnoreCase("rails")) {
-                ItemStack item = ItemUtil.createItem(Material.STICK, 1);
-                ItemUtil.getMetaTag(item, true).putValue("TrainCartsDebug", "Rails");
-                ItemUtil.setDisplayName(item, "TrainCarts Rails Debugger");
-                player.getInventory().addItem(item);
-                player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Slap some rails and escape the matrix!");
+                giveDebugItem(player, "Rails", "TrainCarts Rails Debugger");
+                player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Right-click rails and see where a train would go.");
+            } else if (cmd.equalsIgnoreCase("destination")) {
+                if (args.length >= 3) {
+                    giveDebugItem(player, "Destination " + args[2], "TrainCarts Destination Debugger [" + args[2] + "]");
+                    player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
+                            "Right-click rails to see whether and how a train would travel to " + args[2] + ".");
+                } else {
+                    giveDebugItem(player, "Destinations", "TrainCarts Destination Debugger");
+                    player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
+                            "Right-click rails to see what destinations can be reached from there.");
+                }
             } else if (cmd.equalsIgnoreCase("mutex")) {
                 DebugTool.showMutexZones(player);
                 player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
@@ -529,8 +536,25 @@ public class GlobalCommands {
         return false;
     }
 
-    static boolean aaa = true;
-    
+    public static void giveDebugItem(Player player, String debugMode, String debugTitle) {
+        ItemStack item = ItemUtil.createItem(Material.STICK, 1);
+        ItemUtil.getMetaTag(item, true).putValue("TrainCartsDebug", debugMode);
+        ItemUtil.setDisplayName(item, debugTitle);
+
+        // Update item in main hand, if it is a debug item
+        ItemStack inMainHand = HumanHand.getItemInMainHand(player);
+        if (inMainHand != null) {
+            CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+            if (tag != null && tag.containsKey("TrainCartsDebug")) {
+                HumanHand.setItemInMainHand(player, item);
+                return;
+            }
+        }
+
+        // Give new item
+        player.getInventory().addItem(item);
+    }
+
     public static void listDestinations(CommandSender sender) {
         MessageBuilder builder = new MessageBuilder();
         builder.yellow("The following train destinations are available:");

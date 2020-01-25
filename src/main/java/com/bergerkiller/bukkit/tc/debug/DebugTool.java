@@ -1,8 +1,12 @@
 package com.bergerkiller.bukkit.tc.debug;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -11,28 +15,51 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
+import com.bergerkiller.bukkit.tc.pathfinding.PathRailInfo;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
-
-import net.md_5.bungee.api.ChatColor;
 
 /**
  * Manages the different functionalities provided by /train debug [type]
  */
 public class DebugTool {
     private static final double PARTICLE_SPACING = 0.2;
+
+    // cyclical array of chat colors used to turn an index into a color
+    // there is a clear red/green/blue/cyan/magenta/yellow repeating pattern
+    private static final ChatColor[] chatcolor_wheel_values = {
+            ChatColor.RED, ChatColor.GREEN, ChatColor.BLUE,
+            ChatColor.AQUA, ChatColor.LIGHT_PURPLE, ChatColor.GOLD,
+            ChatColor.DARK_RED, ChatColor.DARK_GREEN, ChatColor.DARK_BLUE,
+            ChatColor.DARK_AQUA, ChatColor.DARK_PURPLE, ChatColor.YELLOW,
+            ChatColor.BLACK, ChatColor.DARK_GRAY, ChatColor.GRAY, ChatColor.WHITE
+    };
+    private static final Color[] color_wheel_values = {
+            Color.RED, Color.GREEN, Color.BLUE,
+            Color.AQUA, Color.FUCHSIA, Color.YELLOW,
+            Color.MAROON, Color.OLIVE, Color.NAVY,
+            Color.TEAL, Color.PURPLE,Color.YELLOW,
+            Color.BLACK, Color.ORANGE, Color.GRAY, Color.WHITE
+    };
 
     /**
      * Shows a box-shaped particle display for all mutex zones for a few seconds
@@ -104,8 +131,18 @@ public class DebugTool {
      * @param debugType
      */
     public static void onDebugInteract(Player player, Block clickedBlock, ItemStack item, String debugType) {
-        // When clicking air, raytrace to find the first rails block in view and walk from the exact position on the path
-        if (clickedBlock == null) {
+        TrackWalkingPoint walker = null;
+        if (clickedBlock != null) {
+            // From rails block clicked
+            Vector direction = player.getEyeLocation().getDirection();
+            walker = new TrackWalkingPoint(clickedBlock, FaceUtil.getDirection(direction, false));
+            walker.setLoopFilter(true);
+            if (walker.state.railType() == RailType.NONE) {
+                walker = null;
+            }
+        }
+        if (walker == null) {
+            // When clicking air, raytrace to find the first rails block in view and walk from the exact position on the path
             Location loc = player.getEyeLocation();
             Vector dir = loc.getDirection();
             RailState result = null;
@@ -139,31 +176,258 @@ public class DebugTool {
             }
 
             // Go!
-            player.sendMessage(ChatColor.YELLOW + "Checking for rails from path [" +
-                    MathUtil.round(result.position().posX, 3) + "/" +
-                    MathUtil.round(result.position().posY, 3) + "/" +
-                    MathUtil.round(result.position().posZ, 3) + "]");
-            debugRails(player, result);
+            walker = new TrackWalkingPoint(result);
+            walker.setLoopFilter(true);
+        }
+
+        // Handle the different debug modes
+        if (debugType.equalsIgnoreCase("Rails")) {
+            debugRails(player, walker);
+        } else if (debugType.equalsIgnoreCase("Destinations")) {
+            debugListDestinations(player, walker, null);
+        } else if (debugType.startsWith("Destination ")) {
+            debugListDestinations(player, walker, debugType.substring(12));
+        } else {
+            player.sendMessage(ChatColor.RED + "Item has an unknown debug mode: " + debugType);
+        }
+    }
+
+    public static void debugListDestinations(Player player, TrackWalkingPoint walker, String destinationName) {
+        PathProvider provider = TrainCarts.plugin.getPathProvider();
+        int lim = 10000;
+        Block old_railBlock = null;
+        while (--lim > 0) {
+            if (destinationName != null) {
+                if (!walker.move(0.3)) {
+                    break;
+                }
+                Util.spawnDustParticle(walker.state.positionLocation(), Color.RED);
+            } else {
+                if (!walker.moveStep(1600.0 - walker.movedTotal)) {
+                    break;
+                }
+                Util.spawnDustParticle(walker.state.positionLocation(), Color.GRAY);
+            }
+
+            // Every new rail block
+            final Block railBlock;
+            if (BlockUtil.equals(walker.state.railBlock(), old_railBlock)) {
+                continue;
+            } else {
+                railBlock = old_railBlock = walker.state.railBlock();
+            }
+
+            PathRailInfo info = provider.getRailInfo(walker.state);
+            if (info == PathRailInfo.BLOCKED) {
+                if (destinationName != null) {
+                    player.sendMessage(ChatColor.RED + "Destination " + destinationName + " can not be reached!");
+                }
+                player.sendMessage(ChatColor.RED + "A blocker sign at " +
+                        ChatColor.YELLOW + "x=" + railBlock.getX() + " y=" + railBlock.getY() + " z=" + railBlock.getZ() +
+                        ChatColor.RED + " is blocking trains!");
+                return;
+            } else if (info == PathRailInfo.NODE) {
+                debugListRoutesFrom(player, railBlock, destinationName, player.isSneaking(), walker.movedTotal);
+                return;
+            }
+        }
+
+        player.sendMessage(ChatColor.RED + "No path finding node was discovered");
+    }
+
+    private static void debugListRoutesFrom(Player player, Block railBlock, String destinationName, boolean reroute, double initialDistance) {
+        PathProvider provider = TrainCarts.plugin.getPathProvider();
+
+        // Find the node at this rails block
+        PathNode node = provider.getWorld(railBlock.getWorld()).getNodeAtRail(railBlock);
+        if (reroute && node != null) {
+            reroute = false;
+            player.sendMessage(ChatColor.YELLOW + "Rerouting the node network from " + node.getDisplayName());
+            node.rerouteConnected();
+        }
+
+        // Schedule a task that waits until processing finishes, if busy
+        if (provider.isProcessing()) {
+            final boolean f_reroute = reroute;
+            Localization.PATHING_BUSY.message(player);
+            new Task(TrainCarts.plugin) {
+                @Override
+                public void run() {
+                    if (!provider.isProcessing()) {
+                        stop();
+                        debugListRoutesFrom(player, railBlock, destinationName, f_reroute, initialDistance);
+                    }
+                }
+            }.start(1, 1);
             return;
         }
 
-        // From rails block clicked
-        player.sendMessage(ChatColor.YELLOW + "Checking for rails from [" +
-                clickedBlock.getX() + "/" +
-                clickedBlock.getY() + "/" +
-                clickedBlock.getZ() + "]");
+        if (node == null) {
+            player.sendMessage(ChatColor.RED + "No node was detected");
+            return;
+        }
 
-        if (debugType.equalsIgnoreCase("Rails")) {
-            debugRails(player, clickedBlock);
+        if (destinationName != null) {
+            PathNode destination = node.getWorld().getNodeByName(destinationName);
+            if (destination == null) {
+                player.sendMessage(ChatColor.RED + "Destination " + destinationName + " does not exist. Try rerouting");
+                return;
+            }
+            debugShowRouteFromTo(player, node, railBlock, destination, initialDistance);
+        } else {
+            debugListAllRoutes(player, node, railBlock);
         }
     }
 
-    public static void debugRails(Player player, RailState state) {
-        debugRails(player, new TrackWalkingPoint(state));
+    private static void debugShowRouteFromTo(Player player, PathNode node, Block railBlock, PathNode destination, double initialDistance) {
+        if (node == destination) {
+            player.sendMessage(ChatColor.GREEN + "Route to " + ChatColor.YELLOW + destination.getDisplayName() +
+                    ChatColor.GREEN + " was found with a distance of " + ChatColor.YELLOW +
+                    MathUtil.round(initialDistance, 1) + ChatColor.GREEN + " blocks");
+            return;
+        }
+        PathConnection[] route = node.findRoute(destination);
+        if (route.length == 0) {
+            player.sendMessage(ChatColor.RED + "Destination " + destination.getDisplayName() + " could not be reached!");
+            return;
+        }
+
+        // Compute total distance
+        double totalDistance = initialDistance;
+        for (PathConnection connection : route) {
+            totalDistance += connection.distance;
+        }
+
+        // Take this junction and show the path taken up until the next node is reached
+        double maxDistance = 1600.0;
+        Color[] colors = new Color[] {Color.BLUE, Color.GREEN, Color.RED};
+        int color_idx = 0;
+        for (PathConnection connection : route) {
+            TrackWalkingPoint walker = takeJunction(railBlock, connection);
+            if (walker == null) {
+                player.sendMessage(ChatColor.RED + "Path broke at rail " +
+                        "x=" + railBlock.getX() + " y=" + railBlock.getY() + " z=" + railBlock.getZ());
+                return;
+            }
+
+            // Next rail block
+            railBlock = connection.destination.location.getBlock();
+            Color color = colors[color_idx++ % colors.length];
+            int lim = 10000;
+            do {
+                if (--lim <= 0 || walker.movedTotal > maxDistance) {
+                    break; // skip the rest
+                }
+                if (!walker.move(0.3)) {
+                    Location at = walker.state.positionLocation();
+                    player.sendMessage(ChatColor.RED + "Path broke at position " +
+                            "x=" + at.getBlockX() + " y=" + at.getBlockY() + " z=" + at.getBlockZ());
+                    return;
+                }
+                Util.spawnDustParticle(walker.state.positionLocation(), color);
+            } while (!BlockUtil.equals(railBlock, walker.state.railBlock()));
+            maxDistance -= walker.movedTotal;
+            if (maxDistance <= 0.0) {
+                break;
+            }
+        }
+        player.sendMessage(ChatColor.GREEN + "Route to " + ChatColor.YELLOW + destination.getDisplayName() +
+                ChatColor.GREEN + " was found with a distance of " + ChatColor.YELLOW +
+                MathUtil.round(totalDistance, 1) + ChatColor.GREEN + " blocks");
+    }
+
+    private static void debugListAllRoutes(Player player, PathNode node, Block railBlock) {
+        MessageBuilder message = new MessageBuilder();
+        message.gray("Destinations from ").white(node.getDisplayName()).gray(":").newLine();
+
+        int color_idx = 0;
+        for (Map.Entry<PathConnection, List<PathConnection>> entry : node.getDeepNeighbours().entrySet()) {
+            PathConnection connection = entry.getKey();
+            Collection<PathConnection> destinations = entry.getValue();
+
+            // Remove connections that are not destination nodes (switchers only)
+            Iterator<PathConnection> iter = destinations.iterator();
+            while (iter.hasNext()) {
+                if (iter.next().destination.containsOnlySwitcher()) {
+                    iter.remove();
+                }
+            }
+
+            // Skip if empty
+            if (destinations.isEmpty()) {
+                continue;
+            }
+
+            // Color used to display it
+            ChatColor chatcolor = chatcolor_wheel_values[(color_idx % color_wheel_values.length)];
+            Color color = color_wheel_values[(color_idx % color_wheel_values.length)];
+            color_idx++;
+
+            // Walk a short distance and spawn colored particles to denote this junction
+            TrackWalkingPoint walker = takeJunction(railBlock, connection);
+            if (walker != null) {
+                int lim = 100;
+                while (walker.move(0.3) && --lim > 0 && walker.movedTotal < 3.0) {
+                    Util.spawnDustParticle(walker.state.positionLocation(), color);
+                }
+            }
+
+            // List closest 5 (or less) destinations that can be reached from here
+            message.append(chatcolor, "- ");
+            message.setIndent(2);
+            message.setSeparator(ChatColor.GRAY, " / ");
+            int limit = 5;
+            for (PathConnection destination : destinations) {
+                message.append(chatcolor,
+                        "[", MathUtil.round(destination.distance, 1), "] ",
+                        destination.destination.getDisplayName());
+                if (--limit == 0) {
+                    message.append(chatcolor, "...");
+                    break;
+                }
+            }
+            message.clearSeparator();
+            message.setIndent(0);
+            message.newLine();
+        }
+        message.send(player);
+    }
+
+    private static TrackWalkingPoint takeJunction(Block railBlock, PathConnection connection) {
+        // Find the RailJunction by name and load it into a RailState
+        RailState state = null;
+        for (RailType type : RailType.values()) {
+            if (type.isRail(railBlock)) {
+                List<RailJunction> junctions = type.getJunctions(railBlock);
+                RailJunction picked = null;
+                for (RailJunction junction : junctions) {
+                    if (connection.junctionName.equals(junction.name())) {
+                        picked = junction;
+                        break;
+                    }
+                }
+                if (picked != null) {
+                    state = type.takeJunction(railBlock, picked);
+                }
+                break;
+            }
+        }
+        if (state == null) {
+            return null; // not found
+        }
+
+        // Walk a short distance and spawn colored particles to denote this junction
+        TrackWalkingPoint walker = new TrackWalkingPoint(state);
+        walker.setLoopFilter(true);
+        return walker;
     }
 
     public static void debugRails(Player player, TrackWalkingPoint walker) {
-        walker.setLoopFilter(true);
+        player.sendMessage(ChatColor.YELLOW + "Checking for rails from path [" +
+                MathUtil.round(walker.state.position().posX, 3) + "/" +
+                MathUtil.round(walker.state.position().posY, 3) + "/" +
+                MathUtil.round(walker.state.position().posZ, 3) + "]");
+
         int lim = 10000;
         if (player.isSneaking()) {
             if (walker.moveFull()) {
@@ -193,18 +457,8 @@ public class DebugTool {
         }
     }
 
-    public static void debugRails(Player player, Block railsBlock) {
-        Vector direction = player.getEyeLocation().getDirection();
-        TrackWalkingPoint walker = new TrackWalkingPoint(railsBlock, FaceUtil.getDirection(direction, false));
-        debugRails(player, walker);
-    }
-
     private static void showParticle(Location loc) {
         Util.spawnDustParticle(loc, 1.0, 0.1, 0.1);
-    }
-
-    private static void showParticle(Location loc, Particle particle) {
-        loc.getWorld().spawnParticle(particle, loc, 5);
     }
 
     public static void showFaceParticles(Player viewer, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {

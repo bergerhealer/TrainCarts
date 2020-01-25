@@ -918,6 +918,16 @@ public class Util {
      * Spawns a colored dust particle, the color can be specified
      * 
      * @param loc   to spawn at
+     * @param color color value
+     */
+    public static void spawnDustParticle(Location loc, org.bukkit.Color color) {
+        spawnDustParticle(loc, (double) color.getRed() / 255.0, (double) color.getGreen() / 255.0, (double) color.getBlue() / 255.0);
+    }
+
+    /**
+     * Spawns a colored dust particle, the color can be specified
+     * 
+     * @param loc   to spawn at
      * @param red   color value [0.0 ... 1.0]
      * @param green color value [0.0 ... 1.0]
      * @param blue  color value [0.0 ... 1.0]

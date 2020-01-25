@@ -18,7 +18,7 @@ public class PathNode {
     private PathConnection lastTaken;
     private boolean isRailSwitchable;
 
-    protected PathNode(final PathWorld world, final BlockLocation location) {
+    protected PathNode(PathWorld world, BlockLocation location) {
         this.world = world;
         this.location = location;
         this.isRailSwitchable = false;
@@ -116,6 +116,15 @@ public class PathNode {
     }
 
     /**
+     * Gets the world which this node is part of
+     * 
+     * @return path world
+     */
+    public PathWorld getWorld() {
+        return this.world;
+    }
+
+    /**
      * Tries to find a connection from this node to the node specified
      *
      * @param destination name of the node to find
@@ -137,20 +146,20 @@ public class PathNode {
             node.lastDistance = Integer.MAX_VALUE;
             node.lastTaken = null;
         }
-        double maxDistance = Integer.MAX_VALUE;
+        double minDistance = Integer.MAX_VALUE;
         double distance;
         final PathConnection from = new PathConnection(this, 0, "");
         for (PathConnection connection : this.neighbors) {
-            distance = getDistanceTo(from, connection, 0.0, maxDistance, destination);
-            if (maxDistance > distance) {
-                maxDistance = distance;
+            distance = getDistanceTo(from, connection, 0.0, minDistance, destination);
+            if (minDistance > distance) {
+                minDistance = distance;
                 this.lastTaken = connection;
             }
         }
         if (this.lastTaken == null) {
             return null;
         } else {
-            return new PathConnection(destination, maxDistance, this.lastTaken.junctionName);
+            return new PathConnection(destination, minDistance, this.lastTaken.junctionName);
         }
     }
 
@@ -160,18 +169,17 @@ public class PathNode {
      * @param destination to reach
      * @return the route taken, or an empty array if none could be found
      */
-    public PathNode[] findRoute(PathNode destination) {
+    public PathConnection[] findRoute(PathNode destination) {
         if (findConnection(destination) == null) {
-            return new PathNode[0];
+            return new PathConnection[0];
         }
-        List<PathNode> route = new ArrayList<>();
-        route.add(this);
+        List<PathConnection> route = new ArrayList<>();
         PathConnection conn = this.lastTaken;
         while (conn != null) {
-            route.add(conn.destination);
+            route.add(conn);
             conn = conn.destination.lastTaken;
         }
-        return route.toArray(new PathNode[0]);
+        return route.toArray(new PathConnection[0]);
     }
 
     /**
@@ -279,6 +287,104 @@ public class PathNode {
 
     public Collection<PathConnection> getNeighbours() {
         return this.neighbors;
+    }
+
+    /**
+     * Gets all neighbouring nodes, and nodes that can be reached from those neighbours, recursively.
+     * The lowest distance towards those nodes are returned, with the junction name of this node that is used
+     * to reach it. Each list of connections is sorted by distance close to far.
+     * 
+     * @return connections
+     */
+    public Map<PathConnection, List<PathConnection>> getDeepNeighbours() {
+        Map<PathNode, PathConnection> connections = new HashMap<>();
+        for (PathConnection neighbour : this.neighbors) {
+            connections.put(neighbour.destination, neighbour);
+        }
+        for (PathConnection neighbour : this.neighbors) {
+            neighbour.destination.fillDeepNeighbours(connections, neighbour.junctionName, neighbour.distance);
+        }
+        connections.remove(this);
+
+        Map<PathConnection, List<PathConnection>> result = new HashMap<>();
+        for (PathConnection connection : connections.values()) {
+            boolean found = false;
+            for (Map.Entry<PathConnection, List<PathConnection>> entry : result.entrySet()) {
+                if (entry.getKey().junctionName.equals(connection.junctionName)) {
+                    found = true;
+                    entry.getValue().add(connection);
+                    break;
+                }
+            }
+            if (!found) {
+                for (PathConnection neighbour : this.neighbors) {
+                    if (neighbour.junctionName.equals(connection.junctionName)) {
+                        List<PathConnection> list = new ArrayList<>();
+                        list.add(connection);
+                        result.put(neighbour, list);
+                        break;
+                    }
+                }
+            }
+        }
+        for (List<PathConnection> collection : result.values()) {
+            Collections.sort(collection, (c1, c2) -> {
+                return Double.compare(c1.distance, c2.distance);
+            });
+        }
+        return result;
+    }
+
+    private void fillDeepNeighbours(Map<PathNode, PathConnection> connections, String junctionName, double startDistance) {
+        for (PathConnection neighbour : this.neighbors) {
+            double distance = startDistance + neighbour.distance;
+            PathConnection previous = connections.get(neighbour.destination);
+            if (previous == null || previous.distance > distance) {
+                connections.put(neighbour.destination, new PathConnection(neighbour.destination, distance, junctionName));
+                neighbour.destination.fillDeepNeighbours(connections, junctionName, distance);
+            }
+        }
+    }
+
+    /**
+     * Schedules this node and all nodes that can be reached from here for recalculation.
+     * Nodes that have a one-way route to this node are rerouted too.
+     */
+    public void rerouteConnected() {
+        HashSet<PathNode> reachable = new HashSet<PathNode>();
+        this.addReachable(reachable);
+
+        // Also add nodes that have a connection to one of the reachable nodes (recurse)
+        boolean changed;
+        do {
+            changed = false;
+            for (PathNode node : this.world.getNodes()) {
+                if (!reachable.contains(node)) {
+                    for (PathConnection neighbour : node.neighbors) {
+                        if (reachable.contains(neighbour.destination)) {
+                            changed = true;
+                            node.addReachable(reachable);
+                        }
+                    }
+                }
+            }
+        } while (changed);
+
+        // Remove all the reachable nodes we have collected, deleting the entire network
+        // Schedule all these nodes for path finding
+        for (PathNode node : reachable) {
+            node.neighbors.clear();
+            world.removeFromMapping(node);
+            world.getProvider().discoverFromRail(node.location);
+        }
+    }
+
+    private void addReachable(Set<PathNode> reachable) {
+        if (reachable.add(this)) {
+            for (PathConnection neighbour : this.neighbors) {
+                neighbour.destination.addReachable(reachable);
+            }
+        }
     }
 
     /**
