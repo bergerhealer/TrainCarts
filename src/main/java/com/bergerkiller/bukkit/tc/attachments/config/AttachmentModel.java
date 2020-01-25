@@ -9,6 +9,7 @@ import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEmpty;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentModel;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 public class AttachmentModel {
+    private final AttachmentTypeRegistry registry;
     private ConfigurationNode config;
     private List<AttachmentModelOwner> owners = new ArrayList<AttachmentModelOwner>();
     private int seatCount;
@@ -29,6 +31,7 @@ public class AttachmentModel {
     }
 
     public AttachmentModel(ConfigurationNode config) {
+        this.registry = AttachmentTypeRegistry.instance();
         this.config = config;
         this._isDefault = false;
         this.computeProperties();
@@ -90,11 +93,11 @@ public class AttachmentModel {
      */
     public void resetToDefaults(EntityType entityType) {
         ConfigurationNode config = new ConfigurationNode();
-        config.set("type", CartAttachmentEntity.TYPE.getID());
+        registry.toConfig(config, CartAttachmentEntity.TYPE);
         config.set("entityType", entityType);
         if (entityType == EntityType.MINECART) {
             ConfigurationNode seatNode = new ConfigurationNode();
-            seatNode.set("type", CartAttachmentSeat.TYPE.getID());
+            registry.toConfig(seatNode, CartAttachmentSeat.TYPE);
             config.setNodeList("attachments", Arrays.asList(seatNode));
         }
         this.update(config, false);
@@ -108,7 +111,7 @@ public class AttachmentModel {
      */
     public void resetToName(String modelName) {
         ConfigurationNode config = new ConfigurationNode();
-        config.set("type", CartAttachmentModel.TYPE.getID());
+        registry.toConfig(config, CartAttachmentModel.TYPE);
         config.set("model", modelName);
         this.update(config, false);
     }
@@ -253,7 +256,7 @@ public class AttachmentModel {
     }
 
     private void loadSeats(ConfigurationNode config) {
-        if (config.get("type", CartAttachmentEmpty.TYPE.getID()) == CartAttachmentSeat.TYPE.getID()) {
+        if (registry.fromConfig(config) == CartAttachmentSeat.TYPE) {
             this.seatCount++;
         }
         for (ConfigurationNode node : config.getNodeList("attachments")) {
