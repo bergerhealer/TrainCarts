@@ -1231,6 +1231,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
         return this.collisionModes.get(collisionConfigObject);
     }
+    
+    public void setCollisionMode(CollisionConfig collisionConfigObject, CollisionMode mode) {
+        this.collisionModes.put(collisionConfigObject, mode);
+    }
 
     @Override
     public void saveAsDefault(ConfigurationNode node) {
