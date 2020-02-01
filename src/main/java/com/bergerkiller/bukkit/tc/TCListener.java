@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -46,6 +47,7 @@ import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
@@ -183,6 +185,14 @@ public class TCListener implements Listener {
                 group.unload();
             }
         }
+        if (Bukkit.getPluginManager().isPluginEnabled("LightAPI")) {
+            disableLightAPIWorld(event.getWorld());
+        }
+    }
+
+    // Put in its own method to further avoid loading the class when LightAPI is not enabled
+    private static void disableLightAPIWorld(World world) {
+        LightAPIController.disableWorld(world);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

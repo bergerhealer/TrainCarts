@@ -90,6 +90,7 @@ public class AttachmentTypeRegistry {
      */
     public synchronized void register(AttachmentType type) {
         _types.put(type.getID(), type);
+        type.onRegister(this);
     }
 
     /**
@@ -99,8 +100,12 @@ public class AttachmentTypeRegistry {
      */
     public synchronized void unregister(AttachmentType type) {
         AttachmentType removed = _types.remove(type.getID());
-        if (removed != null && removed != type) {
-            _types.put(removed.getID(), removed);
+        if (removed != null) {
+            if (removed != type) {
+                _types.put(removed.getID(), removed);
+            } else {
+                removed.onUnregister(this);
+            }
         }
     }
 
@@ -108,6 +113,10 @@ public class AttachmentTypeRegistry {
      * Clears all registered attachment types
      */
     public synchronized void unregisterAll() {
+        List<AttachmentType> removed = new ArrayList<AttachmentType>(_types.values());
         _types.clear();
+        for (AttachmentType removedType : removed) {
+            removedType.onUnregister(this);
+        }
     }
 }

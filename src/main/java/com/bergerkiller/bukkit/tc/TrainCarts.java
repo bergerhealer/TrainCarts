@@ -303,6 +303,7 @@ public class TrainCarts extends PluginBase {
                 TCConfig.EssentialsEnabled = enabled;
                 break;
             case "LightAPI":
+                log(Level.INFO, "LightAPI detected, the Light attachment is now available");
                 if (enabled)
                     AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
                 else

@@ -1,25 +1,33 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
-import java.util.Collections;
-import java.util.List;
-
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
-import ru.beykerykt.lightapi.LightAPI;
-import ru.beykerykt.lightapi.LightType;
-import ru.beykerykt.lightapi.chunks.ChunkInfo;
-
+/**
+ * Uses LightAPI (or LightAPI-Fork) to create moving light sources in the world.
+ * Only available when the LightAPI plugin is available.
+ */
 public class CartAttachmentLight extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
+        private int numRegistries = 0;
+
         @Override
         public String getID() {
             return "LIGHT";
@@ -37,30 +45,98 @@ public class CartAttachmentLight extends CartAttachment {
 
         @Override
         public void getDefaultConfig(ConfigurationNode config) {
-            config.set("lightType", LightType.BLOCK);
+            config.set("lightType", "BLOCK");
             config.set("lightLevel", 15);
+        }
+
+        @Override
+        public void onRegister(AttachmentTypeRegistry registry) {
+            numRegistries++;
+        }
+
+        @Override
+        public void onUnregister(AttachmentTypeRegistry registry) {
+            if (--numRegistries <= 0) {
+                LightAPIController.disable();
+            }
+        }
+
+        @Override
+        public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            tab.addWidget(new MapWidgetButton() { // Lock rotation toggle button
+                private boolean skylight = false;
+
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.skylight = attachment.getConfig().get("lightType", "BLOCK").equalsIgnoreCase("SKY");
+                    updateText();
+                }
+
+                private void updateText() {
+                    this.setText("Type: " + (skylight ? "SKY":"BLOCK"));
+                }
+
+                @Override
+                public void onActivate() {
+                    this.skylight = !this.skylight;
+                    updateText();
+                    attachment.getConfig().set("lightType", this.skylight ? "SKY" : "BLOCK");
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                    display.playSound(CommonSounds.CLICK);
+                }
+            }).setBounds(7, 10, 100-14, 16);
+
+            tab.addWidget(new MapWidgetNumberBox() { // Light level number box
+
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setRange(1.0, 15.0);
+                    this.setIncrement(1.0);
+                    this.setValue(attachment.getConfig().get("lightLevel", 15));
+                }
+
+                @Override
+                public String getValueText() {
+                    return "Level: " + Integer.toString((int) this.getValue());
+                }
+ 
+                @Override
+                public void onValueChanged() {
+                    attachment.getConfig().set("lightLevel", (int) this.getValue());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            }).setBounds(0, 30, 100, 16);
+
+            tab.addWidget(new MapWidgetText() { // LightAPI disclaimer
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setText("Powered by LightAPI");
+                    this.setColor(MapColorPalette.getColor(0, 1, 79));
+                    this.setShadowColor(MapColorPalette.getColor(0, 0, 220));
+                }
+            }).setBounds(0, 74, 100, 10);
         }
     };
 
     private IntVector3 prev_block = null;
-    private LightType light_type = LightType.BLOCK;
-    private int light_level = 15;
+    private LightAPIController controller = null;
+    private int lightLevel = 15;
 
     @Override
     public void onAttached() {
-        // Don't have position information yet
+        boolean isSky = getConfig().get("lightType", "BLOCK").equalsIgnoreCase("SKY");
+        controller = LightAPIController.get(this.getManager().getWorld(), isSky);
+        lightLevel = getConfig().get("lightLevel", 15);
     }
 
     @Override
     public void onDetached() {
-        // Clean up
         if (prev_block != null) {
-            World world = getManager().getWorld();
-            LightAPI.deleteLight(world, prev_block.x, prev_block.y, prev_block.z, light_type, true);
-            List<ChunkInfo> prev_chunks = LightAPI.collectChunks(world, prev_block.x, prev_block.y, prev_block.z, light_type, light_level);
-            for (ChunkInfo chunk : prev_chunks) {
-                LightAPI.updateChunk(chunk, light_type);
-            }
+            controller.remove(prev_block, lightLevel);
             prev_block = null;
         }
     }
@@ -81,25 +157,18 @@ public class CartAttachmentLight extends CartAttachment {
     public void onMove(boolean absolute) {
         Vector pos_d = this.getTransform().toVector();
         IntVector3 pos = new IntVector3(pos_d.getX(), pos_d.getY(), pos_d.getZ());
-        if (!pos.equals(prev_block)) {
-            World world = getManager().getWorld();
-            List<ChunkInfo> prev_chunks = Collections.emptyList();
-            if (prev_block != null) {
-                LightAPI.deleteLight(world, prev_block.x, prev_block.y, prev_block.z, light_type, true);
-                prev_chunks = LightAPI.collectChunks(world, prev_block.x, prev_block.y, prev_block.z, light_type, light_level);
-            }
-            LightAPI.createLight(world, pos.x, pos.y, pos.z, light_type, light_level, true);
-            List<ChunkInfo> new_chunks = LightAPI.collectChunks(world, pos.x, pos.y, pos.z, light_type, light_level);
-            prev_block = pos;
 
-            for (ChunkInfo new_chunk : new_chunks) {
-                LightAPI.updateChunk(new_chunk, this.light_type);
+        if (this.isActive()) {
+            if (prev_block == null) {
+                controller.add(pos, lightLevel);
+                prev_block = pos;
+            } else if (!pos.equals(prev_block)) {
+                controller.move(prev_block, pos, lightLevel);
+                prev_block = pos;
             }
-            for (ChunkInfo prev_chunk : prev_chunks) {
-                if (!new_chunks.contains(prev_chunk)) {
-                    LightAPI.updateChunk(prev_chunk, this.light_type);
-                }
-            }
+        } else if (prev_block != null) {
+            controller.remove(prev_block, lightLevel);
+            prev_block = null;
         }
     }
 }

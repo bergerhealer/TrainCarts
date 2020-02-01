@@ -194,13 +194,22 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         nav_incr.setVisible(false);
     }
 
+    /**
+     * Gets the text displayed in this number box, if no override is set
+     * 
+     * @return value text
+     */
+    public String getValueText() {
+        return Util.stringifyNumberBoxValue(getValue());
+    }
+
     @Override
     public void onDraw() {
         String text;
         if (this._textOverride != null) {
             text = this._textOverride;
         } else {
-            text = Util.stringifyNumberBoxValue(getValue());
+            text = getValueText();
         }
 
         if (this._vertical) {

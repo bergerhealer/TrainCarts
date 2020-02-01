@@ -73,4 +73,18 @@ public interface AttachmentType {
      * @return controller
      */
     Attachment createController(ConfigurationNode config);
+
+    /**
+     * Called when this type is registered in a registry
+     * 
+     * @param registry in which it was registered
+     */
+    default void onRegister(AttachmentTypeRegistry registry) {}
+
+    /**
+     * Called when this type is unregistered (removed) from a registry
+     * 
+     * @param registry from which it was unregistered
+     */
+    default void onUnregister(AttachmentTypeRegistry registry) {}
 }
