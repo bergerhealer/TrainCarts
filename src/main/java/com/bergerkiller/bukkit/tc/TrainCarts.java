@@ -544,6 +544,13 @@ public class TrainCarts extends PluginBase {
 
         //reset all minecarts with MinecartMember entity controllers to their defaults
         for (CommonEntity<?> commonEntity : minecartsWithMMControllers) {
+            //when a player is inside but player takable is false, eject the cart
+            //this makes sure that the default save function doesn't overwrite it
+            if (commonEntity.hasPlayerPassenger() && !commonEntity.getController(MinecartMember.class).isPlayerTakable()) {
+                commonEntity.eject();
+            }
+
+            //reset controller to the defaults, breaking all references to TrainCarts
             commonEntity.setController(new DefaultEntityController());
         }
 

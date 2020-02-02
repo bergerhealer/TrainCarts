@@ -37,7 +37,6 @@ import com.bergerkiller.bukkit.common.bases.ExtendedEntity;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
-import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -110,6 +109,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     protected MinecartGroup group;
     protected boolean died = false;
     private boolean unloaded = true;
+    protected boolean unloadedLastPlayerTakable = false;
     protected SoundLoop<?> soundLoop;
     private BlockFace direction;
     private BlockFace directionTo;
@@ -470,6 +470,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void setUnloaded(boolean unloaded) {
         if (this.unloaded != unloaded) {
             this.unloaded = unloaded;
+            if (unloaded && this.group != null) {
+                this.unloadedLastPlayerTakable = this.group.getProperties().isPlayerTakeable();
+            }
         }
     }
 
@@ -1261,14 +1264,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             TrainCarts.plugin.handle(t);
         }
         return true;
-    }
-
-    /**
-     * Tells the Minecart to ignore the very next call to {@link this.onDie()} This
-     * is needed to avoid passengers removing their Minecarts.
-     */
-    public void ignoreNextDie() {
-        ignoreDie.set();
     }
 
     @Override
@@ -2095,9 +2090,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return name;
     }
 
-    @Override
+    /**
+     * Gets whether this Minecart Member can be taken by players when they log off, or when the server is shut down.
+     * Ejects players when they log off, if this returns false.
+     */
     public boolean isPlayerTakable() {
-        return this.isSingle() && (this.isUnloaded() || this.getGroup().getProperties().isPlayerTakeable());
+        if (this.isUnloaded()) {
+            return this.unloadedLastPlayerTakable;
+        } else {
+            return this.isSingle() && this.getGroup().getProperties().isPlayerTakeable();
+        }
     }
 
     @Override

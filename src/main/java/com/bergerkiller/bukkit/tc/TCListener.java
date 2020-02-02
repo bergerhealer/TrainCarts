@@ -108,9 +108,9 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
+        // Eject players from minecarts if player takable is false
         MinecartMember<?> vehicle = MinecartMemberStore.getFromEntity(event.getPlayer().getVehicle());
         if (vehicle != null && !vehicle.isPlayerTakable()) {
-            vehicle.ignoreNextDie();
             // Eject the player before proceeding to the saving
             // This prevents the player 'taking' the minecart with him
             vehicle.getEntity().removePassenger(event.getPlayer());

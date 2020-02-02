@@ -501,6 +501,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         groups.remove(this);
         for (MinecartMember<?> member : this) {
             member.group = null;
+            member.unloadedLastPlayerTakable = this.getProperties().isPlayerTakeable();
             member.setUnloaded(true);
 
             // We must correct position here, because it will no longer be ticked!
