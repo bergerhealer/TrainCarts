@@ -28,6 +28,7 @@ import org.bukkit.material.Stairs;
 import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
@@ -88,6 +89,25 @@ public class Util {
         fmt.setMaximumFractionDigits(max_fractionDigits);
         fmt.setGroupingUsed(false);
         return fmt;
+    }
+
+    // Was added in BKCommonLib 1.15.2
+    // Can remove this once we depend on 1.15.2 or later for features
+    private static final java.lang.reflect.Method common_hasCapability_method;
+    static {
+        java.lang.reflect.Method m = null;
+        try {
+            m = Common.class.getDeclaredMethod("hasCapability", String.class);
+        } catch (Throwable t) {}
+        common_hasCapability_method = m;
+    }
+    public static boolean hasCommonCapability(String capability) {
+        if (common_hasCapability_method != null) {
+            try {
+                return ((Boolean) common_hasCapability_method.invoke(null, capability)).booleanValue();
+            } catch (Throwable t) {}
+        }
+        return false;
     }
 
     /**
