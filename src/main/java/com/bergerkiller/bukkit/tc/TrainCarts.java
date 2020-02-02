@@ -269,7 +269,6 @@ public class TrainCarts extends PluginBase {
         config = new FileConfiguration(this);
         config.load();
         TCConfig.load(config);
-        config.trim();
         config.save();
 
         // Refresh
