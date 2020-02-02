@@ -273,8 +273,11 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
     private void setGridOpened(boolean opened) {
         if (!opened && !this.getWidgets().contains(this.preview)) {
+            boolean focus = this.getWidgets().contains(this.grid);
             this.swapWidget(this.grid, this.preview);
-            this.itemOptions.focus();
+            if (focus) {
+                this.itemOptions.focus();
+            }
         } else if (opened && !this.getWidgets().contains(this.grid)) {
             this.swapWidget(this.preview, this.grid).activate();
         }

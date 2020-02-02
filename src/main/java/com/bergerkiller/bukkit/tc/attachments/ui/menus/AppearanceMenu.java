@@ -65,9 +65,7 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
         // Set to display currently selected type
 
         setType(selected);
-
-        this.tabView.activate();
-        this.tabView.getSelectedTab().activate();
+        typeSelectionBox.focus();
     }
 
     public void setType(AttachmentType type) {
