@@ -224,7 +224,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             }
             if (node.contains("collision.mobs")) {
                 for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                    if (collisionConfigObject.isAddToConfigFile()) {
+                    if (collisionConfigObject.isMobCategory()) {
                         node.set("collision." + collisionConfigObject.getMobType(), node.get("collision.mobs", CollisionMode.DEFAULT).toString());
                     }
                 }
@@ -233,7 +233,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             }
             if (node.contains("pushAway")) {
                 for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                    if (collisionConfigObject.isAddToConfigFile()) {
+                    if (collisionConfigObject.isMobCategory()) {
                         String mobType = collisionConfigObject.getMobType();
                         node.set("collision." + mobType, CollisionMode.fromPushing(node.get("pushAway." + mobType, false)).toString());
                     }
@@ -246,7 +246,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             if (node.contains("allowMobsEnter")) {
                 if (node.get("allowMobsEnter", false)) {
                     for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                        if (collisionConfigObject.isAddToConfigFile()) {
+                        if (collisionConfigObject.isMobCategory()) {
                             String mobType = collisionConfigObject.getMobType();
                             node.set("collision." + mobType, CollisionMode.ENTER.toString());
                         }
@@ -259,7 +259,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
                 if (node.get("mobenter", false) || node.get("mobsenter", false)) {
                     if (node.get("allowMobsEnter", false)) {
                         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                            if (collisionConfigObject.isAddToConfigFile()) {
+                            if (collisionConfigObject.isMobCategory()) {
                                 String mobType = collisionConfigObject.getMobType();
                                 node.set("collision." + mobType, CollisionMode.ENTER.toString());
                             }

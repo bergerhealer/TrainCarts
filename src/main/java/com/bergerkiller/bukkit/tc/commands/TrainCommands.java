@@ -181,7 +181,7 @@ public class TrainCommands {
             String msg = ChatColor.YELLOW + "Pushes away ";
             if (cmd.equals("pushmobs")) {
                 if (newState != null) {
-                    prop.updateAllCollisionProperties(newState);
+                    prop.setCollisionModeForMobs(newState);
                 }
                 msg += "mobs: " + ChatColor.WHITE + " " + (newState == CollisionMode.PUSH);
             }
@@ -239,10 +239,7 @@ public class TrainCommands {
                 CollisionMode mode = CollisionMode.parse(args[1]);
                 if (mode != null) {
                     String typeName = args[0].toLowerCase();
-                    if (typeName.contains("mob")) {
-                        prop.updateAllCollisionProperties(mode);
-                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + mode.getOperationName() + " mobs");
-                    } else if (prop.updateCollisionProperties(typeName, mode)) {
+                    if (prop.updateCollisionProperties(typeName, mode)) {
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + mode.getOperationName() + " " + typeName);
                     } else if (typeName.contains("player")) {
                         prop.playerCollision = mode;

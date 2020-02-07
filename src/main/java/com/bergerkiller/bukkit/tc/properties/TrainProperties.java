@@ -953,7 +953,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
             this.playerCollision = this.miscCollision = mode;
-            this.updateAllCollisionProperties(mode);
+            this.setCollisionModeForMobs(mode);
         } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
             this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
         } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
@@ -973,7 +973,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {
             this.setDisplayName(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "mobenter", "mobsenter")) {
-            this.updateAllCollisionProperties(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
+            this.setCollisionModeForMobs(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
         } else if (key.equalsIgnoreCase("waitdistance")) {
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equalsIgnoreCase("playerenter")) {
@@ -1041,7 +1041,27 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         return true;
     }
 
-    /*
+    /**
+     * Gets the collision mode configured for a collision config category
+     * 
+     * @param collisionConfigObject
+     * @return mode
+     */
+    public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
+        return this.collisionModes.get(collisionConfigObject);
+    }
+
+    /**
+     * Sets the collision mode configured for a collision config category
+     * 
+     * @param collisionConfigObject
+     * @param mode to set to
+     */
+    public void setCollisionMode(CollisionConfig collisionConfigObject, CollisionMode mode) {
+        this.collisionModes.put(collisionConfigObject, mode);
+    }
+
+    /**
      * Sets collision mode, used by ParseSet. Supports the formats: - mobcollision / playercollision /creepercollision /
      * etc. - pushplayers / pushmobs / etc.
      */
@@ -1066,6 +1086,37 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         return false;
     }
 
+    public boolean updateCollisionProperties(String mobType, CollisionMode mode) {
+        if (mode == null) {
+            return false;
+        }
+        if (mobType.equals("mob") || mobType.equals("mobs")) {
+            this.setCollisionModeForMobs(mode);
+            return true;
+        } else {
+            for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
+                    this.setCollisionMode(collisionConfigObject, mode);
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Updates the collision mode for all mob collision categories
+     * 
+     * @param mode
+     */
+    public void setCollisionModeForMobs(CollisionMode mode) {
+        for (CollisionConfig collision : CollisionConfig.values()) {
+            if (collision.isMobCategory()) {
+                setCollisionMode(collision, mode);
+            }
+        }
+    }
+
     /**
      * Sets train collision mode to link when true. When false is specified and the collision mode is linking, it is set to
      * default. This is legacy behavior.
@@ -1077,27 +1128,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.trainCollision = CollisionMode.LINK;
         } else if (this.trainCollision == CollisionMode.LINK) {
             this.trainCollision = CollisionMode.DEFAULT;
-        }
-    }
-
-    public boolean updateCollisionProperties(String mobType, CollisionMode mode) {
-        if (mode == null) {
-            return false;
-        }
-        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
-                this.collisionModes.put(collisionConfigObject, mode);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void updateAllCollisionProperties(CollisionMode mode) {
-        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            if (collisionConfigObject.isAddToConfigFile() == true) {
-                this.collisionModes.put(collisionConfigObject, mode);
-            }
         }
     }
 
@@ -1226,14 +1256,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.bankingSmoothness = source.bankingSmoothness;
         this.suffocation = source.suffocation;
         this.killMessage = source.killMessage;
-    }
-
-    public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
-        return this.collisionModes.get(collisionConfigObject);
-    }
-    
-    public void setCollisionMode(CollisionConfig collisionConfigObject, CollisionMode mode) {
-        this.collisionModes.put(collisionConfigObject, mode);
     }
 
     @Override
