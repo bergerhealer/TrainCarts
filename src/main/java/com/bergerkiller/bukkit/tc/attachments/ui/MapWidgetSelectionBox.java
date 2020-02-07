@@ -33,6 +33,10 @@ public class MapWidgetSelectionBox extends MapWidget {
 
     public void clearItems() {
         this.items.clear();
+        if (this.selectedIndex != -1) {
+            this.selectedIndex = -1;
+            this.invalidate();
+        }
     }
 
     /**
