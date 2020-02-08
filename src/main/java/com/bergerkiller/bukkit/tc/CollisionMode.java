@@ -66,16 +66,6 @@ public enum CollisionMode {
     }
 
     /**
-     * Gets the Collision Mode as being an entering state
-     *
-     * @param state of entering
-     * @return ENTER or DEFAULT
-     */
-    public static CollisionMode fromEntering(boolean state) {
-        return state ? ENTER : DEFAULT;
-    }
-
-    /**
      * Executes this collision mode
      *
      * @param member collided

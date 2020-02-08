@@ -973,7 +973,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {
             this.setDisplayName(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "mobenter", "mobsenter")) {
-            this.setCollisionModeForMobs(CollisionMode.fromEntering(ParseUtil.parseBool(arg)));
+            if (ParseUtil.parseBool(arg)) {
+                this.setCollisionModeForMobs(CollisionMode.ENTER);
+            } else {
+                this.setCollisionModeIfModeForMobs(CollisionMode.ENTER, CollisionMode.DEFAULT);
+            }
         } else if (key.equalsIgnoreCase("waitdistance")) {
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equalsIgnoreCase("playerenter")) {
@@ -1112,6 +1116,21 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void setCollisionModeForMobs(CollisionMode mode) {
         for (CollisionConfig collision : CollisionConfig.values()) {
             if (collision.isMobCategory()) {
+                setCollisionMode(collision, mode);
+            }
+        }
+    }
+
+    /**
+     * Updates the collision mode for all mob collision categories if the current configured value
+     * matches the expected mode
+     * 
+     * @param expected
+     * @param mode
+     */
+    public void setCollisionModeIfModeForMobs(CollisionMode expected, CollisionMode mode) {
+        for (CollisionConfig collision : CollisionConfig.values()) {
+            if (collision.isMobCategory() && getCollisionMode(collision) == expected) {
                 setCollisionMode(collision, mode);
             }
         }
