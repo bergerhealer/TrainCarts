@@ -229,14 +229,20 @@ public final class DetectorRegion {
         for (MinecartMember<?> mm : this.members) {
             listener.onEnter(mm);
         }
+        for (MinecartGroup group : this.getGroups()) {
+            listener.onEnter(group);
+        }
     }
 
     public void unregister(DetectorListener listener) {
         this.listeners.remove(listener);
-        listener.onUnregister(this);
         for (MinecartMember<?> mm : this.members) {
             listener.onLeave(mm);
         }
+        for (MinecartGroup group : this.getGroups()) {
+            listener.onLeave(group);
+        }
+        listener.onUnregister(this);
     }
 
     public boolean isRegistered() {
