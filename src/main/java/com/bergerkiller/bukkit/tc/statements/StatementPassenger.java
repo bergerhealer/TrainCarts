@@ -1,5 +1,9 @@
 package com.bergerkiller.bukkit.tc.statements;
 
+import java.util.List;
+
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -22,8 +26,10 @@ public class StatementPassenger extends Statement {
         int count = 0;
         boolean playermode = text.toLowerCase().startsWith("player");
         for (MinecartMember<?> member : group) {
-            if (playermode ? member.getEntity().hasPlayerPassenger() : member.getEntity().hasPassenger()) {
-                count++;
+            if (playermode) {
+                count += member.getEntity().getPlayerPassengers().size();
+            } else {
+                count += member.getEntity().getPassengers().size();
             }
         }
         return Util.evaluate(count, text);
@@ -36,11 +42,14 @@ public class StatementPassenger extends Statement {
 
     @Override
     public boolean handleArray(MinecartMember<?> member, String[] names, SignActionEvent event) {
-        if (member.getEntity().hasPlayerPassenger()) {
-            String pname = member.getEntity().getPlayerPassenger().getName();
-            for (String name : names) {
-                if (Util.matchText(pname, name)) {
-                    return true;
+        List<Player> playerPassengers = member.getEntity().getPlayerPassengers();
+        if (!playerPassengers.isEmpty()) {
+            for (Player player : playerPassengers) {
+                String pname = player.getName();
+                for (String name : names) {
+                    if (Util.matchText(pname, name)) {
+                        return true;
+                    }
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.statements;
 
+import org.bukkit.entity.Entity;
+
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -15,15 +17,22 @@ public class StatementMob extends Statement {
 
     @Override
     public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
-        return member.getEntity().hasPassenger() && EntityUtil.isMob(member.getEntity().getPassenger());
+        for (Entity passenger : member.getEntity().getPassengers()) {
+            if (EntityUtil.isMob(passenger)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
         int count = 0;
         for (MinecartMember<?> member : group) {
-            if (member.getEntity().isVehicle() && EntityUtil.isMob(member.getEntity().getPassenger())) {
-                count++;
+            for (Entity passenger : member.getEntity().getPassengers()) {
+                if (EntityUtil.isMob(passenger)) {
+                    count++;
+                }
             }
         }
         return Util.evaluate(count, text);
@@ -42,9 +51,13 @@ public class StatementMob extends Statement {
             mob = mob.substring(0, idx - 1);
         }
         //contains one of the defined mobs?
-        if (member.getEntity().hasPassenger() && EntityUtil.isMob(member.getEntity().getPassenger())) {
-            String mobname = EntityUtil.getName(member.getEntity().getPassenger());
-            return mobname.contains(mob);
+        for (Entity passenger : member.getEntity().getPassengers()) {
+            if (EntityUtil.isMob(passenger)) {
+                String mobname = EntityUtil.getName(passenger);
+                if (mobname.contains(mob)) {
+                    return true;
+                }
+            }
         }
         return false;
     }

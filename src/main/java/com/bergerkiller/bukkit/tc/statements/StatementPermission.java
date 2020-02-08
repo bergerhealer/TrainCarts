@@ -30,10 +30,11 @@ public class StatementPermission extends Statement {
     @Override
     public boolean handleArray(MinecartMember<?> member, String[] text, SignActionEvent event) {
         if (member.getEntity().hasPlayerPassenger()) {
-            Player passenger = member.getEntity().getPlayerPassenger();
-            for (String perm : text) {
-                if (!passenger.hasPermission(perm)) {
-                    return false;
+            for (Player player : member.getEntity().getPlayerPassengers()) {
+                for (String perm : text) {
+                    if (!player.hasPermission(perm)) {
+                        return false;
+                    }
                 }
             }
         }
