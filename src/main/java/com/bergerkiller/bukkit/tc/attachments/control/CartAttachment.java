@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
+import com.bergerkiller.generated.net.minecraft.server.EntityShulkerHandle;
 
 public abstract class CartAttachment implements Attachment {
     private final AttachmentInternalState state = new AttachmentInternalState();
@@ -93,6 +94,9 @@ public abstract class CartAttachment implements Attachment {
         AttachmentTypeRegistry.instance().register(CartAttachmentModel.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentSeat.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentText.TYPE);
-        AttachmentTypeRegistry.instance().register(CartAttachmentPlatformOriginal.TYPE);
+
+        if (EntityShulkerHandle.T.isAvailable()) {
+            AttachmentTypeRegistry.instance().register(CartAttachmentPlatformOriginal.TYPE);
+        }
     }
 }
