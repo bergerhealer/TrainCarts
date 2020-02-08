@@ -13,6 +13,8 @@ import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
@@ -594,6 +596,18 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.getSignTracker().clear();
         this.getSignTracker().updatePosition();
         this.breakPhysics();
+
+        // If world change, perform a standard teleport
+        // If on same world, despawn by stopping tracking, teleport, then reset network controllers
+        // This eliminates the teleporting motion
+        boolean resetNetworkControllers = (locations[0].getWorld() == this.get(0).getWorld());
+        if (resetNetworkControllers) {
+            EntityTracker tracker = WorldUtil.getTracker(locations[0].getWorld());
+            for (MinecartMember<?> member : this) {
+                tracker.stopTracking(member.getEntity().getEntity());
+            }
+        }
+
         if (reversed) {
             for (int i = 0; i < locations.length; i++) {
                 teleportMember(this.get(i), locations[locations.length - i - 1]);
@@ -605,7 +619,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
         this.updateDirection();
         this.updateChunkInformation();
+        this.updateWheels();
         this.getSignTracker().updatePosition();
+
+        // Respawn
+        if (resetNetworkControllers) {
+            for (MinecartMember<?> member : this) {
+                member.getEntity().setNetworkController(MinecartMemberStore.createNetworkController());
+            }
+        }
     }
 
     private void teleportMember(MinecartMember<?> member, Location location) {
@@ -772,6 +794,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         notifyPhysicsChange();
                     }
                 }
+            }
+        }
+    }
+
+    // Refresh wheel position information, important to do it AFTER updateDirection()
+    private void updateWheels() {
+        for (MinecartMember<?> member : this) {
+            try (Timings t = TCTimings.MEMBER_PHYSICS_UPDATE_WHEELS.start()) {
+                member.getWheels().update();
             }
         }
     }
@@ -1616,11 +1647,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             this.updateChunkInformation();
 
             // Refresh wheel position information, important to do it AFTER updateDirection()
-            for (MinecartMember<?> member : this) {
-                try (Timings t = TCTimings.MEMBER_PHYSICS_UPDATE_WHEELS.start()) {
-                    member.getWheels().update();
-                }
-            }
+            this.updateWheels();
 
             return true;
         } catch (MemberMissingException ex) {
