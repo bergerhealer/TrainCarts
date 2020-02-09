@@ -28,7 +28,6 @@ import org.bukkit.material.Stairs;
 import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
@@ -59,9 +58,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.reflection.net.minecraft.server.NMSBlock;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
-import com.bergerkiller.reflection.net.minecraft.server.NMSMaterial;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
@@ -89,25 +86,6 @@ public class Util {
         fmt.setMaximumFractionDigits(max_fractionDigits);
         fmt.setGroupingUsed(false);
         return fmt;
-    }
-
-    // Was added in BKCommonLib 1.15.2
-    // Can remove this once we depend on 1.15.2 or later for features
-    private static final java.lang.reflect.Method common_hasCapability_method;
-    static {
-        java.lang.reflect.Method m = null;
-        try {
-            m = Common.class.getDeclaredMethod("hasCapability", String.class);
-        } catch (Throwable t) {}
-        common_hasCapability_method = m;
-    }
-    public static boolean hasCommonCapability(String capability) {
-        if (common_hasCapability_method != null) {
-            try {
-                return ((Boolean) common_hasCapability_method.invoke(null, capability)).booleanValue();
-            } catch (Throwable t) {}
-        }
-        return false;
     }
 
     /**
@@ -596,16 +574,7 @@ public class Util {
 
     public static boolean isSignSupported(Block block) {
         Block attached = BlockUtil.getAttachedBlock(block);
-        // Only check the 'isBuildable' state of the Material
-        Object attachedHandle = Conversion.toBlockHandle.convert(attached);
-        if (attachedHandle == null) {
-            return false;
-        }
-        Object material = NMSBlock.material.get(attachedHandle);
-        if (material == null) {
-            return false;
-        }
-        return NMSMaterial.materialBuildable.invoke(material);
+        return WorldUtil.getBlockData(attached).isBuildable();
     }
 
     public static boolean isSupported(Block block) {
