@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -175,7 +176,7 @@ public class CartAttachmentEntity extends CartAttachment {
         }
         entity.spawn(viewer, new Vector());
         if (actual != null) {
-            this.getManager().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+            PlayerUtil.getVehicleMountController(viewer).mount(entity.getEntityId(), actual.getEntityId());
         }
 
         // Apply focus color
@@ -188,7 +189,6 @@ public class CartAttachmentEntity extends CartAttachment {
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
         if (actual != null) {
-            this.getManager().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
             actual.destroy(viewer);
         }
         entity.destroy(viewer);

@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -259,12 +260,11 @@ public class CartAttachmentPlatform extends CartAttachment {
         public void spawn() {
             this.actual.spawn(this.player, new Vector());
             this.entity.spawn(this.player, new Vector());
-            this.manager.getPassengerController(this.player).mount(entity.getEntityId(), actual.getEntityId());
+            PlayerUtil.getVehicleMountController(this.player).mount(entity.getEntityId(), actual.getEntityId());
         }
 
         public void destroy() {
             // Send entity destroy packet
-            this.manager.getPassengerController(this.player).unmount(entity.getEntityId(), actual.getEntityId());
             actual.destroy(this.player);
             entity.destroy(this.player);
         }

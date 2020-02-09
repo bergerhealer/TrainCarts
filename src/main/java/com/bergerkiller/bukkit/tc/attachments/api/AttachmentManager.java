@@ -1,11 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
-import java.util.Collection;
-import java.util.Map;
-
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 
 /**
@@ -25,44 +23,31 @@ import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 public interface AttachmentManager {
 
     /**
-     * Gets the internal state providing some of the attachment managing API's
-     * 
-     * @return internal state
-     */
-    AttachmentManagerInternalState getInternalState();
-
-    /**
      * Gets the world the attachments are in
      * 
      * @return world
      */
     org.bukkit.World getWorld();
 
-    default void clearPassengerControllers() {
-        this.getInternalState().passengerControllers.clear();
-    }
-
-    default void removePassengerController(Player viewer) {
-        this.getInternalState().passengerControllers.remove(viewer);
-    }
-
+    /**
+     * Deprecated: use {@link #getVehicleMountHandler(viewer)} instead.
+     */
+    @Deprecated
     default PassengerController getPassengerController(Player viewer) {
-        return getPassengerController(viewer, true);
+        return new PassengerController(viewer);
     }
 
+    /**
+     * Deprecated: use {@link #getVehicleMountHandler(viewer)} instead.
+     */
+    @Deprecated
     default PassengerController getPassengerController(Player viewer, boolean createIfNotFound) {
-        Map<Player, PassengerController> mapping = this.getInternalState().passengerControllers;
-        PassengerController controller = mapping.get(viewer);
-        if (controller == null && createIfNotFound) {
-            controller = new PassengerController(viewer);
-            mapping.put(viewer, controller);
-        }
-        return controller;
+        return new PassengerController(viewer);
     }
 
-    default Collection<PassengerController> getPassengerControllers() {
-        return this.getInternalState().passengerControllers.values();
-    }
+    //default Collection<PassengerController> getPassengerControllers() {
+    //    return this.getInternalState().passengerControllers.values();
+    //}
 
     /**
      * Gets the {@link AttachmentTypeRegistry} used to find and create new attachments from

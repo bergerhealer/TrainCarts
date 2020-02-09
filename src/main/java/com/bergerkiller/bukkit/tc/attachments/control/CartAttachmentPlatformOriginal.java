@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -82,13 +83,12 @@ public class CartAttachmentPlatformOriginal extends CartAttachment {
         // Send entity spawn packet
         actual.spawn(viewer, new Vector());
         entity.spawn(viewer, new Vector());
-        this.getManager().getPassengerController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+        PlayerUtil.getVehicleMountController(viewer).mount(entity.getEntityId(), actual.getEntityId());
     }
 
     @Override
     public void makeHidden(Player viewer) {
         // Send entity destroy packet
-        this.getManager().getPassengerController(viewer).unmount(entity.getEntityId(), actual.getEntityId());
         actual.destroy(viewer);
         entity.destroy(viewer);
     }

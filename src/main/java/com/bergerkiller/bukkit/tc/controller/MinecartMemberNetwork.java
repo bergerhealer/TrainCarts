@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManagerInternalState;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -46,7 +45,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public static final double VELOCITY_SOUND_RADIUS = 16;
     public static final double VELOCITY_SOUND_RADIUS_SQUARED = VELOCITY_SOUND_RADIUS * VELOCITY_SOUND_RADIUS;
 
-    private final AttachmentManagerInternalState state = new AttachmentManagerInternalState();
     private MinecartMember<?> member = null;
     private final Set<Player> velocityUpdateReceivers = new HashSet<>();
 
@@ -91,11 +89,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Debug: add a test attachment
         //this.attachments.add(new TestAttachment(this));
-    }
-
-    @Override
-    public AttachmentManagerInternalState getInternalState() {
-        return this.state;
     }
 
     @Override
@@ -309,7 +302,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
 
         this.velocityUpdateReceivers.remove(viewer);
-        this.removePassengerController(viewer);
     }
 
     @Override
@@ -485,9 +477,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             HelperMethods.perform_onDetached(this.rootAttachment);
             this.rootAttachment = null;
         }
-
-        // Clear to reset passenger controllers
-        this.clearPassengerControllers();
 
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
         this.rootAttachment = this.createAttachment(model.getConfig());

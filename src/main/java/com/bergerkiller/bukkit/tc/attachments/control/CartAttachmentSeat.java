@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -151,14 +153,13 @@ public class CartAttachmentSeat extends CartAttachment {
             }
         }
 
-        PassengerController pc = this.getManager().getPassengerController(viewer);
-
+        VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
         if ((this._fakeEntityId != -1) && (this._upsideDown || (this._useVirtualCamera && viewer == this._entity))) {
-            pc.unmount(this._parentMountId, this._entity.getEntityId());
-            pc.mount(this._parentMountId, this._fakeEntityId);
+            vmh.unmount(this._parentMountId, this._entity.getEntityId());
+            vmh.mount(this._parentMountId, this._fakeEntityId);
         } else {
-            pc.unmount(this._parentMountId, this._fakeEntityId);
-            pc.mount(this._parentMountId, this._entity.getEntityId());
+            vmh.unmount(this._parentMountId, this._fakeEntityId);
+            vmh.mount(this._parentMountId, this._entity.getEntityId());
         }
     }
 
@@ -214,7 +215,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 this._fakeCameraMount.spawn(viewer, calcMotion());
                 this._fakeCameraMount.syncPosition(true);
 
-                this.getManager().getPassengerController(viewer).mount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
+                PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
             }
 
             // Respawn an upside-down player
@@ -257,6 +258,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (this._entity instanceof Player && this._fakeEntityId != -1) {
             // Destroy old fake player entity
             PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._fakeEntityId}));
+            PlayerUtil.getVehicleMountController(viewer).remove(this._fakeEntityId);
 
             // Respawns the player as a normal player
             // Only needed when the player is not the viewer
@@ -279,12 +281,7 @@ public class CartAttachmentSeat extends CartAttachment {
         // reset the metadata and passenger info
         if (this._entity != null) {
             this.refreshMetadata(viewer, true);
-
-            PassengerController pc = this.getManager().getPassengerController(viewer);
-            pc.remove(this._entity.getEntityId(), false);
-            if (this._fakeEntityId != -1) {
-                pc.remove(this._fakeEntityId, false);
-            }
+            PlayerUtil.getVehicleMountController(viewer).remove(this._entity.getEntityId());
         }
     }
 
@@ -354,11 +351,11 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // If a previous entity was set, unseat it
         if (this._entity != null) {
-            for (PassengerController pc : this.getManager().getPassengerControllers()) {
-                pc.unmount(this._parentMountId, this._entity.getEntityId());
+            for (Player viewer : this.getViewers()) {
+                PlayerUtil.getVehicleMountController(viewer).unmount(this._parentMountId, this._entity.getEntityId());
             }
             if (this._fakeCameraMount != null && this._entity instanceof Player) {
-                this.getManager().getPassengerController((Player) this._entity).unmount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
+                PlayerUtil.getVehicleMountController((Player) this._entity).unmount(this._fakeCameraMount.getEntityId(), this._entity.getEntityId());
             }
             for (Player viewer : this.getViewers()) {
                 this.makeHidden(viewer);

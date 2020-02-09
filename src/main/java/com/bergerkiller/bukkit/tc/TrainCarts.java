@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
-import com.bergerkiller.bukkit.common.protocol.PacketMonitor;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
@@ -70,7 +69,6 @@ public class TrainCarts extends PluginBase {
     private AttachmentModelStore attachmentModels;
     private SpawnSignManager spawnSignManager;
     private SavedTrainPropertiesStore savedTrainsStore;
-    private TCMountPacketHandler mountHandler;
     private SeatAttachmentMap seatAttachmentMap;
     private RedstoneTracker redstoneTracker;
     private GlowColorTeamProvider glowColorTeamProvider;
@@ -94,16 +92,6 @@ public class TrainCarts extends PluginBase {
      */
     public SeatAttachmentMap getSeatAttachmentMap() {
         return this.seatAttachmentMap;
-    }
-
-    /**
-     * Gets the packet handler responsible for sending entity mount packets at the right time.
-     * The handler makes sure the vehicle and passengers are spawned before issueing the mount packet.
-     * 
-     * @return mount handler
-     */
-    public TCMountPacketHandler getMountHandler() {
-        return this.mountHandler;
     }
 
     /**
@@ -352,10 +340,6 @@ public class TrainCarts extends PluginBase {
         this.glowColorTeamProvider = new GlowColorTeamProvider(this);
         this.glowColorTeamProvider.enable();
 
-        //Initialize mount packet handler
-        this.mountHandler = new TCMountPacketHandler();
-        this.register((PacketMonitor) this.mountHandler, TCMountPacketHandler.MONITORED_TYPES);
-
         //Initialize seat attachment map
         this.seatAttachmentMap = new SeatAttachmentMap();
         this.register((PacketListener) this.seatAttachmentMap, SeatAttachmentMap.LISTENED_TYPES);
@@ -477,12 +461,6 @@ public class TrainCarts extends PluginBase {
         // Save train information
         if (!autosave) {
             OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
-        }
-
-        // Not really saving, but good to do regularly: clean up mount packet handler
-        // In case players that left the server are still stored there, this cleans that up
-        if (autosave) {
-            this.mountHandler.cleanup();
         }
     }
 

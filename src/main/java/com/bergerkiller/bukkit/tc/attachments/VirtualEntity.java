@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
@@ -54,7 +55,6 @@ public class VirtualEntity {
     private EntityType entityType = EntityType.CHICKEN;
     private int rotateCtr = 0;
     private SyncMode syncMode = SyncMode.NORMAL;
-    private boolean cancelUnmountLogic = false;
     private boolean useParentMetadata = false;
     private final ArrayList<Player> viewers = new ArrayList<Player>();
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
@@ -352,7 +352,7 @@ public class VirtualEntity {
             spawnPacket.setYaw(this.syncYaw);
             spawnPacket.setPitch(this.syncPitch);
             spawnPacket.setHeadYaw((this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
-            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, this.metaData);
+            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, getUsedMeta());
         } else {
             // Spawn entity (generic)
             PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
@@ -368,12 +368,10 @@ public class VirtualEntity {
             spawnPacket.setYaw(this.syncYaw);
             spawnPacket.setPitch(this.syncPitch);
             PacketUtil.sendPacket(viewer, spawnPacket);
+
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
+            PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
         }
-
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
-        PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
-
-        this.manager.getPassengerController(viewer).resend(this.entityId);
 
         if (this.syncMode == SyncMode.SEAT) {
             PacketPlayOutRelEntityMoveLookHandle movePacket = PacketPlayOutRelEntityMoveLookHandle.createNew(
@@ -430,12 +428,10 @@ public class VirtualEntity {
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (this.syncMode == SyncMode.NORMAL && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
-            this.cancelUnmountLogic = true;
             ArrayList<Player> old_viewers = new ArrayList<Player>(this.viewers);
             for (Player viewer : old_viewers) {
                 this.destroy(viewer);
             }
-            this.cancelUnmountLogic = false;
             this.refreshSyncPos();
             for (Player viewer : old_viewers) {
                 this.spawn(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
@@ -573,9 +569,7 @@ public class VirtualEntity {
         }
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.entityId});
         PacketUtil.sendPacket(viewer, destroyPacket);
-        if (!this.cancelUnmountLogic) {
-            this.manager.getPassengerController(viewer).remove(this.entityId, false);
-        }
+        PlayerUtil.getVehicleMountController(viewer).remove(this.entityId);
     }
 
     public void broadcast(CommonPacket packet) {
