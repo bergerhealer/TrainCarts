@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
+import com.bergerkiller.generated.net.minecraft.server.EnumHandHandle;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -158,19 +160,29 @@ public class TCPacketListener implements PacketListener {
             return;
         }
 
-        HumanHand mainHand = HumanHand.getMainHand(player);
+        if (EnumHandHandle.T.isAvailable()) {
+            HumanHand mainHand = HumanHand.getMainHand(player);
 
-        // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler
-        EquipmentSlot slot = EquipmentSlot.HAND;
-        if (hand != mainHand) {
-            // Needed in case it errors out for no reason on MC 1.8 or somesuch
-            try {
-                slot = EquipmentSlot.OFF_HAND;
-            } catch (Throwable t) {}
-        }
-        PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity(), slot);
-        if (CommonUtil.callEvent(interactEvent).isCancelled()) {
-            return;
+            // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler
+            EquipmentSlot slot = EquipmentSlot.HAND;
+            if (hand != mainHand) {
+                // Needed in case it errors out for no reason on MC 1.8 or somesuch
+                try {
+                    slot = EquipmentSlot.OFF_HAND;
+                } catch (Throwable t) {}
+            }
+
+            // Post-1.9: EquipmentSlot parameter
+            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity(), slot);
+            if (CommonUtil.callEvent(interactEvent).isCancelled()) {
+                return;
+            }
+        } else {
+            // Pre-1.9
+            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity());
+            if (CommonUtil.callEvent(interactEvent).isCancelled()) {
+                return;
+            }
         }
 
         // Interact
