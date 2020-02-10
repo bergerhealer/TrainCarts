@@ -4,12 +4,13 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -59,9 +60,10 @@ public final class DetectorRegion {
         World w = Bukkit.getServer().getWorld(this.world);
         if (w != null) {
             for (IntVector3 coord : this.coordinates) {
-                MinecartMember<?> mm = MinecartMemberStore.getAt(w, coord);
-                if (mm != null && this.members.add(mm)) {
-                    this.onEnter(mm);
+                for (MinecartMember<?> mm : RailMemberCache.findAll(BlockUtil.getBlock(w, coord))) {
+                    if (this.members.add(mm)) {
+                        this.onEnter(mm);
+                    }
                 }
             }
         }

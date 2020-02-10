@@ -319,11 +319,14 @@ public abstract class MinecartMemberStore {
     }
 
     /**
-     * Gets the Member that drives on the rails block specified
+     * Gets the Member that drives on the rails block specified.<br>
+     * <br>
+     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailMemberCache} instead.</b>
      * 
      * @param block of the rails
      * @return Minecart Member that drives on this Rail Block, null if not found
      */
+    @Deprecated
     public static MinecartMember<?> getAt(Block block) {
         return RailMemberCache.find(block);
         
@@ -331,12 +334,15 @@ public abstract class MinecartMemberStore {
     }
 
     /**
-     * Gets the Member that drives on the rails block specified
+     * Gets the Member that drives on the rails block specified.<br>
+     * <br>
+     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailMemberCache} instead.</b>
      * 
      * @param world to look in
      * @param coord of the rails block
      * @return Minecart Member that drives on this Rail Block, null if not found
      */
+    @Deprecated
     public static MinecartMember<?> getAt(org.bukkit.World world, IntVector3 coord) {
         return getAt(BlockUtil.getBlock(world, coord));
 
@@ -366,6 +372,14 @@ public abstract class MinecartMemberStore {
         */
     }
 
+    /**
+     * Gets the Member that drives on the rails block specified for the rails at the position specified.<br>
+     * <br>
+     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailMemberCache} instead.</b>
+     * 
+     * @param at Location the Member is expected to be at
+     * @return Minecart Member that drives on this Rail Block, null if not found
+     */
     public static MinecartMember<?> getAt(Location at) {
         RailPiece piece = RailType.findRailPiece(at);
         return (piece == null) ? null : getAt(piece.block());
