@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
  * The information about a single Minecart to be spawned as part of a {@link SpawnableGroup}
  */
 public class SpawnableMember {
+    private static final double DEFAULT_CART_LENGTH = 0.98;
     private final SpawnableGroup group;
     private final ConfigurationNode config;
     private final double length;
@@ -22,11 +23,11 @@ public class SpawnableMember {
         this.group = group;
         this.config = config.clone();
         if (this.config.contains("model.physical.cartLength")) {
-            this.length = this.config.get("model.physical.cartLength", 1.0);
+            this.length = this.config.get("model.physical.cartLength", DEFAULT_CART_LENGTH);
         } else if (this.group.getConfig().contains("model.physical.cartLength")) {
-            this.length = this.group.getConfig().get("model.physical.cartLength", 1.0);
+            this.length = this.group.getConfig().get("model.physical.cartLength", DEFAULT_CART_LENGTH);
         } else {
-            this.length = 1.0;
+            this.length = DEFAULT_CART_LENGTH;
         }
         this.entityType = this.config.get("entityType", EntityType.MINECART);
         this.flipped = this.config.get("flipped", false);

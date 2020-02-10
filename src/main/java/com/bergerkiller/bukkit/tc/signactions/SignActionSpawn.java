@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.ChatColor;
@@ -285,6 +284,9 @@ public class SignActionSpawn extends SignAction {
     /**
      * Gets the Minecart spawn positions into a certain direction.
      * The first location is always the startLoc Location.
+     * With atCenter is true, the first cart spawned will be positioned at the start location,
+     * even if that width clips through other blocks. When false, it will be spawned at an offset away
+     * to make sure the cart edge does not clip past startLoc.
      * 
      * @param startLoc position to start spawning from
      * @param atCenter whether the first spawn position is the startLoc (true), or an offset away (false)
