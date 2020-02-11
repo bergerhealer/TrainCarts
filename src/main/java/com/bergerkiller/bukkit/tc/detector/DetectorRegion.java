@@ -61,9 +61,7 @@ public final class DetectorRegion {
         if (w != null) {
             for (IntVector3 coord : this.coordinates) {
                 for (MinecartMember<?> mm : RailMemberCache.findAll(BlockUtil.getBlock(w, coord))) {
-                    if (this.members.add(mm)) {
-                        this.onEnter(mm);
-                    }
+                    mm.getSignTracker().addToDetectorRegion(this);
                 }
             }
         }

@@ -251,20 +251,12 @@ public class SignTrackerGroup extends SignTracker {
                     }
                 }
 
-                // Detect new detector regions on the rails
-                Set<DetectorRegion> newRegions = Collections.emptySet();
+                // Detect new detector regions on the rails, add to member detector regions, and own detector regions list
                 for (TrackedRail rail : rails) {
                     for (DetectorRegion region : DetectorRegion.getRegions(rail.state.railBlock())) {
-                        if (!this.detectorRegions.contains(region) && region.add(rail.member)) {
-                            rail.member.getSignTracker().detectorRegions.add(region);
-                            if (newRegions.isEmpty()) {
-                                newRegions = new LinkedHashSet<DetectorRegion>();
-                            }
-                            newRegions.add(region);
-                        }
+                        rail.member.getSignTracker().addToDetectorRegion(region);
                     }
                 }
-                this.detectorRegions.addAll(newRegions);
             }
 
             // Perform routine update events

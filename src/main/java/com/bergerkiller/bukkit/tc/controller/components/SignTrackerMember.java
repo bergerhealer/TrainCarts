@@ -33,6 +33,28 @@ public class SignTrackerMember extends SignTracker {
         return owner;
     }
 
+    /**
+     * Adds this member to a region. Returns false if already added.
+     * 
+     * @param region
+     * @return True if member was added to the region, False if not
+     */
+    public boolean addToDetectorRegion(DetectorRegion region) {
+        if (!region.add(this.owner)) {
+            return false;
+        }
+
+        // Add to list of regions of this member
+        this.detectorRegions.add(region);
+
+        // Add to list of regions of the entire group
+        List<DetectorRegion> groupRegions = this.owner.getGroup().getSignTracker().detectorRegions;
+        if (!groupRegions.contains(region)) {
+            groupRegions.add(region);
+        }
+        return true;
+    }
+
     @Override
     public void clear() {
         super.clear();
