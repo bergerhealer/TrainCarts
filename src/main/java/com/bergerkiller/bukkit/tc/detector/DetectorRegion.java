@@ -233,6 +233,7 @@ public final class DetectorRegion {
         }
         for (MinecartGroup group : this.getGroups()) {
             listener.onEnter(group);
+            group.getSignTracker().getActiveDetectorRegions().add(this);
         }
     }
 
