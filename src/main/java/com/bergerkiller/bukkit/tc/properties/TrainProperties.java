@@ -73,6 +73,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
+    private double gravity = 1.0;
     private String killMessage = "";
 
     protected TrainProperties(String trainname) {
@@ -158,6 +159,24 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setSpeedLimit(double limit) {
         this.speedLimit = MathUtil.clamp(limit, 0, TCConfig.maxVelocity);
+    }
+
+    /**
+     * Gets the gravity factor applied to the train, where 1.0 is the default
+     * 
+     * @return gravity factor
+     */
+    public double getGravity() {
+        return this.gravity;
+    }
+
+    /**
+     * Sets the gravity factor applied to the train, where 1.0 is the default
+     * 
+     * @param gravity
+     */
+    public void setGravity(double gravity) {
+        this.gravity = gravity;
     }
 
     /**
@@ -956,6 +975,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setCollisionModeForMobs(mode);
         } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
             this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
+        } else if (LogicUtil.containsIgnoreCase(key, "gravity")) {
+            this.setGravity(ParseUtil.parseDouble(arg, 1.0));
         } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
             this.allowManualMovement = ParseUtil.parseBool(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "keepcloaded", "loadchunks", "keeploaded")) {
@@ -1178,6 +1199,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.blockCollision = node.get("collision.block", this.blockCollision);
         }
         this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
+        this.gravity = node.get("gravity", this.gravity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
         this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
         this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
@@ -1263,6 +1285,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.blockCollision = source.blockCollision;
         this.setCollisionDamage(source.collisionDamage);
         this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
+        this.gravity = source.gravity;
         this.requirePoweredMinecart = source.requirePoweredMinecart;
         this.setKeepChunksLoaded(source.keepChunksLoaded);
         this.allowManualMovement = source.allowManualMovement;
@@ -1287,6 +1310,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
+        node.set("gravity", this.gravity);
         node.set("waitDistance", this.waitDistance);
         node.set("suffocation", this.suffocation);
         node.set("killMessage", this.killMessage);
@@ -1330,6 +1354,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("collisionDamage", this.getCollisionDamage());
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
+        node.set("gravity", this.gravity != 1.0 ? this.gravity : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
         node.set("suffocation", this.suffocation ? null : false);
         node.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);

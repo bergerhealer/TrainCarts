@@ -55,6 +55,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_ENTER = new Permission("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited");
     public static final Permission COMMAND_LAUNCH = new Permission("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited");
     public static final Permission COMMAND_ANIMATE = new Permission("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation");
+    public static final Permission COMMAND_GRAVITY = new Permission("train.command.gravity", PermissionDefault.OP, "Whether the player can use a command to change the gravity factor of a train");
     public static final Permission BUILD_STATION = new Permission("train.build.station", PermissionDefault.OP, "The player can build train stations");
     public static final Permission BUILD_SPAWNER = new Permission("train.build.spawner", PermissionDefault.OP, "The player can build train spawners");
     public static final Permission SPAWNER_AUTOMATIC = new Permission("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts");

@@ -279,13 +279,15 @@ public class TrainCommands {
         } else if (LogicUtil.containsIgnoreCase(cmd, "speedlimit", "maxspeed")) {
             Permission.COMMAND_SETSPEEDLIMIT.handle(p);
             if (args.length == 1) {
-                try {
-                    prop.setSpeedLimit(Double.parseDouble(args[0]));
-                } catch (NumberFormatException ex) {
-                    prop.setSpeedLimit(0.4);
-                }
+                prop.setSpeedLimit(ParseUtil.parseDouble(args[0], 0.4));
             }
             p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
+        } else if (LogicUtil.containsIgnoreCase(cmd, "gravity")) {
+            Permission.COMMAND_GRAVITY.handle(p);
+            if (args.length == 1) {
+                prop.setGravity(ParseUtil.parseDouble(args[0], 0.4));
+            }
+            p.sendMessage(ChatColor.YELLOW + "Gravity: " + ChatColor.WHITE + prop.getGravity() + " X");
         } else if (LogicUtil.containsIgnoreCase(cmd, "requirepoweredminecart", "requirepowered")) {
             Permission.COMMAND_SETPOWERCARTREQ.handle(p);
             if (args.length == 1) {

@@ -1600,7 +1600,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // It is important to do it here, so that gravity is taken into account
             // when sliding over the ground. Doing this in the wrong spot will make the minecart 'hover'.
             if (this.getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
-                double usf_sq = this.getUpdateSpeedFactor() * this.getUpdateSpeedFactor();
+                double usf_sq = this.getProperties().getGravity() * this.getUpdateSpeedFactor() * this.getUpdateSpeedFactor();
                 for (MinecartMember<?> member : this) {
                     if (member.isUnloaded()) continue; // not loaded - no physics occur
                     if (member.isMovementControlled()) continue; // launched by station, launcher, etc.
