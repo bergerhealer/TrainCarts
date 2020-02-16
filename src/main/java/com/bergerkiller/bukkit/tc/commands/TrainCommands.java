@@ -89,7 +89,13 @@ public class TrainCommands {
                 Permission.COMMAND_MANUALMOVE.handle(p);
                 prop.setManualMovementAllowed(ParseUtil.parseBool(args[0]));
             }
-            p.sendMessage(ChatColor.YELLOW + "Players can move carts by damaging them: " + ChatColor.WHITE + prop.isManualMovementAllowed());
+            p.sendMessage(ChatColor.YELLOW + "Players can move carts while inside: " + ChatColor.WHITE + prop.isManualMovementAllowed());
+        } else if (LogicUtil.containsIgnoreCase(cmd, "mobmanualmove", "allowmobmanual", "mobmanual", "allowmobmanualmovement")) {
+            if (args.length == 1) {
+                Permission.COMMAND_MANUALMOVE.handle(p);
+                prop.setMobManualMovementAllowed(ParseUtil.parseBool(args[0]));
+            }
+            p.sendMessage(ChatColor.YELLOW + "Mobs can move carts while inside: " + ChatColor.WHITE + prop.isMobManualMovementAllowed());
         } else if (LogicUtil.containsIgnoreCase(cmd, "setownerperm", "setownerpermission", "setownerpermissions")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwnerPermissions();

@@ -1668,19 +1668,24 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Vehicle steering input from living entity passengers
         // This is only allowed when the property is enabled and our velocity < 0.1
         // blocks/tick (0.01 squared)
-        if (getGroup().getProperties().isManualMovementAllowed() && entity.vel.lengthSquared() < 0.01
-                && !this.isDerailed()) {
+        boolean player_manual = getGroup().getProperties().isManualMovementAllowed();
+        boolean mob_manual = getGroup().getProperties().isMobManualMovementAllowed();
+        if ((player_manual || mob_manual) && entity.vel.lengthSquared() < 0.01 && !this.isDerailed()) {
             for (Entity passenger : entity.getPassengers()) {
-                if (passenger instanceof LivingEntity) {
-                    float forwardMovement = EntityLivingHandle.fromBukkit((LivingEntity) passenger)
-                            .getForwardMovement();
-                    if (forwardMovement > 0.0f) {
-                        // Use Entity yaw and pitch to find the direction to boost the minecart into
-                        // For now, this only supports horizontal 'pushing'
-                        Vector direction = ((LivingEntity) passenger).getEyeLocation().getDirection();
-                        entity.vel.add(direction.getX() * TCConfig.manualMovementFactor, 0.0,
-                                direction.getZ() * TCConfig.manualMovementFactor);
-                    }
+                if (!(passenger instanceof LivingEntity)) {
+                    continue;
+                }
+                if (!((passenger instanceof Player) ? player_manual : mob_manual)) {
+                    continue;
+                }
+                float forwardMovement = EntityLivingHandle.fromBukkit((LivingEntity) passenger)
+                        .getForwardMovement();
+                if (forwardMovement > 0.0f) {
+                    // Use Entity yaw and pitch to find the direction to boost the minecart into
+                    // For now, this only supports horizontal 'pushing'
+                    Vector direction = ((LivingEntity) passenger).getEyeLocation().getDirection();
+                    entity.vel.add(direction.getX() * TCConfig.manualMovementFactor, 0.0,
+                            direction.getZ() * TCConfig.manualMovementFactor);
                 }
             }
         }
@@ -1724,16 +1729,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Update the entity shape
         entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
-
-        if (getGroup().getProperties().isManualMovementAllowed() && entity.hasPassenger()) {
-            for (Entity passenger : entity.getPassengers()) {
-                Vector vel = passenger.getVelocity();
-                vel.setY(0.0);
-                if (vel.lengthSquared() > 1.0E-4 && entity.vel.xz.lengthSquared() < 0.01) {
-                    entity.vel.xz.add(vel.multiply(TCConfig.manualMovementFactor));
-                }
-            }
-        }
 
         // Perform any pre-movement rail updates
         getRailType().onPreMove(this);

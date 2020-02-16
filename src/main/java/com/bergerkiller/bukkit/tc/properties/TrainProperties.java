@@ -62,7 +62,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private double speedLimit = 0.4;
     private double collisionDamage = 1.0D;
     private boolean keepChunksLoaded = false;
-    private boolean allowManualMovement = false;
+    private boolean allowPlayerManualMovement = false;
+    private boolean allowMobManualMovement = false;
     private boolean allowPlayerTake = false;
     private boolean soundEnabled = true;
     private List<String> tickets = new ArrayList<>();
@@ -759,21 +760,39 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether minecart passengers can manually move the train they are in
+     * Gets whether train player passengers can manually move the train they are in
      *
      * @return True if manual movement is allowed, False if not
      */
     public boolean isManualMovementAllowed() {
-        return this.allowManualMovement;
+        return this.allowPlayerManualMovement;
     }
 
     /**
-     * Sets whether minecart passengers can manually move the train they are in
+     * Sets whether train player passengers can manually move the train they are in
      *
      * @param allow state to set to
      */
     public void setManualMovementAllowed(boolean allow) {
-        this.allowManualMovement = allow;
+        this.allowPlayerManualMovement = allow;
+    }
+
+    /**
+     * Gets whether train non-player passengers can manually move the train they are in
+     *
+     * @return True if manual movement is allowed, False if not
+     */
+    public boolean isMobManualMovementAllowed() {
+        return this.allowMobManualMovement;
+    }
+
+    /**
+     * Sets whether train non-player passengers can manually move the train they are in
+     *
+     * @param allow state to set to
+     */
+    public void setMobManualMovementAllowed(boolean allow) {
+        this.allowMobManualMovement = allow;
     }
 
     /**
@@ -978,7 +997,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "gravity")) {
             this.setGravity(ParseUtil.parseDouble(arg, 1.0));
         } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
-            this.allowManualMovement = ParseUtil.parseBool(arg);
+            this.setManualMovementAllowed(ParseUtil.parseBool(arg));
+        } else if (LogicUtil.containsIgnoreCase(key, "allowmobmanual", "mobmanualmove", "mobmanual")) {
+            this.setMobManualMovementAllowed(ParseUtil.parseBool(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "keepcloaded", "loadchunks", "keeploaded")) {
             this.setKeepChunksLoaded(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("addtag")) {
@@ -1202,7 +1223,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.gravity = node.get("gravity", this.gravity);
         this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
         this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
-        this.allowManualMovement = node.get("allowManualMovement", this.allowManualMovement);
+        this.setManualMovementAllowed(node.get("allowManualMovement", this.isManualMovementAllowed()));
+        this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isManualMovementAllowed()));
         this.waitDistance = node.get("waitDistance", this.waitDistance);
         this.suffocation = node.get("suffocation", this.suffocation);
         this.killMessage = node.get("killMessage", this.killMessage);
@@ -1288,7 +1310,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.gravity = source.gravity;
         this.requirePoweredMinecart = source.requirePoweredMinecart;
         this.setKeepChunksLoaded(source.keepChunksLoaded);
-        this.allowManualMovement = source.allowManualMovement;
+        this.allowPlayerManualMovement = source.allowPlayerManualMovement;
+        this.allowMobManualMovement = source.allowMobManualMovement;
         this.tickets = new ArrayList<>(source.tickets);
         this.setSkipOptions(source.skipOptions);
         this.blockTypes = source.blockTypes;
@@ -1330,7 +1353,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        node.set("allowManualMovement", this.allowManualMovement);
+        node.set("allowManualMovement", this.isManualMovementAllowed());
+        node.set("allowMobManualMovement", this.isMobManualMovementAllowed());
         node.set("tickets", StringUtil.EMPTY_ARRAY);
         node.set("collision.players", this.playerCollision);
         node.set("collision.misc", this.miscCollision);
@@ -1378,7 +1402,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        node.set("allowManualMovement", this.allowManualMovement ? true : null);
+        node.set("allowManualMovement", this.isManualMovementAllowed() ? true : null);
+        node.set("allowMobManualMovement", this.isMobManualMovementAllowed() ? true : null);
         node.set("tickets", LogicUtil.toArray(this.tickets, String.class));
         for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
             CollisionMode value = this.collisionModes.get(collisionConfigObject);
