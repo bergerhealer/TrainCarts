@@ -11,7 +11,7 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
 /**
@@ -22,7 +22,7 @@ import com.google.common.collect.ListMultimap;
  * needs to be found.
  */
 public class RailMemberCache {
-    private static final ListMultimap<Block, MinecartMember<?>> cache = LinkedListMultimap.create(10000);
+    private static final ListMultimap<Block, MinecartMember<?>> cache = ArrayListMultimap.create(2000, 2);
 
     /**
      * Wipes all members stored in the cache
