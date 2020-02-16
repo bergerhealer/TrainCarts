@@ -1,10 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
-import org.bukkit.entity.Player;
-
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
 
 /**
  * Manages one or more trees of attachments on a more general level.
@@ -15,7 +11,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.PassengerController;
  * <li>Tracking what players can see the attachments, calling makeVisible
  * and makeHidden when required</li>
  * <li>Updating the position (root) transformation for the root attachments</li>
- * <li>Tracking the vehicle-passenger relationships of virtual entities inside attachments</li>
  * <li>Seating players inside seat-capable attachments</li>
  * <li>Providing context when needed (for example, that of a Traincarts Minecart)</li>
  * </ul>
@@ -28,26 +23,6 @@ public interface AttachmentManager {
      * @return world
      */
     org.bukkit.World getWorld();
-
-    /**
-     * Deprecated: use {@link #getVehicleMountHandler(viewer)} instead.
-     */
-    @Deprecated
-    default PassengerController getPassengerController(Player viewer) {
-        return new PassengerController(viewer);
-    }
-
-    /**
-     * Deprecated: use {@link #getVehicleMountHandler(viewer)} instead.
-     */
-    @Deprecated
-    default PassengerController getPassengerController(Player viewer, boolean createIfNotFound) {
-        return new PassengerController(viewer);
-    }
-
-    //default Collection<PassengerController> getPassengerControllers() {
-    //    return this.getInternalState().passengerControllers.values();
-    //}
 
     /**
      * Gets the {@link AttachmentTypeRegistry} used to find and create new attachments from
