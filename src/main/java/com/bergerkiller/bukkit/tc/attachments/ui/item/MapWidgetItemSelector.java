@@ -1,20 +1,16 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapTexture;
-import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -154,22 +150,52 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                 tab.addWidget(unbreakableOption.setPosition(8, 1));
             }
 
-            { // Custom Model Data (1.14 or later)
-                /*
-                tab.addWidget(new MapWidgetBlinkyButton() {
+            { // Name the item
+                final MapWidgetSubmitText nameItemTextBox = new MapWidgetSubmitText() {
                     @Override
-                    public void onClick() {
+                    public void onAttached() {
+                        this.setDescription("Enter Item Display Name\nUse empty space to reset");
+                    }
+
+                    @Override
+                    public void onAccept(String text) {
                         ItemStack item = variantList.getItem();
                         if (item == null) {
                             return;
                         }
-                        
+                        item = ItemUtil.createItem(item);
+                        if (text.trim().isEmpty()) {
+                            ItemUtil.setDisplayName(item, null);
+                        } else {
+                            ItemUtil.setDisplayName(item, text);
+                        }
+                        variantList.setItem(item);
                     }
-                }).setIcon("attachments/item_cmd.png")
-                  .setTooltip("Custom Model Data")
-                  .setPosition(25, 1);
-                */
+                };
+                tab.addWidget(nameItemTextBox);
 
+                final MapWidgetBlinkyButton nameItemButton = new MapWidgetBlinkyButton() {
+                    @Override
+                    public void onClick() {
+                        nameItemTextBox.activate();
+                    }
+                };
+                nameItemButton.setIcon("attachments/item_named.png");
+                tab.addWidget(nameItemButton.setPosition(25, 1));
+
+                this.variantList.registerItemChangedListener(new ItemChangedListener() {
+                    @Override
+                    public void onItemChanged(ItemStack item) {
+                        if (ItemUtil.hasDisplayName(item)) {
+                            nameItemButton.setTooltip("Name (\"" + ItemUtil.getDisplayName(item) + "\")");
+                        } else {
+                            nameItemButton.setTooltip("Name (None)");
+                        }
+                    }
+                }, true);
+            }
+
+            { // Custom Model Data (1.14 or later)
                 final CustomModelDataSelector selector = new CustomModelDataSelector() {
                     @Override
                     protected MapWidget navigateNextWidget(List<MapWidget> widgets, MapPlayerInput.Key key) {
@@ -199,7 +225,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         variantList.setItem(item);
                     }
                 };
-                selector.setPosition(42, 2);
+                selector.setPosition(50, 2);
                 tab.addWidget(selector);
 
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
