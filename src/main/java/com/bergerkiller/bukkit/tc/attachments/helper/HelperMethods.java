@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
+import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 
 /**
@@ -57,10 +58,10 @@ public class HelperMethods {
         } else {
             state.curr_transform.set(transform);
         }
-        attachment.getConfiguredPosition().anchor.apply(attachment, state.curr_transform);
+        state.position.anchor.apply(attachment, state.curr_transform);
 
         // Apply local transformation
-        state.curr_transform.multiply(attachment.getConfiguredPosition().transform);
+        state.curr_transform.multiply(state.position.transform);
 
         // Animation is performed on the attachment itself (not the relative position)
         boolean active = attachment.isActive();
