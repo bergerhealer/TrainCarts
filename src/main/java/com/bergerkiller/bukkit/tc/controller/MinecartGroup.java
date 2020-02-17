@@ -1414,27 +1414,24 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         try {
             double totalforce = this.getAverageForce();
             double speedlimit = this.getProperties().getSpeedLimit();
-            int update_steps = 1;
             if (totalforce > 0.4 && speedlimit > 0.4) {
-                update_steps = (int) Math.ceil(speedlimit / 0.4);
+                this.updateStepCount = (int) Math.ceil(speedlimit / 0.4);
+                this.updateSpeedFactor = 1.0 / (double) this.updateStepCount;
+            } else {
+                this.updateStepCount = 1;
+                this.updateSpeedFactor = 1.0;
             }
-            this.updateSpeedFactor = 1.0 / (double) update_steps;
 
             try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {
                 // Perform the physics changes
-                if (update_steps > 1) {
-                    this.updateStepCount = update_steps;
+                if (this.updateStepCount > 1) {
                     for (MinecartMember<?> mm : this) {
                         mm.getEntity().vel.multiply(this.updateSpeedFactor);
                     }
-                    for (int i = 0; i < update_steps; i++) {
-                        this.updateStepNr = (i+1);
-                        while (!this.doPhysics_step()) ;
-                    }
-                } else {
-                    this.updateStepCount = 1;
-                    this.updateStepNr = 1;
-                    this.doPhysics_step();
+                }
+                for (int i = 1; i <= this.updateStepCount; i++) {
+                    this.updateStepNr = i;
+                    while (!this.doPhysics_step());
                 }
             }
 
