@@ -548,6 +548,19 @@ public abstract class RailType {
     }
 
     /**
+     * Gets whether this Rail Type uses block activation as part of basic physics.
+     * Examples are detector rails and pressure plates.
+     * This property is used to optimize movement physics by not checking when not needed.
+     * Is ignored completely when this optimization is turned off in the configuration.
+     * 
+     * @param railBlock
+     * @return True if block activation is used
+     */
+    public boolean hasBlockActivation(Block railBlock) {
+        return false;
+    }
+
+    /**
      * Handles a Minecart colliding with a Block while using this Rail Type.
      *
      * @param member     that collided

@@ -28,8 +28,10 @@ import org.bukkit.material.Stairs;
 import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -58,6 +60,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
+import com.bergerkiller.mountiplex.reflection.SafeMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 
 public class Util {
@@ -1289,6 +1292,21 @@ public class Util {
             return animationodeTime_NumberFormat1.format(time);
         } else {
             return "0.0";
+        }
+    }
+
+    // For BKC 1.15.2-v1 support (remove when no longer backwards compatible)
+    private static final SafeMethod<Void> setBlockActivationEnabledMethod;
+    static {
+        if (Common.hasCapability("Common:EntityController:SetBlockActivationEnabled")) {
+            setBlockActivationEnabledMethod = new SafeMethod<Void>(EntityController.class, "setBlockActivationEnabled", boolean.class);
+        } else {
+            setBlockActivationEnabledMethod = null;
+        }
+    }
+    public static void setBlockActivationEnabled(EntityController<?> controller, boolean enabled) {
+        if (setBlockActivationEnabledMethod != null) {
+            setBlockActivationEnabledMethod.invoke(controller, enabled);
         }
     }
 }

@@ -77,6 +77,7 @@ public class TCConfig {
     public static boolean allowNetherTeleport;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
     public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
+    public static boolean optimizeBlockActivation;
     public static boolean EssentialsEnabled = false;
     public static boolean SignLinkEnabled = false;
     public static boolean MinecartManiaEnabled = false;
@@ -276,6 +277,12 @@ public class TCConfig {
         config.setHeader("optimizeInteraction", "\nWhether destroying or entering minecarts is made easier to do");
         config.addHeader("optimizeInteraction", "When optimized, block / air clicks are intercepted and handled as clicks with minecarts instead");
         optimizeInteraction = config.get("optimizeInteraction", true);
+
+        config.setHeader("optimizeBlockActivation", "\nWhether block activation during movement is skipped when the rail type does not support it");
+        config.addHeader("optimizeBlockActivation", "When optimized, pressure plates near (but not on) the track are not activated");
+        config.addHeader("optimizeBlockActivation", "Rails that are activated, like detector rails, will function just fine");
+        config.addHeader("optimizeBlockActivation", "This optimization helps improve performance of train movement physics, potentially improving tps");
+        optimizeBlockActivation = config.get("optimizeBlockActivation", true);
 
         config.setHeader("instantCreativeDestroy", "\nWhen set to true, players will be able to break minecarts with a single slap\n" +
                 "\nNo item drops are spawned for minecarts destroyed this way. Minecart contents ARE dropped." +

@@ -65,6 +65,7 @@ import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
@@ -1880,6 +1881,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
          */
 
         this.directionFrom = this.directionTo;
+
+        // Before executing movement logic, check if we should check for block activation at all
+        // Only used when BKCommonLib supports it (1.15.2-v2) and enabled in the configuration
+        if (TCConfig.optimizeBlockActivation) {
+            boolean enabled = false;
+            for (TrackedRail rail : this.getGroup().getRailTracker().getRailInformation()) {
+                if (rail.member == this && rail.state.railPiece().hasBlockActivation()) {
+                    enabled = true;
+                    break;
+                }
+            }
+            Util.setBlockActivationEnabled(this, enabled);
+        }
 
         // Move using set motion, and perform post-move rail logic
         try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE.start()) {

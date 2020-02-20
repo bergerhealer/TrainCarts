@@ -52,6 +52,16 @@ public final class RailPiece {
     }
 
     /**
+     * Asks the rail type whether the rail block of this rail piece uses block activation.
+     * See also: {@link RailType#hasBlockActivation(Block)}.
+     * 
+     * @return True if block activation is used when driving on this rail piece
+     */
+    public boolean hasBlockActivation() {
+        return this.type.hasBlockActivation(this.block);
+    }
+
+    /**
      * Gets the world where the rail exists.
      * This will be available even when the rail block is not.
      * 

@@ -21,6 +21,11 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     }
 
     @Override
+    public boolean hasBlockActivation(Block railBlock) {
+        return true; // Only wooden plates technically, but this is easy enough.
+    }
+
+    @Override
     public BlockFace[] getPossibleDirections(Block trackBlock) {
         BlockFace dir = getDirection(trackBlock);
         if (dir == BlockFace.SELF) {
