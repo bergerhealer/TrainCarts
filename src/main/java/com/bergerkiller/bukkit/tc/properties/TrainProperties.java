@@ -831,9 +831,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public void setSkipOptions(SignSkipOptions options) {
-        this.skipOptions.filter = options.filter;
-        this.skipOptions.ignoreCtr = options.ignoreCtr;
-        this.skipOptions.skipCtr = options.skipCtr;
+        this.skipOptions.load(options, false);
     }
 
     public String getKillMessage() {
@@ -1199,7 +1197,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.collision = node.get("trainCollision", this.collision);
         this.setCollisionDamage(node.get("collisionDamage", this.getCollisionDamage()));
         this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
+        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
+        this.gravity = node.get("gravity", this.gravity);
+        this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
+        this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
+        this.setManualMovementAllowed(node.get("allowManualMovement", this.isManualMovementAllowed()));
+        this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isMobManualMovementAllowed()));
+        this.waitDistance = node.get("waitDistance", this.waitDistance);
+        this.suffocation = node.get("suffocation", this.suffocation);
+        this.killMessage = node.get("killMessage", this.killMessage);
 
+        // Slowdown options for friction and gravity (and others?)
         if (node.isNode("slowDown")) {
             ConfigurationNode slowDownNode = node.getNode("slowDown");
             for (SlowdownMode mode : SlowdownMode.values()) {
@@ -1209,30 +1217,60 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setSlowingDown(node.get("slowDown", true));
         }
 
+        // Banking
+        if (node.isNode("banking")) {
+            ConfigurationNode banking = node.getNode("banking");
+            this.bankingStrength = banking.get("strength", this.bankingStrength);
+            this.bankingSmoothness = banking.get("smoothness", this.bankingSmoothness);
+        }
+
+        // Collision options. If specified, remove per-mob collision rules and read from the node
         if (node.contains("collision")) {
+            this.collisionModes.clear();
             for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                CollisionMode mode = node.get("collision." + collisionConfigObject.getMobType(), CollisionMode.SKIP);
-                this.collisionModes.put(collisionConfigObject, mode == CollisionMode.SKIP ? null : mode);
+                CollisionMode mode = node.get("collision." + collisionConfigObject.getMobType(), CollisionMode.class, null);
+                if (mode != null) {
+                    this.collisionModes.put(collisionConfigObject, mode);
+                }
             }
             this.playerCollision = node.get("collision.players", this.playerCollision);
             this.miscCollision = node.get("collision.misc", this.miscCollision);
             this.trainCollision = node.get("collision.train", this.trainCollision);
             this.blockCollision = node.get("collision.block", this.blockCollision);
         }
-        this.speedLimit = MathUtil.clamp(node.get("speedLimit", this.speedLimit), 0, TCConfig.maxVelocity);
-        this.gravity = node.get("gravity", this.gravity);
-        this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
-        this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
-        this.setManualMovementAllowed(node.get("allowManualMovement", this.isManualMovementAllowed()));
-        this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isManualMovementAllowed()));
-        this.waitDistance = node.get("waitDistance", this.waitDistance);
-        this.suffocation = node.get("suffocation", this.suffocation);
-        this.killMessage = node.get("killMessage", this.killMessage);
-        for (String ticket : node.getList("tickets", String.class)) {
-            this.tickets.add(ticket);
+
+        // Tickets that can be used for this train
+        if (node.contains("tickets")) {
+            this.tickets.clear();
+            for (String ticket : node.getList("tickets", String.class)) {
+                this.tickets.add(ticket);
+            }
         }
+
+        // Load train skip options, if it exists
         if (node.isNode("skipOptions")) {
             this.skipOptions.load(node.getNode("skipOptions"));
+        }
+
+        // These properties are purely saved so they are written correctly when saving defaults
+        // There are not meant to be read anywhere, because these exist as part of minecart metadata
+        // Only read these when actually set, don't add them using get's default if not so
+        // We don't want
+        if (node.contains("blockTypes") || node.contains("blockOffset")) {
+            this.blockTypes = node.get("blockTypes", this.blockTypes);
+            this.blockOffset = node.get("blockOffset", this.blockOffset);
+
+            // Apply block types / block height to the actual minecart, if set
+            if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
+                MinecartGroup group = this.getHolder();
+                if (group != null) {
+                    if (this.blockTypes.isEmpty()) {
+                        SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
+                    } else {
+                        SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
+                    }
+                }
+            }
         }
 
         // Only used when loading defaults from tickets, or when 'destination: ' is set in DefTrProps.yml
@@ -1253,42 +1291,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 }
             }
         }
-
-        // These properties are purely saved so they are written correctly when saving defaults
-        // There are not meant to be read anywhere, because these exist as part of minecart metadata
-        // Only read these when actually set, don't add them using get's default if not so
-        // We don't want
-        if (node.contains("blockTypes") || node.contains("blockOffset")) {
-            this.blockTypes = node.get("blockTypes", "");
-            this.blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
-        } else {
-            this.blockTypes = "";
-            this.blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
-        }
-
-        // Banking
-        if (node.isNode("banking")) {
-            ConfigurationNode banking = node.getNode("banking");
-            this.bankingStrength = banking.get("strength", this.bankingStrength);
-            this.bankingSmoothness = banking.get("smoothness", this.bankingSmoothness);
-        }
-
-        // Apply block types / block height to the actual minecart, if set
-        if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
-            MinecartGroup group = this.getHolder();
-            if (group != null) {
-                if (this.blockTypes.isEmpty()) {
-                    SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
-                } else {
-                    SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
-                }
-            }
-        }
     }
 
     /**
      * Loads the properties from the TrainProperties source specified<br>
      * Cart properties are not transferred or cleared!
+     * This is used when splitting the properties of one train into two.
      *
      * @param source to load from
      */
@@ -1298,22 +1306,22 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.collision = source.collision;
         this.slowDownOptions.clear();
         this.slowDownOptions.addAll(source.slowDownOptions);
-        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            this.collisionModes.put(collisionConfigObject, source.getCollisionMode(collisionConfigObject));
-        }
+        this.collisionModes.clear();
+        this.collisionModes.putAll(source.collisionModes);
         this.playerCollision = source.playerCollision;
         this.miscCollision = source.miscCollision;
         this.trainCollision = source.trainCollision;
         this.blockCollision = source.blockCollision;
         this.setCollisionDamage(source.collisionDamage);
-        this.speedLimit = MathUtil.clamp(source.speedLimit, 0, 20);
+        this.speedLimit = source.speedLimit;
         this.gravity = source.gravity;
         this.requirePoweredMinecart = source.requirePoweredMinecart;
         this.setKeepChunksLoaded(source.keepChunksLoaded);
         this.allowPlayerManualMovement = source.allowPlayerManualMovement;
         this.allowMobManualMovement = source.allowMobManualMovement;
-        this.tickets = new ArrayList<>(source.tickets);
-        this.setSkipOptions(source.skipOptions);
+        this.tickets.clear();
+        this.tickets.addAll(source.tickets);
+        this.skipOptions.load(source.skipOptions, true);
         this.blockTypes = source.blockTypes;
         this.blockOffset = source.blockOffset;
         this.waitDistance = source.waitDistance;

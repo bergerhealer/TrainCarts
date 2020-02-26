@@ -264,6 +264,11 @@ public class AttachmentModel {
         }
     }
 
+    @Override
+    public AttachmentModel clone() {
+        return new AttachmentModel(this.getConfig().clone());
+    }
+
     /**
      * Creates the default, unmodified model for a Vanilla Minecart
      * 

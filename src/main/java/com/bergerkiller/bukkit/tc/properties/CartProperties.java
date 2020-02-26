@@ -556,6 +556,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.ownerPermissions.addAll(from.ownerPermissions);
         this.tags.clear();
         this.tags.addAll(from.tags);
+        this.blockBreakTypes.clear();
+        this.blockBreakTypes.addAll(from.blockBreakTypes);
+        this.enterMessage = from.enterMessage;
+        this.skipOptions.load(from.skipOptions, true);
         this.allowPlayerEnter = from.allowPlayerEnter;
         this.allowPlayerExit = from.allowPlayerExit;
         this.invincible = from.invincible;
@@ -564,20 +568,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.exitPitch = from.exitPitch;
         this.spawnItemDrops = from.spawnItemDrops;
         this.driveSound = from.driveSound;
+        this.model = (from.model == null) ? null : from.model.clone();
     }
 
     @Override
     public void load(ConfigurationNode node) {
-        this.owners.clear();
-        for (String owner : node.getList("owners", String.class)) {
-            this.owners.add(owner.toLowerCase());
-        }
-        this.ownerPermissions.clear();
-        this.ownerPermissions.addAll(node.getList("ownerPermissions", String.class));
-        this.tags.clear();
-        for (String tag : node.getList("tags", String.class)) {
-            this.tags.add(tag);
-        }
         this.destination = node.get("destination", this.destination);
         this.lastPathNode = node.get("lastPathNode", this.lastPathNode);
         this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
@@ -590,25 +585,40 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.exitYaw = node.get("exitYaw", this.exitYaw);
         this.exitPitch = node.get("exitPitch", this.exitPitch);
         this.driveSound = node.get("driveSound", this.driveSound);
-        this.blockBreakTypes.clear();
-        for (String blocktype : node.getList("blockBreakTypes", String.class)) {
-            Material mat = ParseUtil.parseMaterial(blocktype, null);
-            if (mat != null) {
-                this.blockBreakTypes.add(mat);
+
+        if (node.contains("owners")) {
+            this.owners.clear();
+            for (String owner : node.getList("owners", String.class)) {
+                this.owners.add(owner.toLowerCase());
+            }
+        }
+        if (node.contains("ownerPermissions")) {
+            this.ownerPermissions.clear();
+            this.ownerPermissions.addAll(node.getList("ownerPermissions", String.class));
+        }
+        if (node.contains("tags")) {
+            this.tags.clear();
+            for (String tag : node.getList("tags", String.class)) {
+                this.tags.add(tag);
+            }
+        }
+        if (node.contains("blockBreakTypes")) {
+            this.blockBreakTypes.clear();
+            for (String blocktype : node.getList("blockBreakTypes", String.class)) {
+                Material mat = ParseUtil.parseMaterial(blocktype, null);
+                if (mat != null) {
+                    this.blockBreakTypes.add(mat);
+                }
             }
         }
         if (node.isNode("skipOptions")) {
             this.skipOptions.load(node.getNode("skipOptions"));
         }
-        if (this.model != null) {
-            if (node.isNode("model")) {
+        if (node.isNode("model")) {
+            if (this.model != null) {
                 this.model.update(node.getNode("model").clone(), true);
-            }
-        } else {
-            if (node.isNode("model")) {
-                this.model = new AttachmentModel(node.getNode("model").clone());
             } else {
-                this.model = null;
+                this.model = new AttachmentModel(node.getNode("model").clone());
             }
         }
     }
@@ -727,9 +737,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     public void setSkipOptions(SignSkipOptions options) {
-        this.skipOptions.filter = options.filter;
-        this.skipOptions.ignoreCtr = options.ignoreCtr;
-        this.skipOptions.skipCtr = options.skipCtr;
+        this.skipOptions.load(options, false);
     }
 
     public String getDriveSound() {

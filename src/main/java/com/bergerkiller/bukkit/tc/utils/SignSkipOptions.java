@@ -41,32 +41,36 @@ public class SignSkipOptions {
      * @param signs
      */
     public void loadSigns(List<TrackedSign> signs) {
-        this.isLoaded = true;
-        this.hasSkippedSigns = false;
-        this.history.clear();
-        for (TrackedSign sign : signs) {
-            BlockLocation signPos = new BlockLocation(sign.signBlock);
-            boolean state = this.offlineSkippedSigns.contains(signPos);
-            if (state) {
-                this.hasSkippedSigns = true;
+        if (!this.isLoaded) {
+            this.isLoaded = true;
+            this.hasSkippedSigns = false;
+            this.history.clear();
+            for (TrackedSign sign : signs) {
+                BlockLocation signPos = new BlockLocation(sign.signBlock);
+                boolean state = this.offlineSkippedSigns.contains(signPos);
+                if (state) {
+                    this.hasSkippedSigns = true;
+                }
+                this.history.put(sign, state);
             }
-            this.history.put(sign, state);
+            this.offlineSkippedSigns.clear();
         }
-        this.offlineSkippedSigns.clear();
     }
 
     /**
      * Removes all sign skipping states (free memory)
      */
     public void unloadSigns() {
-        this.offlineSkippedSigns.clear();
-        for (Map.Entry<TrackedSign, Boolean> entry : this.history.entrySet()) {
-            if (entry.getValue().booleanValue()) {
-                this.offlineSkippedSigns.add(new BlockLocation(entry.getKey().signBlock));
+        if (this.isLoaded) {
+            this.offlineSkippedSigns.clear();
+            for (Map.Entry<TrackedSign, Boolean> entry : this.history.entrySet()) {
+                if (entry.getValue().booleanValue()) {
+                    this.offlineSkippedSigns.add(new BlockLocation(entry.getKey().signBlock));
+                }
             }
+            this.history.clear();
+            this.isLoaded = false;
         }
-        this.history.clear();
-        this.isLoaded = false;
     }
 
     /**
@@ -132,6 +136,28 @@ public class SignSkipOptions {
                 this.hasSkippedSigns = true;
                 iter.remove();
             }
+        }
+    }
+
+    /**
+     * Loads the settings for these options. If loadSigns is true, then
+     * the tracked signs are loaded as well.
+     * 
+     * @param source
+     * @param loadSigns
+     */
+    public void load(SignSkipOptions source, boolean loadSigns) {
+        this.ignoreCtr = source.ignoreCtr;
+        this.skipCtr = source.skipCtr;
+        this.filter = source.filter;
+        if (loadSigns) {
+            this.isLoaded = source.isLoaded;
+            this.hasSkippedSigns = source.hasSkippedSigns;
+            this.history.clear();
+            this.history.putAll(source.history);
+            this.offlineSkippedSigns.clear();
+            this.offlineSkippedSigns.addAll(source.offlineSkippedSigns);
+            this.unloadSigns(); // make sure to reload them next time
         }
     }
 
