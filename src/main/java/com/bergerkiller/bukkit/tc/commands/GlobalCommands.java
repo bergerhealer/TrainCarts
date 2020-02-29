@@ -544,7 +544,7 @@ public class GlobalCommands {
         // Update item in main hand, if it is a debug item
         ItemStack inMainHand = HumanHand.getItemInMainHand(player);
         if (inMainHand != null) {
-            CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+            CommonTagCompound tag = ItemUtil.getMetaTag(inMainHand, false);
             if (tag != null && tag.containsKey("TrainCartsDebug")) {
                 HumanHand.setItemInMainHand(player, item);
                 return;
