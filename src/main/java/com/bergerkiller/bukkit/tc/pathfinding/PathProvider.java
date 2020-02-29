@@ -456,20 +456,20 @@ public class PathProvider extends Task {
                 }
 
                 // Update the node we found with the information of the current sign
-                foundNode = provider.initNode(nextRail, event, action);
-                if (foundNode == null) {
+                PathNode newFoundNode = provider.initNode(nextRail, event, action);
+                if (newFoundNode == null) {
                     continue;
                 }
 
+                // Take first
                 // Ignore signs at the start position (same node)
                 // We do refresh the switchers and destination names at the start node
-                if (this.startNode.location.equals(foundNode.location)) {
-                    foundNode = null;
-                    continue;
-                }
+                if (foundNode == null && !this.startNode.location.equals(newFoundNode.location)) {
+                    foundNode = newFoundNode;
 
-                // At a switcher/destination sign, stop now, continue looking from points we add
-                hasFinished = true;
+                    // At a switcher/destination sign, stop now, continue looking from points we add
+                    hasFinished = true;
+                }
             }
             if (foundNode != null) {
                 // Calculate distance from the start node to this new node

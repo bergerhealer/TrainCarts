@@ -316,7 +316,10 @@ public class DebugTool {
             int lim = 10000;
             do {
                 if (--lim <= 0 || walker.movedTotal > maxDistance) {
-                    break; // skip the rest
+                    Location at = walker.state.positionLocation();
+                    player.sendMessage(ChatColor.RED + "Reached path maximum distance at " +
+                            "x=" + at.getBlockX() + " y=" + at.getBlockY() + " z=" + at.getBlockZ());
+                    return;
                 }
                 if (!walker.move(0.3)) {
                     Location at = walker.state.positionLocation();
