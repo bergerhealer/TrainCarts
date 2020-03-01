@@ -160,9 +160,12 @@ public class TCListener implements Listener {
     private void unloadChunkForGroup(MinecartGroup group, Chunk chunk) {
         if (group.canUnload()) {
             group.unload();
-        } else {
+        } else if (group.getChunkArea().containsChunk(chunk.getX(), chunk.getZ()))  {
             TrainCarts.plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
                     " of group " + group.getProperties().getTrainName() + " unloaded unexpectedly!");
+        } else {
+            TrainCarts.plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
+                    " of group " + group.getProperties().getTrainName() + " unloaded because chunk area wasn't up to date!");
         }
     }
 

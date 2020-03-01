@@ -63,6 +63,12 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         }
     }
 
+    /**
+     * Deprecated: does not initialize a full train and is unsafe to use
+     * 
+     * @return new group, registered in global group list
+     */
+    @Deprecated
     public static MinecartGroup create() {
         Util.checkMainThread("MinecartGroupStore::create()");
         MinecartGroup g = new MinecartGroup();
@@ -102,7 +108,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             return null;
         }
 
-        MinecartGroup group = MinecartGroup.create();
+        MinecartGroup group = new MinecartGroup();
+        groups.add(group);
         for (int i = spawnLocations.size() - 1; i >= 0; i--) {
             Location spawnLoc = spawnLocations.get(i);
             if (types.get(i).isFlipped()) {

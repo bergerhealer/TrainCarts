@@ -173,7 +173,7 @@ public class ChunkArea {
     }
 
     /**
-     * Gets whether a particular chunk coordinate, encoded as a Long, is contained
+     * Gets whether a particular chunk coordinate, encoded as a Long, are contained
      * in this chunk area.
      * 
      * @param chunkLongCoord
@@ -181,6 +181,18 @@ public class ChunkArea {
      */
     public boolean containsChunk(long chunkLongCoord) {
         return this.chunks.contains(chunkLongCoord);
+    }
+
+    /**
+     * Gets whether a particular chunk coordinates, are contained
+     * in this chunk area.
+     * 
+     * @param chunkX
+     * @param chunkZ
+     * @return True if contained.
+     */
+    public boolean containsChunk(int chunkX, int chunkZ) {
+        return containsChunk(MathUtil.longHashToLong(chunkX, chunkZ));
     }
 
     /**

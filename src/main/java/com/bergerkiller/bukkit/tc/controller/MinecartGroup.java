@@ -406,6 +406,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             //This makes sure MEMBER_ENTER does not execute twice
             gnew.updateDirection();
             gnew.getSignTracker().refresh();
+            gnew.onGroupCreated();
 
             return gnew;
         } else {
@@ -944,6 +945,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
             chunk.keepLoaded(keepLoaded);
         }
+    }
+
+    /**
+     * Gets the chunk area around this train. This is the area kept loaded if chunks are kept loaded,
+     * or the chunks that when unloaded, will cause the train to unload if not.
+     * 
+     * @return chunk area
+     */
+    public ChunkArea getChunkArea() {
+        return this.chunkArea;
     }
 
     public boolean isInChunk(World world, long chunkLongCoord) {
