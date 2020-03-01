@@ -538,6 +538,12 @@ public class TrainCarts extends PluginBase {
         //Disable spawn manager
         spawnSignManager.deinit();
 
+        // Disable path provider before de-initializing path nodes / sign actions
+        if (this.pathProvider != null) {
+            this.pathProvider.disable();
+            this.pathProvider = null;
+        }
+
         // Deinit classes
         PathNode.deinit();
         ArrivalSigns.deinit();
@@ -546,11 +552,6 @@ public class TrainCarts extends PluginBase {
         SignAction.deinit();
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
-
-        if (this.pathProvider != null) {
-            this.pathProvider.disable();
-            this.pathProvider = null;
-        }
 
         RailPieceCache.reset();
         RailSignCache.reset();
