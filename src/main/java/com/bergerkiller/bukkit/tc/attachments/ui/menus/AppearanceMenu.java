@@ -39,7 +39,7 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
             type.createAppearanceTab(this.tabView.addTab(), this.attachment);
         }
 
-        tabView.setPosition(7, 16);
+        tabView.setPosition(9, 16);
         this.addWidget(tabView);
 
         // This widget is always visible: type selector
