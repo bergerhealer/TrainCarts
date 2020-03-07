@@ -586,7 +586,7 @@ public class TrainCarts extends PluginBase {
 
         @Override
         public void run() {
-            RailPieceCache.cleanup();
+            RailPieceCache.update();
             RailSignCache.cleanup();
         }
     }

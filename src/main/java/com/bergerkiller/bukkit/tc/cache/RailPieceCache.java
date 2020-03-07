@@ -21,6 +21,7 @@ public class RailPieceCache {
     private static final LookupKey LOOKUP_KEY = new LookupKey();
     private static final RailPiece[] EMPTY_INFO = new RailPiece[0];
     private static final Map<Key, Value> cache = new HashMap<Key, Value>();
+    private static int lifeTimer = 0;
 
     /**
      * Removes rail pieces cached at a block position in the world
@@ -64,7 +65,7 @@ public class RailPieceCache {
         }
 
         // Verify if needed
-        if (cached.life > 0) {
+        if (cached.life < lifeTimer) {
             // Verify that all stored rails types are actually still valid (the rails exists)
             // It is incredibly rare that the rails stops existing, so make this as fast as possible!
             // Hence we use an array instead of a list because why not?
@@ -87,15 +88,15 @@ public class RailPieceCache {
                 }
             }
 
-            // Still good. Reset life to 0 so that we don't do this check upon the next invocation.
-            cached.life = 0;
+            // Still good. Reset life so that we don't do this check upon the next invocation.
+            cached.life = lifeTimer;
         }
 
         return cached.info;
     }
 
     public static void storeInfo(Block block, RailPiece[] info) {
-        cache.put(new Key(block), new Value(info));
+        cache.put(new Key(block), new Value(info, lifeTimer));
     }
 
     // removes all cached rails, forcing a global recalculation
@@ -116,13 +117,16 @@ public class RailPieceCache {
     }
 
     // cleans up cached rail types that haven't been accessed in quite a while
-    public static void cleanup() {
+    public static void update() {
+        int dead = lifeTimer - 20;
         Iterator<Value> iter = cache.values().iterator();
         while (iter.hasNext()) {
-            if (++iter.next().life > 20) {
+            if (iter.next().life < dead) {
                 iter.remove();
             }
         }
+
+        lifeTimer++;
     }
 
     // Value object used in the hashmap, mapped by block, storing all rail information
@@ -130,9 +134,9 @@ public class RailPieceCache {
         public final RailPiece[] info;
         public int life; // for automatic purging
 
-        public Value(RailPiece[] info) {
+        public Value(RailPiece[] info, int life) {
             this.info = info;
-            this.life = 0;
+            this.life = life;
         }
     }
 
