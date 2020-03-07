@@ -160,15 +160,10 @@ public class SignTrackerGroup extends SignTracker {
 
                 // Add all active signs to the block tracker of all members
                 for (TrackedRail info : owner.getRailTracker().getRailInformation()) {
-                    if (info.state.railType() == RailType.NONE) {
-                        continue;
-                    }
-
-                    TrackedSign[] signs = info.state.railSigns();
-                    if (signs.length > 0) {
-                        List<TrackedSign> memberSigns = info.member.getSignTracker().liveActiveSigns;
-                        for (TrackedSign sign : signs) {
-                            memberSigns.add(sign);
+                    if (info.state.railType() != RailType.NONE) {
+                        TrackedSign[] signs = info.state.railSigns();
+                        if (signs.length > 0) {
+                            info.member.getSignTracker().liveActiveSigns.addAll(Arrays.asList(signs));
                         }
                     }
                 }
