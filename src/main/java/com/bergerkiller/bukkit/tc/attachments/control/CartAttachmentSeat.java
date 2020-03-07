@@ -361,6 +361,9 @@ public class CartAttachmentSeat extends CartAttachment {
                 this.makeHidden(viewer);
             }
             TrainCarts.plugin.getSeatAttachmentMap().remove(this._entity.getEntityId(), this);
+        } else {
+            // From no entity to there being an entity, initialize virtual camera logic
+            this.updateVirtualCamera();
         }
 
         // Switch entity
@@ -528,20 +531,9 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public void onTick() {
-        float selfPitch = (float) this.getTransform().getYawPitchRoll().getX();
-
-        if (MathUtil.getAngleDifference(selfPitch, 180.0f) < 89.0f) {
-            // Beyond the point where the entity should be rendered upside-down
-            setUpsideDown(true);
-        } else if (MathUtil.getAngleDifference(selfPitch, 0.0f) < 89.0f) {
-            // Beyond the point where the entity should be rendered normally again
-            setUpsideDown(false);
-        }
-
-        if (TCConfig.enableSeatThirdPersonView && ((selfPitch < -46.0f) || (selfPitch > 46.0f))) {
-            setUseVirtualCamera(true);
-        } else {
-            setUseVirtualCamera(false);
+        // Only needed when there is a passenger
+        if (this._entity != null) {
+            this.updateVirtualCamera();
         }
 
         // Hides the real player a second time the next tick after the entity in the seat was switched
@@ -654,6 +646,24 @@ public class CartAttachmentSeat extends CartAttachment {
                     }
                 }
             }
+        }
+    }
+
+    private void updateVirtualCamera() {
+        float selfPitch = (float) this.getTransform().getYawPitchRoll().getX();
+
+        if (MathUtil.getAngleDifference(selfPitch, 180.0f) < 89.0f) {
+            // Beyond the point where the entity should be rendered upside-down
+            setUpsideDown(true);
+        } else if (MathUtil.getAngleDifference(selfPitch, 0.0f) < 89.0f) {
+            // Beyond the point where the entity should be rendered normally again
+            setUpsideDown(false);
+        }
+
+        if (TCConfig.enableSeatThirdPersonView && ((selfPitch < -46.0f) || (selfPitch > 46.0f))) {
+            setUseVirtualCamera(true);
+        } else {
+            setUseVirtualCamera(false);
         }
     }
 
