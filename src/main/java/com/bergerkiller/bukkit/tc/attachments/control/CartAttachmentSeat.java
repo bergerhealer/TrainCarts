@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.CommonSounds;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -649,22 +650,41 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
-    private void updateVirtualCamera() {
-        float selfPitch = (float) this.getTransform().getYawPitchRoll().getX();
+    /*
+     * Copied from BKCommonLib 1.15.2 Quaternion getPitch()
+     * Once we depend on 1.15.2 or later, this can be removed and replaced with transform.getRotationPitch()
+     */
+    private static double getQuaternionPitch(double x, double y, double z, double w) {
+        final double test = 2.0 * (w * x - y * z);
+        if (Math.abs(test) < (1.0 - 1E-15)) {
+            double pitch = Math.asin(test);
+            double roll_x = 0.5 - (x * x + z * z);
+            if (roll_x <= 0.0 && (Math.abs((w * z + x * y)) > roll_x)) {
+                pitch = -pitch;
+                pitch += (pitch < 0.0) ? Math.PI : -Math.PI;
+            }
+            return Math.toDegrees(pitch);
+        } else if (test < 0.0) {
+            return -90.0;
+        } else {
+            return 90.0;
+        }
+    }
 
-        if (MathUtil.getAngleDifference(selfPitch, 180.0f) < 89.0f) {
+    private void updateVirtualCamera() {
+        Quaternion rotation = this.getTransform().getRotation();
+        double selfPitch = getQuaternionPitch(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
+
+        if (MathUtil.getAngleDifference(selfPitch, 180.0) < 89.0) {
             // Beyond the point where the entity should be rendered upside-down
             setUpsideDown(true);
-        } else if (MathUtil.getAngleDifference(selfPitch, 0.0f) < 89.0f) {
+        } else if (MathUtil.getAngleDifference(selfPitch, 0.0) < 89.0) {
             // Beyond the point where the entity should be rendered normally again
             setUpsideDown(false);
         }
 
-        if (TCConfig.enableSeatThirdPersonView && ((selfPitch < -46.0f) || (selfPitch > 46.0f))) {
-            setUseVirtualCamera(true);
-        } else {
-            setUseVirtualCamera(false);
-        }
+        // Whether virtual camera is used when going steeply upwards
+        setUseVirtualCamera(TCConfig.enableSeatThirdPersonView && Math.abs(selfPitch) > 70.0);
     }
 
     private void hideRealPlayer(Player viewer) {
