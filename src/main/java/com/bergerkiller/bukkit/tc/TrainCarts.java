@@ -378,6 +378,9 @@ public class TrainCarts extends PluginBase {
         attachmentModels = new AttachmentModelStore(getDataFolder() + File.separator + "models.yml");
         attachmentModels.load();
 
+        //Setup Economy (Vault)
+        setupEconomy();
+
         //init statements
         Statement.init();
 
