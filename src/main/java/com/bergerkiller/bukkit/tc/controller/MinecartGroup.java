@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -233,6 +234,21 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return true;
     }
 
+    // Called before addMember to fire the MemberAddEvent
+    // Sets the group to this group before adding to avoid problems
+    // when .getGroup() is called on the member to query the previous group.
+    private void addMemberPreEvent(MinecartMember<?> member) {
+        boolean wasGroupNull = false;
+        if (member.group == null) {
+            member.group = this;
+            wasGroupNull = true;
+        }
+        CommonUtil.callEvent(new MemberAddEvent(member, this));
+        if (wasGroupNull && member.group == this) {
+            member.group = null;
+        }
+    }
+
     private void addMember(MinecartMember<?> member) {
         this.chunkAreaValid = false;
         notifyPhysicsChange();
@@ -246,7 +262,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             throw new IllegalArgumentException("Can not add unloaded members to groups");
         }
         super.add(index, member);
-        MemberAddEvent.call(member, this);
+        this.addMemberPreEvent(member);
         this.addMember(member);
     }
 
@@ -255,7 +271,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             throw new IllegalArgumentException("Can not add unloaded members to groups");
         }
         super.add(member);
-        MemberAddEvent.call(member, this);
+        this.addMemberPreEvent(member);
         this.addMember(member);
         return true;
     }
@@ -267,7 +283,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (m.isUnloaded()) {
                 throw new IllegalArgumentException("Can not add unloaded members to groups");
             }
-            MemberAddEvent.call(m, this);
+            this.addMemberPreEvent(m);
         }
         for (MinecartMember<?> member : memberArr) {
             this.addMember(member);
@@ -282,7 +298,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (m.isUnloaded()) {
                 throw new IllegalArgumentException("Can not add unloaded members to groups");
             }
-            MemberAddEvent.call(m, this);
+            this.addMemberPreEvent(m);
         }
         for (MinecartMember<?> member : memberArr) {
             this.addMember(member);
