@@ -76,7 +76,7 @@ public class TrainCarts extends PluginBase {
     private RedstoneTracker redstoneTracker;
     private GlowColorTeamProvider glowColorTeamProvider;
     private PathProvider pathProvider;
-    private Economy econ;
+    private static Economy econ;
 
     /**
      * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
@@ -139,7 +139,7 @@ public class TrainCarts extends PluginBase {
      *
      * @return
      */
-    public Economy getEconomy() {
+    public static Economy getEconomy() {
         return econ;
     }
 
