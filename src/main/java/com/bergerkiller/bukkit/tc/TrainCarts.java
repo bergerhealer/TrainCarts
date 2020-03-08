@@ -40,6 +40,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
@@ -51,6 +52,7 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -74,6 +76,7 @@ public class TrainCarts extends PluginBase {
     private RedstoneTracker redstoneTracker;
     private GlowColorTeamProvider glowColorTeamProvider;
     private PathProvider pathProvider;
+    private Economy econ;
 
     /**
      * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
@@ -131,6 +134,15 @@ public class TrainCarts extends PluginBase {
         return this.pathProvider;
     }
 
+    /**
+     * Gets the Economy manager
+     *
+     * @return
+     */
+    public Economy getEconomy() {
+        return econ;
+    }
+
     public static boolean canBreak(Material type) {
         return TCConfig.allowedBlockBreakTypes.contains(type);
     }
@@ -171,6 +183,23 @@ public class TrainCarts extends PluginBase {
             }
         }
         player.sendMessage(text);
+    }
+
+    /**
+     * Setup the Vault service
+     *
+     * @return boolean  whether Vault was registered successfully
+     */
+    private boolean setupEconomy() {
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+        econ = rsp.getProvider();
+        return econ != null;
     }
 
     public static boolean isWorldDisabled(BlockEvent event) {
