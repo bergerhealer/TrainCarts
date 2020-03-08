@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.PoweredTrackLogic;
 
@@ -31,7 +32,7 @@ public class RailTypePowered extends RailTypeRegular {
         super.onBlockPlaced(railsBlock);
 
         // Also apply physics on the blocks adjacent for power to spread correctly
-        Rails rails = BlockUtil.getRails(railsBlock);
+        Rails rails = Util.getRailsRO(railsBlock);
         if (rails != null && isUpsideDown(railsBlock)) {
             BlockUtil.applyPhysics(railsBlock.getRelative(rails.getDirection()), Material.POWERED_RAIL);
             BlockUtil.applyPhysics(railsBlock.getRelative(rails.getDirection().getOppositeFace()), Material.POWERED_RAIL);

@@ -24,6 +24,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
+import org.bukkit.material.Rails;
 import org.bukkit.material.Stairs;
 import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
@@ -590,6 +591,18 @@ public class Util {
 
         // For all other cases, check whether the side is properly supported
         return isSupportedFace(attached, attachedFace.getOppositeFace());
+    }
+
+    /**
+     * Gets the Rails MaterialData for a Block with readonly access.
+     * The Rails material data should not be modified.
+     * 
+     * @param block
+     * @return readonly rails material data
+     */
+    public static Rails getRailsRO(Block block) {
+        MaterialData data = WorldUtil.getBlockData(block).getMaterialData();
+        return (data instanceof Rails) ? (Rails) data : null;
     }
 
     public static boolean isValidEntity(String entityName) {

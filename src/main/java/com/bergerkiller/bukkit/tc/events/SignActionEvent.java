@@ -883,7 +883,7 @@ public class SignActionEvent extends Event implements Cancellable {
                             }
                         } else {
                             // Sloped rails also include UP/DOWN, handling from/to vertical rail movement
-                            Rails rails = BlockUtil.getRails(this.getRails());
+                            Rails rails = Util.getRailsRO(this.getRails());
                             if (rails != null && rails.isOnSlope()) {
                                 watchedFaces.add(BlockFace.UP);
                                 watchedFaces.add(BlockFace.DOWN);
