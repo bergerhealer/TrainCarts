@@ -60,7 +60,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.mountiplex.reflection.SafeMethod;
+import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 
 public class Util {
@@ -1296,10 +1296,15 @@ public class Util {
     }
 
     // For BKC 1.15.2-v1 support (remove when no longer backwards compatible)
-    private static final SafeMethod<Void> setBlockActivationEnabledMethod;
+    private static final FastMethod<Void> setBlockActivationEnabledMethod;
     static {
         if (Common.hasCapability("Common:EntityController:SetBlockActivationEnabled")) {
-            setBlockActivationEnabledMethod = new SafeMethod<Void>(EntityController.class, "setBlockActivationEnabled", boolean.class);
+            setBlockActivationEnabledMethod = new FastMethod<Void>();
+            try {
+                setBlockActivationEnabledMethod.init(EntityController.class.getDeclaredMethod("setBlockActivationEnabled", boolean.class));
+            } catch (Throwable t) {
+                throw new RuntimeException("This is impossible", t);
+            }
         } else {
             setBlockActivationEnabledMethod = null;
         }
