@@ -760,6 +760,14 @@ public class RailPath {
             return (motX * dx) + (motY * dy) + (motZ * dz);
         }
 
+        public double motLength() {
+            return Math.sqrt(motLengthSquared());
+        }
+
+        public double motLengthSquared() {
+            return (motX * motX) + (motY * motY) + (motZ * motZ);
+        }
+
         public Vector getMotion() {
             return new Vector(this.motX, this.motY, this.motZ);
         }
