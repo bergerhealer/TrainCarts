@@ -7,9 +7,13 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author reeZZer
@@ -64,10 +68,26 @@ public class SignActionTicket extends SignAction {
                         TrainCarts.getEconomy().depositPlayer(player, money);
                     } else if (mode.equalsIgnoreCase("check")) {
                         Localization.TICKET_CHECK.message(player, TrainCarts.getCurrencyText(TrainCarts.getEconomy().getBalance(player)));
-                    } else if (mode.equalsIgnoreCase("buy")) {
+                    } else if (mode.equalsIgnoreCase("buy") || mode.equalsIgnoreCase("pay")) {
                         if (TrainCarts.getEconomy().has(player, money)) {
                             TrainCarts.getEconomy().withdrawPlayer(player, money);
                             Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(money));
+                            if (mode.equalsIgnoreCase("pay")) {
+                                Set<String> owners = member.getProperties().getOwners();
+                                if (owners.size() > 0) {
+                                    double ownerMoney = money / owners.size();
+                                    for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+                                        for (String owner : owners) {
+                                            if (owner.equalsIgnoreCase(offlinePlayer.getName())) {
+                                                TrainCarts.getEconomy().depositPlayer(offlinePlayer, ownerMoney);
+                                                if (offlinePlayer.isOnline()) {
+                                                    Localization.TICKET_BUYOWNER.message(offlinePlayer.getPlayer(), player.getDisplayName(), TrainCarts.getCurrencyText(money), member.getProperties().getTrainProperties().getTrainName());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } else {
                             Localization.TICKET_BUYFAIL.message(player, TrainCarts.getCurrencyText(money));
                             member.eject();
