@@ -14,7 +14,9 @@ public class RailAABB {
     public final double x_max, y_max, z_max;
     private final double x_min_err, y_min_err, z_min_err;
     private final double x_max_err, y_max_err, z_max_err;
-    private final AxisCompute[] compute;
+    private final double offset_x_pos, offset_x_neg;
+    private final double offset_y_pos, offset_y_neg;
+    private final double offset_z_pos, offset_z_neg;
 
     public RailAABB(double x_min, double y_min, double z_min, double x_max, double y_max, double z_max) {
         this.x_min = x_min; this.y_min = y_min; this.z_min = z_min;
@@ -28,15 +30,12 @@ public class RailAABB {
         this.y_max_err = (CONST_BOX_ERROR+this.y_max);
         this.z_max_err = (CONST_BOX_ERROR+this.z_max);
 
-        // Cache these optimizations
-        this.compute = new AxisCompute[] {
-                new AxisComputeX(this, BlockFace.EAST),
-                new AxisComputeX(this, BlockFace.WEST),
-                new AxisComputeY(this, BlockFace.UP),
-                new AxisComputeY(this, BlockFace.DOWN),
-                new AxisComputeZ(this, BlockFace.NORTH),
-                new AxisComputeZ(this, BlockFace.SOUTH)
-        };
+        this.offset_x_pos = computeAxisOffset(x_min, x_max, 1);
+        this.offset_x_neg = computeAxisOffset(x_min, x_max, -1);
+        this.offset_y_pos = computeAxisOffset(y_min, y_max, 1);
+        this.offset_y_neg = computeAxisOffset(y_min, y_max, -1);
+        this.offset_z_pos = computeAxisOffset(z_min, z_max, 1);
+        this.offset_z_neg = computeAxisOffset(z_min, z_max, -1);
     }
 
     /**
@@ -56,97 +55,71 @@ public class RailAABB {
         // Imagine taking steps back at the current velocity until the minecart hits an edge of the current block
         // The first edge encountered is the edge the minecart came from
 
-        double result_end_x = 0.0;
-        double result_end_y = 0.0;
-        double result_end_z = 0.0;
-        BlockFace result = null;
+        Vector result_end = new Vector(Double.NaN, Double.NaN, Double.NaN);
+        BlockFace result = BlockFace.DOWN; // Fallback is DOWN
 
-        for (AxisCompute comp : this.compute) {
-            double c = comp.coord(direction);
-            if (c == 0.0) {
-                continue;
+        double dx = direction.getX();
+        if (dx > 0.0) {
+            if (match(position, direction, (position.getX() - this.offset_x_pos) / dx, result_end)) {
+                result = BlockFace.EAST;
             }
-
-            double f = (comp.coord(position) - comp.a) / c;
-            double end_x = position.getX() - f * direction.getX();
-            double end_y = position.getY() - f * direction.getY();
-            double end_z = position.getZ() - f * direction.getZ();
-            if (end_x >= this.x_min_err && end_y >= this.y_min_err && end_z >= this.z_min_err &&
-                end_x <= this.x_max_err && end_y <= this.y_max_err && end_z <= this.z_max_err) {
-                if (result != null) {
-                    double dot = ((end_x - result_end_x) * direction.getX() +
-                                  (end_y - result_end_y) * direction.getY() +
-                                  (end_z - result_end_z) * direction.getZ());
-                    if (dot > 0.0) {
-                        continue;
-                    }
-                }
-                result = comp.face;
-                result_end_x = end_x;
-                result_end_y = end_y;
-                result_end_z = end_z;
+        } else if (dx < 0.0) {
+            if (match(position, direction, (position.getX() - this.offset_x_neg) / dx, result_end)) {
+                result = BlockFace.WEST;
             }
         }
-        if (result == null) {
-            return BlockFace.DOWN; // Fallback
+
+        double dy = direction.getY();
+        if (dy > 0.0) {
+            if (match(position, direction, (position.getY() - this.offset_y_pos) / dy, result_end)) {
+                result = BlockFace.UP;
+            }
+        } else if (dy < 0.0) {
+            if (match(position, direction, (position.getY() - this.offset_y_neg) / dy, result_end)) {
+                result = BlockFace.DOWN;
+            }
         }
+
+        double dz = direction.getZ();
+        if (dz > 0.0) {
+            if (match(position, direction, (position.getZ() - this.offset_z_pos) / dz, result_end)) {
+                result = BlockFace.SOUTH;
+            }
+        } else if (dz < 0.0) {
+            if (match(position, direction, (position.getZ() - this.offset_z_neg) / dz, result_end)) {
+                result = BlockFace.NORTH;
+            }
+        }
+
         return result;
     }
 
-    private abstract static class AxisCompute {
-        public final BlockFace face;
-        public final double a;
+    public boolean match(Vector position, Vector direction, double factor, Vector prev_result) {
+        double end_x = position.getX() - factor * direction.getX();
+        double end_y = position.getY() - factor * direction.getY();
+        double end_z = position.getZ() - factor * direction.getZ();
+        if (end_x < x_min_err || end_y < y_min_err || end_z < z_min_err ||
+            end_x > x_max_err || end_y > y_max_err || end_z > z_max_err)
+        {
+            return false;
+        }
 
-        public AxisCompute(RailAABB aabb, BlockFace dir) {
-            this.face = dir;
-            if (dir.getModX() != 0) {
-                // x
-                a = aabb.x_min + (aabb.x_max - aabb.x_min) * 0.5 * (1 - dir.getModX());
-            } else if (dir.getModY() != 0) {
-                // y
-                a = aabb.y_min + (aabb.y_max - aabb.y_min) * 0.5 * (1 - dir.getModY());
-            } else {
-                // z
-                a = aabb.z_min + (aabb.z_max - aabb.z_min) * 0.5 * (1 - dir.getModZ());
+        if (!Double.isNaN(prev_result.getX())) {
+            double dot = ((end_x - prev_result.getX()) * direction.getX() +
+                          (end_y - prev_result.getY()) * direction.getY() +
+                          (end_z - prev_result.getZ()) * direction.getZ());
+            if (dot > 0.0) {
+                return false;
             }
         }
 
-        public abstract double coord(Vector v);
+        prev_result.setX(end_x);
+        prev_result.setY(end_y);
+        prev_result.setZ(end_z);
+        return true;
     }
 
-    private static final class AxisComputeX extends AxisCompute {
-
-        public AxisComputeX(RailAABB aabb, BlockFace dir) {
-            super(aabb, dir);
-        }
-
-        @Override
-        public double coord(Vector v) {
-            return v.getX();
-        }
-    }
-
-    private static final class AxisComputeY extends AxisCompute {
-
-        public AxisComputeY(RailAABB aabb, BlockFace dir) {
-            super(aabb, dir);
-        }
-
-        @Override
-        public double coord(Vector v) {
-            return v.getY();
-        }
-    }
-
-    private static final class AxisComputeZ extends AxisCompute {
-
-        public AxisComputeZ(RailAABB aabb, BlockFace dir) {
-            super(aabb, dir);
-        }
-
-        @Override
-        public double coord(Vector v) {
-            return v.getZ();
-        }
+    private static double computeAxisOffset(double min, double max, int axis) {
+        return min + (max - min) * 0.5 * (1 - axis);
     }
 }
