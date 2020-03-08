@@ -6,7 +6,7 @@ build: ${project.cibuild}
 authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]
 description: Plugin that allows the use of minecart trains with adjustable settings
 depend: [BKCommonLib]
-softdepend: [MinecartManiaCore, SignLink, My_Worlds, LightAPI]
+softdepend: [MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault]
 dev-url: ${project.url}
 commands:
     train:
