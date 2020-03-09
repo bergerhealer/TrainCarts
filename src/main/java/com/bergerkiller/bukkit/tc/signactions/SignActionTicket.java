@@ -61,6 +61,7 @@ public class SignActionTicket extends SignAction {
                 for (Player player : member.getEntity().getPlayerPassengers()) {
                     if (mode.equalsIgnoreCase("add") && money > 0) {
                         TrainCarts.getEconomy().depositPlayer(player, money);
+                        Localization.TICKET_ADD.message(player, TrainCarts.getCurrencyText(money));
                     } else if (mode.equalsIgnoreCase("check")) {
                         Localization.TICKET_CHECK.message(player, TrainCarts.getCurrencyText(TrainCarts.getEconomy().getBalance(player)));
                     } else if ((mode.equalsIgnoreCase("buy") || mode.equalsIgnoreCase("pay")) && money > 0) {
