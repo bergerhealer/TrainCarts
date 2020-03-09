@@ -17,7 +17,7 @@ public class ActionTracker {
     private final Queue<Action> actions = new LinkedList<>();
 
     public boolean hasAction() {
-        return this.actions.size() > 0;
+        return !this.actions.isEmpty();
     }
 
     /**
@@ -88,8 +88,13 @@ public class ActionTracker {
     }
 
     public void doTick() {
-        while (this.hasAction() && this.actions.peek().doTick()) {
-            this.actions.remove();
+        Action action;
+        while ((action = this.actions.peek()) != null && action.doTick()) {
+            // Action completed, but as a side-effect it may have altered the actions queue
+            // Only if the action at the head equals what we just ticked do we remove it
+            if (action == this.actions.peek()) {
+                this.actions.remove();
+            }
         }
     }
 
