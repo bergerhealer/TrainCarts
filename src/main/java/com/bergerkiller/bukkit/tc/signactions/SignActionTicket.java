@@ -42,13 +42,8 @@ public class SignActionTicket extends SignAction {
         }
 
         if ((info.hasMember() && info.isPowered())) {
-            double money;
-            if (info.getLine(3).isEmpty()) {
-                money = 30.0;
-            } else {
-                money = ParseUtil.parseDouble(info.getLine(3), 0.0);
-            }
             final String mode = info.getLine(2);
+            final double money = info.getLine(3).isEmpty() ? 0 : ParseUtil.parseDouble(info.getLine(3), 0.0);
 
             List<MinecartMember<?>> members;
             if (isTrain) {
@@ -64,11 +59,11 @@ public class SignActionTicket extends SignAction {
                 }
 
                 for (Player player : member.getEntity().getPlayerPassengers()) {
-                    if (mode.equalsIgnoreCase("add")) {
+                    if (mode.equalsIgnoreCase("add") && money > 0) {
                         TrainCarts.getEconomy().depositPlayer(player, money);
                     } else if (mode.equalsIgnoreCase("check")) {
                         Localization.TICKET_CHECK.message(player, TrainCarts.getCurrencyText(TrainCarts.getEconomy().getBalance(player)));
-                    } else if (mode.equalsIgnoreCase("buy") || mode.equalsIgnoreCase("pay")) {
+                    } else if ((mode.equalsIgnoreCase("buy") || mode.equalsIgnoreCase("pay")) && money > 0) {
                         if (TrainCarts.getEconomy().has(player, money)) {
                             TrainCarts.getEconomy().withdrawPlayer(player, money);
                             Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(money));
