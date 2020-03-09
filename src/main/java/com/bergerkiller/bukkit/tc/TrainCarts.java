@@ -316,9 +316,6 @@ public class TrainCarts extends PluginBase {
                     signtask = null;
                 }
                 break;
-            case "Essentials":
-                TCConfig.EssentialsEnabled = enabled;
-                break;
             case "LightAPI":
                 log(Level.INFO, "LightAPI detected, the Light attachment is now available");
                 if (enabled)
