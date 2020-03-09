@@ -33,8 +33,7 @@ public class SignActionTicket extends SignAction {
         if (economy == null) {
             return;
         }
-
-
+        
         final boolean isTrain;
         if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
             isTrain = false;
