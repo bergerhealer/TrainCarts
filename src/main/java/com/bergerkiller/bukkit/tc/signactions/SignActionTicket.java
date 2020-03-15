@@ -69,7 +69,7 @@ public class SignActionTicket extends SignAction {
                     } else if (mode.equalsIgnoreCase("check")) {
                         Localization.TICKET_CHECK.message(player, TrainCarts.getCurrencyText(economy.getBalance(player)));
                     } else if ((mode.equalsIgnoreCase("buy") || mode.equalsIgnoreCase("pay")) && money > 0) {
-                        if (owners.contains(player.getName())) {
+                        if (owners.contains(player.getName().toLowerCase())) {
                             continue;
                         }
                         if (economy.has(player, money)) {
