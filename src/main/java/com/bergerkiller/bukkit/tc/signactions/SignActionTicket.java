@@ -77,15 +77,12 @@ public class SignActionTicket extends SignAction {
                             Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(money));
                             if (mode.equalsIgnoreCase("pay")) {
                                 if (owners.size() > 0) {
-                                    double ownerMoney = money / owners.size();
-                                    for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-                                        for (String owner : owners) {
-                                            if (owner.equalsIgnoreCase(offlinePlayer.getName())) {
-                                                economy.depositPlayer(offlinePlayer, ownerMoney);
-                                                if (offlinePlayer.isOnline()) {
-                                                    Localization.TICKET_BUYOWNER.message(offlinePlayer.getPlayer(), player.getDisplayName(), TrainCarts.getCurrencyText(money), member.getProperties().getTrainProperties().getTrainName());
-                                                }
-                                            }
+                                    double ownerPayment = money / owners.size();
+                                    for (String owner : owners) {
+                                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(owner);
+                                        economy.depositPlayer(offlinePlayer, ownerPayment);
+                                        if (offlinePlayer.isOnline()) {
+                                            Localization.TICKET_BUYOWNER.message(offlinePlayer.getPlayer(), player.getDisplayName(), TrainCarts.getCurrencyText(money), member.getProperties().getTrainProperties().getTrainName());
                                         }
                                     }
                                 }
