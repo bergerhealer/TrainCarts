@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 
 public class PositionMenu extends MapWidgetMenu {
+    private boolean isLoadingWidgets;
 
     public PositionMenu() {
         this.setBounds(5, 15, 118, 108);
@@ -21,6 +22,8 @@ public class PositionMenu extends MapWidgetMenu {
     @Override
     public void onAttached() {
         super.onAttached();
+
+        isLoadingWidgets = true;
 
         int slider_width = 86;
         int y_offset = 5;
@@ -34,13 +37,14 @@ public class PositionMenu extends MapWidgetMenu {
                 for (AttachmentAnchor type : AttachmentAnchor.values()) {
                     this.addItem(type.getName());
                 }
-                this.setSelectedItem(getConfig().get("anchor", AttachmentAnchor.DEFAULT.getName()));
+                this.setSelectedItem(getConfigValue("anchor", AttachmentAnchor.DEFAULT.getName()));
             }
 
             @Override
             public void onSelectedItemChanged() {
-                getConfig().set("anchor", getSelectedItem());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                if (!getConfigValue("anchor", AttachmentAnchor.DEFAULT.getName()).equals(getSelectedItem())) {
+                    updateConfigValue("anchor", getSelectedItem());
+                }
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Anchor");
@@ -55,13 +59,12 @@ public class PositionMenu extends MapWidgetMenu {
                     for (ItemTransformType type : ItemTransformType.values()) {
                         this.addItem(type.toString());
                     }
-                    this.setSelectedItem(getConfig().get("transform", ItemTransformType.HEAD).toString());
+                    this.setSelectedItem(getConfigValue("transform", ItemTransformType.HEAD).toString());
                 }
 
                 @Override
                 public void onSelectedItemChanged() {
-                    getConfig().set("transform", ItemTransformType.get(getSelectedItem()).name());
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                    updateConfigValue("transform", ItemTransformType.get(getSelectedItem()).name());
                 }
             }).setBounds(30, y_offset, slider_width, 11);
             addLabel(5, y_offset + 3, "Mode");
@@ -76,7 +79,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getConfig().get("posX", 0.0));
+                this.setValue(getConfigValue("posX", 0.0));
             }
 
             @Override
@@ -86,8 +89,7 @@ public class PositionMenu extends MapWidgetMenu {
 
             @Override
             public void onValueChanged() {
-                getConfig().set("posX", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                updateConfigValue("posX", getValue());
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.X");
@@ -97,7 +99,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getConfig().get("posY", 0.0));
+                this.setValue(getConfigValue("posY", 0.0));
             }
 
             @Override
@@ -107,8 +109,7 @@ public class PositionMenu extends MapWidgetMenu {
 
             @Override
             public void onValueChanged() {
-                getConfig().set("posY", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                updateConfigValue("posY", getValue());
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Y");
@@ -118,7 +119,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getConfig().get("posZ", 0.0));
+                this.setValue(getConfigValue("posZ", 0.0));
             }
 
             @Override
@@ -128,8 +129,7 @@ public class PositionMenu extends MapWidgetMenu {
 
             @Override
             public void onValueChanged() {
-                getConfig().set("posZ", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                updateConfigValue("posZ", getValue());
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pos.Z");
@@ -140,7 +140,7 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(getConfig().get("rotX", 0.0));
+                this.setValue(getConfigValue("rotX", 0.0));
             }
 
             @Override
@@ -150,8 +150,7 @@ public class PositionMenu extends MapWidgetMenu {
 
             @Override
             public void onValueChanged() {
-                getConfig().set("rotX", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                updateConfigValue("rotX", getValue());
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Pitch");
@@ -162,7 +161,7 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(getConfig().get("rotY", 0.0));
+                this.setValue(getConfigValue("rotY", 0.0));
             }
 
             @Override
@@ -172,8 +171,7 @@ public class PositionMenu extends MapWidgetMenu {
 
             @Override
             public void onValueChanged() {
-                getConfig().set("rotY", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                updateConfigValue("rotY", getValue());
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Yaw");
@@ -184,7 +182,7 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(getConfig().get("rotZ", 0.0));
+                this.setValue(getConfigValue("rotZ", 0.0));
             }
 
             @Override
@@ -194,12 +192,39 @@ public class PositionMenu extends MapWidgetMenu {
 
             @Override
             public void onValueChanged() {
-                getConfig().set("rotZ", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                updateConfigValue("rotZ", getValue());
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Roll");
         y_offset += y_step;
+
+        isLoadingWidgets = false;
+    }
+
+    public <T> T getConfigValue(String key, T def) {
+        ConfigurationNode config = getConfig();
+        if (config.contains(key)) {
+            return config.get(key, def);
+        } else {
+            return def;
+        }
+    }
+    
+    public void updateConfigValue(String key, Object value) {
+        if (isLoadingWidgets) {
+            return;
+        }
+
+        ConfigurationNode config = getConfig();
+        boolean wasDefaultPosition = config.isEmpty();
+
+        config.set(key, value);
+
+        if (wasDefaultPosition) {
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        } else {
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+        }
     }
 
     public ConfigurationNode getConfig() {
