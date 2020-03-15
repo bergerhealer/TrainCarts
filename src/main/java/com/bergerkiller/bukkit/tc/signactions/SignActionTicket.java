@@ -33,7 +33,7 @@ public class SignActionTicket extends SignAction {
         if (economy == null) {
             return;
         }
-        
+
         final boolean isTrain;
         if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
             isTrain = false;
@@ -60,6 +60,8 @@ public class SignActionTicket extends SignAction {
                     continue;
                 }
 
+                Set<String> owners = member.getProperties().getOwners();
+
                 for (Player player : member.getEntity().getPlayerPassengers()) {
                     if (mode.equalsIgnoreCase("add") && money > 0) {
                         economy.depositPlayer(player, money);
@@ -71,7 +73,6 @@ public class SignActionTicket extends SignAction {
                             economy.withdrawPlayer(player, money);
                             Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(money));
                             if (mode.equalsIgnoreCase("pay")) {
-                                Set<String> owners = member.getProperties().getOwners();
                                 if (owners.size() > 0) {
                                     double ownerMoney = money / owners.size();
                                     for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
