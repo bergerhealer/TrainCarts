@@ -133,7 +133,7 @@ public class CartAttachmentItem extends CartAttachment {
 
     @Override
     public int getMountEntityId() {
-        return this.entity.getEntityId();
+        return -1;
     }
 
     @Override
