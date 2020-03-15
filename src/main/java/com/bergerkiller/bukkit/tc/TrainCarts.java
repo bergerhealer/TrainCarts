@@ -152,6 +152,10 @@ public class TrainCarts extends PluginBase {
      * @return currency text
      */
     public static String getCurrencyText(double value) {
+        Economy econ = TrainCarts.plugin.econ;
+        if (econ != null) {
+            return econ.format(value);
+        }
         return TCConfig.currencyFormat.replace("%value%", Double.toString(value));
     }
 
