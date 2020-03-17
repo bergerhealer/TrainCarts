@@ -45,7 +45,7 @@ public class SignActionTicket extends SignAction {
 
         if ((info.hasMember() && info.isPowered())) {
             final String mode = info.getLine(2);
-            final double money = info.getLine(3).isEmpty() ? 0 : ParseUtil.parseDouble(info.getLine(3), 0.0);
+            final double money = ParseUtil.parseDouble(info.getLine(3), 0.0);
 
             List<MinecartMember<?>> members;
             if (isTrain) {
