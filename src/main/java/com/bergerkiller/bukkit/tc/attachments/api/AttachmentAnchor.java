@@ -9,6 +9,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 /**
@@ -72,6 +73,22 @@ public abstract class AttachmentAnchor {
             if (forward.lengthSquared() > 1e-9) {
                 transform.rotate(Quaternion.fromLookDirection(forward));
             }
+        }
+    });
+
+    /**
+     * Marker attachment anchor for seat attachments to indicate the position of the seat should be
+     * set to the parent attachment's default passenger position. This will attach this attachment
+     * to the parent attachment, if possible, or use a 0/0/0 transform otherwise.
+     */
+    public static AttachmentAnchor SEAT_PARENT = register(new AttachmentAnchor("seat parent") {
+        @Override
+        public boolean supports(Attachment attachment) {
+            return attachment instanceof CartAttachmentSeat;
+        }
+
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
         }
     });
 
