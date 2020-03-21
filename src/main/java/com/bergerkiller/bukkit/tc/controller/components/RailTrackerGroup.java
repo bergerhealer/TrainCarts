@@ -181,26 +181,39 @@ public class RailTrackerGroup extends RailTracker {
 
         // Remove all previous rails from the rail member cache, and add the new rails
         try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
-            this.railsBuffer.clear();
-            this.railsBuffer.addAll(this.prevRails);
-            for (TrackedRail newRail : this.rails) {
-                boolean found = false;
-                Iterator<TrackedRail> tmpIter = this.railsBuffer.iterator();
-                while (tmpIter.hasNext()) {
-                    TrackedRail oldRail = tmpIter.next();
-                    if (oldRail.position.equals(newRail.position)) {
-                        tmpIter.remove();
-                        RailMemberCache.changeMember(newRail.state.railBlock(), oldRail.member, newRail.member);
-                        found = true;
-                        break;
-                    }
+            if (this.prevRails.isEmpty() && !this.rails.isEmpty()) {
+                // Spawning / entering rails for the first time
+                // Remove all earlier storing of the member
+                // This fixes a bug of ghost members in the rail member cache due to unloading
+                for (MinecartMember<?> member : this.owner) {
+                    RailMemberCache.remove(member);
                 }
-                if (!found) {
+                for (TrackedRail newRail : this.rails) {
                     RailMemberCache.addBlock(newRail.state.railBlock(), newRail.member);
                 }
-            }
-            for (TrackedRail oldRail : this.railsBuffer) {
-                RailMemberCache.removeBlock(oldRail.state.railBlock(), oldRail.member);
+            } else {
+                // Moving
+                this.railsBuffer.clear();
+                this.railsBuffer.addAll(this.prevRails);
+                for (TrackedRail newRail : this.rails) {
+                    boolean found = false;
+                    Iterator<TrackedRail> tmpIter = this.railsBuffer.iterator();
+                    while (tmpIter.hasNext()) {
+                        TrackedRail oldRail = tmpIter.next();
+                        if (oldRail.position.equals(newRail.position)) {
+                            tmpIter.remove();
+                            RailMemberCache.changeMember(newRail.state.railBlock(), oldRail.member, newRail.member);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        RailMemberCache.addBlock(newRail.state.railBlock(), newRail.member);
+                    }
+                }
+                for (TrackedRail oldRail : this.railsBuffer) {
+                    RailMemberCache.removeBlock(oldRail.state.railBlock(), oldRail.member);
+                }
             }
 
             // Alternative: remove and re-add all the members
