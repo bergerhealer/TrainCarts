@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
@@ -40,6 +41,7 @@ import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -494,41 +496,62 @@ public class TrainCarts extends PluginBase {
         //this corrects minecart positions before saving
         MinecartGroupStore.doPostMoveLogic();
 
-        //unload all groups
-        for (MinecartGroup mg : MinecartGroup.getGroups().cloneAsIterable()) {
-            mg.unload();
-        }
-
-        //double-check all entities on all worlds, to see no unlinked groups exist. Unload those too.
-        List<CommonEntity<?>> minecartsWithMMControllers = new ArrayList<CommonEntity<?>>();
+        //go by all minecart member entities on the server and eject those that have players inside
+        //this makes sure that the default save function doesn't overwrite it
         for (World world : WorldUtil.getWorlds()) {
-            for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(world)) {
-                // Add minecart entities with MinecartMember controllers assigned
-                if (entity instanceof Minecart) {
-                    CommonEntity<?> commonEntity = CommonEntity.get(entity);
-                    if (commonEntity.getController(MinecartMember.class) != null) {
-                        minecartsWithMMControllers.add(commonEntity);
+            for (Chunk chunk : WorldUtil.getChunks(world)) {
+                for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
+                    if (entity instanceof Minecart) {
+                        CommonEntity<?> commonEntity = CommonEntity.get(entity);
+                        if (commonEntity.hasPlayerPassenger()) {
+                            MinecartMember<?> member = commonEntity.getController(MinecartMember.class);
+                            if (member != null && !member.isPlayerTakable()) {
+                                commonEntity.eject();
+                            }
+                        }
                     }
                 }
-
-                // Double-check for groups
-                MinecartGroup group = MinecartGroup.get(entity);
-                if (group != null) {
-                    group.unload();
-                }
             }
         }
 
-        //reset all minecarts with MinecartMember entity controllers to their defaults
-        for (CommonEntity<?> commonEntity : minecartsWithMMControllers) {
-            //when a player is inside but player takable is false, eject the cart
-            //this makes sure that the default save function doesn't overwrite it
-            if (commonEntity.hasPlayerPassenger() && !commonEntity.getController(MinecartMember.class).isPlayerTakable()) {
-                commonEntity.eject();
+        //store all forced chunk instances of all groups currently in use
+        //this delays unloading the chunks until after all trains have unloaded / controllers disabled
+        List<ForcedChunk> allForcedChunks = new ArrayList<ForcedChunk>();
+        try {
+            //unload all groups, add their forced chunks to it for safekeeping first
+            for (MinecartGroup mg : MinecartGroup.getGroups().cloneAsIterable()) {
+                mg.getChunkArea().getForcedChunks(allForcedChunks);
+                mg.unload();
             }
 
-            //reset controller to the defaults, breaking all references to TrainCarts
-            commonEntity.setController(new DefaultEntityController());
+            //double-check all entities on all worlds, to see no unlinked groups exist. Unload those too.
+            //replace all MinecartMember controllers with default controllers too
+            for (World world : WorldUtil.getWorlds()) {
+                for (Chunk chunk : WorldUtil.getChunks(world)) {
+                    for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
+                        // Double-check for groups
+                        MinecartGroup group = MinecartGroup.get(entity);
+                        if (group != null) {
+                            group.unload();
+                        }
+
+                        // Replace MinecartMember with default controller on shutdown
+                        // This prevents Traincarts classes staying around after disabling
+                        if (entity instanceof Minecart) {
+                            CommonEntity<?> commonEntity = CommonEntity.get(entity);
+                            if (commonEntity.getController(MinecartMember.class) != null) {
+                                commonEntity.setController(new DefaultEntityController());
+                            }
+                        }
+                    }
+                }
+            }
+        } finally {
+            // This will potentially unload the chunks
+            for (ForcedChunk forcedChunk : allForcedChunks) {
+                forcedChunk.close();
+            }
+            allForcedChunks.clear();
         }
 
         //save all data to disk (autosave=false)

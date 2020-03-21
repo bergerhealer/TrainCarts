@@ -137,6 +137,22 @@ public class ChunkArea {
     }
 
     /**
+     * Adds all the chunks kept loaded inside this chunk area to a list, preventing them
+     * from unloading again. All the forced chunks obtained should be closed by the caller
+     * of this method.
+     * 
+     * @param forcedChunks List of forced chunks to add to
+     */
+    public final void getForcedChunks(List<ForcedChunk> forcedChunks) {
+        for (OwnedChunk chunk : this.all_chunks) {
+            if (!chunk.forcedChunk.isNone()) {
+                //TODO: chunk.forcedChunk.clone() in newer version of BKCommonLib
+                forcedChunks.add(ChunkUtil.forceChunkLoaded(chunk.getWorld(), chunk.getX(), chunk.getZ()));
+            }
+        }
+    }
+
+    /**
      * Gets all the chunk centers in which a minecart resides
      * 
      * @return chunk centers
