@@ -111,7 +111,18 @@ public class SignActionSpawn extends SignAction {
             }
             Collections.sort(modes);
             if (modes.isEmpty()) {
-                return null;
+                if (types.size() == 1 && info.getWatchedDirections().length > 0) {
+                    // Spawn at the exact position at the sign (single cart)
+                    SpawnPositions pos = new SpawnPositions();
+                    pos.direction = info.getWatchedDirections()[0];
+                    pos.locs = new ArrayList<Location>(1);
+                    pos.locs.add(info.getCenterLocation());
+                    pos.powered = info.isPowered(pos.direction);
+                    modes.add(pos);
+                } else {
+                    // No room
+                    return null;
+                }
             }
 
             // Trim off modes > 2, we don't use those
