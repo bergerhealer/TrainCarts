@@ -44,6 +44,7 @@ public class VirtualEntity {
     private final UUID entityUUID;
     private final DataWatcher metaData;
     private double posX, posY, posZ;
+    private boolean posSet;
     private double liveAbsX, liveAbsY, liveAbsZ;
     private double syncAbsX, syncAbsY, syncAbsZ;
     private double velSyncAbsX, velSyncAbsY, velSyncAbsZ;
@@ -53,6 +54,7 @@ public class VirtualEntity {
     private double syncVel;
     private double relDx, relDy, relDz;
     private EntityType entityType = EntityType.CHICKEN;
+    private boolean entityTypeIsMinecart = false;
     private int rotateCtr = 0;
     private SyncMode syncMode = SyncMode.NORMAL;
     private boolean useParentMetadata = false;
@@ -95,6 +97,8 @@ public class VirtualEntity {
         this.syncAbsX = this.syncAbsY = this.syncAbsZ = Double.NaN;
         this.velSyncAbsX = this.velSyncAbsY = this.velSyncAbsZ = Double.NaN;
         this.syncVel = 0.0;
+        this.posX = this.posY = this.posZ = 0.0;
+        this.posSet = false;
     }
 
     public DataWatcher getMetaData() {
@@ -154,6 +158,7 @@ public class VirtualEntity {
         this.posX = position.getX();
         this.posY = position.getY();
         this.posZ = position.getZ();
+        this.posSet = true;
     }
 
     public void setRelativeOffset(double dx, double dy, double dz) {
@@ -244,9 +249,13 @@ public class VirtualEntity {
      * @param yawPitchRoll rotation
      */
     public void updatePosition(Matrix4x4 transform, Vector yawPitchRoll) {
-        Vector v = new Vector(this.posX, this.posY, this.posZ);
-        transform.transformPoint(v);
-        updatePosition(v, yawPitchRoll);
+        if (this.posSet) {
+            Vector v = new Vector(this.posX, this.posY, this.posZ);
+            transform.transformPoint(v);
+            updatePosition(v, yawPitchRoll);
+        } else {
+            updatePosition(transform.toVector(), yawPitchRoll);
+        }
     }
 
     /**
@@ -267,7 +276,7 @@ public class VirtualEntity {
         } else {
             livePitch = 0.0f;
         }
-        if (isMinecart(this.entityType)) {
+        if (this.entityTypeIsMinecart) {
             this.liveYaw -= 90.0f;
         }
 
@@ -282,7 +291,7 @@ public class VirtualEntity {
         // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
         // Only applies when used in a minecart member network environment
         liveVel = 0.0;
-        if (hasVelocityPacket(this.entityType) && this.manager instanceof MinecartMemberNetwork) {
+        if (this.entityTypeIsMinecart && this.manager instanceof MinecartMemberNetwork) {
             MinecartMember<?> member = ((MinecartMemberNetwork) manager).getMember();
             if (!member.isUnloaded() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
                 if (!Double.isNaN(velSyncAbsX)) {
@@ -303,6 +312,7 @@ public class VirtualEntity {
 
     public void setEntityType(EntityType entityType) {
         this.entityType = entityType;
+        this.entityTypeIsMinecart = isMinecart(entityType);
     }
 
     /**
@@ -592,12 +602,8 @@ public class VirtualEntity {
         }
     }
 
-    private static boolean hasVelocityPacket(EntityType entityType) {
-        return isMinecart(entityType);
-    }
-
     private boolean hasPitch() {
-        return isLivingEntity() || isMinecart(this.entityType);
+        return this.entityTypeIsMinecart || isLivingEntity();
     }
 
     public static boolean isMinecart(EntityType entityType) {
