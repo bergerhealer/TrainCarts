@@ -306,13 +306,29 @@ public class SignActionSpawn extends SignAction {
      * @return spawn locations list. Number of locations may be less than the number of types.
      */
     public static List<Location> getSpawnPositions(Location startLoc, boolean atCenter, BlockFace directionFace, List<SpawnableMember> types) {
-        Vector motionVector = FaceUtil.faceToVector(directionFace);
+        return getSpawnPositions(startLoc, atCenter, FaceUtil.faceToVector(directionFace), types);
+    }
+
+    /**
+     * Gets the Minecart spawn positions into a certain direction.
+     * The first location is always the startLoc Location.
+     * With atCenter is true, the first cart spawned will be positioned at the start location,
+     * even if that width clips through other blocks. When false, it will be spawned at an offset away
+     * to make sure the cart edge does not clip past startLoc.
+     * 
+     * @param startLoc position to start spawning from
+     * @param atCenter whether the first spawn position is the startLoc (true), or an offset away (false)
+     * @param direction of spawning
+     * @param types of spawnable members to spawn
+     * @return spawn locations list. Number of locations may be less than the number of types.
+     */
+    public static List<Location> getSpawnPositions(Location startLoc, boolean atCenter, Vector direction, List<SpawnableMember> types) {
         List<Location> result = new ArrayList<Location>(types.size());
         if (atCenter && types.size() == 1) {
             // Single-minecart spawning logic
             // Require there to be one extra free rail in the direction we are spawning
             if (MinecartMemberStore.getAt(startLoc) == null) {
-                TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, motionVector);
+                TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, direction);
                 Location firstPos = walker.state.positionLocation();
                 walker.skipFirst();
                 if (walker.moveFull()) {
@@ -321,7 +337,7 @@ public class SignActionSpawn extends SignAction {
             }
         } else {
             // Multiple-minecart spawning logic
-            TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, motionVector);
+            TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, direction);
             walker.skipFirst();
             for (int i = 0; i < types.size(); i++) {
                 SpawnableMember type = types.get(i);

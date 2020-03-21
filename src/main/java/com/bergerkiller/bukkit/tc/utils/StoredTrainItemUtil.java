@@ -14,6 +14,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -28,6 +29,9 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -177,6 +181,20 @@ public class StoredTrainItemUtil {
             return SpawnResult.FAIL_NORAIL;
         }
 
+        // Compute movement direction on the clicked rails using rail state
+        Vector spawnDirection;
+        {
+            RailState state = new RailState();
+            state.setRailPiece(RailPiece.create(clickedRailType, clickedBlock));
+            state.setPosition(Position.fromTo(spawnLoc, spawnLoc));
+            state.initEnterDirection();
+            state.loadRailLogic().getPath().move(state, 0.0);
+            spawnDirection = state.position().getMotion();
+            if (state.position().motDot(player.getEyeLocation().getDirection()) < 0.0) {
+                spawnDirection.multiply(-1.0);
+            }
+        }
+
         // Attempt parsing the Item's configuration into a SpawnableGroup
         SpawnableGroup group;
         if (ItemUtil.getMetaTag(item).getValue("parsed", false)) {
@@ -205,7 +223,7 @@ public class StoredTrainItemUtil {
         }
 
         // Find locations to spawn at
-        List<Location> locations = SignActionSpawn.getSpawnPositions(spawnLoc, false, orientation, group.getMembers());
+        List<Location> locations = SignActionSpawn.getSpawnPositions(spawnLoc, true, spawnDirection, group.getMembers());
         if (locations.isEmpty() && group.getMembers().size() == 1) {
             // Spawn at the exact location
             locations.add(spawnLoc);
