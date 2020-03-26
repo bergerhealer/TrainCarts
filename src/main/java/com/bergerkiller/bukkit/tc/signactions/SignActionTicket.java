@@ -89,7 +89,7 @@ public class SignActionTicket extends SignAction {
                             }
                         } else {
                             Localization.TICKET_BUYFAIL.message(player, TrainCarts.getCurrencyText(money));
-                            member.eject();
+                            member.getEntity().removePassenger(player);
                         }
                     }
                 }
