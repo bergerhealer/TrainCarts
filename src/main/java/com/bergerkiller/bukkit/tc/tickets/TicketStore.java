@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class TicketStore {
@@ -385,7 +386,16 @@ public class TicketStore {
         // Apply ticket to the train
         Ticket ticket = getTicketFromItem(item);
         if (ticket != null) {
-            trainProperties.load(ticket.getProperties().clone());
+            ConfigurationNode ticketTrainProperties = ticket.getProperties().clone();
+            ticketTrainProperties.remove("carts"); // this would break a LOT
+
+            // Load train-level properties from ticket defined properties
+            trainProperties.load(ticketTrainProperties);
+
+            // Load cart-level properties, like destination, from ticket defined properties
+            for (CartProperties cart : trainProperties) {
+                cart.load(ticketTrainProperties);
+            }
 
             // Notify the train of these changes (triggers signs)
             MinecartGroup group = trainProperties.getHolder();

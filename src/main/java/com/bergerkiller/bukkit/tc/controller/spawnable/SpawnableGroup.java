@@ -20,7 +20,7 @@ public class SpawnableGroup {
     private CenterMode centerMode = CenterMode.NONE;
 
     public SpawnableGroup() {
-        this.config = TrainPropertiesStore.getDefaultsByName("spawner").clone();
+        this.config = new ConfigurationNode();
     }
 
     /**
@@ -66,12 +66,6 @@ public class SpawnableGroup {
      */
     public void addMember(ConfigurationNode config) {
         this.members.add(new SpawnableMember(this, config));
-    }
-
-    private void addStandardMember(EntityType type) {
-        ConfigurationNode cartConfig = new ConfigurationNode();
-        cartConfig.set("entityType", type);
-        this.addMember(cartConfig);
     }
 
     private int applyConfig(ConfigurationNode savedConfig) {
@@ -152,7 +146,11 @@ public class SpawnableGroup {
             } else {
                 EntityType type = findVanillaCartType(c);
                 if (type != null) {
-                    result.addStandardMember(type);
+                    ConfigurationNode standardCartConfig = TrainPropertiesStore.getDefaultsByName("spawner").clone();
+                    standardCartConfig.remove("carts");
+                    result.applyConfig(standardCartConfig);
+                    standardCartConfig.set("entityType", type);
+                    result.addMember(standardCartConfig);
                     countAdded++;
                 } else if (Character.isDigit(c)) {
                     amountBuilder.append(c);

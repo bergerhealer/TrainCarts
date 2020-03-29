@@ -1190,6 +1190,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
     }
 
+    /**
+     * Loads the train properties from YAML configuration.
+     * All train-level properties are loaded. Cart properties of carts that
+     * belong to this train are not updated. If the input YAML contains a <i>carts</i>
+     * node, the carts belonging to the train are initialized also.
+     * 
+     * @param node The YAML configuration node to load from
+     */
     @Override
     public void load(ConfigurationNode node) {
         this.setDisplayName(node.get("displayName", this.displayName));
@@ -1271,12 +1279,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                     }
                 }
             }
-        }
-
-        // Only used when loading defaults from tickets, or when 'destination: ' is set in DefTrProps.yml
-        // This allows properties defined at train level to be applied to all carts
-        for (CartProperties cart : this) {
-            cart.load(node);
         }
 
         // Load individual carts (by name)
