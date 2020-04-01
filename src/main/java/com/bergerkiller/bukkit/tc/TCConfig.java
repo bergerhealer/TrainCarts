@@ -107,8 +107,8 @@ public class TCConfig {
         config.setHeader("This is the configuration file of TrainCarts");
         config.addHeader("In here you can tweak TrainCarts to what you want");
         config.addHeader("For more information, you can visit the following websites:");
-        config.addHeader("http://www.minecraftwiki.net/wiki/Bukkit/TrainCarts");
-        config.addHeader("http://forums.bukkit.org/threads/traincarts.29491/");
+        config.addHeader("https://minecraft.gamepedia.com/Mods/TrainCarts");
+        config.addHeader("https://www.spigotmc.org/resources/traincarts.39592/");
 
         config.setHeader("resourcePack", "\nPath or online download URL to the resource pack to use");
         config.addHeader("resourcePack", "Using 'server' makes it use server.properties (default)");
