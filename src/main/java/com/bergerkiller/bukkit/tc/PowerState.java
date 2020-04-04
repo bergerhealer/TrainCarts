@@ -149,14 +149,14 @@ public enum PowerState {
      */
     public static boolean isSignPowered(Block signBlock, boolean inverted) {
         if (inverted) {
-            for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
+            for (BlockFace face : FaceUtil.BLOCK_SIDES) {
                 if (PowerState.get(signBlock, face, true) == PowerState.ON) {
                     return false;
                 }
             }
             return true;
         } else {
-            for (BlockFace face : FaceUtil.ATTACHEDFACESDOWN) {
+            for (BlockFace face : FaceUtil.BLOCK_SIDES) {
                 if (PowerState.get(signBlock, face, true).hasPower()) return true;
             }
             return false;
