@@ -18,8 +18,14 @@ import java.util.Locale;
 
 public class SignActionEnter extends SignAction {
 
-    private static boolean canEnter(Entity entity, boolean enterPlayers, boolean enterMobs) {
-        return (enterPlayers && entity instanceof Player) || (enterMobs && EntityUtil.isMob(entity));
+    private static boolean canEnter(Entity entity, boolean enterPlayers, boolean enterMobs, boolean enterMisc) {
+        if (entity instanceof Player) {
+            return enterPlayers;
+        } else if (EntityUtil.isMob(entity)) {
+            return enterMobs;
+        } else {
+            return enterMisc;
+        }
     }
 
     @Override
@@ -58,6 +64,7 @@ public class SignActionEnter extends SignAction {
         // Read whether mobs or players should enter
         boolean enterPlayers = false;
         boolean enterMobs = false;
+        boolean enterMisc = false;
         if (!info.getLine(2).isEmpty()) {
             String mode = info.getLine(2).toLowerCase(Locale.ENGLISH);
             if (mode.contains("mob")) {
@@ -65,6 +72,9 @@ public class SignActionEnter extends SignAction {
             }
             if (mode.contains("player")) {
                 enterPlayers = true;
+            }
+            if (mode.contains("misc")) {
+                enterMisc = true;
             }
         } else {
             // By default only players
@@ -83,7 +93,7 @@ public class SignActionEnter extends SignAction {
                     continue;
                 }
                 // Can this entity enter the minecart?
-                if (canEnter(entity, enterPlayers, enterMobs)) {
+                if (canEnter(entity, enterPlayers, enterMobs, enterMisc)) {
                     // Look for an Empty minecart to put him in
                     for (MinecartMember<?> member : members) {
                         if (member.getAvailableSeatCount() > 0 && member.getEntity().addPassenger(entity)) {
@@ -107,7 +117,7 @@ public class SignActionEnter extends SignAction {
                     lastDistance = Double.MAX_VALUE;
                     selectedEntity = null;
                     for (Entity entity : nearby) {
-                        if (entity.getVehicle() != null || !canEnter(entity, enterPlayers, enterMobs)) {
+                        if (entity.getVehicle() != null || !canEnter(entity, enterPlayers, enterMobs, enterMisc)) {
                             continue;
                         }
                         distance = member.getEntity().loc.distanceSquared(entity);
