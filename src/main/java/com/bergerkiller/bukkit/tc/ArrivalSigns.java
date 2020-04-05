@@ -9,16 +9,20 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.utils.TimeDurationFormat;
+
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.logging.Level;
 
 public class ArrivalSigns {
     private static HashMap<String, TimeSign> timerSigns = new HashMap<>();
     private static BlockMap<TimeCalculation> timeCalculations = new BlockMap<>();
+    private static TimeDurationFormat timeFormat = new TimeDurationFormat("HH:mm:ss");
     private static Task updateTask;
 
     public static TimeSign getTimer(String name) {
@@ -60,6 +64,14 @@ public class ArrivalSigns {
         } else {
             t.trigger();
             t.update();
+        }
+    }
+
+    public static void setTimeDurationFormat(String format) {
+        try {
+            timeFormat = new TimeDurationFormat(format);
+        } catch (IllegalArgumentException ex) {
+            TrainCarts.plugin.log(Level.WARNING, "Time duration format is invalid: " + format);
         }
     }
 
@@ -156,7 +168,7 @@ public class ArrivalSigns {
             long duration = System.currentTimeMillis() - startTime;
             if (MaterialUtil.ISSIGN.get(this.signblock)) {
                 Sign sign = BlockUtil.getSign(this.signblock);
-                String dur = Util.getTimeString(duration);
+                String dur = timeFormat.format(duration);
                 sign.setLine(3, dur);
                 sign.update(true);
                 //Message
@@ -186,7 +198,7 @@ public class ArrivalSigns {
             long elapsed = System.currentTimeMillis() - this.startTime;
             long remaining = duration - elapsed;
             if (remaining < 0) remaining = 0;
-            return Util.getTimeString(remaining);
+            return timeFormat.format(remaining);
         }
 
         public boolean update() {

@@ -366,6 +366,10 @@ public class TCConfig {
                 "When this is set to false and no crafting table is nearby, no item transfer animations are shown");
         craftingRequireWorkbench = config.get("craftingRequireWorkbench", true);
 
+        config.setHeader("triggerTimerDateFormat", "\nTime format used by trigger signs to display arrival times on signs");
+        config.addHeader("triggerTimerDateFormat", "Formatting: https://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html");
+        ArrivalSigns.setTimeDurationFormat(config.get("triggerTimerDateFormat", "HH:mm:ss"));
+
         //message shortcuts
         config.setHeader("messageShortcuts", "\nSeveral shortcuts you can use on announce signs (text is replaced)");
         if (!config.contains("messageShortcuts")) {
