@@ -481,6 +481,7 @@ public class TCListener implements Listener {
         }
     }
 
+    // Note: obsoleted by onItemDrop after BKCommonLib 1.15.2-v3 or later is the minimum required dependency!
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerItemDrop(PlayerDropItemEvent event) {
         AttachmentEditor editor = MapDisplay.getHeldDisplay(event.getPlayer(), AttachmentEditor.class);

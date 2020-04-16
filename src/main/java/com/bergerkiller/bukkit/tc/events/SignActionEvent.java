@@ -188,6 +188,52 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
+     * Gets the direction Block Face of the cart upon entering the rails
+     * that triggered this sign. If no cart exists, it defaults to the activating direction
+     * of the sign (facing or watched directions).
+     * 
+     * @return enter direction face
+     */
+    public BlockFace getCartEnterFace() {
+        if (this.hasMember()) {
+            // Find the rails block matching the one that triggered this event
+            // Return the enter ('from') direction for that rails block if found
+            if (this.hasRails()) {
+                Block rails = this.getRails();
+                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
+                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
+                        return rail.state.enterFace();
+                    }
+                }
+            }
+
+            // Ask the minecart itself alternatively
+            return Util.vecToFace(this.member.getEntity().getVelocity(), false);
+        }
+
+        // Find the facing direction from watched directions, or sign orientation
+        BlockFace signDirection;
+        if (this.getWatchedDirections().length > 0) {
+            signDirection = this.getWatchedDirections()[0];
+        } else {
+            signDirection = this.getFacing().getOppositeFace();
+        }
+
+        // Snap sign direction to the rails, if a rails exists
+        if (this.hasRails()) {
+            RailState state = new RailState();
+            state.setRailPiece(this.getRailPiece());
+            state.position().setLocation(state.railType().getSpawnLocation(state.railBlock(), signDirection));
+            state.position().setMotion(signDirection);
+            state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
+            state.initEnterDirection();
+            return state.enterFace();
+        }
+
+        return signDirection;
+    }
+
+    /**
      * Gets the direction a minecart has above the rails of this Sign
      *
      * @return cart direction
@@ -357,9 +403,7 @@ public class SignActionEvent extends Event implements Cancellable {
             }
 
             // Compute the position at the start of the rail's path by walking 'back'
-            RailPath.Position pos = memberRail.state.position().clone();
-            pos.invertMotion();
-            memberRail.getPath().move(pos, memberRail.state.railBlock(), Double.MAX_VALUE);
+            RailPath.Position pos = RailPath.Position.fromPosDir(memberRail.state.enterPosition(), memberRail.state.enterDirection());
 
             // Find the junction closest to this start position
             double min_dist = Double.MAX_VALUE;
@@ -676,7 +720,7 @@ public class SignActionEvent extends Event implements Cancellable {
         if (!member.isMoving()) {
             return true;
         }
-        return this.isWatchedDirection(this.getCartEnterDirection());
+        return this.isWatchedDirection(this.getCartEnterFace());
     }
 
     /**
@@ -933,7 +977,6 @@ public class SignActionEvent extends Event implements Cancellable {
      * @param direction to check
      * @return True if watched, False otherwise
      */
-    @Deprecated
     public boolean isWatchedDirection(BlockFace direction) {
         return LogicUtil.contains(direction, this.getWatchedDirections());
     }

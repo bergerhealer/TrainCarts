@@ -275,6 +275,19 @@ public class RailState {
     }
 
     /**
+     * The position of the Cart upon entering the section of rails.
+     * This position is absolute.
+     * 
+     * @return enter position
+     */
+    public Vector enterPosition() {
+        if (!hasEnterDirection()) {
+            throw new IllegalStateException("Enter direction has not been initialized");
+        }
+        return this._enterPosition;
+    }
+
+    /**
      * Initializes the enter direction, setting it to the current motion vector direction.
      */
     public void initEnterDirection() {
@@ -284,9 +297,15 @@ public class RailState {
         this._enterDirection.setX(this._position.motX);
         this._enterDirection.setY(this._position.motY);
         this._enterDirection.setZ(this._position.motZ);
-        this._enterPosition.setX(this._position.posX);
-        this._enterPosition.setY(this._position.posY);
-        this._enterPosition.setZ(this._position.posZ);
+        if (this._position.relative) {
+            this._enterPosition.setX(this._position.posX + this._railPiece.block().getX());
+            this._enterPosition.setY(this._position.posY + this._railPiece.block().getY());
+            this._enterPosition.setZ(this._position.posZ + this._railPiece.block().getZ());
+        } else {
+            this._enterPosition.setX(this._position.posX);
+            this._enterPosition.setY(this._position.posY);
+            this._enterPosition.setZ(this._position.posZ);
+        }
     }
 
     /**
