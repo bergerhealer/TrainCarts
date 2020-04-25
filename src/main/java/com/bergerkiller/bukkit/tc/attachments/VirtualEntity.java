@@ -331,6 +331,10 @@ public class VirtualEntity {
         }
         this.viewers.add(viewer);
 
+        this.sendSpawnPackets(viewer, motion);
+    }
+
+    private void sendSpawnPackets(Player viewer, Vector motion) {
         //motX = motY = motZ = 0.0;
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
@@ -438,13 +442,12 @@ public class VirtualEntity {
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (this.syncMode == SyncMode.NORMAL && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
-            ArrayList<Player> old_viewers = new ArrayList<Player>(this.viewers);
-            for (Player viewer : old_viewers) {
-                this.destroy(viewer);
+            for (Player viewer : this.viewers) {
+                this.sendDestroyPackets(viewer);
             }
             this.refreshSyncPos();
-            for (Player viewer : old_viewers) {
-                this.spawn(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
+            for (Player viewer : this.viewers) {
+                this.sendSpawnPackets(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
             }
             return;
         }
@@ -574,12 +577,16 @@ public class VirtualEntity {
 
     public void destroy(Player viewer) {
         this.viewers.remove(viewer);
+        this.sendDestroyPackets(viewer);
+        PlayerUtil.getVehicleMountController(viewer).remove(this.entityId);
+    }
+
+    private void sendDestroyPackets(Player viewer) {
         if (this.syncVel > 0.0) {
             PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
         }
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNew(new int[] {this.entityId});
         PacketUtil.sendPacket(viewer, destroyPacket);
-        PlayerUtil.getVehicleMountController(viewer).remove(this.entityId);
     }
 
     public void broadcast(CommonPacket packet) {
