@@ -78,23 +78,36 @@ public class Commands {
                 Localization.EDIT_NOSELECT.message(player);
                 return true;
             }
+
+            // Only cart/train works here. Get appropriate properties
+            IProperties properties;
+            if (command.equalsIgnoreCase("train")) {
+                properties = cprop.getTrainProperties();
+            } else if (command.equalsIgnoreCase("cart")) {
+                properties = cprop;
+            } else {
+                return false;
+            }
+
+            // Check ownership
+            if (!properties.hasOwnership(player)) {
+                Localization.EDIT_NOTOWNED.message(player);
+                return true;
+            }
+
+            // Execute the /train route and /cart route set of commands
+            if (args[0].equalsIgnoreCase("route")) {
+                RouteCommands.execute(sender, properties, StringUtil.remove(args, 0));
+                return true;
+            }
+
+            // Execute commands for the appropriate properties
             String cmd = args[0];
             args = StringUtil.remove(args, 0);
-            if (command.equalsIgnoreCase("train")) {
-                TrainProperties prop = cprop.getTrainProperties();
-                if (prop.hasOwnership(player)) {
-                    return TrainCommands.execute(player, prop, cmd, args);
-                } else {
-                    Localization.EDIT_NOTOWNED.message(player);
-                    return true;
-                }
-            } else if (command.equalsIgnoreCase("cart")) {
-                if (cprop.hasOwnership(player)) {
-                    return CartCommands.execute(player, cprop, cmd, args);
-                } else {
-                    Localization.EDIT_NOTOWNED.message(player);
-                    return true;
-                }
+            if (properties instanceof TrainProperties) {
+                return TrainCommands.execute(player, (TrainProperties) properties, cmd, args);
+            } else if (properties instanceof CartProperties) {
+                return CartCommands.execute(player, (CartProperties) properties, cmd, args);
             } else {
                 return false;
             }

@@ -45,6 +45,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private String enterMessage = null;
     private String destination = "";
     private String lastPathNode = "";
+    private List<String> destinationRoute = Collections.emptyList();
+    private int destinationRouteIndex = 0;
     private boolean isPublic = true;
     private boolean pickUp = false;
     private boolean spawnItemDrops = true;
@@ -402,12 +404,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     public void clearDestination() {
-        this.destination = "";
+        this.setDestination("");
     }
 
     @Override
     public boolean hasDestination() {
-        return this.destination.length() != 0;
+        return !this.destination.isEmpty();
     }
 
     @Override
@@ -417,7 +419,120 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void setDestination(String destination) {
+        // Save current index before the destination was changed
+        int prior_route_index = this.getCurrentRouteDestinationIndex();
+
+        // Update destination
         this.destination = destination == null ? "" : destination;
+
+        // If a destination is now set, increment the route index if it matches the next one in the list
+        if (this.hasDestination() && prior_route_index != -1) {
+            int nextIndex = (prior_route_index + 1) % this.destinationRoute.size();
+            if (this.getDestination().equals(this.destinationRoute.get(nextIndex))) {
+                this.destinationRouteIndex = nextIndex;
+            }
+        }
+    }
+
+    @Override
+    public List<String> getDestinationRoute() {
+        return this.destinationRoute;
+    }
+
+    @Override
+    public void setDestinationRoute(List<String> route) {
+        if (route.isEmpty()) {
+            this.clearDestinationRoute();
+        } else {
+            this.destinationRoute = new ArrayList<String>(route);
+
+            // Keep routing towards the same destination
+            // This allows for a seamless transition between routes
+            if (this.hasDestination()) {
+                this.destinationRouteIndex = this.destinationRoute.indexOf(this.getDestination());
+                if (this.destinationRouteIndex == -1) {
+                    this.destinationRouteIndex = 0;
+                }
+            } else {
+                this.destinationRouteIndex = 0;
+            }
+        }
+    }
+
+    @Override
+    public void clearDestinationRoute() {
+        this.destinationRoute = Collections.emptyList();
+        this.destinationRouteIndex = 0;
+    }
+
+    @Override
+    public void addDestinationToRoute(String destination) {
+        if (destination == null || destination.isEmpty()) {
+            return;
+        }
+        if (this.destinationRoute.isEmpty()) {
+            this.destinationRoute = new ArrayList<String>(2);
+        }
+        this.destinationRoute.add(destination);
+    }
+
+    @Override
+    public void removeDestinationFromRoute(String destination) {
+        if (destination == null || destination.isEmpty() || this.destinationRoute.isEmpty()) {
+            return;
+        }
+        for (int index; this.destinationRoute.size() > 1 && (index = this.destinationRoute.indexOf(destination)) != -1;) {
+            this.destinationRoute.remove(index);
+        }
+        if (this.destinationRoute.size() == 1 && destination.equals(this.destinationRoute.get(0))) {
+            this.clearDestinationRoute();
+        }
+    }
+
+    @Override
+    public int getCurrentRouteDestinationIndex() {
+        if (this.destinationRoute.isEmpty() || !this.hasDestination()) {
+            return -1;
+        } else if (this.destinationRouteIndex < 0 || this.destinationRouteIndex >= this.destinationRoute.size()) {
+            return this.destinationRoute.indexOf(this.getDestination());
+        } else if (this.getDestination().equals(this.destinationRoute.get(this.destinationRouteIndex))) {
+            return this.destinationRouteIndex;
+        } else {
+            return this.destinationRoute.indexOf(this.getDestination());
+        }
+    }
+
+    @Override
+    public String getNextDestinationOnRoute() {
+        if (this.destinationRoute.isEmpty()) {
+            return "";
+        }
+
+        // Correct out of bounds route index
+        if (this.destinationRouteIndex < 0 || this.destinationRouteIndex >= this.destinationRoute.size()) {
+            this.destinationRouteIndex = 0;
+        }
+
+        // If no destination is set, then we go to whatever index we were last at
+        // By default this is 0 (start of the route)
+        if (!this.hasDestination()) {
+            return this.destinationRoute.get(this.destinationRouteIndex);
+        }
+
+        int index;
+        if (this.getDestination().equals(this.destinationRoute.get(this.destinationRouteIndex))) {
+            // If current destination matches the current route at the index, pick next one in the list
+            index = this.destinationRouteIndex;
+        } else {
+            // Index is wrong / out of order destination, pick first one that matches
+            index = this.destinationRoute.indexOf(this.getDestination());
+            if (index == -1) {
+                return ""; // it's not on the route!
+            }
+        }
+
+        // Next one (loop back to beginning)
+        return this.destinationRoute.get((index + 1) % this.destinationRoute.size());
     }
 
     @Override
@@ -502,10 +617,21 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.addTags(arg);
         } else if (key.equalsIgnoreCase("settag")) {
             this.setTags(arg);
-        } else if (key.equalsIgnoreCase("destination")) {
-            this.setDestination(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "remtag", "removetag")) {
             this.removeTags(arg);
+        } else if (key.equalsIgnoreCase("destination")) {
+            this.setDestination(arg);
+        } else if (key.equalsIgnoreCase("addroute")) {
+            this.addDestinationToRoute(arg);
+        } else if (LogicUtil.containsIgnoreCase(key, "remroute", "removeroute")) {
+            this.removeDestinationFromRoute(arg);
+        } else if (key.equalsIgnoreCase("clearroute")) {
+            this.clearDestinationRoute();
+        } else if (key.equalsIgnoreCase("setroute")) {
+            this.clearDestinationRoute();
+            this.addDestinationToRoute(arg);
+        } else if (key.equalsIgnoreCase("loadroute")) {
+            this.setDestinationRoute(TrainCarts.plugin.getRouteManager().findRoute(arg));
         } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playerexit")) {
@@ -550,6 +676,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      */
     public void load(CartProperties from) {
         this.destination = from.destination;
+        this.destinationRoute = (from.destinationRoute.isEmpty()) ?
+                Collections.emptyList() : new ArrayList<String>(from.destinationRoute);
+        this.destinationRouteIndex = from.destinationRouteIndex;
         this.owners.clear();
         this.owners.addAll(from.owners);
         this.ownerPermissions.clear();
@@ -586,6 +715,15 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.exitPitch = node.get("exitPitch", this.exitPitch);
         this.driveSound = node.get("driveSound", this.driveSound);
 
+        this.destinationRouteIndex = node.get("routeIndex", this.destinationRouteIndex);
+        if (node.contains("route")) {
+            List<String> route = node.getList("route", String.class);
+            if (route.isEmpty()) {
+                this.destinationRoute = Collections.emptyList();
+            } else {
+                this.destinationRoute = new ArrayList<String>(route);
+            }
+        }
         if (node.contains("owners")) {
             this.owners.clear();
             for (String owner : node.getList("owners", String.class)) {
@@ -643,6 +781,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             items.add(mat.toString());
         }
         node.set("destination", this.hasDestination() ? this.destination : "");
+        node.set("route", Collections.emptyList());
         node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : "");
         node.set("spawnItemDrops", this.spawnItemDrops);
 
@@ -680,6 +819,14 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
         node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
         node.set("spawnItemDrops", this.spawnItemDrops ? null : false);
+
+        if (this.destinationRoute.isEmpty()) {
+            node.remove("routeIndex");
+            node.remove("route");
+        } else {
+            node.set("routeIndex", this.destinationRouteIndex == 0 ? null : this.destinationRouteIndex);
+            node.set("route", this.destinationRoute);
+        }
 
         if (this.skipOptions.isActive()) {
             this.skipOptions.save(node.getNode("skipOptions"));

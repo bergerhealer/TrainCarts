@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -649,6 +650,65 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
+    public List<String> getDestinationRoute() {
+        for (CartProperties prop : this) {
+            List<String> route = prop.getDestinationRoute();
+            if (!route.isEmpty()) {
+                return route;
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void setDestinationRoute(List<String> route) {
+        for (CartProperties prop : this) {
+            prop.setDestinationRoute(route);
+        }
+    }
+
+    @Override
+    public void clearDestinationRoute() {
+        for (CartProperties prop : this) {
+            prop.clearDestinationRoute();
+        }
+    }
+
+    @Override
+    public void addDestinationToRoute(String destination) {
+        for (CartProperties prop : this) {
+            prop.addDestinationToRoute(destination);
+        }
+    }
+
+    @Override
+    public void removeDestinationFromRoute(String destination) {
+        for (CartProperties prop : this) {
+            prop.removeDestinationFromRoute(destination);
+        }
+    }
+
+    @Override
+    public int getCurrentRouteDestinationIndex() {
+        for (CartProperties prop : this) {
+            if (!prop.getDestinationRoute().isEmpty()) {
+                return prop.getCurrentRouteDestinationIndex();
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public String getNextDestinationOnRoute() {
+        for (CartProperties prop : this) {
+            if (!prop.getDestinationRoute().isEmpty()) {
+                return prop.getNextDestinationOnRoute();
+            }
+        }
+        return "";
+    }
+
+    @Override
     public void clearDestination() {
         for (CartProperties prop : this) {
             prop.clearDestination();
@@ -1004,10 +1064,21 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.addTags(arg);
         } else if (key.equalsIgnoreCase("settag")) {
             this.setTags(arg);
-        } else if (key.equalsIgnoreCase("destination")) {
-            this.setDestination(arg);
         } else if (key.equalsIgnoreCase("remtag") || key.equalsIgnoreCase("removetag")) {
             this.removeTags(arg);
+        } else if (key.equalsIgnoreCase("destination")) {
+            this.setDestination(arg);
+        } else if (key.equalsIgnoreCase("addroute")) {
+            this.addDestinationToRoute(arg);
+        } else if (LogicUtil.containsIgnoreCase(key, "remroute", "removeroute")) {
+            this.removeDestinationFromRoute(arg);
+        } else if (key.equalsIgnoreCase("clearroute")) {
+            this.clearDestinationRoute();
+        } else if (key.equalsIgnoreCase("setroute")) {
+            this.clearDestinationRoute();
+            this.addDestinationToRoute(arg);
+        } else if (key.equalsIgnoreCase("loadroute")) {
+            this.setDestinationRoute(TrainCarts.plugin.getRouteManager().findRoute(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "name", "rename", "setname")) {
             this.setName(generateTrainName(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {

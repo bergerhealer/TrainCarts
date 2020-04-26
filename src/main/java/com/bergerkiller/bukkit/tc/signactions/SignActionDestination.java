@@ -2,12 +2,14 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+
 import org.bukkit.entity.Player;
 
 public class SignActionDestination extends SignAction {
@@ -49,26 +51,75 @@ public class SignActionDestination extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
-            if (!info.hasRailedMember()) return;
-            PathNode.getOrCreate(info);
-            if (info.getLine(3).isEmpty() || !info.isPowered()) return;
-            setDestination(info.getMember().getProperties(), info);
-        } else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {
-            if (!info.hasRailedMember()) return;
-            PathNode.getOrCreate(info);
-            if (info.getLine(3).isEmpty() || !info.isPowered()) return;
-            for (CartProperties prop : info.getGroup().getProperties()) {
-                setDestination(prop, info);
-            }
-        } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
+        if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (TrainProperties prop : info.getRCTrainProperties()) {
                 for (CartProperties cprop : prop) {
-                    // Set the cart destination
-                    setDestination(cprop, info);
+                    // Set the cart destination to what is on the fourth line
+                    cprop.setDestination(info.getLine(3));
+                }
+            }
+            return;
+        }
+
+        // Only activate the sign if it is a cart/train sign, and the appropriate enter event is fired (or redstone-triggered)
+        if ( !(info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) &&
+             !(info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) )
+        {
+            return;
+        }
+
+        // Give node to path finding, discovering routes if it doesn't already exist
+        PathNode.getOrCreate(info);
+
+        // Compute next destination to set for the minecarts and apply it
+        for (MinecartMember<?> member : info.getMembers()) {
+            String nextDestination = this.getNextDestination(member.getProperties(), info);
+            if (nextDestination != null) {
+                if (nextDestination.isEmpty()) {
+                    member.getProperties().clearDestination();
+                } else {
+                    member.getProperties().setDestination(nextDestination);
                 }
             }
         }
+    }
+
+    /**
+     * Gets the next destination name that should be set for a single Minecart, given an event.
+     * If null is returned, then no destination should be set.
+     * 
+     * @param cart The cart to compute the next destination for
+     * @param info Event information
+     * @return next destination to set, empty to clear, null to do nothing
+     */
+    private String getNextDestination(CartProperties cart, SignActionEvent info) {
+        // If this sign was triggered using a redstone-on signal, set the destination on this sign at all times
+        // This ignores route and whether or not the destination on the sign matches that of the train
+        if (info.isAction(SignActionType.REDSTONE_ON)) {
+            return info.getLine(3);
+        }
+
+        // If sign is not powered, this sign does nothing
+        if (!info.isPowered()) {
+            return null;
+        }
+
+        // If the destination name of the sign itself is empty, then this sign
+        // always sets the destination to what is on the sign.
+        // This acts similar to the property destination sign
+        if (info.getLine(2).isEmpty()) {
+            return info.getLine(3);
+        }
+
+        // If the destination of this sign is not one the train is going for,
+        // do not set a new destination just yet.
+        if (cart.hasDestination() && !cart.getDestination().equals(info.getLine(2))) {
+            return null;
+        }
+
+        // Use next destination on route if one is used, otherwise use the fourth line for it
+        String nextOnRoute = cart.getNextDestinationOnRoute();
+        return nextOnRoute.isEmpty() ? info.getLine(3) : nextOnRoute;
     }
 
     @Override
@@ -93,21 +144,5 @@ public class SignActionDestination extends SignAction {
     @Override
     public boolean canSupportRC() {
         return true;
-    }
-
-    /**
-     * Sets the destination for a single minecart. Only sets a destination if:<br>
-     * - Redstone change was the cause<br>
-     * - No destination requirement is set on the sign<br>
-     * - The destination requirement equals the current train destination
-     *
-     * @param prop of the minecart
-     * @param info to use to set the destination
-     */
-    public void setDestination(CartProperties prop, SignActionEvent info) {
-        if (info.isAction(SignActionType.REDSTONE_CHANGE) || info.getLine(2).isEmpty()
-                || !prop.hasDestination() || info.getLine(2).equals(prop.getDestination())) {
-            prop.setDestination(info.getLine(3));
-        }
     }
 }

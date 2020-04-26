@@ -175,6 +175,11 @@ public class GlobalCommands {
             TrainCarts.plugin.loadSavedTrains();
             sender.sendMessage(ChatColor.YELLOW + "Reloaded saved trains and modules");
             return true;
+        } else if (args[0].equals("reloadroutes")) {
+            Permission.COMMAND_RELOAD.handle(sender);
+            TrainCarts.plugin.getRouteManager().load();
+            sender.sendMessage(ChatColor.YELLOW + "Reloaded saved routes");
+            return true;
         } else if (args[0].equals("saveall")) {
             Permission.COMMAND_SAVEALL.handle(sender);
             TrainCarts.plugin.save(false);

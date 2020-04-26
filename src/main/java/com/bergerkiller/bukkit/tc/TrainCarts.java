@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
+import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
@@ -76,6 +77,7 @@ public class TrainCarts extends PluginBase {
     private RedstoneTracker redstoneTracker;
     private GlowColorTeamProvider glowColorTeamProvider;
     private PathProvider pathProvider;
+    private RouteManager routeManager;
     private Economy econ = null;
 
     /**
@@ -132,6 +134,16 @@ public class TrainCarts extends PluginBase {
      */
     public PathProvider getPathProvider() {
         return this.pathProvider;
+    }
+
+    /**
+     * Gets the route manager, which stores the routes a train can go when set by name.
+     * Each route consists of a list of destinations.
+     * 
+     * @return route manager
+     */
+    public RouteManager getRouteManager() {
+        return this.routeManager;
     }
 
     /**
@@ -371,6 +383,10 @@ public class TrainCarts extends PluginBase {
         this.glowColorTeamProvider = new GlowColorTeamProvider(this);
         this.glowColorTeamProvider.enable();
 
+        //Initialize route manager
+        this.routeManager = new RouteManager(getDataFolder() + File.separator + "routes.yml");
+        this.routeManager.load();
+
         //Initialize seat attachment map
         this.seatAttachmentMap = new SeatAttachmentMap();
         this.register((PacketListener) this.seatAttachmentMap, SeatAttachmentMap.LISTENED_TYPES);
@@ -491,6 +507,9 @@ public class TrainCarts extends PluginBase {
 
         //Save attachment models
         attachmentModels.save(autosave);
+
+        //Save routes
+        routeManager.save(autosave);
 
         // Save train information
         if (!autosave) {

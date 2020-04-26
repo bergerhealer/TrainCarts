@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -247,6 +248,60 @@ public interface IProperties extends IParsable {
      * @param destination to set to
      */
     void setDestination(String destination);
+
+    /**
+     * Gets a list of destinations, making up the route to travel.
+     * When crossing destination signs, the next destination in the list is set.
+     * 
+     * @return route
+     */
+    List<String> getDestinationRoute();
+
+    /**
+     * Sets the list of destinations making up the route to travel.
+     * When crossing destination signs, the next destination in the list is set.
+     * 
+     * @param route the route to set to
+     */
+    void setDestinationRoute(List<String> route);
+
+    /**
+     * Clears all destinations set in {@link #getDestinationRoute()}
+     */
+    void clearDestinationRoute();
+
+    /**
+     * Adds a destination to {@link #getDestinationRoute()}.
+     * Duplicate destinations are allowed!
+     * 
+     * @param destination to add
+     */
+    void addDestinationToRoute(String destination);
+
+    /**
+     * Removes a destination from {@link #getDestinationRoute()}
+     * 
+     * @param destination to remove
+     */
+    void removeDestinationFromRoute(String destination);
+
+    /**
+     * Gets the index of the destination in the route of {@link #getDestinationRoute()}.
+     * Returns -1 if the current destination is not part of the route, or no
+     * route is set at all.
+     * 
+     * @return index of an item in the route list, -1 if none matches
+     */
+    int getCurrentRouteDestinationIndex();
+
+    /**
+     * Gets the next destination on the route set at {@link #getDestinationRoute()}.
+     * If no route is set, or the current destination of this train is not part
+     * of the route, then an empty String is returned.
+     * 
+     * @return next destination on the route, empty String if none exists
+     */
+    String getNextDestinationOnRoute();
 
     /**
      * Sets the Enter Message displayed when a player enters
