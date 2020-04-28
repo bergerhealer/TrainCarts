@@ -9,6 +9,7 @@ import java.util.Map;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 
 /**
@@ -57,6 +58,11 @@ public class AttachmentInternalState {
      * Next animation in the queue to play once the current animation finishes
      */
     public List<Animation> nextAnimationQueue = Collections.emptyList();
+
+    /**
+     * Last animation state node applied to the attachment
+     */
+    public AnimationNode lastAnimationState = null;
 
     /**
      * Whether the attachment is active at this time.
