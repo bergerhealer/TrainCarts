@@ -108,6 +108,9 @@ public class AttachmentEditor extends MapDisplay {
 
     @Override
     public void onStatusChanged(MapStatusEvent event) {
+        if (this.tree.getDisplay() == null) {
+            return; // Detached, do nothing
+        }
         if (event.isName("changed") || event.isName("changed_silent")) {
             MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
             if (node != null) {
