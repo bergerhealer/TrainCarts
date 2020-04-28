@@ -195,7 +195,7 @@ public class AnimationOptions implements Cloneable {
      * @param options to apply
      */
     public void apply(AnimationOptions options) {
-        this.setDelay(this.getDelay() + this.getSpeed() * options.getDelay());
+        this.setDelay(this.getDelay() + this.getSpeed() * options.getSpeed() * options.getDelay());
         this.setSpeed(this.getSpeed() * options.getSpeed());
         if (options.hasLoopOption()) {
             this.setLooped(options.isLooped());
