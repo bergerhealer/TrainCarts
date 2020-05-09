@@ -10,9 +10,12 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -82,6 +85,66 @@ public class CartAttachmentEntity extends CartAttachment {
                     attachment.resetIcon();
                 }
             }).setBounds(0, 0, 100, 11);
+
+            tab.addWidget(new MapWidgetButton() {
+                private void refreshText() {
+                    if (attachment.getConfig().contains("nametag")) {
+                        ConfigurationNode nametag = attachment.getConfig().getNode("nametag");
+                        if (nametag.get("used", true)) {
+                            if (nametag.get("visible", true)) {
+                                setText("Nametag (vis.)");
+                            } else {
+                                setText("Nametag (invis.)");
+                            }
+                            return;
+                        }
+                    }
+                    setText("No Nametag");
+                }
+
+                @Override
+                public void onAttached() {
+                    refreshText();
+                }
+
+                @Override
+                public void onActivate() {
+                    ConfigurationNode nametag = attachment.getConfig().getNode("nametag");
+                    if (nametag.get("used", true)) {
+                        if (nametag.get("visible", true)) {
+                            nametag.set("visible", false);
+                        } else {
+                            nametag.set("used", false);
+                        }
+                    } else {
+                        nametag.set("used", true);
+                        nametag.set("visible", true);
+                    }
+                    refreshText();
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            }).setBounds(0, 13, 79, 11);
+
+            final MapWidgetSubmitText nameTagTextBox = tab.addWidget(new MapWidgetSubmitText() {
+                @Override
+                public void onAttached() {
+                    this.setDescription("Enter nametag title");
+                }
+
+                @Override
+                public void onAccept(String text) {
+                    ConfigurationNode nametag = attachment.getConfig().getNode("nametag");
+                    nametag.set("used", true);
+                    nametag.set("text", text);
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            });
+            tab.addWidget(new MapWidgetButton() {
+                @Override
+                public void onActivate() {
+                    nameTagTextBox.activate();
+                }
+            }).setText("Edit").setBounds(80, 13, 22, 11);
         }
     };
 
@@ -115,6 +178,18 @@ public class CartAttachmentEntity extends CartAttachment {
             this.entity.setUseParentMetadata(true);
         }
         this.entity.setEntityType(entityType);
+
+        // Nametag
+        if (this.getConfig().isNode("nametag")) {
+            ConfigurationNode nametag = this.getConfig().getNode("nametag");
+            boolean used = nametag.get("used", true);
+            boolean visible = nametag.get("visible", true);
+            String text = nametag.get("text", "");
+            if (used) {
+                this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
+                this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
+            }
+        }
 
         // Minecarts have a 'strange' rotation point - fix it!
         if (VirtualEntity.isMinecart(entityType)) {
