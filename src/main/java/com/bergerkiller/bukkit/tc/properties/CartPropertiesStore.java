@@ -122,12 +122,7 @@ public class CartPropertiesStore {
      * @return The CartProperties for the Minecart
      */
     public static CartProperties get(UUID uuid, TrainProperties train) {
-        CartProperties prop = properties.get(uuid);
-        if (prop == null) {
-            prop = new CartProperties(uuid, train);
-            properties.put(uuid, prop);
-        }
-        return prop;
+        return properties.computeIfAbsent(uuid, key -> new CartProperties(key, train));
     }
 
     /**

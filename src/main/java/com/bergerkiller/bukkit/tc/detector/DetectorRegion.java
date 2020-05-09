@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.detector;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.DataReader;
@@ -38,16 +39,12 @@ public final class DetectorRegion {
         regionsById.put(this.id, this);
         hasChanges = true;
         for (IntVector3 coord : this.coordinates) {
-            List<DetectorRegion> list = regions.get(world, coord);
-            if (list == null) {
-                list = new ArrayList<>(1);
+            BlockLocation block_coord = new BlockLocation(world, coord);
+            regions.compute(block_coord, (key, list) -> {
+                list = (list == null) ? new ArrayList<>(1) : new ArrayList<>(list);
                 list.add(this);
-                regions.put(world, coord, list);
-            } else {
-                list = new ArrayList<DetectorRegion>(list);
-                list.add(this);
-                regions.put(world, coord, list);
-            }
+                return list;
+            });
         }
     }
 
@@ -336,15 +333,16 @@ public final class DetectorRegion {
         regionsById.remove(this.id);
         hasChanges = true;
         for (IntVector3 coord : this.coordinates) {
-            List<DetectorRegion> list = regions.get(this.world, coord);
-            if (list == null) continue;
-            if (list.size() == 1 && list.get(0) == this) {
-                regions.remove(this.world, coord);
-            } else {
-                list = new ArrayList<DetectorRegion>(list);
-                list.remove(this);
-                regions.put(this.world, coord, list);
-            }
+            BlockLocation block_coord = new BlockLocation(this.world, coord);
+            regions.computeIfPresent(block_coord, (key, list) -> {
+                if (list.size() == 1 && list.get(0) == DetectorRegion.this) {
+                    return null;
+                } else {
+                    list = new ArrayList<DetectorRegion>(list);
+                    list.remove(DetectorRegion.this);
+                    return list;
+                }
+            });
         }
     }
 }

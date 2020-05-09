@@ -622,7 +622,7 @@ public class TCListener implements Listener {
             }
 
             // Keep track of when a player interacts to detect spamming
-            long lastHitTime = LogicUtil.fixNull(lastHitTimes.get(event.getPlayer()), Long.MIN_VALUE);
+            long lastHitTime = lastHitTimes.getOrDefault(event.getPlayer(), Long.MIN_VALUE);
             long time = System.currentTimeMillis();
             long clickInterval = time - lastHitTime;
             lastHitTimes.put(event.getPlayer(), time);
@@ -739,7 +739,7 @@ public class TCListener implements Listener {
                     if (BlockUtil.canBuildBlock(clickedBlock, type)) {
                         // Edit the rails to make a connection/face the direction the player clicked
                         BlockFace direction = FaceUtil.getDirection(player.getLocation().getDirection(), false);
-                        BlockFace lastDirection = LogicUtil.fixNull(lastClickedDirection.get(player), direction);
+                        BlockFace lastDirection = lastClickedDirection.getOrDefault(player, direction);
                         Rails rails = BlockUtil.getRails(clickedBlock);
                         // First check whether we are clicking towards an up-slope block
                         if (BlockUtil.isSolid(clickedBlock.getRelative(direction))) {
