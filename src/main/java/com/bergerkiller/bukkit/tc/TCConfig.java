@@ -95,6 +95,7 @@ public class TCConfig {
     public static int tickUpdateNow = 0; // forces update ticks
     public static boolean tickUpdateEnabled = true; // whether train tick updates are enabled
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
+    public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static Set<String> disabledWorlds = new HashSet<>();
@@ -484,6 +485,12 @@ public class TCConfig {
             putParsers(entry.getKey(), Util.getParsers(entry.getValue()));
             itemshort.setRead(entry.getKey());
         }
+
+        // Whether images can be loaded outside of the /images subdirectory
+        config.setHeader("allowExternalTicketImagePaths", "\nWhether ticket background images can be loaded outside of");
+        config.addHeader("allowExternalTicketImagePaths", "the 'plugins/Train_Carts/images' subdirectory. Enabling this may");
+        config.addHeader("allowExternalTicketImagePaths", "allow players to view private server data!");
+        allowExternalTicketImagePaths = config.get("allowExternalTicketImagePaths", false);
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

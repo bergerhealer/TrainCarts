@@ -1,14 +1,21 @@
 package com.bergerkiller.bukkit.tc.tickets;
 
+import java.io.File;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
+import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
  * Manages the display and usage configuration for a train ticket.
@@ -20,6 +27,7 @@ public class Ticket {
     private boolean _playerBound = false;
     private int _maxNumberOfUses = 1;
     private long _expirationTime = -1L;
+    private String _backgroundImagePath = "";
     private ConfigurationNode _properties = new ConfigurationNode();
 
     public Ticket(String name) {
@@ -76,6 +84,103 @@ public class Ticket {
      */
     public void setRealm(String realm) {
         this._realm = realm;
+    }
+
+    /**
+     * Gets the image path to a local file on the disk for the background image
+     * that is displayed for this ticket. If empty or missing, the default builtin
+     * image is displayed.
+     * 
+     * @return Ticket background image path
+     */
+    public String getBackgroundImagePath() {
+        return this._backgroundImagePath;
+    }
+
+    /**
+     * Sets the image path to a local file on the disk for the background image
+     * that is displayed for this ticket. If empty or missing, the default builtin
+     * image is displayed.<br>
+     * <br>
+     * By prefixing the path with <i>pluginname:</i> resources inside other plugin
+     * jar files can be used as images. Easier is to use the
+     * {@link #setBackgroundImagePluginPath(JavaPlugin, String)} method for this.
+     * 
+     * @param path The path to set to
+     */
+    public void setBackgroundImagePath(String path) {
+        this._backgroundImagePath = path;
+    }
+
+    /**
+     * Sets the background image to an image file resource in a plugin jar file.
+     * 
+     * @param plugin Plugin where the resource is stored
+     * @param path Image resource path
+     */
+    public void setBackgroundImagePluginPath(JavaPlugin plugin, String path) {
+        this._backgroundImagePath = plugin.getName() + ":" + path;
+    }
+
+    /**
+     * Loads the background image. If the image is too small or can not be loaded,
+     * the default image is returned instead.
+     * 
+     * @return background image
+     */
+    public MapTexture loadBackgroundImage() {
+        if (this._backgroundImagePath.isEmpty()) {
+            return getDefaultBackgroundImage();
+        }
+
+        int index = this._backgroundImagePath.indexOf(':');
+        if (index != -1) {
+            String pluginName = this._backgroundImagePath.substring(0, index);
+            Plugin plugin = Bukkit.getPluginManager().getPlugin(pluginName);
+            if (plugin instanceof JavaPlugin) {
+                try {
+                    MapTexture bg = MapTexture.loadPluginResource((JavaPlugin) plugin, this._backgroundImagePath.substring(index+1));
+                    if (bg.getWidth() >= 128 && bg.getHeight() >= 128) {
+                        return bg;
+                    }
+                } catch (RuntimeException ex) {
+                    //TextureLoadException ignored
+                }
+                return getDefaultBackgroundImage();
+            }
+        }
+
+        // Try from disk
+        File imagesDir = TrainCarts.plugin.getDataFile("images");
+        File imageFile = new File(this._backgroundImagePath);
+        if (!imageFile.isAbsolute()) {
+            imageFile = new File(imagesDir, this._backgroundImagePath);
+        }
+
+        // Verify that the image file is below the images directory
+        if (!TCConfig.allowExternalTicketImagePaths && !imageFile.toPath().startsWith(imagesDir.toPath())) {
+            return getDefaultBackgroundImage();
+        }
+
+        // Try loading
+        try {
+            MapTexture bg = MapTexture.fromImageFile(imageFile.getAbsolutePath());
+            if (bg.getWidth() >= 128 && bg.getHeight() >= 128) {
+                return bg;
+            }
+        } catch (RuntimeException ex) {
+            //TextureLoadException ignored
+        }
+        return getDefaultBackgroundImage();
+    }
+
+    /**
+     * Gets the default background image, used if no background image is set or valid
+     * 
+     * @return default background image
+     */
+    public static MapTexture getDefaultBackgroundImage() {
+        return TrainCarts.plugin.loadTexture("com/bergerkiller/bukkit/tc/textures/tickets/train_ticket_bg.png");
     }
 
     /**
@@ -164,6 +269,7 @@ public class Ticket {
         this._playerBound = config.get("playerBound", false);
         this._maxNumberOfUses = config.get("maxNumberOfUses", 1);
         this._expirationTime = config.get("expirationTimeMillis", -1L);
+        this._backgroundImagePath = config.get("backgroundImagePath", "");
         this._properties = config.getNode("properties").clone();
     }
 
@@ -177,6 +283,7 @@ public class Ticket {
         config.set("playerBound", this._playerBound);
         config.set("maxNumberOfUses", this._maxNumberOfUses);
         config.set("expirationTimeMillis", this._expirationTime);
+        config.set("backgroundImagePath", this._backgroundImagePath);
 
         ConfigurationNode savedProps = config.getNode("properties");
         for (Map.Entry<String, Object> entry : this._properties.getValues().entrySet()) {

@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
@@ -122,6 +123,32 @@ public class TicketCommands {
                 sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set a realm, use /train ticket realm [realm]");
             }
             return true;
+        }
+
+        // Changes the background image
+        if (cmd.equals("image") || cmd.equals("background")) {
+            if (args.length == 1) {
+                ticket.setBackgroundImagePath(args[0]);
+                TicketStore.markChanged();
+                if (args[0].isEmpty()) {
+                    sender.sendMessage(ChatColor.GREEN + "Ticket background image reset to the default image");
+                } else {
+                    sender.sendMessage(ChatColor.GREEN + "Ticket background image set to " + ChatColor.YELLOW + args[0]);
+                }
+
+                // Redraw the ticket on active displays
+                for (TCTicketDisplay display : TCTicketDisplay.getAllDisplays(TCTicketDisplay.class)) {
+                    if (TicketStore.getTicketFromItem(display.getMapItem()) == ticket) {
+                        display.renderBackground();
+                    }
+                }
+            } else if (ticket.getBackgroundImagePath().isEmpty()) {
+                sender.sendMessage(ChatColor.YELLOW + "No background image is set for this ticket (default).");
+                sender.sendMessage(ChatColor.YELLOW + "To set a background image, use /train ticket background [path]");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "Background image is currently set to: " + ChatColor.WHITE + ticket.getBackgroundImagePath());
+                sender.sendMessage(ChatColor.YELLOW + "To set a background image, use /train ticket background [path]");
+            }
         }
 
         // Set the number of uses for the ticket

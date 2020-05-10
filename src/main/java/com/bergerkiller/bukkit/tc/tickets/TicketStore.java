@@ -444,6 +444,9 @@ public class TicketStore {
             ticketMap.put(ticket.getName(), ticket);
         }
         hasChanges = false;
+
+        // Create 'images' directory, if it does not already exist
+        TrainCarts.plugin.getDataFile("images").mkdirs();
     }
 
     public static void save(boolean autosave) {
