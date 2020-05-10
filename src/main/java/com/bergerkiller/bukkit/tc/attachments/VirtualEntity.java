@@ -8,6 +8,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -39,6 +40,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityL
  * The entity can be spawned or destroyed for individual players.
  */
 public class VirtualEntity {
+    private static final boolean IS_LOOK_PACKET_BUGGED = Common.evaluateMCVersion(">=", "1.15");
     private final AttachmentManager manager;
     private final int entityId;
     private final UUID entityUUID;
@@ -529,15 +531,32 @@ public class VirtualEntity {
                 broadcast(packet);
             } else {
                 // Only rotation changed
-                PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
-                        this.entityId,
-                        this.liveYaw,
-                        this.livePitch,
-                        false);
+                if (IS_LOOK_PACKET_BUGGED) {
+                    // On minecraft 1.15 and later there is a Minecraft client bug
+                    // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
+                    // This results in the entity position going out of sync
+                    // A workaround is sending a movement + look packet instead, which appears to work around that.
+                    PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                            this.entityId,
+                            0.0, 0.0, 0.0,
+                            this.liveYaw,
+                            this.livePitch,
+                            false);
 
-                this.syncYaw = this.liveYaw;
-                this.syncPitch = this.livePitch;
-                broadcast(packet);
+                    this.syncYaw = this.liveYaw;
+                    this.syncPitch = this.livePitch;
+                    broadcast(packet);
+                } else {
+                    PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
+                            this.entityId,
+                            this.liveYaw,
+                            this.livePitch,
+                            false);
+
+                    this.syncYaw = this.liveYaw;
+                    this.syncPitch = this.livePitch;
+                    broadcast(packet);
+                }
             }
         }
     }
