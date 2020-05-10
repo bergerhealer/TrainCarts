@@ -1730,9 +1730,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Update the entity shape
         entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
-
-        // Perform any pre-movement rail updates
-        getRailType().onPreMove(this);
     }
 
     /**

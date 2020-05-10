@@ -1645,9 +1645,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 }
             }
 
-            // Perform the move and post-movement logic
+            // Perform the rail pre-movement and post-movement logic
             for (MinecartMember<?> member : this) {
                 try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
+                    member.getRailType().onPreMove(member);
                     member.onPhysicsPostMove();
                     member.calcPostMovePosition();
                     if (this.breakPhysics) return true;

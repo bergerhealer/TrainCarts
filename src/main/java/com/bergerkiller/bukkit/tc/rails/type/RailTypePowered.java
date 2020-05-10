@@ -60,8 +60,19 @@ public class RailTypePowered extends RailTypeRegular {
             // Perform braking
             if (entity.vel.xz.lengthSquared() < 0.0009) {
                 entity.vel.multiply(0.0);
-            } else {
+            } else if (TCConfig.legacySpeedLimiting) {
                 entity.vel.multiply(0.5);
+            } else {
+                // With the new speed limiting, the minecart won't move 0.4 (default) in a single tick
+                // Instead this is 0.4 * halfrootoftwo (because of 45 degree incline)
+                // For this reason, we must slow down less rapidly otherwise it won't match vanilla behavior
+                // This is only important for sloped track
+                Rails rails = Util.getRailsRO(member.getBlock());
+                if (rails == null || !rails.isOnSlope()) {
+                    entity.vel.multiply(0.5);
+                } else {
+                    entity.vel.multiply(1.0 - 0.5 * MathUtil.HALFROOTOFTWO);
+                }
             }
         } else {
             // Perform launching
