@@ -71,7 +71,7 @@ public enum PowerState {
     public static PowerState get(Block block, BlockFace from, boolean useSignLogic) {
         Block fromBlock = block.getRelative(from);
         BlockData fromBlockInfo = WorldUtil.getBlockData(fromBlock);
-        MaterialData fromBlockData = fromBlockInfo.newMaterialData();
+        MaterialData fromBlockData = fromBlockInfo.getMaterialData();
         if (fromBlockData instanceof RedstoneTorch) {
             if (useSignLogic || from == BlockFace.DOWN) {
                 return ((RedstoneTorch) fromBlockData).isPowered() ? ON : OFF;
