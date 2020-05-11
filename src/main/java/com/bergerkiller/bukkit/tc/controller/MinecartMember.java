@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
@@ -24,6 +25,7 @@ import org.bukkit.entity.Vehicle;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.inventory.ItemStack;
@@ -1334,6 +1336,58 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             this.getGroup().stop();
         }
         return true;
+    }
+
+    // Since BKCommonLib 1.15.2-v4: custom bump code
+    // This prevents the player bumping the cart sideways, causing the
+    // rail physics to think the minecart is taking a curve
+    public void onEntityBump(org.bukkit.entity.Entity e) {
+        // Note: required, is in original implementation also
+        VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent(entity.getEntity(), e);
+        if (CommonUtil.callEvent(collisionEvent).isCancelled()) {
+            return;
+        }
+
+        // Ignore other minecarts completely. They're going to be our trains anyway.
+        if (e instanceof Minecart) {
+            return;
+        }
+
+        Vector pos_diff = e.getLocation().subtract(entity.getLocation()).toVector();
+        if (this.isDerailed()) {
+            pos_diff.setY(0.0);
+        }
+        double len_sq = pos_diff.lengthSquared();
+        if (len_sq >= 1.0e-4) {
+            double n = MathUtil.getNormalizationFactorLS(len_sq);
+            pos_diff.multiply(n);
+            if (n > 1.0) {
+                n = 1.0;
+            }
+            pos_diff.multiply(0.05 * n);
+
+            // Apply minor pushback to the entity pushing the minecart
+            applyBump(e, pos_diff.clone().multiply(0.25));
+
+            pos_diff.multiply(-1.0);
+            if (!this.isDerailed()) {
+                // When railed, the bump vector must be aligned with the current movement vector
+                // Invert movement vector based on what direction the player is pushing
+                Vector railMot = this.getRailTracker().getRail().state.motionVector().normalize();
+                if (railMot.dot(pos_diff) < 0.0) {
+                    railMot.multiply(-1.0);
+                }
+                pos_diff = railMot.multiply(pos_diff.multiply(railMot).length());
+            }
+            applyBump(entity.getEntity(), pos_diff);
+        }
+    }
+
+    private static void applyBump(Entity entity, Vector v) {
+        // Impulse()
+        EntityHandle eh = EntityHandle.fromBukkit(entity);
+        eh.setMot(eh.getMotX() + v.getX(), eh.getMotY() + v.getY(), eh.getMotZ() + v.getZ());
+        eh.setPositionChanged(true);
     }
 
     @Override
