@@ -1348,8 +1348,22 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             return;
         }
 
-        // Ignore other minecarts completely. They're going to be our trains anyway.
+        // When bumping with other minecarts we should technically do the whole vanilla train mechanic
+        // Instead for simplicity's sake we're executing fairly vanilla behavior
         if (e instanceof Minecart) {
+            Vector pos_diff = e.getLocation().subtract(entity.getLocation()).toVector();
+            double len_sq = pos_diff.lengthSquared();
+            if (len_sq >= 1.0e-4) {
+                double n = MathUtil.getNormalizationFactorLS(len_sq);
+                pos_diff.multiply(n);
+                if (n > 1.0) {
+                    n = 1.0;
+                }
+                pos_diff.multiply(0.05 * n);
+                applyBump(e, pos_diff);
+                applyBump(entity.getEntity(), pos_diff.multiply(-1.0));
+            }
+
             return;
         }
 
