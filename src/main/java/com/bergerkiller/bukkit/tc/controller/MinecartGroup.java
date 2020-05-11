@@ -1268,7 +1268,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
             if (iter.movedTotal <= mutexDistance) {
                 MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(iter.state.railBlock()));
-                if (zone != null && !zone.tryEnter(this)) {
+                if (zone != null && !zone.slot.tryEnter(this)) {
                     return 0.0;
                 }
 

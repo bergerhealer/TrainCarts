@@ -9,33 +9,27 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
-import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class MutexZone {
-    private static int TICK_DELAY_CLEAR_AUTOMATIC = 6; // clear delay when no trains are waiting for it
-    private static int TICK_DELAY_CLEAR_WAITING = 5; // clear delay when trains are waiting for it
     public final UUID world;
     public final IntVector3 sign;
     public final IntVector3 block;
     public final IntVector3 start;
     public final IntVector3 end;
-    private MinecartGroup currentGroup = null;
-    private int currentGroupTime = 0;
+    public final MutexZoneSlot slot;
 
-    private MutexZone(UUID world, IntVector3 sign, IntVector3 block, int dx, int dy, int dz) {
+    private MutexZone(UUID world, IntVector3 sign, IntVector3 block, String name, int dx, int dy, int dz) {
         this.world = world;
         this.sign = sign;
         this.block = block;
         this.start = new IntVector3(block.x - dx, block.y - dy, block.z - dz);
         this.end = new IntVector3(block.x + dx, block.y + dy, block.z + dz);
+        this.slot = MutexZoneCache.findSlot(name, this);
     }
 
     public boolean containsBlock(UUID world, IntVector3 block) {
@@ -90,7 +84,21 @@ public class MutexZone {
                 }
             }
         }
-        return new MutexZone(info.getWorld().getUID(), new IntVector3(info.getBlock()), getPosition(info), dx, dy, dz);
+
+        // uuid of world this sign is on
+        UUID worldUUID = info.getWorld().getUID();
+
+        // third line can contain a unique name to combine multiple signs together
+        // when left empty, it is an anonymous slot (only this sign)
+        // when something is on it, prepend world UUID so that it is unique for this world
+        String name = info.getLine(2).trim();
+        if (name.isEmpty()) {
+            name = null;
+        } else {
+            name = worldUUID.toString() + "_" + name;
+        }
+
+        return new MutexZone(worldUUID, new IntVector3(info.getBlock()), getPosition(info), name, dx, dy, dz);
     }
 
     public static IntVector3 getPosition(SignActionEvent info) {
@@ -102,7 +110,7 @@ public class MutexZone {
         }
     }
 
-    private void setLevers(boolean down) {
+    protected void setLevers(boolean down) {
         Block signBlock = getSignBlock();
         if (signBlock != null) {
             BlockData data = WorldUtil.getBlockData(signBlock);
@@ -111,54 +119,4 @@ public class MutexZone {
             }
         }
     }
-
-    /**
-     * Called every tick to refresh mutex zones that have a group inside.
-     * If a group leaves a zone, this eventually releases that group again.
-     */
-    public void refresh(boolean trainWaiting) {
-        if (this.currentGroup == null) {
-            return;
-        }
-
-        if (!MinecartGroupStore.getGroups().contains(this.currentGroup)) {
-            this.currentGroup = null;
-            this.setLevers(false);
-            return;
-        }
-
-        int serverTicks = CommonUtil.getServerTicks();        
-        if ((serverTicks - this.currentGroupTime) >= (trainWaiting ? TICK_DELAY_CLEAR_WAITING : TICK_DELAY_CLEAR_AUTOMATIC)) {
-            // Check whether the group is still occupying this mutex zone
-            // Do so by iterating all the rails (positiosn!) of that train
-            for (TrackedRail rail : this.currentGroup.getRailTracker().getRailInformation()) {
-                if (this.containsBlock(rail.minecartBlock)) {
-                    this.currentGroupTime = serverTicks;
-                    return;
-                }
-            }
-
-            // It is not. clear it.
-            this.currentGroup = null;
-            this.setLevers(false);
-            return;
-        }
-    }
-
-    public boolean tryEnter(MinecartGroup group) {
-        // Check not occupied by someone else
-        if (this.currentGroup != null && this.currentGroup != group) {
-            this.refresh(true);
-            if (this.currentGroup != null) {
-                return false;
-            }
-        }
-
-        // Occupy it.
-        this.currentGroup = group;
-        this.currentGroupTime = CommonUtil.getServerTicks();
-        this.setLevers(true);
-        return true;
-    }
-
 }

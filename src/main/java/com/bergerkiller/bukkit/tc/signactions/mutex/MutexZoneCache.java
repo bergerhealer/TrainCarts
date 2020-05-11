@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
@@ -16,6 +18,8 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class MutexZoneCache {
     private static final BlockMap<MutexZone> zones = new BlockMap<MutexZone>();
+    private static final Map<String, MutexZoneSlot> slotsByName = new HashMap<>();
+    private static final List<MutexZoneSlot> slotsList = new ArrayList<>();
 
     /**
      * Loads the mutex zones in a Chunk by iterating the signs within
@@ -42,8 +46,10 @@ public class MutexZoneCache {
         IntVector3 signPos = new IntVector3(info.getBlock());
         Iterator<MutexZone> zones_iter = zones.values().iterator();
         while (zones_iter.hasNext()) {
-            if (zones_iter.next().sign.equals(signPos)) {
+            MutexZone zone = zones_iter.next();
+            if (zone.sign.equals(signPos)) {
                 zones_iter.remove();
+                removeMutexZone(zone);
             }
         }
     }
@@ -102,11 +108,41 @@ public class MutexZoneCache {
     }
 
     /**
-     * Refreshes all mutex zones, releasing groups that are no longer on it
+     * Finds or creates a new mutex zone slot by name for a certain zone
+     * 
+     * @param name name of the slot, null to create an anonymous slot
+     * @param zone
+     * @return slot
+     */
+    public static MutexZoneSlot findSlot(String name, MutexZone zone) {
+        MutexZoneSlot slot;
+        if (name == null) {
+            slot = new MutexZoneSlot(null);
+        } else {
+            slot = slotsByName.computeIfAbsent(name, MutexZoneSlot::new);
+        }
+        slotsList.add(slot);
+        return slot.addZone(zone);
+    }
+
+    private static void removeMutexZone(MutexZone zone) {
+        zone.slot.removeZone(zone);
+        if (!zone.slot.hasZones()) {
+            if (!zone.slot.isAnonymous()) {
+                slotsByName.remove(zone.slot.getName());
+            }
+            slotsList.remove(zone.slot);
+        }
+    }
+
+    /**
+     * Refreshes all mutex zone slots, releasing groups that are no longer on it
      */
     public static void refreshAll() {
-        for (MutexZone zone : zones.values()) {
-            zone.refresh(false);
+        // Note: done by index on purpose to avoid concurrent modification exceptions
+        // They may occur if a zone loads/unloads as a result of a lever toggle/etc.
+        for (int i = 0; i < slotsList.size(); i++) {
+            slotsList.get(i).refresh(false);
         }
     }
 }
