@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.statements;
 
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -68,6 +67,6 @@ public class StatementDirection extends Statement {
         }
 
         // Check if faces contains the current movement direction of the Minecart
-        return LogicUtil.contains(enterFace, faces);
+        return faces.contains(enterFace);
     }
 }
