@@ -887,6 +887,25 @@ public class RailPath {
             p.motZ = to.getZ() - p.posZ;
             return p;
         }
+
+        /**
+         * Turns a Location, and its yaw/pitch information, into a Position
+         * 
+         * @param positionWithDirection
+         * @return Position, motion is set to the Location's direction vector (yaw/pitch)
+         */
+        public static Position fromLocation(Location positionWithDirection) {
+            Position p = new Position();
+            p.relative = false;
+            p.posX = positionWithDirection.getX();
+            p.posY = positionWithDirection.getY();
+            p.posZ = positionWithDirection.getZ();
+            Vector dir = positionWithDirection.getDirection();
+            p.motX = dir.getX();
+            p.motY = dir.getY();
+            p.motZ = dir.getZ();
+            return p;
+        }
     }
 
     /**

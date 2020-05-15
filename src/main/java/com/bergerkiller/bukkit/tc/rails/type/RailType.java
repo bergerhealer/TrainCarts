@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -440,12 +441,21 @@ public abstract class RailType {
 
     /**
      * Obtains the direction of this type of Rails.
-     * This is the direction along minecarts move.
+     * This is the direction along minecarts move.<br>
+     * <br>
+     * <b>Deprecated: BlockFace offers too little information, use RailState for computing this instead</b>
      *
      * @param railsBlock to get it for
      * @return rails Direction
      */
-    public abstract BlockFace getDirection(Block railsBlock);
+    @Deprecated
+    public BlockFace getDirection(Block railsBlock) {
+        RailState state = new RailState();
+        state.setRailPiece(RailPiece.create(this, railsBlock));
+        state.setPosition(Position.fromLocation(this.getSpawnLocation(railsBlock, BlockFace.SELF)));
+        state.initEnterDirection();
+        return state.enterFace();
+    }
 
     /**
      * Gets the track-relative direction to look for signs related to this Rails

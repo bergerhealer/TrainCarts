@@ -143,6 +143,27 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
+     * Gets whether this sign is used with track that is vertically-aligned.
+     * 
+     * @return True if this sign is used with a vertically-aligned track
+     */
+    public boolean isRailsVertical() {
+        if (!this.hasRails()) {
+            return false;
+        }
+
+        BlockFace signDirection = this.getFacing().getOppositeFace();
+        RailState state = new RailState();
+        state.setRailPiece(this.getRailPiece());
+        state.position().setLocation(state.railType().getSpawnLocation(state.railBlock(), signDirection));
+        state.position().setMotion(signDirection);
+        state.initEnterDirection();
+        state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
+        //TODO: This could be done more efficiently!
+        return FaceUtil.isVertical(Util.vecToFace(state.position().getMotion(), false));
+    }
+
+    /**
      * Gets the direction vector of the cart upon entering the rails
      * that triggered this sign. If no cart exists, it defaults to the activating direction
      * of the sign (facing or watched directions).
@@ -234,33 +255,15 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Gets the direction a minecart has above the rails of this Sign
+     * Gets the direction a minecart has above the rails of this Sign.<br>
+     * <br>
+     * <b>Deprecated: use {@link #getCartEnterFace} instead</b>
      *
      * @return cart direction
      */
+    @Deprecated
     public BlockFace getCartDirection() {
-        if (this.hasMember()) {
-            // Find the rails block matching the one that triggered this event
-            // Return the enter ('from') direction for that rails block if found
-            if (this.hasRails()) {
-                Block rails = this.getRails();
-                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
-                        return rail.state.enterFace();
-                    }
-                }
-            }
-
-            // Ask the minecart itself alternatively
-            return this.member.getDirectionFrom();
-        }
-        if (this.hasRails()) {
-            return FaceUtil.getFaces(this.getRailDirection())[0];
-        }
-        if (this.getWatchedDirections().length > 0) {
-            return this.getWatchedDirections()[0];
-        }
-        return this.getFacing().getOppositeFace();
+        return this.getCartEnterFace();
     }
 
     /* ============================= Deprecated BlockFace Junctions =============================== */
@@ -337,10 +340,11 @@ public class SignActionEvent extends Event implements Cancellable {
         // Attempt parsing the junctionName into a Direction statement
         // This includes special handling for continue/reverse, which uses cart direction
         final String dirText = junctionName.toLowerCase(Locale.ENGLISH);
+        BlockFace enterFace = this.getCartEnterFace();
         if (LogicUtil.contains(dirText, "c", "continue")) {
-            return findJunction(Direction.fromFace(this.getCartDirection()));
+            return findJunction(Direction.fromFace(enterFace));
         } else if (LogicUtil.contains(dirText, "i", "rev", "reverse", "inverse")) {
-            return findJunction(Direction.fromFace(this.getCartDirection().getOppositeFace()));
+            return findJunction(Direction.fromFace(enterFace.getOppositeFace()));
         } else {
             return findJunction(Direction.parse(dirText));
         }
@@ -667,6 +671,12 @@ public class SignActionEvent extends Event implements Cancellable {
         return this.getRails() != null;
     }
 
+    /**
+     * <b>Deprecated: BlockFace offers too little resolution</b>
+     * 
+     * @return direction of the rails (BlockFace), for example, 'north-east' or 'up'
+     */
+    @Deprecated
     public BlockFace getRailDirection() {
         if (!this.hasRails()) return null;
         if (this.raildirection == null) {
@@ -903,7 +913,7 @@ public class SignActionEvent extends Event implements Cancellable {
             if (!this.header.hasDirections()) {
                 // find out using the rails above and sign facing
                 if (this.hasRails()) {
-                    if (FaceUtil.isVertical(this.getRailDirection())) {
+                    if (isRailsVertical()) {
                         watchedFaces.add(BlockFace.UP);
                         watchedFaces.add(BlockFace.DOWN);
                     } else {

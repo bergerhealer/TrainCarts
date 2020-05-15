@@ -33,7 +33,7 @@ public class SignActionBlocker extends SignAction {
                     Direction direction = Direction.parse(info.getLine(3));
                     if (direction != Direction.NONE) {
                         long delay = ParseUtil.parseTime(info.getLine(2));
-                        BlockFace trainDirection = direction.getDirection(info.getFacing(), info.getCartDirection());
+                        BlockFace trainDirection = direction.getDirection(info.getFacing(), info.getCartEnterFace());
                         info.getGroup().getActions().clear();
                         info.getGroup().getActions().addActionWaitState();
                         if (delay > 0) {

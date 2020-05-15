@@ -40,7 +40,7 @@ public class SignActionCraft extends SignAction {
 
         int radX, radY, radZ;
         radX = radY = radZ = ParseUtil.parseInt(info.getLine(1), TCConfig.defaultTransferRadius);
-        BlockFace dir = info.getRailDirection();
+        BlockFace dir = info.getCartEnterFace();
         if (FaceUtil.isAlongX(dir)) {
             radX = 0;
         } else if (FaceUtil.isAlongZ(dir)) {

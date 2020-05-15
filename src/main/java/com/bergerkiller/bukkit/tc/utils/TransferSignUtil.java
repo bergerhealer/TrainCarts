@@ -186,7 +186,7 @@ public class TransferSignUtil {
         int radX = Math.abs(radWidth);
         int radY = Math.abs(radHeight);
         int radZ = Math.abs(radWidth);
-        BlockFace dir = info.getRailDirection();
+        BlockFace dir = info.getCartEnterFace();
         if (FaceUtil.isVertical(dir)) {
             radY = 0;
         } else if (FaceUtil.isAlongX(dir)) {
