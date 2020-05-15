@@ -82,7 +82,7 @@ public class RailTypePowered extends RailTypeRegular {
                 entity.vel.xz.add(entity.vel.xz, TCConfig.poweredRailBoost / motLength);
             } else {
                 // Launch away from a suffocating block
-                BlockFace dir = this.getRailDirection(member.getBlock());
+                BlockFace dir = this.getDirection(member.getBlock());
                 org.bukkit.block.Block block = member.getBlock();
                 if (this.isUpsideDown(block)) {
                     block = block.getRelative(BlockFace.DOWN);

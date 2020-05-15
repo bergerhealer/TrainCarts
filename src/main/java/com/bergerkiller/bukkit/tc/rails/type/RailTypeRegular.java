@@ -375,7 +375,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
     }
 
     @Override
-    public BlockFace getRailDirection(Block railsBlock) {
+    public BlockFace getDirection(Block railsBlock) {
         Rails rails = Util.getRailsRO(railsBlock);
         return rails == null ? BlockFace.SELF : rails.getDirection();
     }

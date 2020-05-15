@@ -26,13 +26,13 @@ public class RailTypeCrossing extends RailTypeHorizontal {
     }
 
     @Override
-    public BlockFace getRailDirection(Block railBlock) {
+    public BlockFace getDirection(Block railBlock) {
         return Util.getPlateDirection(railBlock);
     }
 
     @Override
     public BlockFace[] getPossibleDirections(Block trackBlock) {
-        BlockFace dir = getRailDirection(trackBlock);
+        BlockFace dir = getDirection(trackBlock);
         if (dir == BlockFace.SELF) {
             return FaceUtil.RADIAL;
         } else {
