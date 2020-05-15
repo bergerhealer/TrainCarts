@@ -1327,4 +1327,22 @@ public class Util {
             setBlockActivationEnabledMethod.invoke(controller, enabled);
         }
     }
+
+    /**
+     * Checks whether a given direction motion vector is sub-cardinal,
+     * pointing into a diagonal and not along a single axis.
+     * The y-axis is ignored.
+     * 
+     * @param direction
+     * @return True if diagonal
+     */
+    public static boolean isDiagonal(Vector direction) {
+        double sq_x = direction.getX() * direction.getX();
+        double sq_z = direction.getZ() * direction.getZ();
+        double sq_xz = sq_x + sq_z;
+        return sq_xz >= 1e-10 &&
+               (sq_x / sq_xz) < SQ_COS_22_5 &&
+               (sq_z / sq_xz) < SQ_COS_22_5;
+    }
+    private static final double SQ_COS_22_5 = Math.pow(Math.cos(Math.PI / 8.0), 2.0);
 }

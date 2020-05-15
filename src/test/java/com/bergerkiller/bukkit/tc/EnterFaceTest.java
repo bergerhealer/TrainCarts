@@ -6,6 +6,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 import org.junit.Test;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 
 public class EnterFaceTest {
@@ -40,5 +41,17 @@ public class EnterFaceTest {
                 fail("testFace(" + ppx + ", " + ppy + ", " + ppz + ",   " + dx + ", " + dy + ", " + dz + ") = " + result + " expected=" + face);
             }
         }
+    }
+
+    @Test
+    public void testVectorDiagonal() {
+        assertFalse(Util.isDiagonal(new Vector(0.0, 0.0, 1.0)));
+        assertFalse(Util.isDiagonal(new Vector(0.0, 0.0, -1.0)));
+        assertFalse(Util.isDiagonal(new Vector(1.0, 0.0, 0.0)));
+        assertFalse(Util.isDiagonal(new Vector(-1.0, 0.0, 0.0)));
+        assertTrue(Util.isDiagonal(new Vector(MathUtil.HALFROOTOFTWO, 0.0, MathUtil.HALFROOTOFTWO)));
+        assertTrue(Util.isDiagonal(new Vector(-MathUtil.HALFROOTOFTWO, 0.0, MathUtil.HALFROOTOFTWO)));
+        assertTrue(Util.isDiagonal(new Vector(MathUtil.HALFROOTOFTWO, 0.0, -MathUtil.HALFROOTOFTWO)));
+        assertTrue(Util.isDiagonal(new Vector(-MathUtil.HALFROOTOFTWO, 0.0, -MathUtil.HALFROOTOFTWO)));
     }
 }
