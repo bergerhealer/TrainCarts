@@ -187,6 +187,7 @@ public class StoredTrainItemUtil {
             RailState state = new RailState();
             state.setRailPiece(RailPiece.create(clickedRailType, clickedBlock));
             state.setPosition(Position.fromTo(spawnLoc, spawnLoc));
+            state.setMotionVector(spawnLoc.getDirection());
             state.initEnterDirection();
             state.loadRailLogic().getPath().move(state, 0.0);
             spawnDirection = state.position().getMotion();
