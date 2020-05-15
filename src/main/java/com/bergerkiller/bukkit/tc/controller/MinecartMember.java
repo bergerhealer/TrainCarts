@@ -1184,8 +1184,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return this.directionTo;
     }
 
-    public void invalidateDirection() {
-        this.directionFrom = this.direction = this.directionTo = null;
+    /**
+     * Sets the direction property of this minecart to the forward orientation
+     */
+    public void setDirectionForward() {
+        this.directionFrom = this.directionTo = null;
+        this.direction = Util.vecToFace(this.getOrientationForward(), true);
     }
 
     public int getDirectionDifference(BlockFace dircomparer) {
@@ -1200,8 +1204,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         RailTrackerMember tracker = this.getRailTracker();
 
         // Direction is simply the motion vector on the rail, turned into a BlockFace
+        // Remember the original direction (flip it) when the train is not moving
         RailState state = tracker.getState();
-        this.direction = state.position().getMotionFaceWithSubCardinal();
+        if (this.direction == null ||
+            this.entity.vel.lengthSquared() > 1e-10 ||
+            state.position().motDot(this.direction) >= 0.0)
+        {
+            this.direction = state.position().getMotionFaceWithSubCardinal();
+        } else {
+            this.direction = state.position().getMotionFaceWithSubCardinal().getOppositeFace();
+        }
 
         // TO direction is simply the enter face in the opposite direction
         RailState state_inv = state.clone();

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -73,8 +74,11 @@ public class RailTypeNone extends RailType {
 
     @Override
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
-        Location loc = super.getSpawnLocation(railsBlock, orientation);
+        Location loc = railsBlock.getLocation();
+        loc.setX(0.5);
         loc.setY(0.5);
+        loc.setZ(0.5);
+        loc.setDirection(FaceUtil.faceToVector(orientation));
         return loc;
     }
 
