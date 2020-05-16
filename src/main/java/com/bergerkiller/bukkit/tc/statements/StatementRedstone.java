@@ -10,12 +10,12 @@ public class StatementRedstone extends Statement {
 
     @Override
     public boolean match(String text) {
-        return text.equals("redstone");
+        return text.equals("redstone") || text.equals("powered");
     }
 
     @Override
     public boolean matchArray(String text) {
-        return text.equals("rs") || text.equals("redstone");
+        return text.equals("rs") || text.equals("redstone") || text.equals("power") || text.equals("powered");
     }
 
     @Override
