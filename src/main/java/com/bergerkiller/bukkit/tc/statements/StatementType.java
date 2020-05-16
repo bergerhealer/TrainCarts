@@ -13,6 +13,10 @@ import java.util.Locale;
 public class StatementType extends Statement {
 
     private boolean isSize(String text) {
+        int index = Util.getOperatorIndex(text);
+        if (index != -1) {
+            text = text.substring(0, index);
+        }
         return LogicUtil.contains(text, "cartcount", "trainsize", "length", "count", "size");
     }
 
