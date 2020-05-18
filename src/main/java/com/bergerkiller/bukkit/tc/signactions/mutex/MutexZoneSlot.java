@@ -3,13 +3,18 @@ package com.bergerkiller.bukkit.tc.signactions.mutex;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.statements.Statement;
 
 /**
  * A slot where a group can be put that was granted access to move through.
@@ -22,10 +27,12 @@ public class MutexZoneSlot {
     private MinecartGroup currentGroup = null;
     private int currentGroupTime = 0;
     private List<MutexZone> zones;
+    private List<String> statements;
 
     protected MutexZoneSlot(String name) {
         this.name = name;
         this.zones = Collections.emptyList();
+        this.statements = Collections.emptyList();
     }
 
     public String getName() {
@@ -43,19 +50,40 @@ public class MutexZoneSlot {
             this.zones = new ArrayList<MutexZone>(this.zones);
             this.zones.add(zone);
         }
+        this.refreshStatements();
         return this;
     }
 
     public void removeZone(MutexZone zone) {
         if (this.zones.size() == 1 && this.zones.get(0) == zone) {
             this.zones = Collections.emptyList();
+            this.statements = Collections.emptyList();
         } else if (this.zones.size() > 1) {
             this.zones.remove(zone);
+            this.refreshStatements();
         }
     }
 
     public boolean hasZones() {
         return !this.zones.isEmpty();
+    }
+
+    /**
+     * Gets a full list of statement rules for this mutex zone. Each sign
+     * can add statements to this list as they join the mutex zone name.
+     * 
+     * @return statements
+     */
+    public List<String> getStatements() {
+        return this.statements;
+    }
+
+    private void refreshStatements() {
+        this.statements = this.zones.stream()
+                .sorted((z0, z1) -> z0.sign.compareTo(z1.sign))
+                .map(z -> z.statement)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -92,6 +120,25 @@ public class MutexZoneSlot {
     }
 
     public boolean tryEnter(MinecartGroup group) {
+        // Verify using statements whether the group is even considered
+        {
+            List<String> statements = this.getStatements();
+            if (!statements.isEmpty()) {
+                SignActionEvent signEvent = null;
+                if (this.zones.size() == 1) {
+                    Block signBlock = this.zones.get(0).getSignBlock();
+                    if (signBlock != null && MaterialUtil.ISSIGN.get(signBlock)) {
+                        signEvent = new SignActionEvent(signBlock, group);
+                        signEvent.setAction(SignActionType.GROUP_ENTER);
+                    }
+                }
+                if (!Statement.hasMultiple(group, this.getStatements(), signEvent)) {
+                    // Ignored!
+                    return true;
+                }
+            }
+        }
+
         // Check not occupied by someone else
         if (this.currentGroup != null && this.currentGroup != group) {
             this.refresh(true);

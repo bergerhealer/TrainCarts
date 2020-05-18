@@ -69,4 +69,9 @@ public class StatementDirection extends Statement {
         // Check if faces contains the current movement direction of the Minecart
         return faces.contains(enterFace);
     }
+
+    @Override
+    public boolean requiredEvent() {
+        return true;
+    }
 }

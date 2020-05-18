@@ -1,12 +1,12 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -23,22 +23,24 @@ public class SignActionSkip extends SignAction {
     @Override
     public void execute(SignActionEvent info) {
         if (!info.isPowered()) return;
+
+        List<String> statements = Arrays.asList(info.getLine(2), info.getLine(3));
         if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
             if (!info.hasRailedMember()) return;
 
-            if (matchCart(info, info.getMember())) {
+            if (Statement.hasMultiple(info.getMember(), statements, info)) {
                 info.getMember().getProperties().setSkipOptions(getOptions(info));
             }
         } else if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.GROUP_ENTER)) {
             if (!info.hasRailedMember()) return;
 
-            if (matchTrain(info, info.getGroup())) {
+            if (Statement.hasMultiple(info.getGroup(), statements, info)) {
                 info.getGroup().getProperties().setSkipOptions(getOptions(info));
             }
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             SignSkipOptions opt = getOptions(info);
             for (TrainProperties prop : info.getRCTrainProperties()) {
-                if (matchTrain(info, prop.getHolder())) {
+                if (Statement.hasMultiple(prop.getHolder(), statements, info)) {
                     prop.setSkipOptions(opt);
                 }
             }
@@ -93,55 +95,5 @@ public class SignActionSkip extends SignAction {
         }
 
         return options;
-    }
-
-    private boolean matchTrain(SignActionEvent info, MinecartGroup group) {
-        if (group == null) return false;
-        boolean match = true;
-        for (int i = 2; i < 4; i++) {
-            String line = info.getLine(i);
-            if (line.length() > 0) {
-                boolean isLogicAnd = true;
-                if (line.startsWith("&")) {
-                    isLogicAnd = true;
-                    line = line.substring(1);
-                } else if (line.startsWith("|")) {
-                    isLogicAnd = false;
-                    line = line.substring(1);
-                }
-                boolean result = Statement.has(group, line, info);
-                if (isLogicAnd) {
-                    match &= result;
-                } else {
-                    match |= result;
-                }
-            }
-        }
-        return match;
-    }
-
-    private boolean matchCart(SignActionEvent info, MinecartMember<?> member) {
-        if (member == null) return false;
-        boolean match = true;
-        for (int i = 2; i < 4; i++) {
-            String line = info.getLine(i);
-            if (line.length() > 0) {
-                boolean isLogicAnd = true;
-                if (line.startsWith("&")) {
-                    isLogicAnd = true;
-                    line = line.substring(1);
-                } else if (line.startsWith("|")) {
-                    isLogicAnd = false;
-                    line = line.substring(1);
-                }
-                boolean result = Statement.has(member, line, info);
-                if (isLogicAnd) {
-                    match &= result;
-                } else {
-                    match |= result;
-                }
-            }
-        }
-        return match;
     }
 }

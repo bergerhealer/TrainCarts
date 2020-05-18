@@ -21,12 +21,14 @@ public class MutexZone {
     public final IntVector3 block;
     public final IntVector3 start;
     public final IntVector3 end;
+    public final String statement;
     public final MutexZoneSlot slot;
 
-    private MutexZone(UUID world, IntVector3 sign, IntVector3 block, String name, int dx, int dy, int dz) {
+    private MutexZone(UUID world, IntVector3 sign, IntVector3 block, String name, String statement, int dx, int dy, int dz) {
         this.world = world;
         this.sign = sign;
         this.block = block;
+        this.statement = statement;
         this.start = new IntVector3(block.x - dx, block.y - dy, block.z - dz);
         this.end = new IntVector3(block.x + dx, block.y + dy, block.z + dz);
         this.slot = MutexZoneCache.findSlot(name, this);
@@ -98,7 +100,10 @@ public class MutexZone {
             name = worldUUID.toString() + "_" + name;
         }
 
-        return new MutexZone(worldUUID, new IntVector3(info.getBlock()), getPosition(info), name, dx, dy, dz);
+        // Fourth line is the statement, if any (statements?)
+        String statement = info.getLine(3);
+
+        return new MutexZone(worldUUID, new IntVector3(info.getBlock()), getPosition(info), name, statement, dx, dy, dz);
     }
 
     public static IntVector3 getPosition(SignActionEvent info) {

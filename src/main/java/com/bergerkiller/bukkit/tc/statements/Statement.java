@@ -80,6 +80,9 @@ public abstract class Statement {
         String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
         String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
         for (Statement statement : statements) {
+            if (event == null && statement.requiredEvent()) {
+                continue;
+            }
             if (arrayText != null && statement.matchArray(arrayText)) {
                 if (member != null) {
                     return statement.handleArray(member, array, event) != inv;
@@ -99,6 +102,52 @@ public abstract class Statement {
             }
         }
         return inv;
+    }
+
+    public static boolean hasMultiple(MinecartMember<?> member, Iterable<String> statementTexts, SignActionEvent event) {
+        return hasMultiple(member, null, statementTexts, event);
+    }
+
+    public static boolean hasMultiple(MinecartGroup group, Iterable<String> statementTexts, SignActionEvent event) {
+        return hasMultiple(null, group, statementTexts, event);
+    }
+
+    /**
+     * Gets if the member or group has multiple statements as specified.
+     * If both member and group are null, then only statements that require no train
+     * will function. Statements that do will return false.<br>
+     * <br>
+     * Empty statements are ignored. Statements preceeding with & use AND-logic
+     * with all the statements prior, and statements preceeding with | use OR-logic.
+     * Others default to AND.
+     *
+     * @param member to use, or null to use group
+     * @param group  to use, or null to use member
+     * @param text   to evaluate
+     * @param event  to parse
+     * @return True if successful, False if not
+     */
+    public static boolean hasMultiple(MinecartMember<?> member, MinecartGroup group, Iterable<String> statementTexts, SignActionEvent event) {
+        boolean match = true;
+        for (String statementText : statementTexts) {
+            if (!statementText.isEmpty()) {
+                boolean isLogicAnd = true;
+                if (statementText.startsWith("&")) {
+                    isLogicAnd = true;
+                    statementText = statementText.substring(1);
+                } else if (statementText.startsWith("|")) {
+                    isLogicAnd = false;
+                    statementText = statementText.substring(1);
+                }
+                boolean result = Statement.has(group, statementText, event);
+                if (isLogicAnd) {
+                    match &= result;
+                } else {
+                    match |= result;
+                }
+            }
+        }
+        return match;
     }
 
     /**
@@ -123,12 +172,27 @@ public abstract class Statement {
     /**
      * Whether a MinecartMember or MinecartGroup is required for this statement to operate.
      * Some statements also work without using the train, and can therefore return false here.
-     * If this method returns false, then <i>handle</i> can be called with null as group/member argument.
+     * If this method returns false, then <i>handle</i> can be called with null as group/member argument.<br>
+     * <br>
+     * <b>Default: true</b>
      * 
      * @return True if a train is required
      */
     public boolean requiresTrain() {
         return true;
+    }
+
+    /**
+     * Whether a SignActionEvent is required for this statement to operate.
+     * Some statements also work without using the event, and can therefore return false here.
+     * If this method returns false, then <i>handle</i> can be called with null as event argument.<br>
+     * <br>
+     * <b>Default: false</b>
+     * 
+     * @return True if an event is required
+     */
+    public boolean requiredEvent() {
+        return false;
     }
 
     public boolean handle(MinecartGroup group, String text, SignActionEvent event) {

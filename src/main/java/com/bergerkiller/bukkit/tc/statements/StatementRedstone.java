@@ -56,4 +56,9 @@ public class StatementRedstone extends Statement {
         }
         return false;
     }
+
+    @Override
+    public boolean requiredEvent() {
+        return true;
+    }
 }
