@@ -43,12 +43,24 @@ public final class RailPiece {
     }
 
     /**
-     * Gets the block where the rail is placed
+     * Gets the block where the rail is placed.
+     * Returns null if there is no rail block referenced.
+     * This is the case when {@link #isNone()} returns true.
      * 
      * @return rail block
      */
     public Block block() {
         return this.block;
+    }
+
+    /**
+     * Gets whether this rail piece refers to missing rails.
+     * The {@link #NONE} constant qualifies.
+     * 
+     * @return is none (block is null)
+     */
+    public boolean isNone() {
+        return this.block == null;
     }
 
     /**
@@ -102,6 +114,20 @@ public final class RailPiece {
     }
 
     @Override
+    public int hashCode() {
+        if (this.block == null) {
+            return 0;
+        } else {
+            int hash = 17;
+            hash = hash * 31 + System.identityHashCode(this.world);
+            hash = hash * 31 + this.block.getX();
+            hash = hash * 31 + this.block.getY();
+            hash = hash * 31 + this.block.getZ();
+            return hash;
+        }
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;
@@ -137,10 +163,21 @@ public final class RailPiece {
      * 
      * @param type
      * @param block
-     * @return RailBlock
+     * @return RailPiece
      */
     public static RailPiece create(RailType type, Block block) {
         return new RailPiece(type, block);
+    }
+
+    /**
+     * Creates a new RailBlock for a block. The rail type is inferred
+     * from the rail block.
+     * 
+     * @param block
+     * @return RailPiece
+     */
+    public static RailPiece create(Block block) {
+        return create(RailType.getType(block), block);
     }
 
     /**

@@ -41,7 +41,7 @@ public class SignTrackerGroup extends SignTracker {
 
     @Override
     protected void onSignChange(TrackedSign sign, boolean active) {
-        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.railBlock, owner);
+        SignActionEvent event = new SignActionEvent(sign.signBlock, sign.rail, owner);
         event.setAction(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE);
         SignAction.executeAll(event);
     }

@@ -7,11 +7,15 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicHorizontal;
+
+import java.util.HashSet;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.Rails;
 
 public abstract class RailTypeHorizontal extends RailType {
 
@@ -261,6 +265,50 @@ public abstract class RailTypeHorizontal extends RailType {
         } else {
             return BlockFace.DOWN;
         }
+    }
+
+    @Override
+    public BlockFace[] getSignTriggerDirections(Block railBlock, Block signBlock, BlockFace signFacing) {
+        RailPiece rail = RailPiece.create(this, railBlock);
+        HashSet<BlockFace> watchedFaces = new HashSet<>(4);
+        if (FaceUtil.isSubCardinal(signFacing)) {
+            // More advanced corner checks - NE/SE/SW/NW
+            // Use rail directions validated against sign facing to
+            // find out what directions are watched
+            BlockFace[] faces = FaceUtil.getFaces(signFacing);
+            for (BlockFace face : faces) {
+                if (Util.isConnectedRails(rail, face)) {
+                    watchedFaces.add(face.getOppositeFace());
+                }
+            }
+            // Try an inversed version, maybe rails can be found there
+            if (watchedFaces.isEmpty()) {
+                for (BlockFace face : faces) {
+                    if (Util.isConnectedRails(rail, face.getOppositeFace())) {
+                        watchedFaces.add(face);
+                    }
+                }
+            }
+        } else {
+            // Sloped rails also include UP/DOWN, handling from/to vertical rail movement
+            Rails rails = Util.getRailsRO(railBlock);
+            if (rails != null && rails.isOnSlope()) {
+                watchedFaces.add(BlockFace.UP);
+                watchedFaces.add(BlockFace.DOWN);
+            }
+
+            // Simple facing checks - NESW
+            BlockFace facing = signFacing;
+            if (Util.isConnectedRails(rail, facing)) {
+                watchedFaces.add(facing.getOppositeFace());
+            } else if (Util.isConnectedRails(rail, facing.getOppositeFace())) {
+                watchedFaces.add(facing);
+            } else {
+                watchedFaces.add(FaceUtil.rotate(facing, -2));
+                watchedFaces.add(FaceUtil.rotate(facing, 2));
+            }
+        }
+        return watchedFaces.toArray(new BlockFace[watchedFaces.size()]);
     }
 
     @Override

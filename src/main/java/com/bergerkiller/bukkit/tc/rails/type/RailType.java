@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCTimings;
@@ -462,6 +463,23 @@ public abstract class RailType {
      * @return direction to look for signs relating to this rails block
      */
     public abstract BlockFace getSignColumnDirection(Block railsBlock);
+
+    /**
+     * Gets the default trigger (movement) directions of trains on the rails
+     * that can activate signs. These directions can be overrided on the sign, so these
+     * are the default if none are specified.<br>
+     * <br>
+     * By default returns BLOCK_SIDES (up/down/north/east/south/west) to indicate all
+     * possible directions activate the sign.
+     * 
+     * @param railBlock The rail block that has this RailType
+     * @param signBlock The sign block of the sign being activated
+     * @param signFacing The facing of the sign being activated
+     * @return sign trigger directions
+     */
+    public BlockFace[] getSignTriggerDirections(Block railBlock, Block signBlock, BlockFace signFacing) {
+        return FaceUtil.BLOCK_SIDES;
+    }
 
     /**
      * Gets the first block of the sign column where signs for this rail are located.
