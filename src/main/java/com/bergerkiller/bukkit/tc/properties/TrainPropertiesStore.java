@@ -154,6 +154,63 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     }
 
     /**
+     * Generates a new unique train name for a train that is split in two.
+     * This uses the format:
+     * <pre>
+     * train12 -> train12~a
+     * train12~a -> train12~b
+     * </pre>
+     * 
+     * @param trainName The original name of the train that was split
+     * @return new train name for the split-off part
+     */
+    public static String generateSplitTrainName(String trainName) {
+        int split_idx = trainName.indexOf('~');
+        int index = -1;
+        if (split_idx != -1 && (index = fromAlphabeticRadix(trainName.substring(split_idx+1))) != -1) {
+            trainName = trainName.substring(0, split_idx);
+        }
+
+        trainName += "~";
+
+        String splitName;
+        do {
+            splitName = trainName + toAlphabeticRadix(++index);
+        } while (exists(splitName));
+        return splitName;
+    }
+
+    // https://stackoverflow.com/a/41733499
+    private static String toAlphabeticRadix(int num) {
+        char[] str = Integer.toString(num, 26).toCharArray();
+        for (int i = 0; i < str.length; i++) {
+            str[i] += str[i] > '9' ? 10 : 49;
+        }
+        return new String(str);
+    }
+
+    // returns -1 if invalid string
+    private static int fromAlphabeticRadix(String radixStr) {
+        if (radixStr.isEmpty()) {
+            return -1;
+        }
+        char[] str = radixStr.toCharArray();
+        for (int i = 0; i < str.length; i++) {
+            char c = str[i];
+            if (c >= 'a' && c <= 'z') {
+                str[i] -= c > 'j' ? 10 : 49;
+            } else {
+                return -1;
+            }
+        }
+        try {
+            return Integer.parseInt(new String(str), 26);
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
+    }
+
+    /**
      * Creates a new TrainProperties value using a random name
      *
      * @return new Train Properties
@@ -162,6 +219,22 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         String name = generateTrainName();
         TrainProperties prop = new TrainProperties(name);
         prop.setDefault();
+        trainProperties.put(name, prop);
+        hasChanges = true;
+        return prop;
+    }
+
+    /**
+     * Creates a new TrainProperties value based off of another train's properties,
+     * for when a train is split in two.
+     * 
+     * @param fromTrainProperties The properties of the train from which is split
+     * @return new Train Properties
+     */
+    public static TrainProperties createSplitFrom(TrainProperties fromTrainProperties) {
+        String name = generateSplitTrainName(fromTrainProperties.getTrainName());
+        TrainProperties prop = new TrainProperties(name);
+        prop.load(fromTrainProperties);
         trainProperties.put(name, prop);
         hasChanges = true;
         return prop;

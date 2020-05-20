@@ -402,6 +402,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         if (at >= this.size()) return null;
         //transfer the new removed carts
         MinecartGroup gnew = new MinecartGroup();
+        gnew.setProperties(TrainPropertiesStore.createSplitFrom(this.getProperties()));
         int count = this.size();
         for (int i = at; i < count; i++) {
             gnew.add(this.removeMember(this.size() - 1));
@@ -414,10 +415,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         if (gnew.isValid()) {
             //Add the group
             groups.add(gnew);
-
-            //Set the new group properties
-            gnew.getProperties().load(this.getProperties());
-
             GroupCreateEvent.call(gnew);
 
             //Initialize rails and signs
