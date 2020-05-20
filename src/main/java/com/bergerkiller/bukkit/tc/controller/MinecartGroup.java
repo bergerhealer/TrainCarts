@@ -380,7 +380,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             this.remove();
         } else {
             //Split the train at the index
-            removed.playLinkEffect();
+            if (TCConfig.playHissWhenCartRemoved) {
+                removed.playLinkEffect();
+            }
             this.split(index);
         }
         return removed;

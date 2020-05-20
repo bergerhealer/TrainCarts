@@ -55,7 +55,6 @@ public class TCConfig {
     public static boolean useCoalFromStorageCart;
     public static boolean setOwnerOnPlacement;
     public static boolean keepChunksLoadedOnlyWhenMoving;
-    public static boolean playSoundAtStation;
     public static int maxDetectorLength;
     public static int maxMinecartStackSize;
     public static int defaultTransferRadius;
@@ -88,6 +87,10 @@ public class TCConfig {
     public static boolean claimNewSavedTrains = true;
     public static boolean onlyPoweredEmptySwitchersDoPathfinding = false;
     public static boolean enableSneakingInAttachmentEditor = false;
+    public static boolean playHissWhenStopAtStation = true;
+    public static boolean hissWhenDestroyedBySign = true;
+    public static boolean playHissWhenLinked = true;
+    public static boolean playHissWhenCartRemoved = true;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -205,9 +208,6 @@ public class TCConfig {
 
         config.setHeader("setOwnerOnPlacement", "\nWhether or not the player that places a minecart is set owner");
         setOwnerOnPlacement = config.get("setOwnerOnPlacement", true);
-
-        config.setHeader("playSoundAtStation", "\nWhether or not a hissing sound is made when trains stop at a station");
-        playSoundAtStation = config.get("playSoundAtStation", true);
 
         config.setHeader("launchFunction", "\nWhat style of launching to use in stations and launcher sign systems by default. Possible values:\n" +
                 "- 'linear': gradually switches from one motion speed to another at a linear rate\n" +
@@ -491,6 +491,24 @@ public class TCConfig {
         config.addHeader("allowExternalTicketImagePaths", "the 'plugins/Train_Carts/images' subdirectory. Enabling this may");
         config.addHeader("allowExternalTicketImagePaths", "allow players to view private server data!");
         allowExternalTicketImagePaths = config.get("allowExternalTicketImagePaths", false);
+
+        // Migrate 'playSoundAtStation' to sounds sub-section
+        if (config.contains("playSoundAtStation")) {
+            config.set("sounds.hissWhenStopAtStation", config.get("playSoundAtStation", true));
+            config.remove("playSoundAtStation");
+        }
+
+        // Sound configuration options
+        config.setHeader("sounds", "\nConfigures the different sound effects used in traincarts globally");
+        ConfigurationNode soundsConfig = config.getNode("sounds");
+        config.setHeader("hissWhenStopAtStation", "Enable/disable hiss sound played when trains stop at stations");
+        playHissWhenStopAtStation = soundsConfig.get("hissWhenStopAtStation", true);
+        config.setHeader("hissWhenDestroyedBySign", "Enable/disable hiss sound played when carts are destroyed by a destroy sign");
+        hissWhenDestroyedBySign = soundsConfig.get("hissWhenDestroyedBySign", true);
+        config.setHeader("playHissWhenCartRemoved", "Enable/disable hiss sound played when a cart is removed from a train (destroyed/unlinked)");
+        playHissWhenCartRemoved = soundsConfig.get("playHissWhenCartRemoved", true);
+        config.setHeader("hissWhenLinked", "Enable/disable hiss sound played when two carts connect together");
+        playHissWhenLinked = soundsConfig.get("hissWhenLinked", true);
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {
