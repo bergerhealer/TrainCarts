@@ -17,7 +17,7 @@ public class SignActionDestroy extends SignAction {
     public void execute(SignActionEvent info) {
         if (!info.isPowered()) return;
         if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.hasGroup()) {
-            if (TCConfig.hissWhenDestroyedBySign) {
+            if (TCConfig.playerHissWhenDestroyedBySign) {
                 info.getGroup().playLinkEffect();
             }
             info.getGroup().destroy();
@@ -25,7 +25,7 @@ public class SignActionDestroy extends SignAction {
             info.getMember().onDie();
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (MinecartGroup group : info.getRCTrainGroups()) {
-                if (TCConfig.hissWhenDestroyedBySign) {
+                if (TCConfig.playerHissWhenDestroyedBySign) {
                     group.playLinkEffect();
                 }
                 group.destroy();

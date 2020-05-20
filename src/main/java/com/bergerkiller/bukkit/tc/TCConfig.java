@@ -88,7 +88,7 @@ public class TCConfig {
     public static boolean onlyPoweredEmptySwitchersDoPathfinding = false;
     public static boolean enableSneakingInAttachmentEditor = false;
     public static boolean playHissWhenStopAtStation = true;
-    public static boolean hissWhenDestroyedBySign = true;
+    public static boolean playerHissWhenDestroyedBySign = true;
     public static boolean playHissWhenLinked = true;
     public static boolean playHissWhenCartRemoved = true;
     public static String launchFunctionType = "bezier";
@@ -504,7 +504,7 @@ public class TCConfig {
         config.setHeader("hissWhenStopAtStation", "Enable/disable hiss sound played when trains stop at stations");
         playHissWhenStopAtStation = soundsConfig.get("hissWhenStopAtStation", true);
         config.setHeader("hissWhenDestroyedBySign", "Enable/disable hiss sound played when carts are destroyed by a destroy sign");
-        hissWhenDestroyedBySign = soundsConfig.get("hissWhenDestroyedBySign", true);
+        playerHissWhenDestroyedBySign = soundsConfig.get("hissWhenDestroyedBySign", true);
         config.setHeader("playHissWhenCartRemoved", "Enable/disable hiss sound played when a cart is removed from a train (destroyed/unlinked)");
         playHissWhenCartRemoved = soundsConfig.get("playHissWhenCartRemoved", true);
         config.setHeader("hissWhenLinked", "Enable/disable hiss sound played when two carts connect together");
