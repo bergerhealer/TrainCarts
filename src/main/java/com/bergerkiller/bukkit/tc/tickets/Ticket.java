@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.tickets;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
@@ -158,8 +159,18 @@ public class Ticket {
         }
 
         // Verify that the image file is below the images directory
-        if (!TCConfig.allowExternalTicketImagePaths && !imageFile.toPath().startsWith(imagesDir.toPath())) {
-            return getDefaultBackgroundImage();
+        if (!TCConfig.allowExternalTicketImagePaths) {
+            boolean validLocation;
+            try {
+                File a = imageFile.getAbsoluteFile().getCanonicalFile();
+                File b = imagesDir.getAbsoluteFile().getCanonicalFile();
+                validLocation = a.toPath().startsWith(b.toPath());
+            } catch (IOException ex) {
+                validLocation = false;
+            }
+            if (!validLocation) {
+                return getDefaultBackgroundImage();
+            }
         }
 
         // Try loading
