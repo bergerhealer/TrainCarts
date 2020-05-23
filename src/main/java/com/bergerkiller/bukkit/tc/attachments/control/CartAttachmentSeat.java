@@ -681,7 +681,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, (float) pyr.getY(), (float) pyr.getX());
                 this._playerPitchRemainder = (pyr.getX() - p.getPitch());
                 this._playerYawRemainder = (pyr.getY() - p.getYaw());
-                PacketUtil.sendPacket((Player) this._entity, p);
+                PacketUtil.sendSyncPacket((Player) this._entity, p);
             } else {
                 this._playerPitchRemainder = pyr.getX();
                 this._playerYawRemainder = pyr.getY();
