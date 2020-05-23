@@ -270,7 +270,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // remove this tracker entry from the server.
         // It is not clear why this happens sometimes.
         // Do this in another tick to avoid concurrent modification exceptions.
-        if (this.getMember() == null) {
+        if (this.getMember() == null || !this.getMember().getEntity().isSpawned()) {
             World world = (this.entity == null) ? null : this.entity.getWorld();
             if (world != null) {
                 CommonUtil.nextTick(new Runnable() {
