@@ -276,10 +276,12 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 CommonUtil.nextTick(new Runnable() {
                     @Override
                     public void run() {
-                        EntityTracker tracker = WorldUtil.getTracker(world);
-                        EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
-                        if (entry != null && getHandle() == entry.getRaw()) {
-                            tracker.stopTracking(entity.getEntity());
+                        if (entity != null) {
+                            EntityTracker tracker = WorldUtil.getTracker(world);
+                            EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
+                            if (entry != null && getHandle() == entry.getRaw()) {
+                                tracker.stopTracking(entity.getEntity());
+                            }
                         }
                     }
                 });
