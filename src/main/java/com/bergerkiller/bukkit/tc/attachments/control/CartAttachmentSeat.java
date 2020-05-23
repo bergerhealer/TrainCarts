@@ -31,16 +31,18 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHeadRotationHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle.PacketPlayOutEntityLookHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
@@ -61,30 +63,29 @@ public class CartAttachmentSeat extends CartAttachment {
 
         @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
-            tab.addWidget(new MapWidgetButton() { // Lock rotation toggle button
-                private boolean checked = false;
-
+            tab.addWidget(new MapWidgetToggleButton<Boolean>() {
                 @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.checked = attachment.getConfig().get("lockRotation", false);
-                    updateText();
-                }
-
-                private void updateText() {
-                    this.setText("Lock Rotation: " + (checked ? "ON":"OFF"));
-                }
-
-                @Override
-                public void onActivate() {
-                    this.checked = !this.checked;
-                    updateText();
-                    attachment.getConfig().set("lockRotation", this.checked);
+                public void onSelectionChanged() {
+                    attachment.getConfig().set("lockRotation", this.getSelectedOption());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
                     display.playSound(CommonSounds.CLICK);
                 }
-            }).setBounds(0, 10, 100, 16);
+            }).addOptions(b -> "Lock Rotation: " + (b ? "ON" : "OFF"), Boolean.TRUE, Boolean.FALSE)
+              .setSelectedOption(attachment.getConfig().get("lockRotation", false))
+              .setBounds(0, 10, 100, 16);
+
+            tab.addWidget(new MapWidgetToggleButton<ViewLockMode>() {
+                @Override
+                public void onSelectionChanged() {
+                    attachment.getConfig().set("lockView", this.getSelectedOption());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                    display.playSound(CommonSounds.CLICK);
+                }
+            }).addOptions(o -> "Lock View: " + o.name(), ViewLockMode.class)
+              .setSelectedOption(attachment.getConfig().get("lockView", ViewLockMode.OFF))
+              .setBounds(0, 30, 100, 16);
 
             tab.addWidget(new MapWidgetButton() { // Change exit position button
                 @Override
@@ -92,7 +93,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     //TODO: Cleaner way to open a sub dialog
                     tab.getParent().getParent().addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
                 }
-            }).setText("Change Exit").setBounds(0, 30, 100, 16);
+            }).setText("Change Exit").setBounds(0, 50, 100, 16);
         }
     };
 
@@ -109,8 +110,11 @@ public class CartAttachmentSeat extends CartAttachment {
     private VirtualEntity _fakeMount = null; // This mount is moved where the passenger should be
     private int _parentMountId = -1;
     private boolean _rotationLocked = false;
+    private ViewLockMode _viewLockMode = ViewLockMode.OFF;
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
+    private double _playerYawRemainder = 0.0;
+    private double _playerPitchRemainder = 0.0;
 
     public void updateSeater() {
         for (Player viewer : this.getViewers()) {
@@ -169,6 +173,7 @@ public class CartAttachmentSeat extends CartAttachment {
         super.onAttached();
 
         this._rotationLocked = this.getConfig().get("lockRotation", false);
+        this._viewLockMode = this.getConfig().get("lockView", ViewLockMode.OFF);
 
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
         this._ejectPosition.load(ejectPosition);
@@ -583,7 +588,7 @@ public class CartAttachmentSeat extends CartAttachment {
             int entityId = (this._fakeEntityId != -1) ? this._fakeEntityId : this._entity.getEntityId();
 
             // Refresh head rotation
-            if (EntityTrackerEntryHandle.hasProtocolRotationChanged(headRot, this._fakeEntityLastHeadYaw)) {
+            if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._fakeEntityLastHeadYaw)) {
                 PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
                 this._fakeEntityLastHeadYaw = headPacket.getHeadYaw();
                 for (Player viewer : this.getViewers()) {
@@ -598,8 +603,8 @@ public class CartAttachmentSeat extends CartAttachment {
             // The client will automatically rotate the body towards the head after a short delay
             // Sending look packets regularly prevents that from happening
             if (this._fakeEntityRotationCtr == 0 || 
-                EntityTrackerEntryHandle.hasProtocolRotationChanged(yaw, this._fakeEntityLastYaw) ||
-                EntityTrackerEntryHandle.hasProtocolRotationChanged(pitch, this._fakeEntityLastPitch))
+                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(yaw, this._fakeEntityLastYaw) ||
+                EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pitch, this._fakeEntityLastPitch))
             {
                 this._fakeEntityRotationCtr = 10;
 
@@ -628,8 +633,8 @@ public class CartAttachmentSeat extends CartAttachment {
                     headRot = -headRot + 2.0f * yaw;
                 }
 
-                if (EntityTrackerEntryHandle.hasProtocolRotationChanged(yaw, this._fakeEntityLastYaw) ||
-                    EntityTrackerEntryHandle.hasProtocolRotationChanged(pitch, this._fakeEntityLastPitch))
+                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(yaw, this._fakeEntityLastYaw) ||
+                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pitch, this._fakeEntityLastPitch))
                 {
                     PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(this._fakeEntityId, yaw, pitch, false);
                     this._fakeEntityLastYaw = lookPacket.getYaw();
@@ -639,13 +644,47 @@ public class CartAttachmentSeat extends CartAttachment {
                     }
                 }
 
-                if (EntityTrackerEntryHandle.hasProtocolRotationChanged(headRot, this._fakeEntityLastHeadYaw)) {
+                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._fakeEntityLastHeadYaw)) {
                     PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(this._fakeEntityId, headRot);
                     this._fakeEntityLastHeadYaw = headPacket.getHeadYaw();
                     for (Player viewer : this.getViewers()) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
                 }
+            }
+        }
+
+        // Move player view relatively
+        if (this._viewLockMode == ViewLockMode.MOVE && this._entity instanceof Player) {
+            Vector old_pyr;
+            {
+                Location eye_loc = ((Player) this._entity).getEyeLocation();
+                old_pyr = new Vector(eye_loc.getPitch() + this._playerPitchRemainder,
+                                     eye_loc.getYaw() + this._playerYawRemainder,
+                                     0.0);
+                old_pyr.setX(-old_pyr.getX());
+            }
+
+            // Compute the new rotation of the player with the current tick rotation of this attachment applied
+            // TODO: Should we somehow eliminate roll?
+            Quaternion rotation = Matrix4x4.diffRotation(this.getPreviousTransform(), this.getTransform());
+            rotation.multiply(Quaternion.fromYawPitchRoll(old_pyr));
+
+            // Compute change in yaw/pitch/roll
+            Vector pyr = rotation.getYawPitchRoll().subtract(old_pyr);
+            pyr.setX(MathUtil.wrapAngle(pyr.getX()));
+            pyr.setY(MathUtil.wrapAngle(pyr.getY()));
+            pyr.setX(-pyr.getX());
+
+            // Refresh this change in pitch/yaw/roll to the player
+            if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
+                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, (float) pyr.getY(), (float) pyr.getX());
+                this._playerPitchRemainder = (pyr.getX() - p.getPitch());
+                this._playerYawRemainder = (pyr.getY() - p.getYaw());
+                PacketUtil.sendPacket((Player) this._entity, p);
+            } else {
+                this._playerPitchRemainder = pyr.getX();
+                this._playerYawRemainder = pyr.getY();
             }
         }
     }
@@ -721,4 +760,9 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
+    public static enum ViewLockMode {
+        OFF, /* Player view orientation is not changed */
+        MOVE, /* Player view orientation moves along as the seat moves */
+        LOCK /* Player view is locked to look forwards in the seat direction at all times */
+    }
 }
