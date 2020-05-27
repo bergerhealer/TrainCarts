@@ -44,6 +44,8 @@ public class FirstPersonDefault {
 
             PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
         }
+
+        seat.seated.makeVisible(viewer, this.useVirtualCamera(), seat._parentMountId);
     }
 
     public void makeHidden(Player viewer) {
@@ -52,6 +54,8 @@ public class FirstPersonDefault {
             this._fakeCameraMount.destroy(viewer);
             this._fakeCameraMount = null;
         }
+
+        seat.seated.makeHidden(viewer, this.useVirtualCamera());
     }
 
     public void onMove(boolean absolute) {

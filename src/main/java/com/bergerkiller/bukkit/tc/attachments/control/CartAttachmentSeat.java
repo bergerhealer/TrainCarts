@@ -30,6 +30,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatOrientation;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
@@ -82,7 +84,19 @@ public class CartAttachmentSeat extends CartAttachment {
                 }
             }).addOptions(o -> "Lock View: " + o.name(), ViewLockMode.class)
               .setSelectedOption(attachment.getConfig().get("lockView", ViewLockMode.OFF))
-              .setBounds(0, 30, 100, 16);
+              .setBounds(0, 28, 100, 16);
+
+            tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
+                @Override
+                public void onSelectionChanged() {
+                    attachment.getConfig().set("displayMode", this.getSelectedOption());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                    display.playSound(CommonSounds.CLICK);
+                }
+            }).addOptions(o -> "Display: " + o.name(), DisplayMode.class)
+              .setSelectedOption(attachment.getConfig().get("displayMode", DisplayMode.DEFAULT))
+              .setBounds(0, 46, 100, 16);
 
             tab.addWidget(new MapWidgetButton() { // Change exit position button
                 @Override
@@ -90,27 +104,27 @@ public class CartAttachmentSeat extends CartAttachment {
                     //TODO: Cleaner way to open a sub dialog
                     tab.getParent().getParent().addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
                 }
-            }).setText("Change Exit").setBounds(0, 50, 100, 16);
+            }).setText("Change Exit").setBounds(0, 64, 100, 16);
         }
     };
 
     // Houses the logic for synchronizing this seat to players viewing the entity in first person
     // That is, the viewer is the one inside this seat
     private FirstPersonDefault firstPerson = new FirstPersonDefault(this);
-
-    // Manages the orientation of the seated entity
-    private final SeatOrientation orientation = new SeatOrientation();
+    // Houses the logic for synchronizing this seat to players viewing the entity in third person
+    // That is, the viewer is not the one inside this seat
+    private ThirdPersonDefault thirdPerson = new ThirdPersonDefault(this);
 
     /**
      * Information about the entity that is seated inside this seat
      */
-    private final SeatedEntity seated = new SeatedEntity();
+    public final SeatedEntity seated = new SeatedEntity();
 
     // The fake mount is used when this seat has a position set, or otherwise cannot
     // mount the passenger to a parent attachment. The _parentMountId is set to the
     // entity id of the vehicle this passenger is mounted to.
     private VirtualEntity _fakeMount = null;
-    private int _parentMountId = -1;
+    public int _parentMountId = -1;
 
     // During makeVisible(viewer) this is set to that viewer, to ignore it when refreshing
     private Player _makeVisibleCurrent = null;
@@ -124,20 +138,6 @@ public class CartAttachmentSeat extends CartAttachment {
     private ViewLockMode _viewLockMode = ViewLockMode.OFF;
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
-
-    /**
-     * The pitch (x), yaw (y) and roll (z) of the vehicle mount this passenger
-     * is inside of.
-     * 
-     * @return mount pitch/yaw/roll
-     */
-    public Vector getMountPYR() {
-        if (this._fakeMount != null) {
-            return this._fakeMount.getYawPitchRoll();
-        } else {
-            return this.getTransform().getYawPitchRoll();
-        }
-    }
 
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
@@ -160,8 +160,9 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.orientation.setLocked(this.getConfig().get("lockRotation", false));
+        this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
         this._viewLockMode = this.getConfig().get("lockView", ViewLockMode.OFF);
+        this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
         this._ejectPosition.load(ejectPosition);
@@ -202,11 +203,11 @@ public class CartAttachmentSeat extends CartAttachment {
                 if (this._fakeMount == null) {
                     this._fakeMount = new VirtualEntity(this.getManager());
                     this._fakeMount.setEntityType(EntityType.CHICKEN);
-                    this._fakeMount.setRelativeOffset(0.0, -0.625, 0.0);
                     this._fakeMount.setSyncMode(SyncMode.SEAT);
+                    this._fakeMount.setRelativeOffset(this.seated.orientation.getMountOffset());
 
                     // Put the entity on a fake mount that we move around at an offset
-                    this._fakeMount.updatePosition(this.getTransform());
+                    this._fakeMount.updatePosition(this.getTransform(), new Vector(0.0, (double) this.seated.orientation.getMountYaw(), 0.0));
                     this._fakeMount.syncPosition(true);
                     this._fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                     this._fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
@@ -222,21 +223,21 @@ public class CartAttachmentSeat extends CartAttachment {
 
         if (viewer == this.seated.getEntity()) {
             this.firstPerson.makeVisible(viewer);
+        } else {
+            this.thirdPerson.makeVisible(viewer);
         }
 
-        this.seated.makeVisible(viewer, this._parentMountId);
-
         // If rotation locked, send the rotation of the passenger if available
-        this.orientation.makeVisible(viewer, this.seated);
+        this.seated.orientation.makeVisible(viewer, this.seated);
     }
 
     @Override
     public void makeHidden(Player viewer) {
         if (this.seated.getEntity() == viewer) {
             this.firstPerson.makeHidden(viewer);
+        } else {
+            this.thirdPerson.makeHidden(viewer);
         }
-
-        this.seated.makeHidden(viewer);
 
         if (this._fakeMount != null) {
             this._fakeMount.destroy(viewer);
@@ -258,6 +259,15 @@ public class CartAttachmentSeat extends CartAttachment {
         {
             this.getParent().applyDefaultSeatTransform(transform);
         }
+
+        // Synchronize orientation of the entity inside this seat
+        this.seated.orientation.synchronize(this, transform, this.seated);
+
+        // Apply rotation to fake mount, if needed
+        if (this._fakeMount != null) {
+            this._fakeMount.setRelativeOffset(this.seated.orientation.getMountOffset());
+            this._fakeMount.updatePosition(transform, new Vector(0.0, (double) this.seated.orientation.getMountYaw(), 0.0));
+        }
     }
 
     @Override
@@ -269,7 +279,6 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // If not parented to a parent attachment, move the fake mount to move the seat
         if (this._fakeMount != null) {
-            this._fakeMount.updatePosition(this.getTransform());
             this._fakeMount.syncPosition(absolute);
         }
     }
@@ -323,9 +332,6 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onTick() {
         // Only needed when there is a passenger
         this.updateMode(false);
-
-        // Synchronize orientation of the entity inside this seat
-        this.orientation.synchronize(this, this.seated);
 
         // Move player view relatively
         if (this._viewLockMode == ViewLockMode.MOVE && this.seated.isPlayer()) {
@@ -397,6 +403,17 @@ public class CartAttachmentSeat extends CartAttachment {
             new_virtualCam = false;
             new_isFake = false;
             new_isUpsideDown = false;
+        } else if (this.seated.getDisplayMode() == DisplayMode.ELYTRA || this.seated.getDisplayMode() == DisplayMode.ELYTRA_SIT) {
+            Quaternion rotation = this.getTransform().getRotation();
+            double selfPitch = getQuaternionPitch(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
+
+            new_isUpsideDown = false;
+
+            new_virtualCam = TCConfig.enableSeatThirdPersonView &&
+                             this.seated.isPlayer() &&
+                             true; //Math.abs(selfPitch) > 70.0;
+
+            new_isFake = this.seated.isPlayer();
         } else {
             Quaternion rotation = this.getTransform().getRotation();
             double selfPitch = getQuaternionPitch(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
@@ -413,8 +430,8 @@ public class CartAttachmentSeat extends CartAttachment {
 
             // Compute new first-person state of whether the player sees himself from third person using a fake camera
             new_virtualCam = TCConfig.enableSeatThirdPersonView &&
-                                     this.seated.isPlayer() &&
-                                     Math.abs(selfPitch) > 70.0;
+                             this.seated.isPlayer() &&
+                             Math.abs(selfPitch) > 70.0;
 
             // Whether a fake entity is used to represent this seated entity
             new_isFake = this.seated.isPlayer() && (new_isUpsideDown || new_virtualCam);
@@ -485,19 +502,19 @@ public class CartAttachmentSeat extends CartAttachment {
      * @return True if rotation is locked
      */
     public boolean isRotationLocked() {
-        return this.orientation.isLocked();
+        return this.seated.orientation.isLocked();
     }
 
     public float getPassengerYaw() {
-        return this.orientation.getPassengerYaw();
+        return this.seated.orientation.getPassengerYaw();
     }
 
     public float getPassengerPitch() {
-        return this.orientation.getPassengerPitch();
+        return this.seated.orientation.getPassengerPitch();
     }
 
     public float getPassengerHeadYaw() {
-        return this.orientation.getPassengerHeadYaw();
+        return this.seated.orientation.getPassengerHeadYaw();
     }
 
     /**

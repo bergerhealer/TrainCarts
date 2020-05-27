@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -18,6 +19,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatOrientation;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
@@ -61,19 +63,26 @@ public enum ProfileNameModifier {
      * @param player
      * @param entityId for the spawned player entity
      */
-    public void spawnPlayer(Player viewer, Player player, int entityId) {
+    public void spawnPlayer(Player viewer, Player player, int entityId, SeatOrientation orientation, Consumer<DataWatcher> metaFunction) {
         // Send list info before spawning
         this.sendListInfo(viewer, player);
 
         EntityHandle playerHandle = EntityHandle.fromBukkit(player);
 
         // Calculate yaw/pitch/head-yaw
-        float yaw = playerHandle.getYaw();
-        float pitch = playerHandle.getPitch();
-        float headRot = playerHandle.getHeadRotation();
-        if (this == UPSIDEDOWN) {
-            pitch = -pitch;
-            headRot = -headRot + 2.0f * yaw;
+        float yaw, pitch, headRot;
+        if (orientation == null) {
+            yaw = playerHandle.getYaw();
+            pitch = playerHandle.getPitch();
+            headRot = playerHandle.getHeadRotation();
+            if (this == UPSIDEDOWN) {
+                pitch = -pitch;
+                headRot = -headRot + 2.0f * yaw;
+            }
+        } else {
+            yaw = orientation.getPassengerYaw();
+            pitch = orientation.getPassengerPitch();
+            headRot = orientation.getPassengerHeadYaw();
         }
 
         // Spawn in a fake player with the same UUID
@@ -92,6 +101,7 @@ public enum ProfileNameModifier {
         // This reduces the glitchy effects before the player is mounted
         DataWatcher metaData = EntityUtil.getDataWatcher(player).clone();
         //setMetaVisibility(metaData, false);
+        metaFunction.accept(metaData);
         PacketUtil.sendNamedEntitySpawnPacket(viewer, fakePlayerSpawnPacket, metaData);
 
         // Also synchronize the head rotation for this player
