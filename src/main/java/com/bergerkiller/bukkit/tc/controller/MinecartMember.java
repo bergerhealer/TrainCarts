@@ -61,6 +61,7 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -553,27 +554,61 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             return false;
         }
 
-        // Turn Minecart position into a 4x4 transform matrix
-        Matrix4x4 transform = new Matrix4x4();
-        transform.translateRotate(entity.getLocation());
-
         // Transform passenger position with it
-        Vector position = this.getPassengerPosition(passenger);
-        transform.transformPoint(position);
-        Block block = entity.getWorld().getBlockAt(position.getBlockX(), position.getBlockY(), position.getBlockZ());
+        Location position = this.getPassengerLocation(passenger);
+        position.setY(position.getY() + 1.0);
+        Block block = position.getBlock();
 
         // Check if suffocating
         return BlockUtil.isSuffocating(block);
     }
 
     /**
-     * Gets the relative position of a passenger of this Minecart
+     * Gets the absolute world coordinates and orientation a passenger exiting this Minecart
+     * will have. If the passenger Entity is not a passenger, then a default exit
+     * offset is assumed.
+     * 
+     * @param passenger
+     * @return passenger eject position
+     */
+    public Location getPassengerEjectLocation(Entity passenger) {
+        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(passenger);
+
+        if (seat == null) {
+            // Fallback
+            Location mloc = entity.getLocation();
+            mloc.setYaw(FaceUtil.faceToYaw(getDirection()));
+            mloc.setPitch(0.0f);
+            return MathUtil.move(mloc, getProperties().exitOffset);
+        } else {
+            // Use seat
+            return seat.getEjectPosition(passenger);
+        }
+    }
+
+    /**
+     * Gets the absolute world coordinates and orientation of a passenger of this Minecart.
      * 
      * @param passenger
      * @return passenger position
      */
-    public Vector getPassengerPosition(Entity passenger) {
-        return new Vector(0.0, 1.0, 0.0);
+    public Location getPassengerLocation(Entity passenger) {
+        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(passenger);
+
+        if (seat == null) {
+            // Fallback
+            Location mloc = entity.getLocation();
+            mloc.setYaw(FaceUtil.faceToYaw(getDirection()));
+            mloc.setPitch(0.0f);
+            return mloc;
+        } else {
+            // Use seat
+            Matrix4x4 transform = seat.getTransform();
+            Vector pyr = transform.getYawPitchRoll();
+            return transform.toVector().toLocation(entity.getWorld(), (float) pyr.getY(), (float) pyr.getX());
+        }
     }
 
     public boolean isInChunk(Chunk chunk) {

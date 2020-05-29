@@ -17,14 +17,12 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
@@ -39,11 +37,6 @@ import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityMinecartRideableHandle;
-import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
-import com.bergerkiller.mountiplex.reflection.ClassTemplate;
-import com.bergerkiller.mountiplex.reflection.SafeMethod;
-import com.bergerkiller.reflection.net.minecraft.server.NMSVector;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
@@ -391,24 +384,9 @@ public class TCListener implements Listener {
             return;
         }
 
-        Location mloc = mm.getEntity().getLocation();
-        mloc.setYaw(FaceUtil.faceToYaw(mm.getDirection()));
-        mloc.setPitch(0.0f);
-
-        final Location loc;
-        MinecartMemberNetwork network = CommonUtil.tryCast(mm.getEntity().getNetworkController(), MinecartMemberNetwork.class);
-        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(event.getExited());
-
-        if (seat == null) {
-            // Fallback
-            loc = MathUtil.move(mloc, mm.getProperties().exitOffset);
-        } else {
-            // Use seat
-            loc = seat.getEjectPosition(event.getExited());
-        }
-
         final Entity e = event.getExited();
         final Location old_location = e.getLocation();
+        final Location loc = mm.getPassengerEjectLocation(e);
 
         // Teleport to the exit position a tick later
         CommonUtil.nextTick(new Runnable() {
@@ -567,25 +545,6 @@ public class TCListener implements Listener {
             //System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
 
             Material m = (event.getItem() == null) ? Material.AIR : event.getItem().getType();
-
-            // Tests the original MC slope calculations
-            if (false && m == Material.STICK) {
-                Object mc = EntityMinecartRideableHandle.T.newInstanceNull();
-                EntityHandle.T.world.set(mc, WorldHandle.fromBukkit(clickedBlock.getWorld()));
-
-                SafeMethod<Object> v = ClassTemplate.create(mc).getMethod("j", double.class, double.class, double.class);
-
-                double x = clickedBlock.getX() + 0.5;
-                double y = clickedBlock.getY() + 0.5;
-                double z = clickedBlock.getZ() + 0.5;
-
-                System.out.println("POS=" + x + ", " + y + ", "+  z);
-
-                for (double dx = -0.6; dx <= 0.6; dx += 0.05) {
-                    Object vec = v.invoke(mc, x + dx, y, z);
-                    System.out.println(dx + "," + (NMSVector.getVecY(vec)-y));
-                }
-            }
 
             // Track map debugging logic
             if (DEBUG_DO_TRACKTEST && m == Material.FEATHER) {
