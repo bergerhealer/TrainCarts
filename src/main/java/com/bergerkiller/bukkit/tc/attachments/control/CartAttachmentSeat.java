@@ -294,22 +294,25 @@ public class CartAttachmentSeat extends CartAttachment {
             Vector old_pyr;
             {
                 Location eye_loc = ((Player) this.seated.getEntity()).getEyeLocation();
-                old_pyr = new Vector(eye_loc.getPitch() + this._playerPitchRemainder,
-                                     eye_loc.getYaw() + this._playerYawRemainder,
+                old_pyr = new Vector(eye_loc.getPitch(),
+                                     eye_loc.getYaw(),
                                      0.0);
                 old_pyr.setX(-old_pyr.getX());
             }
 
-            // Compute the new rotation of the player with the current tick rotation of this attachment applied
-            // TODO: Should we somehow eliminate roll?
-            Quaternion rotation = Matrix4x4.diffRotation(this.getPreviousTransform(), this.getTransform());
-            rotation.multiply(Quaternion.fromYawPitchRoll(old_pyr));
+            // Find the rotation transformation to go from the previous transformation to pyr
+            // Multiplying getPreviousTransform() with this rotation should result in old_pyr exactly
+            Quaternion diff = Quaternion.diff(this.getPreviousTransform().getRotation(), Quaternion.fromYawPitchRoll(old_pyr));
 
-            // Compute change in yaw/pitch/roll
-            Vector pyr = rotation.getYawPitchRoll().subtract(old_pyr);
-            pyr.setX(MathUtil.wrapAngle(pyr.getX()));
-            pyr.setY(MathUtil.wrapAngle(pyr.getY()));
-            pyr.setX(-pyr.getX());
+            // Transform the new seat transform with this diff to obtain the expected rotation after moving
+            Quaternion new_rotation = this.getTransform().getRotation();
+            new_rotation.multiply(diff);
+            Vector new_pyr = new_rotation.getYawPitchRoll();
+
+            // Compute difference, also include a remainder we haven't synchronized yet
+            Vector pyr = new_pyr.clone().subtract(old_pyr);
+            pyr.setX(pyr.getX() + this._playerPitchRemainder);
+            pyr.setY(pyr.getY() + this._playerYawRemainder);
 
             // Refresh this change in pitch/yaw/roll to the player
             if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
