@@ -214,7 +214,7 @@
                 <executions>
                     <execution>
                         <id>auto-clean</id>
-                        <phase>install</phase>
+                        <phase>package</phase>
                         <goals>
                             <goal>clean</goal>
                         </goals>
