@@ -131,6 +131,11 @@
             <version>${project.bkcversion}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>me.m56738</groupId>
+            <artifactId>SmoothCoastersAPI</artifactId>
+            <version>1.0.1</version>
+        </dependency>
 
         <dependency>
             <groupId>com.googlecode.openpojo</groupId>
@@ -171,6 +176,35 @@
 
         <!-- Plugins -->
         <plugins>
+
+            <!-- Shade plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.3</version>
+                <configuration>
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <relocations>
+                        <relocation>
+                            <pattern>me.m56738</pattern>
+                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.me.m56738</shadedPattern>
+                        </relocation>
+                    </relocations>
+                    <artifactSet>
+                        <includes>
+                            <include>me.m56738</include>
+                        </includes>
+                    </artifactSet>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!-- Copy artifacts to non-versioned jar name -->
             <plugin>
