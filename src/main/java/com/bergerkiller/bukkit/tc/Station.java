@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -68,20 +69,65 @@ public class Station {
             }
         } else {
             Vector railDirection = info.getCartEnterDirection();
+            boolean diagonal = Util.isDiagonal(railDirection);
+
+            // Diagonal logic is only used for SIGN_POST, so verify that this is the case
+            if (diagonal) {
+                org.bukkit.material.Sign sign_material = BlockUtil.getData(info.getBlock(), org.bukkit.material.Sign.class);
+                if (sign_material == null || sign_material.isWallSign()) {
+                    diagonal = false;
+                }
+            }
+
             if (Util.isDiagonal(railDirection)) {
-                // Sub-cardinal checks: Both directions have two possible powered sides
-                BlockFace face_x = (railDirection.getX() > 0.0) ? BlockFace.EAST : BlockFace.WEST;
-                BlockFace face_z = (railDirection.getZ() > 0.0) ? BlockFace.SOUTH : BlockFace.NORTH;
-                boolean pow1 = info.isPowered(face_x) || info.isPowered(face_z);
-                boolean pow2 = info.isPowered(face_x.getOppositeFace()) || info.isPowered(face_z.getOppositeFace());
-                if (pow1 && !pow2) {
-                    this.instruction = FaceUtil.combine(face_x, face_z);
-                } else if (!pow1 && pow2) {
-                    this.instruction = FaceUtil.combine(face_x.getOppositeFace(), face_z.getOppositeFace());
-                } else if (info.isPowered()) {
-                    this.instruction = BlockFace.SELF;
+                org.bukkit.material.Sign sign_material = BlockUtil.getData(info.getBlock(), org.bukkit.material.Sign.class);
+                if (sign_material == null || sign_material.isWallSign()) {
+                    // A wall sign used with a diagonal piece of track
+                    // The direction is based on the facing of the sign, so adjust for that
+                    BlockFace facing = info.getFacing();
+                    if (FaceUtil.isAlongX(facing)) {
+                        // Sign facing is along X, launch along Z
+                        boolean north = info.isPowered(BlockFace.NORTH);
+                        boolean south = info.isPowered(BlockFace.SOUTH);
+                        if (north && !south) {
+                            this.instruction = BlockFace.NORTH;
+                        } else if (south && !north) {
+                            this.instruction = BlockFace.SOUTH;
+                        } else if (info.isPowered()) {
+                            this.instruction = BlockFace.SELF;
+                        } else {
+                            this.instruction = null;
+                        }
+                    } else {
+                        // Sign facing is along Z, launch along X
+                        boolean west = info.isPowered(BlockFace.WEST);
+                        boolean east = info.isPowered(BlockFace.EAST);
+                        if (west && !east) {
+                            this.instruction = BlockFace.WEST;
+                        } else if (east && !west) {
+                            this.instruction = BlockFace.EAST;
+                        } else if (info.isPowered()) {
+                            this.instruction = BlockFace.SELF;
+                        } else {
+                            this.instruction = null;
+                        }
+                    }
                 } else {
-                    this.instruction = null;
+                    // Diagonal logic is only used for SIGN_POST
+                    // Sub-cardinal checks: Both directions have two possible powered sides
+                    BlockFace face_x = (railDirection.getX() > 0.0) ? BlockFace.EAST : BlockFace.WEST;
+                    BlockFace face_z = (railDirection.getZ() > 0.0) ? BlockFace.SOUTH : BlockFace.NORTH;
+                    boolean pow1 = info.isPowered(face_x) || info.isPowered(face_z);
+                    boolean pow2 = info.isPowered(face_x.getOppositeFace()) || info.isPowered(face_z.getOppositeFace());
+                    if (pow1 && !pow2) {
+                        this.instruction = FaceUtil.combine(face_x, face_z);
+                    } else if (!pow1 && pow2) {
+                        this.instruction = FaceUtil.combine(face_x.getOppositeFace(), face_z.getOppositeFace());
+                    } else if (info.isPowered()) {
+                        this.instruction = BlockFace.SELF;
+                    } else {
+                        this.instruction = null;
+                    }
                 }
             } else if (Math.abs(railDirection.getX()) > Math.abs(railDirection.getZ())) {
                 // Along X
