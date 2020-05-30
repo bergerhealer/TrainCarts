@@ -5,7 +5,6 @@ import java.util.Collection;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -23,8 +22,6 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
@@ -33,14 +30,11 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatOrientation;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
@@ -120,12 +114,6 @@ public class CartAttachmentSeat extends CartAttachment {
      */
     public final SeatedEntity seated = new SeatedEntity();
 
-    // The fake mount is used when this seat has a position set, or otherwise cannot
-    // mount the passenger to a parent attachment. The _parentMountId is set to the
-    // entity id of the vehicle this passenger is mounted to.
-    private VirtualEntity _fakeMount = null;
-    public int _parentMountId = -1;
-
     // During makeVisible(viewer) this is set to that viewer, to ignore it when refreshing
     private Player _makeVisibleCurrent = null;
 
@@ -191,36 +179,6 @@ public class CartAttachmentSeat extends CartAttachment {
             return;
         }
 
-        // Find a parent to mount to
-        if (this._parentMountId == -1) {
-            // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (this.getParent() != null && this.getConfiguredPosition().isDefault()) {
-                this._parentMountId = ((CartAttachment) this.getParent()).getMountEntityId();
-            }
-
-            // No parent node mount is used, create a fake mount
-            if (this._parentMountId == -1) {
-                if (this._fakeMount == null) {
-                    this._fakeMount = new VirtualEntity(this.getManager());
-                    this._fakeMount.setEntityType(EntityType.CHICKEN);
-                    this._fakeMount.setSyncMode(SyncMode.SEAT);
-                    this._fakeMount.setRelativeOffset(this.seated.orientation.getMountOffset());
-
-                    // Put the entity on a fake mount that we move around at an offset
-                    this._fakeMount.updatePosition(this.getTransform(), new Vector(0.0, (double) this.seated.orientation.getMountYaw(), 0.0));
-                    this._fakeMount.syncPosition(true);
-                    this._fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-                    this._fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-                }
-                this._parentMountId = this._fakeMount.getEntityId();
-            }
-        }
-
-        // Spawn fake mount, if used
-        if (this._fakeMount != null) {
-            this._fakeMount.spawn(viewer, calcMotion());
-        }
-
         if (viewer == this.seated.getEntity()) {
             this.firstPerson.makeVisible(viewer);
         } else {
@@ -238,10 +196,6 @@ public class CartAttachmentSeat extends CartAttachment {
         } else {
             this.thirdPerson.makeHidden(viewer);
         }
-
-        if (this._fakeMount != null) {
-            this._fakeMount.destroy(viewer);
-        }
     }
 
     public Vector calcMotion() {
@@ -251,9 +205,17 @@ public class CartAttachmentSeat extends CartAttachment {
         return pos_new.subtract(pos_old);
     }
 
+    public boolean isFakePlayerUsed(Player viewer) {
+        if (viewer == this.seated.getEntity()) {
+            return this.firstPerson.isFakePlayerUsed();
+        } else {
+            return true;
+        }
+    }
+
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
-        if (this._fakeMount != null &&
+        if (this.seated.fakeMount != null &&
             this.getConfiguredPosition().isDefault() &&
             this.getParent() != null)
         {
@@ -262,12 +224,6 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Synchronize orientation of the entity inside this seat
         this.seated.orientation.synchronize(this, transform, this.seated);
-
-        // Apply rotation to fake mount, if needed
-        if (this._fakeMount != null) {
-            this._fakeMount.setRelativeOffset(this.seated.orientation.getMountOffset());
-            this._fakeMount.updatePosition(transform, new Vector(0.0, (double) this.seated.orientation.getMountYaw(), 0.0));
-        }
     }
 
     @Override
@@ -278,8 +234,8 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         // If not parented to a parent attachment, move the fake mount to move the seat
-        if (this._fakeMount != null) {
-            this._fakeMount.syncPosition(absolute);
+        if (this.seated.fakeMount != null) {
+            this.seated.fakeMount.syncPosition(absolute);
         }
     }
 
@@ -307,7 +263,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (!this.seated.isEmpty()) {
             // If a previous entity was set, unseat it
             for (Player viewer : this.getViewers()) {
-                PlayerUtil.getVehicleMountController(viewer).unmount(this._parentMountId, this.seated.getEntity().getEntityId());
+                PlayerUtil.getVehicleMountController(viewer).unmount(this.seated.parentMountId, this.seated.getEntity().getEntityId());
                 this.makeHidden(viewer);
             }
             TrainCarts.plugin.getSeatAttachmentMap().remove(this.seated.getEntity().getEntityId(), this);

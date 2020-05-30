@@ -4,9 +4,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -77,45 +74,59 @@ public class SeatOrientation {
         if (seated.isEmpty()) {
             return;
         }
+
         if (seated.getDisplayMode() == DisplayMode.ELYTRA_SIT) {
-            EntityHandle realPlayer = EntityHandle.fromBukkit(seated.getEntity());
             Vector pyr = transform.getYawPitchRoll();
-            float pitch = (float) (pyr.getX() - 90.0);
-            float yaw = (float) (pyr.getY() + DebugUtil.getDoubleValue("w", 0.0));
-            //float yaw = (float) (Math.toDegrees(Math.atan2(fwd.getX(), fwd.getZ())) + 0.0);
-            float headRot = realPlayer.getHeadRotation();
 
-            //transform.translate(0.0, DebugUtil.getDoubleValue("p", -0.7), 0.0);
-
-            // Reset
-            _mountOffset.setX(0.0);
-            _mountOffset.setY(CHICKEN_Y_OFFSET);
-            _mountOffset.setZ(0.0);
-
-            // Vertical offset from yaw/pitch
+            // Compute the actual position of the butt using yaw/pitch
+            // Subtract this offset from the mount offset to correct for it
+            // This makes sure the player is seated where the seat is
             {
-                Quaternion q = new Quaternion();
-                q.rotateX(pitch + 90.0);
-                q.rotateY(yaw);
+                double yaw_sin = Math.sin(Math.toRadians(pyr.getY()));
+                double yaw_cos = Math.cos(Math.toRadians(pyr.getY()));
+                double pitch_sin = Math.sin(Math.toRadians(pyr.getX()));
+                double pitch_cos = Math.cos(Math.toRadians(pyr.getX()));
 
-                final double offset = -0.65;
-                Vector input = new Vector(0.0, offset, 0.0);
-                q.transformPoint(input);
-                input.setY(input.getY() - offset);
-                _mountOffset.add(input);
+                final double l = 0.6;
+                final double m = 0.1;
+
+                double rx = (l * pitch_sin) + (m * pitch_cos - m);
+                double ry = (l * pitch_cos - l) - (m * pitch_sin);
+
+                double off_x = -yaw_sin * rx;
+                double off_y = ry;
+                double off_z = yaw_cos * rx;
+
+                // Subtracts butt position to correct the mount offset
+                _mountOffset.setX(-off_x);
+                _mountOffset.setY(CHICKEN_Y_OFFSET - off_y);
+                _mountOffset.setZ(-off_z);
+
+                // Shows a green particle where the player's butt is expected to be
+                // Shows a red particle where the seat is supposed to be
+                // Make sure to uncomment the mount offset when testing!
+                /*
+                Vector wow = transform.toVector().add(new Vector(off_x, off_y, off_z));
+                for (Player viewer : seat.getViewers()) {
+                    PlayerUtil.spawnDustParticles(viewer, transform.toVector(), org.bukkit.Color.RED);
+                    PlayerUtil.spawnDustParticles(viewer, wow, org.bukkit.Color.GREEN);
+                }
+                */
             }
 
-            _mountYaw = yaw;
-            headRot = realPlayer.getHeadRotation();
+            // Yaw of vehicle player is on = yaw, player will rotate along
+            _mountYaw = (float) pyr.getY();
 
             // Limit head rotation within range of yaw
+            float pitch = (float) (pyr.getX() - 90.0);
+            float headRot = EntityHandle.fromBukkit(seated.getEntity()).getHeadRotation();
             final float HEAD_ROT_LIM = 30.0f;
-            if (MathUtil.getAngleDifference(headRot, yaw) > HEAD_ROT_LIM) {
-                if (MathUtil.getAngleDifference(headRot, yaw + HEAD_ROT_LIM) <
-                    MathUtil.getAngleDifference(headRot, yaw - HEAD_ROT_LIM)) {
-                    headRot = yaw + HEAD_ROT_LIM;
+            if (MathUtil.getAngleDifference(headRot, _mountYaw) > HEAD_ROT_LIM) {
+                if (MathUtil.getAngleDifference(headRot, _mountYaw + HEAD_ROT_LIM) <
+                    MathUtil.getAngleDifference(headRot, _mountYaw - HEAD_ROT_LIM)) {
+                    headRot = _mountYaw + HEAD_ROT_LIM;
                 } else {
-                    headRot = yaw - HEAD_ROT_LIM;
+                    headRot = _mountYaw - HEAD_ROT_LIM;
                 }
             }
 
@@ -140,12 +151,12 @@ public class SeatOrientation {
             // The client will automatically rotate the body towards the head after a short delay
             // Sending look packets regularly prevents that from happening
             if (this._entityRotationCtr == 0 || 
-                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(yaw, this._entityLastYaw) ||
+                EntityTrackerEntryStateHandle.hasProtocolRotationChanged(_mountYaw, this._entityLastYaw) ||
                 EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pitch, this._entityLastPitch))
             {
                 this._entityRotationCtr = 10;
 
-                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, yaw, pitch, false);
+                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, _mountYaw, pitch, false);
                 this._entityLastYaw = lookPacket.getYaw();
                 this._entityLastPitch = lookPacket.getPitch();
                 for (Player viewer : seat.getViewers()) {
@@ -253,6 +264,12 @@ public class SeatOrientation {
                     }
                 }
             }
+        }
+
+        // Apply rotation to fake mount, if needed
+        if (seated.fakeMount != null) {
+            seated.fakeMount.setRelativeOffset(this.getMountOffset());
+            seated.fakeMount.updatePosition(transform, new Vector(0.0, (double) this.getMountYaw(), 0.0));
         }
     }
 
