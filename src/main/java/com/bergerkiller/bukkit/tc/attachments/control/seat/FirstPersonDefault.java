@@ -5,8 +5,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -19,6 +21,8 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttrib
  */
 public class FirstPersonDefault {
     private final CartAttachmentSeat seat;
+    private Player _player;
+    private boolean _useSmoothCoasters = false;
     private boolean _useVirtualCamera = false;
     private VirtualEntity _fakeCameraMount = null;
 
@@ -27,6 +31,20 @@ public class FirstPersonDefault {
     }
 
     public void makeVisible(Player viewer) {
+        _player = viewer;
+
+        if (this.useSmoothCoasters()) {
+            Quaternion rotation = seat.getTransform().getRotation();
+            TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
+                    viewer,
+                    (float) rotation.getX(),
+                    (float) rotation.getY(),
+                    (float) rotation.getZ(),
+                    (float) rotation.getW(),
+                    (byte) 0 // Set instantly
+            );
+        }
+
         if (this.useVirtualCamera()) {
             if (this._fakeCameraMount == null) {
                 this._fakeCameraMount = new VirtualEntity(seat.getManager());
@@ -57,6 +75,11 @@ public class FirstPersonDefault {
     }
 
     public void makeHidden(Player viewer) {
+        if (TrainCarts.plugin.isEnabled()) {
+            // Cannot send plugin messages while the plugin is being disabled
+            TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(viewer);
+        }
+
         if (this.useVirtualCamera() && this._fakeCameraMount != null) {
             PlayerUtil.getVehicleMountController(viewer).unmount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
             this._fakeCameraMount.destroy(viewer);
@@ -71,10 +94,30 @@ public class FirstPersonDefault {
     }
 
     public void onMove(boolean absolute) {
+        if (this.useSmoothCoasters()) {
+            Quaternion rotation = seat.getTransform().getRotation();
+            TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
+                    _player,
+                    (float) rotation.getX(),
+                    (float) rotation.getY(),
+                    (float) rotation.getZ(),
+                    (float) rotation.getW(),
+                    (byte) 3 // TODO 5 for minecarts
+            );
+        }
+
         if (this._fakeCameraMount != null && this.useVirtualCamera()) {
             this._fakeCameraMount.updatePosition(seat.getTransform());
             this._fakeCameraMount.syncPosition(absolute);
         }
+    }
+
+    public boolean useSmoothCoasters() {
+        return _useSmoothCoasters;
+    }
+
+    public void setUseSmoothCoasters(boolean use) {
+        this._useSmoothCoasters = use;
     }
 
     /**

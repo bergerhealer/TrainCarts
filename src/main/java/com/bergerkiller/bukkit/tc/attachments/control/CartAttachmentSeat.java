@@ -352,11 +352,19 @@ public class CartAttachmentSeat extends CartAttachment {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
         boolean new_virtualCam;
 
+        boolean new_smoothCoasters;
+
         // Whether a fake entity is used to represent this seated entity
         boolean new_isFake;
 
         // Whether the (fake) entity is displayed upside-down
         boolean new_isUpsideDown;
+
+        if (this.isRotationLocked() && this.seated.isPlayer()) {
+            new_smoothCoasters = TrainCarts.plugin.getSmoothCoastersAPI().isEnabled((Player) this.seated.getEntity());
+        } else {
+            new_smoothCoasters = false;
+        }
 
         if (this.seated.isEmpty()) {
             new_virtualCam = false;
@@ -369,6 +377,7 @@ public class CartAttachmentSeat extends CartAttachment {
             new_isUpsideDown = false;
 
             new_virtualCam = TCConfig.enableSeatThirdPersonView &&
+                             !new_smoothCoasters &&
                              this.seated.isPlayer() &&
                              true; //Math.abs(selfPitch) > 70.0;
 
@@ -389,6 +398,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
             // Compute new first-person state of whether the player sees himself from third person using a fake camera
             new_virtualCam = TCConfig.enableSeatThirdPersonView &&
+                             !new_smoothCoasters &&
                              this.seated.isPlayer() &&
                              Math.abs(selfPitch) > 70.0;
 
@@ -402,20 +412,30 @@ public class CartAttachmentSeat extends CartAttachment {
             this.seated.setFake(new_isFake);
             this.seated.setUpsideDown(new_isUpsideDown);
             this.firstPerson.setUseVirtualCamera(new_virtualCam);
+            this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             return;
         }
 
         if (new_isFake != this.seated.isFake() || (this.seated.isPlayer() && new_isUpsideDown != this.seated.isUpsideDown())) {
             // Fake entity changed, this requires the entity to be respawned for everyone
             // When upside-down changes for a Player seated entity, also perform a respawn
+            Entity entity = this.seated.getEntity();
             Collection<Player> viewers = this.getViewersSynced();
             for (Player viewer : viewers) {
+                if (new_smoothCoasters && viewer == entity) {
+                    // Don't respawn firstPerson if using SmoothCoasters
+                    continue;
+                }
                 this.makeHidden(viewer);
             }
             this.seated.setFake(new_isFake);
             this.seated.setUpsideDown(new_isUpsideDown);
             this.firstPerson.setUseVirtualCamera(new_virtualCam);
+            this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             for (Player viewer : viewers) {
+                if (new_smoothCoasters && viewer == entity) {
+                    continue;
+                }
                 this.makeVisibleImpl(viewer);
             }
         } else {
@@ -437,10 +457,12 @@ public class CartAttachmentSeat extends CartAttachment {
                     Player viewer = (Player) this.seated.getEntity();
                     this.makeHidden(viewer);
                     this.firstPerson.setUseVirtualCamera(new_virtualCam);
+                    this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                     this.makeVisibleImpl(viewer);
                 } else {
                     // Silent
                     this.firstPerson.setUseVirtualCamera(new_virtualCam);
+                    this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                 }
             }
         }
