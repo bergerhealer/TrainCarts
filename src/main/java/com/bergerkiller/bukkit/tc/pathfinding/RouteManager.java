@@ -36,7 +36,7 @@ public class RouteManager {
      * @param autosave Whether this is an autosave, or forced save
      */
     public void save(boolean autosave) {
-        if (!this.changed || !autosave) {
+        if (this.changed || !autosave) {
             this.changed = false;
             this.config.save();
         }
