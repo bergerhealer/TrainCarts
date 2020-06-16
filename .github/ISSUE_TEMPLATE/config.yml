@@ -1,0 +1,8 @@
+blank_issue_templates: true
+contact_links:
+- name: Spigot Page
+  url: https://www.spigotmc.org/resources/traincarts.39592/
+  about: You can find the latest release on SpigotMC.
+- name: Dev Builds
+  url: https://ci.mg-dev.eu/job/TrainCarts/
+  about: You can find the latest development Builds on our Jenkins page (WARNING! Dev Builds might be unstable!)
