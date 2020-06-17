@@ -10,8 +10,8 @@ assignees: ''
 ## Info
 Please provide the following information:
 
-- BkCommonLib Version (`/version BkCommonLib`): 
-- TrainCarts Version (`/version Train_Carts`): 
+- BkCommonLib Version (`/train version`): 
+- TrainCarts Version (`/train version`): 
 - Server Type and Version (`/version`):
 
 ----
