@@ -546,6 +546,10 @@ public class GlobalCommands {
             } else {
                 player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
                 player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
+                player.sendMessage(ChatColor.RED + "/train debug destination [destination] - debug destination pathfinding");
+                player.sendMessage(ChatColor.RED + "/train debug mutex - display mutex zones near you");
+                player.sendMessage(ChatColor.RED + "/train debug railtracker [boolean] - debug tracked rail positions");
+                player.sendMessage(ChatColor.RED + "/train debug wheeltracker [boolean] - debug tracked wheel positions");
             }
             return true;
         }
