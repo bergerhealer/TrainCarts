@@ -4,11 +4,9 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
-import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
-import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
@@ -36,7 +34,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
@@ -211,16 +208,6 @@ public class TCListener implements Listener {
     public void onEntityAdd(EntityAddEvent event) {
         if (MinecartMemberStore.canConvertAutomatically(event.getEntity())) {
             MinecartMemberStore.convert((Minecart) event.getEntity());
-        } else if (event.getEntity() instanceof Minecart) {
-            // Temporary server bugfix: correct null dimension field for non-tc minecart entities
-            // These occurred due to an old bug in BKCommonLib
-            // This 'fix' can be removed after some time, when the issue is resolved for most people
-            if (CommonCapabilities.HAS_DIMENSION_MANAGER) {
-                Object raw_dim = EntityHandle.T.dimension.raw.get(HandleConversion.toEntityHandle(event.getEntity()));
-                if (raw_dim == null) {
-                    EntityHandle.fromBukkit(event.getEntity()).setDimension(WorldUtil.getDimension(event.getEntity().getWorld()));
-                }
-            }
         }
     }
 

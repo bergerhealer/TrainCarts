@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
@@ -349,7 +349,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         }
 
         // Play a neat sliding sound
-        display.playSound(CommonSounds.PISTON_EXTEND);
+        display.playSound(SoundEffect.PISTON_EXTEND);
 
         // After being activated, add a bunch of buttons that can be pressed
         // Each button will open its own context menu to edit things
@@ -390,7 +390,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         this.clearWidgets();
 
         // Play a neat sliding sound
-        display.playSound(CommonSounds.PISTON_CONTRACT);
+        display.playSound(SoundEffect.PISTON_CONTRACT);
     }
 
     @Override

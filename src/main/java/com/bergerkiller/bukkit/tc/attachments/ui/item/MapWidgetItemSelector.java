@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
@@ -36,15 +36,15 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
             }
 
             if (event.getKey() == Key.UP && this.getSelectedIndex() > 0) {
-                display.playSound(CommonSounds.PISTON_EXTEND);
+                display.playSound(SoundEffect.PISTON_EXTEND);
                 this.setSelectedIndex(this.getSelectedIndex()-1);
                 this.getSelectedTab().activate();
             } else if (event.getKey() == Key.DOWN && this.getSelectedIndex() < (this.getTabCount()-1)) {
-                display.playSound(CommonSounds.PISTON_EXTEND);
+                display.playSound(SoundEffect.PISTON_EXTEND);
                 this.setSelectedIndex(this.getSelectedIndex()+1);
                 this.getSelectedTab().activate();
             } else if (event.getKey() == Key.DOWN) {
-                display.playSound(CommonSounds.PISTON_CONTRACT);
+                display.playSound(SoundEffect.PISTON_CONTRACT);
                 this.setSelectedIndex(0); // loop around first
                 setGridOpened(true);
             } else {
@@ -283,7 +283,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
     public boolean acceptItem(ItemStack item) {
         setGridOpened(false);
         this.variantList.setItem(item);
-        display.playSound(CommonSounds.CLICK_WOOD);
+        display.playSound(SoundEffect.CLICK_WOOD);
         return true;
     }
 

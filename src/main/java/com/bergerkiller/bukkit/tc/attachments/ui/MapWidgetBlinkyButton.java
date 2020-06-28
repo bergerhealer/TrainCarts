@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
@@ -117,7 +117,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
             } else {
                 if (!this.isRepeatClicking) {
                     this.isRepeatClicking = true;
-                    display.playSound(CommonSounds.CLICK);
+                    display.playSound(SoundEffect.CLICK);
                     this.onClickHold();
                 }
                 this.onRepeatClick();
@@ -132,14 +132,14 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         super.onKeyReleased(event);
         if (event.getKey() == MapPlayerInput.Key.ENTER && this.isRepeatClicking) {
             this.isRepeatClicking = false;
-            display.playSound(CommonSounds.CLICK_WOOD);
+            display.playSound(SoundEffect.CLICK_WOOD);
             this.onClickHoldRelease();
         }
     }
 
     @Override
     public void onActivate() {
-        display.playSound(CommonSounds.EXTINGUISH);
+        display.playSound(SoundEffect.EXTINGUISH);
         this.onClick();
     }
 
@@ -150,7 +150,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         this.addWidget(this.tooltip);
 
         // Click navigation sounds
-        display.playSound(CommonSounds.CLICK_WOOD);
+        display.playSound(SoundEffect.CLICK_WOOD);
     }
 
     @Override

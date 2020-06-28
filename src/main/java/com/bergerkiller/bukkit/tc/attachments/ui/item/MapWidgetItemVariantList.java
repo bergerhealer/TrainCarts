@@ -19,7 +19,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -291,7 +291,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         this.variantIndex = newVariantIndex;
         this.invalidate();
         this.fireItemChangeEvent();
-        this.display.playSound(CommonSounds.CLICK);
+        this.display.playSound(SoundEffect.CLICK);
     }
 
     @Override

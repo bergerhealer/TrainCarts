@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 
@@ -121,7 +121,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             // Complete changing order of widget
             if (event.getKey() == MapPlayerInput.Key.ENTER || event.getKey() == MapPlayerInput.Key.BACK) {
                 selected.setChangingOrder(false);
-                display.playSound(CommonSounds.CLICK);
+                display.playSound(SoundEffect.CLICK);
                 return;
             }
 

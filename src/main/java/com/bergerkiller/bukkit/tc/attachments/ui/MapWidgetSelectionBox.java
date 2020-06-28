@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapFont.Alignment;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 
 /**
  * A map widget showing a selection of text items between which can be selected
@@ -148,7 +148,7 @@ public class MapWidgetSelectionBox extends MapWidget {
                 this.selectedIndex--;
                 this.invalidate();
                 this.onSelectedItemChanged();
-                this.display.playSound(CommonSounds.CLICK);
+                this.display.playSound(SoundEffect.CLICK);
             }
         } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
             nav_right.sendFocus();
@@ -156,7 +156,7 @@ public class MapWidgetSelectionBox extends MapWidget {
                 this.selectedIndex++;
                 this.invalidate();
                 this.onSelectedItemChanged();
-                this.display.playSound(CommonSounds.CLICK);
+                this.display.playSound(SoundEffect.CLICK);
             }
         } else {
             super.onKeyPressed(event);

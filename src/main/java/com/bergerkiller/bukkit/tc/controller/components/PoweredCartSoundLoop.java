@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.collections.InterpolatedMap;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 
 /**
@@ -37,8 +37,8 @@ public class PoweredCartSoundLoop extends SoundLoop<MinecartMemberFurnace> {
         if (this.swooshSoundCounter >= interval) {
             this.swooshSoundCounter = 0;
 
-            play(CommonSounds.WALK_CLOTH, 0.6f + 0.2f * random.nextFloat(), 0.2f);
-            play(CommonSounds.EXTINGUISH, 1.5f + 0.3f * random.nextFloat(), 0.05f + 0.1f * random.nextFloat());
+            play(SoundEffect.WALK_CLOTH, 0.6f + 0.2f * random.nextFloat(), 0.2f);
+            play(SoundEffect.EXTINGUISH, 1.5f + 0.3f * random.nextFloat(), 0.05f + 0.1f * random.nextFloat());
         }
     }
 }

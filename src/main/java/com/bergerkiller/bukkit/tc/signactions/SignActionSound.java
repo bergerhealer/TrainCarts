@@ -1,9 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.resources.ResourceKey;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.ResourceKey;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -20,9 +21,9 @@ public class SignActionSound extends SignAction {
         return info.isType("sound", "msound");
     }
 
-    public ResourceKey getSound(SignActionEvent info) {
+    public ResourceKey<SoundEffect> getSound(SignActionEvent info) {
         try {
-            return ResourceKey.fromPath(info.getLine(2) + info.getLine(3));
+            return SoundEffect.fromName(info.getLine(2) + info.getLine(3));
         } catch (Throwable t) {
             return null;
         }
@@ -33,7 +34,7 @@ public class SignActionSound extends SignAction {
         boolean move = info.isType("msound");
         if (!info.isPowered()) return;
 
-        ResourceKey sound = getSound(info);
+        ResourceKey<SoundEffect> sound = getSound(info);
         if (sound == null) {
             return;
         }

@@ -1,11 +1,11 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.collections.StringMap;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.ResourceKey;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -185,9 +185,9 @@ public class Effect {
     private static void playSound(Location location, Player player, String name, float volume, float pitch) {
         try {
             if (player != null) {
-                PlayerUtil.playSound(player, location, ResourceKey.fromPath(name), volume, pitch);
+                PlayerUtil.playSound(player, location, SoundEffect.fromName(name), volume, pitch);
             } else {
-                WorldUtil.playSound(location, ResourceKey.fromPath(name), volume, pitch);
+                WorldUtil.playSound(location, SoundEffect.fromName(name), volume, pitch);
             }
         } catch(Throwable ignored) {}
     }

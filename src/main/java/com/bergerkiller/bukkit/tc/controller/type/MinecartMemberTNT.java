@@ -52,7 +52,7 @@ public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
             entity.explode();
         }
         // When hitting into a block with force - detonate
-        if (entity.isMovementImpaired() && entity.isMovingFast()) {
+        if (entity.isMovementBlocked() && entity.isMovingFast()) {
             entity.explode();
         }
     }

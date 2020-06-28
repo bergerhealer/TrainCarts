@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 
@@ -180,7 +180,7 @@ public abstract class CustomModelDataSelector extends MapWidget implements SetVa
         this.addWidget(this.tooltip);
 
         // Click navigation sounds
-        display.playSound(CommonSounds.CLICK_WOOD);
+        display.playSound(SoundEffect.CLICK_WOOD);
     }
 
     @Override

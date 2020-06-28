@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -62,7 +62,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     attachment.getConfig().set("lockRotation", this.getSelectedOption());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
-                    display.playSound(CommonSounds.CLICK);
+                    display.playSound(SoundEffect.CLICK);
                 }
             }).addOptions(b -> "Lock Rotation: " + (b ? "ON" : "OFF"), Boolean.TRUE, Boolean.FALSE)
               .setSelectedOption(attachment.getConfig().get("lockRotation", false))
@@ -74,7 +74,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     attachment.getConfig().set("lockView", this.getSelectedOption());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
-                    display.playSound(CommonSounds.CLICK);
+                    display.playSound(SoundEffect.CLICK);
                 }
             }).addOptions(o -> "Lock View: " + o.name(), ViewLockMode.class)
               .setSelectedOption(attachment.getConfig().get("lockView", ViewLockMode.OFF))
@@ -86,7 +86,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     attachment.getConfig().set("displayMode", this.getSelectedOption());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
-                    display.playSound(CommonSounds.CLICK);
+                    display.playSound(SoundEffect.CLICK);
                 }
             }).addOptions(o -> "Display: " + o.name(), DisplayMode.class)
               .setSelectedOption(attachment.getConfig().get("displayMode", DisplayMode.DEFAULT))

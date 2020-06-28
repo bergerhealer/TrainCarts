@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
@@ -84,7 +84,7 @@ public class CartAttachmentLight extends CartAttachment {
                     attachment.getConfig().set("lightType", this.skylight ? "SKY" : "BLOCK");
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
-                    display.playSound(CommonSounds.CLICK);
+                    display.playSound(SoundEffect.CLICK);
                 }
             }).setBounds(7, 10, 100-14, 16);
 

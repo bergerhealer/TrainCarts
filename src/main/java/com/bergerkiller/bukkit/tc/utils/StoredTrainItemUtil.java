@@ -19,7 +19,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.resources.CommonSounds;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -118,11 +118,11 @@ public class StoredTrainItemUtil {
     }
 
     public static void playSoundStore(Player player) {
-        PlayerUtil.playSound(player, CommonSounds.PISTON_CONTRACT, 0.4f, 1.5f);
+        PlayerUtil.playSound(player, SoundEffect.PISTON_CONTRACT, 0.4f, 1.5f);
     }
 
     public static void playSoundSpawn(Player player) {
-        PlayerUtil.playSound(player, CommonSounds.PISTON_EXTEND, 0.4f, 1.5f);
+        PlayerUtil.playSound(player, SoundEffect.PISTON_EXTEND, 0.4f, 1.5f);
     }
 
     public static void store(ItemStack item, String spawnPattern) {
