@@ -617,7 +617,7 @@ public class TCListener implements Listener {
             // If the block below is air or rail, and above is a solid
             Block below = placedBlock.getRelative(BlockFace.DOWN);
             Block above = placedBlock.getRelative(BlockFace.UP);
-            if ((Util.ISAIR.get(below) || Util.ISVERTRAIL.get(below)) && BlockUtil.isSuffocating(above)) {
+            if ((MaterialUtil.ISAIR.get(below) || Util.ISVERTRAIL.get(below)) && BlockUtil.isSuffocating(above)) {
 
                 // Custom placement of an upside-down normal rail
                 BlockPlaceEvent placeEvent = new BlockPlaceEvent(placedBlock, placedBlock.getState(),
