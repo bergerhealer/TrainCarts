@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
+import com.bergerkiller.bukkit.common.wrappers.InteractionResult;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
@@ -62,9 +63,9 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public boolean onInteractBy(HumanEntity human, HumanHand hand) {
+    public InteractionResult onInteractBy(HumanEntity human, HumanHand hand) {
         if (!this.isInteractable()) {
-            return true;
+            return InteractionResult.PASS;
         }
 
         ItemStack itemstack = HumanHand.getHeldItem(human, hand);
@@ -79,7 +80,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         Vector eyeFwd = MathUtil.getDirection(humanEye.getYaw(), humanEye.getPitch());
         this.isPushingForwards = (this.getOrientationForward().dot(eyeFwd) >= 0.0);
         this.updatePushXZ();
-        return true;
+        return InteractionResult.CONSUME;
     }
 
     public void addFuelTicks(int fuelTicks) {
