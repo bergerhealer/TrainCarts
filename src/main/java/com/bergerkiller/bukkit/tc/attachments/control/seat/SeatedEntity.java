@@ -7,7 +7,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -188,7 +187,7 @@ public class SeatedEntity {
             this.fakeMount.spawn(viewer, seat.calcMotion());
 
             // Also send zero-max-health if the viewer is the one sitting in the entity
-            if (this._entity == viewer && Common.hasCapability("Common:PacketPlayOutUpdateAttributes:createZeroMaxHealth")) {
+            if (this._entity == viewer) {
                 PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
             }
         }
