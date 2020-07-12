@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
 import com.bergerkiller.generated.net.minecraft.server.EnumHandHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayInUseEntityHandle;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -41,6 +42,7 @@ public class TCPacketListener implements PacketListener {
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
         CommonPacket packet = event.getPacket();
+        Player player = event.getPlayer();
 
         // Note: sometimes an unmount packet is sent before the player is actually inside a vehicle.
         // However, this could also be because of a virtual invisible entity being controlled by the player.
@@ -48,7 +50,6 @@ public class TCPacketListener implements PacketListener {
         // event. This is a compromise so that other plugins can still freely eject the player, without
         // the player exit property blocking that behavior.
         if (event.getType() == PacketType.IN_ENTITY_ACTION) {
-            Player player = event.getPlayer();
             String action = ((Enum<?>) packet.read(PacketType.IN_ENTITY_ACTION.actionId)).name();
             if (action.equals("START_SNEAKING") || action.equals("PRESS_SHIFT_KEY")) {
                 // Player wants to exit, if inside a vehicle
@@ -62,8 +63,6 @@ public class TCPacketListener implements PacketListener {
         }
         if (event.getType() == PacketType.IN_STEER_VEHICLE && packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
             // Handle vehicle exit cancelling
-            Player player = event.getPlayer();
-
             if (player.getVehicle() == null) {
                 TCListener.markForUnmounting(player);
             } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
@@ -72,8 +71,20 @@ public class TCPacketListener implements PacketListener {
         }
 
         if (event.getType() == PacketType.IN_USE_ENTITY) {
+            PacketPlayInUseEntityHandle packet_use = PacketPlayInUseEntityHandle.createHandle(event.getPacket().getHandle());
+
+            // Since 1.16 this packet has a sneaking property
+            // If we're inside a vehicle, disable it
+            if (packet_use.isSneaking()) {
+                if (player.getVehicle() == null) {
+                    TCListener.markForUnmounting(player);
+                } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
+                    packet_use.setSneaking(false);
+                }
+            }
+
             // When a player interacts with a virtual attachment, the main entity should receive the interaction
-            int entityId = packet.read(PacketType.IN_USE_ENTITY.clickedEntityId);
+            int entityId = packet_use.getUsedEntityId();
             if (WorldUtil.getEntityById(event.getPlayer().getWorld(), entityId) != null) {
                 return; // Is a valid Entity. Ignore it.
             }
@@ -106,11 +117,11 @@ public class TCPacketListener implements PacketListener {
                         }
 
                         // Rewrite the packet
-                        UseAction useAction = packet.read(PacketType.IN_USE_ENTITY.useAction);
-                        packet.write(PacketType.IN_USE_ENTITY.clickedEntityId, member.getEntity().getEntityId());
+                        UseAction useAction = packet_use.getAction();
+                        packet_use.setUsedEntityId(member.getEntity().getEntityId());
                         if (useAction == UseAction.INTERACT_AT) {
                             useAction = UseAction.INTERACT;
-                            packet.write(PacketType.IN_USE_ENTITY.useAction, useAction);
+                            packet_use.setAction(useAction);
                         }
 
                         // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
@@ -122,7 +133,7 @@ public class TCPacketListener implements PacketListener {
                         // Cancel the interaction and handle this ourselves.
                         if (useAction == UseAction.INTERACT) {
                             // Get hand used for interaction
-                            HumanHand hand = PacketType.IN_USE_ENTITY.getHand(packet, event.getPlayer());
+                            HumanHand hand = packet_use.getHand(event.getPlayer());
                             fakeInteraction(member, event.getPlayer(), hand);
                             event.setCancelled(true);
                         } else if (useAction == UseAction.ATTACK) {
