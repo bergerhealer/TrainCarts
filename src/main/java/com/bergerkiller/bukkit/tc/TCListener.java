@@ -347,7 +347,8 @@ public class TCListener implements Listener {
 
     /*
      * We must handle vehicle exit for when an unmount packet is received before
-     * the player is actually seated inside a vehicle.
+     * the player is actually seated inside a vehicle. Player exit is normally
+     * handled inside the packet listener instead of here.
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onVehicleExitCheck(VehicleExitEvent event) {

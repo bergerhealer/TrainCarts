@@ -50,9 +50,15 @@ public class TCPacketListener implements PacketListener {
         // the player exit property blocking that behavior.
         if (event.getType() == PacketType.IN_ENTITY_ACTION) {
             Player player = event.getPlayer();
-            String action = packet.read(PacketType.IN_ENTITY_ACTION.actionId).toString();
-            if (player.getVehicle() == null && action.equals("START_SNEAKING")) {
-                TCListener.markForUnmounting(player);
+            String action = ((Enum<?>) packet.read(PacketType.IN_ENTITY_ACTION.actionId)).name();
+            if (action.equals("START_SNEAKING") || action.equals("PRESS_SHIFT_KEY")) {
+                // Player wants to exit, if inside a vehicle
+                if (player.getVehicle() == null) {
+                    TCListener.markForUnmounting(player);
+                } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
+                    // Cancel it!
+                    event.setCancelled(true);
+                }
             }
         }
         if (event.getType() == PacketType.IN_STEER_VEHICLE && packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
