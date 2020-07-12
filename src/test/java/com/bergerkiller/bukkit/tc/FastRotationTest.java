@@ -18,7 +18,7 @@ public class FastRotationTest {
     @Test
     public void getFastRotationYawTest() {
         Random r = new Random();
-        Quaternion[] rotations = new Quaternion[100000];
+        Quaternion[] rotations = new Quaternion[10000];
         double[] yaw_a = new double[rotations.length];
         double[] yaw_b = new double[rotations.length];
         for (int i = 0; i < rotations.length; i++) {
