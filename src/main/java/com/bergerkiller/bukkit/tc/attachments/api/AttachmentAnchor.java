@@ -77,6 +77,26 @@ public abstract class AttachmentAnchor {
     });
 
     /**
+     * Moves the seat down so the eyes of the passenger are at its location.
+     */
+    public static AttachmentAnchor SEAT_EYES = register(new AttachmentAnchor("eyes") {
+        private final Matrix4x4 temp = new Matrix4x4();
+
+        @Override
+        public boolean supports(Attachment attachment) {
+            return attachment instanceof CartAttachmentSeat;
+        }
+
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
+            temp.setIdentity();
+            temp.translate(0, -1, 0);
+            temp.multiply(transform);
+            transform.set(temp);
+        }
+    });
+
+    /**
      * Marker attachment anchor for seat attachments to indicate the position of the seat should be
      * set to the parent attachment's default passenger position. This will attach this attachment
      * to the parent attachment, if possible, or use a 0/0/0 transform otherwise.
