@@ -94,6 +94,7 @@ public class TCConfig {
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
+    public static boolean upsideDownSupportedByAll = false;
     public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
     public static int tickUpdateNow = 0; // forces update ticks
     public static boolean tickUpdateEnabled = true; // whether train tick updates are enabled
@@ -509,6 +510,12 @@ public class TCConfig {
         playHissWhenCartRemoved = soundsConfig.get("playHissWhenCartRemoved", true);
         config.setHeader("hissWhenLinked", "Enable/disable hiss sound played when two carts connect together");
         playHissWhenLinked = soundsConfig.get("hissWhenLinked", true);
+
+        // Whether only solid blocks support upside-down rails, or any type of block with collision
+        config.setHeader("upsideDownSupportedByAll", "\nWhether any block supporting things underneath can hold upside-down rails");
+        config.addHeader("upsideDownSupportedByAll", "If true, blocks like glass and barrier blocks can hold upside-down rails");
+        config.addHeader("upsideDownSupportedByAll", "If false, only fully-solid blocks can hold them");
+        upsideDownSupportedByAll = config.get("upsideDownSupportedByAll", true);
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

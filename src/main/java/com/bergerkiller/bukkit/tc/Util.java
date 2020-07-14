@@ -1393,4 +1393,23 @@ public class Util {
         return wp.state.railType() == rails.type() &&
                wp.state.railBlock().equals(rails.block());
     }
+
+    public static boolean isUpsideDownRailSupport(Block block, BlockData blockdata) {
+        // Shortcut for most common case
+        if (blockdata == BlockData.AIR) {
+            return false;
+        }
+
+        // Fully solid (suffocating) blocks are always supports
+        if (blockdata.isSuffocating(block)) {
+            return true;
+        }
+
+        // Configurable: do we allow all blocks with a hitbox to support upside-down rails?
+        if (TCConfig.upsideDownSupportedByAll && blockdata.canSupportOnFace(block, BlockFace.DOWN)) {
+            return true;
+        }
+
+        return false;
+    }
 }

@@ -143,7 +143,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         // isSuffocating() should be a fast call, but it goes through some layers, so why not.
         Block blockAbove = railsBlock.getRelative(BlockFace.UP);
         BlockData blockDataAbove = WorldUtil.getBlockData(blockAbove);
-        if (blockDataAbove == BlockData.AIR || !blockDataAbove.isSuffocating(blockAbove)) {
+        if (!Util.isUpsideDownRailSupport(blockAbove, blockDataAbove)) {
             return false;
         }
 
