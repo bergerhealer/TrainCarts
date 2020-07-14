@@ -1394,7 +1394,9 @@ public class Util {
                wp.state.railBlock().equals(rails.block());
     }
 
-    public static boolean isUpsideDownRailSupport(Block block, BlockData blockdata) {
+    public static boolean isUpsideDownRailSupport(Block block) {
+        BlockData blockdata = WorldUtil.getBlockData(block);
+
         // Shortcut for most common case
         if (blockdata == BlockData.AIR) {
             return false;
