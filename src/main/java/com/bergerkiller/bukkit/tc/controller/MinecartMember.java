@@ -131,6 +131,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Location postMovePosition = null;
     private Vector lastRailRefreshPosition = null;
     private Vector lastRailRefreshDirection = null;
+    private List<Entity> enterForced = new ArrayList<Entity>(1);
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         // Can the minecart reach the other?
@@ -1624,6 +1625,32 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
             TCListener.exemptFromEjectOffset.removeAll(oldPassengers);
         }
+    }
+
+    /**
+     * Puts a passenger inside a seat of this Minecart Member, ignoring enter rules or permissions.
+     * 
+     * @param passenger
+     * @return True if the passenger was added
+     */
+    public boolean addPassengerForced(Entity passenger) {
+        try {
+            this.enterForced.add(passenger);
+            return this.entity.addPassenger(passenger);
+        } finally {
+            this.enterForced.remove(passenger);
+        }
+    }
+
+    /**
+     * Gets whether a passenger being added to this Minecart was forced.
+     * Internal use only.
+     * 
+     * @param entity
+     * @return True if forced
+     */
+    public boolean isPassengerEnterForced(Entity entity) {
+        return this.enterForced.contains(entity);
     }
 
     public boolean connect(MinecartMember<?> with) {

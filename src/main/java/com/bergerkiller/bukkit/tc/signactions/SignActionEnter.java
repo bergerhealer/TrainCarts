@@ -96,7 +96,7 @@ public class SignActionEnter extends SignAction {
                 if (canEnter(entity, enterPlayers, enterMobs, enterMisc)) {
                     // Look for an Empty minecart to put him in
                     for (MinecartMember<?> member : members) {
-                        if (member.getAvailableSeatCount() > 0 && member.getEntity().addPassenger(entity)) {
+                        if (member.getAvailableSeatCount() > 0 && member.addPassengerForced(entity)) {
                             break;
                         }
                     }
@@ -130,7 +130,7 @@ public class SignActionEnter extends SignAction {
                     // Try to enter
                     if (selectedEntity != null) {
                         nearby.remove(selectedEntity);
-                        member.getEntity().addPassenger(selectedEntity);
+                        member.addPassengerForced(selectedEntity);
                     } else {
                         break;
                     }

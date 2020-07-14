@@ -270,13 +270,15 @@ public class TCListener implements Listener {
 
         if (event.getEntered() instanceof Player) {
             Player player = (Player) event.getEntered();
-            if (!prop.getPlayersEnter()) {
-                event.setCancelled(true);
-                return;
-            }
-            if (!prop.isPublic() && !prop.hasOwnership(player)) {
-                event.setCancelled(true);
-                return;
+            if (!member.isPassengerEnterForced(event.getEntered())) {
+                if (!prop.getPlayersEnter()) {
+                    event.setCancelled(true);
+                    return;
+                }
+                if (!prop.isPublic() && !prop.hasOwnership(player)) {
+                    event.setCancelled(true);
+                    return;
+                }
             }
             if (!TicketStore.handleTickets(player, member.getGroup().getProperties())) {
                 event.setCancelled(true);

@@ -545,7 +545,7 @@ public class TrainCommands {
                 }
                 if (member != null) {
                     if (p.teleport(member.getEntity().getLocation())) {
-                        member.getEntity().addPassenger(p);
+                        member.addPassengerForced(p);
                         p.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + prop.getTrainName() + "'!");
                     } else {
                         p.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
