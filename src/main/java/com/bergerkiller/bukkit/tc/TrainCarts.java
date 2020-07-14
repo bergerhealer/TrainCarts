@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
-import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -243,9 +242,6 @@ public class TrainCarts extends PluginBase {
     public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
         try {
             MinecartMember<?> newMinecart = MinecartMemberStore.getFromEntity(newVehicle);
-            if (newMinecart != null) {
-                CartPropertiesStore.setEditing(player, newMinecart.getProperties());
-            }
 
             // Allow exiting the current minecart
             MinecartMember<?> entered = MinecartMemberStore.getFromEntity(player.getVehicle());

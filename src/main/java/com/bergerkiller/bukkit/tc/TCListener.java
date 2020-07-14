@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -281,6 +282,7 @@ public class TCListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
+            CartPropertiesStore.setEditing(player, member.getProperties());
             prop.showEnterMessage(player);
         } else if (EntityUtil.isMob(event.getEntered())) {
             // This does not appear to be needed (anymore) to stop mobs from going into the Minecarts
