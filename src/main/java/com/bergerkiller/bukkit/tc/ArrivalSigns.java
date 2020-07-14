@@ -133,7 +133,7 @@ public class ArrivalSigns {
                     }
                     for (TimeCalculation calc : timeCalculations.values()) {
                         if (calc.member != null) {
-                            if (calc.member.getEntity().isDead() || !calc.member.getEntity().isMoving()) {
+                            if (calc.member.isUnloaded() || calc.member.getEntity().isDead() || !calc.member.getEntity().isMoving()) {
                                 calc.setTime();
                                 timeCalculations.remove(calc.signblock);
                                 return;
