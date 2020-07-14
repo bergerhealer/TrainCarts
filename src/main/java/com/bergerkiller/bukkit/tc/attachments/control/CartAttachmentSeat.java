@@ -17,10 +17,8 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
-import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
@@ -28,6 +26,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
@@ -104,15 +104,15 @@ public class CartAttachmentSeat extends CartAttachment {
 
     // Houses the logic for synchronizing this seat to players viewing the entity in first person
     // That is, the viewer is the one inside this seat
-    private FirstPersonDefault firstPerson = new FirstPersonDefault(this);
+    public FirstPersonDefault firstPerson = new FirstPersonDefault(this);
     // Houses the logic for synchronizing this seat to players viewing the entity in third person
     // That is, the viewer is not the one inside this seat
-    private ThirdPersonDefault thirdPerson = new ThirdPersonDefault(this);
+    public ThirdPersonDefault thirdPerson = new ThirdPersonDefault(this);
 
     /**
      * Information about the entity that is seated inside this seat
      */
-    public final SeatedEntity seated = new SeatedEntity();
+    public SeatedEntity seated = null;
 
     // During makeVisible(viewer) this is set to that viewer, to ignore it when refreshing
     private Player _makeVisibleCurrent = null;
@@ -148,6 +148,17 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
+        DisplayMode displayMode = this.getConfig().get("displayMode", DisplayMode.DEFAULT);
+        switch (displayMode) {
+        case ELYTRA:
+        case ELYTRA_SIT:
+            this.seated = new SeatedEntityElytra();
+            break;
+        default:
+            this.seated = new SeatedEntityNormal();
+            break;
+        }
+
         this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
         this._viewLockMode = this.getConfig().get("lockView", ViewLockMode.OFF);
         this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
@@ -167,14 +178,14 @@ public class CartAttachmentSeat extends CartAttachment {
     public void makeVisible(Player viewer) {
         try {
             this._makeVisibleCurrent = viewer;
-            updateMode(false);
+            this.seated.updateMode(this, false);
             makeVisibleImpl(viewer);
         } finally {
             this._makeVisibleCurrent = null;
         }
     }
 
-    private void makeVisibleImpl(Player viewer) {
+    public void makeVisibleImpl(Player viewer) {
         if (seated.isEmpty()) {
             return;
         }
@@ -273,7 +284,7 @@ public class CartAttachmentSeat extends CartAttachment {
         this.seated.setEntity(entity);
 
         // Initialize mode with this new Entity
-        this.updateMode(true);
+        this.seated.updateMode(this, true);
 
         // Re-seat new entity
         if (!this.seated.isEmpty()) {
@@ -287,7 +298,7 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onTick() {
         // Only needed when there is a passenger
-        this.updateMode(false);
+        this.seated.updateMode(this, false);
 
         // Move player view relatively
         if (this._viewLockMode == ViewLockMode.MOVE && this.seated.isPlayer()) {
@@ -325,156 +336,6 @@ public class CartAttachmentSeat extends CartAttachment {
                 this._playerYawRemainder = pyr.getY();
             }
         }
-    }
-
-    /*
-     * Copied from BKCommonLib 1.15.2 Quaternion getPitch()
-     * Once we depend on 1.15.2 or later, this can be removed and replaced with transform.getRotationPitch()
-     */
-    private static double getQuaternionPitch(double x, double y, double z, double w) {
-        final double test = 2.0 * (w * x - y * z);
-        if (Math.abs(test) < (1.0 - 1E-15)) {
-            double pitch = Math.asin(test);
-            double roll_x = 0.5 - (x * x + z * z);
-            if (roll_x <= 0.0 && (Math.abs((w * z + x * y)) > roll_x)) {
-                pitch = -pitch;
-                pitch += (pitch < 0.0) ? Math.PI : -Math.PI;
-            }
-            return Math.toDegrees(pitch);
-        } else if (test < 0.0) {
-            return -90.0;
-        } else {
-            return 90.0;
-        }
-    }
-
-    private void updateMode(boolean silent) {
-        // Compute new first-person state of whether the player sees himself from third person using a fake camera
-        boolean new_virtualCam;
-
-        boolean new_smoothCoasters;
-
-        // Whether a fake entity is used to represent this seated entity
-        boolean new_isFake;
-
-        // Whether the (fake) entity is displayed upside-down
-        boolean new_isUpsideDown;
-
-        if (this.isRotationLocked() && this.seated.isPlayer()) {
-            new_smoothCoasters = TrainCarts.plugin.getSmoothCoastersAPI().isEnabled((Player) this.seated.getEntity());
-        } else {
-            new_smoothCoasters = false;
-        }
-
-        if (this.seated.isEmpty()) {
-            new_virtualCam = false;
-            new_isFake = false;
-            new_isUpsideDown = false;
-        } else if (this.seated.getDisplayMode() == DisplayMode.ELYTRA || this.seated.getDisplayMode() == DisplayMode.ELYTRA_SIT) {
-            Quaternion rotation = this.getTransform().getRotation();
-            double selfPitch = getQuaternionPitch(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
-
-            new_isUpsideDown = false;
-
-            new_virtualCam = TCConfig.enableSeatThirdPersonView &&
-                             !new_smoothCoasters &&
-                             this.seated.isPlayer() &&
-                             true; //Math.abs(selfPitch) > 70.0;
-
-            new_isFake = this.seated.isPlayer();
-        } else {
-            Quaternion rotation = this.getTransform().getRotation();
-            double selfPitch = getQuaternionPitch(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
-
-            // Compute new upside-down state
-            new_isUpsideDown = this.seated.isUpsideDown();
-            if (MathUtil.getAngleDifference(selfPitch, 180.0) < 89.0) {
-                // Beyond the point where the entity should be rendered upside-down
-                new_isUpsideDown = true;
-            } else if (MathUtil.getAngleDifference(selfPitch, 0.0) < 89.0) {
-                // Beyond the point where the entity should be rendered normally again
-                new_isUpsideDown = false;
-            }
-
-            // Compute new first-person state of whether the player sees himself from third person using a fake camera
-            new_virtualCam = TCConfig.enableSeatThirdPersonView &&
-                             !new_smoothCoasters &&
-                             this.seated.isPlayer() &&
-                             Math.abs(selfPitch) > 70.0;
-
-            // Whether a fake entity is used to represent this seated entity
-            new_isFake = this.seated.isPlayer() && (new_isUpsideDown || new_virtualCam);
-        }
-
-        // When we change whether a fake entity is displayed, hide for everyone and make visible again
-        if (silent) {
-            // Explicitly requested we do not send any packets
-            this.seated.setFake(new_isFake);
-            this.seated.setUpsideDown(new_isUpsideDown);
-            this.firstPerson.setUseVirtualCamera(new_virtualCam);
-            this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
-            return;
-        }
-
-        if (new_isFake != this.seated.isFake() || (this.seated.isPlayer() && new_isUpsideDown != this.seated.isUpsideDown())) {
-            // Fake entity changed, this requires the entity to be respawned for everyone
-            // When upside-down changes for a Player seated entity, also perform a respawn
-            Entity entity = this.seated.getEntity();
-            Collection<Player> viewers = this.getViewersSynced();
-            for (Player viewer : viewers) {
-                if (new_smoothCoasters && viewer == entity) {
-                    // Don't respawn firstPerson if using SmoothCoasters
-                    continue;
-                }
-                this.makeHidden(viewer);
-            }
-            this.seated.setFake(new_isFake);
-            this.seated.setUpsideDown(new_isUpsideDown);
-            this.firstPerson.setUseVirtualCamera(new_virtualCam);
-            this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
-            for (Player viewer : viewers) {
-                if (new_smoothCoasters && viewer == entity) {
-                    continue;
-                }
-                this.makeVisibleImpl(viewer);
-            }
-        } else {
-            if (new_isUpsideDown != this.seated.isUpsideDown()) {
-                // Upside-down changed, but the seated entity is not a Player
-                // All we have to do is refresh the Entity metadata
-                this.seated.setUpsideDown(new_isUpsideDown);
-                if (!this.seated.isEmpty()) {
-                    for (Player viewer : this.getViewersSynced()) {
-                        this.seated.refreshMetadata(viewer);
-                    }
-                }
-            }
-            if (new_virtualCam != this.firstPerson.useVirtualCamera()) {
-                // Only first-person view useVirtualCamera changed
-                Collection<Player> viewers = this.getViewersSynced();
-                if (viewers.contains(this.seated.getEntity())) {
-                    // Hide, change, and make visible again, just for the first-player-view player
-                    Player viewer = (Player) this.seated.getEntity();
-                    this.makeHidden(viewer);
-                    this.firstPerson.setUseVirtualCamera(new_virtualCam);
-                    this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
-                    this.makeVisibleImpl(viewer);
-                } else {
-                    // Silent
-                    this.firstPerson.setUseVirtualCamera(new_virtualCam);
-                    this.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
-                }
-            }
-        }
-    }
-
-    /**
-     * Gets whether the seated entity is displayed sitting upside-down
-     * 
-     * @return True if upside-down
-     */
-    public boolean isUpsideDown() {
-        return this.seated.isUpsideDown();
     }
 
     /**

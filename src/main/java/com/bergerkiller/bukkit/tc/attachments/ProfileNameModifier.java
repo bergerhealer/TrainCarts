@@ -63,7 +63,7 @@ public enum ProfileNameModifier {
      * @param player
      * @param entityId for the spawned player entity
      */
-    public void spawnPlayer(Player viewer, Player player, int entityId, SeatOrientation orientation, Consumer<DataWatcher> metaFunction) {
+    public void spawnPlayer(Player viewer, Player player, int entityId, boolean fakeFlipPitch, SeatOrientation orientation, Consumer<DataWatcher> metaFunction) {
         // Send list info before spawning
         this.sendListInfo(viewer, player);
 
@@ -83,6 +83,15 @@ public enum ProfileNameModifier {
             yaw = orientation.getPassengerYaw();
             pitch = orientation.getPassengerPitch();
             headRot = orientation.getPassengerHeadYaw();
+        }
+
+        // If fake pitch flip is used, then make the pitch the opposite, right at the edge
+        if (fakeFlipPitch) {
+            if (pitch >= 180.0f) {
+                pitch = 179.0f;
+            } else {
+                pitch = 181.0f;
+            }
         }
 
         // Spawn in a fake player with the same UUID

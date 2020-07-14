@@ -1,18 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import java.util.function.Consumer;
-
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.controller.VehicleMountController;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
-import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
@@ -28,12 +23,9 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttrib
  * version of the actual entity inside in order to apply additional transformations to it,
  * without the actual player entity sending packets that can corrupt it.
  */
-public class SeatedEntity {
-    private Entity _entity = null;
-    private int _fakeEntityId = -1;
-    private boolean _fake = false;
-    private boolean _upsideDown = false;
-    private DisplayMode _displayMode = DisplayMode.DEFAULT;
+public abstract class SeatedEntity {
+    protected Entity _entity = null;
+    protected DisplayMode _displayMode = DisplayMode.DEFAULT;
     public final SeatOrientation orientation = new SeatOrientation();
 
     // The fake mount is used when this seat has a position set, or otherwise cannot
@@ -92,28 +84,7 @@ public class SeatedEntity {
      * 
      * @return seated entity id
      */
-    public int getId() {
-        return this._fake ? this._fakeEntityId : ((this._entity == null) ? -1 : this._entity.getEntityId());
-    }
-
-    public boolean isFake() {
-        return this._fake;
-    }
-
-    public void setFake(boolean fake) {
-        this._fake = fake;
-        if (fake && this._fakeEntityId == -1) {
-            this._fakeEntityId = EntityUtil.getUniqueEntityId();
-        }
-    }
-
-    public boolean isUpsideDown() {
-        return this._upsideDown;
-    }
-
-    public void setUpsideDown(boolean upsideDown) {
-        this._upsideDown = upsideDown;
-    }
+    public abstract int getId();
 
     public void hideRealPlayer(Player viewer) {
         if (this._entity == viewer) {
@@ -134,16 +105,7 @@ public class SeatedEntity {
      * @param viewer
      */
     public void refreshMetadata(Player viewer) {
-        if (!this.isPlayer() && this._upsideDown) {
-            // Apply metadata 'Dinnerbone' with nametag invisible
-            DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, ProfileNameModifier.UPSIDEDOWN.getPlayerName());
-            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true);
-            PacketUtil.sendPacket(viewer, metaPacket);
-        } else {
-            resetMetadata(viewer);
-        }
+        resetMetadata(viewer);
     }
 
     /**
@@ -191,71 +153,9 @@ public class SeatedEntity {
                 PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
             }
         }
-
-        if (this._fake && fake) {
-            // Despawn/hide original player entity
-            if (this._entity == viewer) {
-                // Sync to self: make the real player invisible using a metadata change
-                DataWatcher metaTmp = new DataWatcher();
-                metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-                PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(viewer.getEntityId(), metaTmp, true);
-                PacketUtil.sendPacket(viewer, metaPacket);
-            } else {
-                // Sync to others: destroy the original player
-                PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._entity.getEntityId()}));
-            }
-
-            // Respawn an upside-down player in its place
-            makeFakePlayerVisible(viewer);
-        } else {
-            // Send metadata
-            refreshMetadata(viewer);
-
-            // Mount entity in vehicle
-            VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-            vmh.mount(this.parentMountId, this._entity.getEntityId());
-        }
-    }
-
-    public void makeFakePlayerVisible(Player viewer) {
-        // Respawn an upside-down player in its place
-        Consumer<DataWatcher> metaFunction = metadata -> {
-            if (_displayMode == DisplayMode.ELYTRA || _displayMode == DisplayMode.ELYTRA_SIT) {
-                metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, true);
-            } else {
-                metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
-            }
-        };
-        if (this._upsideDown) {
-            ProfileNameModifier.UPSIDEDOWN.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, this.orientation, metaFunction);
-        } else {
-            ProfileNameModifier.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, this.orientation, metaFunction);
-        }
-
-        // Unmount from the original vehicle and mount the new fake entity instead
-        VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-        vmh.unmount(this.parentMountId, this._entity.getEntityId());
-        vmh.mount(this.parentMountId, this._fakeEntityId);
     }
 
     public void makeHidden(Player viewer, boolean fake) {
-        // Despawn the fake player entity
-        if (fake) {
-            makeFakePlayerHidden(viewer);
-        }
-
-        // Respawn the actual player or clean up the list
-        // Only needed when the player is not the viewer
-        if (this._fake && fake && isPlayer()) {
-            if (viewer == this._entity) {
-                // Can not respawn yourself! Only undo listing.
-                ProfileNameModifier.NORMAL.sendListInfo(viewer, (Player) this._entity);
-            } else {
-                // Respawns the player as a normal player
-                ProfileNameModifier.NORMAL.spawnPlayer(viewer, (Player) this._entity, this._entity.getEntityId(), null, meta -> {});
-            }
-        }
-
         // Resend the correct metadata for the entity/player
         if (!isEmpty()) {
             resetMetadata(viewer);
@@ -267,18 +167,42 @@ public class SeatedEntity {
         }
     }
 
-    public void makeFakePlayerHidden(Player viewer) {
-        if (this._fake && isPlayer()) {
-            // Destroy old fake player entity
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._fakeEntityId}));
-            PlayerUtil.getVehicleMountController(viewer).remove(this._fakeEntityId);
-        }
-    }
+    /**
+     * Updates the display mode of the Entity. Display-specific operations can occur here.
+     * Silent is set to true when the entity has just been set, because right after calling this
+     * the seat is made visible to everyone again. No spawning should occur when silent
+     * is true!
+     * 
+     * @param seat
+     * @param silent Whether to send new spawn/make-visible packets to players or not
+     */
+    public abstract void updateMode(CartAttachmentSeat seat, boolean silent);
 
     public static enum DisplayMode {
         DEFAULT, /* Player is displayed either upright or upside-down in a cart */
         ELYTRA_SIT, /* Player is in sitting pose while flying in an elytra */
         ELYTRA /* Player is in elytra flying pose */
+    }
+
+    /*
+     * Copied from BKCommonLib 1.15.2 Quaternion getPitch()
+     * Once we depend on 1.15.2 or later, this can be removed and replaced with transform.getRotationPitch()
+     */
+    public static double getQuaternionPitch(double x, double y, double z, double w) {
+        final double test = 2.0 * (w * x - y * z);
+        if (Math.abs(test) < (1.0 - 1E-15)) {
+            double pitch = Math.asin(test);
+            double roll_x = 0.5 - (x * x + z * z);
+            if (roll_x <= 0.0 && (Math.abs((w * z + x * y)) > roll_x)) {
+                pitch = -pitch;
+                pitch += (pitch < 0.0) ? Math.PI : -Math.PI;
+            }
+            return Math.toDegrees(pitch);
+        } else if (test < 0.0) {
+            return -90.0;
+        } else {
+            return 90.0;
+        }
     }
 }
 
