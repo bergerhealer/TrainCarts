@@ -606,7 +606,7 @@ public class TCListener implements Listener {
         }
 
         Block placedBlock = event.getClickedBlock().getRelative(event.getBlockFace());
-        if (placedBlock.getType() != Material.AIR) {
+        if (!MaterialUtil.ISAIR.get(placedBlock)) {
             return;
         }
 
