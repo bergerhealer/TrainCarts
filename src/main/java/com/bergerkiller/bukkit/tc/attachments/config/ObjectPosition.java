@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 
 /**
  * Standard class for storing and representing an object's position.
@@ -41,8 +43,8 @@ public class ObjectPosition {
     public static boolean isDefaultSeatParent(ConfigurationNode config) {
         if (!config.isEmpty()) {
             if (config.contains("anchor")) {
-                AttachmentAnchor anchor = AttachmentAnchor.find(config.get("anchor", AttachmentAnchor.DEFAULT.getName()));
-                if (anchor == AttachmentAnchor.SEAT_PARENT) {
+                String name = config.get("anchor", AttachmentAnchor.DEFAULT.getName());
+                if (name.equals(AttachmentAnchor.SEAT_PARENT.getName())) {
                     return true;
                 }
             }
@@ -54,11 +56,12 @@ public class ObjectPosition {
     /**
      * Loads the position from the configuration specified
      * 
-     * @param config
+     * @param attachment The attachment this object position is for (for anchor support checks)
+     * @param config Configuration
      */
-    public void load(ConfigurationNode config) {
+    public void load(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {
         if (!config.isEmpty()) {
-            this.anchor = AttachmentAnchor.find(config.get("anchor", AttachmentAnchor.DEFAULT.getName()));
+            this.anchor = AttachmentAnchor.find(managerType, attachmentType, config.get("anchor", AttachmentAnchor.DEFAULT.getName()));
             if (this.anchor != AttachmentAnchor.SEAT_PARENT) {
                 this._isDefault = false;
                 this.position.x = config.get("posX", 0.0);

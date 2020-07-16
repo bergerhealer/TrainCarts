@@ -104,9 +104,11 @@ public class AttachmentInternalState {
     /**
      * Loads configuration that applies to all attachments into this internal state.
      * 
-     * @param config
+     * @param managerType The type of attachment manager that hosts the attachment
+     * @param attachmentType The type of attachment being loaded
+     * @param config Configuration to load
      */
-    public void onLoad(ConfigurationNode config) {
+    public void onLoad(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {
         // Reset prior
         this.reset();
 
@@ -114,7 +116,7 @@ public class AttachmentInternalState {
         this.config = config;
 
         // Position
-        this.position.load(config.getNode("position"));
+        this.position.load(managerType, attachmentType, config.getNode("position"));
 
         // Animation list
         if (config.isNode("animations")) {

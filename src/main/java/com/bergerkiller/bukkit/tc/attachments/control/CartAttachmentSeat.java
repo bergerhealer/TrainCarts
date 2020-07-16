@@ -164,7 +164,7 @@ public class CartAttachmentSeat extends CartAttachment {
         this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
-        this._ejectPosition.load(ejectPosition);
+        this._ejectPosition.load(this.getManager().getClass(), TYPE, ejectPosition);
         this._ejectLockRotation = ejectPosition.get("lockRotation", false);
     }
 

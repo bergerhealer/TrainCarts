@@ -50,7 +50,7 @@ public interface AttachmentManager {
         Attachment attachment = attachmentType.createController(config);
         AttachmentInternalState state = attachment.getInternalState();
         state.manager = this;
-        state.onLoad(config);
+        state.onLoad(this.getClass(), attachmentType, config);
 
         for (ConfigurationNode childNode : config.getNodeList("attachments")) {
             Attachment child = createAttachment(childNode);

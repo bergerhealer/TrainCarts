@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -531,8 +532,17 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
             return;
         }
 
+        // Figure out the attachment type from configuration
+        // If it is not the same as what it already is, refresh the entire model
+        AttachmentType oldAttachmentType = this.getTypeRegistry().fromConfig(attachment.getConfig());
+        AttachmentType newAttachmentType = this.getTypeRegistry().fromConfig(config);
+        if (newAttachmentType == null || oldAttachmentType != newAttachmentType) {
+            this.onModelChanged(model);
+            return;
+        }
+
         // Reload the configuration of just this one attachment
-        attachment.getInternalState().onLoad(config);
+        attachment.getInternalState().onLoad(this.getClass(), newAttachmentType, config);
         attachment.onLoad(config);
         HelperMethods.updatePositions(this.rootAttachment, this.getLiveTransform());
     }

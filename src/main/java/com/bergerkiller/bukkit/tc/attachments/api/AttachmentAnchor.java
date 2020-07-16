@@ -26,11 +26,6 @@ public abstract class AttachmentAnchor {
      */
     public static AttachmentAnchor DEFAULT = register(new AttachmentAnchor("default") {
         @Override
-        public boolean supports(Attachment attachment) {
-            return true;
-        }
-
-        @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
         }
     });
@@ -40,11 +35,6 @@ public abstract class AttachmentAnchor {
      * This will cause the attachment to always point in the same direction.
      */
     public static AttachmentAnchor NO_ROTATION = register(new AttachmentAnchor("no rotation") {
-        @Override
-        public boolean supports(Attachment attachment) {
-            return true;
-        }
-
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
             Vector3 absolutePosition = transform.toVector3();
@@ -58,11 +48,6 @@ public abstract class AttachmentAnchor {
      * is preserved of the parent attachment.
      */
     public static AttachmentAnchor ALIGN_UP = register(new AttachmentAnchor("align up") {
-        @Override
-        public boolean supports(Attachment attachment) {
-            return true;
-        }
-
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
             Vector3 absolutePosition = transform.toVector3();
@@ -83,8 +68,8 @@ public abstract class AttachmentAnchor {
         private final Matrix4x4 temp = new Matrix4x4();
 
         @Override
-        public boolean supports(Attachment attachment) {
-            return attachment instanceof CartAttachmentSeat;
+        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+            return attachmentType == CartAttachmentSeat.TYPE;
         }
 
         @Override
@@ -103,8 +88,8 @@ public abstract class AttachmentAnchor {
      */
     public static AttachmentAnchor SEAT_PARENT = register(new AttachmentAnchor("seat parent") {
         @Override
-        public boolean supports(Attachment attachment) {
-            return attachment instanceof CartAttachmentSeat;
+        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+            return attachmentType == CartAttachmentSeat.TYPE;
         }
 
         @Override
@@ -117,8 +102,8 @@ public abstract class AttachmentAnchor {
      */
     public static AttachmentAnchor FRONT_WHEEL = register(new AttachmentAnchor("front wheel") {
         @Override
-        public boolean supports(Attachment attachment) {
-            return attachment.getManager() instanceof MinecartMemberNetwork;
+        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+            return managerType.isAssignableFrom(MinecartMemberNetwork.class);
         }
 
         @Override
@@ -135,8 +120,8 @@ public abstract class AttachmentAnchor {
      */
     public static AttachmentAnchor BACK_WHEEL = register(new AttachmentAnchor("back wheel") {
         @Override
-        public boolean supports(Attachment attachment) {
-            return attachment.getManager() instanceof MinecartMemberNetwork;
+        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+            return managerType.isAssignableFrom(MinecartMemberNetwork.class);
         }
 
         @Override
@@ -165,15 +150,18 @@ public abstract class AttachmentAnchor {
     }
 
     /**
-     * Gets whether this anchor supports the attachment specified.
-     * Some anchors can not be used with some attachment types or in certain environments,
+     * Gets whether this anchor supports the attachment type specified.
+     * Some anchors can not be used with some attachment types,
      * in which case this method should return false. If the anchor is not supported,
      * it will not be shown in the attachment editor as a valid option.
      * 
-     * @param attachment
+     * @param managerType The type of attachment manager that will host the attachment
+     * @param attachmentType The type of attachment
      * @return True if the anchor is supported
      */
-    public abstract boolean supports(Attachment attachment);
+    public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+        return true;
+    }
 
     /**
      * Applies the anchor to the input parent-relative absolute transformation information.
@@ -215,22 +203,22 @@ public abstract class AttachmentAnchor {
     /**
      * Looks an anchor up by name. If it does not exist in the registry,
      * a fallback anchor is created with this name that defaults to the
-     * parent-relative transformation.
+     * parent-relative transformation.<br>
+     * <br>
+     * The attachment type and manager type parameter is used to check whether the anchor supports the one
+     * specified by name. If it does not, a fallback no-operation anchor is returned instead.
      * 
-     * @param name
-     * @return
+     * @param managerType The Class type of the AttachmentManager used to host the attachment and anchor
+     * @param attachmentType The type of attachment for which this anchor is used
+     * @param Name name of the anchor type
+     * @return Attachment Anchor, returns a default No-Operation one if none match
      */
-    public static AttachmentAnchor find(String name) {
+    public static AttachmentAnchor find(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, String name) {
         AttachmentAnchor anchor = registry.get(name);
-        if (anchor != null) {
+        if (anchor != null && anchor.supports(managerType, attachmentType)) {
             return anchor;
         } else {
             return new AttachmentAnchor(name) {
-                @Override
-                public boolean supports(Attachment attachment) {
-                    return true;
-                }
-
                 @Override
                 public void apply(Attachment attachment, Matrix4x4 transform) {
                 }

@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
@@ -11,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 public class PositionMenu extends MapWidgetMenu {
     private boolean isLoadingWidgets;
@@ -35,8 +37,12 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
 
+                // To test compatibility: load the attachment first
+                AttachmentType attachmentType = attachment.getType();
                 for (AttachmentAnchor type : AttachmentAnchor.values()) {
-                    this.addItem(type.getName());
+                    if (type.supports(MinecartMemberNetwork.class, attachmentType)) {
+                        this.addItem(type.getName());
+                    }
                 }
                 this.setSelectedItem(getConfigValue("anchor", AttachmentAnchor.DEFAULT.getName()));
             }
