@@ -7,7 +7,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -152,15 +151,6 @@ public class SeatedEntityNormal extends SeatedEntity {
             makeFakePlayerHidden(viewer);
         }
         super.makeHidden(viewer, fake);
-    }
-
-    @Override
-    public void transformToEyes(Matrix4x4 transform) {
-        if (seat.firstPerson.getLiveMode().isVirtual()) {
-            transform.translate(0.0, -seat.firstPerson.getLiveMode().getVirtualOffset(), 0.0);
-        } else {
-            transform.storeMultiply(MATRIX_TRANSLATE_ONE, transform);
-        }
     }
 
     @Override

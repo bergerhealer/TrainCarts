@@ -238,7 +238,13 @@ public class CartAttachmentSeat extends CartAttachment {
      * @param transform
      */
     public void transformToEyes(Matrix4x4 transform) {
-        this.seated.transformToEyes(transform);
+        FirstPersonViewMode mode = this.firstPerson.getMode();
+        if (mode == FirstPersonViewMode.DYNAMIC) {
+            mode = FirstPersonViewMode.THIRD_P;
+        }
+        if (mode.isVirtual()) {
+            transform.translate(0.0, -mode.getVirtualOffset(), 0.0);
+        }
     }
 
     @Override

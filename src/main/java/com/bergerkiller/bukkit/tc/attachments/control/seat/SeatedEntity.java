@@ -5,7 +5,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -35,12 +34,6 @@ public abstract class SeatedEntity {
     // entity id of the vehicle this passenger is mounted to.
     public VirtualEntity fakeMount = null;
     public int parentMountId = -1;
-
-    // Used to translate y -1 for the eye position transformation
-    protected static final Matrix4x4 MATRIX_TRANSLATE_ONE = new Matrix4x4();
-    static {
-        MATRIX_TRANSLATE_ONE.translate(0.0, -1.0, 0.0);
-    }
 
     public SeatedEntity(CartAttachmentSeat seat) {
         this.seat = seat;
@@ -178,15 +171,6 @@ public abstract class SeatedEntity {
             this.fakeMount.destroy(viewer);
         }
     }
-
-    /**
-     * Transforms the transformation matrix so that the eyes are at the center.
-     * Used by the 'eyes' anchor.
-     * 
-     * @param seat
-     * @param transform
-     */
-    public abstract void transformToEyes(Matrix4x4 transform);
 
     /**
      * Updates the display mode of the Entity. Display-specific operations can occur here.

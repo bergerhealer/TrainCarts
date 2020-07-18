@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -188,15 +187,6 @@ public class SeatedEntityElytra extends SeatedEntity {
             makeFakePlayerHidden(viewer);
         }
         super.makeHidden(viewer, fake);
-    }
-
-    @Override
-    public void transformToEyes(Matrix4x4 transform) {
-        if (seat.firstPerson.getLiveMode() == FirstPersonViewMode.DEFAULT) {
-            transform.translate(0.0, -1.0, 0.0);
-        } else {
-            transform.translate(0.0, -seat.firstPerson.getLiveMode().getVirtualOffset(), 0.0);
-        }
     }
 
     @Override
