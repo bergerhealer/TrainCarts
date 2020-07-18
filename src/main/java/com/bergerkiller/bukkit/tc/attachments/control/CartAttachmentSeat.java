@@ -237,6 +237,16 @@ public class CartAttachmentSeat extends CartAttachment {
         this.seated.orientation.synchronize(this, transform, this.seated);
     }
 
+    /**
+     * Transforms the transformation matrix so that the eyes are at the center.
+     * Used by the 'eyes' anchor.
+     * 
+     * @param transform
+     */
+    public void transformToEyes(Matrix4x4 transform) {
+        this.seated.transformToEyes(this, transform);
+    }
+
     @Override
     public void onMove(boolean absolute) {
         // Move the first-person view, if needed

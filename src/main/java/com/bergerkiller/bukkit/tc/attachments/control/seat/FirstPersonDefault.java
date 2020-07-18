@@ -4,8 +4,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -51,7 +51,7 @@ public class FirstPersonDefault {
 
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
                 this._fakeCameraMount.setPosition(new Vector(0.0, 1.4, 0.0));
-                this._fakeCameraMount.setRelativeOffset(0.0, -1.32, 0.0);
+                this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_OFFSET, 0.0);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
@@ -63,9 +63,7 @@ public class FirstPersonDefault {
                 this._fakeCameraMount.syncPosition(true);
 
                 // Also send zero-max-health
-                if (Common.hasCapability("Common:PacketPlayOutUpdateAttributes:createZeroMaxHealth")) {
-                    PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
-                }
+                PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
             }
 
             PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());

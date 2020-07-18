@@ -65,19 +65,21 @@ public abstract class AttachmentAnchor {
      * Moves the seat down so the eyes of the passenger are at its location.
      */
     public static AttachmentAnchor SEAT_EYES = register(new AttachmentAnchor("eyes") {
-        private final Matrix4x4 temp = new Matrix4x4();
-
         @Override
         public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
             return attachmentType == CartAttachmentSeat.TYPE;
         }
 
         @Override
+        public boolean appliedLate() {
+            return true;
+        }
+
+        @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
-            temp.setIdentity();
-            temp.translate(0, -1, 0);
-            temp.multiply(transform);
-            transform.set(temp);
+            if (attachment instanceof CartAttachmentSeat) {
+                ((CartAttachmentSeat) attachment).transformToEyes(transform);
+            }
         }
     });
 
@@ -161,6 +163,16 @@ public abstract class AttachmentAnchor {
      */
     public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
         return true;
+    }
+
+    /**
+     * Whether the attachment anchor is applied 'late', meaning the anchor transformation is performed
+     * after the translation and rotation of the attachment itself.
+     * 
+     * @return True if applied late
+     */
+    public boolean appliedLate() {
+        return false;
     }
 
     /**

@@ -88,17 +88,22 @@ public class HelperMethods {
             hasLastTransform = true;
         }
 
-        // Update the transform based on the anchor setting
-        // Assign transform first, calcBaseTransform will clone it for us
+        // Assign new transform to start from
         if (state.curr_transform == null) {
             state.curr_transform = transform.clone();
         } else {
             state.curr_transform.set(transform);
         }
-        state.position.anchor.apply(attachment, state.curr_transform);
 
-        // Apply local transformation
-        state.curr_transform.multiply(state.position.transform);
+        if (state.position.anchor.appliedLate()) {
+            // First apply the local transformation, then transform using anchor
+            state.curr_transform.multiply(state.position.transform);
+            state.position.anchor.apply(attachment, state.curr_transform);
+        } else {
+            // First transform using anchor, then apply the local transformation
+            state.position.anchor.apply(attachment, state.curr_transform);
+            state.curr_transform.multiply(state.position.transform);
+        }
 
         // Go to next animation when end of animation is reached (or no animation is playing)
         if (!state.nextAnimationQueue.isEmpty() && (state.currentAnimation == null || state.currentAnimation.hasReachedEnd())) {

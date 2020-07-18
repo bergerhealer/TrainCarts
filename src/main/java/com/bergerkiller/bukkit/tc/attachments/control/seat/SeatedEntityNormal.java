@@ -7,6 +7,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -26,6 +27,11 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetada
  * upright or upside-down. This is the classic behavior seats have in Traincarts.
  */
 public class SeatedEntityNormal extends SeatedEntity {
+    private static final Matrix4x4 MATRIX_TRANSLATE_ONE = new Matrix4x4();
+    static {
+        MATRIX_TRANSLATE_ONE.translate(0.0, -1.0, 0.0);
+    }
+
     private boolean _upsideDown = false;
     private int _fakeEntityId = -1;
     private boolean _fake = false;
@@ -136,6 +142,15 @@ public class SeatedEntityNormal extends SeatedEntity {
                 // Respawns the player as a normal player
                 ProfileNameModifier.NORMAL.spawnPlayer(viewer, (Player) this._entity, this._entity.getEntityId(), false, null, meta -> {});
             }
+        }
+    }
+
+    @Override
+    public void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform) {
+        if (seat.firstPerson.useVirtualCamera()) {
+            transform.translate(0.0, -1.5, 0.0);
+        } else {
+            transform.storeMultiply(MATRIX_TRANSLATE_ONE, transform);
         }
     }
 

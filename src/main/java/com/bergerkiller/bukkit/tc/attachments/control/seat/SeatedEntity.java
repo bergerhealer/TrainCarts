@@ -5,6 +5,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -166,6 +167,15 @@ public abstract class SeatedEntity {
             this.fakeMount.destroy(viewer);
         }
     }
+
+    /**
+     * Transforms the transformation matrix so that the eyes are at the center.
+     * Used by the 'eyes' anchor.
+     * 
+     * @param seat
+     * @param transform
+     */
+    public abstract void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform);
 
     /**
      * Updates the display mode of the Entity. Display-specific operations can occur here.

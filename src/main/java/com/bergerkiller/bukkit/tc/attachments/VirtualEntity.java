@@ -40,6 +40,8 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityL
  * The entity can be spawned or destroyed for individual players.
  */
 public class VirtualEntity {
+    public static final double PLAYER_SIT_EYE_OFFSET = 1.25;
+    public static final double PLAYER_SIT_CHICKEN_OFFSET = -1.62;
     private static final boolean IS_LOOK_PACKET_BUGGED = Common.evaluateMCVersion(">=", "1.15");
     private final AttachmentManager manager;
     private final int entityId;
