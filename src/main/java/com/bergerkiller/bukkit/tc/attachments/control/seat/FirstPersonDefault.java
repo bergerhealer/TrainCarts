@@ -69,7 +69,7 @@ public class FirstPersonDefault {
             PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
         }
 
-        seat.seated.makeVisible(seat, viewer, this._liveMode.hasFakePlayer());
+        seat.seated.makeVisible(viewer, this._liveMode.hasFakePlayer());
     }
 
     public void makeHidden(Player viewer) {

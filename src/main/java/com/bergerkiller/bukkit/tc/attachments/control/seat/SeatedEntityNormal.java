@@ -36,6 +36,10 @@ public class SeatedEntityNormal extends SeatedEntity {
     private int _fakeEntityId = -1;
     private boolean _fake = false;
 
+    public SeatedEntityNormal(CartAttachmentSeat seat) {
+        super(seat);
+    }
+
     public boolean isUpsideDown() {
         return this._upsideDown;
     }
@@ -91,8 +95,12 @@ public class SeatedEntityNormal extends SeatedEntity {
     }
 
     @Override
-    public void makeVisible(CartAttachmentSeat seat, Player viewer, boolean fake) {
-        super.makeVisible(seat, viewer, fake);
+    public void makeVisible(Player viewer, boolean fake) {
+        super.makeVisible(viewer, fake);
+
+    //} else if (seat.firstPerson.getLiveMode() == FirstPersonViewMode.INVISIBLE && this._entity == viewer) {
+        // First-person view mode where the player can not see himself
+        // Make the player invisible using a metadata change
 
         if (this._fake && fake) {
             // Despawn/hide original player entity
@@ -146,7 +154,7 @@ public class SeatedEntityNormal extends SeatedEntity {
     }
 
     @Override
-    public void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform) {
+    public void transformToEyes(Matrix4x4 transform) {
         if (seat.firstPerson.getLiveMode().isVirtual()) {
             transform.translate(0.0, -seat.firstPerson.getLiveMode().getVirtualOffset(), 0.0);
         } else {
@@ -155,7 +163,7 @@ public class SeatedEntityNormal extends SeatedEntity {
     }
 
     @Override
-    public void updateMode(CartAttachmentSeat seat, boolean silent) {
+    public void updateMode(boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
         FirstPersonViewMode new_firstPersonMode = FirstPersonViewMode.DEFAULT;
         boolean new_smoothCoasters;
@@ -190,7 +198,9 @@ public class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Compute new first-person state of whether the player sees himself from third person using a fake camera
-            if (TCConfig.enableSeatThirdPersonView &&
+            new_firstPersonMode = seat.firstPerson.getMode();
+            if (new_firstPersonMode == FirstPersonViewMode.DYNAMIC &&
+                TCConfig.enableSeatThirdPersonView &&
                 !new_smoothCoasters &&
                 this.isPlayer() &&
                 Math.abs(selfPitch) > 70.0)

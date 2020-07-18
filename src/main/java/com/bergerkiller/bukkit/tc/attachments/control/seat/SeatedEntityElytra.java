@@ -30,6 +30,10 @@ public class SeatedEntityElytra extends SeatedEntity {
     private int _fakeEntityIdFlipped = -1; // Fix for the 180 pitch rotation bug, swaps entities instead
     private boolean _fake = false;
 
+    public SeatedEntityElytra(CartAttachmentSeat seat) {
+        super(seat);
+    }
+
     @Override
     public int getId() {
         return this._fake ? this._fakeEntityId : ((this._entity == null) ? -1 : this._entity.getEntityId());
@@ -126,8 +130,8 @@ public class SeatedEntityElytra extends SeatedEntity {
     }
 
     @Override
-    public void makeVisible(CartAttachmentSeat seat, Player viewer, boolean fake) {
-        super.makeVisible(seat, viewer, fake);
+    public void makeVisible(Player viewer, boolean fake) {
+        super.makeVisible(viewer, fake);
 
         if (this._fake && fake) {
             // Despawn/hide original player entity
@@ -188,12 +192,12 @@ public class SeatedEntityElytra extends SeatedEntity {
     }
 
     @Override
-    public void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform) {
+    public void transformToEyes(Matrix4x4 transform) {
         transform.translate(0.0, -1.5, 0.0);
     }
 
     @Override
-    public void updateMode(CartAttachmentSeat seat, boolean silent) {
+    public void updateMode(boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
         FirstPersonViewMode new_firstPersonMode = FirstPersonViewMode.DEFAULT;
         boolean new_smoothCoasters;

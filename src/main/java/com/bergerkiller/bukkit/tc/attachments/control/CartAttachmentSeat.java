@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
@@ -68,16 +69,16 @@ public class CartAttachmentSeat extends CartAttachment {
               .setSelectedOption(attachment.getConfig().get("lockRotation", false))
               .setBounds(0, 10, 100, 16);
 
-            tab.addWidget(new MapWidgetToggleButton<ViewLockMode>() {
+            tab.addWidget(new MapWidgetToggleButton<FirstPersonViewMode>() {
                 @Override
                 public void onSelectionChanged() {
-                    attachment.getConfig().set("lockView", this.getSelectedOption());
+                    attachment.getConfig().set("firstPersonViewMode", this.getSelectedOption());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
                     display.playSound(SoundEffect.CLICK);
                 }
-            }).addOptions(o -> "Lock View: " + o.name(), ViewLockMode.class)
-              .setSelectedOption(attachment.getConfig().get("lockView", ViewLockMode.OFF))
+            }).addOptions(o -> "FPV: " + o.name(), FirstPersonViewMode.class)
+              .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
               .setBounds(0, 28, 100, 16);
 
             tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
@@ -152,15 +153,16 @@ public class CartAttachmentSeat extends CartAttachment {
         switch (displayMode) {
         case ELYTRA:
         case ELYTRA_SIT:
-            this.seated = new SeatedEntityElytra();
+            this.seated = new SeatedEntityElytra(this);
             break;
         default:
-            this.seated = new SeatedEntityNormal();
+            this.seated = new SeatedEntityNormal(this);
             break;
         }
 
         this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
-        this._viewLockMode = this.getConfig().get("lockView", ViewLockMode.OFF);
+        this.firstPerson.setMode(this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC));
+        this._viewLockMode = ViewLockMode.OFF; // Disabled, is broken
         this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
@@ -178,7 +180,7 @@ public class CartAttachmentSeat extends CartAttachment {
     public void makeVisible(Player viewer) {
         try {
             this._makeVisibleCurrent = viewer;
-            this.seated.updateMode(this, false);
+            this.seated.updateMode(false);
             makeVisibleImpl(viewer);
         } finally {
             this._makeVisibleCurrent = null;
@@ -218,7 +220,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     public boolean isFakePlayerUsed(Player viewer) {
         if (viewer == this.seated.getEntity()) {
-            return this.firstPerson.getMode().hasFakePlayer();
+            return this.firstPerson.getLiveMode().hasFakePlayer();
         } else {
             return true;
         }
@@ -244,7 +246,7 @@ public class CartAttachmentSeat extends CartAttachment {
      * @param transform
      */
     public void transformToEyes(Matrix4x4 transform) {
-        this.seated.transformToEyes(this, transform);
+        this.seated.transformToEyes(transform);
     }
 
     @Override
@@ -294,7 +296,7 @@ public class CartAttachmentSeat extends CartAttachment {
         this.seated.setEntity(entity);
 
         // Initialize mode with this new Entity
-        this.seated.updateMode(this, true);
+        this.seated.updateMode(true);
 
         // Re-seat new entity
         if (!this.seated.isEmpty()) {
@@ -308,7 +310,7 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onTick() {
         // Only needed when there is a passenger
-        this.seated.updateMode(this, false);
+        this.seated.updateMode(false);
 
         // Move player view relatively
         if (this._viewLockMode == ViewLockMode.MOVE && this.seated.isPlayer()) {

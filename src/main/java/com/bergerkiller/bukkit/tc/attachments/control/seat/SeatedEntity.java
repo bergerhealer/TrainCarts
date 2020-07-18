@@ -27,6 +27,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttrib
 public abstract class SeatedEntity {
     protected Entity _entity = null;
     protected DisplayMode _displayMode = DisplayMode.DEFAULT;
+    protected final CartAttachmentSeat seat;
     public final SeatOrientation orientation = new SeatOrientation();
 
     // The fake mount is used when this seat has a position set, or otherwise cannot
@@ -34,6 +35,10 @@ public abstract class SeatedEntity {
     // entity id of the vehicle this passenger is mounted to.
     public VirtualEntity fakeMount = null;
     public int parentMountId = -1;
+
+    public SeatedEntity(CartAttachmentSeat seat) {
+        this.seat = seat;
+    }
 
     /**
      * Gets whether this seat is empty
@@ -119,7 +124,7 @@ public abstract class SeatedEntity {
         PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true));
     }
 
-    public void makeVisible(CartAttachmentSeat seat, Player viewer, boolean fake) {
+    public void makeVisible(Player viewer, boolean fake) {
         // Spawn fake mount if one is needed
         if (this.parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
@@ -175,7 +180,7 @@ public abstract class SeatedEntity {
      * @param seat
      * @param transform
      */
-    public abstract void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform);
+    public abstract void transformToEyes(Matrix4x4 transform);
 
     /**
      * Updates the display mode of the Entity. Display-specific operations can occur here.
@@ -186,7 +191,7 @@ public abstract class SeatedEntity {
      * @param seat
      * @param silent Whether to send new spawn/make-visible packets to players or not
      */
-    public abstract void updateMode(CartAttachmentSeat seat, boolean silent);
+    public abstract void updateMode(boolean silent);
 
     public static enum DisplayMode {
         DEFAULT, /* Player is displayed either upright or upside-down in a cart */

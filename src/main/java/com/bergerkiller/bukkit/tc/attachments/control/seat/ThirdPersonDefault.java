@@ -12,7 +12,7 @@ public class ThirdPersonDefault {
     }
 
     public void makeVisible(Player viewer) {
-        seat.seated.makeVisible(seat, viewer, true);
+        seat.seated.makeVisible(viewer, true);
     }
 
     public void makeHidden(Player viewer) {
