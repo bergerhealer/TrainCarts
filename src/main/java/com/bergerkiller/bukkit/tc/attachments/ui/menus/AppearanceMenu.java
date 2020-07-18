@@ -60,7 +60,7 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
                 typeSelectionBox.setSelectedIndex(typeSelectionBox.getItemCount() - 1);
             }
         }
-        typeSelectionBox.setBounds(7, 3, 100, 11);
+        typeSelectionBox.setBounds(9, 3, 100, 11);
 
         // Set to display currently selected type
 
