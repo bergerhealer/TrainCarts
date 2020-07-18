@@ -21,7 +21,7 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttrib
 public class FirstPersonDefault {
     private final CartAttachmentSeat seat;
     private Player _player;
-    private Mode _mode = Mode.FROM_ENTITY;
+    private FirstPersonViewMode _mode = FirstPersonViewMode.DEFAULT;
     private boolean _useSmoothCoasters = false;
     private VirtualEntity _fakeCameraMount = null;
 
@@ -119,7 +119,7 @@ public class FirstPersonDefault {
      * 
      * @return mode
      */
-    public Mode getMode() {
+    public FirstPersonViewMode getMode() {
         return this._mode;
     }
 
@@ -128,63 +128,7 @@ public class FirstPersonDefault {
      * 
      * @param mode
      */
-    public void setMode(Mode mode) {
+    public void setMode(FirstPersonViewMode mode) {
         this._mode = mode;
-    }
-
-    /**
-     * First-player view mode
-     */
-    public static enum Mode {
-        /**
-         * The visible entity itself is used to 'look' from
-         */
-        FROM_ENTITY(Double.NaN, false),
-        /**
-         * The camera hovers in third person near to the head
-         */
-        THIRD_PERSON(1.4, true),
-        /**
-         * The player does not see himself, but looks exactly
-         * from where the head is that other players can see
-         */
-        INVISIBLE(0.0, false);
-
-        private final double _cameraOffset;
-        private final boolean _fakePlayer;
-
-        private Mode(double cameraOffset, boolean fakePlayer) {
-            this._cameraOffset = cameraOffset;
-            this._fakePlayer = fakePlayer;
-        }
-
-        /**
-         * Gets whether for this mode a virtual entity is used to move
-         * the player around
-         * 
-         * @return True if virtual
-         */
-        public boolean isVirtual() {
-            return !Double.isNaN(this._cameraOffset);
-        }
-
-        /**
-         * Gets the Y-offset of the camera
-         * 
-         * @return virtual camera offset
-         */
-        public double getVirtualOffset() {
-            return this._cameraOffset;
-        }
-
-        /**
-         * Gets whether a different Player entity is spawned to represent
-         * the player in first-person
-         * 
-         * @return True if a fake player is used
-         */
-        public boolean hasFakePlayer() {
-            return this._fakePlayer;
-        }
     }
 }

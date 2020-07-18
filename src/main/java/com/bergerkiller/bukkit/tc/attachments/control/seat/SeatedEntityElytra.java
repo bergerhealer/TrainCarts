@@ -195,7 +195,7 @@ public class SeatedEntityElytra extends SeatedEntity {
     @Override
     public void updateMode(CartAttachmentSeat seat, boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
-        FirstPersonDefault.Mode new_firstPersonMode = FirstPersonDefault.Mode.FROM_ENTITY;
+        FirstPersonViewMode new_firstPersonMode = FirstPersonViewMode.DEFAULT;
         boolean new_smoothCoasters;
 
         // Whether a fake entity is used to represent this seated entity
@@ -214,7 +214,7 @@ public class SeatedEntityElytra extends SeatedEntity {
                 !new_smoothCoasters &&
                 this.isPlayer())
             {
-                new_firstPersonMode = FirstPersonDefault.Mode.THIRD_PERSON;
+                new_firstPersonMode = FirstPersonViewMode.THIRD_P;
             }
 
             new_isFake = this.isPlayer();
