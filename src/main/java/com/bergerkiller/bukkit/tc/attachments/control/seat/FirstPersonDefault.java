@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -22,8 +21,8 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttrib
 public class FirstPersonDefault {
     private final CartAttachmentSeat seat;
     private Player _player;
+    private Mode _mode = Mode.FROM_ENTITY;
     private boolean _useSmoothCoasters = false;
-    private boolean _useVirtualCamera = false;
     private VirtualEntity _fakeCameraMount = null;
 
     public FirstPersonDefault(CartAttachmentSeat seat) {
@@ -45,12 +44,12 @@ public class FirstPersonDefault {
             );
         }
 
-        if (this.useVirtualCamera()) {
+        if (this._mode.isVirtual()) {
             if (this._fakeCameraMount == null) {
                 this._fakeCameraMount = new VirtualEntity(seat.getManager());
 
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
-                this._fakeCameraMount.setPosition(new Vector(0.0, 1.4, 0.0));
+                this._fakeCameraMount.setPosition(new Vector(0.0, this._mode.getVirtualOffset(), 0.0));
                 this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_OFFSET, 0.0);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
@@ -69,7 +68,7 @@ public class FirstPersonDefault {
             PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
         }
 
-        seat.seated.makeVisible(seat, viewer, this.isFakePlayerUsed());
+        seat.seated.makeVisible(seat, viewer, this._mode.hasFakePlayer());
     }
 
     public void makeHidden(Player viewer) {
@@ -78,17 +77,13 @@ public class FirstPersonDefault {
             TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(viewer);
         }
 
-        if (this.useVirtualCamera() && this._fakeCameraMount != null) {
+        if (this._mode.isVirtual() && this._fakeCameraMount != null) {
             PlayerUtil.getVehicleMountController(viewer).unmount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
             this._fakeCameraMount.destroy(viewer);
             this._fakeCameraMount = null;
         }
 
-        seat.seated.makeHidden(viewer, this.isFakePlayerUsed());
-    }
-
-    public boolean isFakePlayerUsed() {
-        return this.useVirtualCamera();
+        seat.seated.makeHidden(viewer, this._mode.hasFakePlayer());
     }
 
     public void onMove(boolean absolute) {
@@ -104,7 +99,7 @@ public class FirstPersonDefault {
             );
         }
 
-        if (this._fakeCameraMount != null && this.useVirtualCamera()) {
+        if (this._fakeCameraMount != null && this._mode.isVirtual()) {
             this._fakeCameraMount.updatePosition(seat.getTransform());
             this._fakeCameraMount.syncPosition(absolute);
         }
@@ -119,24 +114,77 @@ public class FirstPersonDefault {
     }
 
     /**
-     * Gets whether the viewer uses a virtual camera instead of the view from the Player entity itself
-     * Only has effect if the entity is a Player.
-     * When upside-down, a virtual camera is automatically used.
+     * Gets the view mode used in first-person. This mode alters how the player perceives
+     * himself in the seat.
      * 
-     * @return true if a virtual camera is used
+     * @return mode
      */
-    public boolean useVirtualCamera() {
-        return this._useVirtualCamera;
+    public Mode getMode() {
+        return this._mode;
     }
 
     /**
-     * Sets whether the viewer uses a virtual camera instead of the view from the Player entity itself.
-     * Only has effect if the entity is a Player.
-     * When upside-down, a virtual camera is automatically used.
+     * Sets the view mode in first-person. See: {@link #getMode()}
      * 
-     * @param use option
+     * @param mode
      */
-    public void setUseVirtualCamera(boolean use) {
-        this._useVirtualCamera = use;
+    public void setMode(Mode mode) {
+        this._mode = mode;
+    }
+
+    /**
+     * First-player view mode
+     */
+    public static enum Mode {
+        /**
+         * The visible entity itself is used to 'look' from
+         */
+        FROM_ENTITY(Double.NaN, false),
+        /**
+         * The camera hovers in third person near to the head
+         */
+        THIRD_PERSON(1.4, true),
+        /**
+         * The player does not see himself, but looks exactly
+         * from where the head is that other players can see
+         */
+        INVISIBLE(0.0, false);
+
+        private final double _cameraOffset;
+        private final boolean _fakePlayer;
+
+        private Mode(double cameraOffset, boolean fakePlayer) {
+            this._cameraOffset = cameraOffset;
+            this._fakePlayer = fakePlayer;
+        }
+
+        /**
+         * Gets whether for this mode a virtual entity is used to move
+         * the player around
+         * 
+         * @return True if virtual
+         */
+        public boolean isVirtual() {
+            return !Double.isNaN(this._cameraOffset);
+        }
+
+        /**
+         * Gets the Y-offset of the camera
+         * 
+         * @return virtual camera offset
+         */
+        public double getVirtualOffset() {
+            return this._cameraOffset;
+        }
+
+        /**
+         * Gets whether a different Player entity is spawned to represent
+         * the player in first-person
+         * 
+         * @return True if a fake player is used
+         */
+        public boolean hasFakePlayer() {
+            return this._fakePlayer;
+        }
     }
 }

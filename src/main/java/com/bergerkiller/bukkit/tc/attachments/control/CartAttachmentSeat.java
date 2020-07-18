@@ -218,7 +218,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     public boolean isFakePlayerUsed(Player viewer) {
         if (viewer == this.seated.getEntity()) {
-            return this.firstPerson.isFakePlayerUsed();
+            return this.firstPerson.getMode().hasFakePlayer();
         } else {
             return true;
         }

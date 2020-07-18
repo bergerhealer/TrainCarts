@@ -147,8 +147,8 @@ public class SeatedEntityNormal extends SeatedEntity {
 
     @Override
     public void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform) {
-        if (seat.firstPerson.useVirtualCamera()) {
-            transform.translate(0.0, -1.5, 0.0);
+        if (seat.firstPerson.getMode().isVirtual()) {
+            transform.translate(0.0, -seat.firstPerson.getMode().getVirtualOffset(), 0.0);
         } else {
             transform.storeMultiply(MATRIX_TRANSLATE_ONE, transform);
         }
@@ -157,8 +157,7 @@ public class SeatedEntityNormal extends SeatedEntity {
     @Override
     public void updateMode(CartAttachmentSeat seat, boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
-        boolean new_virtualCam;
-
+        FirstPersonDefault.Mode new_firstPersonMode = FirstPersonDefault.Mode.FROM_ENTITY;
         boolean new_smoothCoasters;
 
         // Whether a fake entity is used to represent this seated entity
@@ -174,7 +173,6 @@ public class SeatedEntityNormal extends SeatedEntity {
         }
 
         if (this.isEmpty()) {
-            new_virtualCam = false;
             new_isFake = false;
             new_isUpsideDown = false;
         } else {
@@ -192,13 +190,16 @@ public class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Compute new first-person state of whether the player sees himself from third person using a fake camera
-            new_virtualCam = TCConfig.enableSeatThirdPersonView &&
-                             !new_smoothCoasters &&
-                             this.isPlayer() &&
-                             Math.abs(selfPitch) > 70.0;
+            if (TCConfig.enableSeatThirdPersonView &&
+                !new_smoothCoasters &&
+                this.isPlayer() &&
+                Math.abs(selfPitch) > 70.0)
+            {
+                new_firstPersonMode = FirstPersonDefault.Mode.THIRD_PERSON;
+            }
 
             // Whether a fake entity is used to represent this seated entity
-            new_isFake = this.isPlayer() && (new_isUpsideDown || new_virtualCam);
+            new_isFake = this.isPlayer() && (new_isUpsideDown || new_firstPersonMode.hasFakePlayer());
         }
 
         // When we change whether a fake entity is displayed, hide for everyone and make visible again
@@ -206,7 +207,7 @@ public class SeatedEntityNormal extends SeatedEntity {
             // Explicitly requested we do not send any packets
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
-            seat.firstPerson.setUseVirtualCamera(new_virtualCam);
+            seat.firstPerson.setMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             return;
         }
@@ -225,7 +226,7 @@ public class SeatedEntityNormal extends SeatedEntity {
             }
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
-            seat.firstPerson.setUseVirtualCamera(new_virtualCam);
+            seat.firstPerson.setMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             for (Player viewer : viewers) {
                 if (new_smoothCoasters && viewer == entity) {
@@ -244,19 +245,19 @@ public class SeatedEntityNormal extends SeatedEntity {
                     }
                 }
             }
-            if (new_virtualCam != seat.firstPerson.useVirtualCamera()) {
+            if (new_firstPersonMode != seat.firstPerson.getMode()) {
                 // Only first-person view useVirtualCamera changed
                 Collection<Player> viewers = seat.getViewersSynced();
                 if (viewers.contains(this.getEntity())) {
                     // Hide, change, and make visible again, just for the first-player-view player
                     Player viewer = (Player) this.getEntity();
                     seat.makeHidden(viewer);
-                    seat.firstPerson.setUseVirtualCamera(new_virtualCam);
+                    seat.firstPerson.setMode(new_firstPersonMode);
                     seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                     seat.makeVisibleImpl(viewer);
                 } else {
                     // Silent
-                    seat.firstPerson.setUseVirtualCamera(new_virtualCam);
+                    seat.firstPerson.setMode(new_firstPersonMode);
                     seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                 }
             }
