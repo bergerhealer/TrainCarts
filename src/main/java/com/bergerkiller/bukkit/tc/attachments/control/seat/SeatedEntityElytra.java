@@ -224,7 +224,7 @@ public class SeatedEntityElytra extends SeatedEntity {
         if (silent) {
             // Explicitly requested we do not send any packets
             this.setFake(new_isFake);
-            seat.firstPerson.setMode(new_firstPersonMode);
+            seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             return;
         }
@@ -242,7 +242,7 @@ public class SeatedEntityElytra extends SeatedEntity {
                 seat.makeHidden(viewer);
             }
             this.setFake(new_isFake);
-            seat.firstPerson.setMode(new_firstPersonMode);
+            seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             for (Player viewer : viewers) {
                 if (new_smoothCoasters && viewer == entity) {
@@ -250,19 +250,19 @@ public class SeatedEntityElytra extends SeatedEntity {
                 }
                 seat.makeVisibleImpl(viewer);
             }
-        } else if (new_firstPersonMode != seat.firstPerson.getMode()) {
+        } else if (new_firstPersonMode != seat.firstPerson.getLiveMode()) {
             // Only first-person view useVirtualCamera changed
             Collection<Player> viewers = seat.getViewersSynced();
             if (viewers.contains(this.getEntity())) {
                 // Hide, change, and make visible again, just for the first-player-view player
                 Player viewer = (Player) this.getEntity();
                 seat.makeHidden(viewer);
-                seat.firstPerson.setMode(new_firstPersonMode);
+                seat.firstPerson.setLiveMode(new_firstPersonMode);
                 seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                 seat.makeVisibleImpl(viewer);
             } else {
                 // Silent
-                seat.firstPerson.setMode(new_firstPersonMode);
+                seat.firstPerson.setLiveMode(new_firstPersonMode);
                 seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             }
         }

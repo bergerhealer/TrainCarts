@@ -147,8 +147,8 @@ public class SeatedEntityNormal extends SeatedEntity {
 
     @Override
     public void transformToEyes(CartAttachmentSeat seat, Matrix4x4 transform) {
-        if (seat.firstPerson.getMode().isVirtual()) {
-            transform.translate(0.0, -seat.firstPerson.getMode().getVirtualOffset(), 0.0);
+        if (seat.firstPerson.getLiveMode().isVirtual()) {
+            transform.translate(0.0, -seat.firstPerson.getLiveMode().getVirtualOffset(), 0.0);
         } else {
             transform.storeMultiply(MATRIX_TRANSLATE_ONE, transform);
         }
@@ -207,7 +207,7 @@ public class SeatedEntityNormal extends SeatedEntity {
             // Explicitly requested we do not send any packets
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
-            seat.firstPerson.setMode(new_firstPersonMode);
+            seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             return;
         }
@@ -226,7 +226,7 @@ public class SeatedEntityNormal extends SeatedEntity {
             }
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
-            seat.firstPerson.setMode(new_firstPersonMode);
+            seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             for (Player viewer : viewers) {
                 if (new_smoothCoasters && viewer == entity) {
@@ -245,19 +245,19 @@ public class SeatedEntityNormal extends SeatedEntity {
                     }
                 }
             }
-            if (new_firstPersonMode != seat.firstPerson.getMode()) {
+            if (new_firstPersonMode != seat.firstPerson.getLiveMode()) {
                 // Only first-person view useVirtualCamera changed
                 Collection<Player> viewers = seat.getViewersSynced();
                 if (viewers.contains(this.getEntity())) {
                     // Hide, change, and make visible again, just for the first-player-view player
                     Player viewer = (Player) this.getEntity();
                     seat.makeHidden(viewer);
-                    seat.firstPerson.setMode(new_firstPersonMode);
+                    seat.firstPerson.setLiveMode(new_firstPersonMode);
                     seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                     seat.makeVisibleImpl(viewer);
                 } else {
                     // Silent
-                    seat.firstPerson.setMode(new_firstPersonMode);
+                    seat.firstPerson.setLiveMode(new_firstPersonMode);
                     seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                 }
             }

@@ -21,7 +21,8 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttrib
 public class FirstPersonDefault {
     private final CartAttachmentSeat seat;
     private Player _player;
-    private FirstPersonViewMode _mode = FirstPersonViewMode.DEFAULT;
+    private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
+    private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;
     private boolean _useSmoothCoasters = false;
     private VirtualEntity _fakeCameraMount = null;
 
@@ -44,12 +45,12 @@ public class FirstPersonDefault {
             );
         }
 
-        if (this._mode.isVirtual()) {
+        if (this._liveMode.isVirtual()) {
             if (this._fakeCameraMount == null) {
                 this._fakeCameraMount = new VirtualEntity(seat.getManager());
 
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
-                this._fakeCameraMount.setPosition(new Vector(0.0, this._mode.getVirtualOffset(), 0.0));
+                this._fakeCameraMount.setPosition(new Vector(0.0, this._liveMode.getVirtualOffset(), 0.0));
                 this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_OFFSET, 0.0);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
@@ -68,7 +69,7 @@ public class FirstPersonDefault {
             PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
         }
 
-        seat.seated.makeVisible(seat, viewer, this._mode.hasFakePlayer());
+        seat.seated.makeVisible(seat, viewer, this._liveMode.hasFakePlayer());
     }
 
     public void makeHidden(Player viewer) {
@@ -77,13 +78,13 @@ public class FirstPersonDefault {
             TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(viewer);
         }
 
-        if (this._mode.isVirtual() && this._fakeCameraMount != null) {
+        if (this._liveMode.isVirtual() && this._fakeCameraMount != null) {
             PlayerUtil.getVehicleMountController(viewer).unmount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
             this._fakeCameraMount.destroy(viewer);
             this._fakeCameraMount = null;
         }
 
-        seat.seated.makeHidden(viewer, this._mode.hasFakePlayer());
+        seat.seated.makeHidden(viewer, this._liveMode.hasFakePlayer());
     }
 
     public void onMove(boolean absolute) {
@@ -99,7 +100,7 @@ public class FirstPersonDefault {
             );
         }
 
-        if (this._fakeCameraMount != null && this._mode.isVirtual()) {
+        if (this._fakeCameraMount != null && this._liveMode.isVirtual()) {
             this._fakeCameraMount.updatePosition(seat.getTransform());
             this._fakeCameraMount.syncPosition(absolute);
         }
@@ -114,8 +115,28 @@ public class FirstPersonDefault {
     }
 
     /**
-     * Gets the view mode used in first-person. This mode alters how the player perceives
-     * himself in the seat.
+     * Gets the view mode used in first-person currently. This mode alters how the player perceives
+     * himself in the seat. This one differs from the {@link #getMode()} if DYNAMIC is used.
+     * 
+     * @return live mode
+     */
+    public FirstPersonViewMode getLiveMode() {
+        return this._liveMode;
+    }
+
+    /**
+     * Sets the view mode currently used in first-person. See: {@link #getLiveMode()}
+     * 
+     * @param liveMode
+     */
+    public void setLiveMode(FirstPersonViewMode liveMode) {
+        this._liveMode = liveMode;
+    }
+
+    /**
+     * Gets the view mode that should be used. This is set using seat configuration, and
+     * alters what mode is picked for {@link #getLiveMode()}. If set to DYNAMIC, the DYNAMIC
+     * view mode conditions are checked to switch to the appropriate mode.
      * 
      * @return mode
      */
@@ -124,7 +145,8 @@ public class FirstPersonDefault {
     }
 
     /**
-     * Sets the view mode in first-person. See: {@link #getMode()}
+     * Sets the view mode that should be used. Is configuration, the live view mode
+     * is updated elsewhere. See: {@link #getMode()}.
      * 
      * @param mode
      */
