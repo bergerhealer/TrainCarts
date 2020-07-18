@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryStateHandle;
@@ -18,14 +19,13 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityHandle
  * Tracks and updates the orientation of a seated entity
  */
 public class SeatOrientation {
-    private static final double CHICKEN_Y_OFFSET = -0.625;
     private boolean _locked = false;
     private float _entityLastYaw = 0;
     private float _entityLastPitch = 0;
     private float _entityLastHeadYaw = 0;
     private float _mountYaw = 0;
     private int _entityRotationCtr = 0;
-    private final Vector _mountOffset = new Vector(0.0, CHICKEN_Y_OFFSET, 0.0);
+    private final Vector _mountOffset = new Vector(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET, 0.0);
 
     public float getPassengerYaw() {
         return this._entityLastYaw;
@@ -95,7 +95,7 @@ public class SeatOrientation {
 
             // Subtracts butt position to correct the mount offset
             _mountOffset.setX(-off_x);
-            _mountOffset.setY(CHICKEN_Y_OFFSET - off_y);
+            _mountOffset.setY(VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET - off_y);
             _mountOffset.setZ(-off_z);
 
             // Shows a green particle where the player's butt is expected to be
@@ -147,7 +147,7 @@ public class SeatOrientation {
 
             this._entityLastHeadYaw = headPacket.getHeadYaw();
             for (Player viewer : seat.getViewers()) {
-                if (viewer.getEntityId() != entityId) {
+                if (!seated.isInvisibleTo(viewer)) {
                     PacketUtil.sendPacket(viewer, headPacket);
                     if (headPacketFlipped != null) {
                         PacketUtil.sendPacket(viewer, headPacketFlipped);
@@ -170,7 +170,7 @@ public class SeatOrientation {
             this._entityLastYaw = lookPacket.getYaw();
             this._entityLastPitch = lookPacket.getPitch();
             for (Player viewer : seat.getViewers()) {
-                if (viewer.getEntityId() != entityId) {
+                if (!seated.isInvisibleTo(viewer)) {
                     PacketUtil.sendPacket(viewer, lookPacket);
                 }
             }
@@ -183,7 +183,7 @@ public class SeatOrientation {
                 float flippedPitch = (this._entityLastPitch >= k) ? k+f : k-f;
                 PacketPlayOutEntityLookHandle flipLookPacket = PacketPlayOutEntityLookHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
                 for (Player viewer : seat.getViewers()) {
-                    if (viewer.getEntityId() != flippedId) {
+                    if (!seated.isInvisibleTo(viewer)) {
                         PacketUtil.sendPacket(viewer, flipLookPacket);
                     }
                 }
@@ -195,9 +195,9 @@ public class SeatOrientation {
 
     private void synchronizeNormal(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityNormal seated) {
         if (seated.isUpsideDown()) {
-            _mountOffset.setY(CHICKEN_Y_OFFSET - 0.65);
+            _mountOffset.setY(VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET - 0.65);
         } else {
-            _mountOffset.setY(CHICKEN_Y_OFFSET);
+            _mountOffset.setY(VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET);
         }
 
         if (this._locked) {

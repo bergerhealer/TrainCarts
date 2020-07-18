@@ -218,14 +218,6 @@ public class CartAttachmentSeat extends CartAttachment {
         return pos_new.subtract(pos_old);
     }
 
-    public boolean isFakePlayerUsed(Player viewer) {
-        if (viewer == this.seated.getEntity()) {
-            return this.firstPerson.getLiveMode().hasFakePlayer();
-        } else {
-            return true;
-        }
-    }
-
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
         if (this.seated.fakeMount != null &&

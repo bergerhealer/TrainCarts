@@ -41,7 +41,8 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityL
  */
 public class VirtualEntity {
     public static final double PLAYER_SIT_EYE_OFFSET = 1.25;
-    public static final double PLAYER_SIT_CHICKEN_OFFSET = -1.62;
+    public static final double PLAYER_SIT_CHICKEN_EYE_OFFSET = -1.62;
+    public static final double PLAYER_SIT_CHICKEN_BUTT_OFFSET = -0.625;
     private static final boolean IS_LOOK_PACKET_BUGGED = Common.evaluateMCVersion(">=", "1.15");
     private final AttachmentManager manager;
     private final int entityId;

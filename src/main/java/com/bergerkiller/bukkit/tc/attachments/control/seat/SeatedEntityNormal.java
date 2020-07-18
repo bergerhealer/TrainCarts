@@ -27,11 +27,6 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetada
  * upright or upside-down. This is the classic behavior seats have in Traincarts.
  */
 public class SeatedEntityNormal extends SeatedEntity {
-    private static final Matrix4x4 MATRIX_TRANSLATE_ONE = new Matrix4x4();
-    static {
-        MATRIX_TRANSLATE_ONE.translate(0.0, -1.0, 0.0);
-    }
-
     private boolean _upsideDown = false;
     private int _fakeEntityId = -1;
     private boolean _fake = false;
@@ -79,6 +74,10 @@ public class SeatedEntityNormal extends SeatedEntity {
     }
 
     public void makeFakePlayerVisible(Player viewer) {
+        if (isInvisibleTo(viewer)) {
+            return;
+        }
+
         Consumer<DataWatcher> metaFunction = metadata -> {
             metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
         };
@@ -94,13 +93,31 @@ public class SeatedEntityNormal extends SeatedEntity {
         vmh.mount(this.parentMountId, this._fakeEntityId);
     }
 
+    public void makeFakePlayerHidden(Player viewer) {
+        if (isInvisibleTo(viewer)) {
+            return;
+        }
+
+        if (this._fake && isPlayer()) {
+            // Destroy old fake player entity
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._fakeEntityId}));
+            PlayerUtil.getVehicleMountController(viewer).remove(this._fakeEntityId);
+
+            // Respawn the actual player or clean up the list
+            // Only needed when the player is not the viewer
+            if (viewer == this._entity) {
+                // Can not respawn yourself! Only undo listing.
+                ProfileNameModifier.NORMAL.sendListInfo(viewer, (Player) this._entity);
+            } else {
+                // Respawns the player as a normal player
+                ProfileNameModifier.NORMAL.spawnPlayer(viewer, (Player) this._entity, this._entity.getEntityId(), false, null, meta -> {});
+            }
+        }
+    }
+
     @Override
     public void makeVisible(Player viewer, boolean fake) {
         super.makeVisible(viewer, fake);
-
-    //} else if (seat.firstPerson.getLiveMode() == FirstPersonViewMode.INVISIBLE && this._entity == viewer) {
-        // First-person view mode where the player can not see himself
-        // Make the player invisible using a metadata change
 
         if (this._fake && fake) {
             // Despawn/hide original player entity
@@ -121,9 +138,11 @@ public class SeatedEntityNormal extends SeatedEntity {
             // Send metadata
             refreshMetadata(viewer);
 
-            // Mount entity in vehicle
-            VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-            vmh.mount(this.parentMountId, this._entity.getEntityId());
+            // Mount entity in vehicle, unless a camera is used
+            if (this._entity != viewer || !seat.firstPerson.isFakeCameraUsed()) {
+                VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
+                vmh.mount(this.parentMountId, this._entity.getEntityId());
+            }
         }
     }
 
@@ -133,24 +152,6 @@ public class SeatedEntityNormal extends SeatedEntity {
             makeFakePlayerHidden(viewer);
         }
         super.makeHidden(viewer, fake);
-    }
-
-    public void makeFakePlayerHidden(Player viewer) {
-        if (this._fake && isPlayer()) {
-            // Destroy old fake player entity
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._fakeEntityId}));
-            PlayerUtil.getVehicleMountController(viewer).remove(this._fakeEntityId);
-
-            // Respawn the actual player or clean up the list
-            // Only needed when the player is not the viewer
-            if (viewer == this._entity) {
-                // Can not respawn yourself! Only undo listing.
-                ProfileNameModifier.NORMAL.sendListInfo(viewer, (Player) this._entity);
-            } else {
-                // Respawns the player as a normal player
-                ProfileNameModifier.NORMAL.spawnPlayer(viewer, (Player) this._entity, this._entity.getEntityId(), false, null, meta -> {});
-            }
-        }
     }
 
     @Override
@@ -199,13 +200,20 @@ public class SeatedEntityNormal extends SeatedEntity {
 
             // Compute new first-person state of whether the player sees himself from third person using a fake camera
             new_firstPersonMode = seat.firstPerson.getMode();
-            if (new_firstPersonMode == FirstPersonViewMode.DYNAMIC &&
-                TCConfig.enableSeatThirdPersonView &&
-                !new_smoothCoasters &&
-                this.isPlayer() &&
-                Math.abs(selfPitch) > 70.0)
-            {
-                new_firstPersonMode = FirstPersonViewMode.THIRD_P;
+            if (new_firstPersonMode == FirstPersonViewMode.DYNAMIC) {
+                if (TCConfig.enableSeatThirdPersonView &&
+                    this.isPlayer() &&
+                    Math.abs(selfPitch) > 70.0)
+                {
+                    new_firstPersonMode = FirstPersonViewMode.THIRD_P;
+                }
+                else if (new_smoothCoasters) {
+                    // Smooth coasters can't deal well switching between mounts
+                    // Stay in the virtual camera view mode
+                    new_firstPersonMode = FirstPersonViewMode.FLOATING;
+                } else {
+                    new_firstPersonMode = FirstPersonViewMode.DEFAULT;
+                }
             }
 
             // Whether a fake entity is used to represent this seated entity
@@ -223,26 +231,28 @@ public class SeatedEntityNormal extends SeatedEntity {
         }
 
         if (new_isFake != this.isFake() || (this.isPlayer() && new_isUpsideDown != this.isUpsideDown())) {
+            // Do we refresh the first player view as well?
+            boolean refreshFPV = false;
+            if (new_firstPersonMode != seat.firstPerson.getLiveMode() || new_firstPersonMode.hasFakePlayer()) {
+                refreshFPV = true;
+            }
+
             // Fake entity changed, this requires the entity to be respawned for everyone
-            // When upside-down changes for a Player seated entity, also perform a respawn
             Entity entity = this.getEntity();
             Collection<Player> viewers = seat.getViewersSynced();
             for (Player viewer : viewers) {
-                if (new_smoothCoasters && viewer == entity) {
-                    // Don't respawn firstPerson if using SmoothCoasters
-                    continue;
+                if (refreshFPV || viewer != entity) {
+                    seat.makeHidden(viewer);
                 }
-                seat.makeHidden(viewer);
             }
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             for (Player viewer : viewers) {
-                if (new_smoothCoasters && viewer == entity) {
-                    continue;
+                if (refreshFPV || viewer != entity) {
+                    seat.makeVisibleImpl(viewer);
                 }
-                seat.makeVisibleImpl(viewer);
             }
         } else {
             if (new_isUpsideDown != this.isUpsideDown()) {

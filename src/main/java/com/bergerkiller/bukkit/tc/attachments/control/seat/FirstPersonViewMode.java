@@ -5,25 +5,35 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
  */
 public enum FirstPersonViewMode {
     /**
-     * Default mode: player sits in the seat, and sees himself
-     * sitting there always upright
-     */
-    DEFAULT(Double.NaN, false),
-    /**
      * Uses default mode when the seat is level, but switches to third-person
-     * mode when the seat is vertical or upside-down
+     * mode when the seat is vertical or upside-down. This is default legacy
+     * behavior.
      */
     DYNAMIC(Double.NaN, false),
     /**
-     * The player can see himself sit in third-person, the camera hovering
-     * slightly above where the head is located
+     * Default mode: player sits in the seat, and sees himself
+     * sitting there always upright. The player head is always
+     * above the position of the seat. Anchors the butt of the player
+     * where the seat position is.
      */
-    THIRD_P(1.4, true),
+    DEFAULT(Double.NaN, false),
+    /**
+     * Player floats an offset away from the seat, making sure the player head
+     * is exactly where it would be if perfectly rotated. Anchors the eyes of
+     * the player a fixed distance of 1 from the seat position.
+     */
+    FLOATING(1.0, false),
     /**
      * The player can not see himself sitting, but the camera is positioned
-     * where the player head would be in third-person
+     * where the player head would be in floating mode.
      */
-    INVISIBLE(0.0, false);
+    INVISIBLE(1.0, true),
+    /**
+     * The player can see himself sit in third-person, the camera hovering
+     * slightly above where the head is located. Similar to floating,
+     * but the player is visible as a separate entity.
+     */
+    THIRD_P(1.4, true);
 
     private final double _cameraOffset;
     private final boolean _fakePlayer;

@@ -4,6 +4,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -30,6 +31,21 @@ public class FirstPersonDefault {
         this.seat = seat;
     }
 
+    public boolean isFakeCameraUsed() {
+        if (this._liveMode.isVirtual()) {
+            return true;
+        }
+
+        // The elytra has a 'weird' mount position to make it work in third-person
+        // This causes the default camera, mounted for the same entity, to no longer work
+        // To fix this, make use of the virtual camera mount
+        if (this._liveMode == FirstPersonViewMode.DEFAULT && this.seat.seated instanceof SeatedEntityElytra) {
+            return true;
+        }
+
+        return false;
+    }
+
     public void makeVisible(Player viewer) {
         _player = viewer;
 
@@ -45,14 +61,18 @@ public class FirstPersonDefault {
             );
         }
 
-        if (this._liveMode.isVirtual()) {
+        if (isFakeCameraUsed()) {
             if (this._fakeCameraMount == null) {
                 this._fakeCameraMount = new VirtualEntity(seat.getManager());
-
                 this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
-                this._fakeCameraMount.setPosition(new Vector(0.0, this._liveMode.getVirtualOffset(), 0.0));
-                this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_OFFSET, 0.0);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
+
+                if (this._liveMode.isVirtual()) {
+                    this._fakeCameraMount.setPosition(new Vector(0.0, this._liveMode.getVirtualOffset(), 0.0));
+                    this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_EYE_OFFSET, 0.0);
+                } else {
+                    this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET, 0.0);
+                }
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
                 this._fakeCameraMount.updatePosition(seat.getTransform());
@@ -66,7 +86,8 @@ public class FirstPersonDefault {
                 PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
             }
 
-            PlayerUtil.getVehicleMountController(viewer).mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
+            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+            vmc.mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
         }
 
         seat.seated.makeVisible(viewer, this._liveMode.hasFakePlayer());
@@ -78,7 +99,7 @@ public class FirstPersonDefault {
             TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(viewer);
         }
 
-        if (this._liveMode.isVirtual() && this._fakeCameraMount != null) {
+        if (this._fakeCameraMount != null) {
             PlayerUtil.getVehicleMountController(viewer).unmount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
             this._fakeCameraMount.destroy(viewer);
             this._fakeCameraMount = null;
@@ -100,7 +121,7 @@ public class FirstPersonDefault {
             );
         }
 
-        if (this._fakeCameraMount != null && this._liveMode.isVirtual()) {
+        if (this._fakeCameraMount != null) {
             this._fakeCameraMount.updatePosition(seat.getTransform());
             this._fakeCameraMount.syncPosition(absolute);
         }

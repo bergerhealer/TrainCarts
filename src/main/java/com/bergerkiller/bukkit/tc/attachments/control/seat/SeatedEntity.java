@@ -36,6 +36,12 @@ public abstract class SeatedEntity {
     public VirtualEntity fakeMount = null;
     public int parentMountId = -1;
 
+    // Used to translate y -1 for the eye position transformation
+    protected static final Matrix4x4 MATRIX_TRANSLATE_ONE = new Matrix4x4();
+    static {
+        MATRIX_TRANSLATE_ONE.translate(0.0, -1.0, 0.0);
+    }
+
     public SeatedEntity(CartAttachmentSeat seat) {
         this.seat = seat;
     }
@@ -192,6 +198,17 @@ public abstract class SeatedEntity {
      * @param silent Whether to send new spawn/make-visible packets to players or not
      */
     public abstract void updateMode(boolean silent);
+
+    /**
+     * Gets whether this seat is invisible to a viewer. This is the case if the viewer
+     * is the entity inside this seat and the INVISIBLE first person view mode is used.
+     * 
+     * @param viewer
+     * @return True if the viewer can not see the entity inside this seat
+     */
+    public boolean isInvisibleTo(Player viewer) {
+        return this._entity == viewer && this.seat.firstPerson.getLiveMode() == FirstPersonViewMode.INVISIBLE;
+    }
 
     public static enum DisplayMode {
         DEFAULT, /* Player is displayed either upright or upside-down in a cart */
