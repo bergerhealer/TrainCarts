@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
@@ -135,7 +136,7 @@ public abstract class SeatedEntity {
             if (this.parentMountId == -1) {
                 if (this.fakeMount == null) {
                     this.fakeMount = new VirtualEntity(seat.getManager());
-                    this.fakeMount.setEntityType(EntityType.CHICKEN);
+                    this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
                     this.fakeMount.setSyncMode(SyncMode.SEAT);
                     this.fakeMount.setRelativeOffset(this.orientation.getMountOffset());
 
@@ -144,6 +145,10 @@ public abstract class SeatedEntity {
                     this.fakeMount.syncPosition(true);
                     this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                     this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
+                    this.fakeMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                            EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
+                            EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                            EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
                 }
                 this.parentMountId = this.fakeMount.getEntityId();
             }

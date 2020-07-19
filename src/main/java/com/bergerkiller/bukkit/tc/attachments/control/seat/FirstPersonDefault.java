@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttributesHandle;
@@ -64,21 +65,25 @@ public class FirstPersonDefault {
         if (isFakeCameraUsed()) {
             if (this._fakeCameraMount == null) {
                 this._fakeCameraMount = new VirtualEntity(seat.getManager());
-                this._fakeCameraMount.setEntityType(EntityType.CHICKEN);
+                this._fakeCameraMount.setEntityType(EntityType.ARMOR_STAND);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
+                double y_offset = VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET;
                 if (this._liveMode.isVirtual()) {
+                    y_offset -= VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
                     this._fakeCameraMount.setPosition(new Vector(0.0, this._liveMode.getVirtualOffset(), 0.0));
-                    this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_EYE_OFFSET, 0.0);
-                } else {
-                    this._fakeCameraMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET, 0.0);
                 }
+                this._fakeCameraMount.setRelativeOffset(0.0, y_offset, 0.0);
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
                 this._fakeCameraMount.updatePosition(seat.getTransform());
                 this._fakeCameraMount.syncPosition(true);
                 this._fakeCameraMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                 this._fakeCameraMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
+                this._fakeCameraMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                        EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
+                        EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                        EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
                 this._fakeCameraMount.spawn(viewer, seat.calcMotion());
                 this._fakeCameraMount.syncPosition(true);
 

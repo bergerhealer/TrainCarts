@@ -40,10 +40,24 @@ import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityL
  * The entity can be spawned or destroyed for individual players.
  */
 public class VirtualEntity {
-    public static final double PLAYER_SIT_EYE_OFFSET = 1.25;
-    public static final double PLAYER_SIT_CHICKEN_EYE_OFFSET = -1.62;
-    public static final double PLAYER_SIT_CHICKEN_BUTT_OFFSET = -0.625;
+    /**
+     * Add this offset to the sit butt offset and the position is exactly where the center of the head is.
+     * This is where the player looks from.
+     */
+    public static final double PLAYER_SIT_BUTT_EYE_HEIGHT = 1.0;
+    /**
+     * The height offset a player sits on top of a chicken
+     */
+    public static final double PLAYER_SIT_CHICKEN_BUTT_OFFSET = -0.62;
+    /**
+     * The height offset a player sits on top of an armorstand
+     */
+    public static final double PLAYER_SIT_ARMORSTAND_BUTT_OFFSET = -0.27;
+    /**
+     * Look packet doesn't work on 1.15, glitches out, must send a look + move packet with 0/0/0 movement
+     */
     private static final boolean IS_LOOK_PACKET_BUGGED = Common.evaluateMCVersion(">=", "1.15");
+
     private final AttachmentManager manager;
     private final int entityId;
     private final UUID entityUUID;

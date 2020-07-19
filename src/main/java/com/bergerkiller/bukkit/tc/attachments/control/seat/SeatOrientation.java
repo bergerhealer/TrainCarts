@@ -25,7 +25,7 @@ public class SeatOrientation {
     private float _entityLastHeadYaw = 0;
     private float _mountYaw = 0;
     private int _entityRotationCtr = 0;
-    private final Vector _mountOffset = new Vector(0.0, VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET, 0.0);
+    private final Vector _mountOffset = new Vector(0.0, VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET, 0.0);
 
     public float getPassengerYaw() {
         return this._entityLastYaw;
@@ -95,7 +95,7 @@ public class SeatOrientation {
 
             // Subtracts butt position to correct the mount offset
             _mountOffset.setX(-off_x);
-            _mountOffset.setY(VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET - off_y);
+            _mountOffset.setY(VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET - off_y);
             _mountOffset.setZ(-off_z);
 
             // Shows a green particle where the player's butt is expected to be
@@ -195,9 +195,9 @@ public class SeatOrientation {
 
     private void synchronizeNormal(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityNormal seated) {
         if (seated.isUpsideDown()) {
-            _mountOffset.setY(VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET - 0.65);
+            _mountOffset.setY(VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET - 0.65);
         } else {
-            _mountOffset.setY(VirtualEntity.PLAYER_SIT_CHICKEN_BUTT_OFFSET);
+            _mountOffset.setY(VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET);
         }
 
         if (this._locked) {
