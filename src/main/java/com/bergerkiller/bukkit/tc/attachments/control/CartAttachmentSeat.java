@@ -151,7 +151,6 @@ public class CartAttachmentSeat extends CartAttachment {
 
         DisplayMode displayMode = this.getConfig().get("displayMode", DisplayMode.DEFAULT);
         switch (displayMode) {
-        case ELYTRA:
         case ELYTRA_SIT:
             this.seated = new SeatedEntityElytra(this);
             break;
