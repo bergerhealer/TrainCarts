@@ -57,6 +57,10 @@ public class VirtualEntity {
      * Look packet doesn't work on 1.15, glitches out, must send a look + move packet with 0/0/0 movement
      */
     private static final boolean IS_LOOK_PACKET_BUGGED = Common.evaluateMCVersion(">=", "1.15");
+    /**
+     * Legacy was needed for seats when a chicken was used
+     */
+    private static final boolean NEEDS_UNSTUCK_VECTOR = Boolean.FALSE.booleanValue();
 
     private final AttachmentManager manager;
     private final int entityId;
@@ -365,7 +369,7 @@ public class VirtualEntity {
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
 
         // Ensure we spawn with a little bit of movement when we are a seat
-        if (this.syncMode == SyncMode.SEAT) {
+        if (NEEDS_UNSTUCK_VECTOR && this.syncMode == SyncMode.SEAT) {
             double xzls = (motion.getX() * motion.getX()) + (motion.getZ() * motion.getZ());
             if (xzls < (0.002 * 0.002)) {
                 double y = motion.getY();
@@ -537,7 +541,7 @@ public class VirtualEntity {
             this.syncAbsZ += packet.getDeltaZ();
             broadcast(packet);
         } else if (rotated) {
-            if (this.syncMode == SyncMode.SEAT && rotatedNow) {
+            if (NEEDS_UNSTUCK_VECTOR && this.syncMode == SyncMode.SEAT && rotatedNow) {
                 // Send a very small movement change to correct rotation in a pulse
                 Vector v = getUnstuckVector();
                 PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
