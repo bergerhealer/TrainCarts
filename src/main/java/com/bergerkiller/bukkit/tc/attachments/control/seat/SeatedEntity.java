@@ -200,8 +200,8 @@ public abstract class SeatedEntity {
 
     public static enum DisplayMode {
         DEFAULT, /* Player is displayed either upright or upside-down in a cart */
-        ELYTRA_SIT, /* Player is in sitting pose while flying in an elytra */
-        ELYTRA /* Player is in elytra flying pose */
+        ELYTRA_SIT /* Player is in sitting pose while flying in an elytra */
+        //ELYTRA /* Player is in elytra flying pose */ //TODO!
     }
 
     /*
