@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutUpdateAttributesHandle;
 
@@ -92,7 +91,7 @@ public abstract class SeatedEntity {
      */
     public abstract int getId();
 
-    public void hideRealPlayer(Player viewer) {
+    protected void hideRealPlayer(Player viewer) {
         if (this._entity == viewer) {
             // Sync to self: make the real player invisible using a metadata change
             DataWatcher metaTmp = new DataWatcher();
@@ -101,7 +100,7 @@ public abstract class SeatedEntity {
             PacketUtil.sendPacket(viewer, metaPacket);
         } else {
             // Sync to others: destroy the original player
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._entity.getEntityId()}));
+            PlayerUtil.getVehicleMountController(viewer).despawn(this._entity.getEntityId());
         }
     }
 

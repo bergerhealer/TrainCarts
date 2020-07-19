@@ -99,8 +99,9 @@ public class SeatedEntityNormal extends SeatedEntity {
 
         if (this._fake && isPlayer()) {
             // Destroy old fake player entity
+            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
             PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._fakeEntityId}));
-            PlayerUtil.getVehicleMountController(viewer).remove(this._fakeEntityId);
+            vmc.remove(this._fakeEntityId);
 
             // Respawn the actual player or clean up the list
             // Only needed when the player is not the viewer
@@ -109,7 +110,9 @@ public class SeatedEntityNormal extends SeatedEntity {
                 ProfileNameModifier.NORMAL.sendListInfo(viewer, (Player) this._entity);
             } else {
                 // Respawns the player as a normal player
-                ProfileNameModifier.NORMAL.spawnPlayer(viewer, (Player) this._entity, this._entity.getEntityId(), false, null, meta -> {});
+                vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
+                    ProfileNameModifier.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
+                });
             }
         }
     }
@@ -120,16 +123,7 @@ public class SeatedEntityNormal extends SeatedEntity {
 
         if (this._fake && fake) {
             // Despawn/hide original player entity
-            if (this._entity == viewer) {
-                // Sync to self: make the real player invisible using a metadata change
-                DataWatcher metaTmp = new DataWatcher();
-                metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-                PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(viewer.getEntityId(), metaTmp, true);
-                PacketUtil.sendPacket(viewer, metaPacket);
-            } else {
-                // Sync to others: destroy the original player
-                PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(new int[] {this._entity.getEntityId()}));
-            }
+            hideRealPlayer(viewer);
 
             // Respawn an upside-down player in its place
             makeFakePlayerVisible(viewer);
