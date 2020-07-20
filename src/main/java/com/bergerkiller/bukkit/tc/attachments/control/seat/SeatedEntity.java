@@ -168,7 +168,7 @@ public abstract class SeatedEntity {
         // Resend the correct metadata for the entity/player
         if (!isEmpty()) {
             resetMetadata(viewer);
-            PlayerUtil.getVehicleMountController(viewer).remove(this._entity.getEntityId());
+            PlayerUtil.getVehicleMountController(viewer).unmount(this.parentMountId, this._entity.getEntityId());
         }
 
         if (this.fakeMount != null) {
