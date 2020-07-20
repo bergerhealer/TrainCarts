@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -23,7 +24,9 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
+import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 /**
@@ -148,6 +151,18 @@ public class CartAttachmentEntity extends CartAttachment {
                     nameTagTextBox.activate();
                 }
             }).setText("Edit").setBounds(80, 13, 22, 11);
+
+            tab.addWidget(new MapWidgetToggleButton<Boolean>() {
+                @Override
+                public void onSelectionChanged() {
+                    attachment.getConfig().set("sitting", this.getSelectedOption());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                    display.playSound(SoundEffect.CLICK);
+                }
+            }).addOptions(b -> "Sitting: " + (b ? "YES" : "NO"), Boolean.TRUE, Boolean.FALSE)
+              .setSelectedOption(attachment.getConfig().get("sitting", false))
+              .setBounds(0, 26, 102, 16);
         }
     };
 
@@ -166,6 +181,7 @@ public class CartAttachmentEntity extends CartAttachment {
         super.onAttached();
 
         EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
+        boolean sitting = this.getConfig().get("sitting", false);
 
         // Some entity types cannot be spawned, use placeholder
         if (!isEntityTypeSupported(entityType)) {
@@ -203,13 +219,17 @@ public class CartAttachmentEntity extends CartAttachment {
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
-        if (entityType.name().equals("SHULKER")) {
+        if (sitting || entityType.name().equals("SHULKER")) {
+            // Mount inside a marker armorstand
             this.actual = this.entity;
             this.entity = new VirtualEntity(this.getManager());
-            this.entity.setEntityType(EntityType.CHICKEN);
+            this.entity.setEntityType(EntityType.ARMOR_STAND);
             this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
             this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
-            this.entity.setRelativeOffset(0.0, -0.32, 0.0);
+            this.entity.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
+                    EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
         }
     }
 
@@ -229,7 +249,8 @@ public class CartAttachmentEntity extends CartAttachment {
 
     @Override
     public boolean containsEntityId(int entityId) {
-        return this.entity != null && this.entity.getEntityId() == entityId;
+        return (this.entity != null && this.entity.getEntityId() == entityId) ||
+               (this.actual != null && this.actual.getEntityId() == entityId);
     }
 
     @Override
