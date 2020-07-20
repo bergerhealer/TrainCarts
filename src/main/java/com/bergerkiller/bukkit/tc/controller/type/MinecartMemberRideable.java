@@ -1,12 +1,15 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.InteractionResult;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +31,24 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
         // Is there a seat available to add a player?
         if (this.getAvailableSeatCount() == 0) {
             return InteractionResult.PASS;
+        }
+
+        // If already a passenger, all we do here is try to swap seats
+        // If the player goes to the same seat he is already in, nothing happens
+        if (this.entity.isPassenger(interacter)) {
+            // If playerexit or playerenter are false, do not allow switching seats
+            TrainProperties tprop = this.getGroup().getProperties();
+            if (!tprop.getPlayersExit() || !tprop.getPlayersEnter()) {
+                return InteractionResult.PASS;
+            }
+
+            // Tell the network handler to change seats
+            MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+            if (network != null && network.changeSeats(interacter)) {
+                return InteractionResult.SUCCESS;
+            } else {
+                return InteractionResult.PASS;
+            }
         }
 
         // Attempt to add the passenger

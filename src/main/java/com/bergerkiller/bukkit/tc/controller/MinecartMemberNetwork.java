@@ -132,34 +132,62 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Add passengers that have entered
         for (Entity newPassenger : newPassengers) {
-            boolean hasSeat = false;
-            for (CartAttachmentSeat seat : this.seatAttachments) {
-                if (seat.getEntity() == newPassenger) {
-                    hasSeat = true;
-                    break;
-                }
-            }
-            if (!hasSeat) {
-                // Get the LAST known position
-                // We can not use current, because that is set to the location of the Minecart
-                Vector position = new Vector();
-                {
-                    EntityHandle handle = EntityHandle.fromBukkit(newPassenger);
-                    position.setX(handle.getLastX());
-                    position.setY(handle.getLastY());
-                    position.setZ(handle.getLastZ());
-                }
-
-                // Find a free seat and add the player there
-                List<CartAttachmentSeat> sortedSeats = this.getSeatsClosestTo(position);
-                for (CartAttachmentSeat seat : sortedSeats) {
-                    if (seat.getEntity() == null) {
-                        seat.setEntity(newPassenger);
-                        break;
-                    }
+            if (findCurrentSeatOfEntity(newPassenger) == null) {
+                CartAttachmentSeat newSeat = findNewSeatOfEntity(newPassenger);
+                if (newSeat != null) {
+                    newSeat.setEntity(newPassenger);
                 }
             }
         }
+    }
+
+    /**
+     * Handles switching seats (when a player clicks on a different seat while already seated
+     * in the same cart)
+     * 
+     * @param passenger
+     */
+    public boolean changeSeats(Entity passenger) {
+        // See what seat attachment this passenger currently occupies
+        CartAttachmentSeat old_seat = findCurrentSeatOfEntity(passenger);
+        CartAttachmentSeat new_seat = findNewSeatOfEntity(passenger);
+        if (new_seat == null || old_seat == new_seat) {
+            return false;
+        }
+
+        old_seat.setEntity(null);
+        new_seat.setEntity(passenger);
+        return true;
+    }
+
+    private CartAttachmentSeat findNewSeatOfEntity(Entity passenger) {
+        // Get the LAST known position
+        // We can not use current, because that is set to the location of the Minecart
+        Vector position = new Vector();
+        {
+            EntityHandle handle = EntityHandle.fromBukkit(passenger);
+            position.setX(handle.getLastX());
+            position.setY(handle.getLastY());
+            position.setZ(handle.getLastZ());
+        }
+
+        // Find a free seat and add the player there
+        List<CartAttachmentSeat> sortedSeats = this.getSeatsClosestTo(position);
+        for (CartAttachmentSeat seat : sortedSeats) {
+            if (seat.getEntity() == null) {
+                return seat;
+            }
+        }
+        return null;
+    }
+
+    private CartAttachmentSeat findCurrentSeatOfEntity(Entity passenger) {
+        for (CartAttachmentSeat seat : this.seatAttachments) {
+            if (seat.getEntity() == passenger) {
+                return seat;
+            }
+        }
+        return null;
     }
 
     private List<CartAttachmentSeat> getSeatsClosestTo(Vector position) {
