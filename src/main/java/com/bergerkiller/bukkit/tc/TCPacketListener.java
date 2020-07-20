@@ -116,13 +116,23 @@ public class TCPacketListener implements PacketListener {
                             continue; // Id is not used in the model
                         }
 
-                        // Rewrite the packet
+                        // UseAction INTERACT_AT fires for all entities, including Armorstands
+                        // The INTERACT only fires for interactable entities, like Minecarts
+                        // Since INTERACT_AT also fires for Minecarts, it is easier to ignore INTERACT
+                        // and do all handling using INTERACT_AT.
                         UseAction useAction = packet_use.getAction();
-                        packet_use.setUsedEntityId(member.getEntity().getEntityId());
-                        if (useAction == UseAction.INTERACT_AT) {
-                            useAction = UseAction.INTERACT;
-                            packet_use.setAction(useAction);
+                        if (useAction == UseAction.INTERACT) {
+                            event.setCancelled(true);
+                            return;
                         }
+
+                        // For some reason this is needed, though.
+                        if (useAction == UseAction.INTERACT_AT) {
+                            packet_use.setAction(UseAction.INTERACT);
+                        }
+
+                        // Rewrite the packet
+                        packet_use.setUsedEntityId(member.getEntity().getEntityId());
 
                         // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
                         // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
