@@ -146,8 +146,7 @@ public class ChunkArea {
     public final void getForcedChunks(List<ForcedChunk> forcedChunks) {
         for (OwnedChunk chunk : this.all_chunks) {
             if (!chunk.forcedChunk.isNone()) {
-                //TODO: chunk.forcedChunk.clone() in newer version of BKCommonLib
-                forcedChunks.add(ChunkUtil.forceChunkLoaded(chunk.getWorld(), chunk.getX(), chunk.getZ()));
+                forcedChunks.add(chunk.forcedChunk.clone());
             }
         }
     }
