@@ -112,7 +112,7 @@ public class TCPacketListener implements PacketListener {
                         if (!enc.getViewers().contains(event.getPlayer())) {
                             continue; // If not visible, don't loop through the model to check this
                         }
-                        if (!enc.handleInteraction(entityId)) {
+                        if (!enc.isAttachment(entityId)) {
                             continue; // Id is not used in the model
                         }
 
