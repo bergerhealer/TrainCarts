@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.actions.MemberAction;
 import com.bergerkiller.bukkit.tc.actions.MovementAction;
 import com.bergerkiller.bukkit.tc.actions.WaitAction;
@@ -9,6 +10,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
+
+import org.bukkit.block.Block;
 
 /**
  * Stores actions and updates them per tick
@@ -62,6 +65,17 @@ public class ActionTracker {
         this.actions.offer(action);
         action.bind();
         return action;
+    }
+
+    /**
+     * Adds an action that toggles the levers attached to a Block.
+     * 
+     * @param block Block to which levers are attached
+     * @param down Whether the levers should be down (true) or up (false)
+     * @return the added action
+     */
+    public BlockActionSetLevers addActionSetLevers(Block block, boolean down) {
+        return addAction(new BlockActionSetLevers(block, down));
     }
 
     /**

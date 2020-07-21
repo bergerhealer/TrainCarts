@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.actions;
 
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import org.bukkit.block.BlockFace;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
@@ -60,7 +59,9 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 
     @Override
     public boolean update() {
-        if (breakCode) return true;
+        if (breakCode) {
+            return true;
+        }
         if (counter++ >= 20) {
             if (!this.handleOccupied()) {
                 // Add Delay

@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchDirection;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -424,7 +423,7 @@ public class Station {
     }
 
     public void setLevers(boolean down) {
-        info.getGroup().getActions().addAction(new BlockActionSetLevers(info.getAttachedBlock(), down)).addTag(this.getTag());
+        info.getGroup().getActions().addActionSetLevers(info.getAttachedBlock(), down).addTag(this.getTag());
     }
 
     /**
