@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -15,6 +16,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -297,8 +299,17 @@ public class RailTrackerGroup extends RailTracker {
         if (wheelDistance > WheelTrackerMember.MIN_WHEEL_DISTANCE) {
             TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
+            int limit = 1000;
             while (p.moveStep(wheelDistance - p.movedTotal)) {
                 this.rails.add(++railIndex, new TrackedRail(tail, p, false));
+                if (--limit == 0) {
+                    TrainCarts.plugin.log(Level.WARNING, "Reached maximum loops refreshing front wheel position (" +
+                        "train=" + this.owner.getProperties().getTrainName() +
+                        " x=" + tail.getEntity().loc.getX() +
+                        " y=" + tail.getEntity().loc.getY() +
+                        " z=" + tail.getEntity().loc.getZ() + ")");
+                    break;
+                }
             }
 
             //Location loc = position.toLocation(owner.getWorld());
