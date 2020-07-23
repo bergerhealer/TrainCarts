@@ -6,3 +6,6 @@ contact_links:
 - name: Dev Builds
   url: https://ci.mg-dev.eu/job/TrainCarts/
   about: You can find the latest development Builds on our Jenkins page (WARNING! Dev Builds might be unstable!)
+- name: TeamBergerHealter Discord
+  url: https://discord.gg/j2u3xPF
+  about: If you need help or have a minor issue to report, you can visit our Discord server
