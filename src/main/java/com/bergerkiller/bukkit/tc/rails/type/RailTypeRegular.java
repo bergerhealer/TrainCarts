@@ -368,7 +368,6 @@ public class RailTypeRegular extends RailTypeHorizontal {
     public RailLogic getLogic(RailState state) {
         Rails rails = Util.getRailsRO(state.railBlock());
         if (rails == null) {
-            System.out.println("RETURNING GROUND FOR " + state.railPiece().block());
             return RailLogicGround.INSTANCE;
         }
         return getLogicForRails(state.railBlock(), rails, state.enterFace());
