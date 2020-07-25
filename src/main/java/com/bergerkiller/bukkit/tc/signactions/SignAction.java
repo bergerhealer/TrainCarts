@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -153,19 +154,24 @@ public abstract class SignAction {
         return action != null && action.click(info, player);
     }
 
+    /**
+     * <b>Deprecated: please use {@link SignBuildOptions} for this instead
+     */
+    @Deprecated
     public static boolean handleBuild(SignChangeActionEvent event, PermissionEnum permission, String signname) {
         return handleBuild(event, permission, signname, null);
     }
 
+    /**
+     * <b>Deprecated: please use {@link SignBuildOptions} for this instead
+     */
+    @Deprecated
     public static boolean handleBuild(SignChangeActionEvent event, PermissionEnum permission, String signname, String signdescription) {
-        if (permission.handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to use this sign")) {
-            event.getPlayer().sendMessage(ChatColor.YELLOW + "You built a " + ChatColor.WHITE + signname + ChatColor.YELLOW + "!");
-            if (signdescription != null) {
-                event.getPlayer().sendMessage(ChatColor.GREEN + "This sign can " + signdescription + ".");
-            }
-            return true;
-        }
-        return false;
+        return SignBuildOptions.create()
+                .setPermission(permission)
+                .setName(signname)
+                .setDescription(signdescription)
+                .handle(event.getPlayer());
     }
 
     public static void handleBuild(SignChangeEvent event) {

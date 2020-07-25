@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.ChatColor;
@@ -49,7 +50,13 @@ public class SignActionSpawn extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (!handleBuild(event, Permission.BUILD_SPAWNER, "train spawner", "spawn trains on the tracks above when powered by redstone")) {
+        if (!SignBuildOptions.create()
+                .setPermission(Permission.BUILD_SPAWNER)
+                .setName("train spawner")
+                .setDescription("spawn trains on the tracks above when powered by redstone")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Spawner")
+                .handle(event.getPlayer()))
+        {
             return false;
         }
 

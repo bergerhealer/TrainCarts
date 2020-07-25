@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 import net.md_5.bungee.api.ChatColor;
@@ -151,7 +152,13 @@ public class SignActionTeleport extends SignAction {
             event.getPlayer().sendMessage(ChatColor.RED + "MyWorlds" + ChatColor.YELLOW + " is not enabled on this server. Teleporter signs will not function as a result.");
             return false;
         }
-        return handleBuild(event, Permission.BUILD_TELEPORTER, "train teleporter", "teleport trains large distances to another teleporter sign");
+
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_TELEPORTER)
+                .setName("train teleporter")
+                .setDescription("teleport trains large distances to another teleporter sign")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Teleporter")
+                .handle(event.getPlayer());
     }
 
     private boolean matchMyWorlds(SignActionEvent info) {

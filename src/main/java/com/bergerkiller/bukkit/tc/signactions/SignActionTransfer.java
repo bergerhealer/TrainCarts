@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
@@ -153,11 +154,19 @@ public class SignActionTransfer extends SignAction {
         }
         // Show appropriate message and permission
         if (collect) {
-            return handleBuild(event, Permission.BUILD_COLLECTOR, "storage minecart item collector",
-                    "obtain items from " + StringUtil.combineNames(types));
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_COLLECTOR)
+                    .setName("storage minecart item collector")
+                    .setDescription("take items from " + StringUtil.combineNames(types))
+                    .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Transfer")
+                    .handle(event.getPlayer());
         } else {
-            return handleBuild(event, Permission.BUILD_DEPOSITOR, "storage minecart item depositor",
-                    "make trains put items into " + StringUtil.combineNames(types));
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_DEPOSITOR)
+                    .setName("storage minecart item depositor")
+                    .setDescription("make trains put items into " + StringUtil.combineNames(types))
+                    .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Transfer")
+                    .handle(event.getPlayer());
         }
     }
 }

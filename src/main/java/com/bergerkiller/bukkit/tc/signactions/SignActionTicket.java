@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -8,6 +9,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -99,6 +102,11 @@ public class SignActionTicket extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_TICKET, "ticket system", "charges the passengers of a train");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_TICKET)
+                .setName("ticket system")
+                .setDescription("charges the passengers of a train")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Ticket")
+                .handle(event.getPlayer());
     }
 }

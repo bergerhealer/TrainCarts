@@ -14,6 +14,8 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 
@@ -243,9 +245,19 @@ public class SignActionSwitcher extends SignAction {
     @Override
     public boolean build(SignChangeActionEvent event) {
         if (event.isCartSign()) {
-            return handleBuild(event, Permission.BUILD_SWITCHER, "cart switcher", "switch between tracks based on properties of the cart above");
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_SWITCHER)
+                    .setName("cart switcher")
+                    .setDescription("switch between tracks based on properties of the cart above")
+                    .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Switcher")
+                    .handle(event.getPlayer());
         } else if (event.isTrainSign()) {
-            return handleBuild(event, Permission.BUILD_SWITCHER, "train switcher", "switch between tracks based on properties of the train above");
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_SWITCHER)
+                    .setName("train switcher")
+                    .setDescription("switch between tracks based on properties of the train above")
+                    .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Switcher")
+                    .handle(event.getPlayer());
         }
         return false;
     }

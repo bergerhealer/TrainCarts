@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 
 public class SignActionSkip extends SignAction {
@@ -49,15 +50,19 @@ public class SignActionSkip extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        boolean succ = false;
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_SKIPPER)
+                .setName(event.isCartSign() ? "cart skipper" : "train skipper")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Skip");
+
         if (event.isTrainSign()) {
-            succ = handleBuild(event, Permission.BUILD_SKIPPER, "train skipper", "tell a train to skip upcoming signs");
+            opt.setDescription("tell a train to skip upcoming signs");
         } else if (event.isCartSign()) {
-            succ = handleBuild(event, Permission.BUILD_SKIPPER, "cart skipper", "tell a cart to skip upcoming signs");
+            opt.setDescription("tell a cart to skip upcoming signs");
         } else if (event.isRCSign()) {
-            succ = handleBuild(event, Permission.BUILD_SKIPPER, "train skipper", "tell a remote train to skip signs");
+            opt.setDescription("tell a remote train to skip signs");
         }
-        return succ;
+        return opt.handle(event.getPlayer());
     }
 
     @Override

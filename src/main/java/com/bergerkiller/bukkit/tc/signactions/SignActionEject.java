@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import java.util.Locale;
 
@@ -136,11 +137,12 @@ public class SignActionEject extends SignAction {
             }
         }
 
-        if (event.isRCSign()) {
-            return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a remote train");
-        } else {
-            return handleBuild(event, Permission.BUILD_EJECTOR, "cart ejector", "eject the passengers of a train");
-        }
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_EJECTOR)
+                .setName("train ejector")
+                .setDescription("eject the passengers of a " + (event.isRCSign() ? "remote train" : "train"))
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Ejector")
+                .handle(event.getPlayer());
     }
 
     @Override

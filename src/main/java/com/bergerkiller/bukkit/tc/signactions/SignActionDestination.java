@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.entity.Player;
 
@@ -124,15 +125,19 @@ public class SignActionDestination extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        boolean succ = false;
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_DESTINATION)
+                .setName(event.isCartSign() ? "cart destination" : "train destination")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Destination");
+
         if (event.isTrainSign()) {
-            succ = handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set a train destination and the next destination to set once it is reached");
+            opt.setDescription("set a train destination and the next destination to set once it is reached");
         } else if (event.isCartSign()) {
-            succ = handleBuild(event, Permission.BUILD_DESTINATION, "cart destination", "set a cart destination and the next destination to set once it is reached");
+            opt.setDescription("set a cart destination and the next destination to set once it is reached");
         } else if (event.isRCSign()) {
-            succ = handleBuild(event, Permission.BUILD_DESTINATION, "train destination", "set the destination on a remote train");
+            opt.setDescription("set the destination on a remote train");
         }
-        return succ;
+        return opt.handle(event.getPlayer());
     }
 
     @Override

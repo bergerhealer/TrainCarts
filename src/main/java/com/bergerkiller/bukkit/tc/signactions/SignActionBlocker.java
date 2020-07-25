@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import org.bukkit.block.BlockFace;
 
 public class SignActionBlocker extends SignAction {
@@ -60,6 +62,11 @@ public class SignActionBlocker extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_BLOCKER, "train blocker", "block trains coming from a certain direction");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_BLOCKER)
+                .setName("train blocker")
+                .setDescription("block trains coming from a certain direction")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Blocker")
+                .handle(event.getPlayer());
     }
 }

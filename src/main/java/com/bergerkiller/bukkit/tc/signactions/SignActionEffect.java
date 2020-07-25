@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.Effect;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import org.bukkit.entity.Player;
 
 public class SignActionEffect extends SignAction {
@@ -90,14 +92,20 @@ public class SignActionEffect extends SignAction {
     @Override
     public boolean build(SignChangeActionEvent event) {
         String app = event.isType("meffect") ? " while moving" : "";
-        if (event.isCartSign()) {
-            return handleBuild(event, Permission.BUILD_EFFECT, "cart effect player", "play an effect in the minecart" + app);
-        } else if (event.isTrainSign()) {
-            return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
+
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_EFFECT)
+                .setName(event.isCartSign() ? "cart effect player" : "train effect player")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Effect");
+
+        if (event.isTrainSign()) {
+            opt.setDescription("play an effect in all minecarts of the train" + app);
+        } else if (event.isCartSign()) {
+            opt.setDescription("play an effect in the minecart" + app);
         } else if (event.isRCSign()) {
-            return handleBuild(event, Permission.BUILD_EFFECT, "train effect player", "play an effect in all minecarts of the train" + app);
+            opt.setDescription("play an effect in all minecarts of the train" + app);
         }
-        return false;
+        return opt.handle(event.getPlayer());
     }
 
     @Override

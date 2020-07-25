@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import org.bukkit.block.BlockFace;
 
 public class SignActionStation extends SignAction {
@@ -88,7 +90,12 @@ public class SignActionStation extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_STATION, "station", "stop, wait and launch trains");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_STATION)
+                .setName("station")
+                .setDescription("stop, wait and launch trains")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Station")
+                .handle(event.getPlayer());
     }
 
     @Override

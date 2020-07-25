@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -100,14 +101,20 @@ public class SignActionSound extends SignAction {
             return false;
         }
         String app = event.isType("msound") ? " while moving" : "";
+
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_SOUND)
+                .setName(event.isCartSign() ? "cart sound player" : "train sound player")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Sound");
+
         if (event.isCartSign()) {
-            return handleBuild(event, Permission.BUILD_SOUND, "cart sound player", "play a sound in the minecart" + app);
+            opt.setDescription("play a sound in the minecart" + app);
         } else if (event.isTrainSign()) {
-            return handleBuild(event, Permission.BUILD_SOUND, "train sound player", "play a sound in all minecarts of the train" + app);
+            opt.setDescription("play a sound in all minecarts of the train" + app);
         } else if (event.isRCSign()) {
-            return handleBuild(event, Permission.BUILD_SOUND, "train sound player", "play a sound in all minecarts of the train" + app);
+            opt.setDescription("play a sound in all minecarts of the train" + app);
         }
-        return false;
+        return opt.handle(event.getPlayer());
     }
 
     @Override

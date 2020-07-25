@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.tc.ArrivalSigns;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 public class SignActionTrigger extends SignAction {
 
@@ -27,6 +28,11 @@ public class SignActionTrigger extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_TRIGGER, "train trigger", "reset the arrival time, train name and destination, which can be displayed using SignLink");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_TRIGGER)
+                .setName("train trigger")
+                .setDescription("reset the arrival time, train name and destination, which can be displayed using SignLink")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Trigger")
+                .handle(event.getPlayer());
     }
 }

@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 /**
  * Defines zones where only one train is allowed at one time.
@@ -24,7 +25,12 @@ public class SignActionMutex extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_MUTEX, "mutex zone", "prevent more than one train entering a zone");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_MUTEX)
+                .setName("mutex zone")
+                .setDescription("prevent more than one train entering a zone")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Mutex")
+                .handle(event.getPlayer());
     }
 
     @Override

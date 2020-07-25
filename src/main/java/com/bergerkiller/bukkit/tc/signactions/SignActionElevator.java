@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 import java.util.Locale;
@@ -138,6 +139,11 @@ public class SignActionElevator extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_ELEVATOR, "train elevator", "teleport trains vertically");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_ENTER)
+                .setName("train elevator")
+                .setDescription("teleport trains vertically")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Elevator")
+                .handle(event.getPlayer());
     }
 }

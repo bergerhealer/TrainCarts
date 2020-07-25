@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 public class SignActionAnimate extends SignAction {
 
@@ -54,11 +55,14 @@ public class SignActionAnimate extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.isRCSign()) {
-            return handleBuild(event, Permission.BUILD_ANIMATOR, "animator", "play train model animations remotely");
-        } else {
-            return handleBuild(event, Permission.BUILD_ANIMATOR, "animator", "play train model animations");
-        }
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_ANIMATOR)
+                .setName("animator")
+                .setDescription(event.isRCSign() ?
+                        "play train model animations remotely" :
+                        "play train model animations")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Animate")
+                .handle(event.getPlayer());
     }
 
     @Override

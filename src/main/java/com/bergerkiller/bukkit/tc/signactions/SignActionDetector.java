@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSignPair;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
@@ -133,21 +134,29 @@ public class SignActionDetector extends SignAction {
         if (!match(event)) {
             return false;
         }
-        if (handleBuild(event, Permission.BUILD_DETECTOR, "train detector", "detect trains between this detector sign and another")) {
-            //try to create the other sign
-            if (!event.hasRails()) {
-                event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
-                return true;
-            }
-            if (!handlePlacement(event, true)) {
-                event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
-                event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
-                return true;
-            }
-            event.getPlayer().sendMessage(ChatColor.GREEN + "A second detector sign was found: Region set.");
+
+        if (!SignBuildOptions.create()
+                .setPermission(Permission.BUILD_DETECTOR)
+                .setName("train detector")
+                .setDescription("detect trains between this detector sign and another")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Detector")
+                .handle(event.getPlayer()))
+        {
+            return false;
+        }
+
+        //try to create the other sign
+        if (!event.hasRails()) {
+            event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
             return true;
         }
-        return false;
+        if (!handlePlacement(event, true)) {
+            event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
+            event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
+            return true;
+        }
+        event.getPlayer().sendMessage(ChatColor.GREEN + "A second detector sign was found: Region set.");
+        return true;
     }
 
     @Override

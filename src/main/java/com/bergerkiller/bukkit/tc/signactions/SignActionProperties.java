@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.properties.IParsable;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import java.util.Locale;
 
@@ -49,14 +50,19 @@ public class SignActionProperties extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.isCartSign()) {
-            return handleBuild(event, Permission.BUILD_PROPERTY, "cart property setter", "set properties on the cart above");
-        } else if (event.isTrainSign()) {
-            return handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "set properties on the train above");
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_PROPERTY)
+                .setName(event.isCartSign() ? "cart property setter" : "train property setter")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Property");
+
+        if (event.isTrainSign()) {
+            opt.setDescription("set properties on the train above");
+        } else if (event.isCartSign()) {
+            opt.setDescription("set properties on the cart above");
         } else if (event.isRCSign()) {
-            return handleBuild(event, Permission.BUILD_PROPERTY, "train property setter", "remotely set properties on the train specified");
+            opt.setDescription( "remotely set properties on the train specified");
         }
-        return false;
+        return opt.handle(event.getPlayer());
     }
 
     @Override

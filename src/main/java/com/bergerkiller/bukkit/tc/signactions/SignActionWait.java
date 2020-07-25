@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 public class SignActionWait extends SignAction {
@@ -107,6 +108,11 @@ public class SignActionWait extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_WAIT, "train waiter sign", "waits the train until the tracks ahead are clear");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_WAIT)
+                .setName("train waiter sign")
+                .setDescription("waits the train until the tracks ahead are clear")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Waiter")
+                .handle(event.getPlayer());
     }
 }

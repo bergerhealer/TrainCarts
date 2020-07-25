@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import org.bukkit.block.Sign;
 
 public class SignActionAnnounce extends SignAction {
@@ -60,13 +62,17 @@ public class SignActionAnnounce extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.isType("announce")) {
-            if (event.isRCSign()) {
-                return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "remotely send a message to all the players in the train");
-            } else {
-                return handleBuild(event, Permission.BUILD_ANNOUNCER, "announcer", "send a message to players in a train");
-            }
+        if (!event.isType("announce")) {
+            return false;
         }
-        return false;
+
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_ANNOUNCER)
+                .setName("announcer")
+                .setDescription(event.isRCSign() ?
+                        "remotely send a message to all the players in the train" :
+                        "send a message to players in a train")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Announce")
+                .handle(event.getPlayer());
     }
 }

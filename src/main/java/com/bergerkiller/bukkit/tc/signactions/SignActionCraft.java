@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -79,6 +80,11 @@ public class SignActionCraft extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_CRAFTER, "workbench item crafter", "craft items inside storage minecarts");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_CRAFTER)
+                .setName("workbench item crafter")
+                .setDescription("craft items inside storage minecarts")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Crafter")
+                .handle(event.getPlayer());
     }
 }

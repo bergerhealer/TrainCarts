@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.BlockFace;
 
@@ -81,6 +82,11 @@ public class SignActionLauncher extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_LAUNCHER, "launcher", "launch (or brake) trains at a desired speed");
+        return SignBuildOptions.create()
+                .setPermission(Permission.BUILD_LAUNCHER)
+                .setName("launcher")
+                .setDescription("launch (or brake) trains at a desired speed")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Launcher")
+                .handle(event.getPlayer());
     }
 }

@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,14 +87,19 @@ public class SignActionBlockChanger extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (event.isCartSign()) {
-            return handleBuild(event, Permission.BUILD_BLOCKCHANGER, "cart block changer", "change the block displayed in a minecart");
-        } else if (event.isTrainSign()) {
-            return handleBuild(event, Permission.BUILD_BLOCKCHANGER, "train block changer", "change the blocks displayed in a train");
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_BLOCKCHANGER)
+                .setName(event.isCartSign() ? "cart block changer" : "train block changer")
+                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/BlockChanger");
+
+        if (event.isTrainSign()) {
+            opt.setDescription("change the blocks displayed in a train");
+        } else if (event.isCartSign()) {
+            opt.setDescription("change the block displayed in a minecart");
         } else if (event.isRCSign()) {
-            return handleBuild(event, Permission.BUILD_BLOCKCHANGER, "train block changer", "change the blocks displayed in a train remotely");
+            opt.setDescription("change the blocks displayed in a train remotely");
         }
-        return false;
+        return opt.handle(event.getPlayer());
     }
 
     @Override
