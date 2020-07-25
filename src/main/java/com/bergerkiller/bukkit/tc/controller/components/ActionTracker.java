@@ -28,6 +28,9 @@ public class ActionTracker {
      * For groups, this also clears all the actions scheduled for individual members.
      */
     public void clear() {
+        for (Action a : actions) {
+            a.cancel();
+        }
         this.actions.clear();
     }
 
@@ -41,6 +44,7 @@ public class ActionTracker {
         while (iter.hasNext()) {
             Action action = iter.next();
             if (action instanceof MemberAction && ((MemberAction) action).getMember() == forMember) {
+                action.cancel();
                 iter.remove();
             }
         }
@@ -52,7 +56,11 @@ public class ActionTracker {
      * @return action removed, or null if there was none
      */
     public Action removeAction() {
-        return this.actions.remove();
+        Action a = this.actions.remove();
+        if (a != null) {
+            a.cancel();
+        }
+        return a;
     }
 
     /**

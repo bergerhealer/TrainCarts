@@ -85,8 +85,22 @@ public class Action {
         return this.tags.contains(tag);
     }
 
+    /**
+     * Updates the action. When the action has completed, true
+     * should be returned so the action can be removed.
+     * 
+     * @return True if the action has finished, False if the action is still ongoing
+     */
     public boolean update() {
         return true;
+    }
+
+    /**
+     * Called when this action has been cancelled, either because the train/member
+     * was destroyed, or because the actions were cleared. No new actions
+     * should be scheduled inside this callback!
+     */
+    public void cancel() {
     }
 
     /**

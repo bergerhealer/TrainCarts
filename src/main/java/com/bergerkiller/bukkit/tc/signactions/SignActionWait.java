@@ -93,9 +93,8 @@ public class SignActionWait extends SignAction {
             //distance
             if (info.getGroup().getSpeedAhead(distance) != Double.MAX_VALUE) {
                 info.getGroup().getActions().clear();
-                info.setLevers(true);
-                info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity);
-                info.getGroup().getActions().addActionSetLevers(info.getAttachedBlock(), false);
+                info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity)
+                        .setToggleLeversOf(info.getAttachedBlock());
             }
         } else if (info.isAction(SignActionType.REDSTONE_OFF)) {
             info.setLevers(false);
