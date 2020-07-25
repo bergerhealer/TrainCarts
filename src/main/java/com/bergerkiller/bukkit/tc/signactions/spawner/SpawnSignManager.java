@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.bukkit.Chunk;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
@@ -112,27 +111,6 @@ public class SpawnSignManager {
     }
 
     /**
-     * Checks whether a chunk can be unloaded, or that an upcoming spawning operation is keeping it loaded.
-     * 
-     * @param chunk
-     * @return True if the chunk can be unloaded safely
-     */
-    public boolean canUnloadChunk(Chunk chunk) {
-        long time = System.currentTimeMillis();
-        int chunkX = chunk.getX();
-        int chunkZ = chunk.getZ();
-        for (SpawnSign sign : this.getSigns()) {
-            if (sign.getRemaining(time) > SPAWN_LOAD_DEBOUNCE) {
-                break;
-            }
-            if (sign.getWorld() == chunk.getWorld() && sign.isNearChunk(chunkX, chunkZ)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
      * Gets a list of spawn signs, sorted with the spawn sign that is soonest
      * to spawn at the beginning of the list.
      * 
@@ -171,18 +149,14 @@ public class SpawnSignManager {
             long time = System.currentTimeMillis();
             for (SpawnSign pending : getSigns()) {
                 long remainingMillis = pending.getRemaining(time);
-                if (remainingMillis == 0) {
+                if (remainingMillis > SPAWN_LOAD_DEBOUNCE) {
+                    pending.loadChunksAsyncResetAuto();
+                } else if (remainingMillis == 0) {
                     pending.spawn();
                     pending.nextSpawnTime();
-                    if (pending.getRemaining(time) > SPAWN_LOAD_DEBOUNCE) {
-                        pending.loadChunksAsyncReset();
-                    }
                 } else if (remainingMillis <= SPAWN_WARMUP_TIME) {
                     // Warmup! How many chunks are loaded versus should be loaded by now?
-                    pending.loadChunksAsync(1.0 - ((double) remainingMillis / (double) SPAWN_WARMUP_TIME));
-                } else {
-                    // These signs will never spawn or spawn a very long time from now
-                    break;
+                    pending.loadChunksAsync(1.0 - ((double) (remainingMillis-1000) / (double) SPAWN_WARMUP_TIME));
                 }
             }
         }
