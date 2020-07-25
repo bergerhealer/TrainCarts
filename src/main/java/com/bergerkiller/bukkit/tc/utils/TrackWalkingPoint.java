@@ -105,7 +105,7 @@ public class TrackWalkingPoint {
      */
     public boolean moveStep(double limit) {
         // No rails
-        if (this.state.railType() == RailType.NONE) {
+        if (isDerailed()) {
             return false;
         }
 
@@ -138,7 +138,7 @@ public class TrackWalkingPoint {
      */
     public boolean moveFull() {
         // No rails
-        if (this.state.railType() == RailType.NONE) {
+        if (isDerailed()) {
             return false;
         }
 
@@ -172,7 +172,7 @@ public class TrackWalkingPoint {
      */
     public boolean move(final double distance) {
         // If no position is known, then we did not have a valid starting point at all
-        if (this.state.railType() == RailType.NONE) {
+        if (isDerailed()) {
             return false;
         }
 
@@ -259,7 +259,7 @@ public class TrackWalkingPoint {
         }
 
         // No next rail available. This is it.
-        if (this.state.railType() == RailType.NONE) {
+        if (isDerailed()) {
             return false;
         }
 
@@ -267,6 +267,10 @@ public class TrackWalkingPoint {
         this.currentRailLogic = this.state.loadRailLogic();
         this.currentRailPath = this.currentRailLogic.getPath();
         return true;
+    }
+
+    private boolean isDerailed() {
+        return this.state.railType() == RailType.NONE || this.currentRailPath.isEmpty();
     }
 
     /**
@@ -277,7 +281,7 @@ public class TrackWalkingPoint {
      */
     public void setLoopFilter(boolean enabled) {
         this.loopFilter = enabled ? new HashSet<Block>() : null;
-        if (enabled && this.state.railType() != RailType.NONE) {
+        if (enabled && !isDerailed()) {
             this.loopFilter.add(this.state.railBlock());
         }
     }

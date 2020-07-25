@@ -368,6 +368,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
     public RailLogic getLogic(RailState state) {
         Rails rails = Util.getRailsRO(state.railBlock());
         if (rails == null) {
+            System.out.println("RETURNING GROUND FOR " + state.railPiece().block());
             return RailLogicGround.INSTANCE;
         }
         return getLogicForRails(state.railBlock(), rails, state.enterFace());
@@ -382,6 +383,10 @@ public class RailTypeRegular extends RailTypeHorizontal {
     @Override
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         Rails rails = Util.getRailsRO(railsBlock);
+        if (rails == null) {
+            return super.getSpawnLocation(railsBlock, orientation);
+        }
+
         BlockFace dir = FaceUtil.getRailsCartDirection(rails.getDirection());
         if (FaceUtil.getFaceYawDifference(dir.getOppositeFace(), orientation) < 90) {
             dir = dir.getOppositeFace();

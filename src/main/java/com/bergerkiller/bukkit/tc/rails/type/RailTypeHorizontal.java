@@ -197,22 +197,24 @@ public abstract class RailTypeHorizontal extends RailType {
     @Override
     public Location getSpawnLocation(Block railsBlock, BlockFace orientation) {
         BlockFace[] faces = this.getPossibleDirections(railsBlock);
-        if (faces[0] == faces[1].getOppositeFace()) {
-            // Straight horizontal rail
-            // Force one of the faces if neither matches
-            if (orientation != faces[0] && orientation != faces[1]) {
-                orientation = faces[0];
-            }
-        } else {
-            // Curved rail
-            BlockFace direction = FaceUtil.combine(faces[0], faces[1]);
-            direction = FaceUtil.rotate(direction, 2);
-            int diff_a = FaceUtil.getFaceYawDifference(direction, orientation);
-            int diff_b = FaceUtil.getFaceYawDifference(direction.getOppositeFace(), orientation);
-            if (diff_a < diff_b) {
-                orientation = direction;
+        if (faces != null && faces.length >= 2) {
+            if (faces[0] == faces[1].getOppositeFace()) {
+                // Straight horizontal rail
+                // Force one of the faces if neither matches
+                if (orientation != faces[0] && orientation != faces[1]) {
+                    orientation = faces[0];
+                }
             } else {
-                orientation = direction.getOppositeFace();
+                // Curved rail
+                BlockFace direction = FaceUtil.combine(faces[0], faces[1]);
+                direction = FaceUtil.rotate(direction, 2);
+                int diff_a = FaceUtil.getFaceYawDifference(direction, orientation);
+                int diff_b = FaceUtil.getFaceYawDifference(direction.getOppositeFace(), orientation);
+                if (diff_a < diff_b) {
+                    orientation = direction;
+                } else {
+                    orientation = direction.getOppositeFace();
+                }
             }
         }
 
