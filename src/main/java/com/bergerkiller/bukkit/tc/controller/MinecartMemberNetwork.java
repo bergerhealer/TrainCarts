@@ -153,7 +153,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // See what seat attachment this passenger currently occupies
         CartAttachmentSeat old_seat = findCurrentSeatOfEntity(passenger);
         CartAttachmentSeat new_seat = findNewSeatOfEntity(passenger);
-        if (new_seat == null || old_seat == new_seat) {
+        if (old_seat == null || new_seat == null || old_seat == new_seat) {
             return false;
         }
 
