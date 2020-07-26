@@ -444,20 +444,24 @@ public class GlobalCommands {
                             "\n" +
                             "\n### Examples";
                     
-                    chatText = ChatText.fromClickableURL(ChatColor.RED.toString() + "Bug Report", 
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(bugReport, "UTF-8"));
+                    chatText = ChatText.empty().appendClickableURL(ChatColor.RED.toString() + ChatColor.UNDERLINE.toString() + "Bug Report", 
+                            "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(bugReport, "UTF-8"),
+                            "Click to open a Bug Report");
                     chatText.sendTo(player);
                     
-                    chatText = ChatText.fromClickableURL(ChatColor.GREEN.toString() + "Feature Request",
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(featureRequest, "UTF-8"));
+                    chatText = ChatText.empty().appendClickableURL(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Feature Request",
+                            "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(featureRequest, "UTF-8"),
+                            "Click to open a Feature Request");
                     chatText.sendTo(player);
                 }catch(UnsupportedEncodingException ex){
-                    chatText = ChatText.fromClickableURL(ChatColor.RED.toString() + "Bug Report",
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?template=bug_report.md");
+                    chatText = ChatText.empty().appendClickableURL(ChatColor.RED.toString() + ChatColor.UNDERLINE.toString() + "Bug Report",
+                            "https://github.com/bergerhealer/TrainCarts/issues/new?template=bug_report.md",
+                            "Click to open a Bug Report");
                     chatText.sendTo(player);
                     
-                    chatText = ChatText.fromClickableURL(ChatColor.GREEN.toString() + "Feature Request",
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?template=feature_request.md");
+                    chatText = ChatText.empty().appendClickableURL(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Feature Request",
+                            "https://github.com/bergerhealer/TrainCarts/issues/new?template=feature_request.md",
+                            "Click to open a Feature Request");
                     chatText.sendTo(player);
                 }
             }else{
