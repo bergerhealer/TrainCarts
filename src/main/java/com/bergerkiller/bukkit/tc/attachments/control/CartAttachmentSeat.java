@@ -39,8 +39,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
 
-import io.netty.util.internal.StringUtil;
-
 public class CartAttachmentSeat extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
@@ -456,7 +454,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (!this.seated.isEmpty()) {
             return false;
         }
-        if (passenger instanceof Player && !StringUtil.isNullOrEmpty(this._enterPermission)) {
+        if (passenger instanceof Player && this._enterPermission != null && !this._enterPermission.isEmpty()) {
             Player p = (Player) passenger;
             if (!p.hasPermission(this._enterPermission)) {
                 return false;
