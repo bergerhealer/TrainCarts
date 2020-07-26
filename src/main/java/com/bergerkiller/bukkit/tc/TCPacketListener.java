@@ -128,6 +128,7 @@ public class TCPacketListener implements PacketListener {
 
                         // For some reason this is needed, though.
                         if (useAction == UseAction.INTERACT_AT) {
+                            useAction = UseAction.INTERACT;
                             packet_use.setAction(UseAction.INTERACT);
                         }
 
