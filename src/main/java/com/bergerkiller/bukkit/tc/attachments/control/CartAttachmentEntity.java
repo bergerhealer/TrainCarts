@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -10,12 +11,14 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.common.wrappers.BoatWoodType;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -24,9 +27,11 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.server.EntityBoatHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 
 /**
@@ -43,7 +48,19 @@ public class CartAttachmentEntity extends CartAttachment {
         @Override
         public MapTexture getIcon(ConfigurationNode config) {
             EntityType type = config.get("entityType", EntityType.MINECART);
-            if (type == EntityType.MINECART) {
+            if (type == EntityType.BOAT) {
+                BoatWoodType boatWoodType = config.contains("boatWoodType") ? config.get("boatWoodType", BoatWoodType.OAK) : BoatWoodType.OAK;
+                Material itemMaterial;
+                if (boatWoodType == BoatWoodType.OAK) {
+                    itemMaterial = getMaterial("LEGACY_BOAT");
+                } else {
+                    itemMaterial = getMaterial("LEGACY_BOAT_" + boatWoodType.name());
+                    if (itemMaterial == null) {
+                        itemMaterial = getMaterial("LEGACY_BOAT");
+                    }
+                }
+                return TCConfig.resourcePack.getItemTexture(new ItemStack(itemMaterial), 16, 16);
+            } else if (type == EntityType.MINECART) {
                 return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_MINECART")), 16, 16);
             } else if (type == EntityType.MINECART_CHEST) {
                 return TCConfig.resourcePack.getItemTexture(new ItemStack(getMaterial("LEGACY_STORAGE_MINECART")), 16, 16);
@@ -74,20 +91,59 @@ public class CartAttachmentEntity extends CartAttachment {
 
         @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            // For boats: wood type selector
+            final MapWidget boatTypeSelector = tab.addWidget(new MapWidgetSelectionBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    for (BoatWoodType type : BoatWoodType.values()) {
+                        this.addItem(type.name());
+                    }
+                    if (attachment.getConfig().contains("boatWoodType")) {
+                        this.setSelectedItem(attachment.getConfig().get("boatWoodType", "OAK"));
+                    } else {
+                        this.setSelectedItem("OAK");
+                    }
+                }
+
+                @Override
+                public void onSelectedItemChanged() {
+                    if (this.isVisible()) {
+                        attachment.getConfig().set("boatWoodType", this.getSelectedItem());
+                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                        attachment.resetIcon();
+                    }
+                }
+            }).setBounds(0, 15, 100, 12).setVisible(false);
+
             tab.addWidget(new MapWidgetEntityTypeList() {
                 @Override
                 public void onAttached() {
                     super.onAttached();
                     this.setEntityType(attachment.getConfig().get("entityType", EntityType.MINECART));
+                    boatTypeSelector.setVisible(this.getEntityType() == EntityType.BOAT);
                 }
 
                 @Override
                 public void onEntityTypeChanged() {
                     attachment.getConfig().set("entityType", this.getEntityType());
+                    boatTypeSelector.setVisible(this.getEntityType() == EntityType.BOAT);
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     attachment.resetIcon();
                 }
-            }).setBounds(0, 0, 100, 11);
+            }).setBounds(0, 1, 100, 12);
+
+            tab.addWidget(new MapWidgetToggleButton<Boolean>() {
+                @Override
+                public void onSelectionChanged() {
+                    attachment.getConfig().set("sitting", this.getSelectedOption());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    attachment.resetIcon();
+                    display.playSound(SoundEffect.CLICK);
+                }
+            }).addOptions(b -> "Sitting: " + (b ? "YES" : "NO"), Boolean.TRUE, Boolean.FALSE)
+              .setSelectedOption(attachment.getConfig().get("sitting", false))
+              .setBounds(0, 56, 102, 12);
 
             tab.addWidget(new MapWidgetButton() {
                 private void refreshText() {
@@ -129,7 +185,7 @@ public class CartAttachmentEntity extends CartAttachment {
                     refreshText();
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 }
-            }).setBounds(0, 13, 79, 11);
+            }).setBounds(0, 69, 79, 12);
 
             final MapWidgetSubmitText nameTagTextBox = tab.addWidget(new MapWidgetSubmitText() {
                 @Override
@@ -150,19 +206,7 @@ public class CartAttachmentEntity extends CartAttachment {
                 public void onActivate() {
                     nameTagTextBox.activate();
                 }
-            }).setText("Edit").setBounds(80, 13, 22, 11);
-
-            tab.addWidget(new MapWidgetToggleButton<Boolean>() {
-                @Override
-                public void onSelectionChanged() {
-                    attachment.getConfig().set("sitting", this.getSelectedOption());
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                    attachment.resetIcon();
-                    display.playSound(SoundEffect.CLICK);
-                }
-            }).addOptions(b -> "Sitting: " + (b ? "YES" : "NO"), Boolean.TRUE, Boolean.FALSE)
-              .setSelectedOption(attachment.getConfig().get("sitting", false))
-              .setBounds(0, 26, 102, 16);
+            }).setText("Edit").setBounds(80, 69, 22, 12);
         }
     };
 
@@ -197,6 +241,11 @@ public class CartAttachmentEntity extends CartAttachment {
             this.entity.setUseParentMetadata(true);
         }
         this.entity.setEntityType(entityType);
+
+        // Boat wood type
+        if (entityType == EntityType.BOAT) {
+            this.entity.getMetaData().set(EntityBoatHandle.DATA_WOOD_TYPE, this.getConfig().get("boatWoodType", BoatWoodType.OAK));
+        }
 
         // Nametag
         if (this.getConfig().isNode("nametag")) {
