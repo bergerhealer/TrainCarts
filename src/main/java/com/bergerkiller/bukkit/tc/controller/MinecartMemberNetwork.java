@@ -185,7 +185,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
 
         // Find first free seat, or fail
         for (CartAttachmentSeat seat : sortedSeats) {
-            if (seat.getEntity() == null) {
+            if (seat.canEnter(passenger)) {
                 return seat;
             }
         }
@@ -537,6 +537,22 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         for (Attachment child : attachment.getChildren()) {
             discoverSeats(child);
         }
+    }
+
+    /**
+     * Gets the number of available seat attachments a passenger can enter
+     * 
+     * @param passenger
+     * @return available seat count
+     */
+    public int getAvailableSeatCount(Entity passenger) {
+        int count = 0;
+        for (CartAttachmentSeat seat : this.seatAttachments) {
+            if (seat.canEnter(passenger)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     @Override

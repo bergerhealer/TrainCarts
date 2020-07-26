@@ -532,12 +532,12 @@ public class TrainCommands {
             if (prop.isLoaded()) {
                 CartProperties cprop = CartProperties.getEditing(p);
                 MinecartMember<?> member = (cprop == null) ? null : cprop.getHolder();
-                if (member != null && member.getAvailableSeatCount() == 0) {
+                if (member != null && member.getAvailableSeatCount(p) == 0) {
                     member = null;
                 }
                 if (member == null) {
                     for (MinecartMember<?> groupMember : prop.getHolder()) {
-                        if (groupMember.getAvailableSeatCount() > 0) {
+                        if (groupMember.getAvailableSeatCount(p) > 0) {
                             member = groupMember;
                             break;
                         }

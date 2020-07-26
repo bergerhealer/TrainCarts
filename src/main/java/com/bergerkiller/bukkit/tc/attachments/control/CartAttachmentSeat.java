@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -37,6 +38,8 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositi
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
+
+import io.netty.util.internal.StringUtil;
 
 public class CartAttachmentSeat extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
@@ -67,7 +70,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 }
             }).addOptions(b -> "Lock Rotation: " + (b ? "ON" : "OFF"), Boolean.TRUE, Boolean.FALSE)
               .setSelectedOption(attachment.getConfig().get("lockRotation", false))
-              .setBounds(0, 10, 100, 16);
+              .setBounds(0, 4, 100, 14);
 
             tab.addWidget(new MapWidgetToggleButton<FirstPersonViewMode>() {
                 @Override
@@ -79,7 +82,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 }
             }).addOptions(o -> "FPV: " + o.name(), FirstPersonViewMode.class)
               .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
-              .setBounds(0, 28, 100, 16);
+              .setBounds(0, 20, 100, 14);
 
             tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
                 @Override
@@ -91,7 +94,7 @@ public class CartAttachmentSeat extends CartAttachment {
                 }
             }).addOptions(o -> "Display: " + o.name(), DisplayMode.class)
               .setSelectedOption(attachment.getConfig().get("displayMode", DisplayMode.DEFAULT))
-              .setBounds(0, 46, 100, 16);
+              .setBounds(0, 36, 100, 14);
 
             tab.addWidget(new MapWidgetButton() { // Change exit position button
                 @Override
@@ -99,7 +102,26 @@ public class CartAttachmentSeat extends CartAttachment {
                     //TODO: Cleaner way to open a sub dialog
                     tab.getParent().getParent().addWidget(new SeatExitPositionMenu()).setAttachment(attachment);
                 }
-            }).setText("Change Exit").setBounds(0, 64, 100, 16);
+            }).setText("Change Exit").setBounds(0, 52, 100, 14);
+
+            final MapWidgetSubmitText permissionTextBox = tab.addWidget(new MapWidgetSubmitText() {
+                @Override
+                public void onAttached() {
+                    this.setDescription("Enter permission node");
+                }
+
+                @Override
+                public void onAccept(String text) {
+                    attachment.getConfig().set("enterPermission", text);
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            });
+            tab.addWidget(new MapWidgetButton() { // Change exit position button
+                @Override
+                public void onActivate() {
+                    permissionTextBox.activate();
+                }
+            }).setText("Permission").setBounds(0, 68, 100, 14);
         }
     };
 
@@ -127,6 +149,7 @@ public class CartAttachmentSeat extends CartAttachment {
     private ViewLockMode _viewLockMode = ViewLockMode.OFF;
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
+    private String _enterPermission = null;
 
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
@@ -162,6 +185,7 @@ public class CartAttachmentSeat extends CartAttachment {
         this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
         this.firstPerson.setMode(this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC));
         this._viewLockMode = ViewLockMode.OFF; // Disabled, is broken
+        this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
         this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
@@ -419,6 +443,26 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public boolean isHiddenWhenInactive() {
         return false;
+    }
+
+    /**
+     * Checks whether the given passenger entity is allowed to sit inside this seat.
+     * If this seat is already occupied, False is returned.
+     * 
+     * @param passenger
+     * @return True if the entity can sit inside this seat
+     */
+    public boolean canEnter(Entity passenger) {
+        if (!this.seated.isEmpty()) {
+            return false;
+        }
+        if (passenger instanceof Player && !StringUtil.isNullOrEmpty(this._enterPermission)) {
+            Player p = (Player) passenger;
+            if (!p.hasPermission(this._enterPermission)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static enum ViewLockMode {

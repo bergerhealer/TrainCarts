@@ -29,7 +29,7 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
         }
 
         // Is there a seat available to add a player?
-        if (this.getAvailableSeatCount() == 0) {
+        if (this.getAvailableSeatCount(interacter) == 0) {
             return InteractionResult.PASS;
         }
 

@@ -2260,30 +2260,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @return number of available seats
      */
-    public int getAvailableSeatCount() {
-        int total = this.getSeatCount();
-        int passengers = entity.getPassengers().size();
-        if (passengers >= total) {
-            return 0;
-        } else {
-            return total - passengers;
+    public int getAvailableSeatCount(Entity passenger) {
+        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+        if (network == null) {
+            // Assume a single passenger slot, no special rules
+            return (entity.getType() == EntityType.MINECART && !entity.hasPassenger()) ? 1 : 0;
         }
-    }
 
-    /**
-     * Gets the number of seats available in this Minecart. This is based on the
-     * model attachments applied if a model is used. Otherwise, it simply returns 1
-     * when this is a rideable minecart.
-     * 
-     * @return seat count
-     */
-    public int getSeatCount() {
-        AttachmentModel model = this.getProperties().getModel();
-        if (model == null) {
-            return (entity.getType() == EntityType.MINECART) ? 1 : 0;
-        } else {
-            return model.getSeatCount();
-        }
+        // Ask the network controller about available seats. Make sure to sync passengers first.
+        network.syncPassengers();
+        return network.getAvailableSeatCount(passenger);
     }
 
     /**

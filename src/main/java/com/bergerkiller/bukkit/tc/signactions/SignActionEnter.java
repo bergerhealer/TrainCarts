@@ -98,7 +98,7 @@ public class SignActionEnter extends SignAction {
                 if (canEnter(entity, enterPlayers, enterMobs, enterMisc)) {
                     // Look for an Empty minecart to put him in
                     for (MinecartMember<?> member : members) {
-                        if (member.getAvailableSeatCount() > 0 && member.addPassengerForced(entity)) {
+                        if (member.getAvailableSeatCount(entity) > 0 && member.addPassengerForced(entity)) {
                             break;
                         }
                     }
@@ -110,16 +110,15 @@ public class SignActionEnter extends SignAction {
             double distance;
             Entity selectedEntity;
             for (MinecartMember<?> member : members) {
-                if (member.getAvailableSeatCount() == 0) {
-                    continue;
-                }
-
                 List<Entity> nearby = member.getEntity().getNearbyEntities(radiusXZ, radiusY, radiusXZ);
-                while (!nearby.isEmpty() && member.getAvailableSeatCount() > 0) {
+                while (!nearby.isEmpty()) {
                     lastDistance = Double.MAX_VALUE;
                     selectedEntity = null;
                     for (Entity entity : nearby) {
                         if (entity.getVehicle() != null || !canEnter(entity, enterPlayers, enterMobs, enterMisc)) {
+                            continue;
+                        }
+                        if (member.getAvailableSeatCount(entity) == 0) {
                             continue;
                         }
                         distance = member.getEntity().loc.distanceSquared(entity);

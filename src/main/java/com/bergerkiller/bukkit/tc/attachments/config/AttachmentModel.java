@@ -10,7 +10,6 @@ import org.bukkit.entity.EntityType;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEmpty;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
