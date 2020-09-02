@@ -33,6 +33,8 @@ import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
 import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityBoatHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
 
 /**
  * A cart attachment that is a standard Entity.
@@ -386,7 +388,13 @@ public class CartAttachmentEntity extends CartAttachment {
         case UNKNOWN:
             return false;
         default:
-            return true;
+            break;
+        }
+
+        if (VirtualEntity.isLivingEntity(entityType)) {
+            return PacketPlayOutSpawnEntityLivingHandle.isEntityTypeSupported(entityType);
+        } else {
+            return PacketPlayOutSpawnEntityHandle.isEntityTypeSupported(entityType);
         }
     }
 }

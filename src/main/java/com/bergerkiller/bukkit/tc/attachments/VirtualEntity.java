@@ -598,9 +598,13 @@ public class VirtualEntity {
         }
     }
 
-    private boolean isLivingEntity() {
-        Class<?> entityClass = this.entityType.getEntityClass();
+    public static boolean isLivingEntity(org.bukkit.entity.EntityType entityType) {
+        Class<?> entityClass = entityType.getEntityClass();
         return entityClass != null && LivingEntity.class.isAssignableFrom(entityClass);
+    }
+
+    private boolean isLivingEntity() {
+        return isLivingEntity(this.entityType);
     }
 
     // this vector is used to fix up the rotation of passengers in seats
