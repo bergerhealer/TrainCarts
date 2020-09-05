@@ -321,6 +321,9 @@ public class RailState {
         // Optimize the cases when the direction vector is perfectly along an axis
         // This situation occurs very frequently on straight rails
         double ls = d.lengthSquared();
+        if (ls < 1e-20) {
+            return BlockFace.DOWN;
+        }
         if (ls == (d.getX()*d.getX())) {
             return (d.getX() >= 0.0) ? BlockFace.EAST : BlockFace.WEST;
         }
