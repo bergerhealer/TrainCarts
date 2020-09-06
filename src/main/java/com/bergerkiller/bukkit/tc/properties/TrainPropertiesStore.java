@@ -61,14 +61,18 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @param newTrainName to set to
      */
     public static void rename(TrainProperties properties, String newTrainName) {
+        // Whether to also update the display name
+        boolean displayNameSame = properties.getTrainName().equals(properties.getDisplayName());
         // Rename the offline group
         OfflineGroupManager.rename(properties.getTrainName(), newTrainName);
         // Rename the properties
         trainProperties.remove(properties.getTrainName());
         ConfigurationNode oldConfig = config.getNode(properties.getTrainName());
         config.remove(properties.getTrainName());
-        properties.setDisplayName(newTrainName);
         properties.trainname = newTrainName;
+        if (displayNameSame) {
+            properties.setDisplayName(newTrainName);
+        }
         trainProperties.put(newTrainName, properties);
         config.set(newTrainName, oldConfig);
         hasChanges = true;
