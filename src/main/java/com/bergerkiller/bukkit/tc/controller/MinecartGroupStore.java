@@ -226,8 +226,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
                 g2.getProperties().load(g1.getProperties());
                 // Transfer name, assigning a random name to the removed properties
                 String name = g1.getProperties().getTrainName();
-                g1.getProperties().setName(TrainProperties.generateTrainName());
-                g2.getProperties().setName(name);
+                g1.getProperties().setTrainName(TrainProperties.generateTrainName());
+                g2.getProperties().setTrainName(name);
             }
 
             //Clear targets and active signs

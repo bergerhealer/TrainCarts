@@ -794,11 +794,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * Renames this train, this should be called to rename the train safely.
      *
      * @param newtrainname to set to
-     * @return this
      */
-    public TrainProperties setTrainName(String newTrainName) {
+    public void setTrainName(String newTrainName) {
         rename(this, newTrainName);
-        return this;
     }
 
     /**
@@ -811,7 +809,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     @Deprecated
     public TrainProperties setName(String newtrainname) {
-        return setTrainName(newtrainname);
+        setTrainName(newtrainname);
+        return this;
     }
 
     /**
@@ -1093,7 +1092,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (key.equalsIgnoreCase("loadroute")) {
             this.setDestinationRoute(TrainCarts.plugin.getRouteManager().findRoute(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "name", "rename", "setname")) {
-            this.setName(generateTrainName(arg));
+            this.setTrainName(generateTrainName(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {
             this.setDisplayName(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "mobenter", "mobsenter")) {

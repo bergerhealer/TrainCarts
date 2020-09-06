@@ -309,7 +309,7 @@ public class TrainCommands {
                 if (TrainProperties.exists(newname)) {
                     p.sendMessage(ChatColor.RED + "This name is already taken!");
                 } else {
-                    prop.setName(newname);
+                    prop.setTrainName(newname);
                     p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
                 }
             }
