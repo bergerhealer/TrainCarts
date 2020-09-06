@@ -791,14 +791,27 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Renames this train, this should be called to rename the train safely
+     * Renames this train, this should be called to rename the train safely.
      *
      * @param newtrainname to set to
      * @return this
      */
-    public TrainProperties setName(String newtrainname) {
-        rename(this, newtrainname);
+    public TrainProperties setTrainName(String newTrainName) {
+        rename(this, newTrainName);
         return this;
+    }
+
+    /**
+     * Renames this train, this should be called to rename the train safely<br>
+     * <br>
+     * <b>Deprecated: use {@link #setTrainName(String)} instead</b>
+     *
+     * @param newtrainname to set to
+     * @return this
+     */
+    @Deprecated
+    public TrainProperties setName(String newtrainname) {
+        return setTrainName(newtrainname);
     }
 
     /**
