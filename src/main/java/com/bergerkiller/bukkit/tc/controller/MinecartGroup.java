@@ -1673,10 +1673,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Refresh wheel position information, important to do it AFTER updateDirection()
             this.updateWheels();
 
-            if (size() >= 2) {
-                CommonUtil.broadcast(get(1).getEntity().loc.distance(get(0).getEntity().loc));
-            }
-            
             return true;
         } catch (MemberMissingException ex) {
             return false;
