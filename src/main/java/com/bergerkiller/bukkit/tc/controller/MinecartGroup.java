@@ -1591,6 +1591,32 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 }
             }
 
+            // Add the gravity effects right before moving the Minecart
+            // This changes velocity slightly so that minecarts go downslope or fall down
+            // It is important to do it here, so that gravity is taken into account
+            // when sliding over the ground. Doing this in the wrong spot will make the minecart 'hover'.
+            if (this.getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
+                double usf_sq = this.getProperties().getGravity() * this.getUpdateSpeedFactor() * this.getUpdateSpeedFactor();
+                for (MinecartMember<?> member : this) {
+                    if (member.isUnloaded()) continue; // not loaded - no physics occur
+                    if (member.isMovementControlled()) continue; // launched by station, launcher, etc.
+
+                    // Find segment of the rails path the Minecart is on
+                    RailLogic logic = member.getRailLogic();
+                    CommonMinecart<?> entity = member.getEntity();
+                    Block block = member.getRailTracker().getBlock();
+                    RailPath.Segment segment = logic.getPath().findSegment(entity.loc.vector(), block);
+                    if (segment == null) {
+                        // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
+                        entity.vel.y.subtract(usf_sq * logic.getGravityMultiplier(member));
+                    } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
+                        // On a non-level segment, gravity must be applied based on the slope the segment is at
+                        double f = usf_sq * logic.getGravityMultiplier(member) * segment.dt_norm.y;
+                        entity.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
+                    }
+                }
+            }
+
             // Share forward force between all the Minecarts when size > 1
             if (this.size() > 1) {
                 //Get the average forwarding force of all carts
@@ -1616,32 +1642,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Calculate the speed factor that will be used to adjust the distance between the minecarts
             for (MinecartMember<?> member : this) {
                 member.calculateSpeedFactor();
-            }
-
-            // Add the gravity effects right before moving the Minecart
-            // This changes velocity slightly so that minecarts go downslope or fall down
-            // It is important to do it here, so that gravity is taken into account
-            // when sliding over the ground. Doing this in the wrong spot will make the minecart 'hover'.
-            if (this.getProperties().isSlowingDown(SlowdownMode.GRAVITY)) {
-                double usf_sq = this.getProperties().getGravity() * this.getUpdateSpeedFactor() * this.getUpdateSpeedFactor();
-                for (MinecartMember<?> member : this) {
-                    if (member.isUnloaded()) continue; // not loaded - no physics occur
-                    if (member.isMovementControlled()) continue; // launched by station, launcher, etc.
-
-                    // Find segment of the rails path the Minecart is on
-                    RailLogic logic = member.getRailLogic();
-                    CommonMinecart<?> entity = member.getEntity();
-                    Block block = member.getRailTracker().getBlock();
-                    RailPath.Segment segment = logic.getPath().findSegment(entity.loc.vector(), block);
-                    if (segment == null) {
-                        // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
-                        entity.vel.y.subtract(usf_sq * logic.getGravityMultiplier(member));
-                    } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
-                        // On a non-level segment, gravity must be applied based on the slope the segment is at
-                        double f = usf_sq * logic.getGravityMultiplier(member) * segment.dt_norm.y;
-                        entity.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
-                    }
-                }
             }
 
             // Perform the rail pre-movement and post-movement logic
@@ -1673,6 +1673,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Refresh wheel position information, important to do it AFTER updateDirection()
             this.updateWheels();
 
+            if (size() >= 2) {
+                CommonUtil.broadcast(get(1).getEntity().loc.distance(get(0).getEntity().loc));
+            }
+            
             return true;
         } catch (MemberMissingException ex) {
             return false;
