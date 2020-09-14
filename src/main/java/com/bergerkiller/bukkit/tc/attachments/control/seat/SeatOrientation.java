@@ -301,14 +301,12 @@ public class SeatOrientation {
     }
 
     public void synchronize(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntity seated) {
-        if (seated.isEmpty()) {
-            return;
-        }
-
-        if (seated instanceof SeatedEntityElytra) {
-            synchronizeElytra(seat, transform, (SeatedEntityElytra) seated);
-        } else if (seated instanceof SeatedEntityNormal) {
-            synchronizeNormal(seat, transform, (SeatedEntityNormal) seated);
+        if (!seated.isEmpty()) {
+            if (seated instanceof SeatedEntityElytra) {
+                synchronizeElytra(seat, transform, (SeatedEntityElytra) seated);
+            } else if (seated instanceof SeatedEntityNormal) {
+                synchronizeNormal(seat, transform, (SeatedEntityNormal) seated);
+            }
         }
 
         // Apply rotation to fake mount, if needed
