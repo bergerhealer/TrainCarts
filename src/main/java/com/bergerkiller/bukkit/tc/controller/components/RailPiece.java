@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.util.List;
+
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
@@ -71,6 +73,15 @@ public final class RailPiece {
      */
     public boolean hasBlockActivation() {
         return this.type.hasBlockActivation(this.block);
+    }
+
+    /**
+     * Gets the junctions that can possibly be switched on this rail piece
+     * 
+     * @return junctions
+     */
+    public List<RailJunction> getJunctions() {
+        return this.type.getJunctions(this.block);
     }
 
     /**

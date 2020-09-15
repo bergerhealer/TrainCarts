@@ -675,6 +675,31 @@ public class RailPath {
                     location.getX(), location.getY(), location.getZ());
         }
 
+        /**
+         * Performs a distance squared check, allowing for absolute and relative positions to be
+         * compared. It is assumed both positions are about the same rail block.
+         * 
+         * @param railBlock
+         * @param pos
+         * @return distance squared between this and the position
+         */
+        public double distanceSquaredAtRail(Block railBlock, RailPath.Position pos) {
+            if (pos.relative == this.relative) {
+                return MathUtil.distanceSquared(this.posX, this.posY, this.posZ,
+                                                pos.posX, pos.posY, pos.posZ);
+            } else if (this.relative) {
+                return MathUtil.distanceSquared(this.posX + railBlock.getX(),
+                                                this.posY + railBlock.getY(),
+                                                this.posZ + railBlock.getZ(),
+                                                pos.posX, pos.posY, pos.posZ);
+            } else {
+                return MathUtil.distanceSquared(this.posX, this.posY, this.posZ,
+                                                pos.posX + railBlock.getX(),
+                                                pos.posY + railBlock.getY(),
+                                                pos.posZ + railBlock.getZ());
+            }
+        }
+
         public double distanceSquared(RailPath.Position pos) {
             if (pos.relative != this.relative) {
                 throw new IllegalStateException("Self and pos must both be relative or both be absolute");

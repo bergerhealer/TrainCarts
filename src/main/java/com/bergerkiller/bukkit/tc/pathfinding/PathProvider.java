@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -30,6 +31,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -382,22 +384,43 @@ public class PathProvider extends Task {
                     // Snap onto rails
                     state1.loadRailLogic().getPath().snap(state1.position(), state1.railBlock());
 
-                    // Create opposite direction state
-                    RailState state2 = state1.clone();
-                    state2.position().invertMotion();
-                    state2.initEnterDirection();
+                    // Find junctions
+                    Block railBlock = state1.railBlock();
+                    List<RailJunction> junctions = state1.railPiece().getJunctions();
+                    if (!junctions.isEmpty()) {
+                        // Create opposite direction state
+                        RailState state2 = state1.clone();
+                        state2.position().invertMotion();
+                        state2.initEnterDirection();
 
-                    // Walk both states to the end of the path
-                    state1.loadRailLogic().getPath().move(state1, Double.MAX_VALUE);
-                    state2.loadRailLogic().getPath().move(state2, Double.MAX_VALUE);
+                        // Walk both states to the end of the path
+                        state1.loadRailLogic().getPath().move(state1, Double.MAX_VALUE);
+                        state2.loadRailLogic().getPath().move(state2, Double.MAX_VALUE);
 
-                    // Schedule them
-                    scheduleNode(node, state1, new RailJunction("1", state1.position().clone()));
-                    scheduleNode(node, state2, new RailJunction("2", state2.position().clone()));
+                        // Schedule the junctions of the rails matching these positions
+                        scheduleNode(node, state1, findBestJunction(junctions, railBlock, state1.position()));
+                        scheduleNode(node, state2, findBestJunction(junctions, railBlock, state2.position()));
+                    }
                 }
             }
             this.pendingNodes.clear();
         }
+    }
+
+    private static RailJunction findBestJunction(List<RailJunction> junctions, Block railBlock, RailPath.Position position) {
+        if (junctions.isEmpty()) {
+            throw new IllegalArgumentException("Junctions list is empty");
+        }
+        RailJunction best = null;
+        double bestDistanceSq = Double.MAX_VALUE;
+        for (RailJunction junction : junctions) {
+            double dist_sq = junction.position().distanceSquaredAtRail(railBlock, position);
+            if (dist_sq < bestDistanceSq) {
+                bestDistanceSq = dist_sq;
+                best = junction;
+            }
+        }
+        return best;
     }
 
     private void scheduleNode(PathNode node, RailState state, RailJunction junction) {
