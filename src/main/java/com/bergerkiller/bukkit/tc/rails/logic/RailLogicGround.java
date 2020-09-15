@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -31,6 +33,40 @@ public class RailLogicGround extends RailLogic {
             double f = motLen / member.getEntity().getMaxSpeed();
             velocity.setX(velocity.getX() + f * factor.getX() * TCConfig.cartDistanceForcer);
             velocity.setZ(velocity.getZ() + f * factor.getZ() * TCConfig.cartDistanceForcer);
+        }
+    }
+
+    @Override
+    public void onGravity(MinecartMember<?> member, double gravityFactorSquared) {
+        CommonMinecart<?> e = member.getEntity();
+        e.vel.y.subtract(gravityFactorSquared * getGravityMultiplier(member));
+    }
+
+    @Override
+    public double getForwardVelocity(MinecartMember<?> member) {
+        CommonEntity<?> e = member.getEntity();
+        BlockFace direction = member.getDirection();
+        double vel = 0.0;
+        vel += e.vel.getX() * FaceUtil.cos(direction);
+        vel += e.vel.getZ() * FaceUtil.sin(direction);
+        return vel;
+    }
+
+    @Override
+    public void setForwardVelocity(MinecartMember<?> member, double force) {
+        final CommonEntity<?> e = member.getEntity();
+
+        if (e.vel.getY() > 0.0) {
+            // Flying up from the ground, set vector length instead
+            Vector vel = e.vel.vector();
+            MathUtil.setVectorLength(vel, force);
+            e.vel.set(vel);
+        } else {
+            // Sliding along the ground, apply forward vector but preserve gravity
+            // This makes sure a slowdown is applied during movement behavior
+            e.vel.set(force * FaceUtil.cos(member.getDirection()),
+                      e.vel.getY(),
+                      force * FaceUtil.sin(member.getDirection()));
         }
     }
 

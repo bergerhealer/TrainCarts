@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
-import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -37,7 +36,6 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
-import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -366,7 +364,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private void onMemberRemoved(MinecartMember<?> member) {
-        this.getProperties().remove(member);
+        this.getProperties().remove(member.getProperties());
         this.getRailTracker().removeMemberRails(member);
         try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
             RailMemberCache.remove(member);
@@ -435,7 +433,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.getSignTracker().clear();
         this.getActions().clear();
         for (MinecartMember<?> mm : this.toArray()) {
-            this.getProperties().remove(mm);
+            this.getProperties().remove(mm.getProperties());
             if (mm.getEntity().isDead()) {
                 mm.onDie();
             } else {
@@ -840,7 +838,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         //Get the average forward force of all carts
         double force = 0;
         for (MinecartMember<?> m : this) {
-            force += MathUtil.invert(m.getForce(), m.getForwardForce() < 0.0);
+            force += m.getForwardForce();
         }
         return force / (double) size();
     }
@@ -1602,18 +1600,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     if (member.isMovementControlled()) continue; // launched by station, launcher, etc.
 
                     // Find segment of the rails path the Minecart is on
-                    RailLogic logic = member.getRailLogic();
-                    CommonMinecart<?> entity = member.getEntity();
-                    Block block = member.getRailTracker().getBlock();
-                    RailPath.Segment segment = logic.getPath().findSegment(entity.loc.vector(), block);
-                    if (segment == null) {
-                        // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
-                        entity.vel.y.subtract(usf_sq * logic.getGravityMultiplier(member));
-                    } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
-                        // On a non-level segment, gravity must be applied based on the slope the segment is at
-                        double f = usf_sq * logic.getGravityMultiplier(member) * segment.dt_norm.y;
-                        entity.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
-                    }
+                    member.getRailLogic().onGravity(member, usf_sq);
                 }
             }
 

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -170,10 +171,13 @@ public class RailLogicAir extends RailLogic {
 
     @Override
     public double getForwardVelocity(MinecartMember<?> member) {
+        final CommonEntity<?> e = member.getEntity();
+
         if (member.getEntity().vel.xz.lengthSquared() == 0.0) {
-            return member.getEntity().vel.getY() * member.getDirection().getModY();
+            double dot = e.vel.getY() * member.getDirection().getModY();
+            return MathUtil.invert(e.vel.length(), dot < 0.0);
         } else {
-            return member.getEntity().vel.length();
+            return e.vel.length();
         }
     }
 

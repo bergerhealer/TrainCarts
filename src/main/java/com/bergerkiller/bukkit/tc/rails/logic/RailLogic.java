@@ -111,23 +111,25 @@ public abstract class RailLogic {
      * @return Forwards velocity of the minecart
      */
     public double getForwardVelocity(MinecartMember<?> member) {
+        final CommonEntity<?> e = member.getEntity();
+
         // Find segment of path we are at, and use motDot to get the velocity along it
         RailPath.Segment segment = this.getPath().findSegment(member.getEntity().loc.vector(), member.getBlock());
+        double dot;
         if (segment != null) {
             RailPath.Position pos = new RailPath.Position();
             pos.setMotion(member.getDirection());
             segment.calcDirection(pos);
-            return pos.motDot(member.getEntity().vel.vector());
+            dot = pos.motDot(member.getEntity().vel.vector());
+        } else {
+            // Fallback
+            final BlockFace direction = member.getDirection();
+            dot = e.vel.getX() * FaceUtil.cos(direction) +
+                  e.vel.getY() * direction.getModY() +
+                  e.vel.getZ() * FaceUtil.sin(direction);
         }
 
-        // Fallback
-        final CommonEntity<?> e = member.getEntity();
-        final BlockFace direction = member.getDirection();
-        double vel = 0.0;
-        vel += e.vel.getX() * FaceUtil.cos(direction);
-        vel += e.vel.getY() * direction.getModY();
-        vel += e.vel.getZ() * FaceUtil.sin(direction);
-        return vel;
+        return MathUtil.invert(e.vel.length(), dot < 0.0);
     }
 
     /**
@@ -275,4 +277,25 @@ public abstract class RailLogic {
         member.snapToPath(getPath());
     }
 
+    /**
+     * Performs gravity physics for this rail logic. By default, aligns the effect of
+     * gravity along the rail path direction.
+     * 
+     * @param member that has gravity updated
+     * @param gravityFactorSquared Combination of the physics update factor and gravity property
+     */
+    public void onGravity(MinecartMember<?> member, double gravityFactorSquared) {
+        CommonMinecart<?> e = member.getEntity();
+        Block block = member.getRailTracker().getBlock();
+        RailPath.Segment segment = getPath().findSegment(e.loc.vector(), block);
+        if (segment == null) {
+            // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
+            // This case should be handled by the rail logic implementations that lack paths directly
+            e.vel.y.subtract(gravityFactorSquared * getGravityMultiplier(member));
+        } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
+            // On a non-level segment, gravity must be applied based on the slope the segment is at
+            double f = gravityFactorSquared * getGravityMultiplier(member) * segment.dt_norm.y;
+            e.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
+        }
+    }
 }

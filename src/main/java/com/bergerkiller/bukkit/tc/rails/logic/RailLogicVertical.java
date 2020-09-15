@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.rails.logic;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 
@@ -43,7 +45,10 @@ public class RailLogicVertical extends RailLogic {
 
     @Override
     public double getForwardVelocity(MinecartMember<?> member) {
-        return member.getDirection().getModY() * member.getEntity().vel.getY();
+        final CommonEntity<?> e = member.getEntity();
+
+        double dot = member.getDirection().getModY() * e.vel.getY();
+        return MathUtil.invert(e.vel.length(), dot < 0.0);
     }
 
     @Override
