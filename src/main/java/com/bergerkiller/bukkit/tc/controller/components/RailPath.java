@@ -659,6 +659,12 @@ public class RailPath {
             posZ += 1e-10 * motZ;
         }
 
+        public void move(double distance) {
+            posX += distance * motX;
+            posY += distance * motY;
+            posZ += distance * motZ;
+        }
+
         public double distance(Position position) {
             if (this.relative)
                 position.assertRelative();
