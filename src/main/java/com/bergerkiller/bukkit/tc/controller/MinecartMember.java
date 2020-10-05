@@ -10,7 +10,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Chunk;
-import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -87,6 +86,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.CollisionBox;
+import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -132,6 +132,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Vector lastRailRefreshPosition = null;
     private Vector lastRailRefreshDirection = null;
     private List<Entity> enterForced = new ArrayList<Entity>(1);
+    private boolean wasMoving = false; // for starting driveSound property. TODO: Attachment?
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         // Can the minecart reach the other?
@@ -800,7 +801,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void playLinkEffect(boolean showSmoke) {
         Location loc = entity.getLocation();
         if (showSmoke) {
-            loc.getWorld().playEffect(loc, Effect.SMOKE, 0);
+            loc.getWorld().playEffect(loc, org.bukkit.Effect.SMOKE, 0);
         }
         WorldUtil.playSound(loc, SoundEffect.EXTINGUISH, 1.0f, 2.0f);
     }
@@ -2031,6 +2032,31 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 }
             }
             Util.setBlockActivationEnabled(this, enabled);
+        }
+
+        // Detect when the train starts and stops moving, to player a configured drive sound
+        if (wasMoving != (vel.lengthSquared() >= 1e-10)) {
+            wasMoving = !wasMoving;
+            if (wasMoving) {
+                String effectName = this.getProperties().getDriveSound();
+                if (effectName != null && !effectName.isEmpty()) {
+                    Effect effect = new Effect();
+                    effect.parseEffect(effectName);
+                    effect.volume = 100;
+
+                    // Play the sound effect in first person, close to the player
+                    for(Player p : this.entity.getPlayerPassengers()) {
+                        effect.play(p);
+                    }
+
+                    // Play the sound effect for all players nearby
+                    for (Entity nearby : entity.getNearbyEntities(64.0)) {
+                        if (nearby instanceof Player && !entity.isPassenger(nearby)) {
+                            effect.play(entity.getLocation(), (Player) nearby);
+                        }
+                    }
+                }
+            }
         }
 
         // Move using set motion, and perform post-move rail logic

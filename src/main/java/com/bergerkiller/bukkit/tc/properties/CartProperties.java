@@ -662,6 +662,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "drivesound", "driveeffect")) {
             this.setDriveSound(arg);
+        } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
+            this.setEnterMessage(arg);
         } else {
             return false;
         }

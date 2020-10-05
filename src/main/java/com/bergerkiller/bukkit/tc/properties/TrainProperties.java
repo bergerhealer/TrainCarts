@@ -1161,6 +1161,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             for (CartProperties cprop : this) {
                 cprop.setDriveSound(arg);
             }
+        } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
+            this.setEnterMessage(arg);
         } else {
             return false;
         }
