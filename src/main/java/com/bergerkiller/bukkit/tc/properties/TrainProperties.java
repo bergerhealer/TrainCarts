@@ -72,6 +72,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
     private double waitDistance = 0.0;
+    private double waitDelay = 0.0;
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
@@ -130,7 +131,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public double getWaitDistance() {
         return this.waitDistance;
-
     }
 
     /**
@@ -141,6 +141,26 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setWaitDistance(double waitDistance) {
         this.waitDistance = waitDistance;
+    }
+
+    /**
+     * Gets the number of seconds that must elapse after waiting for another train before the train starts moving again.
+     * This is used when a wait distance is set.
+     * 
+     * @return wait delay in seconds, used after waiting for a train
+     */
+    public double getWaitDelay() {
+        return this.waitDelay;
+    }
+
+    /**
+     * Sets the number of seconds that must elapse after waiting for another train before the train starts moving again.
+     * This is used when a wait distance is set.
+     * 
+     * @param delay Delay to set to in seconds
+     */
+    public void setWaitDelay(double delay) {
+        this.waitDelay = delay;
     }
 
     /**
@@ -1103,6 +1123,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         } else if (key.equalsIgnoreCase("waitdistance")) {
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
+        } else if (key.equalsIgnoreCase("waitdelay")) {
+            this.setWaitDelay(ParseUtil.parseDouble(arg, this.waitDelay));
         } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playerexit")) {
@@ -1297,6 +1319,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setManualMovementAllowed(node.get("allowManualMovement", this.isManualMovementAllowed()));
         this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isMobManualMovementAllowed()));
         this.waitDistance = node.get("waitDistance", this.waitDistance);
+        this.waitDelay = node.get("waitDelay", this.waitDelay);
         this.suffocation = node.get("suffocation", this.suffocation);
         this.killMessage = node.get("killMessage", this.killMessage);
 
@@ -1412,6 +1435,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.blockTypes = source.blockTypes;
         this.blockOffset = source.blockOffset;
         this.waitDistance = source.waitDistance;
+        this.waitDelay = source.waitDelay;
         this.bankingStrength = source.bankingStrength;
         this.bankingSmoothness = source.bankingSmoothness;
         this.suffocation = source.suffocation;
@@ -1430,6 +1454,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("speedLimit", this.speedLimit);
         node.set("gravity", this.gravity);
         node.set("waitDistance", this.waitDistance);
+        node.set("waitDelay", this.waitDelay);
         node.set("suffocation", this.suffocation);
         node.set("killMessage", this.killMessage);
 
@@ -1475,6 +1500,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("gravity", this.gravity != 1.0 ? this.gravity : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
+        node.set("waitDelay", (this.waitDelay > 0.0) ? this.waitDelay : null);
         node.set("suffocation", this.suffocation ? null : false);
         node.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
 

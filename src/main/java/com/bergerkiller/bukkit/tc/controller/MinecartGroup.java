@@ -80,6 +80,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private int updateStepCount = 1;
     private int updateStepNr = 1;
     private boolean unloaded = false;
+    private double waitDistanceSpeed = 0.0;
+    private int waitDistanceTickDelay = 0;
 
     protected MinecartGroup() {
         this.ticked.set();
@@ -1578,10 +1580,36 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // If a wait distance is set, check for trains ahead of the track and wait for those
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
             try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
+                // When a wait delay is set, speed slows down to a halt. We do that logic here.
+                if (this.waitDistanceSpeed > 0.01) {
+                    this.waitDistanceSpeed *= 0.7;
+                } else {
+                    this.waitDistanceSpeed = 0.0;
+                }
+
                 double speedAhead = this.getSpeedAhead(this.getProperties().getWaitDistance());
                 double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
+                boolean speedLimitChanged = false;
                 if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
+                    // When a delay is set, reset the delay and slow down the train to a gradual complete halt
+                    // This, instead of letting the train follow the train ahead.
+                    if (this.getProperties().getWaitDelay() > 0.0) {
+                        if (this.waitDistanceTickDelay == 0 || newSpeedLimit < this.waitDistanceSpeed) {
+                            this.waitDistanceSpeed = newSpeedLimit;
+                        } else {
+                            newSpeedLimit = this.waitDistanceSpeed;
+                        }
+                        this.waitDistanceTickDelay = MathUtil.ceil(20.0 * this.getProperties().getWaitDelay());
+                    }
+
                     speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);
+                    speedLimitChanged = true;
+                } else if (this.waitDistanceTickDelay > 0) {
+                    this.waitDistanceTickDelay--;
+                    speedLimitClamped = MathUtil.clamp(this.waitDistanceSpeed * this.updateSpeedFactor, 0.4);
+                    speedLimitChanged = true;
+                }
+                if (speedLimitChanged) {
                     for (MinecartMember<?> mm : this) {
                         mm.checkMissing();
                         mm.getEntity().setMaxSpeed(speedLimitClamped);
