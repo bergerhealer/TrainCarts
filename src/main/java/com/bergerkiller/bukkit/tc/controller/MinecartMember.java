@@ -1325,7 +1325,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 return;
             }
             if (!entity.isDead() || !this.died) {
-                super.onDie();
+                {
+                    boolean cancelDropsOriginal = TCListener.cancelNextDrops;
+                    TCListener.cancelNextDrops = !this.getProperties().getSpawnItemDrops();
+                    try {
+                        super.onDie();
+                    } finally {
+                        TCListener.cancelNextDrops = cancelDropsOriginal;
+                    }
+                }
                 this.died = true;
                 if (!this.isUnloaded()) {
                     // Note: No getGroup() calls are allowed here!
