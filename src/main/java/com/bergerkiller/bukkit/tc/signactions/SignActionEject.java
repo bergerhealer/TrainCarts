@@ -141,7 +141,7 @@ public class SignActionEject extends SignAction {
                 .setPermission(Permission.BUILD_EJECTOR)
                 .setName("train ejector")
                 .setDescription("eject the passengers of a " + (event.isRCSign() ? "remote train" : "train"))
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Ejector")
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Ejector")
                 .handle(event.getPlayer());
     }
 

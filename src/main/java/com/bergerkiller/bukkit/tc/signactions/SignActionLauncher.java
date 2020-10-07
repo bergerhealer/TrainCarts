@@ -86,7 +86,7 @@ public class SignActionLauncher extends SignAction {
                 .setPermission(Permission.BUILD_LAUNCHER)
                 .setName("launcher")
                 .setDescription("launch (or brake) trains at a desired speed")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Launcher")
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Launcher")
                 .handle(event.getPlayer());
     }
 }

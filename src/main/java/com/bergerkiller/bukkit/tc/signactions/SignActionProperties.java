@@ -53,7 +53,7 @@ public class SignActionProperties extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_PROPERTY)
                 .setName(event.isCartSign() ? "cart property setter" : "train property setter")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Property");
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Property");
 
         if (event.isTrainSign()) {
             opt.setDescription("set properties on the train above");

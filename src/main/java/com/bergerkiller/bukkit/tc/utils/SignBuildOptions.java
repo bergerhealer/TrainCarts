@@ -56,6 +56,18 @@ public class SignBuildOptions {
 
     /**
      * Calls {@link #setHelpURL(url, alt)} with information about a page
+     * on the Traincarts Wiki.
+     * 
+     * @param page Path on the wiki where the information is located
+     * @return this
+     */
+    public SignBuildOptions setTraincartsWIKIHelp(String page) {
+        return setHelpURL("https://wiki.traincarts.net/index.php/" + page,
+                "Click here to visit the Traincarts WIKI for help with this sign");
+    }
+
+    /**
+     * Calls {@link #setHelpURL(url, alt)} with information about a page
      * on the Minecraft Wiki.
      * 
      * @param page Path on the wiki where the information is located

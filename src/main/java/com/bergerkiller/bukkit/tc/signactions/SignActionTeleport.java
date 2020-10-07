@@ -157,7 +157,7 @@ public class SignActionTeleport extends SignAction {
                 .setPermission(Permission.BUILD_TELEPORTER)
                 .setName("train teleporter")
                 .setDescription("teleport trains large distances to another teleporter sign")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Teleporter")
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Teleporter")
                 .handle(event.getPlayer());
     }
 

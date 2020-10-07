@@ -153,7 +153,7 @@ public class SignActionEnter extends SignAction {
                 .setPermission(Permission.BUILD_ENTER)
                 .setName("train enter sign")
                 .setDescription("cause nearby players/mobs to enter the train")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Enter")
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Enter")
                 .handle(event.getPlayer());
     }
 }

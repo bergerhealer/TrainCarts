@@ -106,7 +106,7 @@ public class SignActionTicket extends SignAction {
                 .setPermission(Permission.BUILD_TICKET)
                 .setName("ticket system")
                 .setDescription("charges the passengers of a train")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Ticket")
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Ticket")
                 .handle(event.getPlayer());
     }
 }

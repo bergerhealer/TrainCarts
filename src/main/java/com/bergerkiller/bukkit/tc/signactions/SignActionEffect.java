@@ -96,7 +96,7 @@ public class SignActionEffect extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_EFFECT)
                 .setName(event.isCartSign() ? "cart effect player" : "train effect player")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Effect");
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Effect");
 
         if (event.isTrainSign()) {
             opt.setDescription("play an effect in all minecarts of the train" + app);

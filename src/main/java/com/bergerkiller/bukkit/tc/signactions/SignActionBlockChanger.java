@@ -90,7 +90,7 @@ public class SignActionBlockChanger extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_BLOCKCHANGER)
                 .setName(event.isCartSign() ? "cart block changer" : "train block changer")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/BlockChanger");
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/BlockChanger");
 
         if (event.isTrainSign()) {
             opt.setDescription("change the blocks displayed in a train");

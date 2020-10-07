@@ -66,7 +66,7 @@ public class SignActionBlocker extends SignAction {
                 .setPermission(Permission.BUILD_BLOCKER)
                 .setName("train blocker")
                 .setDescription("block trains coming from a certain direction")
-                .setMinecraftWIKIHelp("Mods/TrainCarts/Signs/Blocker")
+                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Blocker")
                 .handle(event.getPlayer());
     }
 }
