@@ -505,6 +505,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Unload in detector regions
         getSignTracker().unload();
 
+        // Remove from member-by-rail cache
+        getRailTracker().unload();
+
         // Store the group offline
         OfflineGroupManager.storeGroup(this);
 
