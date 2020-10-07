@@ -54,7 +54,7 @@ public class SignActionSpawn extends SignAction {
                 .setPermission(Permission.BUILD_SPAWNER)
                 .setName("train spawner")
                 .setDescription("spawn trains on the tracks above when powered by redstone")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Spawner")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Spawner")
                 .handle(event.getPlayer()))
         {
             return false;

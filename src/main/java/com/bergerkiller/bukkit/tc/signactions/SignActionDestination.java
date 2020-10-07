@@ -128,7 +128,7 @@ public class SignActionDestination extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_DESTINATION)
                 .setName(event.isCartSign() ? "cart destination" : "train destination")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Destination");
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Destination");
 
         if (event.isTrainSign()) {
             opt.setDescription("set a train destination and the next destination to set once it is reached");

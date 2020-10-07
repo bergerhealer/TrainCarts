@@ -53,7 +53,7 @@ public class SignActionSkip extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_SKIPPER)
                 .setName(event.isCartSign() ? "cart skipper" : "train skipper")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Skip");
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Skip");
 
         if (event.isTrainSign()) {
             opt.setDescription("tell a train to skip upcoming signs");

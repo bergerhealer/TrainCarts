@@ -84,7 +84,7 @@ public class SignActionCraft extends SignAction {
                 .setPermission(Permission.BUILD_CRAFTER)
                 .setName("workbench item crafter")
                 .setDescription("craft items inside storage minecarts")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Crafter")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Crafter")
                 .handle(event.getPlayer());
     }
 }

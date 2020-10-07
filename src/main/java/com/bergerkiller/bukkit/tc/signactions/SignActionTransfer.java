@@ -158,14 +158,14 @@ public class SignActionTransfer extends SignAction {
                     .setPermission(Permission.BUILD_COLLECTOR)
                     .setName("storage minecart item collector")
                     .setDescription("take items from " + StringUtil.combineNames(types))
-                    .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Transfer")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Transfer")
                     .handle(event.getPlayer());
         } else {
             return SignBuildOptions.create()
                     .setPermission(Permission.BUILD_DEPOSITOR)
                     .setName("storage minecart item depositor")
                     .setDescription("make trains put items into " + StringUtil.combineNames(types))
-                    .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Transfer")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Transfer")
                     .handle(event.getPlayer());
         }
     }

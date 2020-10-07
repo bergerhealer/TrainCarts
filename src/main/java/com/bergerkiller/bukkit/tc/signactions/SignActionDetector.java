@@ -139,7 +139,7 @@ public class SignActionDetector extends SignAction {
                 .setPermission(Permission.BUILD_DETECTOR)
                 .setName("train detector")
                 .setDescription("detect trains between this detector sign and another")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Detector")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Detector")
                 .handle(event.getPlayer()))
         {
             return false;

@@ -143,7 +143,7 @@ public class SignActionElevator extends SignAction {
                 .setPermission(Permission.BUILD_ENTER)
                 .setName("train elevator")
                 .setDescription("teleport trains vertically")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Elevator")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Elevator")
                 .handle(event.getPlayer());
     }
 }

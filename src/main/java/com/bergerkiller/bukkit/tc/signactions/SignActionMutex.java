@@ -29,7 +29,7 @@ public class SignActionMutex extends SignAction {
                 .setPermission(Permission.BUILD_MUTEX)
                 .setName("mutex zone")
                 .setDescription("prevent more than one train entering a zone")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Mutex")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Mutex")
                 .handle(event.getPlayer());
     }
 

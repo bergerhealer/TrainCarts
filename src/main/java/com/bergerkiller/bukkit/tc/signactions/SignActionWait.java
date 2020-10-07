@@ -112,7 +112,7 @@ public class SignActionWait extends SignAction {
                 .setPermission(Permission.BUILD_WAIT)
                 .setName("train waiter sign")
                 .setDescription("waits the train until the tracks ahead are clear")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Waiter")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Waiter")
                 .handle(event.getPlayer());
     }
 }

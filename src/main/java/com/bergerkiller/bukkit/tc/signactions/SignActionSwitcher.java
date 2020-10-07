@@ -249,14 +249,14 @@ public class SignActionSwitcher extends SignAction {
                     .setPermission(Permission.BUILD_SWITCHER)
                     .setName("cart switcher")
                     .setDescription("switch between tracks based on properties of the cart above")
-                    .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Switcher")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
                     .handle(event.getPlayer());
         } else if (event.isTrainSign()) {
             return SignBuildOptions.create()
                     .setPermission(Permission.BUILD_SWITCHER)
                     .setName("train switcher")
                     .setDescription("switch between tracks based on properties of the train above")
-                    .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Switcher")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
                     .handle(event.getPlayer());
         }
         return false;

@@ -94,7 +94,7 @@ public class SignActionStation extends SignAction {
                 .setPermission(Permission.BUILD_STATION)
                 .setName("station")
                 .setDescription("stop, wait and launch trains")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Station")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Station")
                 .handle(event.getPlayer());
     }
 

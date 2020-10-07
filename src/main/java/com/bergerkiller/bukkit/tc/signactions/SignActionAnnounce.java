@@ -72,7 +72,7 @@ public class SignActionAnnounce extends SignAction {
                 .setDescription(event.isRCSign() ?
                         "remotely send a message to all the players in the train" :
                         "send a message to players in a train")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Announce")
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Announce")
                 .handle(event.getPlayer());
     }
 }

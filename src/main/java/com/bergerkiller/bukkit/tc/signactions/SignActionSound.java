@@ -105,7 +105,7 @@ public class SignActionSound extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_SOUND)
                 .setName(event.isCartSign() ? "cart sound player" : "train sound player")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Sound");
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Sound");
 
         if (event.isCartSign()) {
             opt.setDescription("play a sound in the minecart" + app);

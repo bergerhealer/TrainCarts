@@ -39,7 +39,7 @@ public class SignActionDestroy extends SignAction {
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_DESTRUCTOR)
                 .setName(event.isCartSign() ? "cart destructor" : "train destructor")
-                .setTraincartsWIKIHelp("Mods/TrainCarts/Signs/Destroyer");
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Destroyer");
 
         if (event.isTrainSign()) {
             opt.setDescription("destroy an entire train");
