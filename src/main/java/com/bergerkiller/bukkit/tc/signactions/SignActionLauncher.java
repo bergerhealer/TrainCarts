@@ -56,7 +56,7 @@ public class SignActionLauncher extends SignAction {
             BlockFace direction = Direction.parse(info.getLine(3)).getDirection(info.getFacing(), info.getCartEnterFace());
 
             // Calculate the launch distance if left empty
-            if (!launchConfig.hasDistance() && !launchConfig.hasDuration()) {
+            if (!launchConfig.isValid()) {
                 launchConfig.setDistance(Util.calculateStraightLength(info.getRails(), direction));
             }
 

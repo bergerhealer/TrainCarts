@@ -8,10 +8,22 @@ import com.bergerkiller.bukkit.tc.Util;
  * Stores all the configuration parsed from a launch statement on a sign.
  * This will parse launch distance or time, and selects the launch function to use.
  */
-public class LauncherConfig {
+public class LauncherConfig implements Cloneable {
     private double _distance;
     private int _duration;
+    private double _acceleration;
     private Class<? extends LaunchFunction> _launchFunction;
+
+    /**
+     * Gets whether this is a valid configuration.
+     * It is only valid if a distance, duration
+     * or acceleration is configured.
+     * 
+     * @return True if valid
+     */
+    public boolean isValid() {
+        return hasDistance() || hasDuration() || hasAcceleration();
+    }
 
     /**
      * Gets whether a distance was set
@@ -32,6 +44,15 @@ public class LauncherConfig {
     }
 
     /**
+     * Gets whether an acceleration is set
+     * 
+     * @return acceleration was set
+     */
+    public boolean hasAcceleration() {
+        return this._acceleration > 0.0;
+    }
+
+    /**
      * Gets the number of ticks launching should occur, or -1 if unused
      * 
      * @return launch tick time duration
@@ -49,9 +70,10 @@ public class LauncherConfig {
         this._duration = duration;
         if (this._duration >= 0) {
             this._distance = -1.0;
+            this._acceleration = -1.0;
         }
     }
-    
+
     /**
      * Gets the block distance the launch should reach, or negative if unused
      * 
@@ -70,6 +92,33 @@ public class LauncherConfig {
         this._distance = distance;
         if (distance >= 0.0) {
             this._duration = -1;
+            this._acceleration = -1.0;
+        }
+    }
+
+    /**
+     * Gets the acceleration at which a train is launched.
+     * This is the number of blocks/tick the speed of the train
+     * increases/decreases by every tick.
+     * 
+     * @return acceleration in blocks/tick per tick
+     */
+    public double getAcceleration() {
+        return this._acceleration;
+    }
+
+    /**
+     * Sets the acceleration at which a train is launched.
+     * This is the number of blocks/tick the speed of the train
+     * increases/decreases by every tick.
+     * 
+     * @param acceleration Acceleration to set to, in blocks/tick per tick
+     */
+    public void setAcceleration(double acceleration ) {
+        this._acceleration = acceleration;
+        if (acceleration >= 0.0) {
+            this._duration = -1;
+            this._distance = -1.0;
         }
     }
 
@@ -91,6 +140,16 @@ public class LauncherConfig {
         this._launchFunction = function;
     }
 
+    @Override
+    public LauncherConfig clone() {
+        LauncherConfig clone = new LauncherConfig();
+        clone._distance = this._distance;
+        clone._duration = this._duration;
+        clone._acceleration = this._acceleration;
+        clone._launchFunction = this._launchFunction;
+        return clone;
+    }
+
     /**
      * Parses the launcher configuration from text. This supports the following formats:
      * <ul>
@@ -102,6 +161,8 @@ public class LauncherConfig {
      * <li>20l  =  distance of 20 blocks, linear algorithm</li>
      * <li>20b  =  distance of 20 blocks, bezier algorithm</li>
      * <li>10sb =  launch for 10 seconds, bezier algorithm</li>
+     * <li>8/tt =  launch at an acceleration of 8 blocks/tick^2</li>
+     * <li>8/ss =  launch at an acceleration of 8 blocks/second^2</li>
      * </ul>
      * 
      * @param text to parse
@@ -125,9 +186,30 @@ public class LauncherConfig {
             // Parsed the character. Remove it.
             textFilt = textFilt.substring(0, idx) + textFilt.substring(idx + 1);
         }
-        config._duration = Util.parseTimeTicks(textFilt);
-        if (config._duration < 0) {
-            config._distance = ParseUtil.parseDouble(textFilt, -1.0);
+
+        int accelerationStart = textFilt.indexOf('/');
+        if (accelerationStart != -1) {
+            // acceleration specified
+            config._duration = -1;
+            config._distance = -1.0;
+            config._acceleration = ParseUtil.parseDouble(textFilt.substring(0, accelerationStart), -1.0);
+            double factor = 1.0; // tick
+            for (int i = accelerationStart+1; i < textFilt.length(); i++) {
+                char c = textFilt.charAt(i);
+                if (c == 's') {
+                    factor = 400.0; // second is 20 ticks, square it for acceleration factor
+                } else if (c == 'm') {
+                    factor = 1440000.0; // minute is 1200 ticks, square it for acceleration factor
+                }
+            }
+            config._acceleration /= factor;
+        } else {
+            // distance or duration specified
+            config._acceleration = -1.0;
+            config._duration = Util.parseTimeTicks(textFilt);
+            if (config._duration < 0) {
+                config._distance = ParseUtil.parseDouble(textFilt, -1.0);
+            }
         }
         return config;
     }
@@ -148,6 +230,7 @@ public class LauncherConfig {
         }
         config._duration = -1;
         config._distance = -1.0;
+        config._acceleration = -1.0;
         return config;
     }
 }

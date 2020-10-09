@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+
 /**
  * Algorithms for calculating a desired launched distance over time to launch from one
  * velocity to another. Two modes can be used: fixed distance, or fixed time.
@@ -127,14 +129,51 @@ public abstract class LaunchFunction {
     }
 
     /**
+     * Configures this launch function, taking over the relevant configuration
+     * for launching. The launch duration, distance or acceleration is set.
+     * 
+     * @param config
+     */
+    public final void configure(LauncherConfig config) {
+        if (config.hasAcceleration()) {
+            this.setAcceleration(config.getAcceleration());
+        } else if (config.hasDuration()) {
+            this.setTotalTime(config.getDuration());
+        } else if (config.hasDistance()) {
+            this.setTotalDistance(config.getDistance());
+        } else {
+            // Fallback: instant
+            this.setInstantaneous();
+        }
+    }
+
+    /**
+     * Calibrates the algorithm to launch at a given acceleration
+     * 
+     * @param acceleration to calibrate in blocks/tick per tick
+     */
+    public final void setAcceleration(double acceleration) {
+        // Detect when the acceleration is so high that we reach the target speed instantly
+        // If so, set to an instantaneous launch. Also do this for invalid accelerations.
+        double velocityDiff = Math.abs(this.vend - this.vstart);
+        if (acceleration <= 0.0 || acceleration >= velocityDiff) {
+            this.setInstantaneous();
+            return;
+        }
+
+        // Approximate how many ticks it takes to go from vstart to vend
+        // at this acceleration
+        this.setTotalTime(MathUtil.floor(velocityDiff / acceleration));
+    }
+
+    /**
      * Calibrates the algorithm to launch a given distance
      * 
      * @param distance to calibrate
      */
     public final void setTotalDistance(double distance) {
         if (distance <= 0.0) {
-            this.setTotalTime(0);
-            this.dfactor = 0.0;
+            this.setInstantaneous();
             return;
         }
 
@@ -160,6 +199,15 @@ public abstract class LaunchFunction {
      */
     public final double getTotalDistance() {
         return this.getDistance(this.totalTime);
+    }
+
+    /**
+     * Calibrates the algorithm to perform an instantaneous launch to the
+     * target velocity.
+     */
+    public final void setInstantaneous() {
+        this.totalTime = 0;
+        this.dfactor = 0.0;
     }
 
     /**

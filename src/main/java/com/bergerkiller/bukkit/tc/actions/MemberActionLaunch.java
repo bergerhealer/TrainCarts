@@ -1,11 +1,8 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
-
-import org.bukkit.entity.Player;
 
 public class MemberActionLaunch extends MemberAction implements MovementAction {
     private static final double minVelocity = 0.001;
@@ -13,12 +10,11 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
     private double distanceoffset;
     private int timeoffset;
-    private int targettime;
     private double targetvelocity;
-    private double targetdistance;
     private double distance;
     private double lastVelocity;
     private double lastspeedlimit;
+    private LauncherConfig config;
     private LaunchFunction function;
 
     public MemberActionLaunch() {
@@ -32,6 +28,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
      * @param targetvelocity goal final speed
      */
     public void init(LauncherConfig config, double targetvelocity) {
+        this.config = config;
         this.targetvelocity = targetvelocity;
         this.timeoffset = 0;
         this.distanceoffset = 0.0;
@@ -43,25 +40,13 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             this.function = new LaunchFunction.Linear();
         }
 
-        if (config.hasDuration()) {
-            this.targetdistance = -1.0;
-            this.targettime = config.getDuration();
-        } else if (config.hasDistance()) {
-            this.targetdistance = config.getDistance();
-            this.targettime = -1;
-        } else {
-            // No time, no duration.
-            this.targetdistance = -1.0;
-            this.targettime = 0;
-        }
-
         // There seems to be a bug when distance/time is too short
         // It's unable to initiate the right launch direction then
-        if (this.targetdistance >= 0.0 && this.targetdistance < 0.001) {
-            this.targetdistance = 0.001;
+        if (this.config.hasDistance() && this.config.getDistance() < 0.001) {
+            this.config.setDistance(0.001);
         }
-        if (this.targettime >= 0 && this.targettime < 1) {
-            this.targettime = 1;
+        if (this.config.hasDuration() && this.config.getDuration() < 1) {
+            this.config.setDuration(1);
         }
 
         this.distance = 0;
@@ -99,13 +84,8 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
      * @param function class to use
      */
     public void setFunction(Class<? extends LaunchFunction> function) {
-        LauncherConfig newConfig = new LauncherConfig();
+        LauncherConfig newConfig = this.config.clone();
         newConfig.setFunction(function);
-        if (this.targettime > 0) {
-            newConfig.setDuration(this.targettime);
-        } else {
-            newConfig.setDistance(this.targetdistance);
-        }
         this.init(newConfig, this.targetvelocity);
     }
 
@@ -119,19 +99,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
             this.function.setStartVelocity(minLaunchVelocity);
         }
-
-        if (this.targettime >= 0) {
-            this.function.setTotalTime(this.targettime);
-        } else {
-            // The world may never know why this is needed for trains >1 in size
-            // ...if you know, let me know, k?
-            // Now we know! It's because using getMovedDistance() does not show true applied velocities.
-            //if (getGroup().size() > 1) {
-            //    this.targetdistance += getMember().getEntity().getMovedDistance();
-            //}
-
-            this.function.setTotalDistance(this.targetdistance);
-        }
+        this.function.configure(this.config);
     }
 
     @Override
@@ -144,11 +112,11 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     }
 
     public double getTargetDistance() {
-        return this.targetdistance;
+        return this.config.getDistance();
     }
 
     protected void setTargetDistance(double distance) {
-        this.targetdistance = distance;
+        this.config.setDistance(distance);
     }
 
     public double getDistance() {
@@ -169,14 +137,12 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             this.function.setVelocityRange(this.lastVelocity, this.targetvelocity);
             this.timeoffset = this.elapsedTicks();
             this.distanceoffset = this.distance;
-
-            if (this.targettime > 0) {
-                // Launch from current speed to new speed limit in the time remaining
-                this.function.setTotalTime(this.targettime - this.timeoffset);
-            } else {
-                // Launch from current speed to new speed limit for the distance remaining
-                this.function.setTotalDistance(this.targetdistance - this.distanceoffset);
+            if (this.config.hasDuration()) {
+                this.config.setDuration(this.config.getDuration() - this.timeoffset);
+            } else if (this.config.hasDistance()) {
+                this.config.setDistance(this.config.getDistance() - this.distanceoffset);
             }
+            this.function.configure(this.config);
         }
 
         // Did any of the carts in the group stop?
