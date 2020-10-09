@@ -33,13 +33,12 @@ public class SignActionWait extends SignAction {
             if (launchData.length == 3) {
                 launchDistance = ParseUtil.parseDouble(launchData[0], 2.0);
                 launchDirection = Direction.parse(launchData[1]).getDirection(info.getFacing(), info.getCartEnterFace());
-                launchVelocity = ParseUtil.parseDouble(launchData[2], (Double) info.getGroup().getAverageForce());
+                launchVelocity = Util.parseVelocity(launchData[2], info.getGroup().getAverageForce());
             } else if (launchData.length == 1) {
                 launchDistance = ParseUtil.parseDouble(launchData[0], 2.0);
             } else {
                 launchDistance = 2.0;
             }
-
 
             // Second line without the name of the sign
             String distanceData = info.getLine(1);

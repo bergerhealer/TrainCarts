@@ -663,6 +663,69 @@ public class Util {
     }
 
     /**
+     * Parses a number with optional velocity unit to a velocity value.
+     * Assumes 1 block is 1 meter.
+     * Supports the following formats:
+     * <ul>
+     * <li>12     =  12 blocks/tick</li>
+     * <li>12.5   =  12.5 blocks/tick</li>
+     * <li>20m/s  =  20 meters/second (1 blocks/tick)</li>
+     * <li>20km/h =  20 kilometers/hour (0.278 blocks/tick)</li>
+     * <li>20mi/h =  20 miles/hour (0.44704 blocks/tick)</li>
+     * <li>20kmh  =  same as 20km/h</li>
+     * <li>20kmph =  same as 20km/h</li>
+     * <li>20mph  =  same as 20mi/h</li>
+     * </ul>
+     * 
+     * @param velocityString The text to parse
+     * @param defaultValue The default value to return if parsing fails
+     * @return parsed velocity in blocks/tick
+     */
+    public static double parseVelocity(String velocityString, double defaultValue) {
+        String numberText = velocityString;
+        String unitText = "";
+        for (int i = 0; i < velocityString.length(); i++) {
+            char c = velocityString.charAt(i);
+            if (!Character.isDigit(c) && c != '.' && c != ',' && c != ' ') {
+                numberText = velocityString.substring(0, i);
+                unitText = velocityString.substring(i).replace(" ", "").trim().toLowerCase(Locale.ENGLISH);
+                break;
+            }
+        }
+        double value = ParseUtil.parseDouble(numberText, Double.NaN);
+        if (Double.isNaN(value)) {
+            return defaultValue;
+        }
+        if (unitText.length() >= 3) {
+            // Perform a few common translations
+            if (unitText.equals("mph") || unitText.equals("mphr")) {
+                unitText = "mi/h";
+            } else if (unitText.equals("kmph") || unitText.equals("kmphr")) {
+                unitText = "km/h";
+            }
+
+            // Try to convert the value based on the unit
+            int slashIndex = unitText.indexOf('/', 1);
+            if (slashIndex != -1) {
+                // Get the numerator / denominator part of the speed unit fraction
+                String num = unitText.substring(0, slashIndex);
+                String den = unitText.substring(slashIndex + 1);
+                if (num.equals("k") || num.equals("km")) {
+                    value *= 1000.0;
+                } else if (num.equals("mi")) {
+                    value *= 1609.344;
+                }
+                if (LogicUtil.contains(den, "s", "sec", "second")) {
+                    value /= 20.0;
+                } else if (LogicUtil.contains(den, "h", "hr", "hour")) {
+                    value /= (20.0 * 3600.0);
+                }
+            }
+        }
+        return value;
+    }
+
+    /**
      * Obtains the maximum straight length achieved from a particular block. This length is limited to 20 blocks.
      *
      * @param railsBlock to calculate from

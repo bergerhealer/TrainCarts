@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -26,7 +25,7 @@ public class SignActionLauncher extends SignAction {
             return;
         }
         // Parse the launch speed
-        double velocity = ParseUtil.parseDouble(info.getLine(2), TCConfig.launchForce);
+        double velocity = Util.parseVelocity(info.getLine(2), TCConfig.launchForce);
 
         // When prefixed with + or - the speed should be added on top of the current speed of the train
         boolean addToRealSpeed = (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-"));

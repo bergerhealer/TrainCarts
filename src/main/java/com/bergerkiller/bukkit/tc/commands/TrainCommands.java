@@ -580,7 +580,7 @@ public class TrainCommands {
                 // This would be the velocity (if it succeeds)
                 if (argsList.size() >= 1) {
                     String valueStr = argsList.get(argsList.size() - 1);
-                    double value = ParseUtil.parseDouble(valueStr, Double.NaN);
+                    double value = Util.parseVelocity(valueStr, Double.NaN);
                     if (!Double.isNaN(value)) {
                         argsList.remove(argsList.size() - 1);
                         velocity = value;
