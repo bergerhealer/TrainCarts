@@ -700,7 +700,7 @@ public class Util {
             // Perform a few common translations
             if (unitText.equals("mph") || unitText.equals("mphr")) {
                 unitText = "mi/h";
-            } else if (unitText.equals("kmph") || unitText.equals("kmphr")) {
+            } else if (LogicUtil.contains(unitText, "kmh", "kmph", "kmphr")) {
                 unitText = "km/h";
             }
 
