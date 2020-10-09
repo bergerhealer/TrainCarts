@@ -163,6 +163,7 @@ public class LauncherConfig implements Cloneable {
      * <li>10sb =  launch for 10 seconds, bezier algorithm</li>
      * <li>8/tt =  launch at an acceleration of 8 blocks/tick^2</li>
      * <li>8/ss =  launch at an acceleration of 8 blocks/second^2</li>
+     * <li>1g   =  launch at an acceleration of 9.81 blocks/second^2</li>
      * </ul>
      * 
      * @param text to parse
@@ -172,12 +173,15 @@ public class LauncherConfig implements Cloneable {
         LauncherConfig config = createDefault();
         String textFilt = text;
         int idx = 0;
+        boolean is_acceleration_in_g = false;
         while (idx < textFilt.length()) {
             char c = textFilt.charAt(idx);
             if (c == 'b') {
                 config._launchFunction = LaunchFunction.Bezier.class;
             } else if (c == 'l') {
                 config._launchFunction = LaunchFunction.Linear.class;
+            } else if (c == 'g' || c == 'G') {
+                is_acceleration_in_g = true;
             } else {
                 idx++;
                 continue;
@@ -203,6 +207,11 @@ public class LauncherConfig implements Cloneable {
                 }
             }
             config._acceleration /= factor;
+        } else if (is_acceleration_in_g) {
+            // acceleration specified as a factor by G-factor (value * 9.81 / (20*20))
+            config._duration = -1;
+            config._distance = -1.0;
+            config._acceleration = 0.024525 * ParseUtil.parseDouble(textFilt.substring(0, accelerationStart), -1.0);
         } else {
             // distance or duration specified
             config._acceleration = -1.0;
