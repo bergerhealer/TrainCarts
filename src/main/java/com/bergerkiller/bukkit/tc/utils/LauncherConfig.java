@@ -9,9 +9,11 @@ import com.bergerkiller.bukkit.tc.Util;
  * This will parse launch distance or time, and selects the launch function to use.
  */
 public class LauncherConfig implements Cloneable {
+    private String _asString = null;
     private double _distance;
     private int _duration;
     private double _acceleration;
+    private boolean _launchFunctionIsDefault = true;
     private Class<? extends LaunchFunction> _launchFunction;
 
     /**
@@ -67,6 +69,7 @@ public class LauncherConfig implements Cloneable {
      * @param duration to set to, -1 to disable
      */
     public void setDuration(int duration) {
+        this._asString = null;
         this._duration = duration;
         if (this._duration >= 0) {
             this._distance = -1.0;
@@ -89,6 +92,7 @@ public class LauncherConfig implements Cloneable {
      * @param distance to launch for
      */
     public void setDistance(double distance) {
+        this._asString = null;
         this._distance = distance;
         if (distance >= 0.0) {
             this._duration = -1;
@@ -115,6 +119,7 @@ public class LauncherConfig implements Cloneable {
      * @param acceleration Acceleration to set to, in blocks/tick per tick
      */
     public void setAcceleration(double acceleration ) {
+        this._asString = null;
         this._acceleration = acceleration;
         if (acceleration >= 0.0) {
             this._duration = -1;
@@ -143,11 +148,43 @@ public class LauncherConfig implements Cloneable {
     @Override
     public LauncherConfig clone() {
         LauncherConfig clone = new LauncherConfig();
+        clone._asString = this._asString;
         clone._distance = this._distance;
         clone._duration = this._duration;
         clone._acceleration = this._acceleration;
         clone._launchFunction = this._launchFunction;
+        clone._launchFunctionIsDefault = this._launchFunctionIsDefault;
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        // Generate a String representation of this launch function if needed
+        // This is only used when using one of the setters.
+        if (this._asString == null) {
+            StringBuilder result = new StringBuilder();
+            if (this.hasDistance()) {
+                result.append(this.getDistance());
+            } else if (this.hasDuration()) {
+                result.append(this.getDuration()).append('t');
+            } else if (this.hasAcceleration()) {
+                result.append(this.getAcceleration()).append("/tt");
+            } else {
+                return ""; // invalid
+            }
+
+            if (!this._launchFunctionIsDefault) {
+                if (this._launchFunction == LaunchFunction.Bezier.class) {
+                    result.append('b');
+                } else if (this._launchFunction == LaunchFunction.Linear.class) {
+                    result.append('l');
+                }
+            }
+
+            this._asString = result.toString();
+        }
+
+        return this._asString;
     }
 
     /**
@@ -171,6 +208,8 @@ public class LauncherConfig implements Cloneable {
      */
     public static LauncherConfig parse(String text) {
         LauncherConfig config = createDefault();
+        config._asString = text; // preserve
+
         String textFilt = text;
         int idx = 0;
         boolean is_acceleration_in_g = false;
@@ -178,8 +217,10 @@ public class LauncherConfig implements Cloneable {
             char c = textFilt.charAt(idx);
             if (c == 'b') {
                 config._launchFunction = LaunchFunction.Bezier.class;
+                config._launchFunctionIsDefault = false;
             } else if (c == 'l') {
                 config._launchFunction = LaunchFunction.Linear.class;
+                config._launchFunctionIsDefault = false;
             } else if (c == 'g' || c == 'G') {
                 is_acceleration_in_g = true;
             } else {
@@ -197,6 +238,13 @@ public class LauncherConfig implements Cloneable {
             config._duration = -1;
             config._distance = -1.0;
             config._acceleration = ParseUtil.parseDouble(textFilt.substring(0, accelerationStart), -1.0);
+
+            // If not specified, make sure the launch function used is linear
+            // A bezier curve with constant acceleration would make for a weird default
+            if (!config._launchFunctionIsDefault) {
+                config._launchFunction = LaunchFunction.Linear.class;
+            }
+
             double factor = 1.0; // tick
             for (int i = accelerationStart+1; i < textFilt.length(); i++) {
                 char c = textFilt.charAt(i);
@@ -237,9 +285,11 @@ public class LauncherConfig implements Cloneable {
         } else {
             config._launchFunction = LaunchFunction.Bezier.class;
         }
+        config._launchFunctionIsDefault = true;
         config._duration = -1;
         config._distance = -1.0;
         config._acceleration = -1.0;
+        config._asString = ""; // invalid, because it is not configured yet
         return config;
     }
 }

@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
@@ -73,6 +74,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
     private double waitDistance = 0.0;
     private double waitDelay = 0.0;
+    private LauncherConfig waitLaunchConfig = LauncherConfig.createDefault();
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
@@ -161,6 +163,26 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setWaitDelay(double delay) {
         this.waitDelay = delay;
+    }
+
+    /**
+     * Gets the configuration of the launch behavior, when a train stops or moves when automatically
+     * waiting for trains ahead.
+     * 
+     * @return wait distance launch config used
+     */
+    public LauncherConfig getWaitLaunchConfig() {
+        return this.waitLaunchConfig;
+    }
+
+    /**
+     * Sets the configuration of the launch behavior, when a train stops or moves when automatically
+     * waiting for trains ahead.
+     * 
+     * @param config Launch configuration to set to
+     */
+    public void setWaitLaunchConfig(LauncherConfig config) {
+        this.waitLaunchConfig = config;
     }
 
     /**
@@ -1125,6 +1147,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equalsIgnoreCase("waitdelay")) {
             this.setWaitDelay(ParseUtil.parseDouble(arg, this.waitDelay));
+        } else if (key.equalsIgnoreCase("waitlaunch")) {
+            this.setWaitLaunchConfig(LauncherConfig.parse(arg));
         } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playerexit")) {
@@ -1320,6 +1344,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isMobManualMovementAllowed()));
         this.waitDistance = node.get("waitDistance", this.waitDistance);
         this.waitDelay = node.get("waitDelay", this.waitDelay);
+        this.waitLaunchConfig = LauncherConfig.parse(node.get("waitLaunch", this.waitLaunchConfig.toString()));
         this.suffocation = node.get("suffocation", this.suffocation);
         this.killMessage = node.get("killMessage", this.killMessage);
 
@@ -1436,6 +1461,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.blockOffset = source.blockOffset;
         this.waitDistance = source.waitDistance;
         this.waitDelay = source.waitDelay;
+        this.waitLaunchConfig = source.waitLaunchConfig;
         this.bankingStrength = source.bankingStrength;
         this.bankingSmoothness = source.bankingSmoothness;
         this.suffocation = source.suffocation;
@@ -1455,6 +1481,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("gravity", this.gravity);
         node.set("waitDistance", this.waitDistance);
         node.set("waitDelay", this.waitDelay);
+        node.set("waitLaunch", this.waitLaunchConfig.toString());
         node.set("suffocation", this.suffocation);
         node.set("killMessage", this.killMessage);
 
@@ -1501,6 +1528,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("gravity", this.gravity != 1.0 ? this.gravity : null);
         node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
         node.set("waitDelay", (this.waitDelay > 0.0) ? this.waitDelay : null);
+        node.set("waitLaunch", this.waitLaunchConfig.isValid() ? this.waitLaunchConfig.toString() : null);
         node.set("suffocation", this.suffocation ? null : false);
         node.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
 

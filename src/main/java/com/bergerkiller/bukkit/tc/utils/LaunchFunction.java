@@ -202,6 +202,16 @@ public abstract class LaunchFunction {
     }
 
     /**
+     * Gets whether this launch function is instantaneous, meaning the time
+     * it takes to change speeds is 0.
+     * 
+     * @return True if the launch is instantaneous
+     */
+    public final boolean isInstantaneous() {
+        return this.totalTime == 0;
+    }
+
+    /**
      * Calibrates the algorithm to perform an instantaneous launch to the
      * target velocity.
      */
