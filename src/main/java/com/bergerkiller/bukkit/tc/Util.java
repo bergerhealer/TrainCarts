@@ -663,6 +663,74 @@ public class Util {
     }
 
     /**
+     * Parses a number with optional acceleration unit to an acceleration value.
+     * Assumes 1 block is 1 meter.
+     * Supports the following formats:
+     * <ul>
+     * <li>12     =  12 blocks/tick^2</li>
+     * <li>12.5   =  12.5 blocks/tick^2</li>
+     * <li>1g     =  9.81 blocks/second^2 (0.024525 blocks/tick^2)</li>
+     * <li>20/tt  =  20 blocks/tick^2 (0.024525 blocks/tick^2)</li>
+     * <li>20/ss  =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
+     * <li>20/s2  =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
+     * <li>20/mm  =  20 blocks/minute^2</li>
+     * </ul>
+     * 
+     * @param accelerationString The text to parse
+     * @param defaultValue The default value to return if parsing fails
+     * @return parsed acceleration in blocks/tick^2
+     */
+    public static double parseAcceleration(String accelerationString, double defaultValue) {
+        // Avoid out of range
+        if (accelerationString.isEmpty()) {
+            return defaultValue;
+        }
+
+        // Parsing of the /tt and so on formats of acceleration
+        int slashIndex = accelerationString.indexOf('/');
+        if (slashIndex != -1) {
+            // Take all characters before the slash, eliminate non-digit ones
+            StringBuilder valueStr = new StringBuilder(slashIndex+1);
+            for (int i = 0; i < slashIndex; i++) {
+                char c = accelerationString.charAt(i);
+                if (Character.isDigit(c) || c == '.' || c == ',' || c == '-') {
+                    valueStr.append(c);
+                }
+            }
+            double value = ParseUtil.parseDouble(valueStr.toString(), Double.NaN);
+            if (Double.isNaN(value)) {
+                return defaultValue;
+            }
+
+            double factor = 1.0; // tick
+            for (int i = slashIndex+1; i < accelerationString.length(); i++) {
+                char c = accelerationString.charAt(i);
+                if (c == 's') {
+                    factor = 400.0; // second is 20 ticks, square it for acceleration factor
+                } else if (c == 'm') {
+                    factor = 1440000.0; // minute is 1200 ticks, square it for acceleration factor
+                }
+            }
+            return value / factor;
+        }
+
+        // Check whether unit is in g's
+        char lastChar = accelerationString.charAt(accelerationString.length()-1);
+        if (lastChar == 'g' || lastChar == 'G') {
+            // Unit is in g's
+            String g_value_str = accelerationString.substring(0, accelerationString.length()-1);
+            double value = ParseUtil.parseDouble(g_value_str, Double.NaN);
+            if (Double.isNaN(value)) {
+                return defaultValue;
+            }
+            return 0.024525 * value;
+        }
+
+        // Assume blocks/tick unit
+        return ParseUtil.parseDouble(accelerationString, defaultValue);
+    }
+
+    /**
      * Parses a number with optional velocity unit to a velocity value.
      * Assumes 1 block is 1 meter.
      * Supports the following formats:

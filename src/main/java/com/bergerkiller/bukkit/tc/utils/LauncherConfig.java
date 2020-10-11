@@ -237,29 +237,18 @@ public class LauncherConfig implements Cloneable {
             // acceleration specified
             config._duration = -1;
             config._distance = -1.0;
-            config._acceleration = ParseUtil.parseDouble(textFilt.substring(0, accelerationStart), -1.0);
+            config._acceleration = Util.parseAcceleration(textFilt, -1.0);
 
             // If not specified, make sure the launch function used is linear
             // A bezier curve with constant acceleration would make for a weird default
             if (!config._launchFunctionIsDefault) {
                 config._launchFunction = LaunchFunction.Linear.class;
             }
-
-            double factor = 1.0; // tick
-            for (int i = accelerationStart+1; i < textFilt.length(); i++) {
-                char c = textFilt.charAt(i);
-                if (c == 's') {
-                    factor = 400.0; // second is 20 ticks, square it for acceleration factor
-                } else if (c == 'm') {
-                    factor = 1440000.0; // minute is 1200 ticks, square it for acceleration factor
-                }
-            }
-            config._acceleration /= factor;
         } else if (is_acceleration_in_g) {
             // acceleration specified as a factor by G-factor (value * 9.81 / (20*20))
             config._duration = -1;
             config._distance = -1.0;
-            config._acceleration = 0.024525 * ParseUtil.parseDouble(textFilt.substring(0, accelerationStart), -1.0);
+            config._acceleration = 0.024525 * ParseUtil.parseDouble(textFilt, -1.0);
         } else {
             // distance or duration specified
             config._acceleration = -1.0;

@@ -37,7 +37,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
@@ -74,7 +73,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
     private double waitDistance = 0.0;
     private double waitDelay = 0.0;
-    private LauncherConfig waitLaunchConfig = LauncherConfig.createDefault();
+    private double waitDeceleration = 0.0;
+    private double waitAcceleration = 0.0;
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
@@ -166,23 +166,45 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the configuration of the launch behavior, when a train stops or moves when automatically
-     * waiting for trains ahead.
+     * Gets the acceleration in blocks/tick^2 of the train when speeding up again after waiting for a train.
+     * The speed of the train goes up by this amount every tick. If 0, the acceleration is instant.
      * 
-     * @return wait distance launch config used
+     * @return acceleration of the train when speeding up after waiting
      */
-    public LauncherConfig getWaitLaunchConfig() {
-        return this.waitLaunchConfig;
+    public double getWaitAcceleration() {
+        return this.waitAcceleration;
     }
 
     /**
-     * Sets the configuration of the launch behavior, when a train stops or moves when automatically
-     * waiting for trains ahead.
+     * Sets the acceleration in blocks/tick^2 of the train when speeding up again after waiting for a train.
      * 
-     * @param config Launch configuration to set to
+     * @param acceleration
+     * @see {@link #getWaitAcceleration()}
      */
-    public void setWaitLaunchConfig(LauncherConfig config) {
-        this.waitLaunchConfig = config;
+    public void setWaitAcceleration(double acceleration) {
+        this.waitAcceleration = acceleration;
+    }
+
+    /**
+     * Gets the deceleration inblocks/tick^2 of the train when slowing down, when the train has to wait
+     * for another train. Speed of the train goes down by this amount every tick. If 0, the deceleration
+     * is instant.
+     * 
+     * @return deceleration of the train when slowing down to wait for another train
+     */
+    public double getWaitDeceleration() {
+        return this.waitDeceleration;
+    }
+
+    /**
+     * Gets the deceleration inblocks/tick^2 of the train when slowing down, when the train has to wait
+     * for another train.
+     * 
+     * @param deceleration
+     * @see {@link #getWaitDeceleration()}
+     */
+    public void setWaitDeceleration(double deceleration) {
+        this.waitDeceleration = deceleration;
     }
 
     /**
@@ -1147,8 +1169,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
         } else if (key.equalsIgnoreCase("waitdelay")) {
             this.setWaitDelay(ParseUtil.parseDouble(arg, this.waitDelay));
-        } else if (key.equalsIgnoreCase("waitlaunch")) {
-            this.setWaitLaunchConfig(LauncherConfig.parse(arg));
+        } else if (LogicUtil.containsIgnoreCase(key, "waitacceleration", "waitaccel", "waitacc")) {
+            this.setWaitAcceleration(Util.parseAcceleration(arg, this.waitAcceleration));
+        } else if (LogicUtil.containsIgnoreCase(key, "waitdeceleration", "waitdecel", "waitdec", "waitdeacc")) {
+            this.setWaitDeceleration(Util.parseAcceleration(arg, this.waitDeceleration));
         } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playerexit")) {
@@ -1342,11 +1366,20 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
         this.setManualMovementAllowed(node.get("allowManualMovement", this.isManualMovementAllowed()));
         this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isMobManualMovementAllowed()));
-        this.waitDistance = node.get("waitDistance", this.waitDistance);
-        this.waitDelay = node.get("waitDelay", this.waitDelay);
-        this.waitLaunchConfig = LauncherConfig.parse(node.get("waitLaunch", this.waitLaunchConfig.toString()));
         this.suffocation = node.get("suffocation", this.suffocation);
         this.killMessage = node.get("killMessage", this.killMessage);
+
+        // Wait distance legacy, and the new wait properties
+        if (node.contains("waitDistance")) {
+            node.set("wait.distance", node.get("waitDistance"));
+        }
+        if (node.isNode("wait")) {
+            ConfigurationNode wait = node.getNode("wait");
+            this.waitDeceleration = wait.get("distance", this.waitDistance);
+            this.waitDelay = wait.get("delay", this.waitDelay);
+            this.waitAcceleration = wait.get("acceleration", this.waitAcceleration);
+            this.waitDeceleration = wait.get("deceleration", this.waitDeceleration);
+        }
 
         // Slowdown options for friction and gravity (and others?)
         if (node.isNode("slowDown")) {
@@ -1461,7 +1494,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.blockOffset = source.blockOffset;
         this.waitDistance = source.waitDistance;
         this.waitDelay = source.waitDelay;
-        this.waitLaunchConfig = source.waitLaunchConfig;
+        this.waitAcceleration = source.waitAcceleration;
+        this.waitDeceleration = source.waitDeceleration;
         this.bankingStrength = source.bankingStrength;
         this.bankingSmoothness = source.bankingSmoothness;
         this.suffocation = source.suffocation;
@@ -1479,11 +1513,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("keepChunksLoaded", this.keepChunksLoaded);
         node.set("speedLimit", this.speedLimit);
         node.set("gravity", this.gravity);
-        node.set("waitDistance", this.waitDistance);
-        node.set("waitDelay", this.waitDelay);
-        node.set("waitLaunch", this.waitLaunchConfig.toString());
         node.set("suffocation", this.suffocation);
         node.set("killMessage", this.killMessage);
+
+        ConfigurationNode wait = node.getNode("wait");
+        wait.set("distance", this.waitDistance);
+        wait.set("delay", this.waitDelay);
+        wait.set("acceleration", this.waitAcceleration);
+        wait.set("deceleration", this.waitDeceleration);
 
         ConfigurationNode banking = node.getNode("banking");
         banking.set("strength", this.bankingStrength);
@@ -1526,11 +1563,19 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         node.set("speedLimit", this.speedLimit != 0.4 ? this.speedLimit : null);
         node.set("gravity", this.gravity != 1.0 ? this.gravity : null);
-        node.set("waitDistance", (this.waitDistance > 0) ? this.waitDistance : null);
-        node.set("waitDelay", (this.waitDelay > 0.0) ? this.waitDelay : null);
-        node.set("waitLaunch", this.waitLaunchConfig.isValid() ? this.waitLaunchConfig.toString() : null);
         node.set("suffocation", this.suffocation ? null : false);
         node.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
+
+        node.remove("waitDistance"); // cleanup legacy
+        if (this.waitDistance > 0 || this.waitDelay > 0.0 || this.waitAcceleration != 0.0 || this.waitDeceleration != 0.0) {
+            ConfigurationNode wait = node.getNode("wait");
+            wait.set("distance", (this.waitDistance > 0) ? this.waitDistance : null);
+            wait.set("delay", (this.waitDelay > 0.0) ? this.waitDelay : null);
+            wait.set("acceleration", (this.waitAcceleration > 0.0) ? this.waitAcceleration : null);
+            wait.set("deceleration", (this.waitDeceleration > 0.0) ? this.waitDeceleration : null);
+        } else {
+            node.remove("wait");
+        }
 
         if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
             ConfigurationNode banking = node.getNode("banking");

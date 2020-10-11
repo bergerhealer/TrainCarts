@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -36,8 +37,6 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
-import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
-import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
@@ -51,7 +50,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,7 +57,6 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
@@ -72,6 +69,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private final SignTrackerGroup signTracker = new SignTrackerGroup(this);
     private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
+    private final SpeedAheadWaiter speedAheadWaiter = new SpeedAheadWaiter(this);
     protected long lastSync = Long.MIN_VALUE;
     private TrainProperties prop = null;
     private boolean breakPhysics = false;
@@ -80,8 +78,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private int updateStepCount = 1;
     private int updateStepNr = 1;
     private boolean unloaded = false;
-    private double waitDistanceSpeed = 0.0;
-    private int waitDistanceTickDelay = 0;
 
     protected MinecartGroup() {
         this.ticked.set();
@@ -1218,152 +1214,28 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Gets the distance and speed of an obstacle up ahead on the tracks.
+     * This can be another train, or a mutex zone that blocks further movement.
+     * 
+     * @param distance The distance in blocks to check for obstacles
+     * @return obstacle found within this distance, null if there is none
+     */
+    public SpeedAheadWaiter.Obstacle findObstacleAhead(double distance) {
+        return this.speedAheadWaiter.findObstacleAhead(distance);
+    }
+
+    /**
      * Gets the speed the train should be moving at to avoid collision with any trains in front.
      * A return value of 0 or less indicates the train should be halted entirely. A return value
      * of Double.MAX_VALUE indicates there are no obstacles ahead and the train can move on uninterrupted.
      * 
      * @param distance to look for trains ahead
      * @return speed to match
+     * @see {@link #findObstacleAhead(double)}
      */
     public double getSpeedAhead(double distance) {
-        // Not sure if fixed, but if this train is empty, return MAX_VALUE
-        if (this.isEmpty()) {
-            return Double.MAX_VALUE;
-        }
-
-        // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
-        if (distance <= 0.0) {
-            UUID world = this.head().getEntity().getWorld().getUID();
-            IntVector3 block = this.head().getBlockPos();
-            if (!MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
-                return Double.MAX_VALUE;
-            }
-        }
-
-        // Take into account that the head minecart has a length also, so we count distance from the edge (half length)
-        double selfCartOffset = (0.5 * this.head().getEntity().getWidth());
-
-        // Speed of this train, limited by the maximum speed property
-        double selfSpeed = this.head().getEntity().vel.length();
-        selfSpeed = Math.min(selfSpeed, this.getProperties().getSpeedLimit());
-
-        // The actual minimum distance allowed from the walking point position to any minecarts discovered
-        // This takes into account that the start position is halfway the length of the Minecart
-        // When distance is not greater than 0, we don't check for other trains at all.
-        boolean checkTrains = false;
-        double waitDistance = distance;
-        if (waitDistance > 0.0) {
-            checkTrains = true;
-            waitDistance += selfCartOffset;
-        }
-
-        // Two blocks are used to slow down the train, to make it match up to speed with the train up ahead
-        // Check for any mutex zones ~2 blocks ahead, and stop before we enter them
-        // If a wait distance is set, also check for trains there
-        double mutexDistance = 2.0 + selfCartOffset;
-        double checkDistance = Math.max(mutexDistance, waitDistance);
-
-        UUID worldUUID = this.getWorld().getUID();
-        TrackWalkingPoint iter = new TrackWalkingPoint(this.head().discoverRail());
-        while (iter.movedTotal <= checkDistance && iter.moveFull()) {
-
-            // Check for mutex zones the next block. If one is found that is occupied, stop right away
-            if (iter.movedTotal <= mutexDistance) {
-                MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(iter.state.railBlock()));
-                if (zone != null && !zone.slot.tryEnter(this)) {
-                    return 0.0;
-                }
-
-                if (!checkTrains) {
-                    break;
-                }
-            }
-
-            // Only check for trains on the rails when a wait distance is set
-            if (!checkTrains) {
-                continue;
-            }
-
-            // Check all other minecarts on the same rails to see if they are too close
-            Location state_position = null;
-            Location member_position = null;
-            double minSpeedAhead = Double.MAX_VALUE;
-            for (MinecartMember<?> member : RailMemberCache.findAll(iter.state.railBlock())) {
-                if (member.getGroup() == this) {
-                    continue;
-                }
-
-                // Retrieve & re-use (readonly)
-                if (state_position == null) {
-                    state_position = iter.state.positionLocation();
-                }
-
-                // Member center position & re-use (readonly)
-                if (member_position == null) {
-                    member_position = member.getEntity().getLocation();
-                } else {
-                    member.getEntity().getLocation(member_position);
-                }
-
-                // Is the minecart 'in front' of the current position on the rails, or behind us?
-                // This is important when iterating over the first track only, because then this is not guaranteed
-                if (iter.movedTotal == 0.0) {
-                    Vector delta = new Vector(member_position.getX() - state_position.getX(),
-                                              member_position.getY() - state_position.getY(),
-                                              member_position.getZ() - state_position.getZ());
-                    if (delta.dot(iter.state.motionVector()) < 0.0) {
-                        continue;
-                    }
-                }
-
-                // Compute distance from the current rail position to the 'edge' of the minecart.
-                // This is basically the distance to center, with half the length of the minecart subtracted.
-                double distanceToMember = member_position.distance(state_position) -
-                                          (double) member.getEntity().getWidth() * 0.5;
-
-                // Find the distance we can still move from our current position
-                double remaining = ((iter.movedTotal + distanceToMember) - waitDistance);
-
-                // Allow for 2-block distance until slowing down
-                final double MIN_DISTANCE = 2.0;
-                if (remaining > MIN_DISTANCE) {
-                    continue;
-                }
-
-                // Movement speed of the minecart, taking maximum speed into account
-                Vector member_velocity = member.getEntity().getVelocity();
-                double otherSpeed = MathUtil.clamp(member_velocity.length(), member.getEntity().getMaxSpeed());
-
-                // If moving towards me, stop right away! When barely moving, ignore this check.
-                if (otherSpeed > 1e-6 && iter.state.position().motDot(member_velocity) < 0.0) {
-                    return 0.0;
-                }
-
-                double speedAhead;
-                if (remaining <= 0.0) {
-                    // Too close, match the speed of the Minecart ahead. For the overshoot, slow ourselves down.
-                    speedAhead = otherSpeed + remaining;
-                    if (speedAhead < 0.0) {
-                        speedAhead = 0.0;
-                    }
-                } else {
-                    // Maintain distance. Use remaining to switch between force and absolute 0 for a smooth slowdown
-                    // This function is asymptotic, so nearing 0.0, simply set it to 0.0 to complete it sooner.
-                    double theta = (remaining / MIN_DISTANCE); // 0.0 ... 1.0
-                    if (theta <= 1e-5) theta = 0.0;
-                    speedAhead = theta * selfSpeed + (1.0 - theta) * otherSpeed;
-                }
-
-                if (speedAhead < minSpeedAhead) {
-                    minSpeedAhead = speedAhead;
-                }
-            }
-            if (minSpeedAhead != Double.MAX_VALUE) {
-                return minSpeedAhead;
-            }
-        }
-
-        return Double.MAX_VALUE;
+        SpeedAheadWaiter.Obstacle obstacle = this.speedAheadWaiter.findObstacleAhead(distance);
+        return (obstacle != null) ? obstacle.speed : Double.MAX_VALUE;
     }
 
     private void tickActions() {
@@ -1511,11 +1383,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Validate members and set max speed
             // We must limit it to 0.4, otherwise derailment can occur when the
             // minecart speeds up inside the physics update function
-            double speedLimitClamped = MathUtil.clamp(this.getProperties().getSpeedLimit() * this.updateSpeedFactor, 0.4);
-            for (MinecartMember<?> mm : this) {
-                mm.checkMissing();
-                mm.getEntity().setMaxSpeed(speedLimitClamped);
-                mm.verifyPreMovePosition();
+            {
+                double speedLimitClamped = MathUtil.clamp(this.getProperties().getSpeedLimit() * this.updateSpeedFactor, 0.4);
+                for (MinecartMember<?> mm : this) {
+                    mm.checkMissing();
+                    mm.getEntity().setMaxSpeed(speedLimitClamped);
+                    mm.verifyPreMovePosition();
+                }
             }
 
             // Set up a valid network controller if needed
@@ -1580,46 +1454,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return false;
             }
 
-            // If a wait distance is set, check for trains ahead of the track and wait for those
-            // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
-            try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
-                // When a wait delay is set, speed slows down to a halt. We do that logic here.
-                if (this.waitDistanceSpeed > 0.01) {
-                    this.waitDistanceSpeed *= 0.7;
-                } else {
-                    this.waitDistanceSpeed = 0.0;
-                }
-
-                double speedAhead = this.getSpeedAhead(this.getProperties().getWaitDistance());
-                double newSpeedLimit = Math.min(this.getProperties().getSpeedLimit(), speedAhead);
-                boolean speedLimitChanged = false;
-                if (newSpeedLimit < this.getProperties().getSpeedLimit()) {
-                    // When a delay is set, reset the delay and slow down the train to a gradual complete halt
-                    // This, instead of letting the train follow the train ahead.
-                    if (this.getProperties().getWaitDelay() > 0.0) {
-                        if (this.waitDistanceTickDelay == 0 || newSpeedLimit < this.waitDistanceSpeed) {
-                            this.waitDistanceSpeed = newSpeedLimit;
-                        } else {
-                            newSpeedLimit = this.waitDistanceSpeed;
-                        }
-                        this.waitDistanceTickDelay = MathUtil.ceil(20.0 * this.getProperties().getWaitDelay());
-                    }
-
-                    speedLimitClamped = MathUtil.clamp(newSpeedLimit * this.updateSpeedFactor, 0.4);
-                    speedLimitChanged = true;
-                } else if (this.waitDistanceTickDelay > 0) {
-                    this.waitDistanceTickDelay--;
-                    speedLimitClamped = MathUtil.clamp(this.waitDistanceSpeed * this.updateSpeedFactor, 0.4);
-                    speedLimitChanged = true;
-                }
-                if (speedLimitChanged) {
-                    for (MinecartMember<?> mm : this) {
-                        mm.checkMissing();
-                        mm.getEntity().setMaxSpeed(speedLimitClamped);
-                    }
-                }
-            }
-
             // Add the gravity effects right before moving the Minecart
             // This changes velocity slightly so that minecarts go downslope or fall down
             // It is important to do it here, so that gravity is taken into account
@@ -1636,9 +1470,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Share forward force between all the Minecarts when size > 1
+            double forwardMovingSpeed;
             if (this.size() > 1) {
                 //Get the average forwarding force of all carts
-                double force = this.getAverageForce();
+                forwardMovingSpeed = this.getAverageForce();
 
                 //Perform forward force or not? First check if we are not messing up...
                 boolean performUpdate = true;
@@ -1652,7 +1487,23 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 if (performUpdate) {
                     //update force
                     for (MinecartMember<?> m : this) {
-                        m.setForwardForce(force);
+                        m.setForwardForce(forwardMovingSpeed);
+                    }
+                }
+            } else {
+                forwardMovingSpeed = this.head().getForce();
+            }
+
+            // If a wait distance is set, check for trains ahead of the track and wait for those
+            // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
+            // It is important speed of this train is updated before doing these checks.
+            try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
+                this.speedAheadWaiter.update(forwardMovingSpeed);
+                double limitedSpeed = this.speedAheadWaiter.getSpeedLimit();
+                if (limitedSpeed != Double.MAX_VALUE) {
+                    limitedSpeed = Math.min(0.4, this.updateSpeedFactor * limitedSpeed);
+                    for (MinecartMember<?> mm : this) {
+                        mm.getEntity().setMaxSpeed(limitedSpeed);
                     }
                 }
             }
