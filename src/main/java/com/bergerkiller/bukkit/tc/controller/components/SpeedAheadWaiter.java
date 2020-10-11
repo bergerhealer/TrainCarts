@@ -148,6 +148,9 @@ public class SpeedAheadWaiter {
             }
         }
 
+        // Limit this so people can't crash the server. Dunno what's best, decided on 2000.
+        this.safeDistance = Math.min(2000.0, this.safeDistance);
+
         // Check for obstacles, with a +1 block leeway
         Obstacle obstacle = this.findObstacleAhead(1.0 + this.safeDistance);
 
