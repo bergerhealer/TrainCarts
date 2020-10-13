@@ -1,0 +1,19 @@
+# Feel free to alter this file to your liking when using the template.
+# It allows to keep dependencies up to date using Dependabot.
+#
+# If you use Dependabot-Preview can you easly switch to Dependabot, by logging into the dashboard at
+# https://dependabot.com and click the "Create config file" button of your repository.
+# The bot should make a Pull request with the config file that you then can modify if you want.
+#
+# You can find more info about the file-format here:
+# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  # Configuration for maven
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Disable all pull requests for Docker dependencies
+    open-pull-requests-limit: 0
