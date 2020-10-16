@@ -30,4 +30,9 @@ public class StatementBoolean extends Statement {
     public boolean matchArray(String text) {
         return false;
     }
+
+    @Override
+    public int priority() {
+        return 1; // Slightly elevated to make sure true/false works reliably
+    }
 }

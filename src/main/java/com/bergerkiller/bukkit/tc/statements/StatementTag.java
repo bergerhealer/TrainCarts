@@ -9,6 +9,11 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 public class StatementTag extends Statement {
 
     @Override
+    public int priority() {
+        return -99999;
+    }
+
+    @Override
     public boolean match(String text) {
         return true;
     }

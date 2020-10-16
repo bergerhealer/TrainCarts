@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class Statement {
@@ -34,7 +35,7 @@ public abstract class Statement {
         register(new StatementRedstone());
         register(new StatementPermission());
         register(new StatementDirection());
-        register(new StatementTag()); //register lastly!
+        register(new StatementTag());
     }
 
     public static void deinit() {
@@ -42,7 +43,10 @@ public abstract class Statement {
     }
 
     public static <T extends Statement> T register(T statement) {
-        statements.add(statement);
+        int index = Collections.binarySearch(statements, statement,
+                (a, b) -> Integer.compare(b.priority(), a.priority()));
+        if (index < 0) index = ~index;
+        statements.add(index, statement);
         return statement;
     }
 
@@ -193,6 +197,17 @@ public abstract class Statement {
      */
     public boolean requiredEvent() {
         return false;
+    }
+
+    /**
+     * Defines the priority of this statement. Use this to have statements
+     * match before or after other statements. Default is 0. A negative value
+     * will make it match last, a positive value will have it match first.
+     * 
+     * @return priority
+     */
+    public int priority() {
+        return 0;
     }
 
     public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
