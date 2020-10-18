@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.animation;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.util.Vector;
@@ -11,7 +12,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 /**
  * A single keyframe of an animation
  */
-public class AnimationNode {
+public class AnimationNode implements Cloneable {
     private final Vector _position;
     private Vector _rotationVec; // rotation as yaw/pitch/roll angles
     private Quaternion _rotationQuat; // rotation as Quaternion
@@ -148,6 +149,11 @@ public class AnimationNode {
         return builder.toString();
     }
 
+    @Override
+    public AnimationNode clone() {
+        return new AnimationNode(this._position.clone(), this._rotationVec.clone(), this._active, this._duration);
+    }
+
     /**
      * Parses the contents of an animation node from a configuration String.
      * Invalid configuration will produce an identity node.
@@ -270,7 +276,47 @@ public class AnimationNode {
         return new AnimationNode(new Vector(), new Quaternion(), true, 1.0);
     }
 
+    /**
+     * Computes the average transformation of multiple animation nodes. If only
+     * one node exists, then that node is returned. If no nodes are specified,
+     * identity is returned.
+     * 
+     * @param nodes
+     * @return average animation transformations of all nodes
+     */
+    public static AnimationNode average(Collection<AnimationNode> nodes) {
+        if (nodes.size() == 1) {
+            return nodes.iterator().next();
+        } else if (nodes.isEmpty()) {
+            return identity();
+        }
+
+        double fact = 1.0 / (double) nodes.size();
+        Vector pos = new Vector();
+        Vector rot = new Vector();
+
+        int num_active = 0;
+        double duration = 0.0;
+        for (AnimationNode node : nodes) {
+            pos.setX(pos.getX() + fact * node.getPosition().getX());
+            pos.setY(pos.getY() + fact * node.getPosition().getY());
+            pos.setZ(pos.getZ() + fact * node.getPosition().getZ());
+            rot.setX(rot.getX() + fact * node.getRotationVector().getX());
+            rot.setY(rot.getY() + fact * node.getRotationVector().getY());
+            rot.setZ(rot.getZ() + fact * node.getRotationVector().getZ());
+            duration += fact * node.getDuration();
+            if (node.isActive()) {
+                num_active++;
+            }
+        }
+        rot.setX(MathUtil.wrapAngle(rot.getX()));
+        rot.setY(MathUtil.wrapAngle(rot.getY()));
+        rot.setZ(MathUtil.wrapAngle(rot.getZ()));
+        return new AnimationNode(pos, rot, num_active >= (nodes.size()>>1), duration);
+    }
+
     private static boolean isNumericChar(char ch) {
         return Character.isDigit(ch) || ch == '.' || ch == '-';
     }
+
 }

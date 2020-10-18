@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
@@ -60,23 +61,27 @@ public class AnimationMenu extends MapWidgetMenu {
     private final MapWidgetAnimationView animView = new MapWidgetAnimationView() {
         @Override
         public void onSelectionActivated() {
-            final int node_index = this.getSelectedIndex();
-            final AnimationNode node = this.getSelectedNode();
-            if (node != null) {
-                this.addWidget(new ConfigureAnimationNodeDialog(node) {
+            List<AnimationNode> nodes = this.getSelectedNodes();
+            if (!nodes.isEmpty()) {
+                this.addWidget(new ConfigureAnimationNodeDialog(nodes) {
                     @Override
                     public void onChanged() {
-                        updateAnimationNode(node_index, this.getNode());
+                        updateAnimationNodes(getNodes());
+                    }
+
+                    @Override
+                    public void onMultiSelect() {
+                        startMultiSelect();
                     }
 
                     @Override
                     public void onDuplicate() {
-                        duplicateAnimationNode(node_index);
+                        duplicateAnimationNodes();
                     }
 
                     @Override
                     public void onDelete() {
-                        deleteAnimationNode(node_index);
+                        deleteAnimationNodes();
                     }
 
                     @Override
@@ -347,64 +352,87 @@ public class AnimationMenu extends MapWidgetMenu {
      * 
      * @param index
      */
-    public void duplicateAnimationNode(int index) {
+    public void duplicateAnimationNodes() {
         Animation old_anim = this.animView.getAnimation();
         if (old_anim == null) {
             return;
         }
 
+        int start = this.animView.getSelectionStart();
+        int end = this.animView.getSelectionEnd();
+        int count = (end-start+1);
+
         ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(Arrays.asList(old_anim.getNodeArray()));
-        tmp.add(index+1, tmp.get(index));
+        for (int i = start; i <= end; i++) {
+            tmp.add(i+count, tmp.get(i).clone());
+        }
+
         AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);
         Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
         replacement.setOptions(old_anim.getOptions().clone());
         setAnimation(replacement);
 
-        animView.setSelectedIndex(index + 1);
+        // Note: if multiple were selected, selects the entire newly created group
+        animView.setSelectedIndex(this.animView.getSelectedIndex() + count);
     }
 
     /**
-     * Deletes an existing animation node from the animation.
+     * Deletes existing selected animation nodes from the animation.
      * If the animation has only one node, the deletion silently fails. (TODO?)
-     * 
-     * @param index
      */
-    public void deleteAnimationNode(int index) {
+    public void deleteAnimationNodes() {
         Animation old_anim = this.animView.getAnimation();
         if (old_anim == null || old_anim.getNodeCount() <= 1) {
             return;
         }
 
-        AnimationNode[] new_nodes = LogicUtil.removeArrayElement(old_anim.getNodeArray(), index);
+        int start = this.animView.getSelectionStart();
+        int end = this.animView.getSelectionEnd();
+        int count = (end-start+1);
+
+        ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(Arrays.asList(old_anim.getNodeArray()));
+        for (int n = 0; n < count && !tmp.isEmpty(); n++) {
+            tmp.remove(start);
+        }
+
+        AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);
         Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
         replacement.setOptions(old_anim.getOptions().clone());
         setAnimation(replacement);
+
+        this.animView.setSelectedItemRange(0); // reset
     }
 
     /**
      * Updates the value of an existing animation node.
      * Sends a preview update as well
      * 
-     * @param index of the node
-     * @param node value to replace it with
+     * @param nodes Node values to replace it with
      */
-    public void updateAnimationNode(int index, AnimationNode node) {
+    public void updateAnimationNodes(List<AnimationNode> nodes) {
         Animation old_anim = this.animView.getAnimation();
         if (old_anim == null) {
             return;
         }
 
+        int start = this.animView.getSelectionStart();
+        int end = this.animView.getSelectionEnd();
+
         // System.out.println("NODE[" + index + "] = " + node.serializeToString());
 
         AnimationNode[] new_nodes = old_anim.getNodeArray().clone();
-        if (index >= 0 && index < new_nodes.length) {
-            new_nodes[index] = node;
+        for (int i = 0; i < nodes.size(); i++) {
+            int new_i = start + i;
+            if (new_i >= 0 && new_i <= end && new_i < new_nodes.length) {
+                new_nodes[new_i] = nodes.get(i);
+            }
         }
+
         Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
         replacement.setOptions(old_anim.getOptions().clone());
         setAnimation(replacement);
 
-        previewAnimationNode(index, node);
+        previewAnimationNode(this.animView.getSelectedIndex(), this.animView.getSelectedNode());
     }
 
     /**

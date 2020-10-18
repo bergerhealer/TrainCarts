@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import org.bukkit.util.Vector;
@@ -9,6 +12,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 
@@ -22,6 +26,8 @@ public class MapWidgetAnimationView extends MapWidget {
     private MapWidgetAnimationNode[] _nodes;
     private int _scrollOffset = 0;
     private int _selectedNodeIndex = 0;
+    private int _selectedNodeRange = 0;
+    private boolean _multiSelectActive = false;
     private Animation _animation = null;
     private MapTexture _scrollbarBG = MapTexture.createEmpty();
 
@@ -153,11 +159,7 @@ public class MapWidgetAnimationView extends MapWidget {
     public void onActivate() {
         super.onActivate();
 
-        int selIndex = this._selectedNodeIndex - this._scrollOffset;
-        for (int i = 0; i < this._nodes.length; i++) {
-            this._nodes[i].setSelected(i == selIndex);
-        }
-
+        updateSelectedNodes();
         this.onSelectionChanged();
     }
 
@@ -178,12 +180,24 @@ public class MapWidgetAnimationView extends MapWidget {
             return;
         }
 
-        if (event.getKey() == MapPlayerInput.Key.UP) {
-            this.setSelectedIndex(this.getSelectedIndex()-1);
-        } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
-            this.setSelectedIndex(this.getSelectedIndex()+1);
-        } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
-            this.onSelectionActivated();
+        if (this._multiSelectActive) {
+            if (event.getKey() == MapPlayerInput.Key.UP) {
+                this.setSelectedItemRange(this.getSelectedItemRange()-1);
+            } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                this.setSelectedItemRange(this.getSelectedItemRange()+1);
+            } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                this.stopMultiSelect();
+            }
+        } else {
+            if (event.getKey() == MapPlayerInput.Key.UP) {
+                this.setSelectedItemRange(0);
+                this.setSelectedIndex(this.getSelectedIndex()-1);
+            } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                this.setSelectedItemRange(0);
+                this.setSelectedIndex(this.getSelectedIndex()+1);
+            } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                this.onSelectionActivated();
+            }
         }
     }
 
@@ -209,39 +223,168 @@ public class MapWidgetAnimationView extends MapWidget {
     }
 
     /**
+     * Gets a list of all the Animation Node entries currently selected
+     * 
+     * @return list of selected nodes
+     */
+    public List<AnimationNode> getSelectedNodes() {
+        if (this._animation == null) return Collections.emptyList();
+        if (this._selectedNodeIndex >= this._animation.getNodeCount()) return Collections.emptyList();
+        if (this._selectedNodeIndex < 0) return Collections.emptyList();
+
+        if (this._selectedNodeRange == 0) {
+            return Collections.singletonList(this._animation.getNode(this._selectedNodeIndex));
+        }
+
+        List<AnimationNode> result = new ArrayList<AnimationNode>(Math.abs(this._selectedNodeRange) + 1);
+        int startIndex = this.getSelectionStart();
+        int endIndex = this.getSelectionEnd();
+        for (int i = startIndex; i <= endIndex; i++) {
+            if (i >= 0 && i < this._animation.getNodeCount()) {
+                result.add(this._animation.getNode(i));
+            }
+        }
+        return result;
+    }
+
+    /**
      * Sets the selected node index
      * 
      * @param index of the node to select
      * @return this animation view widget
      */
     public MapWidgetAnimationView setSelectedIndex(int index) {
+        // Impose limits
         if (index < 0 || this._animation == null) {
             index = 0;
         } else if (index >= this._animation.getNodeCount()) {
             index = this._animation.getNodeCount()-1;
         }
+
         if (index != this._selectedNodeIndex) {
             this._selectedNodeIndex = index;
             this.updateView();
             this.onSelectionChanged();
+            display.playSound(SoundEffect.CLICK_WOOD);
         }
         return this;
     }
 
+    /**
+     * Gets the number of items additionally selected from the currently
+     * selected node. If 0, only the selected node is selected. If positive,
+     * additional rows below are selected. If negative, additional rows above
+     * are selected.
+     * 
+     * @return additionally selected item range offset
+     */
+    public int getSelectedItemRange() {
+        return this._selectedNodeRange;
+    }
+
+    /**
+     * Sets the number of items additionally selected from the currently
+     * selected node. See {@link #getSelectedItemRange()}.
+     * 
+     * @param count Number of items
+     * @return this
+     */
+    public MapWidgetAnimationView setSelectedItemRange(int count) {
+        // Impose limits
+        if (count < 0) {
+            int numBefore = this._selectedNodeIndex;
+            if ((-count) > numBefore) {
+                count = -numBefore;
+            }
+        } else if (count > 0) {
+            int numAfter = this._animation.getNodeCount() - this._selectedNodeIndex - 1;
+            if (count > numAfter) {
+                count = numAfter;
+            }
+        }
+
+        if (count != this._selectedNodeRange) {
+            this._selectedNodeRange = count;
+            this.updateView();
+            this.onSelectionChanged();
+            display.playSound(SoundEffect.CLICK_WOOD);
+        }
+
+        return this;
+    }
+
+    /**
+     * Gets the index of the first animation node that is selected
+     * 
+     * @return selection start
+     */
+    public int getSelectionStart() {
+        return this._selectedNodeRange < 0 ?
+                (this._selectedNodeIndex + this._selectedNodeRange) : this._selectedNodeIndex;
+    }
+
+    /**
+     * Gets the index of the last animation node that is selected
+     * 
+     * @return selection end
+     */
+    public int getSelectionEnd() {
+        return this._selectedNodeRange > 0 ?
+                (this._selectedNodeIndex + this._selectedNodeRange) : this._selectedNodeIndex;
+    }
+
+    /**
+     * Activates the multi-select node. The up-down keys now select or deselect additional
+     * entries above/below the currently selected node. Spacebar completes the selection.
+     * From then on, behavior resumes as normal.
+     */
+    public void startMultiSelect() {
+        this._multiSelectActive = true;
+        display.playSound(SoundEffect.PISTON_EXTEND);
+        this.updateView();
+    }
+
+    /**
+     * Stops multi-select mode. See {@link #startMultiSelect()}
+     */
+    public void stopMultiSelect() {
+        this._multiSelectActive = false;
+        display.playSound(SoundEffect.PISTON_CONTRACT);
+        this.updateView();
+    }
+
     private void updateView() {
         // Ensure selected node index is within range
+        boolean selectionWasWrong = false;
         if (this._animation != null && this._selectedNodeIndex >= this._animation.getNodeCount()) {
             this._selectedNodeIndex = this._animation.getNodeCount()-1;
+            selectionWasWrong = true;
+        }
+        if (this._selectedNodeRange < 0) {
+            int numBefore = this._selectedNodeIndex;
+            if ((-this._selectedNodeRange) > numBefore) {
+                this._selectedNodeRange = -numBefore;
+                selectionWasWrong = true;
+            }
+        } else if (this._selectedNodeRange > 0) {
+            int numAfter = (this._animation.getNodeCount() - this._selectedNodeIndex - 1);
+            if (this._selectedNodeRange > numAfter) {
+                this._selectedNodeRange = numAfter;
+                selectionWasWrong = true;
+            }
+        }
+        if (selectionWasWrong) {
             this.onSelectionChanged();
         }
 
         // Ensure selection is visible at all times, scroll to it if needed
         if (this._nodes != null) {
-            int relIndex = this._selectedNodeIndex - this._scrollOffset;
+            int focusedIndex = this._selectedNodeIndex + this._selectedNodeRange;
+            int relIndex = focusedIndex - this._scrollOffset;
             if (relIndex < 0) {
-                this._scrollOffset = this._selectedNodeIndex;
+                this._scrollOffset = focusedIndex;
             } else if (relIndex >= this._nodes.length) {
-                this._scrollOffset = this._selectedNodeIndex - this._nodes.length + 1;
+                this._scrollOffset = focusedIndex - this._nodes.length + 1;
             }
         }
 
@@ -264,6 +407,7 @@ public class MapWidgetAnimationView extends MapWidget {
                 // No animation, empty view
                 for (MapWidgetAnimationNode node : this._nodes) {
                     node.setValue(null);
+                    node.setIsMultiSelectRoot(false);
                     node.setSelected(false);
                 }
             } else {
@@ -286,16 +430,25 @@ public class MapWidgetAnimationView extends MapWidget {
                 }
 
                 // Update selected, do not show selection when deactivated
-                if (this.isActivated()) {
-                    int relIndex = this._selectedNodeIndex - this._scrollOffset;
-                    for (int i = 0; i < this._nodes.length; i++) {
-                        this._nodes[i].setSelected(i == relIndex);
-                    }
-                } else {
-                    for (int i = 0; i < this._nodes.length; i++) {
-                        this._nodes[i].setSelected(false);
-                    }
-                }
+                updateSelectedNodes();
+            }
+        }
+    }
+
+    private void updateSelectedNodes() {
+        if (this.isActivated()) {
+            int relIndex = this._selectedNodeIndex - this._scrollOffset;
+            int relIndexStart = this.getSelectionStart() - this._scrollOffset;
+            int relIndexEnd = this.getSelectionEnd() - this._scrollOffset;
+
+            for (int i = 0; i < this._nodes.length; i++) {
+                this._nodes[i].setIsMultiSelectRoot(this._multiSelectActive && i == relIndex);
+                this._nodes[i].setSelected(i >= relIndexStart && i <= relIndexEnd);
+            }
+        } else {
+            for (int i = 0; i < this._nodes.length; i++) {
+                this._nodes[i].setIsMultiSelectRoot(false);
+                this._nodes[i].setSelected(false);
             }
         }
     }

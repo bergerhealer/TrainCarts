@@ -17,6 +17,7 @@ public class MapWidgetAnimationNode extends MapWidget {
     private AnimationNode _node = null;
     private double _maxPosition = 1.0;
     private boolean _selected = false;
+    private boolean _multiSelectRoot = false;
 
     public MapWidgetAnimationNode() {
         this.setSize(100, 5);
@@ -80,13 +81,30 @@ public class MapWidgetAnimationNode extends MapWidget {
         return this._selected;
     }
 
+    /**
+     * Sets whether this animation node is a multi-select root.
+     * These get special colors when drawing.
+     * 
+     * @param root
+     */
+    public void setIsMultiSelectRoot(boolean root) {
+        if (this._multiSelectRoot != root) {
+            this._multiSelectRoot = root;
+            this.invalidate();
+        }
+    }
+
     @Override
     public void onDraw() {
         Column[] columns = calculateColumns(this.getWidth());
 
         // Fill entire widget with lines of color values, based on selected or not
         byte top_color, mid_color, btm_color;
-        if (this.isSelected()) {
+        if (this._multiSelectRoot && this.isSelected()) {
+            top_color = MapColorPalette.getColor(219, 145, 92);
+            mid_color = MapColorPalette.getColor(188, 124, 79);
+            btm_color = MapColorPalette.getColor(154, 101, 64);
+        } else if (this.isSelected()) {
             top_color = MapColorPalette.getColor(213, 219, 92);
             mid_color = MapColorPalette.getColor(183, 188, 79);
             btm_color = MapColorPalette.getColor(150, 154, 64);
